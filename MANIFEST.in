@@ -1,0 +1,28 @@
+recursive-include licenses *
+include LICENSE
+include setup.py
+include setup.cfg
+include .gitignore
+include README.rst
+include PREADME.rst
+include CHANGES.rst
+include MANIFEST.in
+include CHECKSUMS.txt
+include sha256_ROOT_CHECKSUM.txt
+include sha512_ROOT_CHECKSUM.txt
+include sha256_ROOT_CHECKSUM.sig
+include sha512_ROOT_CHECKSUM.sig
+include aiootp/__datasets.py
+include aiootp/commons.py
+include aiootp/asynchs.py
+include aiootp/paths.py
+include aiootp/debuggers.py
+include aiootp/generics.py
+include aiootp/randoms.py
+include aiootp/ciphers.py
+include aiootp/keygens.py
+include aiootp/__init__.py
+include aiootp/tor/README_TOR.rst
+include aiootp/databases/README_DATABASES.rst
+include tests/test_Comprende.py
+recursive-exclude tests/htmlcov *
