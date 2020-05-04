@@ -27,22 +27,16 @@ default asyncio loop is still available in ``default_loop``.
 """
 
 
-# import uvloop
+import os
 import asyncio
 from time import time
 from time import sleep
+from functools import wraps
+from functools import partial
 from .commons import commons
 
 
 default_loop = asyncio.get_event_loop()
-
-
-# # Optionally turn on ``uvloop``
-# asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-
-
-# # Optionally turn off ``uvloop``
-# asyncio.set_event_loop(default_loop)
 
 
 # # Optionally, set asyncio's debug mode on
@@ -105,6 +99,54 @@ def stop():
     return loop().stop()
 
 
+def executor_wrapper(function):
+    """
+    A decorator that wraps synchronous blocking IO functions so they
+    will run in an executor. This was adapted from the ``aiofiles``
+    package:
+
+    https://github.com/Tinche/aiofiles/blob/master/aiofiles/os.py
+
+
+    The license for their code is Apache License 2.0, available here:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+    """
+    @wraps(function)
+    async def runner(*args, **kwargs):
+        partial_function = partial(function, *args, **kwargs)
+        return await loop().run_in_executor(
+            executor=None, func=partial_function
+        )
+
+    return runner
+
+
+def make_os_async(namespace=None):
+    """
+    Wraps file operations from the ``os`` module is a decorator that
+    runs those methods in an async executor. This was adapted from the
+    ``aiofiles`` package:
+
+    https://github.com/Tinche/aiofiles/blob/master/aiofiles/os.py
+
+
+    Whose license is Apache License 2.0, available here:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+    """
+    if namespace == None:
+        namespace = commons.Namespace()
+    for attr in ["sendfile", "stat", "rename", "remove", "mkdir", "rmdir"]:
+        if hasattr(os, attr):
+            setattr(namespace, attr, executor_wrapper(getattr(os, attr)))
+    return namespace
+
+
+# create a version of ``os`` module with asynchronous file IO methods
+aos = make_os_async()
+
+
 async def _switch():
     """
     A base async generator function used to create an awaitable coroutine
@@ -122,8 +164,8 @@ __extras = {
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
-    # "uvloop": uvloop,
     "asyncio": asyncio,
+    "aos": aos,
     "run": run,
     "time": time,
     "stop": stop,
@@ -136,6 +178,7 @@ __extras = {
     "new_task": new_task,
     "new_future": new_future,
     "default_loop": default_loop,
+    "executor_wrapper": executor_wrapper,
 }
 
 
