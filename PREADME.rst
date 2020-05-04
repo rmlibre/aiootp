@@ -48,18 +48,20 @@ Users can create and modify transparently encrypted databases:
 .. code:: python
 
     import aiootp
-
-
-    # Make a new user key for encryption / decryption ->
     
-    key = await aiootp.acsprng()    # <- A fast, cryptographically secure pseudo-random number generator
-
-
+    
+    # Make a new user key for encryption / decryption with a fast,
+    
+    # cryptographically secure pseudo-random number generator ->
+    
+    key = await aiootp.acsprng()
+    
+    
     # Create a database object ->
     
     db = await aiootp.AsyncDatabase(key)
-
-
+    
+    
     # Store protected data by a ``tag`` ->
     
     tag = "private_account"
@@ -114,7 +116,7 @@ Users can create and modify transparently encrypted databases:
  >>>True
     
     
-    # Write the database changes to disk ->
+    # Write database changes to disk ->
     
     await db.asave()
     
@@ -130,7 +132,7 @@ Users can create and modify transparently encrypted databases:
     
     # Automate the write to disk logic with a context manager ->
     
-    async with aiootp.AsyncDatabase(key) as db:
+    async with (await aiootp.AsyncDatabase(key)) as db:
     
         db["tag"] = {"data": "can be any json serializable object"}
         
@@ -152,22 +154,52 @@ Users can create and modify transparently encrypted databases:
     assert new_db["lawyer"] is db["lawyer"]
     
     
+    # Or make namespaces out of databases for very efficient lookups ->
+    
+    namespace = await new_db.ainto_namespace()
+    
+    assert namespace.bitcoin = new_db["bitcoin"]
+    
+    assert namespace.lawyer = new_db["lawyer"]
+    
+    
     # Delete a database from the filesystem ->
     
     await db.adelete_database()
     
     
-    # Initialization of a database object is more computationally expensive than entering its
+    # Initialization of a database object is more computationally expensive
     
-    # context manager. So keeping a reference to a preloaded database is a great idea, either
-    
-    # call ``asave`` / ``save`` periodically, or open a context with the reference whenever
-    
-    # wanting to capture changes to the filesystem ->
+    # than entering its context manager. So keeping a reference to a
+
+    # preloaded database is a great idea, either call ``asave`` / ``save``
+
+    # periodically, or open a context with the reference whenever wanting to
+
+    # capture changes to the filesystem ->
     
     async with new_db as db:
     
         print("Saving to disk...")
+        
+        
+    # Transparent and automatic encryption makes persisting sensitive 
+    
+    # information very simple. Though, if users do want to encrypt / 
+    
+    # decrypt things manually, then databases allow that too ->
+    
+    data_name = "saturday clients"
+    
+    clients = ["Tony", "Maria"]
+    
+    encrypted = await db.aencrypt(filename=data_name, plaintext=clients)
+    
+    decrypted = await db.adecrypt(filename=data_name, ciphertext=encrypted)
+    
+    clients == decrypted
+    
+ >>>True
     
     
     #
@@ -219,39 +251,55 @@ What other tools are available to users?:
     
     from aiootp.ciphers import cipher, decipher    # <- Also simple generators
     
-    plaintext_generator = json_encode(plaintext)    # <- Yields plaintext json string in chunks
     
-    keystream = aiootp.keys(key)    # <- An endless stream of forward + semi-future secure hashes
+    # Yields plaintext json string in chunks ->
     
-    with aiootp.cipher(plaintext_generator, keystream) as encrypting:    # <- xor's the plaintext chunks with key chunks
-    
-        ciphertext = encrypting.list()    # <- ``list`` returns all results in a list
-    
-    ciphertext_seed_entropy = keystream.result(exit=True)    # <- Get the auto generated random salt back 
-                                                             #    This salt is needed for decryption.
+    plaintext_generator = json_encode(plaintext)
     
     
-    # This example was a low-level look at the encryption algorithm. And it was
+    # An endless stream of forward + semi-future secure hashes ->
     
-    # seven lines of code. The Comprende class makes working with generators a breeze,
+    keystream = aiootp.keys(key)
     
-    # and working with generators makes solving problems in bite-sized chunks a breeze.
     
-    # Here's the two-liner ->
+    # xor's the plaintext chunks with key chunks ->
     
-    ciphertext = aiootp.json_encode(plaintext).encrypt(key).list()    # <- The salt is encrypted with ``key``
-                                                                      # and attached to the ciphertext
+    with aiootp.cipher(plaintext_generator, keystream) as encrypting:
+    
+        # ``list`` returns all results in a list
+    
+        ciphertext = encrypting.list()
+        
+    # Get the auto generated random salt back. It's needed for decryption ->
+    
+    ciphertext_seed_entropy = keystream.result(exit=True)
+    
+    
+    # This example was a low-level look at the encryption algorithm. And it 
+
+    # was seven lines of code. The Comprende class makes working with 
+
+    # generators a breeze, & working with generators makes solving problems 
+
+    # in bite-sized chunks a breeze. Here's the two-liner that also takes 
+
+    # care of managing of the random salt ->
+    
+    ciphertext = aiootp.json_encode(plaintext).encrypt(key).list()
+    
     plaintext_json = aiootp.unpack(ciphertext).decrypt(key).join()
     
     
-    # We just used the ``list`` & ``join`` end-points to get the full series of results from the 
-    
-    # underlying generators. These results are lru-cached to facilitate their efficient reuse
-    
-    # for alternate computations. The ``Comprende`` context manager clears the opened instance's 
-    
-    # cache on exit, this clears every instance's cache ->
-    
+    # We just used the ``list`` & ``join`` end-points to get the full series 
+
+    # of results from the underlying generators. These results are lru-cached 
+
+    # to facilitate their efficient reuse for alternate computations. The 
+
+    # ``Comprende`` context manager clears the opened instance's cache on exit, 
+
+    # this clears every instance's cache ->
+
     aiootp.Comprende.clear_class()
     
     
@@ -385,14 +433,17 @@ What other tools are available to users?:
     
         z = 3
         
-        # Awaiting the ``__call__`` method will send ``None`` into the coroutine by default ->
+        
+        # Awaiting the ``__call__`` method will send ``None`` into the
+
+        # coroutine by default ->
         
         sum_of_x_y = await example()
         
         assert sum_of_x_y == 3
 
 
-        # Passing ``z`` will send it into the coroutine, cause it to reach the 
+        # Passing ``z`` will send it into the coroutine, cause it to reach the
         
         # raise statement which will exit the context manager gracefully ->
         
@@ -421,7 +472,9 @@ What other tools are available to users?:
             number += 1
     
     
-    # This is a chained async generator that salts then hashes then yields each output.
+    # This is a chained async generator that salts then hashes then yields
+
+    # each output ->
     
     salt = await aiootp.acsprng()
     
@@ -446,11 +499,11 @@ What other tools are available to users?:
         print(result)
     
     
-    # ``Comprende`` generators have loads of tooling for users to explore. Play 
+    # ``Comprende`` generators have loads of tooling for users to explore. 
     
-    # around with it and take a look at the other chainable generator methods
-    
-    # in ``aiootp.Comprende.lazy_generators``.
+    # Play around with it and take a look at the other chainable generator 
+
+    # methods in ``aiootp.Comprende.lazy_generators``.
     
     {
         '_agetitem',
@@ -559,11 +612,11 @@ What other tools are available to users?:
             assert index == len(ordered_entries) + 1
             
             
-    # There's a prepackaged ``Comprende`` generator function that does encryption / decryption 
+    # There's a prepackaged ``Comprende`` generator function that does
     
-    # of key ordered hash maps. First let's make an actual encryption key stream different from 
+    # encryption / decryption of key ordered hash maps. First let's make an
     
-    # ``names`` ->
+    # actual encryption key stream different from ``names`` ->
     
     key_stream = aiootp.akeys(key, salt, pid=aiootp.sha_256(key, salt))
     
@@ -575,18 +628,24 @@ What other tools are available to users?:
     
     # And let's make sure to clean up after ourselves with a context manager ->
     
-    async with aiootp.adata(plaintext).amap_encrypt(names, key_stream) as encrypting:
+    data_stream = aiootp.adata(plaintext)
     
-        # ``data`` takes a sequence, & ``amap_encrypt`` takes two iterables, a stream of
+    async with data_stream.amap_encrypt(names, key_stream) as encrypting:
+    
+        # ``data`` takes a sequence, & ``amap_encrypt`` takes two iterables,
         
-        # names for the hash map, & the stream of key material.
-    
+        # a stream of names for the hash map, & the stream of key material.
+        
         ciphertext_hashmap = await encrypting.adict()
         
         
-    # Now we'll pick the chunks out in the order produced by ``names`` to decrypt them ->
-        
-    async with aiootp.apick(names, ciphertext_hashmap).amap_decrypt(key_stream) as decrypting:
+    # Now we'll pick the chunks out in the order produced by ``names`` to 
+
+    # decrypt them ->
+    
+    ciphertext_stream = aiootp.apick(names, ciphertext_hashmap)
+    
+    async with ciphertext_stream.amap_decrypt(key_stream) as decrypting:
     
         decrypted = await decrypting.ajoin()
         
