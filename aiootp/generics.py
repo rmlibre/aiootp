@@ -378,6 +378,23 @@ def is_generator(obj):
     return isinstance(obj, GeneratorType)
 
 
+async def acustomize_parameters(
+    a=(), kw=(), indexes=(), args=(), kwargs=()
+):
+    """
+    Replaces ``a`` and ``kw`` arguments & keyword arguments with ``args``
+    if ``indexes`` is specified, and ``kwargs``.
+    """
+    if args and indexes:
+        async with aunpack(a) as base_args:
+            a = await base_args.alist()
+        async for index in aunpack(indexes):
+            a[index] = args[index]
+    async for kwarg in aunpack(kwargs):
+        kw[kwarg] = kwargs[kwarg]
+    return a, kw
+
+
 def customize_parameters(a=(), kw=(), indexes=(), args=(), kwargs=()):
     """
     Replaces ``a`` and ``kw`` arguments & keyword arguments with ``args``
@@ -648,6 +665,7 @@ class Comprende:
     }
 
     ASYNC_GEN_DONE = "async generator raised StopAsyncIteration"
+    ASYNC_GEN_THROWN = "async generator didn't stop after throw()"
 
     def __init__(self, func=None, *a, **kw):
         """
@@ -760,7 +778,10 @@ class Comprende:
         except GeneratorExit as done:
             raise done
         except RuntimeError as done:
-            if self.ASYNC_GEN_DONE not in done.args:
+            if (
+                self.ASYNC_GEN_DONE not in done.args
+                and self.ASYNC_GEN_THROWN not in done.args
+            ):
                 raise done
         except StopAsyncIteration:
             pass
@@ -859,20 +880,76 @@ class Comprende:
         """
         return self(got)
 
-    async def athrow(self, *a, **kw):
+    async def athrow(self, exc_type, exc_value=None, traceback=None):
         """
         This is quivalent to a wrapped async generator's ``athrow``
         method.
         """
-        await self.gen.athrow(*a, **kw)
+        await self.gen.athrow(exc_type, exc_value, traceback)
         return await self.aresult()
 
-    def throw(self, *a, **kw):
+    def throw(self, exc_type, exc_value=None, traceback=None):
         """
         This is quivalent to a wrapped sync generator's ``throw`` method.
         """
-        self.gen.throw(*a, **kw)
+        self.gen.throw(exc_type, exc_value, traceback)
         return self.result()
+
+    @property
+    def ag_await(self):
+        """
+        Copies the interface for async generators.
+        """
+        return self.gen.ag_await
+
+    @property
+    def ag_code(self):
+        """
+        Copies the interface for async generators.
+        """
+        return self.gen.ag_code
+
+    @property
+    def gi_code(self):
+        """
+        Copies the interface for generators.
+        """
+        return self.gen.gi_code
+
+    @property
+    def ag_frame(self):
+        """
+        Copies the interface for async generators.
+        """
+        return self.gen.ag_frame
+
+    @property
+    def gi_frame(self):
+        """
+        Copies the interface for generators.
+        """
+        return self.gen.gi_frame
+
+    @property
+    def ag_running(self):
+        """
+        Copies the interface for async generators.
+        """
+        return self.gen.ag_running
+
+    @property
+    def gi_running(self):
+        """
+        Copies the interface for generators.
+        """
+        return self.gen.gi_running
+
+    @property
+    def gi_yieldfrom(self):
+        """
+        Copies the interface for generators.
+        """
+        return self.gen.gi_yieldfrom
 
     async def aclose(self, *a, **kw):
         """
@@ -2765,12 +2842,16 @@ async def aint(data=0, *a):
 
 @alru_cache()
 async def aabs(number=None):
-    """Creates an asynchronous version of the builtin abs function."""
+    """
+    Creates an asynchronous version of the builtin abs function.
+    """
     return abs(number)
 
 
 async def aappend(container=None, item=None):
-    """Creates an asynchronous version of the container.append method."""
+    """
+    Creates an asynchronous version of the container.append method.
+    """
     container.append(item)
 
 
@@ -3122,6 +3203,7 @@ __extras = {
     "abytes_to_int": abytes_to_int,
     "acompact": acompact,
     "acount": _acount,
+    "acustomize_parameters": acustomize_parameters,
     "acycle": acycle,
     "adata": adata,
     "afrom_b64": afrom_b64,
