@@ -45,7 +45,6 @@ from aiocontext import async_contextmanager
 from .paths import *
 from .paths import Path
 from .commons import *
-from .commons import NUM
 from .commons import NONE
 from .asynchs import *
 from .randoms import csprng
@@ -68,6 +67,7 @@ from .generics import birth, abirth
 from .generics import unpack, aunpack
 from .generics import ignore, aignore
 from .generics import nc_512, anc_512
+from .generics import sha_256, asha_256
 from .generics import sha_512, asha_512
 from .generics import seedrange, aseedrange
 from .generics import lru_cache, alru_cache
@@ -232,16 +232,15 @@ def keys(key=None, salt=None, pid=0):
 
 
 @comprehension()
-async def asubkeys(key=csprng(), salt=None, pid=0, rate=512):
+async def asubkeys(key=csprng(), salt=None, pid=0, group_size=512):
     """
-    Builds forward-secure branches of key material streams at ``rate``
-    subkeys per yielded source key. Less time efficient than the source
-    ``akeys`` async generator.
+    Builds forward-secure branches of key material streams where each
+    branch has ``group_size`` subkeys per yielded source key.
 
     An efficient sync generator which produces an unending, non
     repeating, deterministc stream of string key material. Each
     iteration yields 256 hexidecimal characters, iteratively derived
-    by the mixing & hashing the permutation of the kwargs, previous
+    by mixing & hashing the permutation of the kwargs, previous
     hashed results, & the ``entropy`` users may send into this generator
     as a coroutine. The ``key`` kwarg is meant to be a longer-term user
     key credential (should be a random 512-bit hex value), the ``salt``
@@ -250,28 +249,25 @@ async def asubkeys(key=csprng(), salt=None, pid=0, rate=512):
     to safely parallelize key streams with the same ``key`` & ``salt``
     by specifying a unique ``pid`` to each process, thread or the like,
     which will result in a unique key stream for each.
-
-    This async generator uses the no-collision-512 algorithm developed
-    by this package. It works by concatenating the ``hashlib.sha3_512``
-    hash of two separate representations of the input data which doubles
-    the hash size & creates a dependency on attackers that limits
-    arbitrary inputs used for bruteforcing to a subset of inputs which
-    follow the no-collision-512 protocol.
     """
+    if not group_size >= 1:
+        raise ValueError(
+            "No infinite loops please. ``group_size`` must be >= 1"
+        )
     async with akeys(key=key, salt=salt, pid=pid).arelay() as source:
-        async for entropy in source:
-            stream_key = await asha_512_hmac((key, pid), key=entropy)
-            async for mix in aseedrange(rate, int(stream_key, 16)):
-                stream_key = await anc_512(stream_key, entropy, mix)
-                entropy = yield stream_key
+        entropy = await source()
+        branch_keys = await akeys(key, entropy, pid).aprime()
+        while True:
+            for sub_key in range(group_size):
+                entropy = yield await branch_keys(entropy)
+            entropy = await source(entropy)
 
 
 @comprehension()
-def subkeys(key=csprng(), salt=None, pid=0, rate=512):
+def subkeys(key=csprng(), salt=None, pid=0, group_size=512):
     """
-    Builds forward-secure branches of key material streams at ``rate``
-    subkeys per yielded source key. Less time efficient than the source
-    ``keys`` sync generator.
+    Builds forward-secure branches of key material streams where each
+    branch has ``group_size`` subkeys per yielded source key.
 
     An efficient sync generator which produces an unending, non
     repeating, deterministc stream of string key material. Each
@@ -285,20 +281,18 @@ def subkeys(key=csprng(), salt=None, pid=0, rate=512):
     to safely parallelize key streams with the same ``key`` & ``salt``
     by specifying a unique ``pid`` to each process, thread or the like,
     which will result in a unique key stream for each.
-
-    This sync generator uses the no-collision-512 algorithm developed
-    by this package. It works by concatenating the ``hashlib.sha3_512``
-    hash of two separate representations of the input data which doubles
-    the hash size & creates a dependency on attackers that limits
-    arbitrary inputs used for bruteforcing to a subset of inputs which
-    follow the no-collision-512 protocol.
     """
+    if not group_size >= 1:
+        raise ValueError(
+            "No infinite loops please. ``group_size`` must be >= 1"
+        )
     with keys(key=key, salt=salt, pid=pid).relay() as source:
-        for entropy in source:
-            stream_key = sha_512_hmac((key, pid), key=entropy)
-            for mix in seedrange(rate, int(stream_key, 16)):
-                stream_key = nc_512(stream_key, entropy, mix)
-                entropy = yield stream_key
+        entropy = source()
+        branch_keys = keys(key, entropy, pid).prime()
+        while True:
+            for branch in range(group_size):
+                entropy = yield branch_keys(entropy)
+            entropy = source(entropy)
 
 
 @comprehension()
@@ -611,7 +605,7 @@ async def adecrypt(data=(), key=csprng(), pid=0):
 
     entropy = akeys(key, session_seed, pid=pid)
     decode_salt = axor(abirth(ciphered_salt), key=entropy)
-    salt = await decode_salt.ahex().aslice(2, None).anext()
+    salt = await decode_salt.ahex().aslice(2, None).azfill(128).anext()
 
     decrypting = aorganize_decryption_streams(
         data=ciphertext[1:], key=key, salt=salt, pid=pid
@@ -646,7 +640,7 @@ def decrypt(data=(), key=csprng(), pid=0):
 
     entropy = keys(key, session_seed, pid=pid)
     decode_salt = xor(birth(ciphered_salt), key=entropy)
-    salt = decode_salt.hex().slice(2, None).next()
+    salt = decode_salt.hex().slice(2, None).zfill(128).next()
 
     decrypting = organize_decryption_streams(
         data=ciphertext[1:], key=key, salt=salt, pid=pid
@@ -677,7 +671,7 @@ async def ajson_encrypt(data=None, key=None, salt=None, pid=0):
                 given stream use the same ``pid`` value.
     """
     results = []
-    plaintext = json.dumps({"plaintext": data})
+    plaintext = json.dumps(data)
     async for result in abirth(plaintext).aencrypt(key, salt, pid=pid):
         results.append(result)
     return {"ciphertext": results}
@@ -705,7 +699,7 @@ def json_encrypt(data=None, key=None, salt=None, pid=0):
                 given stream use the same ``pid`` value.
     """
     results = []
-    plaintext = json.dumps({"plaintext": data})
+    plaintext = json.dumps(data)
     for result in birth(plaintext).encrypt(key, salt, pid=pid):
         results.append(result)
     return {"ciphertext": results}
@@ -737,7 +731,7 @@ async def ajson_decrypt(data=None, key=None, pid=0):
         ciphertext = data["ciphertext"]
     async for result in aunpack(ciphertext).adecrypt(key=key, pid=pid):
         results += result
-    return json.loads(results).pop("plaintext")
+    return json.loads(results)
 
 
 def json_decrypt(data=None, key=None, pid=0):
@@ -766,7 +760,7 @@ def json_decrypt(data=None, key=None, pid=0):
         ciphertext = data["ciphertext"]
     for result in unpack(ciphertext).decrypt(key=key, pid=pid):
         results += result
-    return json.loads(results).pop("plaintext")
+    return json.loads(results)
 
 
 class OneTimePad:
@@ -807,17 +801,18 @@ class OneTimePad:
         a baked-in, async one-time-pad encryption algorithm, while also
         keeping some encapsulation of code and functionality.
 
-        This algorithm produces random-looking, deterministic names for
-        each chunk of ciphertext, so they can be stored in hash tables
-        together.
+        When ``names`` is a stream of deterministic key material, this
+        algorithm produces a hashmap of ciphertext, such that without
+        the key material used to derive the stream, ordering the chunks
+        of ciphertext correctly is a guessing game.
 
-        The encryption key material derives the names such that without
-        the key material, ordering the ciphertext chunks correctly is a
-        guessing game.
+        ``entropy`` should be an async ``Comprende`` generator which,
+        like ``aiootp.akeys``, yields a stream key material from some
+        source key material.
 
         ``self`` is an instance of a ``Comprende`` generator that yields
         some length of string plaintext per iteration (246 is best for
-        most plaintext character sets).
+        the most common plaintext ascii character sets).
         """
         mapped_cipherstream = acipher(data=self, key=entropy).atag(names)
         async for name, ciphertext in mapped_cipherstream:
@@ -828,20 +823,21 @@ class OneTimePad:
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, synchronous one-time-pad encryption algorithm, while
-        also keeping some encapsulation of code and functionality.
+        a baked-in, sync one-time-pad encryption algorithm, while also
+        keeping some encapsulation of code and functionality.
 
-        This algorithm produces random-looking, deterministic names for
-        each chunk of ciphertext, so they can be stored in hash tables
-        together.
+        When ``names`` is a stream of deterministic key material, this
+        algorithm produces a hashmap of ciphertext, such that without
+        the key material used to derive the stream, ordering the chunks
+        of ciphertext correctly is a guessing game.
 
-        The encryption key material derives the names such that without
-        the key material, ordering the ciphertext chunks correctly is a
-        guessing game.
+        ``entropy`` should be an sync ``Comprende`` generator which,
+        like ``aiootp.keys``, yields a stream key material from some
+        source key material.
 
         ``self`` is an instance of a ``Comprende`` generator that yields
         some length of string plaintext per iteration (246 is best for
-        most plaintext character sets).
+        the most common plaintext ascii character sets).
         """
         for name, ciphertext in cipher(data=self, key=entropy).tag(names):
             yield name, ciphertext
@@ -851,21 +847,17 @@ class OneTimePad:
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, asynch one-time-pad decryption algorithm, while also
+        a baked-in, async one-time-pad decryption algorithm, while also
         keeping some encapsulation of code and functionality.
 
-        This algorithm produces random-looking, deterministic names for
-        each chunk of ciphertext, so they can be stored in hash tables
-        together.
-
-        The decryption key material derives the names such that without
-        the key material, ordering the ciphertext chunks correctly for
-        decryption is a guessing game.
+        ``entropy`` should be an async ``Comprende`` generator which,
+        like ``aiootp.akeys``, yields a stream key material from some
+        source key material.
 
         ``self`` is an instance of an async ``Comprende`` generator that
         yields a chunk of ciphertext in the correct order each iteration.
         ``entropy`` is the async ``Comprende`` generator that produces
-        the key material stream.
+        the same key material stream used during encryption.
         """
         async for plaintext in adecipher(data=self, key=entropy):
             yield plaintext
@@ -875,21 +867,17 @@ class OneTimePad:
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, synchronous one-time-pad decryption algorithm, while
-        also keeping some encapsulation of code and functionality.
+        a baked-in, sync one-time-pad decryption algorithm, while also
+        keeping some encapsulation of code and functionality.
 
-        This algorithm produces random-looking, deterministic names for
-        each chunk of ciphertext, so they can be stored in hash tables
-        together.
-
-        The decryption key material derives the names such that without
-        the key material, ordering the ciphertext chunks correctly for
-        decryption is a guessing game.
+        ``entropy`` should be an sync ``Comprende`` generator which,
+        like ``aiootp.keys``, yields a stream key material from some
+        source key material.
 
         ``self`` is an instance of an sync ``Comprende`` generator that
         yields a chunk of ciphertext in the correct order each iteration.
         ``entropy`` is the sync ``Comprende`` generator that produces
-        the key material stream.
+        the same key material stream used during encryption.
         """
         for plaintext in decipher(data=self, key=entropy):
             yield plaintext
@@ -903,12 +891,9 @@ class OneTimePad:
         keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. To give the method access to the
-        ``OneTimePad`` class's functionality, the ``parent`` keyword is
-        automatically passed in through the ``comprehension`` decorator.
-        With that, now all generators that are decorated with
-        ``comprehension`` can decrypt valid streams of one-time-pad
-        encrypted ciphertext.
+        instance of ``Comprende``. With that, now all generators that
+        are decorated with ``comprehension`` can encrypt valid streams
+        of one-time-pad encrypted ciphertext.
 
         The ``key`` keyword is the user's main encryption / decryption
         key for any particular context. This main key & the first chunk
@@ -949,12 +934,9 @@ class OneTimePad:
         keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. To give the method access to the
-        ``OneTimePad`` class's functionality, the ``parent`` keyword is
-        automatically passed in through the ``comprehension`` decorator.
-        With that, now all generators that are decorated with
-        ``comprehension`` can decrypt valid streams of one-time-pad
-        encrypted ciphertext.
+        instance of ``Comprende``. With that, now all generators that
+        are decorated with ``comprehension`` can encrypt valid streams
+        of one-time-pad encrypted ciphertext.
 
         The ``key`` keyword is the user's main encryption / decryption
         key for any particular context. This main key & the first chunk
@@ -995,12 +977,9 @@ class OneTimePad:
         keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. To give the method access to the
-        ``OneTimePad`` class's functionality, the ``parent`` keyword is
-        automatically passed in through the ``comprehension`` decorator.
-        With that, now all generators that are decorated with
-        ``comprehension`` can decrypt valid streams of one-time-pad
-        encrypted ciphertext.
+        instance of ``Comprende``. With that, now all generators that
+        are decorated with ``comprehension`` can decrypt valid streams
+        of one-time-pad encrypted ciphertext.
 
         The ``key`` keyword is the user's main encryption / decryption
         key. This main key & the first chunk of ciphertext are combined
@@ -1039,12 +1018,9 @@ class OneTimePad:
         keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. To give the method access to the
-        ``OneTimePad`` class's functionality, the ``parent`` keyword is
-        automatically passed in through the ``comprehension`` decorator.
-        With that, now all generators that are decorated with
-        ``comprehension`` can decrypt valid streams of one-time-pad
-        encrypted ciphertext.
+        instance of ``Comprende``. With that, now all generators that
+        are decorated with ``comprehension`` can decrypt valid streams
+        of one-time-pad encrypted ciphertext.
 
         The ``key`` keyword is the user's main encryption / decryption
         key. This main key & the first chunk of ciphertext are combined
@@ -1177,7 +1153,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             await asha_512_hmac(self.root_key, key=self.root_key)
         )
         self.root_filename = (
-            await self.root_names.asha_256_hmac(self.root_hash)()
+            await asha_256_hmac(self.root_hash, key=self.root_hash)
         )
         if metatag:
             self.is_metatag = True
@@ -1197,12 +1173,21 @@ class AsyncDatabase(metaclass=AsyncInit):
         return self.directory / self.root_filename
 
     @property
+    def root_session_salt(self):
+        """
+        Returns the database's most recent random nonce.
+        """
+        return self.__dict__.get("_root_session_salt")
+
+    @property
     def root_names(self):
         """
         Returns the deterministic key stream used to initially organize
         the encrypted manifest ledger shards as a hash map.
         """
-        return akeys(*[self.root_hash] * 3).aresize(64)
+        return akeys(
+            self.root_hash, self.root_hash, self.root_session_salt
+        ).aresize(64)
 
     @property
     def root_entropy(self):
@@ -1212,7 +1197,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         cryptographic key that is used to decrypt & encrypt the rest of
         the database.
         """
-        return akeys(*[self.root_key] * 3)
+        return akeys(self.root_key, self.root_key, self.root_session_salt)
 
     @property
     @lru_cache()
@@ -1264,12 +1249,6 @@ class AsyncDatabase(metaclass=AsyncInit):
         passes the user-defined ``tag`` through the ``filename(tag)``
         method, thereby making a unique, deterministic name stream for
         each ``tag``.
-
-        The ``keys`` object that's returned is primed & ready for being
-        sent in values like a coroutine. Starting on the very first
-        iteration, the impacts of the incorporated sent entropy will be
-        reflected in a completely distinguished stream being produced,
-        from every sent value onwards.
         """
         return await akeys(
             self.root_hash, self.root_seed, tag
@@ -1302,10 +1281,12 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Loads an existing manifest file ledger from the filesystem.
         """
-        names = self.root_names
-        entropy = self.root_entropy
         async with aiofiles.open(self.root_path, "r") as root_file:
             ciphertext = json.loads(await root_file.read())
+
+        self._root_session_salt = ciphertext.get("salt")
+        names = self.root_names
+        entropy = self.root_entropy
         decrypting = apick(names, ciphertext).amap_decrypt(entropy)
         async with decrypting as manifest:
             return json.loads(await manifest.ajoin())
@@ -1316,17 +1297,6 @@ class AsyncDatabase(metaclass=AsyncInit):
         an existing one from the filesystem.
         """
 
-        @alru_cache()
-        async def __aroot_salt(database=hash(self)):
-            """
-            Keeps the ``root_salt`` tucked away until queried, where
-            then it's cached for effiency.
-            """
-            if self.is_metatag:
-                return root_salt
-            else:
-                return await ajson_decrypt(root_salt, self.root_key)
-
         if self.root_path.exists():
             manifest = await self.aopen_manifest()
             root_salt = manifest[self.root_filename]
@@ -1336,6 +1306,22 @@ class AsyncDatabase(metaclass=AsyncInit):
             else:
                 root_salt = await ajson_encrypt(csprng(), self.root_key)
             manifest = {self.root_filename: root_salt}
+            self._root_session_salt = (await acsprng())[:64]
+
+        @alru_cache()
+        async def __aroot_salt(
+            database=sha_256_hmac(
+                (hash(self), root_salt), key=self.root_hash
+            )
+        ):
+            """
+            Keeps the ``root_salt`` tucked away until queried, where
+            then it's cached for efficiency.
+            """
+            if self.is_metatag:
+                return root_salt
+            else:
+                return await ajson_decrypt(root_salt, self.root_key)
 
         self.__aroot_salt = __aroot_salt
         self._manifest = commons.Namespace(manifest)
@@ -1360,11 +1346,14 @@ class AsyncDatabase(metaclass=AsyncInit):
         contains all database filenames & special cryptographic values
         for initializing the database's key derivation functions.
         """
+        salt = self._root_session_salt = (await acsprng())[:64]
         names = self.root_names
         entropy = self.root_entropy
         plaintext = adata(json.dumps(self.manifest.namespace))
         async with plaintext.amap_encrypt(names, entropy) as manifest:
-            await self.asave_manifest(ciphertext=await manifest.adict())
+            await self.asave_manifest(
+                ciphertext={"salt": salt, **(await manifest.adict())}
+            )
 
     async def aload(self):
         """
@@ -1416,8 +1405,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         Constructs the key & name streams for the decryption & retrieval
         of the value stored in the database file called ``filename``.
         """
-        names = await self.anamestream(filename)
-        entropy = await self.akeystream(filename)
+        salted_filename = await asha_256(filename, ciphertext.get("salt"))
+        names = await self.anamestream(salted_filename)
+        entropy = await self.akeystream(salted_filename)
         decrypting = apick(names, ciphertext).amap_decrypt(entropy)
         async with decrypting as plaintext:
             return json.loads(await plaintext.ajoin())
@@ -1436,12 +1426,14 @@ class AsyncDatabase(metaclass=AsyncInit):
         in the database of the value ``plaintext`` in the file called
         ``filename``.
         """
-        names = await self.anamestream(filename)
-        entropy = await self.akeystream(filename)
+        salt = (await acsprng())[:64]
+        salted_filename = await asha_256(filename, salt)
+        names = await self.anamestream(salted_filename)
+        entropy = await self.akeystream(salted_filename)
         plaintext = json.dumps(plaintext)
         encrypting = adata(plaintext).amap_encrypt(names, entropy)
         async with encrypting as ciphertext:
-            return await ciphertext.adict()
+            return {"salt": salt, **(await ciphertext.adict())}
 
     async def aset(self, tag=None, data=None):
         """
@@ -1489,7 +1481,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Deletes a file in the database directory by ``filename``.
         """
         try:
-            (self.directory / filename).unlink()
+            await asynchs.aos.remove(self.directory / filename)
         except FileNotFoundError:
             pass
 
@@ -1634,9 +1626,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         assert namespace.tag == db["tag"]
         assert namespace.tag is db["tag"]
         """
-        database = self.cache.namespace.values()
-        async with azip(self.tags, list(database)) as namespace:
-            return commons.Namespace(await namepspace.adict())
+        async with aunpack(self) as namespace:
+            return commons.Namespace(await namespace.adict())
 
     def __contains__(self, tag=None):
         """
@@ -1796,7 +1787,9 @@ class Database:
         self._manifest = commons.Namespace()
         self.root_key = keys(key, key, key)[password_depth]()
         self.root_hash = sha_512_hmac(self.root_key, key=self.root_key)
-        self.root_filename = self.root_names.sha_256_hmac(self.root_hash)()
+        self.root_filename = sha_256_hmac(
+            self.root_hash, key=self.root_hash
+        )
         if metatag:
             self.is_metatag = True
         else:
@@ -1815,12 +1808,21 @@ class Database:
         return self.directory / self.root_filename
 
     @property
+    def root_session_salt(self):
+        """
+        Returns the database's most recent random nonce.
+        """
+        return self.__dict__.get("_root_session_salt")
+
+    @property
     def root_names(self):
         """
         Returns the deterministic key stream used to initially organize
         the encrypted manifest ledger shards as a hash map.
         """
-        return keys(*[self.root_hash] * 3).resize(64)
+        return keys(
+            self.root_hash, self.root_hash, self.root_session_salt
+        ).resize(64)
 
     @property
     def root_entropy(self):
@@ -1830,7 +1832,7 @@ class Database:
         cryptographic key that is used to decrypt & encrypt the rest of
         the database.
         """
-        return keys(*[self.root_key] * 3)
+        return keys(self.root_key, self.root_key, self.root_session_salt)
 
     @property
     @lru_cache()
@@ -1882,12 +1884,6 @@ class Database:
         passes the user-defined ``tag`` through the ``filename(tag)``
         method, thereby making a unique, deterministic name stream for
         each ``tag``.
-
-        The ``keys`` object that's returned is primed & ready for being
-        sent in values like a coroutine. Starting on the very first
-        iteration, the impacts of the incorporated sent entropy will be
-        reflected in a completely distinguished stream being produced,
-        from every sent value onwards.
         """
         return keys(self.root_hash, self.root_seed, tag).resize(64).prime()
 
@@ -1916,10 +1912,12 @@ class Database:
         """
         Loads an existing manifest file ledger from the filesystem.
         """
-        names = self.root_names
-        entropy = self.root_entropy
         with open(self.root_path, "r") as root_file:
             ciphertext = json.load(root_file)
+
+        self._root_session_salt = ciphertext.get("salt")
+        names = self.root_names
+        entropy = self.root_entropy
         with pick(names, ciphertext).map_decrypt(entropy) as manifest:
             return json.loads(manifest.join())
 
@@ -1928,18 +1926,6 @@ class Database:
         Initalizes the object with a new database file ledger or loads
         an existing one from the filesystem.
         """
-
-        @lru_cache()
-        def __root_salt(database=hash(self)):
-            """
-            Keeps the ``root_salt`` tucked away until queried, where
-            then it's cached for effiency.
-            """
-            if self.is_metatag:
-                return root_salt
-            else:
-                return json_decrypt(root_salt, self.root_key)
-
         if self.root_path.exists():
             manifest = self.open_manifest()
             root_salt = manifest[self.root_filename]
@@ -1949,6 +1935,22 @@ class Database:
             else:
                 root_salt = json_encrypt(csprng(), self.root_key)
             manifest = {self.root_filename: root_salt}
+            self._root_session_salt = csprng()[:64]
+
+        @lru_cache()
+        def __root_salt(
+            database=sha_256_hmac(
+                (hash(self), root_salt), key=self.root_hash
+            )
+        ):
+            """
+            Keeps the ``root_salt`` tucked away until queried, where
+            then it's cached for efficiency.
+            """
+            if self.is_metatag:
+                return root_salt
+            else:
+                return json_decrypt(root_salt, self.root_key)
 
         self.__root_salt = __root_salt
         self._manifest = commons.Namespace(manifest)
@@ -1971,11 +1973,12 @@ class Database:
         contains all database filenames & special cryptographic values
         for initializing the database's key derivation functions.
         """
+        salt = self._root_session_salt = csprng()[:64]
         names = self.root_names
         entropy = self.root_entropy
         plaintext = data(json.dumps(self.manifest.namespace))
         with plaintext.map_encrypt(names, entropy) as manifest:
-            self.save_manifest(ciphertext=manifest.dict())
+            self.save_manifest(ciphertext={"salt": salt, **manifest.dict()})
 
     def load(self):
         """
@@ -2024,8 +2027,9 @@ class Database:
         Constructs the key & name streams for the decryption & retrieval
         of the value stored in the database file called ``filename``.
         """
-        names = self.namestream(filename)
-        entropy = self.keystream(filename)
+        salted_filename = sha_256(filename, ciphertext.get("salt"))
+        names = self.namestream(salted_filename)
+        entropy = self.keystream(salted_filename)
         with pick(names, ciphertext).map_decrypt(entropy) as plaintext:
             return json.loads(plaintext.join())
 
@@ -2043,11 +2047,13 @@ class Database:
         in the database of the value ``plaintext`` in the file called
         ``filename``.
         """
-        names = self.namestream(filename)
-        entropy = self.keystream(filename)
+        salt = csprng()[:64]
+        salted_filename = sha_256(filename, salt)
+        names = self.namestream(salted_filename)
+        entropy = self.keystream(salted_filename)
         plaintext = json.dumps(plaintext)
         with data(plaintext).map_encrypt(names, entropy) as ciphertext:
-            return ciphertext.dict()
+            return {"salt": salt, **ciphertext.dict()}
 
     def set(self, tag=None, data=None):
         """
@@ -2236,8 +2242,8 @@ class Database:
         assert namespace.tag == db["tag"]
         assert namespace.tag is db["tag"]
         """
-        database = self.cache.namespace.values()
-        return commons.Namespace(dict(zip(self.tags, database)))
+        with unpack(self) as namespace:
+            return commons.Namespace(namespace.dict())
 
     def __contains__(self, tag=None):
         """

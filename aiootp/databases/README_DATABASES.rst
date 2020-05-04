@@ -23,18 +23,20 @@ Description
 .. code:: python
     
     import aiootp
-
-
-    # Make a new user key for encryption / decryption ->
     
-    key = aiootp.csprng()    # <- A fast, cryptographically secure pseudo-random number generator
-
-
+    
+    # Make a new user key for encryption / decryption with a fast,
+    
+    # cryptographically secure pseudo-random number generator ->
+    
+    key = aiootp.csprng()
+    
+    
     # Create a database object ->
     
     db = aiootp.Database(key)
-
-
+    
+    
     # Store protected data by a ``tag`` ->
     
     tag = "private_account"
@@ -51,7 +53,7 @@ Description
     db[tag].update({"password_salt": salt})
     
     
-    # Read from the database with ``query`` ->
+    # Read from the database with ``aquery`` ->
     
     db.query(tag)[hmac]
     
@@ -89,7 +91,7 @@ Description
  >>>True
     
     
-    # Write the database changes to disk ->
+    # Write database changes to disk ->
     
     db.save()
     
@@ -127,22 +129,52 @@ Description
     assert new_db["lawyer"] is db["lawyer"]
     
     
+    # Or make namespaces out of databases for very efficient lookups ->
+    
+    namespace = new_db.into_namespace()
+    
+    assert namespace.bitcoin = new_db["bitcoin"]
+    
+    assert namespace.lawyer = new_db["lawyer"]
+    
+    
     # Delete a database from the filesystem ->
     
-    await db.delete_database()
+    db.delete_database()
     
     
-    # Initialization of a database object is more computationally expensive than entering its
+    # Initialization of a database object is more computationally expensive
     
-    # context manager. So keeping a reference to a preloaded database is a great idea, either
-    
-    # call ``asave`` / ``save`` periodically, or open a context with the reference whenever
-    
-    # wanting to capture changes to the filesystem ->
+    # than entering its context manager. So keeping a reference to a
+
+    # preloaded database is a great idea, either call ``asave`` / ``save``
+
+    # periodically, or open a context with the reference whenever wanting to
+
+    # capture changes to the filesystem ->
     
     with new_db as db:
     
         print("Saving to disk...")
+        
+        
+    # Transparent and automatic encryption makes persisting sensitive 
+    
+    # information very simple. Though, if users do want to encrypt / 
+    
+    # decrypt things manually, then databases allow that too ->
+    
+    data_name = "saturday clients"
+    
+    clients = ["Tony", "Maria"]
+    
+    encrypted = db.encrypt(filename=data_name, plaintext=clients)
+    
+    decrypted = db.decrypt(filename=data_name, ciphertext=encrypted)
+    
+    clients == decrypted
+    
+ >>>True
     
     
     #
@@ -155,18 +187,20 @@ Description
 .. code:: python
     
     import aiootp
-
-
-    # Make a new user key for encryption / decryption ->
     
-    key = await aiootp.acsprng()    # <- A fast, cryptographically secure pseudo-random number generator
-
-
+    
+    # Make a new user key for encryption / decryption with a fast,
+    
+    # cryptographically secure pseudo-random number generator ->
+    
+    key = await aiootp.acsprng()
+    
+    
     # Create a database object ->
     
     db = await aiootp.AsyncDatabase(key)
-
-
+    
+    
     # Store protected data by a ``tag`` ->
     
     tag = "private_account"
@@ -221,7 +255,7 @@ Description
  >>>True
     
     
-    # Write the database changes to disk ->
+    # Write database changes to disk ->
     
     await db.asave()
     
@@ -237,7 +271,7 @@ Description
     
     # Automate the write to disk logic with a context manager ->
     
-    async with aiootp.AsyncDatabase(key) as db:
+    async with (await aiootp.AsyncDatabase(key)) as db:
     
         db["tag"] = {"data": "can be any json serializable object"}
         
@@ -259,22 +293,52 @@ Description
     assert new_db["lawyer"] is db["lawyer"]
     
     
+    # Or make namespaces out of databases for very efficient lookups ->
+    
+    namespace = await new_db.ainto_namespace()
+    
+    assert namespace.bitcoin = new_db["bitcoin"]
+    
+    assert namespace.lawyer = new_db["lawyer"]
+    
+    
     # Delete a database from the filesystem ->
     
     await db.adelete_database()
     
     
-    # Initialization of a database object is more computationally expensive than entering its
+    # Initialization of a database object is more computationally expensive
     
-    # context manager. So keeping a reference to a preloaded database is a great idea, either
-    
-    # call ``asave`` / ``save`` periodically, or open a context with the reference whenever
-    
-    # wanting to capture changes to the filesystem ->
+    # than entering its context manager. So keeping a reference to a
+
+    # preloaded database is a great idea, either call ``asave`` / ``save``
+
+    # periodically, or open a context with the reference whenever wanting to
+
+    # capture changes to the filesystem ->
     
     async with new_db as db:
     
         print("Saving to disk...")
+        
+        
+    # Transparent and automatic encryption makes persisting sensitive 
+    
+    # information very simple. Though, if users do want to encrypt / 
+    
+    # decrypt things manually, then databases allow that too ->
+    
+    data_name = "saturday clients"
+    
+    clients = ["Tony", "Maria"]
+    
+    encrypted = await db.aencrypt(filename=data_name, plaintext=clients)
+    
+    decrypted = await db.adecrypt(filename=data_name, ciphertext=encrypted)
+    
+    clients == decrypted
+    
+ >>>True
     
     
     #
