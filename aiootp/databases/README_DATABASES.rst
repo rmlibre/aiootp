@@ -133,9 +133,9 @@ Description
     
     namespace = new_db.into_namespace()
     
-    assert namespace.bitcoin = new_db["bitcoin"]
+    assert namespace.bitcoin == new_db["bitcoin"]
     
-    assert namespace.lawyer = new_db["lawyer"]
+    assert namespace.lawyer is new_db["lawyer"]
     
     
     # Delete a database from the filesystem ->
@@ -297,9 +297,9 @@ Description
     
     namespace = await new_db.ainto_namespace()
     
-    assert namespace.bitcoin = new_db["bitcoin"]
+    assert namespace.bitcoin == new_db["bitcoin"]
     
-    assert namespace.lawyer = new_db["lawyer"]
+    assert namespace.lawyer is new_db["lawyer"]
     
     
     # Delete a database from the filesystem ->

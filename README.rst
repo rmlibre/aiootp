@@ -158,9 +158,9 @@ Users can create and modify transparently encrypted databases:
     
     namespace = await new_db.ainto_namespace()
     
-    assert namespace.bitcoin = new_db["bitcoin"]
+    assert namespace.bitcoin == new_db["bitcoin"]
     
-    assert namespace.lawyer = new_db["lawyer"]
+    assert namespace.lawyer is new_db["lawyer"]
     
     
     # Delete a database from the filesystem ->
@@ -266,7 +266,7 @@ What other tools are available to users?:
     
     with aiootp.cipher(plaintext_generator, keystream) as encrypting:
     
-        # ``list`` returns all results in a list
+        # ``list`` returns all generator results in a list
     
         ciphertext = encrypting.list()
         
@@ -338,8 +338,8 @@ What other tools are available to users?:
         z = yield x + y
         
         return x * y * z
-
-
+    
+    
     # Drive the generator forward with a context manager ->
     
     with gen(x=1, y=2) as example:
@@ -616,7 +616,7 @@ What other tools are available to users?:
     
     # encryption / decryption of key ordered hash maps. First let's make an
     
-    # actual encryption key stream different from ``names`` ->
+    # actual encryption key stream that's different from ``names`` ->
     
     key_stream = aiootp.akeys(key, salt, pid=aiootp.sha_256(key, salt))
     
@@ -632,7 +632,7 @@ What other tools are available to users?:
     
     async with data_stream.amap_encrypt(names, key_stream) as encrypting:
     
-        # ``data`` takes a sequence, & ``amap_encrypt`` takes two iterables,
+        # ``adata`` takes a sequence, & ``amap_encrypt`` takes two iterables,
         
         # a stream of names for the hash map, & the stream of key material.
         
