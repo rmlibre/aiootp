@@ -633,7 +633,7 @@ async def arandom_number_generator(
         await agenerate_unique_range_bounds()
     else:
         _completed.appendleft(
-            await asha_512_hmac((_completed, salt()), entropy)
+            await asha_512_hmac((_completed, await aurandom(64)), entropy)
         )
 
     return await asha_512_hmac((_completed, salt()), entropy)
@@ -750,7 +750,9 @@ def random_number_generator(
         run(start_generator(runs))
         generate_unique_range_bounds()
     else:
-        _completed.appendleft(sha_512_hmac((_completed, salt()), entropy))
+        _completed.appendleft(
+            sha_512_hmac((_completed, urandom(64)), entropy)
+        )
 
     return sha_512_hmac((_completed, salt()), entropy)
 
@@ -1222,7 +1224,7 @@ async def amake_uuid(length=16, salt=None):
     """
     stamp = None
     multiple = (length // 512) + 1
-    salt = salt if salt != None else await acsprng()
+    salt = salt if salt != None else await acsprng(global_seed)
     async with Comprende().arelay(result=salt):
         while True:
             uuid = ""
@@ -1239,7 +1241,7 @@ def make_uuid(length=16, salt=None):
     """
     stamp = None
     multiple = (length // 512) + 1
-    salt = salt if salt != None else csprng()
+    salt = salt if salt != None else csprng(global_seed)
     with Comprende().relay(result=salt):
         while True:
             uuid = ""

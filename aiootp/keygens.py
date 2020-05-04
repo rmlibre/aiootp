@@ -295,7 +295,7 @@ class Keys:
         if both:
             self.key, self.salt = keypair()
         else:
-            self.salt = csprng(self.seed())
+            self.salt = csprng(csprng())
         method_tools = MemberFromStaticMethod()
         for method in [keys, subkeys]:
             method_tools.convert(
@@ -324,7 +324,7 @@ class AsyncKeys:
         Creates a symmetric key pair used to create deterministic streams
         of key material.
         """
-        self.key, self.salt = key, csprng() if key else keypair()
+        self.key, self.salt = key, csprng(key) if key else keypair()
         method_tools = MemberFromStaticMethod()
         for method in [keys, subkeys]:
             method_tools.convert(
@@ -375,7 +375,7 @@ class AsyncKeys:
         if both:
             self.key, self.salt = await akeypair()
         else:
-            self.salt = await acsprng(await self.aseed())
+            self.salt = await acsprng(csprng())
         method_tools = MemberFromStaticMethod()
         for method in [keys, subkeys]:
             method_tools.convert(
