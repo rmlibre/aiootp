@@ -115,8 +115,10 @@ Users can create and modify transparently encrypted databases:
     
  >>>True
     
+    assert isinstance(molly.__class__, AsyncDatabase)
     
-    # Write database changes to disk ->
+    
+    # Write database changes to disk with transparent encryption ->
     
     await db.asave()
     
@@ -234,8 +236,6 @@ What other tools are available to users?:
     
     # Symmetric one-time-pad encryption of json data ->
     
-    key = aiootp.csprng()
-    
     plaintext = {"account": 3311149, "titles": ["queen b"]}
     
     encrypted = aiootp.json_encrypt(plaintext, key=key)
@@ -243,6 +243,17 @@ What other tools are available to users?:
     decrypted = aiootp.json_decrypt(encrypted, key=key)
     
     assert decrypted == plaintext
+    
+    
+    # Symmetric one-time-pad encryption of binary data ->
+    
+    binary_data = aiootp.randoms.urandom(256)
+    
+    encrypted = aiootp.bytes_encrypt(binary_data, key=key)
+    
+    decrypted = aiootp.bytes_decrypt(encrypted, key=key)
+    
+    assert decrypted == binary_data
     
     
     # Generators under-pin most procedures in the library ->
@@ -283,7 +294,7 @@ What other tools are available to users?:
 
     # in bite-sized chunks a breeze. Here's the two-liner that also takes 
 
-    # care of managing of the random salt ->
+    # care of managing the random salt ->
     
     ciphertext = aiootp.json_encode(plaintext).encrypt(key).list()
     
@@ -511,8 +522,12 @@ What other tools are available to users?:
         'aascii_to_int',
         'abin',
         'abytes',
+        'abytes_decrypt',
+        'abytes_encrypt',
         'adecode',
         'adecrypt',
+        'adelimit',
+        'adelimit_resize',
         'aencode',
         'aencrypt',
         'afeed',
@@ -523,10 +538,12 @@ What other tools are available to users?:
         'ahex',
         'aint',
         'aint_to_ascii',
-        "ajson_dumps",
-        "ajson_loads",
+        'ajson_dumps',
+        'ajson_loads',
         'amap_decrypt',
         'amap_encrypt',
+        'arandom_sleep',
+        'areplace',
         'aresize',
         'ascii_to_int',
         'asha_256',
@@ -534,6 +551,7 @@ What other tools are available to users?:
         'asha_512',
         'asha_512_hmac',
         'aslice',
+        'asplit',
         'astr',
         'atag',
         'atimeout',
@@ -542,8 +560,12 @@ What other tools are available to users?:
         'azfill',
         'bin',
         'bytes',
+        'bytes_decrypt',
+        'bytes_encrypt',
         'decode',
         'decrypt',
+        'delimit',
+        'delimit_resize',
         'encode',
         'encrypt',
         'feed',
@@ -554,16 +576,19 @@ What other tools are available to users?:
         'hex',
         'int',
         'int_to_ascii',
-        "json_dumps",
-        "json_loads",
+        'json_dumps',
+        'json_loads',
         'map_decrypt',
         'map_encrypt',
+        'random_sleep',
+        'replace',
         'resize',
         'sha_256',
         'sha_256_hmac',
         'sha_512',
         'sha_512_hmac',
         'slice',
+        'split',
         'str',
         'tag',
         'timeout',
@@ -672,7 +697,7 @@ Here's a quick overview of this package's modules:
     aiootp.commons
     
     
-    # The basic utilities & abstractions of the package's architechture ->
+    # The basic utilities & abstractions of the package's architecture ->
     
     aiootp.generics
     

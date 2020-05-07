@@ -169,24 +169,24 @@ class Enumerate:
             counter += 1
 
 
-class MemberFromStaticMethod:
-    @staticmethod
-    def convert(self, static_method_name, static_method, *args, **kwargs):
-        @wraps(static_method)
-        def wrapped_static_method(*a, **kw):
-            try:
-                new_args = list(args)
-                for index, new_arg in enumerate(a):
-                    new_args[index] = new_arg
-                new_kwargs = dict(kwargs)
-                new_kwargs.update(kw)
-            except IndexError as error:
-                raise NotImplementedError(
-                    "Sending args into a method after they were replaced."
-                ) from error
-            return static_method(*new_args, **new_kwargs)
+def convert_static_method_to_member(
+    self, static_method_name, static_method, *args, **kwargs
+):
+    @wraps(static_method)
+    def wrapped_static_method(*a, **kw):
+        try:
+            new_args = list(args)
+            for index, new_arg in enumerate(a):
+                new_args[index] = new_arg
+            new_kwargs = dict(kwargs)
+            new_kwargs.update(kw)
+        except IndexError as error:
+            raise NotImplementedError(
+                "Sending args into a method after they were replaced."
+            ) from error
+        return static_method(*new_args, **new_kwargs)
 
-        setattr(self, static_method_name, wrapped_static_method)
+    setattr(self, static_method_name, wrapped_static_method)
 
 
 def display_exception_info(error):
@@ -264,7 +264,7 @@ async def aignore(*exceptions, display=False):
     async def cleanup():
         await database.asave()
 
-    async with ignore() as error_relay:
+    async with ignore(DynamicException, IOError) as error_relay:
         error_relay.aexcept_code = cleanup
         # This will close ``database`` if either DynamicException or
         # IOError are raised within the block.
@@ -588,6 +588,10 @@ class Comprende:
         "zfill",
         "aslice",
         "slice",
+        "areplace",
+        "replace",
+        "asplit",
+        "split",
         "atag",
         "tag",
         "ahalt",
@@ -598,6 +602,10 @@ class Comprende:
         "feed_self",
         "aresize",
         "resize",
+        "adelimit",
+        "delimit",
+        "adelimit_resize",
+        "delimit_resize",
         "ato_base64",
         "to_base64",
         "afrom_base64",
@@ -856,7 +864,7 @@ class Comprende:
 
     def prime(self):
         """
-        Resets the instance's async wrapper generator & ``asend``s in a
+        Resets the instance's sync wrapper generator & ``send``s in a
         ``None`` value to prime the generator, i.e. bringing it to the
         first yield statement.
         """
@@ -886,14 +894,12 @@ class Comprende:
         method.
         """
         await self.gen.athrow(exc_type, exc_value, traceback)
-        return await self.aresult()
 
     def throw(self, exc_type, exc_value=None, traceback=None):
         """
         This is quivalent to a wrapped sync generator's ``throw`` method.
         """
         self.gen.throw(exc_type, exc_value, traceback)
-        return self.result()
 
     @property
     def ag_await(self):
@@ -975,8 +981,8 @@ class Comprende:
         printed to stdout.
         """
         if exit and silent:
-            with ignore(TypeError, display=not silent):
-                await gather(self(UserWarning()), return_exceptions=True)
+            async with aignore(TypeError, display=not silent):
+                await self(UserWarning())
         elif exit:
             await self(UserWarning())
         with ignore(IndexError, display=not silent):
@@ -1152,7 +1158,7 @@ class Comprende:
     @classmethod
     async def _amake_runsum(*args, low=bits[512], high=bits[513]):
         """
-        Calculates a 512-bit pseudo-random hex string id to instances
+        Calculates a 512-bit pseudo-random hex string id for instances
         to mark themselves as having cached results.
         """
         return await asha_512(
@@ -1162,7 +1168,7 @@ class Comprende:
     @classmethod
     def _make_runsum(*args, low=bits[512], high=bits[513]):
         """
-        Calculates a 512-bit pseudo-random hex string id to instances
+        Calculates a 512-bit pseudo-random hex string id for instances
         to mark themselves as having cached results.
         """
         return sha_512(
@@ -1209,7 +1215,7 @@ class Comprende:
     def cache_check(self):
         """
         Exhausts the underlying Comprende async generator & joins the
-        results together in a ``list``, then ``alru_cache``'s the result
+        results together in a ``list``, then ``lru_cache``'s the result
         & yields it as a context manager. Finally, adds the instance
         into the class' ``_cached`` dictionary to more easily find &
         manage the memory overhead of caching values.
@@ -1233,7 +1239,7 @@ class Comprende:
     def list(self):
         """
         Exhausts the underlying Comprende sync generator & joins the
-        results together in a ``list``, then ``alru_cache``'s the result
+        results together in a ``list``, then ``lru_cache``'s the result
         & returns it.
         """
         with self.cache_check() as results:
@@ -1251,7 +1257,7 @@ class Comprende:
     def deque(self):
         """
         Exhausts the underlying Comprende sync generator & joins the
-        results together in a ``collections.deque``, then ``alru_cache``'s
+        results together in a ``collections.deque``, then ``lru_cache``'s
         the result & returns it.
         """
         with self.cache_check() as results:
@@ -1269,7 +1275,7 @@ class Comprende:
     def set(self):
         """
         Exhausts the underlying Comprende sync generator & joins the
-        results together in a ``set``, then ``alru_cache``'s the result
+        results together in a ``set``, then ``lru_cache``'s the result
         & returns it.
         """
         with self.cache_check() as results:
@@ -1597,6 +1603,58 @@ class Comprende:
                     break
             if result:
                 yield result
+
+    async def adelimit(self, delimiter=" "):
+        """
+        Adds a user-defined ``delimiter`` to the end of end result
+        yielded from the underlying ``Comprende`` async generator.
+        """
+        async for result in self:
+            yield result + delimiter
+
+    def delimit(self, delimiter=" "):
+        """
+        Adds a user-defined ``delimiter`` to the end of end result
+        yielded from the underlying ``Comprende`` generator.
+        """
+        for result in self:
+            yield result + delimiter
+
+    async def adelimit_resize(self, delimiter=" ", base=""):
+        """
+        Yields the results of the underlying ``Comprende`` async
+        generator in chunks delimited by ``delimiter``. The ``base``
+        keyword argument is an empty sequence of the same type
+        (``str`` or ``bytes``) that the yielded results are in.
+        """
+        cache = base
+        async for result in self:
+            result = cache + result
+            while delimiter in result and result.strip(delimiter):
+                index = result.find(delimiter)
+                yield result[: index]
+                result = result[index + 1 :]
+            cache = result.strip(delimiter)
+        if cache:
+            yield cache
+
+    def delimit_resize(self, delimiter=" ", base=""):
+        """
+        Yields the results of the underlying ``Comprende`` generator in
+        chunks delimited by ``delimiter``. The ``base`` keyword argument
+        is an empty sequence of the same type (``str`` or ``bytes``)
+        that the yielded results are in.
+        """
+        cache = base
+        for result in self:
+            result = cache + result
+            while delimiter in result and result.strip(delimiter):
+                index = result.find(delimiter)
+                yield result[: index]
+                result = result[index + 1 :]
+            cache = result.strip(delimiter)
+        if cache:
+            yield cache
 
     async def ato_base64(self, *, of=None):
         """
@@ -2031,9 +2089,61 @@ class Comprende:
             for result in self:
                 yield builtins.str(result, *a, **kw)
 
+    async def asplit(self, *a, of=None, **kw):
+        """
+        Applies ``value.split()`` to each value that's yielded from
+        the underlying Comprende async generator before yielding the
+        result.
+        """
+        if of != None:
+            async for prev, result in azip(self, of):
+                yield prev, result.split(*a, **kw)
+        else:
+            async for result in self:
+                yield result.split(*a, **kw)
+
+    def split(self, *a, of=None, **kw):
+        """
+        Applies ``value.split()`` to each value that's yielded from
+        the underlying Comprende sync generator before yielding the
+        result.
+        """
+        if of != None:
+            for prev, result in zip(self, of):
+                yield prev, result.split(*a, **kw)
+        else:
+            for result in self:
+                yield result.split(*a, **kw)
+
+    async def areplace(self, *a, of=None, **kw):
+        """
+        Applies ``value.replace()`` to each value that's yielded from
+        the underlying Comprende async generator before yielding the
+        result.
+        """
+        if of != None:
+            async for prev, result in azip(self, of):
+                yield prev, result.replace(*a, **kw)
+        else:
+            async for result in self:
+                yield result.replace(*a, **kw)
+
+    def replace(self, *a, of=None, **kw):
+        """
+        Applies ``value.replace()`` to each value that's yielded from
+        the underlying Comprende sync generator before yielding the
+        result.
+        """
+        if of != None:
+            for prev, result in zip(self, of):
+                yield prev, result.replace(*a, **kw)
+        else:
+            for result in self:
+                yield result.replace(*a, **kw)
+
     async def aencode(self, *a, of=None, **kw):
         """
-        Applies ``builtins.str(*a)`` to each value that's yielded from
+        Applies ``value.encode()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
@@ -2046,7 +2156,7 @@ class Comprende:
 
     def encode(self, *a, of=None, **kw):
         """
-        Applies ``builtins.str()`` to each value that's yielded from
+        Applies ``value.encode()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
@@ -2059,7 +2169,7 @@ class Comprende:
 
     async def adecode(self, *a, of=None, **kw):
         """
-        Applies ``builtins.str(*a)`` to each value that's yielded from
+        Applies ``value.decode()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
@@ -2072,7 +2182,7 @@ class Comprende:
 
     def decode(self, *a, of=None, **kw):
         """
-        Applies ``builtins.str()`` to each value that's yielded from
+        Applies ``value.decode()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
@@ -2215,19 +2325,14 @@ class Comprende:
 
     async def __aenter__(self):
         """
-        Opens a context & gives the ``self`` object & its ``aresult``
-        method in a tuple. Async generators / coroutines can be designed
-        to return values by raising UserWarning(return_value).
+        Opens a context & yields ``self``.
         """
         await self.areset()
         return self
 
     def __enter__(self):
         """
-        Opens a context & gives the ``self`` object & its ``result``
-        method in a tuple. Results can be designed to return values
-        by using ``return`` within the generator, or raising
-        UserWarning(return_value).
+        Opens a context & yields ``self``.
         """
         self.reset()
         return self
@@ -2380,15 +2485,15 @@ class Comprende:
         with the slice or integer passed into the brackets.
         """
         start, stop, step, span = self._set_index(index)
-        limit = iter(span)
+        span = iter(span)
         with ignore(StopIteration):
-            target = next(limit)
+            target = next(span)
             for match, result in enumerate(self):
                 if match >= stop:
                     break
                 if target == match:
                     yield result
-                    target = next(limit)
+                    target = next(span)
 
     def __getitem__(self, index):
         """
@@ -3148,7 +3253,7 @@ def bytes_to_int(bytes_object, result=""):
     return int("".join([str(byte) for byte in bytes_object]))
 
 
-async def abinary_tree(depth=4, current=0, leaf={}):
+async def abinary_tree(depth=4, leaf={}, current=0):
     """
     Recursively builds a binary tree ``depth`` branches deep & places
     the placeholder value ``leaf`` at each endpoint of the tree.  The
@@ -3158,16 +3263,16 @@ async def abinary_tree(depth=4, current=0, leaf={}):
     if 0 < current < depth:
         upcoming = current + 1
         return {
-            current: await abinary_tree(depth, upcoming, leaf=leaf),
-            upcoming: await abinary_tree(depth, upcoming, leaf=leaf),
+            current: await abinary_tree(depth, leaf, upcoming),
+            upcoming: await abinary_tree(depth, leaf, upcoming),
         }
     elif current == 0:
-        return {0: await abinary_tree(depth, 1, leaf=leaf)}
+        return {0: await abinary_tree(depth, leaf, 1)}
     else:
         return leaf
 
 
-def binary_tree(depth=4, current=0, leaf={}):
+def binary_tree(depth=4, leaf={}, current=0):
     """
     Recursively builds a binary tree ``depth`` branches deep & places
     the placeholder value ``leaf`` at each endpoint of the tree.  The
@@ -3177,11 +3282,11 @@ def binary_tree(depth=4, current=0, leaf={}):
     if 0 < current < depth:
         upcoming = current + 1
         return {
-            current: binary_tree(depth, upcoming, leaf=leaf),
-            upcoming: binary_tree(depth, upcoming, leaf=leaf),
+            current: binary_tree(depth, leaf, upcoming),
+            upcoming: binary_tree(depth, leaf, upcoming),
         }
     elif current == 0:
-        return {0: binary_tree(depth, 1, leaf=leaf)}
+        return {0: binary_tree(depth, leaf, 1)}
     else:
         return leaf
 
@@ -3190,7 +3295,6 @@ __extras = {
     "AsyncInit": AsyncInit,
     "Comprende": Comprende,
     "Enumerate": Enumerate,
-    "MemberFromStaticMethod": MemberFromStaticMethod,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
@@ -3240,6 +3344,7 @@ __extras = {
     "bytes_to_int": bytes_to_int,
     "compact": compact,
     "comprehension": comprehension,
+    "convert_static_method_to_member": convert_static_method_to_member,
     "count": _count,
     "customize_parameters": customize_parameters,
     "cycle": cycle,

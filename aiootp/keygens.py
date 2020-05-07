@@ -33,7 +33,7 @@ from .generics import is_iterable
 from .generics import comprehension
 from .generics import sha_256_hmac
 from .generics import asha_256_hmac
-from .generics import MemberFromStaticMethod
+from .generics import convert_static_method_to_member
 
 
 @comprehension()
@@ -229,6 +229,84 @@ def keypair(entropy=csprng()):
     return csprng(entropy), csprng(entropy)
 
 
+class AsyncKeys:
+    """
+    This simple class coordinates and manages a pair of symmetric keys
+    for establishing an arbitrary number of secure, deterministic
+    streams of key material through its ``__getitem__``, ``akeys``,
+    & ``asubkeys`` methods. The class also contains static method key
+    generators which function independantly from instance states.
+    """
+    aseed = acsprng
+    akeys = staticmethod(akeys)
+    asubkeys = staticmethod(asubkeys)
+    akeypair = staticmethod(akeypair)
+    atable_key = staticmethod(atable_key)
+    atable_key_gen = staticmethod(atable_key_gen)
+    akeypair_ratchets = staticmethod(akeypair_ratchets)
+
+    def __init__(self, key=None):
+        """
+        Creates a symmetric key pair used to create deterministic streams
+        of key material.
+        """
+        self.key, self.salt = key, csprng(key) if key else keypair()
+        for method in [akeys, asubkeys]:
+            convert_static_method_to_member(
+                self, method.__name__, method, key=self.key, salt=self.salt
+            )
+
+    def __getitem__(self, salt=""):
+        """
+        Provides a simple interface for users to create deterministic
+        & externally uncorrelatable key material from a name or ``salt``.
+        """
+        return self.akeys(key=self.key, salt=self.salt, pid=salt)
+
+    async def ahmac(
+        self, data=None, key=None, *, hasher=asha_256_hmac
+    ):
+        """
+        Creates an HMAC code of ``data`` using ``key`` & the hashing
+        function ``hasher``.
+        """
+        return await hasher(data, key=key if key else self.key)
+
+    async def atest_hmac(
+        self, data=None, key=None, hmac=None, *, hasher=sha_256_hmac
+    ):
+        """
+        Tests the ``hmac`` code against the derived HMAC of ``data``
+        using ``key`` & the async hashing function ``hasher``.
+        """
+        if hmac == await self.ahmac(
+            data=data, key=key if key else self.key, hasher=hasher
+        ):
+            return True
+        else:
+            raise ValueError("HMAC of ``data`` isn't valid.")
+
+    async def astate(self):
+        """
+        Returns both the main ``self.key`` & the ephemeral ``self.salt``.
+        """
+        return self.key, self.salt
+
+    async def areset(self, both=False):
+        """
+        Creates a new pair of symmetric keys if ``both`` is truthy, else
+        just updates the ephemeral ``self.salt`` key.
+        """
+        if both:
+            self.key, self.salt = await akeypair()
+        else:
+            self.salt = await acsprng(csprng())
+        for method in [akeys, asubkeys]:
+            convert_static_method_to_member(
+                self, method.__name__, method, key=self.key, salt=self.salt
+            )
+
+
 class Keys:
     """
     This simple class coordinates and manages a pair of symmetric keys
@@ -287,7 +365,7 @@ class Keys:
         """
         return self.key, self.salt
 
-    def reset(self, both=True):
+    def reset(self, both=False):
         """
         Creates a new pair of symmetric keys if ``both`` is truthy, else
         just updates the ephemeral ``self.salt`` key.
@@ -296,89 +374,8 @@ class Keys:
             self.key, self.salt = keypair()
         else:
             self.salt = csprng(csprng())
-        method_tools = MemberFromStaticMethod()
         for method in [keys, subkeys]:
-            method_tools.convert(
-                self, method.__name__, method, key=self.key, salt=self.salt
-            )
-
-
-class AsyncKeys:
-    """
-    This simple class coordinates and manages a pair of symmetric keys
-    for establishing an arbitrary number of secure, deterministic
-    streams of key material through its ``__getitem__``, ``akeys``,
-    & ``asubkeys`` methods. The class also contains static method key
-    generators which function independantly from instance states.
-    """
-    aseed = acsprng
-    akeys = staticmethod(akeys)
-    asubkeys = staticmethod(asubkeys)
-    akeypair = staticmethod(akeypair)
-    atable_key = staticmethod(atable_key)
-    atable_key_gen = staticmethod(atable_key_gen)
-    akeypair_ratchets = staticmethod(akeypair_ratchets)
-
-    def __init__(self, key=None):
-        """
-        Creates a symmetric key pair used to create deterministic streams
-        of key material.
-        """
-        self.key, self.salt = key, csprng(key) if key else keypair()
-        method_tools = MemberFromStaticMethod()
-        for method in [keys, subkeys]:
-            method_tools.convert(
-                self, method.__name__, method, key=self.key, salt=self.salt
-            )
-
-    def __getitem__(self, salt=""):
-        """
-        Provides a simple interface for users to create deterministic
-        & externally uncorrelatable key material from a name or ``salt``.
-        """
-        return self.akeys(key=self.key, salt=self.salt, pid=salt)
-
-    async def ahmac(
-        self, data=None, key=None, *, hasher=asha_256_hmac
-    ):
-        """
-        Creates an HMAC code of ``data`` using ``key`` & the hashing
-        function ``hasher``.
-        """
-        return await hasher(data, key=key if key else self.key)
-
-    async def atest_hmac(
-        self, data=None, key=None, hmac=None, *, hasher=sha_256_hmac
-    ):
-        """
-        Tests the ``hmac`` code against the derived HMAC of ``data``
-        using ``key`` & the async hashing function ``hasher``.
-        """
-        if hmac == await self.ahmac(
-            data=data, key=key if key else self.key, hasher=hasher
-        ):
-            return True
-        else:
-            raise ValueError("HMAC of ``data`` isn't valid.")
-
-    async def astate(self):
-        """
-        Returns both the main ``self.key`` & the ephemeral ``self.salt``.
-        """
-        return self.key, self.salt
-
-    async def areset(self, both=True):
-        """
-        Creates a new pair of symmetric keys if ``both`` is truthy, else
-        just updates the ephemeral ``self.salt`` key.
-        """
-        if both:
-            self.key, self.salt = await akeypair()
-        else:
-            self.salt = await acsprng(csprng())
-        method_tools = MemberFromStaticMethod()
-        for method in [keys, subkeys]:
-            method_tools.convert(
+            convert_static_method_to_member(
                 self, method.__name__, method, key=self.key, salt=self.salt
             )
 
@@ -401,9 +398,6 @@ def insert_keyrings(self, key=None):
     """
     self.keyring = Keys(key=key)
     self.akeyring = AsyncKeys(key=key)
-
-
-OneTimePad.__init__ = insert_keyrings
 
 
 __extras = {

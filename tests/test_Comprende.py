@@ -1,10 +1,34 @@
+# This file is part of tiny_onion, a small-as-possible solution for p2p
+# networking over tor v3 onion services.
+#
+# Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
+# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+#            <gonzo.development@protonmail.ch>
+#          © 2019-2020 Richard Machado <rmlibre@riseup.net>
+# All rights reserved.
+#
+
+
 import sys
 import pytest
 from pathlib import Path
 
+
+__all__ = [
+    "test_comprehension_context",
+    "test_comprehension_iter",
+    "test_comprehension",
+    "__all__",
+    "aiootp",
+    "PACKAGE_PATH",
+]
+
+
 PACKAGE_PATH = str(Path(__file__).absolute().parent.parent)
 sys.path.append(PACKAGE_PATH)
 
+
+import aiootp
 from aiootp import *
 
 
@@ -70,6 +94,11 @@ def no_return_iterator(got=TEST_STRING):
 
 
 def test_comprehension():
+    """
+    Tests the ``comprehension`` decorator which wraps generator
+    functions so they return ``Comprende`` objects when the function
+    is called to create an async/sync generator.
+    """
     @comprehension()
     def is_Comprende_generator():
         yield
@@ -93,10 +122,18 @@ def test_comprehension():
 
 
 def test_comprehension_context():
+    """
+    Testing the accuracy of async/sync ``Comprende``  generator results
+    and the class' ability to return values from completed generators.
+    """
     run(comprehension_context_testing())
 
 
 async def comprehension_context_testing():
+    """
+    Testing the accuracy of async/sync ``Comprende``  generator results
+    and the class' ability to return values from completed generators.
+    """
     async with awith_return_coro() as asend:
         assert await asend(None) == None
         for test in TEST_STRING:
@@ -137,10 +174,18 @@ async def comprehension_context_testing():
 
 
 def test_comprehension_iter():
+    """
+    Testing the accuracy of async/sync ``Comprende``  generator results
+    and the class' ability to return values from completed generators.
+    """
     run(comprehension_iteration_testing())
 
 
 async def comprehension_iteration_testing():
+    """
+    Testing the accuracy of async/sync ``Comprende``  generator results
+    and the class' ability to return values from completed generators.
+    """
     catcher = awith_return_iterator()
     async for index, value in catcher.atag():
         assert value == TEST_STRING[index], value
@@ -176,4 +221,5 @@ async def comprehension_iteration_testing():
         failed = True
     finally:
         assert failed, return_value
+
 

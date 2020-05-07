@@ -1034,10 +1034,9 @@ async def aseeder(entropy=salt(), refresh=False, runs=26):
 
     # By calling anext ->
     from aiootp import anext
-    from aioitertools import iter as aiter
 
     csprng = aseeder()
-    seed = await next(csprng)
+    seed = await anext(csprng)
 
     # By sending in entropy ->
     entropy = "any object whose str() representation has randomness"

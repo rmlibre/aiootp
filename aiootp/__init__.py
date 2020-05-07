@@ -9,7 +9,7 @@
 #
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 __license__ = "AGPLv3"
@@ -31,6 +31,7 @@ from .generics import *
 from .randoms import *
 from .keygens import *
 from .ciphers import *
+from .__ui_coordination import *
 
 
 __all__ = [
@@ -43,4 +44,7 @@ __all__ = [
     *keygens.__main_exports__,
     *ciphers.__main_exports__,
 ]
+
+
+del __ui_coordination
 

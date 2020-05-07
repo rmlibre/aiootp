@@ -22,6 +22,10 @@ __all__ = [
     "json_decrypt",
     "ajson_encrypt",
     "json_encrypt",
+    "abytes_decrypt",
+    "bytes_decrypt",
+    "abytes_encrypt",
+    "bytes_encrypt",
     "OneTimePad",
     "AsyncDatabase",
     "Database",
@@ -72,6 +76,8 @@ from .generics import sha_512, asha_512
 from .generics import seedrange, aseedrange
 from .generics import lru_cache, alru_cache
 from .generics import Comprende, comprehension
+from .generics import json_encode, ajson_encode
+from .generics import json_decode, ajson_decode
 from .generics import nc_512_hmac, anc_512_hmac
 from .generics import sha_256_hmac, asha_256_hmac
 from .generics import sha_512_hmac, asha_512_hmac
@@ -391,9 +397,9 @@ async def aorganize_encryption_streams(
                 str() representation contains the user's desired entropy
                 & cryptographic strength. Designed to be used as a
                 longer-term user encryption / decryption key.
-    ``salt``:   An aribrary amount & type of ephemeral entropic material
-                whose str() representation contains the user's desired
-                entropy & cryptographic strength.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
     ``size``:   The number of elements in the ``data`` sequence that are
                 produced per iteration.
     ``pid``:    An arbitrary value that can be used to categorize key
@@ -425,9 +431,9 @@ def organize_encryption_streams(
                 str() representation contains the user's desired entropy
                 & cryptographic strength. Designed to be used as a
                 longer-term user encryption / decryption key.
-    ``salt``:   An aribrary amount & type of ephemeral entropic material
-                whose str() representation contains the user's desired
-                entropy & cryptographic strength.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
     ``size``:   The number of elements in the ``data`` sequence that are
                 produced per iteration.
     ``pid``:    An arbitrary value that can be used to categorize key
@@ -459,9 +465,9 @@ async def aorganize_decryption_streams(
                 str() representation contains the user's desired entropy
                 & cryptographic strength. Designed to be used as a
                 longer-term user encryption / decryption key.
-    ``salt``:   An aribrary amount & type of ephemeral entropic material
-                whose str() representation contains the user's desired
-                entropy & cryptographic strength.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
     ``pid``:    An arbitrary value that can be used to categorize key
                 material streams & safely distinguishes them from each
                 other. Designed to safely destinguish parallelized key
@@ -488,9 +494,9 @@ def organize_decryption_streams(data=None, key=None, salt=None, pid=0):
                 str() representation contains the user's desired entropy
                 & cryptographic strength. Designed to be used as a
                 longer-term user encryption / decryption key.
-    ``salt``:   An aribrary amount & type of ephemeral entropic material
-                whose str() representation contains the user's desired
-                entropy & cryptographic strength.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
     ``pid``:    An arbitrary value that can be used to categorize key
                 material streams & safely distinguishes them from each
                 other. Designed to safely destinguish parallelized key
@@ -516,9 +522,9 @@ async def aencrypt(data="", key=csprng(), salt=None, size=246, pid=0):
                 str() representation contains the user's desired entropy
                 & cryptographic strength. Designed to be used as a
                 longer-term user encryption / decryption key.
-    ``salt``:   An aribrary amount & type of ephemeral entropic material
-                whose str() representation contains the user's desired
-                entropy & cryptographic strength.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
     ``size``:   The number of elements in the ``data`` sequence that are
                 produced per iteration.
     ``pid``:    An arbitrary value that can be used to categorize key
@@ -553,9 +559,9 @@ def encrypt(data="", key=csprng(), salt=None, size=246, pid=0):
                 str() representation contains the user's desired entropy
                 & cryptographic strength. Designed to be used as a
                 longer-term user encryption / decryption key.
-    ``salt``:   An aribrary amount & type of ephemeral entropic material
-                whose str() representation contains the user's desired
-                entropy & cryptographic strength.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
     ``size``:   The number of elements in the ``data`` sequence that are
                 produced per iteration.
     ``pid``:    An arbitrary value that can be used to categorize key
@@ -659,9 +665,9 @@ async def ajson_encrypt(data=None, key=None, salt=None, pid=0):
                 str() representation contains the user's desired entropy
                 & cryptographic strength. Designed to be used as a
                 longer-term user encryption / decryption key.
-    ``salt``:   An aribrary amount & type of ephemeral entropic material
-                whose str() representation contains the user's desired
-                entropy & cryptographic strength.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
     ``pid``:    An arbitrary value that can be used to categorize key
                 material streams & safely distinguishes the values they
                 produce. Designed to safely destinguish parallelized key
@@ -687,9 +693,9 @@ def json_encrypt(data=None, key=None, salt=None, pid=0):
                 str() representation contains the user's desired entropy
                 & cryptographic strength. Designed to be used as a
                 longer-term user encryption / decryption key.
-    ``salt``:   An aribrary amount & type of ephemeral entropic material
-                whose str() representation contains the user's desired
-                entropy & cryptographic strength.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
     ``pid``:    An arbitrary value that can be used to categorize key
                 material streams & safely distinguishes the values they
                 produce. Designed to safely destinguish parallelized key
@@ -763,6 +769,100 @@ def json_decrypt(data=None, key=None, pid=0):
     return json.loads(results)
 
 
+async def abytes_encrypt(data=None, key=None, salt=None, pid=0):
+    """
+    Returns a list of the encrypted one-time pad ciphertext of the
+    binary ``data`` with a key stream derived from permutations of these
+    values:
+
+    ``key``:    An aribrary amount & type of entropic material whose
+                str() representation contains the user's desired entropy
+                & cryptographic strength. Designed to be used as a
+                longer-term user encryption / decryption key.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
+    ``pid``:    An arbitrary value that can be used to categorize key
+                material streams & safely distinguishes the values they
+                produce. Designed to safely destinguish parallelized key
+                material streams with the same ``key`` & ``salt``. But
+                can be used for any arbitrary categorization of streams
+                as long as the encryption & decryption processes for a
+                given stream use the same ``pid`` value.
+    """
+    encrypting = adata(data).abytes_encrypt(key, salt, pid)
+    async with encrypting as ciphertext:
+        return ciphertext.list()
+
+
+def bytes_encrypt(data=None, key=None, salt=None, pid=0):
+    """
+    Returns a list of the encrypted one-time pad ciphertext of the
+    binary ``data`` with a key stream derived from permutations of these
+    values:
+
+    ``key``:    An aribrary amount & type of entropic material whose
+                str() representation contains the user's desired entropy
+                & cryptographic strength. Designed to be used as a
+                longer-term user encryption / decryption key.
+    ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
+                material whose str() representation contains the user's
+                desired entropy & cryptographic strength.
+    ``pid``:    An arbitrary value that can be used to categorize key
+                material streams & safely distinguishes the values they
+                produce. Designed to safely destinguish parallelized key
+                material streams with the same ``key`` & ``salt``. But
+                can be used for any arbitrary categorization of streams
+                as long as the encryption & decryption processes for a
+                given stream use the same ``pid`` value.
+    """
+    encrypting = globals()["data"](data).bytes_encrypt(key, salt, pid)
+    with encrypting as ciphertext:
+        return ciphertext.list()
+
+
+def bytes_decrypt(data=None, key=None, pid=0):
+    """
+    Returns the plaintext bytes of the one-time pad ciphertext ``data``
+    with a key stream derived from permutations of these values:
+
+    ``key``:    An aribrary amount & type of entropic material whose
+                str() representation contains the user's desired entropy
+                & cryptographic strength. Designed to be used as a
+                longer-term user encryption / decryption key.
+    ``pid``:    An arbitrary value that can be used to categorize key
+                material streams & safely distinguishes the values they
+                produce. Designed to safely destinguish parallelized key
+                material streams with the same ``key`` & ``salt``. But
+                can be used for any arbitrary categorization of streams
+                as long as the encryption & decryption processes for a
+                given stream use the same ``pid`` value.
+    """
+    with unpack(data).bytes_decrypt(key, pid) as decrypting:
+        return decrypting.join(b"")
+
+
+async def abytes_decrypt(data=None, key=None, pid=0):
+    """
+    Returns the plaintext bytes of the one-time pad ciphertext ``data``
+    with a key stream derived from permutations of these values:
+
+    ``key``:    An aribrary amount & type of entropic material whose
+                str() representation contains the user's desired entropy
+                & cryptographic strength. Designed to be used as a
+                longer-term user encryption / decryption key.
+    ``pid``:    An arbitrary value that can be used to categorize key
+                material streams & safely distinguishes the values they
+                produce. Designed to safely destinguish parallelized key
+                material streams with the same ``key`` & ``salt``. But
+                can be used for any arbitrary categorization of streams
+                as long as the encryption & decryption processes for a
+                given stream use the same ``pid`` value.
+    """
+    async with aunpack(data).abytes_decrypt(key, pid) as decrypting:
+        return await decrypting.ajoin(b"")
+
+
 class OneTimePad:
     """
     A class composed of the low-level procedures used to implement this
@@ -776,6 +876,8 @@ class OneTimePad:
     xor = staticmethod(xor)
     adata = staticmethod(adata)
     data = staticmethod(data)
+    aunpack = staticmethod(aunpack)
+    unpack = staticmethod(unpack)
     akeys = staticmethod(akeys)
     keys = staticmethod(keys)
     asubkeys = staticmethod(asubkeys)
@@ -792,6 +894,10 @@ class OneTimePad:
     json_encrypt = staticmethod(json_encrypt)
     ajson_decrypt = staticmethod(ajson_decrypt)
     json_decrypt = staticmethod(json_decrypt)
+    abytes_encrypt = staticmethod(abytes_encrypt)
+    bytes_encrypt = staticmethod(bytes_encrypt)
+    abytes_decrypt = staticmethod(abytes_decrypt)
+    bytes_decrypt = staticmethod(bytes_decrypt)
 
     @comprehension()
     async def _amap_encrypt(self, names=None, entropy=None):
@@ -808,7 +914,7 @@ class OneTimePad:
 
         ``entropy`` should be an async ``Comprende`` generator which,
         like ``aiootp.akeys``, yields a stream key material from some
-        source key material.
+        source key material and a random salt >= 256-bits.
 
         ``self`` is an instance of a ``Comprende`` generator that yields
         some length of string plaintext per iteration (246 is best for
@@ -833,7 +939,7 @@ class OneTimePad:
 
         ``entropy`` should be an sync ``Comprende`` generator which,
         like ``aiootp.keys``, yields a stream key material from some
-        source key material.
+        source key material and a random salt >= 256-bits.
 
         ``self`` is an instance of a ``Comprende`` generator that yields
         some length of string plaintext per iteration (246 is best for
@@ -852,7 +958,8 @@ class OneTimePad:
 
         ``entropy`` should be an async ``Comprende`` generator which,
         like ``aiootp.akeys``, yields a stream key material from some
-        source key material.
+        source key material and a random salt >= 256-bits. The salt must
+        be the same as the one used for encryption.
 
         ``self`` is an instance of an async ``Comprende`` generator that
         yields a chunk of ciphertext in the correct order each iteration.
@@ -872,7 +979,8 @@ class OneTimePad:
 
         ``entropy`` should be an sync ``Comprende`` generator which,
         like ``aiootp.keys``, yields a stream key material from some
-        source key material.
+        source key material and a random salt >= 256-bits. The salt must
+        be the same as the one used for encryption.
 
         ``self`` is an instance of an sync ``Comprende`` generator that
         yields a chunk of ciphertext in the correct order each iteration.
@@ -1050,20 +1158,57 @@ class OneTimePad:
         ):
             yield plaintext
 
-    # Copying the addons over into the ``Comprende`` class
-    addons = {_amap_encrypt, _map_encrypt, _amap_decrypt, _map_decrypt}
-    for addon in addons:
-        setattr(Comprende, addon.__name__[1:], addon)
-        Comprende.lazy_generators.add(addon.__name__[1:])
+    @comprehension()
+    async def _abytes_encrypt(
+        self, key=None, salt=None, pid=0, *, delimiter=" "
+    ):
+        """
+        This function is copied into the ``Comprende`` class dictionary.
+        Doing so allows instances of ``Comprende`` generators access to
+        a baked-in, one-time-pad encryption algorithm for binary data,
+        while also keeping some encapsulation of code and functionality.
+        """
+        encoder = self.ato_base64().adecode().adelimit(delimiter)
+        async for result in encoder.aencrypt(key, salt, pid):
+            yield result
 
-    addons = {_otp_encrypt, _otp_decrypt, _aotp_encrypt, _aotp_decrypt}
-    for addon in addons:
-        name = addon.__name__.replace("_otp_", "").replace("_aotp_", "a")
-        setattr(Comprende, name, addon)
-        Comprende.lazy_generators.add(name)
-    del name
-    del addon
-    del addons
+    @comprehension()
+    def _bytes_encrypt(self, key=None, salt=None, pid=0, *, delimiter=" "):
+        """
+        This function is copied into the ``Comprende`` class dictionary.
+        Doing so allows instances of ``Comprende`` generators access to
+        a baked-in, one-time-pad encryption algorithm for binary data,
+        while also keeping some encapsulation of code and functionality.
+        """
+        encoder = self.to_base64().decode().delimit(delimiter)
+        for result in encoder.encrypt(key, salt, pid):
+            yield result
+
+    @comprehension()
+    async def _abytes_decrypt(self, key=None, pid=0, *, delimiter=" ", base=""):
+        """
+        This function is copied into the ``Comprende`` class dictionary.
+        Doing so allows instances of ``Comprende`` generators access to
+        a baked-in, one-time-pad decryption algorithm for binary data,
+        while also keeping some encapsulation of code and functionality.
+        """
+        decrypting = self.adecrypt(key, pid)
+        decoder = decrypting.adelimit_resize(delimiter, base).afrom_base64()
+        async for result in decoder:
+            yield result
+
+    @comprehension()
+    def _bytes_decrypt(self, key=None, pid=0, *, delimiter=" ", base=""):
+        """
+        This function is copied into the ``Comprende`` class dictionary.
+        Doing so allows instances of ``Comprende`` generators access to
+        a baked-in, one-time-pad decryption algorithm for binary data,
+        while also keeping some encapsulation of code and functionality.
+        """
+        decrypting = self.decrypt(key, pid)
+        decoder = decrypting.delimit_resize(delimiter, base).from_base64()
+        for result in decoder:
+            yield result
 
 
 class AsyncDatabase(metaclass=AsyncInit):
@@ -1148,12 +1293,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         self.directory = Path(directory)
         self._cache = commons.Namespace()
         self._manifest = commons.Namespace()
-        self.root_key = await akeys(key, key, key)[password_depth]()
-        self.root_hash = (
-            await asha_512_hmac(self.root_key, key=self.root_key)
-        )
-        self.root_filename = (
-            await asha_256_hmac(self.root_hash, key=self.root_hash)
+        self.root_key, self.root_hash, self.root_filename = (
+            await self.ainitialize_keys(key, password_depth)
         )
         if metatag:
             self.is_metatag = True
@@ -1163,6 +1304,17 @@ class AsyncDatabase(metaclass=AsyncInit):
         await self.ainitialize_metatags()
         if preload:
             await self.aload()
+
+    @classmethod
+    async def ainitialize_keys(key=None, password_depth=0):
+        """
+        Derives the database's cryptographic root key material and the
+        filename of the manifest ledger.
+        """
+        root_key = await akeys(key, key, key)[password_depth]()
+        root_hash = await asha_512_hmac(root_key, key=root_key)
+        root_filename = await asha_256_hmac(root_hash, key=root_hash)
+        return root_key, root_hash, root_filename
 
     @property
     def root_path(self):
@@ -1405,7 +1557,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         Constructs the key & name streams for the decryption & retrieval
         of the value stored in the database file called ``filename``.
         """
-        salted_filename = await asha_256(filename, ciphertext.get("salt"))
+        salted_filename = await self.afilename(
+            (filename, ciphertext.get("salt"))
+        )
         names = await self.anamestream(salted_filename)
         entropy = await self.akeystream(salted_filename)
         decrypting = apick(names, ciphertext).amap_decrypt(entropy)
@@ -1427,11 +1581,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         ``filename``.
         """
         salt = (await acsprng())[:64]
-        salted_filename = await asha_256(filename, salt)
+        salted_filename = await self.afilename((filename, salt))
         names = await self.anamestream(salted_filename)
         entropy = await self.akeystream(salted_filename)
-        plaintext = json.dumps(plaintext)
-        encrypting = adata(plaintext).amap_encrypt(names, entropy)
+        encrypting = ajson_encode(plaintext).amap_encrypt(names, entropy)
         async with encrypting as ciphertext:
             return {"salt": salt, **(await ciphertext.adict())}
 
@@ -1785,10 +1938,8 @@ class Database:
         self.directory = Path(directory)
         self._cache = commons.Namespace()
         self._manifest = commons.Namespace()
-        self.root_key = keys(key, key, key)[password_depth]()
-        self.root_hash = sha_512_hmac(self.root_key, key=self.root_key)
-        self.root_filename = sha_256_hmac(
-            self.root_hash, key=self.root_hash
+        self.root_key, self.root_hash, self.root_filename = (
+            self.initialize_keys(key, password_depth)
         )
         if metatag:
             self.is_metatag = True
@@ -1798,6 +1949,17 @@ class Database:
         self.initialize_metatags()
         if preload:
             self.load()
+
+    @classmethod
+    def initialize_keys(key=None, password_depth=0):
+        """
+        Derives the database's cryptographic root key material and the
+        filename of the manifest ledger.
+        """
+        root_key = keys(key, key, key)[password_depth]()
+        root_hash = sha_512_hmac(root_key, key=root_key)
+        root_filename = sha_256_hmac(root_hash, key=root_hash)
+        return root_key, root_hash, root_filename
 
     @property
     def root_path(self):
@@ -2027,7 +2189,7 @@ class Database:
         Constructs the key & name streams for the decryption & retrieval
         of the value stored in the database file called ``filename``.
         """
-        salted_filename = sha_256(filename, ciphertext.get("salt"))
+        salted_filename = self.filename((filename, ciphertext.get("salt")))
         names = self.namestream(salted_filename)
         entropy = self.keystream(salted_filename)
         with pick(names, ciphertext).map_decrypt(entropy) as plaintext:
@@ -2048,7 +2210,7 @@ class Database:
         ``filename``.
         """
         salt = csprng()[:64]
-        salted_filename = sha_256(filename, salt)
+        salted_filename = self.filename((filename, salt))
         names = self.namestream(salted_filename)
         entropy = self.keystream(salted_filename)
         plaintext = json.dumps(plaintext)
@@ -2290,6 +2452,8 @@ __extras = {
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
+    "abytes_decrypt": abytes_decrypt,
+    "abytes_encrypt": abytes_encrypt,
     "acipher": acipher,
     "adecipher": adecipher,
     "adecrypt": adecrypt,
@@ -2302,6 +2466,8 @@ __extras = {
     "aorganize_encryption_streams": aorganize_encryption_streams,
     "asubkeys": asubkeys,
     "axor": axor,
+    "bytes_decrypt": bytes_decrypt,
+    "bytes_encrypt": bytes_encrypt,
     "cipher": cipher,
     "decipher": decipher,
     "decrypt": decrypt,

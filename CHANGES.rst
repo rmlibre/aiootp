@@ -17,6 +17,48 @@
 =============
 
 
+Changes for version 0.3.0
+=========================
+
+
+Major Changes
+-------------
+
+-  The ``AsyncDatabase`` & ``Database`` now use the more secure ``afilename`` 
+   & ``filename`` methods to derive the hashmap name and encryption streams
+   from a user-defined tag internal to their ``aencrypt`` / ``adecrypt`` / 
+   ``encrypt`` / ``decrypt`` methods, as well as, prior to them getting called. 
+   This will break past versions of databases' ability to open their files.
+-  The package now has built-in functions for using the one-time-pad 
+   algorithm to encrypt & decrypt binary data instead of just strings
+   or integers. They are available in ``aiootp.abytes_encrypt``, 
+   ``aiootp.abytes_decrypt``, ``aiootp.bytes_encrypt`` & ``aiootp.bytes_decrypt``.
+-  The ``Comprende`` class now has generators that do encryption & decryption 
+   of binary data as well. They are available from any ``Comprende`` generator
+   by the ``abytes_encrypt``, ``abytes_decrypt``, ``bytes_encrypt`` & ``bytes_decrypt`` 
+   chainable method calls.
+   
+   
+Minor Changes
+-------------
+
+-  Fixed typos and inaccuracies in various docstrings.
+-  Added a ``__ui_coordination.py`` module to handle inserting functionality 
+   from higher-level to lower-level modules and classes.
+-  Various code clean ups and redundancy eliminations.
+-  ``AsyncKeys`` & ``Keys`` classes now only update their ``self.salt`` key
+   by default when their ``areset`` & ``reset`` methods are called. This
+   aligns more closely with their intended use.
+-  Added ``arandom_sleep`` & ``random_sleep`` chainable methods to the
+   ``Comprende`` class which yields outputs of generators after a random 
+   sleep for each iteration.
+-  Added several other chainable methods to the ``Comprende`` class for
+   string & bytes data processing. They're viewable in ``Comprende.lazy_generators``.
+-  Added new, initial tests to the test suite.
+
+
+
+
 Changes for version 0.2.0
 =========================
 
@@ -33,8 +75,8 @@ Major Changes
    ``aencrypt`` & ``adecrypt`` will now produce and decipher true one-time 
    pad ciphertext with these ephemeral salts. 
 -  The ``aiootp.subkeys`` & ``aiootp.asubkeys`` generators were revamped 
-   to use the ``keys`` generator internally instead of using their own, 
-   slower algorithm. 
+   to use the ``keys`` & ``akeys`` generators internally instead of using 
+   their own, slower algorithm. 
 -  ``AsyncDatabase`` file deletion is now asynchronous by running the 
    ``builtins.os.remove`` function in an async thread executor. The 
    decorator which does the magic is available at ``aiootp.asynchs.executor_wrapper``. 
@@ -57,14 +99,14 @@ Minor Changes
 -  Fix incorrect docstrings in databases ``namestream`` & ``anamestream`` 
    methods. 
 -  Added ``ASYNC_GEN_THROWN`` constant to ``Comprende`` class to try to stop 
--  an infrequent & difficult to debug ``RuntimeError`` when async generators 
+   an infrequent & difficult to debug ``RuntimeError`` when async generators 
    do not stop after receiving an ``athrow``. 
 -  Database tags are now fully loaded when they're copied using the methods 
    ``into_namespace`` & ``ainto_namespace``. 
 -  Updated inaccurate docstrings in ``map_encrypt``, ``amap_encrypt``, 
    ``map_decrypt`` & ``amap_decrypt`` ``OneTimePad`` methods. 
--  Added ``acustomize_parameters`` async function to ``aiootp.generics``
-   modules.
+-  Added ``acustomize_parameters`` async function to ``aiootp.generics`` 
+   module. 
 -  Various code clean ups.
 
 

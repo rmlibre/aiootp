@@ -90,6 +90,8 @@ Description
     
  >>>True
     
+    assert isinstance(molly.__class__, Database)
+    
     
     # Write database changes to disk ->
     
@@ -253,6 +255,8 @@ Description
     molly["hobbies"] is db.child["hobbies"]
     
  >>>True
+    
+    assert isinstance(molly.__class__, AsyncDatabase)
     
     
     # Write database changes to disk ->

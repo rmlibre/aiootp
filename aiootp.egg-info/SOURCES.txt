@@ -13,6 +13,7 @@ sha512_ROOT_CHECKSUM.sig
 sha512_ROOT_CHECKSUM.txt
 aiootp/__datasets.py
 aiootp/__init__.py
+aiootp/__ui_coordination.py
 aiootp/asynchs.py
 aiootp/ciphers.py
 aiootp/commons.py
@@ -39,3 +40,7 @@ licenses/sympy_LICENSE.txt
 licenses/uvloop_LICENSE_0.txt
 licenses/uvloop_LICENSE_1.txt
 tests/test_Comprende.py
+tests/test_Database_AsyncDatabase.py
+tests/test_aiootp.py
+tests/test_ciphers.py
+tests/test_generics.py
