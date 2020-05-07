@@ -1305,7 +1305,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         if preload:
             await self.aload()
 
-    @classmethod
+    @staticmethod
     async def ainitialize_keys(key=None, password_depth=0):
         """
         Derives the database's cryptographic root key material and the
@@ -1950,7 +1950,7 @@ class Database:
         if preload:
             self.load()
 
-    @classmethod
+    @staticmethod
     def initialize_keys(key=None, password_depth=0):
         """
         Derives the database's cryptographic root key material and the

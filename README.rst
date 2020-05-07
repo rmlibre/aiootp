@@ -795,6 +795,19 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 =============
 
 
+Changes for version 0.3.1
+=========================
+
+
+Minor Changes
+-------------
+
+-  Fixed bug where a static method in ``AsyncDatabase`` & ``Database`` was 
+   wrongly labelled a class method causing a failure to initialize.
+
+
+
+
 Changes for version 0.3.0
 =========================
 

@@ -1,6 +1,6 @@
 Metadata-Version: 1.2
 Name: aiootp
-Version: 0.3.0
+Version: 0.3.1
 Summary: aiootp - an asynchronous one-time-pad based crypto and anonymity library.
 Home-page: https://github.com/rmlibre/aiootp
 Author: Gonzo Investigatory Journalism Agency, LLC
@@ -803,6 +803,19 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
         
         ``Changelog``
         =============
+        
+        
+        Changes for version 0.3.1
+        =========================
+        
+        
+        Minor Changes
+        -------------
+        
+        -  Fixed bug where a static method in ``AsyncDatabase`` & ``Database`` was 
+           wrongly labelled a class method causing a failure to initialize.
+        
+        
         
         
         Changes for version 0.3.0
