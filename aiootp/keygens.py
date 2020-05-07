@@ -42,9 +42,8 @@ async def atable_key_gen(key=None, table=commons.ASCII_TABLE):
     This table based key generator function converts any key string
     containing an arbitrary set of characters, into another key string
     containing the set of characters provided by the table argument.
-    This generator produces the elements one at a time until the size
-    limit has been reached, or produces an unending stream of elements
-    if no size is specified.
+    This is an infinite generator that produces the elements one at a
+    time.
 
     The ASCII_TABLE that's provided as a default, is a comprehensive set
     of ascii characters that are legible, unique, and have single octet
@@ -67,13 +66,13 @@ async def atable_key_gen(key=None, table=commons.ASCII_TABLE):
     # To produce a 60 byte key of characters from the default table
     key = "hotdiggitydog_thischowisyummy"
     new_key = ""
-    async for char in atable_key_gen(key=key, size=60):
+    async for char in atable_key_gen(key=key)[:60]:
         new_key += char
     print(new_key)
-    >>> keVDn~;NrEu/or9#KoXnncfNN5q;o"R!VeuQB=?fgd:0"+-C`~_LlpoOBzqR
+    >>> Hx`4^ej;u&/]qOF21Ea2~(6f"smp'DvMk[(wy'lME%CpCo|1ZWt> &tu=Mw_
     """
     if key == None:
-        key = await acsprng(None)
+        key = await acsprng(await acsprng())
     if not is_iterable(table):
         raise TypeError("table is not iterable")
     elif isinstance(table, dict):
@@ -90,8 +89,8 @@ def table_key_gen(key=None, table=commons.ASCII_TABLE):
     This table based key generator function converts any key string
     containing an arbitrary set of characters, into another key string
     containing the set of characters provided by the table argument.
-    This generator produces the characters one at a time until the size
-    limit has been reached.
+    This is an infinite generator that produces the elements one at a
+    time.
 
     The ASCII_TABLE that's provided as a default, is a comprehensive set
     of ascii characters that are legible, unique, and have single octet
@@ -115,13 +114,13 @@ def table_key_gen(key=None, table=commons.ASCII_TABLE):
     Usage Example:
     key = "hotdiggitydog_thischowisyummy"
     new_key = ""
-    for char in table_key_gen(key=key, size=60):
+    for char in table_key_gen(key=key)[:60]:
         new_key += char
     print(new_key)
-    >>> keVDn~;NrEu/or9#KoXnncfNN5q;o"R!VeuQB=?fgd:0"+-C`~_LlpoOBzqR
+    >>> Hx`4^ej;u&/]qOF21Ea2~(6f"smp'DvMk[(wy'lME%CpCo|1ZWt> &tu=Mw_
     """
     if key == None:
-        key = csprng(None)
+        key = csprng(csprng())
     if not is_iterable(table):
         raise TypeError("table is not iterable")
     elif isinstance(table, dict):
@@ -165,10 +164,10 @@ async def atable_key(key=None, table=commons.ASCII_TABLE, size=64):
     >>> #mE)bOQD@lY%]Qwpb9Zi^32]jteVg
     """
     async with atable_key_gen(key=key, table=table)[:size] as generator:
-        try:
-            return await generator.ajoin()
-        except:
+        if type(table) == dict:
             return await generator.alist()
+        else:
+            return await generator.ajoin()
 
 
 def table_key(key=None, table=commons.ASCII_TABLE, size=64):
@@ -207,10 +206,10 @@ def table_key(key=None, table=commons.ASCII_TABLE, size=64):
     >>> #mE)bOQD@lY%]Qwpb9Zi^32]jteVg
     """
     with table_key_gen(key=key, table=table)[:size] as generator:
-        try:
-            return generator.join()
-        except:
+        if type(table) == dict:
             return generator.list()
+        else:
+            return generator.join()
 
 
 async def akeypair(entropy=csprng()):
@@ -273,7 +272,7 @@ class AsyncKeys:
         return await hasher(data, key=key if key else self.key)
 
     async def atest_hmac(
-        self, data=None, key=None, hmac=None, *, hasher=sha_256_hmac
+        self, data=None, hmac=None, key=None, *, hasher=sha_256_hmac
     ):
         """
         Tests the ``hmac`` code against the derived HMAC of ``data``
@@ -346,7 +345,7 @@ class Keys:
         return hasher(data, key=key if key else self.key)
 
     def test_hmac(
-        self, data=None, key=None, hmac=None, *, hasher=sha_256_hmac
+        self, data=None, hmac=None, key=None, *, hasher=sha_256_hmac
     ):
         """
         Tests the ``hmac`` code against the derived HMAC of ``data``

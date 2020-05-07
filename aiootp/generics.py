@@ -1633,7 +1633,7 @@ class Comprende:
             while delimiter in result and result.strip(delimiter):
                 index = result.find(delimiter)
                 yield result[: index]
-                result = result[index + 1 :]
+                result = (result[index :]).lstrip(delimiter)
             cache = result.strip(delimiter)
         if cache:
             yield cache
@@ -1651,7 +1651,7 @@ class Comprende:
             while delimiter in result and result.strip(delimiter):
                 index = result.find(delimiter)
                 yield result[: index]
-                result = result[index + 1 :]
+                result = (result[index :]).lstrip(delimiter)
             cache = result.strip(delimiter)
         if cache:
             yield cache
@@ -2821,7 +2821,7 @@ def compact(iterable, batch_size=1):
 async def apopleft(queue):
     """
     An async generator which calls the ``popleft()`` method on ``queue``
-    for every iterations, & exits on ``IndexError``.
+    for every iteration, & exits on ``IndexError``.
     """
     while True:
         try:
@@ -2834,7 +2834,7 @@ async def apopleft(queue):
 def popleft(queue):
     """
     A generator which calls the ``popleft()`` method on ``queue`` for
-    every iterations, & exits on ``IndexError``.
+    every iteration, & exits on ``IndexError``.
     """
     while True:
         try:

@@ -137,7 +137,10 @@ def make_os_async(namespace=None):
     """
     if namespace == None:
         namespace = commons.Namespace()
-    for attr in ["sendfile", "stat", "rename", "remove", "mkdir", "rmdir"]:
+    attrs = [
+        "sendfile", "stat", "rename", "remove", "mkdir", "makedirs", "rmdir"
+    ]
+    for attr in attrs:
         if hasattr(os, attr):
             setattr(namespace, attr, executor_wrapper(getattr(os, attr)))
     return namespace

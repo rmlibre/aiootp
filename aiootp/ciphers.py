@@ -41,10 +41,7 @@ used to create custom security tools & provides a OneTimePad cipher.
 import json
 import aiofiles
 import builtins
-from os import mkdir
-from os import makedirs
 from hashlib import sha3_512
-from collections import deque
 from aiocontext import async_contextmanager
 from .paths import *
 from .paths import Path
@@ -60,10 +57,6 @@ from .generics import anext
 from .generics import arange
 from .generics import generics
 from .generics import AsyncInit
-from .generics import is_generator
-from .generics import is_exception
-from .generics import is_async_iterable
-from .generics import is_async_generator
 from .generics import data, adata
 from .generics import pick, apick
 from .generics import order, aorder
@@ -78,7 +71,6 @@ from .generics import lru_cache, alru_cache
 from .generics import Comprende, comprehension
 from .generics import json_encode, ajson_encode
 from .generics import json_decode, ajson_decode
-from .generics import nc_512_hmac, anc_512_hmac
 from .generics import sha_256_hmac, asha_256_hmac
 from .generics import sha_512_hmac, asha_512_hmac
 
@@ -88,6 +80,8 @@ async def axor(
     *datastreams, key=None, buffer_size=power10[20], convert=True
 ):
     """
+    'The one-time-pad algorithm'
+
     Gathers both an arbitrary set of async or sync iterable integer
     ``*datastreams``, & a non-repeating async iterable of deterministic
     string ``key`` material, then bitwise xors the streams together
@@ -123,6 +117,8 @@ async def axor(
 @comprehension()
 def xor(*datastreams, key=None, buffer_size=power10[20], convert=True):
     """
+    'The one-time-pad algorithm'
+
     Gathers both an arbitrary set of iterable integer ``*datastreams``,
     & a non-repeating iterable of deterministic string ``key`` material,
     then bitwise xors the streams together producing a one-time pad
@@ -164,7 +160,7 @@ async def akeypair_ratchets(key=None, salt=None, pid=0):
     seed_1 = sha3_512(str((key, salt, pid, seed_0)).encode()).digest()
     kdf_0 = sha3_512(seed_1 + seed_0)
     kdf_1 = sha3_512(kdf_0.digest() + seed_0)
-    kdf_2 = sha3_512(kdf_1.digest() + kdf_0.digest())
+    kdf_2 = sha3_512(kdf_1.digest() + seed_0)
     return seed_1, kdf_0, kdf_1, kdf_2
 
 
@@ -179,7 +175,7 @@ def keypair_ratchets(key=None, salt=None, pid=0):
     seed_1 = sha3_512(str((key, salt, pid, seed_0)).encode()).digest()
     kdf_0 = sha3_512(seed_1 + seed_0)
     kdf_1 = sha3_512(kdf_0.digest() + seed_0)
-    kdf_2 = sha3_512(kdf_1.digest() + kdf_0.digest())
+    kdf_2 = sha3_512(kdf_1.digest() + seed_0)
     return seed_1, kdf_0, kdf_1, kdf_2
 
 
@@ -296,7 +292,7 @@ def subkeys(key=csprng(), salt=None, pid=0, group_size=512):
         entropy = source()
         branch_keys = keys(key, entropy, pid).prime()
         while True:
-            for branch in range(group_size):
+            for sub_key in range(group_size):
                 entropy = yield branch_keys(entropy)
             entropy = source(entropy)
 
@@ -404,7 +400,7 @@ async def aorganize_encryption_streams(
                 produced per iteration.
     ``pid``:    An arbitrary value that can be used to categorize key
                 material streams & safely distinguishes them from each
-                other. Designed to safely destinguish parallelized key
+                other. Designed to safely distinguish parallelized key
                 material streams with the same ``key`` & ``salt``. But
                 can be used for any arbitrary categorization of streams
                 as long as the encryption & decryption processes for a
@@ -792,7 +788,7 @@ async def abytes_encrypt(data=None, key=None, salt=None, pid=0):
     """
     encrypting = adata(data).abytes_encrypt(key, salt, pid)
     async with encrypting as ciphertext:
-        return ciphertext.list()
+        return await ciphertext.alist()
 
 
 def bytes_encrypt(data=None, key=None, salt=None, pid=0):
@@ -821,27 +817,6 @@ def bytes_encrypt(data=None, key=None, salt=None, pid=0):
         return ciphertext.list()
 
 
-def bytes_decrypt(data=None, key=None, pid=0):
-    """
-    Returns the plaintext bytes of the one-time pad ciphertext ``data``
-    with a key stream derived from permutations of these values:
-
-    ``key``:    An aribrary amount & type of entropic material whose
-                str() representation contains the user's desired entropy
-                & cryptographic strength. Designed to be used as a
-                longer-term user encryption / decryption key.
-    ``pid``:    An arbitrary value that can be used to categorize key
-                material streams & safely distinguishes the values they
-                produce. Designed to safely destinguish parallelized key
-                material streams with the same ``key`` & ``salt``. But
-                can be used for any arbitrary categorization of streams
-                as long as the encryption & decryption processes for a
-                given stream use the same ``pid`` value.
-    """
-    with unpack(data).bytes_decrypt(key, pid) as decrypting:
-        return decrypting.join(b"")
-
-
 async def abytes_decrypt(data=None, key=None, pid=0):
     """
     Returns the plaintext bytes of the one-time pad ciphertext ``data``
@@ -861,6 +836,27 @@ async def abytes_decrypt(data=None, key=None, pid=0):
     """
     async with aunpack(data).abytes_decrypt(key, pid) as decrypting:
         return await decrypting.ajoin(b"")
+
+
+def bytes_decrypt(data=None, key=None, pid=0):
+    """
+    Returns the plaintext bytes of the one-time pad ciphertext ``data``
+    with a key stream derived from permutations of these values:
+
+    ``key``:    An aribrary amount & type of entropic material whose
+                str() representation contains the user's desired entropy
+                & cryptographic strength. Designed to be used as a
+                longer-term user encryption / decryption key.
+    ``pid``:    An arbitrary value that can be used to categorize key
+                material streams & safely distinguishes the values they
+                produce. Designed to safely destinguish parallelized key
+                material streams with the same ``key`` & ``salt``. But
+                can be used for any arbitrary categorization of streams
+                as long as the encryption & decryption processes for a
+                given stream use the same ``pid`` value.
+    """
+    with unpack(data).bytes_decrypt(key, pid) as decrypting:
+        return decrypting.join(b"")
 
 
 class OneTimePad:
@@ -1185,7 +1181,9 @@ class OneTimePad:
             yield result
 
     @comprehension()
-    async def _abytes_decrypt(self, key=None, pid=0, *, delimiter=" ", base=""):
+    async def _abytes_decrypt(
+        self, key=None, pid=0, *, delimiter=" ", base=""
+    ):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to

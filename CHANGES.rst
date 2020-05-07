@@ -17,6 +17,41 @@
 =============
 
 
+Changes for version 0.4.0
+=========================
+
+
+Major Changes
+-------------
+
+-  Fixed bug in ``aiootp.abytes_encrypt`` function which inaccurately called
+   a synchronous ``Comprende`` end-point method on the underlying async
+   generator, causing an exception and failure to function.
+-  Changed the procedures in ``akeys`` & ``keys`` that generate their internal
+   key derivation functions. They're now slightly faster to initialize &
+   more theoretically secure since each internal state is fed by a seed
+   which isn't returned to the user. This encryption algorithm change is 
+   incompatible with the encryption algorithms of past versions.
+
+
+Minor Changes
+-------------
+
+-  Various code cleanups.
+-  Various inaccurate docstrings fixed.
+-  Keyword arguments in ``Keys().test_hmac`` & ``AsyncKeys().atest_hmac``
+   had their order switched to be slightly more friendly to use.
+-  Added documentation to ``README.rst`` on the inner workings of the
+   one-time-pad algorithm's implementation.
+-  Made ``Compende.arandom_sleep`` & ``Compende.random_sleep`` chainable
+   generator methods.
+-  Changed the ``Compende.adelimit_resize`` & ``Compende.delimit_resize``
+   algorithms to not yield inbetween two joined delimiters in a sequence
+   being resized.
+
+
+
+
 Changes for version 0.3.1
 =========================
 

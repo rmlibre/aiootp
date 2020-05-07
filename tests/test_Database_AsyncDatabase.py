@@ -71,9 +71,7 @@ def async_database():
 
 
 def test_Database_instance(database):
-    time_start = asynchs.time()
     db = Database(key=key, password_depth=depth)
-    assert asynchs.time() - time_start < 0.02
 
     assert db.root_key == database.root_key
     assert db.root_hash == database.root_hash
@@ -86,9 +84,7 @@ def test_Database_instance(database):
 
 
 def test_AsyncDatabase_instance(database):
-    time_start = asynchs.time()
     db = run(AsyncDatabase(key=key, password_depth=depth))
-    assert asynchs.time() - time_start < 0.02
 
     assert db.root_key == database.root_key
     assert db.root_hash == database.root_hash

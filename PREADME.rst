@@ -419,7 +419,7 @@ What other tools are available to users?:
     
     # synchronous ones ->
     
-    @aiootp.comprehesion()
+    @aiootp.comprehension()
     
     async def gen(x=None, y=None):
     
@@ -678,6 +678,150 @@ What other tools are available to users?:
     
     
     # This is really neat, & makes sharding encrypted data incredibly easy.
+    
+    
+    #
+
+
+
+
+Let's take a deep dive into the low-level xor procedure used to implement the one-time-pad:
+
+.. code:: python
+    
+    import aiootp
+    
+    # It is a ``Comprende`` generator ->
+    
+    @aiootp.comprehension()
+    
+    # ``datastreams`` are typically just a single iterable of integers that
+    
+    # are either plaintext or ciphertext. ``key`` is by default the ``keys``
+    
+    # generator. ``buffer_size`` is by default ``10**20``, which represents 
+    
+    # how many (20) of the most significant decimal digits in each integer 
+    
+    # key produced will be excluded from use for xoring. This is necessary 
+    
+    # because the first digits in a ``int(key, 16)`` converted key are less 
+    
+    # random than the least significant digits. 20 decimal digits is roughly 
+    
+    # 64-bits ->
+    
+    def xor(*datastreams, key=None, buffer_size=aiootp.power10[20], convert=True):
+    
+        # ``convert`` is an optional flag to allow users to pass a preconverted
+        
+        # interable of integer key material ->
+        
+        if convert:
+        
+            entropy = key.int(16)
+            
+        else:
+            
+            entropy = key
+            
+        # If more than one iterable of plaintext or ciphertext integers are 
+        
+        # passed, then they're processed one at a time here. Reversing the 
+        
+        # procedure when more than one data stream is used is not supported ->
+        
+        for items in zip(*datastreams):
+        
+            # Initialize the result. Anything xor'd by 0 returns itself ->
+        
+            result = 0
+            
+            for item in items:
+            
+                # For each element of each plaintext or ciphertext iterable,
+                
+                # a seed is cached to increase efficiency when growing the key ->
+            
+                seed = entropy() * entropy()
+                
+                # Each time ``entropy`` is called, it pulls 2 sha3_512 hashes
+                
+                # from the forward + semi-future secure key stream whose 
+                
+                # concatenated digests are integer converted & multiplied with
+                
+                # another pair of hashes from the stream. This creates keys of 
+                
+                # sizes that are multiples of 2048-bits. The new key is then 
+                
+                # xor'd with the 2048-bit seed to prevent any cryptanalysis 
+                
+                # involving factoring the multiplication ->
+                
+                current_key = seed ^ (entropy() * entropy())
+                
+                # The resulting key is then xor'd with the plaintext or 
+                
+                # ciphertext element ->
+                
+                tested = item ^ current_key
+                
+                # And the size of the item is increased by the buffer to account
+                
+                # for the less random most significant bits ->
+                
+                item_size = item * buffer_size
+                
+                # Next, the key is grown to be larger than the plaintext element
+                
+                # or, if the reverse operation is being done on ciphertext, then
+                
+                # the growth is stopped if a plaintext is revealed, since the
+                
+                # plaintext is always smaller than the key. Multiplying ``tested``
+                
+                # by 100 gets rid of rounding errors, as sometimes xor'ing two
+                
+                # integers can result in a number that's larger than both of them
+                
+                # by one significant digit.
+                
+                while tested * 100 > current_key and item_size > current_key:
+                
+                    # If the key needs to grow again, then the current key is
+                    
+                    # multiplied by another 2048-bit compund key & the result 
+                    
+                    # is xor'd with the seed to eliminate the potential of
+                    
+                    # factoring the result ->
+                    
+                    current_key = seed ^ (current_key * entropy() * entropy())
+                    
+                    # We then reset ``tested`` to test until plaintext is revealed
+                    
+                    # or, an appropriate ciphertext is made ->
+                    
+                    tested = item ^ current_key
+                    
+                # If the procedure succeeds in either case, the result is stored
+                
+                # or, yielded when there are no more elements in the zipped
+                
+                # datastream iteration ->
+                
+                result ^= tested
+                
+            yield result
+            
+    # This is a very space-efficient algorithm for a one-time-pad that adapts
+    
+    # dynamically to increased plaintext or ciphertext sizes. Both because 
+    
+    # it's built on generators, & because an infinite stream of key material
+    
+    # can efficiently be produced from a finite-sized key & an ephemeral salt.
     
     
     #

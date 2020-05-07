@@ -19,13 +19,14 @@ package.
 """
 
 
-from .generics import Comprende
+from .generics import Comprende, comprehension
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
 from .ciphers import OneTimePad
 from .keygens import insert_keyrings
 
 
+@comprehension()
 async def arandom_sleep(self, span=1):
     """
     Applies a random sleep before each yielded value from the underlying
@@ -36,6 +37,7 @@ async def arandom_sleep(self, span=1):
         yield result
 
 
+@comprehension()
 def random_sleep(self, span=1):
     """
     Applies a random sleep before each yielded value from the underlying
