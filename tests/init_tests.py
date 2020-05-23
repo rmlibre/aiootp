@@ -9,17 +9,27 @@
 #
 
 
-from init_tests import *
+import sys
+import json
+import pytest
+from pathlib import Path
 
 
-__exports = set()
+PACKAGE_PATH = str(Path(__file__).absolute().parent.parent)
+sys.path.append(PACKAGE_PATH)
 
 
-from test_Comprende import *
-for variable in __all__:
-    __exports.add(variable)
+import aiootp
+from aiootp import *
 
 
-__all__ = list(__exports)
-
+__all__ = [
+    "sys",
+    "json",
+    "pytest",
+    "Path",
+    "PACKAGE_PATH",
+    "aiootp",
+    *aiootp.__all__
+]
 

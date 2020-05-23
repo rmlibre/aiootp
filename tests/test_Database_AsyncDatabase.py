@@ -9,36 +9,34 @@
 #
 
 
-import sys
-import pytest
-from pathlib import Path
+from init_tests import *
 
 
 __all__ = [
     "database",
     "async_database",
+    "test_tags_metatags",
     "test_Database_instance",
     "test_AsyncDatabase_instance",
     "test_Database_cipher",
     "test_AsyncDatabase_cipher",
     "__all__",
-    "aiootp",
-    "PACKAGE_PATH",
 ]
 
 
-PACKAGE_PATH = str(Path(__file__).absolute().parent.parent)
-sys.path.append(PACKAGE_PATH)
-
-
-import aiootp
-from aiootp import *
-
-
+tag = "testing"
+atag = "a" + tag
+metatag = "clients"
+ametatag = "a" + metatag
 depth = 100
 key = csprng()
-tag = "testing"
 test_data = {
+    "floats": 10000.243,
+    "dicts": {"testing": {}},
+    "lists": list(range(100)),
+    "strings": 100 * "testing...",
+}
+atest_data = {
     "floats": 10000.243,
     "dicts": {"testing": {}},
     "lists": list(range(100)),
@@ -128,3 +126,55 @@ def test_AsyncDatabase_cipher(database, async_database):
     assert run(db.adecrypt(filename, encrypted_data)) == test_data
 
 
+def metatag_isnt_ametatag_but_equal(child, achild, db, adb):
+    assert child is db.clients
+    assert achild is adb.aclients
+
+    assert child[tag] is db.clients[tag]
+    assert achild[atag] is adb.aclients[atag]
+
+    assert db.clients[tag] == adb.aclients[atag]
+    assert db.clients[tag] is not adb.aclients[atag]
+
+
+def databases_save_metatag_files(db, adb, filename, afilename):
+    assert not (db.directory / filename).exists()
+    assert not (adb.directory / afilename).exists()
+    db.save()
+    run(adb.asave())
+    assert (db.directory / filename).exists()
+    assert (adb.directory / afilename).exists()
+    assert db.clients[tag] == adb.aclients[atag]
+    assert db.clients[tag] is not adb.aclients[atag]
+
+
+def databases_share_metatags(db, adb, child, achild):
+    assert child is db.clients
+    assert achild is adb.aclients
+
+
+def test_tags_metatags():
+    database = Database(key * 2, depth)
+    async_database = run(AsyncDatabase(key * 2, depth))
+    child = database.metatag(metatag)
+    achild = run(async_database.ametatag(ametatag))
+    databases_share_metatags(database, async_database, child, achild)
+
+    child[tag] = test_data
+    achild[atag] = atest_data
+    metatag_isnt_ametatag_but_equal(child, achild, database, async_database)
+
+    filename = child.filename(tag)
+    afilename = run(achild.afilename(atag))
+    databases_save_metatag_files(database, async_database, filename, afilename)
+
+    metatag_key = database.metatag_key(metatag)
+    ametatag_key = run(async_database.ametatag_key(ametatag))
+    db = Database(metatag_key, metatag=True)
+    adb = run(AsyncDatabase(ametatag_key, metatag=True))
+    assert db[tag] == adb[atag]
+    assert db[tag] == database.clients[tag]
+    assert adb[atag] == async_database.aclients[atag]
+
+    database.delete_database()
+    run(async_database.adelete_database())

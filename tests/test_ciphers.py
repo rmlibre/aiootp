@@ -9,10 +9,18 @@
 #
 
 
+from init_tests import *
+
+
 __exports = set()
 
 
 from test_Database_AsyncDatabase import *
+for variable in __all__:
+    __exports.add(variable)
+
+
+from test_high_level_encryption import *
 for variable in __all__:
     __exports.add(variable)
 

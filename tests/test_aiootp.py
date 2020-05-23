@@ -9,9 +9,7 @@
 #
 
 
-import sys
-import pytest
-from pathlib import Path
+from init_tests import *
 from test_generics import *
 from test_ciphers import *
 

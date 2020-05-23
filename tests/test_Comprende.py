@@ -9,9 +9,7 @@
 #
 
 
-import sys
-import pytest
-from pathlib import Path
+from init_tests import *
 
 
 __all__ = [
@@ -19,17 +17,7 @@ __all__ = [
     "test_comprehension_iter",
     "test_comprehension",
     "__all__",
-    "aiootp",
-    "PACKAGE_PATH",
 ]
-
-
-PACKAGE_PATH = str(Path(__file__).absolute().parent.parent)
-sys.path.append(PACKAGE_PATH)
-
-
-import aiootp
-from aiootp import *
 
 
 TEST_STRING = "abcdefghijk"
