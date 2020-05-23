@@ -472,12 +472,15 @@ def agen_timer(decorated_func):
             yield f"This is loop #{time}"
 
     async for notice in loop():
-        # Perfance statistics & debug info for the async generator will
-        # now be gathered and printed to the screen.
+        # Performance statistics & debug info for the async generator
+        # will now be gathered and printed to the screen.
         pass
     """
+    from .generics import comprehension
+
     debugger = AsyncGenDebugTools()
 
+    @comprehension()
     def wrapped_generator_func(*a, **kw):
         debugger.timed_func = decorated_func
         debugger.generator = decorated_func(*a, **kw)
@@ -499,7 +502,7 @@ def afunc_timer(decorated_func):
     async def add(x=4, y=6):
         return x + y
 
-    # Perfance statistics & debug info for the async function will be
+    # Performance statistics & debug info for the async function will be
     # gathered & printed to the screen whenever it's processed.
     await add()
     """
@@ -529,12 +532,15 @@ def gen_timer(decorated_func):
             yield f"This is loop #{time}"
 
     for notice in loop():
-        # Perfance statistics & debug info for the generator will now be
-        # gathered and printed to the screen.
+        # Performance statistics & debug info for the generator will now
+        # be gathered and printed to the screen.
         pass
     """
+    from .generics import comprehension
+
     debugger = GenDebugTools()
 
+    @comprehension()
     def wrapped_generator_func(*a, **kw):
         debugger.timed_func = decorated_func
         debugger.generator = decorated_func(*a, **kw)
@@ -556,8 +562,8 @@ def func_timer(decorated_func):
     def add(x=4, y=6):
         return x + y
 
-    # Perfance statistics & debug info for the function will be gathered
-    # & printed to the screen whenever it's called.
+    # Performance statistics & debug info for the function will be
+    # gathered & printed to the screen whenever it's called.
     add(1, 10)
     """
     debugger = DebugTools()
