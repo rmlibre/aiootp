@@ -50,6 +50,8 @@ from .commons import NONE
 from .asynchs import *
 from .randoms import csprng
 from .randoms import acsprng
+from .randoms import make_uuid
+from .randoms import amake_uuid
 from .generics import astr
 from .generics import azip
 from .generics import aiter
@@ -66,7 +68,6 @@ from .generics import ignore, aignore
 from .generics import nc_512, anc_512
 from .generics import sha_256, asha_256
 from .generics import sha_512, asha_512
-from .generics import seedrange, aseedrange
 from .generics import lru_cache, alru_cache
 from .generics import Comprende, comprehension
 from .generics import json_encode, ajson_encode
@@ -95,19 +96,19 @@ async def axor(
     on the contents of the plaintext.
     """
     if convert:
-        entropy = key.aint(16)
+        entropy = key.aint(16).gen.asend
     else:
-        entropy = key
+        entropy = key.gen.asend
     async for items in azip(*datastreams):
         result = 0
         for item in items:
-            seed = await entropy() * await entropy()
-            current_key = seed ^ (await entropy() * await entropy())
+            seed = await entropy(None) * await entropy(None)
+            current_key = seed ^ (await entropy(None) * await entropy(None))
             tested = item ^ current_key
             item_size = item * buffer_size
             while tested * 100 > current_key and item_size > current_key:
                 current_key = seed ^ (
-                    current_key * await entropy() * await entropy()
+                    current_key * await entropy(None) * await entropy(None)
                 )
                 tested = item ^ current_key
             result ^= tested
@@ -132,18 +133,20 @@ def xor(*datastreams, key=None, buffer_size=power10[20], convert=True):
     on the contents of the plaintext.
     """
     if convert:
-        entropy = key.int(16)
+        entropy = key.int(16).gen.send
     else:
-        entropy = key
+        entropy = key.gen.send
     for items in zip(*datastreams):
         result = 0
         for item in items:
-            seed = entropy() * entropy()
-            current_key = seed ^ (entropy() * entropy())
+            seed = entropy(None) * entropy(None)
+            current_key = seed ^ (entropy(None) * entropy(None))
             tested = item ^ current_key
             item_size = item * buffer_size
             while tested * 100 > current_key and item_size > current_key:
-                current_key = seed ^ (current_key * entropy() * entropy())
+                current_key = seed ^ (
+                    current_key * entropy(None) * entropy(None)
+                )
                 tested = item ^ current_key
             result ^= tested
         yield result
@@ -195,7 +198,7 @@ async def akeys(key=None, salt=None, pid=0):
     by specifying a unique ``pid`` to each process, thread or the like,
     which will result in a unique key stream for each.
     """
-    salt = salt if salt != None else await acsprng()
+    salt = salt if salt != None else await acsprng(key)
     seed, kdf_0, kdf_1, kdf_2 = await akeypair_ratchets(key, salt, pid)
     async with Comprende().arelay(salt):
         while True:
@@ -222,7 +225,7 @@ def keys(key=None, salt=None, pid=0):
     by specifying a unique ``pid`` to each process, thread or the like,
     which will result in a unique key stream for each.
     """
-    salt = salt if salt != None else csprng()
+    salt = salt if salt != None else csprng(key)
     seed, kdf_0, kdf_1, kdf_2 = keypair_ratchets(key, salt, pid)
     with Comprende().relay(salt):
         while True:
@@ -540,7 +543,7 @@ async def aencrypt(data="", key=csprng(), salt=None, size=246, pid=0):
         entropy = akeys(key, session_seed, pid=pid)
         encode_salt = axor(abirth(salt).aint(16), key=entropy)
         yield await encode_salt.anext()
-        async for ciphertext in encrypting:
+        async for ciphertext in aorder([session_seed], encrypting.iterator):
             yield ciphertext
 
 
@@ -577,7 +580,7 @@ def encrypt(data="", key=csprng(), salt=None, size=246, pid=0):
         entropy = keys(key, session_seed, pid=pid)
         encode_salt = xor(birth(salt).int(16), key=entropy)
         yield encode_salt.next()
-        for ciphertext in encrypting:
+        for ciphertext in order([session_seed], encrypting.iterator):
             yield ciphertext
 
 
@@ -607,10 +610,13 @@ async def adecrypt(data=(), key=csprng(), pid=0):
 
     entropy = akeys(key, session_seed, pid=pid)
     decode_salt = axor(abirth(ciphered_salt), key=entropy)
-    salt = await decode_salt.ahex().aslice(2, None).azfill(128).anext()
+    salt = await decode_salt.ahex(start=2).azfill(128).anext()
 
     decrypting = aorganize_decryption_streams(
-        data=ciphertext[1:], key=key, salt=salt, pid=pid
+        data=aorder([session_seed], ciphertext.iterator),
+        key=key,
+        salt=salt,
+        pid=pid,
     )
     async for plaintext in decrypting:
         yield plaintext
@@ -642,10 +648,13 @@ def decrypt(data=(), key=csprng(), pid=0):
 
     entropy = keys(key, session_seed, pid=pid)
     decode_salt = xor(birth(ciphered_salt), key=entropy)
-    salt = decode_salt.hex().slice(2, None).zfill(128).next()
+    salt = decode_salt.hex(start=2).zfill(128).next()
 
     decrypting = organize_decryption_streams(
-        data=ciphertext[1:], key=key, salt=salt, pid=pid
+        data=order([session_seed], ciphertext.iterator),
+        key=key,
+        salt=salt,
+        pid=pid,
     )
     for plaintext in decrypting:
         yield plaintext
@@ -672,11 +681,9 @@ async def ajson_encrypt(data=None, key=None, salt=None, pid=0):
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
     """
-    results = []
-    plaintext = json.dumps(data)
-    async for result in abirth(plaintext).aencrypt(key, salt, pid=pid):
-        results.append(result)
-    return {"ciphertext": results}
+    plaintext = adata(json.dumps(data))
+    async with plaintext.aencrypt(key, salt, pid=pid) as ciphertext:
+        return {"ciphertext": await ciphertext.alist()}
 
 
 def json_encrypt(data=None, key=None, salt=None, pid=0):
@@ -700,11 +707,9 @@ def json_encrypt(data=None, key=None, salt=None, pid=0):
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
     """
-    results = []
-    plaintext = json.dumps(data)
-    for result in birth(plaintext).encrypt(key, salt, pid=pid):
-        results.append(result)
-    return {"ciphertext": results}
+    plaintext = globals()["data"](json.dumps(data))
+    with plaintext.encrypt(key, salt, pid=pid) as ciphertext:
+        return {"ciphertext": ciphertext.list()}
 
 
 async def ajson_decrypt(data=None, key=None, pid=0):
@@ -725,15 +730,13 @@ async def ajson_decrypt(data=None, key=None, pid=0):
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
     """
-    results = ""
     try:
-        ciphertext = data["ciphertext"]
+        ciphertext = aunpack(data["ciphertext"])
     except TypeError:
         data = json.loads(data)
-        ciphertext = data["ciphertext"]
-    async for result in aunpack(ciphertext).adecrypt(key=key, pid=pid):
-        results += result
-    return json.loads(results)
+        ciphertext = aunpack(data["ciphertext"])
+    async with ciphertext.adecrypt(key=key, pid=pid) as plaintext:
+        return json.loads(await plaintext.ajoin())
 
 
 def json_decrypt(data=None, key=None, pid=0):
@@ -754,15 +757,13 @@ def json_decrypt(data=None, key=None, pid=0):
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
     """
-    results = ""
     try:
-        ciphertext = data["ciphertext"]
+        ciphertext = unpack(data["ciphertext"])
     except TypeError:
         data = json.loads(data)
-        ciphertext = data["ciphertext"]
-    for result in unpack(ciphertext).decrypt(key=key, pid=pid):
-        results += result
-    return json.loads(results)
+        ciphertext = unpack(data["ciphertext"])
+    with ciphertext.decrypt(key=key, pid=pid) as plaintext:
+        return json.loads(plaintext.join())
 
 
 async def abytes_encrypt(data=None, key=None, salt=None, pid=0):
@@ -1019,14 +1020,17 @@ class OneTimePad:
         salt = salt if salt != None else await acsprng(key)
 
         entropy = akeys(key=key, salt=salt, pid=pid)
-        encrypting = acipher(data=self.aresize(size), key=entropy)
+        if not size:
+            encrypting = acipher(data=self, key=entropy)
+        else:
+            encrypting = acipher(data=self.aresize(size), key=entropy)
 
         session_seed = await encrypting.anext()
         session_entropy = akeys(key=key, salt=session_seed, pid=pid)
         encode_salt = axor(abirth(salt).aint(16), key=session_entropy)
 
         yield await encode_salt.anext()
-        async for result in encrypting:
+        async for result in aorder([session_seed], encrypting.iterator):
             yield result
 
     @comprehension()
@@ -1062,14 +1066,17 @@ class OneTimePad:
         salt = salt if salt != None else csprng(key)
 
         entropy = keys(key=key, salt=salt, pid=pid)
-        encrypting = cipher(data=self.resize(size), key=entropy)
+        if not size:
+            encrypting = cipher(data=self, key=entropy)
+        else:
+            encrypting = cipher(data=self.resize(size), key=entropy)
 
         session_seed = encrypting.next()
         session_entropy = keys(key=key, salt=session_seed, pid=pid)
         encode_salt = xor(birth(salt).int(16), key=session_entropy)
 
         yield encode_salt.next()
-        for result in encrypting:
+        for result in order([session_seed], encrypting.iterator):
             yield result
 
     @comprehension()
@@ -1106,7 +1113,7 @@ class OneTimePad:
         session_entropy = akeys(key=key, salt=session_seed, pid=pid)
         decode_salt = axor(abirth(ciphered_salt), key=session_entropy)
 
-        salt = await decode_salt.ahex().aslice(2, None).azfill(128).anext()
+        salt = await decode_salt.ahex(start=2).azfill(128).anext()
         entropy = akeys(key=key, salt=salt, pid=pid)
         async for plaintext in adecipher(
             data=aorder([session_seed], ciphertext.iterator), key=entropy
@@ -1147,7 +1154,7 @@ class OneTimePad:
         session_entropy = keys(key=key, salt=session_seed, pid=pid)
         decode_salt = xor(birth(ciphered_salt), key=session_entropy)
 
-        salt = decode_salt.hex().slice(2, None).zfill(128).next()
+        salt = decode_salt.hex(start=2).zfill(128).next()
         entropy = keys(key=key, salt=salt, pid=pid)
         for plaintext in decipher(
             data=order([session_seed], ciphertext.iterator), key=entropy
@@ -1248,12 +1255,14 @@ class AsyncDatabase(metaclass=AsyncInit):
     # Purge the filesystem of the database files ->
     await db.adelete_database()
     """
+
+    _METATAG = sha_256(f"__metatags__{NONE}")
     directory = DatabasePath()
 
     async def __init__(
         self,
         key=None,
-        password_depth=0,           # >= 5000 if ``key`` is weak
+        password_depth=0,  # >= 5000 if ``key`` is weak
         preload=True,
         directory=directory,
         metatag=False,
@@ -1400,9 +1409,11 @@ class AsyncDatabase(metaclass=AsyncInit):
         method, thereby making a unique, deterministic name stream for
         each ``tag``.
         """
-        return await akeys(
-            self.root_hash, self.root_seed, tag
-        ).aresize(64).aprime()
+        return (
+            await akeys(self.root_hash, self.root_seed, tag)
+            .aresize(64)
+            .aprime()
+        )
 
     async def akeystream(self, tag=None):
         """
@@ -1441,43 +1452,66 @@ class AsyncDatabase(metaclass=AsyncInit):
         async with decrypting as manifest:
             return json.loads(await manifest.ajoin())
 
-    async def aload_manifest(self):
+    async def acreate_salting_function(self, salt=None):
         """
-        Initalizes the object with a new database file ledger or loads
-        an existing one from the filesystem.
+        Creates and returns an async function for the instance to
+        retrieve a cryptographic ``salt`` key. If the instance is a
+        metatag child database, then the returned key is assumed to not
+        have been stored encrypted. Otherwise, the ``salt`` is assumed
+        to be encrypted, and is decrypted within the created function.
         """
-
-        if self.root_path.exists():
-            manifest = await self.aopen_manifest()
-            root_salt = manifest[self.root_filename]
-        else:
-            if self.is_metatag:
-                root_salt = (await acsprng())[:64]
-            else:
-                root_salt = await ajson_encrypt(csprng(), self.root_key)
-            manifest = {self.root_filename: root_salt}
-            self._root_session_salt = (await acsprng())[:64]
+        instance_hash = sha_256_hmac((hash(self), salt), key=self.root_hash)
 
         @alru_cache()
-        async def __aroot_salt(
-            database=sha_256_hmac(
-                (hash(self), root_salt), key=self.root_hash
-            )
-        ):
+        async def __aroot_salt(database=instance_hash):
             """
             Keeps the ``root_salt`` tucked away until queried, where
             then it's cached for efficiency.
             """
             if self.is_metatag:
-                return root_salt
+                return salt
             else:
-                return await ajson_decrypt(root_salt, self.root_key)
+                return await ajson_decrypt(salt, self.root_key)
 
-        self.__aroot_salt = __aroot_salt
-        self._manifest = commons.Namespace(manifest)
-        self.root_seed = (
-            await asha_512_hmac(await self.__aroot_salt(), self.root_key)
+        return __aroot_salt
+
+    async def ainstall_root_salt(
+        self, root_salt=None, *, auto_encrypt=True
+    ):
+        """
+        Resets & inserts the database's root entropy source in the
+        manifest ledger & the instance's caches of keys. Tags & metatags
+        not loaded into the cache will be unretrievable without the
+        root_salt that is replaced in this function.
+        """
+        salt = (
+            root_salt
+            if self.is_metatag or not auto_encrypt
+            else await ajson_encrypt(root_salt, self.root_key)
         )
+        self._manifest[self.root_filename] = salt
+        self.__aroot_salt = await self.acreate_salting_function(salt)
+        self.root_seed = await asha_512_hmac(
+            await self.__aroot_salt(), self.root_key
+        )
+
+    async def aload_manifest(self):
+        """
+        Initalizes the object with a new database file ledger or loads
+        an existing one from the filesystem.
+        """
+        if self.root_path.exists():
+            self._manifest = commons.Namespace(await self.aopen_manifest())
+            root_salt = self._manifest[self.root_filename]
+        else:
+            self._manifest = commons.Namespace()
+            self._root_session_salt = (await acsprng())[:64]
+            if self.is_metatag:
+                root_salt = (await acsprng())[:64]
+            else:
+                root_salt = await ajson_encrypt(csprng(), self.root_key)
+
+        await self.ainstall_root_salt(root_salt, auto_encrypt=False)
 
     async def asave_manifest(self, ciphertext=None):
         """
@@ -1505,18 +1539,45 @@ class AsyncDatabase(metaclass=AsyncInit):
                 ciphertext={"salt": salt, **(await manifest.adict())}
             )
 
-    async def aload(self):
+    async def aload_metatags(self, *, preload=True):
+        """
+        Specifically loads all of the database's metatag values into the
+        cache. If the ``preload`` keyword argument is falsey then the
+        metatag references are populated in the database's instance
+        dictionary, but their internal values are not loaded.
+        """
+        tasks = []
+        for metatag in set(self.metatags):
+            await switch()
+            tasks.append(new_task(self.ametatag(metatag, preload=preload)))
+        await gather(*tasks)
+
+    async def aload_tags(self):
+        """
+        Specifically loads all of the database's tag values into the
+        cache.
+        """
+        tasks = []
+        maintenance_files = self.maintenance_files
+        for filename, tag in dict(self.manifest.namespace).items():
+            await switch()
+            if filename in maintenance_files:
+                continue
+            tasks.append(new_task(self.aquery(tag)))
+        await gather(*tasks)
+
+    async def aload(self, *, metatags=True):
         """
         Loads all the database object's values from the filesystem into
         the database cache. This brings the database values into the
         cache, enables up-to-date bracket lookup of tag values & dotted
         lookup of metatags. Otherwise, values would have to be queried
-        using the awaitable ``aget`` & ``ametatag`` methods.
+        using the awaitable ``aquery`` & ``ametatag`` methods.
         """
-        for metatag in self.metatags:
-            await (await self.ametatag(metatag)).aload()
-        async for tag, value in self:
-            pass
+        tasks = []
+        tasks.append(new_task(self.aload_metatags(preload=metatags)))
+        tasks.append(new_task(self.aload_tags()))
+        await gather(*tasks)
         return self
 
     async def afilename(self, tag=None):
@@ -1542,6 +1603,63 @@ class AsyncDatabase(metaclass=AsyncInit):
             (data, self.root_hash), key=self.root_seed
         )
 
+    async def auuids(self, category=None, length=16, salt=""):
+        """
+        Returns an async coroutine that can safely create unique user
+        IDs based on the category set by the user. The keyword arguments
+        refer to:
+
+        ``category``    Any object sent by the user which identifies the
+            category or context that the uuids are being made for, such
+            as 'emails', 'unregistered_user', 'address'. It is up to the
+            user, these categories distinguish the uuids created
+            uniquely from other categories.
+        ``length``      The length of the hex strings returned by this
+            uuid generator.
+        ``salt``        An optional random salt value of arbitrary type &
+            size that, if passed needs to be managed manually by the
+            user. It provides entropy into the uuids created, further
+            distinguishing them, and provides resistance against certain
+            kinds of hash cracking attacks. The salt can be by calling
+            the ``result(exit=True)`` method of the returned ``Comprende``
+            generator.
+
+        Usage Examples:
+
+        import aiootp
+
+        db = await aiootp.AsyncDatabase(
+            key="regular shared solo minutes", password_depth=6000
+        )
+        responses = await db.ametatag("responses")
+        uuids = await responses.auuids("emails", salt=server.salt)
+
+        # Backup json data to the encrypted database ->
+        for email_address in server.emails:
+            uuid = await uuids(email_address)
+            responses[uuid] = server.responses[email_address]
+
+        await db.asave()
+        """
+
+        @comprehension()
+        async def _auuids():
+            """
+            A programmable async coroutine which creates unique user IDs
+            that are specific to a particular category.
+            """
+            name = await (await self.anamestream(category)).anext()
+            uuids = await amake_uuid(length, salt=name).aprime()
+            salt = salt if salt != None else csprng(name)[:64]
+            async with uuids.arelay(salt) as ids:
+                stamp = None
+                while True:
+                    stamp = yield await ids(
+                        await asha_256(name, salt, stamp)
+                    )
+
+        return await _auuids().aprime()
+
     async def aquery_ciphertext(self, filename=None):
         """
         Retrieves the value stored in the database file that's called
@@ -1550,17 +1668,69 @@ class AsyncDatabase(metaclass=AsyncInit):
         async with aiofiles.open(self.directory / filename, "r") as db_file:
             return json.loads(await db_file.read())
 
+    @comprehension()
+    async def adecrypt_stream(
+        self, filename=None, stream=None, salt=None
+    ):
+        """
+        Constructs the key stream for the decryption of the ciphertext
+        ``stream`` labeled by a ``filename``. Yields plaintext in json
+        string chunks.
+
+        ``filename``    Internally, this is the salted & hashed tag that
+            labels a piece of data in the database. If a salt is passed,
+            this generator isn't being called internally, but by a user.
+            In which case, the user's ``filename`` will be hashed again
+            with the salt to recreate the correct keystream used during
+            encryption.
+        ``stream``      This is an async ``Comprende`` generator that
+            produces ciphertext chunks in the correct order.
+        ``salt``        Is a random ephemeral key of arbitrary size &
+            type whose string representation should contain at least 256
+            bits of entropy.
+        """
+        if salt:
+            salted_filename = await self.afilename((filename, salt))
+        else:
+            salted_filename = filename
+        entropy = await self.akeystream(salted_filename)
+        async for plaintext in stream.amap_decrypt(entropy):
+            yield plaintext
+
+    async def aciphertext_stream(
+        self, filename=None, ciphertext=None, salt=None
+    ):
+        """
+        Handles taking in a dictionary (hashmap) of ``ciphertext``,
+        a random ``salt`` that's typically attached to the ciphertext,
+        & the optional ``filename`` that labels the data.
+        """
+        if salt:
+            salted_filename = await self.afilename((filename, salt))
+        else:
+            salted_filename = filename
+        names = await self.anamestream(salted_filename)
+        return apick(names, ciphertext)
+
     async def adecrypt(self, filename=None, ciphertext=None):
         """
         Constructs the key & name streams for the decryption & retrieval
         of the value stored in the database file called ``filename``.
+        Returns the complete plaintext loaded from json format.
+
+        ``filename``    This is the hashed tag that labels a piece of
+            data in the database. It's then hashed again with the random
+            ephemeral salt that was attached to the ciphertext.
+        ``ciphertext``  This is a dictionary (hashmap) of ciphertext
+            chunks labeled by a stream of cryptographically derived
+            names. It should also contain a random ephemeral salt that's
+            labeled "salt". The salt should contain at least 256-bits of
+            entropy.
         """
-        salted_filename = await self.afilename(
-            (filename, ciphertext.get("salt"))
-        )
-        names = await self.anamestream(salted_filename)
-        entropy = await self.akeystream(salted_filename)
-        decrypting = apick(names, ciphertext).amap_decrypt(entropy)
+        salt = ciphertext.get("salt")
+        salted_filename = await self.afilename((filename, salt))
+        stream = await self.aciphertext_stream(salted_filename, ciphertext)
+        decrypting = self.adecrypt_stream(salted_filename, stream)
         async with decrypting as plaintext:
             return json.loads(await plaintext.ajoin())
 
@@ -1569,20 +1739,62 @@ class AsyncDatabase(metaclass=AsyncInit):
         Saves the encrypted value ``ciphertext`` in the database file
         called ``filename``.
         """
-        async with aiofiles.open(self.directory / filename, "w+") as db_file:
+        async with aiofiles.open(
+            self.directory / filename, "w+"
+        ) as db_file:
             await db_file.write(json.dumps(ciphertext))
+
+    @comprehension()
+    async def aencrypt_stream(self, filename=None, stream=None, salt=None):
+        """
+        Constructs the key & name streams for the encryption & storage
+        in the database of the value ``plaintext`` in the file called
+        ``filename``. Yields a tuple of a name & a ciphertext chunk per
+        iteration for creating cryptographically ordered & obscured
+        hashmaps of encrypted data.
+
+        ``filename``    This is the hashed tag that labels a piece of
+            data in the database. It's then hashed again with a random
+            ephemeral salt that's created in this method, or it can be
+            created prior to using this generator & passed into ``salt``.
+        ``stream``      This is an async ``Comprende`` generator that
+            yields some length string (usually 246 is best) of plaintext
+            per iteration.
+        ``salt``        The random ephemeral salt that's used to make
+            the key & name streams unique. If it's created in this
+            generator instead of being passed in, then the salt is
+            returned back to the user in a UserWarning which makes it
+            available in the generator's ``aresult`` method at the end
+            of the stream.
+        """
+        random_salt = salt if salt else (await acsprng())[:64]
+        salted_filename = await self.afilename((filename, random_salt))
+        names = await self.anamestream(salted_filename)
+        entropy = await self.akeystream(salted_filename)
+        encrypting = stream.amap_encrypt(names, entropy)
+        async for name, ciphertext in encrypting:
+            yield name, ciphertext
+        if not salt:
+            raise UserWarning(random_salt)
 
     async def aencrypt(self, filename=None, plaintext=None):
         """
         Constructs the key & name streams for the encryption & storage
         in the database of the value ``plaintext`` in the file called
-        ``filename``.
+        ``filename``. Returns the ciphertext hashmap.
+
+        ``filename``    This is the hashed tag that labels a piece of
+            data in the database. It's then hashed again with a random
+            ephemeral salt that's created in this method & attached to
+            the ciphertext. If this method is being called by a user,
+            this can be any arbitrary value that's useful for labeling
+            the data being encrypted.
+        ``plaintext``   This is any json serializable object that is to
+            be encrypted into a hashmap of shards.
         """
         salt = (await acsprng())[:64]
-        salted_filename = await self.afilename((filename, salt))
-        names = await self.anamestream(salted_filename)
-        entropy = await self.akeystream(salted_filename)
-        encrypting = ajson_encode(plaintext).amap_encrypt(names, entropy)
+        encoder = ajson_encode(plaintext)
+        encrypting = self.aencrypt_stream(filename, encoder, salt)
         async with encrypting as ciphertext:
             return {"salt": salt, **(await ciphertext.adict())}
 
@@ -1614,8 +1826,11 @@ class AsyncDatabase(metaclass=AsyncInit):
         Returns a value from the database by it's ``tag`` & deletes the
         associated file in the database directory.
         """
-        value = await self.aquery(tag)
         filename = await self.afilename(tag)
+        try:
+            value = await self.aquery(tag)
+        except FileNotFoundError:
+            value = None
         try:
             del self.manifest[filename]
         except KeyError:
@@ -1641,7 +1856,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Initializes the values that organize database metatags, which
         are children databases contained within their parent.
         """
-        self.metatags_filename = await self.afilename(f"__metatags__{NONE}")
+        self.metatags_filename = await self.afilename(self._METATAG)
         if self.metatags == None:
             self.manifest[self.metatags_filename] = []
 
@@ -1711,11 +1926,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         stored values, tags & metatags.
         """
         my_metatags = self.metatags
-        its_metatags = aunpack(list(database.metatags))
+        its_metatags = aunpack(set(database.metatags))
         my_metatags += [
-            tag
-            async for tag in its_metatags
-            if tag not in my_metatags
+            tag async for tag in its_metatags if tag not in my_metatags
         ]
         async for tag, value in aunpack(database):
             filename = await self.afilename(tag)
@@ -1723,9 +1936,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             self.manifest[filename] = tag
         async for metatag in its_metatags:
             my_metatag = await self.ametatag(metatag)
-            await my_metatag.amirror_database(
-                database.__dict__[metatag]
-            )
+            await my_metatag.amirror_database(database.__dict__[metatag])
 
     async def adelete_database(self):
         """
@@ -1739,6 +1950,26 @@ class AsyncDatabase(metaclass=AsyncInit):
             await self.adelete_file(filename)
         self.manifest.namespace.clear()
 
+    async def asave_metatags(self):
+        """
+        Writes the database's child databases to disk.
+        """
+        async for metatag in aunpack(set(self.metatags)):
+            if self.__dict__.get(metatag):
+                await self.__dict__[metatag].asave()
+
+    async def asave_tags(self):
+        """
+        Writes the database's user-defined tags to disk.
+        """
+        maintenance_files = self.maintenance_files
+        database = dict(self.cache.namespace).items()
+        async for filename, plaintext in aunpack(database):
+            if filename in maintenance_files:
+                continue
+            ciphertext = await self.aencrypt(filename, plaintext)
+            await self.asave_ciphertext(filename, ciphertext)
+
     async def asave(self):
         """
         Writes the database's values to disk.
@@ -1746,18 +1977,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         if self.root_filename not in self.manifest:
             raise PermissionError("The database keys have been deleted.")
         await self.aclose_manifest()
-        database = dict(self.manifest.namespace)
-        del database[self.root_filename]
-        del database[self.metatags_filename]
-        async for metatag in aunpack(self.metatags):
-            if self.__dict__.get(metatag):
-                await self.__dict__[metatag].asave()
-        async for filename in aunpack(database):
-            if filename in self.cache:
-                ciphertext = await self.aencrypt(
-                    filename, self.cache[filename]
-                )
-                await self.asave_ciphertext(filename, ciphertext)
+        await self.asave_metatags()
+        await self.asave_tags()
 
     async def ainto_namespace(self):
         """
@@ -1893,12 +2114,14 @@ class Database:
     # Purge the filesystem of the database files ->
     db.delete_database()
     """
+
+    _METATAG = sha_256(f"__metatags__{NONE}")
     directory = DatabasePath()
 
     def __init__(
         self,
         key=None,
-        password_depth=0,           # >= 5000 if ``key`` is weak
+        password_depth=0,  # >= 5000 if ``key`` is weak
         preload=True,
         directory=directory,
         metatag=False,
@@ -2081,40 +2304,82 @@ class Database:
         with pick(names, ciphertext).map_decrypt(entropy) as manifest:
             return json.loads(manifest.join())
 
+    def create_salting_function(self, salt=None):
+        """
+        Creates and returns a function for the instance to retrieve a
+        cryptographic ``salt`` key. If the instance is a metatag child
+        database, then the returned key is assumed to not have been
+        stored encrypted. Otherwise, the ``salt`` is assumed to be
+        encrypted, and is decrypted within the created function.
+        """
+        instance_hash = sha_256_hmac((hash(self), salt), key=self.root_hash)
+
+        @lru_cache()
+        def __root_salt(database=instance_hash):
+            """
+            Keeps the ``root_salt`` tucked away until queried, where
+            then it's cached for efficiency.
+            """
+            if self.is_metatag:
+                return salt
+            else:
+                return json_decrypt(salt, self.root_key)
+
+        return __root_salt
+
+    def install_root_salt(self, root_salt=None, *, auto_encrypt=True):
+        """
+        Inserts the database's root entropy source in the manifest
+        ledger & the instance's caches of keys. Tags & metatags not
+        loaded into the cache will be unretrievable without the
+        root_salt that is replaced in this function.
+        """
+        salt = (
+            root_salt
+            if self.is_metatag or not auto_encrypt
+            else json_encrypt(root_salt, self.root_key)
+        )
+        self._manifest[self.root_filename] = salt
+        self.__root_salt = self.create_salting_function(salt)
+        self.root_seed = sha_512_hmac(self.__root_salt(), self.root_key)
+
+    def _replace_root_salt(self, salt=None):
+        """
+        A non-functioning first try at adding a feature which will allow
+        users to change the root cryptographic salt of the database
+        instance in place.
+        """
+        if len(str(salt)) < 64:
+            raise PermissionError("Cannot use a salt string < 64 chars.")
+        database = {tag: self.pop(tag) for tag in self.tags}
+        self.install_root_salt(salt)
+        for tag, value in database.items():
+            self[tag] = value
+        children = self.manifest.namespace.pop(self.metatag_filename)
+        self.initialize_metatags()
+        self.manifest[self.metatags_filename] = children
+        for metatag in self.metatags:
+            with ignore(KeyError):
+                del self.__dict__[metatag]
+                self.metatag(metatag)
+
     def load_manifest(self):
         """
         Initalizes the object with a new database file ledger or loads
         an existing one from the filesystem.
         """
         if self.root_path.exists():
-            manifest = self.open_manifest()
-            root_salt = manifest[self.root_filename]
+            self._manifest = commons.Namespace(self.open_manifest())
+            root_salt = self._manifest[self.root_filename]
         else:
+            self._manifest = commons.Namespace()
+            self._root_session_salt = csprng()[:64]
             if self.is_metatag:
                 root_salt = csprng()[:64]
             else:
                 root_salt = json_encrypt(csprng(), self.root_key)
-            manifest = {self.root_filename: root_salt}
-            self._root_session_salt = csprng()[:64]
 
-        @lru_cache()
-        def __root_salt(
-            database=sha_256_hmac(
-                (hash(self), root_salt), key=self.root_hash
-            )
-        ):
-            """
-            Keeps the ``root_salt`` tucked away until queried, where
-            then it's cached for efficiency.
-            """
-            if self.is_metatag:
-                return root_salt
-            else:
-                return json_decrypt(root_salt, self.root_key)
-
-        self.__root_salt = __root_salt
-        self._manifest = commons.Namespace(manifest)
-        self.root_seed = sha_512_hmac(self.__root_salt(), self.root_key)
+        self.install_root_salt(root_salt, auto_encrypt=False)
 
     def save_manifest(self, ciphertext=None):
         """
@@ -2140,19 +2405,33 @@ class Database:
         with plaintext.map_encrypt(names, entropy) as manifest:
             self.save_manifest(ciphertext={"salt": salt, **manifest.dict()})
 
-    def load(self):
+    def load_metatags(self, *, preload=True):
+        """
+        Specifically loads all of the database's metatag values into the
+        cache. If the ``preload`` keyword argument is falsey then the
+        metatag references are populated in the database's instance
+        dictionary, but their internal values are not loaded.
+        """
+        for metatag in set(self.metatags):
+            self.metatag(metatag, preload=preload)
+
+    def load_tags(self):
+        """
+        Specifically loads all of the database's tag values into the
+        cache.
+        """
+        for tag, value in self:
+            pass
+
+    def load(self, *, metatags=True):
         """
         Loads all the database object's values from the filesystem into
         the database cache. This brings the database values into the
         cache, enables up-to-date bracket lookup of tag values & dotted
         lookup of metatags.
-        Otherwise, values would have to be queried using the awaitable
-        ``get`` & ``metatag`` methods.
         """
-        for metatag in self.metatags:
-            self.metatag(metatag).load()
-        for tag, value in self:
-            pass
+        self.load_metatags(preload=metatags)
+        self.load_tags()
         return self
 
     def filename(self, tag=None):
@@ -2174,6 +2453,60 @@ class Database:
         """
         return sha_512_hmac((data, self.root_hash), key=self.root_seed)
 
+    def uuids(self, category=None, length=16, salt=""):
+        """
+        Returns a coroutine that can safely create unique user IDs based
+        on the category set by the user. The keyword arguments refer to:
+
+        ``category``    Any object sent by the user which identifies the
+            category or context that the uuids are being made for, such
+            as 'emails', 'unregistered_user', 'address'. It is up to the
+            user, these categories distinguish the uuids created
+            uniquely from other categories.
+        ``length``      The length of the hex strings returned by this
+            uuid generator.
+        ``salt``        An optional random salt value of arbitrary type &
+            size that, if passed needs to be managed manually by the
+            user. It provides entropy into the uuids created, further
+            distinguishing them, and provides resistance against certain
+            kinds of hash cracking attacks. The salt can be by calling
+            the ``result(exit=True)`` method of the returned ``Comprende``
+            generator.
+
+        Usage Examples:
+
+        import aiootp
+
+        db = aiootp.Database(
+            key="regular shared solo minutes", password_depth=6000
+        )
+        responses = db.metatag("responses")
+        uuids = responses.uuids("emails", salt=server.salt)
+
+        # Backup json data to the encrypted database ->
+        for email_address in server.emails:
+            uuid = uuids(email_address)
+            responses[uuid] = server.responses[email_address]
+
+        db.save()
+        """
+
+        @comprehension()
+        def _uuids():
+            """
+            A programmable coroutine which creates unique user IDs
+            that are specific to a particular category.
+            """
+            name = self.namestream(category).next()
+            uuids = make_uuid(length, salt=name).prime()
+            salt = salt if salt != None else csprng(name)[:64]
+            with uuids.relay(salt) as ids:
+                stamp = None
+                while True:
+                    stamp = yield ids(sha_256(name, salt, stamp))
+
+        return _uuids().prime()
+
     def query_ciphertext(self, filename=None):
         """
         Retrieves the value stored in the database file that's called
@@ -2182,15 +2515,66 @@ class Database:
         with open(self.directory / filename, "r") as db_file:
             return json.load(db_file)
 
+    @comprehension()
+    def decrypt_stream(self, filename=None, stream=None, salt=None):
+        """
+        Constructs the key stream for the decryption of the ciphertext
+        ``stream`` labeled by a ``filename``. Yields plaintext in json
+        string chunks.
+
+        ``filename``    Internally, this is the salted & hashed tag that
+            labels a piece of data in the database. If a salt is passed,
+            this generator isn't being called internally, but by a user.
+            In which case, the user's ``filename`` will be hashed again
+            with the salt to recreate the correct keystream used during
+            encryption.
+        ``stream``      This is any sync ``Comprende`` generator that
+            produces ciphertext chunks in the correct order.
+        ``salt``        Is a random ephemeral key of arbitrary size &
+            type whose string representation should contain at least 256
+            bits of entropy.
+        """
+        if salt:
+            salted_filename = self.filename((filename, salt))
+        else:
+            salted_filename = filename
+        entropy = self.keystream(salted_filename)
+        for plaintext in stream.map_decrypt(entropy):
+            yield plaintext
+
+    def ciphertext_stream(self, filename=None, ciphertext=None, salt=None):
+        """
+        Handles taking in a dictionary (hashmap) of ``ciphertext``,
+        a random ``salt`` that's typically attached to the ciphertext,
+        & the optional ``filename`` that labels the data.
+        """
+        if salt:
+            salted_filename = self.filename((filename, salt))
+        else:
+            salted_filename = filename
+        names = self.namestream(salted_filename)
+        return pick(names, ciphertext)
+
     def decrypt(self, filename=None, ciphertext=None):
         """
         Constructs the key & name streams for the decryption & retrieval
         of the value stored in the database file called ``filename``.
+        Returns the complete plaintext loaded from json format.
+
+        ``filename``    This is the hashed tag that labels a piece of
+            data in the database. It's then hashed again with the random
+            ephemeral salt that was attached to the ciphertext.
+        ``ciphertext``  This is a dictionary (hashmap) of ciphertext
+            chunks labeled by a stream of cryptographically derived
+            names. It should also contain a random ephemeral salt that's
+            labeled "salt". The salt should contain at least 256-bits of
+            entropy.
         """
-        salted_filename = self.filename((filename, ciphertext.get("salt")))
-        names = self.namestream(salted_filename)
-        entropy = self.keystream(salted_filename)
-        with pick(names, ciphertext).map_decrypt(entropy) as plaintext:
+        salt = ciphertext.get("salt")
+        salted_filename = self.filename((filename, salt))
+        stream = self.ciphertext_stream(salted_filename, ciphertext)
+        decrypting = self.decrypt_stream(salted_filename, stream)
+        with decrypting as plaintext:
             return json.loads(plaintext.join())
 
     def save_ciphertext(self, filename=None, ciphertext=None):
@@ -2201,18 +2585,58 @@ class Database:
         with open(self.directory / filename, "w+") as db_file:
             json.dump(ciphertext, db_file)
 
+    @comprehension()
+    def encrypt_stream(self, filename=None, stream=None, salt=None):
+        """
+        Constructs the key & name streams for the encryption & storage
+        in the database of the value ``plaintext`` in the file called
+        ``filename``. Yields a tuple of a name & a ciphertext chunk per
+        iteration for creating cryptographically ordered & obscured
+        hashmaps of encrypted data.
+
+        ``filename``    This is the hashed tag that labels a piece of
+            data in the database. It's then hashed again with a random
+            ephemeral salt that's created in this method, or it can be
+            created prior to using this generator & passed into ``salt``.
+        ``stream``      This is any sync ``Comprende`` generator that
+            yields some length string (usually 246 is best) of plaintext
+            per iteration.
+        ``salt``        The random ephemeral salt that's used to make
+            the key & name streams unique. If it's created in this
+            generator instead of being passed in, then the salt is
+            returned back to the user in a UserWarning which makes it
+            available in the generator's ``result`` method at the end
+            of the stream.
+        """
+        random_salt = salt if salt else csprng()[:64]
+        salted_filename = self.filename((filename, random_salt))
+        names = self.namestream(salted_filename)
+        entropy = self.keystream(salted_filename)
+        encrypting = stream.map_encrypt(names, entropy)
+        for name, ciphertext in encrypting:
+            yield name, ciphertext
+        if not salt:
+            return random_salt
+
     def encrypt(self, filename=None, plaintext=None):
         """
         Constructs the key & name streams for the encryption & storage
         in the database of the value ``plaintext`` in the file called
-        ``filename``.
+        ``filename``. Returns the ciphertext hashmap.
+
+        ``filename``    This is the hashed tag that labels a piece of
+            data in the database. It's then hashed again with a random
+            ephemeral salt that's created in this method & attached to
+            the ciphertext. If this method is being called by a user,
+            this can be any arbitrary value that's useful for labeling
+            the data being encrypted.
+        ``plaintext``   This is any json serializable object that is to
+            be encrypted into a hashmap of shards.
         """
         salt = csprng()[:64]
-        salted_filename = self.filename((filename, salt))
-        names = self.namestream(salted_filename)
-        entropy = self.keystream(salted_filename)
-        plaintext = json.dumps(plaintext)
-        with data(plaintext).map_encrypt(names, entropy) as ciphertext:
+        encoder = json_encode(plaintext)
+        encrypting = self.encrypt_stream(filename, encoder, salt)
+        with encrypting as ciphertext:
             return {"salt": salt, **ciphertext.dict()}
 
     def set(self, tag=None, data=None):
@@ -2243,8 +2667,11 @@ class Database:
         Returns a value from the database by it's ``tag`` & deletes the
         associated file in the database directory.
         """
-        value = self.query(tag)
         filename = self.filename(tag)
+        try:
+            value = self.query(tag)
+        except FileNotFoundError:
+            value = None
         try:
             del self.manifest[filename]
         except KeyError:
@@ -2270,7 +2697,7 @@ class Database:
         Initializes the values that organize database metatags, which
         are children databases contained within their parent.
         """
-        self.metatags_filename = self.filename(f"__metatags__{NONE}")
+        self.metatags_filename = self.filename(self._METATAG)
         if self.metatags == None:
             self.manifest[self.metatags_filename] = []
 
@@ -2340,11 +2767,9 @@ class Database:
         stored values, tags & metatags.
         """
         my_metatags = self.metatags
-        its_metatags = list(database.metatags)
+        its_metatags = set(database.metatags)
         my_metatags += [
-            tag
-            for tag in its_metatags
-            if tag not in my_metatags
+            tag for tag in its_metatags if tag not in my_metatags
         ]
         for tag, value in database:
             filename = self.filename(tag)
@@ -2366,6 +2791,26 @@ class Database:
             self.delete_file(filename)
         self.manifest.namespace.clear()
 
+    def save_metatags(self):
+        """
+        Writes the database's child databases to disk.
+        """
+        for metatag in set(self.metatags):
+            if self.__dict__.get(metatag):
+                self.__dict__[metatag].save()
+
+    def save_tags(self):
+        """
+        Writes the database's user-defined tags to disk.
+        """
+        maintenance_files = self.maintenance_files
+        database = dict(self.cache.namespace).items()
+        for filename, plaintext in database:
+            if filename in maintenance_files:
+                continue
+            ciphertext = self.encrypt(filename, plaintext)
+            self.save_ciphertext(filename, ciphertext)
+
     def save(self):
         """
         Writes the database's values to disk.
@@ -2373,16 +2818,8 @@ class Database:
         if self.root_filename not in self.manifest:
             raise PermissionError("The database keys have been deleted.")
         self.close_manifest()
-        database = dict(self.manifest.namespace)
-        del database[self.root_filename]
-        del database[self.metatags_filename]
-        for metatag in self.metatags:
-            if self.__dict__.get(metatag):
-                self.__dict__[metatag].save()
-        for filename in database:
-            if filename in self.cache:
-                ciphertext = self.encrypt(filename, self.cache[filename])
-                self.save_ciphertext(filename, ciphertext)
+        self.save_metatags()
+        self.save_tags()
 
     def into_namespace(self):
         """
@@ -2482,4 +2919,3 @@ __extras = {
 
 
 ciphers = commons.Namespace.make_module("ciphers", mapping=__extras)
-
