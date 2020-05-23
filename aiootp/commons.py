@@ -31,6 +31,7 @@ import sys
 import copy
 import types
 import asyncio
+from os import linesep
 from .__datasets import *
 
 
@@ -108,12 +109,13 @@ class Namespace:
     utilities for copying mappings into other containers, & turning
     mappings into stand-alone, first-class modules.
     """
-    aimport_namespace = staticmethod(aimport_namespace)
-    import_namespace = staticmethod(import_namespace)
-    acreate_namespace = staticmethod(acreate_namespace)
-    create_namespace = staticmethod(create_namespace)
+
     amake_module = staticmethod(amake_module)
     make_module = staticmethod(make_module)
+    acreate_namespace = staticmethod(acreate_namespace)
+    create_namespace = staticmethod(create_namespace)
+    aimport_namespace = staticmethod(aimport_namespace)
+    import_namespace = staticmethod(import_namespace)
 
     def __init__(self, mapping=None):
         """
@@ -147,10 +149,10 @@ class Namespace:
         Pretty displays the Namespace's mapping.
         """
         result = self.__class__.__qualname__
-        result += "(\n    mapping={"
+        result += f"({linesep}" + "    mapping={"
         for variable, value in self:
-            result += f"\n{2 * tab}{variable}:\t{repr(value)},"
-        return result + "\n    }\n)"
+            result += f"{linesep + 2 * tab}{variable}:\t{repr(value)},"
+        return result + f"{linesep}" + "    }" + f"{linesep})"
 
     def __repr__(self):
         """
@@ -169,7 +171,7 @@ class Namespace:
         Transforms bracket item assignment into dotted assignment on the
         Namespace's mapping.
         """
-        self.__dict__.update({variable: value})
+        self.__dict__[variable] = value
 
     def __getitem__(self, variable):
         """
