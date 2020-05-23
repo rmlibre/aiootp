@@ -44,3 +44,4 @@ tests/test_Database_AsyncDatabase.py
 tests/test_aiootp.py
 tests/test_ciphers.py
 tests/test_generics.py
+tests/test_high_level_encryption.py

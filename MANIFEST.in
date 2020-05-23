@@ -29,5 +29,6 @@ include tests/test_aiootp.py
 include tests/test_ciphers.py
 include tests/test_generics.py
 include tests/test_Comprende.py
+include tests/test_high_level_encryption.py
 include tests/test_Database_AsyncDatabase.py
 recursive-exclude tests/htmlcov *

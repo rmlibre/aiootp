@@ -27,7 +27,7 @@ with open("PREADME.rst", "r") as preadme:
 
 
 with open("CHANGES.rst", "r") as changelog:
-    long_description += f"\n\n\n\n{changelog.read()}"
+    long_description += f"{4 * linesep}{changelog.read()}"
 
 
 with open("README.rst", "w+") as readme:
@@ -66,7 +66,7 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
 setup(
     name="aiootp",
     license="AGPLv3",
-    version="0.4.0",
+    version="0.5.0",
     description=description,
     long_description=long_description,
     url="https://github.com/rmlibre/aiootp",

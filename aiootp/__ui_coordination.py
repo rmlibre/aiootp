@@ -48,6 +48,44 @@ def random_sleep(self, span=1):
         yield result
 
 
+@comprehension()
+async def axor(self, key=None, convert=True):
+    """
+    Applies an xor to each result of any underlying async ``Comprende``
+    generator. ``key`` is an async ``Comprende`` key generator. And,
+    ``convert`` if truthy, will automatically convert the stream of key
+    material from ``key`` into an integer so it can be used to xor the
+    results produced from ``self``. The underlying ``self`` async
+    generator needs to produce integers to be xor'd on each iteration.
+    """
+    async for result in OneTimePad.axor(self, key=key, convert=convert):
+        yield result
+
+
+@comprehension()
+def xor(self, key=None, convert=True):
+    """
+    Applies an xor to each result of any underlying sync ``Comprende``
+    generator. ``key`` is a sync ``Comprende`` key generator. And,
+    ``convert`` if truthy, will automatically convert the stream of key
+    material from ``key`` into an integer so it can be used to xor the
+    results produced from ``self``. The underlying ``self`` sync
+    generator needs to produce integers to be xor'd on each iteration.
+    """
+    for result in OneTimePad.xor(self, key=key, convert=convert):
+        yield result
+
+
+def insert_xor_methods():
+    """
+    Copies the addons over into the ``Comprende`` class.
+    """
+    addons = {axor, xor}
+    for addon in addons:
+        setattr(Comprende, addon.__name__, addon)
+        Comprende.lazy_generators.add(addon.__name__)
+
+
 def insert_random_sleep_methods():
     """
     Copies the addons over into the ``Comprende`` class.
@@ -112,6 +150,7 @@ def insert_stateful_key_generator_objects():
     OneTimePad.__init__ = insert_keyrings
 
 
+insert_xor_methods()
 insert_random_sleep_methods()
 insert_bytes_cipher_methods()
 insert_stream_cipher_methods()

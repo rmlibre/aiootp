@@ -17,6 +17,39 @@
 =============
 
 
+Changes for version 0.5.0
+=========================
+
+
+Major Changes
+-------------
+
+-  Added interfaces in ``Database`` & ``AsyncDatabase`` to handle encrypting
+   & decrypting streams (``Comprende`` generators) instead of just raw json 
+   data. They're methods called ``encrypt_stream``, ``decrypt_stream``,
+   ``aencrypt_stream``, & ``adecrypt_stream``.
+-  Changed the attribute ``_METATAG`` used by ``Database`` & ``AsyncDatabase`` 
+   to name the metatags entry in the database. This name is smaller, cleaner 
+   & is used to prevent naming collisions between user entered values & the 
+   metadata the classes need to organize themselves internally. This change 
+   will break databases from older versions keeping them from accessing their 
+   metatag child databases.
+-  Added the methods ``auuids`` & ``uuids`` to ``AsyncDatabase`` & ``Database``
+   which return coroutines that accept potentially sensitive identifiers &
+   turns them into salted ``length`` sized hashes distinguished by a ``salt``
+   & a ``category``.
+
+
+Minor Changes
+-------------
+
+-  Various code & logic cleanups / speedups.
+-  Refactorings of the ``Database`` & ``AsyncDatabase`` classes.
+-  Various inaccurate docstrings fixed.
+
+
+
+
 Changes for version 0.4.0
 =========================
 

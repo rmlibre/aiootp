@@ -1,6 +1,6 @@
 Metadata-Version: 1.2
 Name: aiootp
-Version: 0.4.0
+Version: 0.5.0
 Summary: aiootp - an asynchronous one-time-pad based crypto and anonymity library.
 Home-page: https://github.com/rmlibre/aiootp
 Author: Gonzo Investigatory Journalism Agency, LLC
@@ -142,6 +142,21 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
          >>>AttributeError: 'AsyncDatabase' object has no attribute 'child'
             
             
+            # If tags are also sensitive, they can be safely hashed ->
+            
+            clients = await db.ametatag("clients")
+            
+            email_uuids = await clients.auuids("emails", length=32)
+            
+            for email_address in ["brittany@email.com", "john.doe@email.net"]:
+            
+                hashed_tag = await email_uuids(email_address)
+                
+                clients[hashed_tag] = "client account data"
+            
+            clients["salt"] = await email_uuids.aresult(exit=True)
+            
+            
             # Automate the write to disk logic with a context manager ->
             
             async with (await aiootp.AsyncDatabase(key)) as db:
@@ -212,6 +227,42 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             clients == decrypted
             
          >>>True
+            
+            
+            # Databases, and the rest of the package, use special generators to 
+            
+            # process data. Here's a sneak peak at the low-level magic that enables 
+            
+            # easy processing of data streams ->
+            
+            import json
+            
+            datastream = aiootp.ajson_encode(clients)  # <- yields ``clients`` jsonified
+            
+            # Makes a hashmap of chunks of ciphertext ~256 bytes each ->
+            
+            async with db.aencrypt_stream(data_name, datastream) as encrypting:
+                
+                encrypted_hashmap = await encrypting.adict()
+                
+                # Returns the automatically generated random salt ->
+                
+                salt = await encrypting.aresult()
+                
+            
+            # Users will need to correctly order the hashmap of ciphertext for
+            
+            # decryption ->
+            
+            stream = await db.aciphertext_stream(data_name, encrypted_hashmap, salt)
+            
+            # Then decryption of the stream is available ->
+            
+            async with db.adecrypt_stream(data_name, stream, salt) as decrypting:
+            
+                decrypted = json.loads(await decrypting.ajoin())
+                
+            assert decrypted == clients
             
             
             #
@@ -947,6 +998,39 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
         
         ``Changelog``
         =============
+        
+        
+        Changes for version 0.5.0
+        =========================
+        
+        
+        Major Changes
+        -------------
+        
+        -  Added interfaces in ``Database`` & ``AsyncDatabase`` to handle encrypting
+           & decrypting streams (``Comprende`` generators) instead of just raw json 
+           data. They're methods called ``encrypt_stream``, ``decrypt_stream``,
+           ``aencrypt_stream``, & ``adecrypt_stream``.
+        -  Changed the attribute ``_METATAG`` used by ``Database`` & ``AsyncDatabase`` 
+           to name the metatags entry in the database. This name is smaller, cleaner 
+           & is used to prevent naming collisions between user entered values & the 
+           metadata the classes need to organize themselves internally. This change 
+           will break databases from older versions keeping them from accessing their 
+           metatag child databases.
+        -  Added the methods ``auuids`` & ``uuids`` to ``AsyncDatabase`` & ``Database``
+           which return coroutines that accept potentially sensitive identifiers &
+           turns them into salted ``length`` sized hashes distinguished by a ``salt``
+           & a ``category``.
+        
+        
+        Minor Changes
+        -------------
+        
+        -  Various code & logic cleanups / speedups.
+        -  Refactorings of the ``Database`` & ``AsyncDatabase`` classes.
+        -  Various inaccurate docstrings fixed.
+        
+        
         
         
         Changes for version 0.4.0
