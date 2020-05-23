@@ -17,6 +17,8 @@ __all__ = [
     "random_512",
     "asafe_symm_keypair",
     "safe_symm_keypair",
+    "amake_uuid",
+    "make_uuid",
     "aseeder",
     "seeder",
     "acsprng",
@@ -149,7 +151,7 @@ async def aprime_table(
     for prime_group in range(low, high, step):
         min_bits = 2 ** prime_group
         max_bits = 2 ** (prime_group + 1)
-        table.update({prime_group: []})
+        table[prime_group] = []
         for loop in range(depth):
             prime = await arandom_prime(min_bits, max_bits)
             infinite_loop_checker = 0
@@ -226,7 +228,7 @@ def prime_table(low=None, high=None, step=1, depth=10, depth_error=25):
     for prime_group in range(low, high, step):
         min_bits = 2 ** prime_group
         max_bits = 2 ** (prime_group + 1)
-        table.update({prime_group: []})
+        table[prime_group] = []
         for loop in range(depth):
             prime = random_prime(min_bits, max_bits)
             infinite_loop_checker = 0
@@ -378,7 +380,7 @@ async def asalted_multiply(mod=primes[258][-1], offset=None):
         seed ^= mix
         offset ^= seed
         (*numbers,) = yield start ^ seed
-        start %= mod
+        start = abs(start % mod)
         for number in numbers:
             mix += offset
             start *= number ^ mix
@@ -417,43 +419,50 @@ def salted_multiply(mod=primes[258][-1], offset=None):
         seed ^= mix
         offset ^= seed
         (*numbers,) = yield start ^ seed
-        start %= mod
+        start = abs(start % mod)
         for number in numbers:
             mix += offset
             start *= number ^ mix
 
 
-#  initializing weakly entropic coroutines
-mod = primes[512][0]
+try:
+    #  initializing weakly entropic coroutines
+    mod = primes[512][0]
 
-_asalt_multiply = run(asalted_multiply(mod).aprime())
-_salt_multiply = salted_multiply(mod).prime()
+    _asalt_multiply = run(asalted_multiply(mod).aprime())
+    _salt_multiply = salted_multiply(mod).prime()
 
-_initial_entropy = deque(
-    [urandom_number(128), urandom_number(128)], maxlen=2
-)
-del mod
+    _initial_entropy = deque(
+        [urandom_number(128), urandom_number(128)], maxlen=2
+    )
+    del mod
+except RuntimeError as error:
+    problem = f"{__package__}'s random seed initialization failed, "
+    location = f"likely because {__name__} "
+    reason = f"was imported from within an async event loop."
+    failure = RuntimeError(problem + location + reason)
+    raise failure from error
 
 
-async def asalt(*, _entropy=_initial_entropy):
+async def _asalt(*, _entropy=_initial_entropy):
     """
     Returns a low-grade entropy number from cached & ratcheted system
     entropy.
     """
-    _entropy.appendleft(int(await asha_512(_entropy), 16))
+    _entropy.appendleft(int(await asha_512(_entropy, urandom(32)), 16))
     return await _asalt_multiply(_entropy)
 
 
-def salt(*, _entropy=_initial_entropy):
+def _salt(*, _entropy=_initial_entropy):
     """
     Returns a low-grade entropy number from cached & ratcheted system
     entropy.
     """
-    _entropy.appendleft(int(sha_512(_entropy), 16))
+    _entropy.appendleft(int(sha_512(_entropy, urandom(32)), 16))
     return _salt_multiply(_entropy)
 
 
-async def arandom_256(entropy=salt(), runs=26, refresh=False):
+async def arandom_256(entropy=_salt(), runs=26, refresh=False):
     """
     Returns a 256-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -470,7 +479,7 @@ async def arandom_256(entropy=salt(), runs=26, refresh=False):
     )
 
 
-def random_256(entropy=salt(), runs=26, refresh=False):
+def random_256(entropy=_salt(), runs=26, refresh=False):
     """
     Returns a 256-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -487,7 +496,7 @@ def random_256(entropy=salt(), runs=26, refresh=False):
     )
 
 
-async def arandom_512(entropy=salt(), runs=26, refresh=False):
+async def arandom_512(entropy=_salt(), runs=26, refresh=False):
     """
     Returns a 512-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -504,7 +513,7 @@ async def arandom_512(entropy=salt(), runs=26, refresh=False):
     )
 
 
-def random_512(entropy=salt(), runs=26, refresh=False):
+def random_512(entropy=_salt(), runs=26, refresh=False):
     """
     Returns a 512-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -522,7 +531,7 @@ def random_512(entropy=salt(), runs=26, refresh=False):
 
 
 async def arandom_number_generator(
-    entropy=salt(),
+    entropy=_salt(),
     runs=26,
     refresh=False,
     *,
@@ -563,21 +572,19 @@ async def arandom_number_generator(
     5. Further frustrate an attacker by necessitating that they perform
     an order prediction attack on the results of the CSPRNG's component
     PRNGs. We do this by using asynchrony entirely throughout the CSPRNG
-    with random sleeps.
+    with random sleeps, and using a non-commutative, salted, modular
+    multiplication to combine internal states before hashing.
 
-    6. Iteratively use a salted modular multiplication on the CSPRNG's
-    component PRNG states, then hashing & caching the results.
+    6. Use the powerful sha3_512 hashing algorithm for all hashing.
 
-    7. Use the powerful sha3_512 hashing algorithm for all hashing.
-
-    8. Iterate and interleave all these methods enough times such that if
+    7. Iterate and interleave all these methods enough times such that,
     we assume each time the CSPRNG produces a 512-bit internal state,
     that only 1-bit of entropy is produced. Then, by initializing up to
-    a cache of 256 ratcheting states, then the ``random_number_generator``
+    a cache of 256 ratcheting states then the ``random_number_generator``
     algorithm here would have at least 256-bits of entropy.
 
     **** **** **** **** **** **** **** **** **** **** **** **** ****
-    Our implementation analysis is NOT vigorous or conclusive, though
+    Our implementation analysis is NOT rigorous or conclusive, though
     soley based on the constraints stated above, our assumptions of
     randomness should be a reasonable estimate.
     **** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -587,7 +594,7 @@ async def arandom_number_generator(
         async def start_generator(runs, tasks=deque()):
             for _ in range(runs):
                 await switch()
-                tasks.appendleft(new_task(modular_exponentiation()))
+                tasks.appendleft(new_task(modular_multiplication()))
                 for _ in range(10):
                     tasks.appendleft(new_task(hash_cache()))
             await gather(*tasks)
@@ -596,7 +603,7 @@ async def arandom_number_generator(
             await arandom_sleep(0.001)
             _completed.appendleft(await asha_512(_completed, entropy, seed))
 
-        async def modular_exponentiation(seed=await asalt()):
+        async def modular_multiplication(seed=await _asalt()):
             multiples = deque()
             for _ in range(3):
                 await arandom_sleep(0.001)
@@ -636,11 +643,11 @@ async def arandom_number_generator(
             await asha_512_hmac((_completed, await aurandom(64)), entropy)
         )
 
-    return await asha_512_hmac((_completed, salt()), entropy)
+    return await asha_512_hmac((_completed, _salt()), entropy)
 
 
 def random_number_generator(
-    entropy=salt(),
+    entropy=_salt(),
     runs=26,
     refresh=False,
     *,
@@ -681,21 +688,19 @@ def random_number_generator(
     5. Further frustrate an attacker by necessitating that they perform
     an order prediction attack on the results of the CSPRNG's component
     PRNGs. We do this by using asynchrony entirely throughout the CSPRNG
-    with random sleeps.
+    with random sleeps, and using a non-commutative, salted, modular
+    multiplication to combine internal states before hashing.
 
-    6. Iteratively use a salted modular multiplication on the CSPRNG's
-    component PRNG states, then hashing & caching the results.
+    6. Use the powerful sha3_512 hashing algorithm for all hashing.
 
-    7. Use the powerful sha3_512 hashing algorithm for all hashing.
-
-    8. Iterate and interleave all these methods enough times such that,
+    7. Iterate and interleave all these methods enough times such that,
     we assume each time the CSPRNG produces a 512-bit internal state,
     that only 1-bit of entropy is produced. Then, by initializing up to
     a cache of 256 ratcheting states then the ``random_number_generator``
     algorithm here would have at least 256-bits of entropy.
 
     **** **** **** **** **** **** **** **** **** **** **** **** ****
-    Our implementation analysis is NOT vigorous or conclusive, though
+    Our implementation analysis is NOT rigorous or conclusive, though
     soley based on the constraints stated above, our assumptions of
     randomness should be a reasonable estimate.
     **** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -705,7 +710,7 @@ def random_number_generator(
         async def start_generator(runs, tasks=deque()):
             for _ in range(runs):
                 await switch()
-                tasks.appendleft(new_task(modular_exponentiation()))
+                tasks.appendleft(new_task(modular_multiplication()))
                 for _ in range(10):
                     tasks.appendleft(new_task(hash_cache()))
             await gather(*tasks)
@@ -714,7 +719,7 @@ def random_number_generator(
             await arandom_sleep(0.001)
             _completed.appendleft(await asha_512(_completed, entropy, seed))
 
-        async def modular_exponentiation(seed=salt()):
+        async def modular_multiplication(seed=_salt()):
             multiples = deque()
             for _ in range(3):
                 await arandom_sleep(0.001)
@@ -747,14 +752,14 @@ def random_number_generator(
             return await _asalt_multiply(args)
 
         generate_unique_range_bounds()
-        run(start_generator(runs))
+        run(start_generator(runs))    # <- RuntimeError in event loops
         generate_unique_range_bounds()
     else:
         _completed.appendleft(
             sha_512_hmac((_completed, urandom(64)), entropy)
         )
 
-    return sha_512_hmac((_completed, salt()), entropy)
+    return sha_512_hmac((_completed, _salt()), entropy)
 
 
 async def aunique_integer():
@@ -950,10 +955,10 @@ async def atemplate_unique_number(number):
     used in conjunction with other, vigorous methods of producing
     cryptographically secure pseudo-random numbers.
     """
-    seed = await asalt()
+    seed = await _asalt()
     number = await aint(number)  # throw if not a number
     while seed < number:
-        seed *= await asalt()
+        seed *= await _asalt()
     return await aint(str(seed)[: len(str(number))])
 
 
@@ -969,14 +974,14 @@ def template_unique_number(number):
     used in conjunction with other, vigorous methods of producing
     cryptographically secure pseudo-random numbers.
     """
-    seed = salt()
+    seed = _salt()
     number = int(number)  # throw if not a number
     while seed < number:
-        seed *= salt()
+        seed *= _salt()
     return int(str(seed)[: len(str(number))])
 
 
-async def asafe_symm_keypair(entropy=salt(), refresh=False, runs=26):
+async def asafe_symm_keypair(entropy=_salt(), refresh=False, runs=26):
     """
     Returns two ``bytes`` type, 512-bit hexidecimal keys. This function
     updates the package's static random seeds before & after deriving
@@ -987,6 +992,7 @@ async def asafe_symm_keypair(entropy=salt(), refresh=False, runs=26):
 
     await agenerate_unique_range_bounds()
     seed_key = sha_512(
+        entropy,
         global_seed,
         global_seed_key,
         await arandom_512(refresh=refresh, runs=runs),
@@ -998,7 +1004,7 @@ async def asafe_symm_keypair(entropy=salt(), refresh=False, runs=26):
     return seed, seed_key
 
 
-def safe_symm_keypair(entropy=salt(), refresh=False, runs=26):
+def safe_symm_keypair(entropy=_salt(), refresh=False, runs=26):
     """
     Returns two ``bytes`` type, 512-bit hexidecimal keys. This function
     updates the package's static random seeds before & after deriving
@@ -1009,7 +1015,10 @@ def safe_symm_keypair(entropy=salt(), refresh=False, runs=26):
 
     generate_unique_range_bounds()
     seed_key = sha_512(
-        global_seed, global_seed_key, random_512(refresh=refresh, runs=runs)
+        entropy,
+        global_seed,
+        global_seed_key,
+        random_512(refresh=refresh, runs=runs),
     ).encode()
     seed = sha_512_hmac((global_seed, seed_key), key=entropy).encode()
     global_seed_key = sha_512_hmac(seed, global_seed_key)
@@ -1019,7 +1028,7 @@ def safe_symm_keypair(entropy=salt(), refresh=False, runs=26):
 
 
 @comprehension()
-async def aseeder(entropy=salt(), refresh=False, runs=26):
+async def aseeder(entropy=_salt(), refresh=False, runs=26):
     """
     A fast random number generator that supports adding entropy during
     async iteration. It's based on the randomness produced from combining
@@ -1057,7 +1066,7 @@ async def aseeder(entropy=salt(), refresh=False, runs=26):
 
 
 @comprehension()
-def seeder(entropy=salt(), refresh=False, runs=26):
+def seeder(entropy=_salt(), refresh=False, runs=26):
     """
     A fast random number generator that supports adding entropy during
     iteration. It's based on the randomness produced from combining a
@@ -1093,7 +1102,7 @@ def seeder(entropy=salt(), refresh=False, runs=26):
 
 
 @comprehension()
-async def anon0_digit_stream(key=salt(), stream_key=""):
+async def anon0_digit_stream(key=_salt(), stream_key=""):
     """
     Creates a deterministic stream of non-zero digits from a key.
     """
@@ -1105,7 +1114,7 @@ async def anon0_digit_stream(key=salt(), stream_key=""):
 
 
 @comprehension()
-def non0_digit_stream(key=salt(), stream_key=""):
+def non0_digit_stream(key=_salt(), stream_key=""):
     """
     Creates a deterministic stream of non-zero digits from a key.
     """
@@ -1117,7 +1126,7 @@ def non0_digit_stream(key=salt(), stream_key=""):
 
 
 @comprehension()
-async def adigit_stream(key=salt(), stream_key=""):
+async def adigit_stream(key=_salt(), stream_key=""):
     """
     Creates a deterministic stream of digits from a key.
     """
@@ -1129,7 +1138,7 @@ async def adigit_stream(key=salt(), stream_key=""):
 
 
 @comprehension()
-def digit_stream(key=salt(), stream_key=""):
+def digit_stream(key=_salt(), stream_key=""):
     """
     Creates a deterministic stream of digits from a key.
     """
@@ -1222,14 +1231,13 @@ async def amake_uuid(length=16, salt=None):
     sent into coroutine.
     """
     stamp = None
-    multiple = (length // 512) + 1
     salt = salt if salt != None else await acsprng(global_seed)
-    async with Comprende().arelay(result=salt):
+    async with Comprende().arelay(salt):
         while True:
             uuid = ""
-            async for growth in arange(multiple):
+            while len(uuid) < length:
                 uuid += sha_512(uuid, stamp, salt)
-            stamp = yield uuid[-1:-(1 + length):-1]
+            stamp = yield uuid[:length]
 
 
 @comprehension()
@@ -1239,28 +1247,43 @@ def make_uuid(length=16, salt=None):
     sent into coroutine.
     """
     stamp = None
-    multiple = (length // 512) + 1
     salt = salt if salt != None else csprng(global_seed)
-    with Comprende().relay(result=salt):
+    with Comprende().relay(salt):
         while True:
             uuid = ""
-            for growth in range(multiple):
+            while len(uuid) < length:
                 uuid += sha_512(uuid, stamp, salt)
-            stamp = yield uuid[-1:-(1 + length):-1]
+            stamp = yield uuid[:length]
+
+
+async def asalt():
+    """
+    Returns a cryptographically secure pseudo-random hex number
+    that also seeds new entropy into the acsprng generator.
+    """
+    return  await acsprng(await aurandom(128))
+
+
+def salt():
+    """
+    Returns a cryptographically secure pseudo-random hex number
+    that also seeds new entropy into the csprng generator.
+    """
+    return csprng(urandom(128))
 
 
 try:
     # Initalize package entropy pool & cryptographically secure pseudo-
     # random number generators.
-    global_seed_key = random_512(entropy=salt())
+    global_seed_key = random_512(entropy=_salt())
     global_seed = random_512(entropy=global_seed_key)
     csprng = seeder(global_seed).send
     acsprng = aseeder(csprng()).asend
     global_seed_key = run(acsprng())
-    global_seed = run(acsprng(csprng(csprng())))
+    global_seed = run(acsprng(csprng(urandom(128))))
 except RuntimeError as error:
-    problem = "package's random seed initialization failed likely because "
-    location = f"{__name__} from {__package__} "
+    problem = f"{__package__}'s random seed initialization failed, "
+    location = f"likely because {__name__} "
     reason = f"was imported from within an async event loop."
     failure = RuntimeError(problem + location + reason)
     raise failure from error
@@ -1271,6 +1294,7 @@ __extras = {
     "__main_exports__": __all__,
     "__package__": "aiootp",
     "achoice": achoice,
+    "acreate_prime": acreate_prime,
     "acsprng": acsprng,
     "adigit_stream": adigit_stream,
     "agenerate_big_range_bounds": agenerate_big_range_bounds,
@@ -1303,6 +1327,7 @@ __extras = {
     "aurandom_hash": aurandom_hash,
     "aurandom_number": aurandom_number,
     "choice": choice,
+    "create_prime": create_prime,
     "csprng": csprng,
     "digit_stream": digit_stream,
     "generate_big_range_bounds": generate_big_range_bounds,
