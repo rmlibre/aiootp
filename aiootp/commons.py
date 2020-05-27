@@ -117,12 +117,14 @@ class Namespace:
     aimport_namespace = staticmethod(aimport_namespace)
     import_namespace = staticmethod(import_namespace)
 
-    def __init__(self, mapping=None):
+    def __init__(self, mapping=None, **kwargs):
         """
         Maps the user-defined mapping to the Namespace's instance
         dictionary.
         """
-        self.__dict__.update(mapping if mapping else {})
+        self.__dict__.update(
+            {**mapping, **kwargs} if mapping else {**kwargs}
+        )
 
     @property
     def __all__(self):
