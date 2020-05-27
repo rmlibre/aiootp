@@ -273,7 +273,7 @@ async def aignore(
     Or, dynamically choose which exceptions to catch, and call custom
     cleanup code. ->
 
-    async def cleanup():
+    async def cleanup(error=None):
         await database.asave()
 
     async with ignore(DynamicException, IOError) as error_relay:
@@ -320,7 +320,7 @@ def ignore(*exceptions, display=False, if_except=None, finally_run=None):
     Or, dynamically choose which exceptions to catch, and call custom
     cleanup code. ->
 
-    def cleanup():
+    def cleanup(error=None):
         database.save()
 
     with ignore(DynamicException, IOError) as error_relay:
@@ -496,12 +496,17 @@ class Comprende:
     # after the context closes ->
     assert example.__class__.__name__ == "Comprende"
 
-    for result in Comprende(gen, 1, 2).sha_256():
+    # Let's look at another example ->
+    def gen(iterations=10):
+        for loop in range(iterations):
+            yield loop
+
+    for result in Comprende(gen, iterations=25).sha_256():
         # This will hash each output of a generator and yield the hash.
 
     ciphertext = []
     key = aiootp.csprng()
-    for result in Comprende(gen, 1, 2).str().encrypt(key):
+    for result in Comprende(gen, iterations=25).str().encrypt(key):
         # This will stringify each output of a generator, then encrypt
         # each result, and yield the ciphertext.
         ciphertext.append(result)
@@ -509,6 +514,7 @@ class Comprende:
     for result in aiootp.unpack(ciphertext).decrypt(key):
         # This will yield the original results in plaintext
         print(result)
+
 
     Async Usage Example:
 
@@ -543,12 +549,17 @@ class Comprende:
     # after the context closes ->
     assert example.__class__.__name__ == "Comprende"
 
-    async for result in Comprende(gen, 1, 2).asha_256():
+    # Let's look at another example ->
+    async def gen(iterations=10):
+        for loop in range(iterations):
+            yield loop
+
+    async for result in Comprende(gen, iterations=25).asha_256():
         # This will hash each output of a generator and yield the hash.
 
     ciphertext = []
     key = await aiootp.acsprng()
-    async for result in Comprende(gen, 1, 2).astr().aencrypt(key):
+    async for result in Comprende(gen, iterations=25).astr().aencrypt(key):
         # This will stringify each output of a generator, then encrypt
         # each result, and yield the ciphertext.
         ciphertext.append(result)
@@ -656,7 +667,9 @@ class Comprende:
         "sha_256_hmac",
     }
 
-    eager_generators = {"aheappop", "heappop", "areversed", "reversed"}
+    eager_generators = {
+        "aheappop", "heappop", "areversed", "reversed", "asorted", "sorted"
+    }
 
     _generators = {"__aiter__", "__iter__"}
 
@@ -1251,23 +1264,23 @@ class Comprende:
         finally:
             self.__class__._cached[self.runsum] = self
 
-    async def alist(self):
+    async def alist(self, mutable=False):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``list``, then ``alru_cache``'s the result
         & returns it.
         """
         async with self.acache_check() as results:
-            return list(results)
+            return results if mutable else list(results)
 
-    def list(self):
+    def list(self, mutable=False):
         """
         Exhausts the underlying Comprende sync generator & joins the
         results together in a ``list``, then ``lru_cache``'s the result
         & returns it.
         """
         with self.cache_check() as results:
-            return list(results)
+            return results if mutable else list(results)
 
     async def adeque(self):
         """
@@ -1562,6 +1575,43 @@ class Comprende:
             with unpack(self)[:span] as accumulator:
                 results = accumulator.deque()
             for result in reversed(results):
+                yield result
+
+    async def asorted(self, span=None, key=None, *, of=None):
+        """
+        Exhausts the underlying Comprende async generator upto ``span``
+        number of iterations, then yields the results in sorted order.
+        """
+        if of != None:
+            async with aunpack(of)[:span] as accumulator:
+                results = await accumulator.alist(mutable=True)
+            results.sort(key=key)
+            async for prev, result in azip(self, results):
+                yield prev, result
+        else:
+            async with aunpack(self)[:span] as accumulator:
+                results = await accumulator.alist(mutable=True)
+            results.sort(key=key)
+            for result in results:
+                await switch()
+                yield result
+
+    def sorted(self, span=None, key=None, *, of=None):
+        """
+        Exhausts the underlying Comprende sync generator upto ``span``
+        number of iterations, then yields the results in sorted order.
+        """
+        if of != None:
+            with unpack(of)[:span] as accumulator:
+                results = accumulator.list(mutable=True)
+            results.sort(key=key)
+            for prev, result in zip(self, results):
+                yield prev, result
+        else:
+            with unpack(self)[:span] as accumulator:
+                results = accumulator.list(mutable=True)
+            results.sort(key=key)
+            for result in results:
                 yield result
 
     async def aresize(self, size=128, *, of=None):
@@ -2403,12 +2453,13 @@ class Comprende:
             for result in self:
                 yield json.dumps(result, *a, **kw)
 
-    async def ahex(self, start=0, *, of=None):
+    async def ahex(self, prefix=False, *, of=None):
         """
         Applies ``builtins.hex()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
+        start = 0 if prefix else 2
         if of != None:
             async for prev, result in azip(self, of):
                 yield prev, hex(result)[start:]
@@ -2416,18 +2467,20 @@ class Comprende:
             async for result in self:
                 yield hex(result)[start:]
 
-    def hex(self, start=0, *, of=None):
+    def hex(self, prefix=False, *, of=None):
         """
         Applies ``builtins.hex()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
+        _hex = builtins.hex
+        start = 0 if prefix else 2
         if of != None:
             for prev, result in zip(self, of):
-                yield prev, builtins.hex(result)[start:]
+                yield prev, _hex(result)[start:]
         else:
             for result in self:
-                yield builtins.hex(result)[start:]
+                yield _hex(result)[start:]
 
     async def abytes(self, *a, of=None, **kw):
         """
@@ -2448,12 +2501,13 @@ class Comprende:
         the underlying Comprende sync generator before yielding the
         result.
         """
+        _bytes = builtins.bytes
         if of != None:
             for prev, result in zip(self, of):
-                yield prev, builtins.bytes(result, *a, **kw)
+                yield prev, _bytes(result, *a, **kw)
         else:
             for result in self:
-                yield builtins.bytes(result, *a, **kw)
+                yield _bytes(result, *a, **kw)
 
     async def abin(self, *a, of=None, **kw):
         """
@@ -2474,12 +2528,13 @@ class Comprende:
         the underlying Comprende sync generator before yielding the
         result.
         """
+        _bin = builtins.bin
         if of != None:
             for prev, result in zip(self, of):
-                yield prev, builtins.bin(result, *a, **kw)
+                yield prev, _bin(result, *a, **kw)
         else:
             for result in self:
-                yield builtins.bin(result, *a, **kw)
+                yield _bin(result, *a, **kw)
 
     async def __aenter__(self):
         """
