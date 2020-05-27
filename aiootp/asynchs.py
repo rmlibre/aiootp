@@ -14,6 +14,7 @@ __all__ = [
     "run",
     "gather",
     "switch",
+    "asleep",
     "new_task",
     "new_future",
 ]
