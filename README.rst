@@ -68,7 +68,9 @@ Users can create and modify transparently encrypted databases:
     
     salt = await db.asalt()
     
-    hmac = await db.ahmac("password012345", salt)
+    # This is a memory & cpu hard function to protect passwords ->
+    
+    hmac = await db.apasscrypt("password012345", salt)
     
     db[tag] = {hmac: "secured data"}
     
@@ -115,7 +117,7 @@ Users can create and modify transparently encrypted databases:
     
  >>>True
     
-    assert isinstance(molly.__class__, AsyncDatabase)
+    assert isinstance(molly, AsyncDatabase)
     
     
     # Write database changes to disk with transparent encryption ->
@@ -988,6 +990,43 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 ``Changelog``
 =============
+
+
+Changes for version 0.5.1
+=========================
+
+
+Major Changes
+-------------
+
+-  Fixed a bug in the methods ``auuids`` & ``uuids`` of the database classes 
+   that assigned to a variable within a closure that was nonlocal but which 
+   wasn't declared non-local. This caused an error which made the methods 
+   unusable. 
+-  Added ``passcrypt`` & ``apasscrypt`` functions which are designed to be 
+   tunably memory & cpu hard password-based key derivation function. It was 
+   inspired by the scrypt protocol but internally uses the library's tools. 
+   It is a first attempt at the protocol, it's internal details will likely 
+   change in future updates. 
+-  Added ``bytes_keys`` & ``abytes_keys`` generators, which are just like 
+   the library's ``keys`` generator, except they yield the concatenated 
+   ``sha3_512.digest`` instead of the ``sha3_512.hexdigest``. 
+-  Added new chainable generator methods to the ``Comprende`` class for 
+   processing bytes, integers, & hex strings into one another. 
+
+
+Minor Changes
+-------------
+
+-  Various code cleanups.
+-  New tests added to the test suite for ``passcrypt`` & ``apasscrypt``.
+-  The ``Comprende`` class' ``alist`` & ``list`` methods can now be passed
+   a boolean argument to return either a ``mutable`` list directly from the 
+   lru_cache, or a copy of the cached list. This list is used by the 
+   generator itself to yield its values, so wilely magic can be done on the
+   list to mutate the underlying generator's results. 
+
+
 
 
 Changes for version 0.5.0

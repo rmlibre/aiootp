@@ -68,7 +68,9 @@ Users can create and modify transparently encrypted databases:
     
     salt = await db.asalt()
     
-    hmac = await db.ahmac("password012345", salt)
+    # This is a memory & cpu hard function to protect passwords ->
+    
+    hmac = await db.apasscrypt("password012345", salt)
     
     db[tag] = {hmac: "secured data"}
     
@@ -115,7 +117,7 @@ Users can create and modify transparently encrypted databases:
     
  >>>True
     
-    assert isinstance(molly.__class__, AsyncDatabase)
+    assert isinstance(molly, AsyncDatabase)
     
     
     # Write database changes to disk with transparent encryption ->
