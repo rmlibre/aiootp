@@ -12,8 +12,12 @@ __all__ = [
     "ciphers",
     "akeys",
     "keys",
+    "abytes_keys",
+    "bytes_keys",
     "asubkeys",
     "subkeys",
+    "apasscrypt",
+    "passcrypt",
     "aencrypt",
     "encrypt",
     "adecrypt",
@@ -39,9 +43,13 @@ used to create custom security tools & provides a OneTimePad cipher.
 
 
 import json
+import asyncio
 import aiofiles
 import builtins
 from hashlib import sha3_512
+from functools import wraps
+from multiprocessing import Manager
+from multiprocessing import Process
 from aiocontext import async_contextmanager
 from .paths import *
 from .paths import Path
@@ -61,6 +69,7 @@ from .generics import generics
 from .generics import AsyncInit
 from .generics import data, adata
 from .generics import pick, apick
+from .generics import cycle, acycle
 from .generics import order, aorder
 from .generics import birth, abirth
 from .generics import unpack, aunpack
@@ -206,7 +215,7 @@ async def akeys(key=None, salt=None, pid=0):
             kdf_1.update(ratchet)
             kdf_2.update(ratchet)
             entropy = yield kdf_1.hexdigest() + kdf_2.hexdigest()
-            kdf_0.update((await astr(entropy)).encode() + ratchet + seed)
+            kdf_0.update(str(entropy).encode() + ratchet + seed)
 
 
 @comprehension()
@@ -233,6 +242,62 @@ def keys(key=None, salt=None, pid=0):
             kdf_1.update(ratchet)
             kdf_2.update(ratchet)
             entropy = yield kdf_1.hexdigest() + kdf_2.hexdigest()
+            kdf_0.update(str(entropy).encode() + ratchet + seed)
+
+
+@comprehension()
+async def abytes_keys(key=None, salt=None, pid=0):
+    """
+    An efficient async generator which produces an unending, non
+    repeating, deterministc stream of string key material. Each
+    iteration yields 256 binary hexidecimal characters, iteratively
+    derived by the mixing & hashing the permutation of the kwargs,
+    previous hashed results, & the ``entropy`` users may send into this
+    generator as a coroutine. The ``key`` kwarg is meant to be a
+    longer-term user key credential (should be a random 512-bit hex
+    value), the ``salt`` kwarg is meant to be ephemeral to each stream
+    (also by default a random 512-bit hex value), and the user-defined
+    ``pid`` can be used to safely parallelize key streams with the same
+    ``key`` & ``salt`` by specifying a unique ``pid`` to each process,
+    thread or the like, which will result in a unique key stream for
+    each.
+    """
+    salt = salt if salt != None else await acsprng(key)
+    seed, kdf_0, kdf_1, kdf_2 = await akeypair_ratchets(key, salt, pid)
+    async with Comprende().arelay(salt):
+        while True:
+            ratchet = kdf_0.digest()
+            kdf_1.update(ratchet)
+            kdf_2.update(ratchet)
+            entropy = yield kdf_1.digest() + kdf_2.digest()
+            kdf_0.update(str(entropy).encode() + ratchet + seed)
+
+
+@comprehension()
+def bytes_keys(key=None, salt=None, pid=0):
+    """
+    An efficient sync generator which produces an unending, non
+    repeating, deterministc stream of string key material. Each
+    iteration yields 256 binary hexidecimal characters, iteratively
+    derived by the mixing & hashing the permutation of the kwargs,
+    previous hashed results, & the ``entropy`` users may send into this
+    generator as a coroutine. The ``key`` kwarg is meant to be a
+    longer-term user key credential (should be a random 512-bit hex
+    value), the ``salt`` kwarg is meant to be ephemeral to each stream
+    (also by default a random 512-bit hex value), and the user-defined
+    ``pid`` can be used to safely parallelize key streams with the same
+    ``key`` & ``salt`` by specifying a unique ``pid`` to each process,
+    thread or the like, which will result in a unique key stream for
+    each.
+    """
+    salt = salt if salt != None else csprng(key)
+    seed, kdf_0, kdf_1, kdf_2 = keypair_ratchets(key, salt, pid)
+    with Comprende().relay(salt):
+        while True:
+            ratchet = kdf_0.digest()
+            kdf_1.update(ratchet)
+            kdf_2.update(ratchet)
+            entropy = yield kdf_1.digest() + kdf_2.digest()
             kdf_0.update(str(entropy).encode() + ratchet + seed)
 
 
@@ -298,6 +363,192 @@ def subkeys(key=csprng(), salt=None, pid=0, group_size=512):
             for sub_key in range(group_size):
                 entropy = yield branch_keys(entropy)
             entropy = source(entropy)
+
+
+class Passcrypt:
+    """
+    This class is used to implement of an scrypt-like password-based key
+    derivation function which requires a tunable amount of memory & cpu
+    time to compute. The ``apasscrypt`` & ``passcrypt`` methods take a
+    ``password`` & a random ``salt`` of any arbitrary size & type. The
+    memory cost is measured in ``kb`` kilobytes. If the memory cost is
+    too high, it will eat up all the ram on a machine very quickly. The
+    cpu time cost is measured in the number of sha3_512 hashes by the
+    ``cpu`` argument. By default, those methods cost 1MB to compute, &
+    the number of hashes done is 4096, which is just the hashing
+    overhead of building the cache for the proof of memory. The ``cpu``
+    parameter can be quite high before slowing down the algorithm.
+    """
+    def __call__(
+        self, password, salt, kb=1024, cpu=1024, hardness=256, aio=False
+    ):
+        if aio:
+            return self.apasscrypt(password, salt, kb, cpu, hardness)
+        else:
+            return self.passcrypt(password, salt, kb, cpu, hardness)
+
+    @staticmethod
+    def _validate_passcrypt_args(kb, cpu, hardness):
+        """
+        Ensures the values ``kb``, ``cpu`` and ``hardness`` passed into
+        this module's scrypt-like, password-based key derivation functions
+        are within acceptable bounds and types.
+        """
+        if hardness < 256 or not isinstance(hardness, int):
+            raise PermissionError(f"hardness:{hardness} must be int >= 256")
+        elif cpu <= 0 or not isinstance(cpu, int):
+            raise PermissionError(f"cpu:{cpu} must be int > 0")
+        elif kb < hardness or not isinstance(kb, int):
+            raise PermissionError(
+                f"kb:{kb} must be int >= hardness:{hardness}"
+            )
+        return 8 * kb
+
+    @staticmethod
+    def _passcrypt_ratios(cpu, kilobytes):
+        """
+        Takes the raw desired iterations ``cpu`` from the user, and the
+        iterations of ``bytes_keys`` necessary to build the desired
+        amount of memory cost in ``kilobytes``.
+        Returns the number of iterations of sha3_512 updates that will
+        be done (``proof_count``), and a rounded integer calcution of
+        the how much the cpu is desired to be taxed over memory.
+        """
+        memory_building_overhead = 3 * kilobytes
+        ratio = (cpu - memory_building_overhead) // kilobytes
+        proof_count = 1 if ratio < 1 else ratio
+        return ratio, proof_count
+
+    @classmethod
+    def _passcrypt_key_sorter(cls, proof, kilobytes, cpu, hardness):
+        """
+        Returns the key function which pseudo-randomly sorts the cache
+        of calculated keys. It ensures an attacker attempting to crack a
+        password hash must have the entirety of the cache in memory in
+        order to determine if a particular password matches to a
+        particular hash.
+        """
+        def key(element):
+            """
+            Sorts the cache of calculated keys based on the returned
+            digest. The ``proof`` argument is a ``sha3_512`` object that
+            has been primed with the last element in the cache of keys,
+            and the hash of the arguments passed into the ``passcrypt``
+            or ``apasscrypt`` functions. It is then updated with each
+            element in the cache & each updated digest is used to sort
+            that element within the cache. More updating is done per
+            element if more cpu usage is specified with the ``cpu`` or
+             ``hardness`` arguments.
+            """
+            nonlocal counter
+
+            if (ratio > 1) or (counter < kilobytes):
+                for _ in range(proof_count):
+                    counter += 1
+                    proof.update(element)
+            return proof.digest()
+
+        counter = 0
+        ratio, proof_count = cls._passcrypt_ratios(cpu, kilobytes)
+        return key
+
+    @classmethod
+    async def _apasscrypt(
+        cls, password, salt, kb=1024, cpu=1024, hardness=256, state=()
+    ):
+        """
+        An implementation of an scrypt-like password-based key
+        derivation function which requires a tunable amount of memory &
+        cpu time to compute. The function takes a ``password`` & a
+        random ``salt`` of any arbitrary size & type. The memory cost is
+        measured in ``kb`` kilobytes. If the memory cost is too high, it
+        will eat up all the ram on a machine very quickly. The cpu time
+        cost is measured in the number of ``iterations`` of ``sha3_512``
+        updates desired.
+        """
+        kilobytes = cls._validate_passcrypt_args(kb, cpu, hardness)
+        args = sha_512(password, salt, kb, cpu, hardness).encode()
+        async with abytes_keys(password, salt, args)[:kilobytes] as cache:
+            cachee = await cache.alist(True)
+            proof = sha3_512(cachee[-1] + args)
+            key = cls._passcrypt_key_sorter(proof, kilobytes, cpu, hardness)
+            cachee.sort(key=key)
+            async with aunpack(cachee)[:hardness] as summary:
+                state.append(
+                    sha_512(await summary.alist(True), proof.digest())
+                )
+
+    @classmethod
+    def _passcrypt(
+        cls, password, salt, kb=1024, cpu=1024, hardness=256, state=()
+    ):
+        """
+        An implementation of an scrypt-like password-based key
+        derivation function which requires a tunable amount of memory &
+        cpu time to compute. The function takes a ``password`` & a
+        random ``salt`` of any arbitrary size & type. The memory cost is
+        measured in ``kb`` kilobytes. If the memory cost is too high, it
+        will eat up all the ram on a machine very quickly. The cpu time
+        cost is measured in the number of ``iterations`` of ``sha3_512``
+        updates desired.
+        """
+        kilobytes = cls._validate_passcrypt_args(kb, cpu, hardness)
+        args = sha_512(password, salt, kb, cpu, hardness).encode()
+        with bytes_keys(password, salt, args)[:kilobytes] as cache:
+            cachee = cache.list(True)
+            proof = sha3_512(cachee[-1] + args)
+            key = cls._passcrypt_key_sorter(proof, kilobytes, cpu, hardness)
+            cachee.sort(key=key)
+            with unpack(cachee)[:hardness] as summary:
+                state.append(sha_512(summary.list(True), proof.digest()))
+
+    @wraps(_apasscrypt)
+    @classmethod
+    async def apasscrypt(cls, *a, **kw):
+        """
+        The ``apasscrypt`` function can be highly memory instensive.
+        These resources may not be freed up, & often are not, because of
+        python quirks around memory management. This is a huge problem.
+        So to force the release of those resources, we run the function
+        in another process which is guaranteed to release them.
+        """
+        def run_passcrypt(*args, **kwargs):
+            """
+            Runs the asynchronous ``apasscrypt`` function in a function
+            that can be run within a ``multiprocessing.Process``.
+            """
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(cls._apasscrypt(*args, **kwargs))
+
+        state = Manager().list()
+        prc = Process(
+            target=run_passcrypt, args=a, kwargs={**kw, "state": state}
+        )
+        prc.start()
+        while prc.is_alive():
+            await asleep(0.01)
+        prc.join()
+        return state.pop()
+
+    @wraps(_passcrypt)
+    @classmethod
+    def passcrypt(cls, *a, **kw):
+        """
+        The ``passcrypt`` function can be highly memory instensive.
+        These resources may not be freed up, & often are not, because of
+        python quirks around memory management. This is a huge problem.
+        So to force the release of those resources, we run the function
+        in another process which is guaranteed to release them.
+        """
+        state = Manager().list()
+        prc = Process(
+            target=cls._passcrypt, args=a, kwargs=dict(**kw, state=state)
+        )
+        prc.start()
+        while prc.is_alive():
+            asynchs.sleep(0.01)
+        prc.join()
+        return state.pop()
 
 
 @comprehension()
@@ -610,7 +861,7 @@ async def adecrypt(data=(), key=csprng(), pid=0):
 
     entropy = akeys(key, session_seed, pid=pid)
     decode_salt = axor(abirth(ciphered_salt), key=entropy)
-    salt = await decode_salt.ahex(start=2).azfill(128).anext()
+    salt = await decode_salt.ahex().azfill(128).anext()
 
     decrypting = aorganize_decryption_streams(
         data=aorder([session_seed], ciphertext.iterator),
@@ -648,7 +899,7 @@ def decrypt(data=(), key=csprng(), pid=0):
 
     entropy = keys(key, session_seed, pid=pid)
     decode_salt = xor(birth(ciphered_salt), key=entropy)
-    salt = decode_salt.hex(start=2).zfill(128).next()
+    salt = decode_salt.hex().zfill(128).next()
 
     decrypting = organize_decryption_streams(
         data=order([session_seed], ciphertext.iterator),
@@ -1113,7 +1364,7 @@ class OneTimePad:
         session_entropy = akeys(key=key, salt=session_seed, pid=pid)
         decode_salt = axor(abirth(ciphered_salt), key=session_entropy)
 
-        salt = await decode_salt.ahex(start=2).azfill(128).anext()
+        salt = await decode_salt.ahex().azfill(128).anext()
         entropy = akeys(key=key, salt=salt, pid=pid)
         async for plaintext in adecipher(
             data=aorder([session_seed], ciphertext.iterator), key=entropy
@@ -1154,7 +1405,7 @@ class OneTimePad:
         session_entropy = keys(key=key, salt=session_seed, pid=pid)
         decode_salt = xor(birth(ciphered_salt), key=session_entropy)
 
-        salt = decode_salt.hex(start=2).zfill(128).next()
+        salt = decode_salt.hex().zfill(128).next()
         entropy = keys(key=key, salt=salt, pid=pid)
         for plaintext in decipher(
             data=order([session_seed], ciphertext.iterator), key=entropy
@@ -1603,6 +1854,21 @@ class AsyncDatabase(metaclass=AsyncInit):
             (data, self.root_hash), key=self.root_seed
         )
 
+    async def apasscrypt(self, password, salt, kb=1024, cpu=1024):
+        """
+        An implementation of an scrypt-like password derivation function
+        which requires a tunable amount of memory & cpu time to compute.
+        The function takes a ``password`` & a random ``salt`` of any
+        arbitrary size & type. The memory cost is measured in ``kb``
+        kilobytes. If the memory cost is too high, it will eat up all
+        the ram on a machine very quickly. The ``cpu`` time cost is
+        measured in the number of iterations of the sha3_512 hashing
+        algorithm.
+        """
+        _apasscrypt = globals()["apasscrypt"]
+        salted_password = await self.ahmac(password, salt)
+        return await _apasscrypt(salted_password, salt, kb, cpu)
+
     async def auuids(self, category=None, length=16, salt=""):
         """
         Returns an async coroutine that can safely create unique user
@@ -1643,7 +1909,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
 
         @comprehension()
-        async def _auuids():
+        async def _auuids(salt=salt):
             """
             A programmable async coroutine which creates unique user IDs
             that are specific to a particular category.
@@ -2453,6 +2719,21 @@ class Database:
         """
         return sha_512_hmac((data, self.root_hash), key=self.root_seed)
 
+    def passcrypt(self, password, salt, kb=1024, cpu=1024):
+        """
+        An implementation of an scrypt-like password derivation function
+        which requires a tunable amount of memory & cpu time to compute.
+        The function takes a ``password`` & a random ``salt`` of any
+        arbitrary size & type. The memory cost is measured in ``kb``
+        kilobytes. If the memory cost is too high, it will eat up all
+        the ram on a machine very quickly. The ``cpu`` time cost is
+        measured in the number of iterations of the sha3_512 hashing
+        algorithm.
+        """
+        _passcrypt = globals()["passcrypt"]
+        salted_password = self.hmac(password, salt)
+        return _passcrypt(salted_password, salt, kb, cpu)
+
     def uuids(self, category=None, length=16, salt=""):
         """
         Returns a coroutine that can safely create unique user IDs based
@@ -2492,7 +2773,7 @@ class Database:
         """
 
         @comprehension()
-        def _uuids():
+        def _uuids(salt=salt):
             """
             A programmable coroutine which creates unique user IDs
             that are specific to a particular category.
@@ -2880,15 +3161,21 @@ class Database:
     __len__ = lambda self: len(self.manifest.namespace)
 
 
+apasscrypt = Passcrypt.apasscrypt
+passcrypt = Passcrypt.passcrypt
+
+
 __extras = {
     "AsyncDatabase": AsyncDatabase,
     "Database": Database,
+    "Passcrypt": Passcrypt,
     "OneTimePad": OneTimePad,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
     "abytes_decrypt": abytes_decrypt,
     "abytes_encrypt": abytes_encrypt,
+    "abytes_keys": abytes_keys,
     "acipher": acipher,
     "adecipher": adecipher,
     "adecrypt": adecrypt,
@@ -2899,10 +3186,12 @@ __extras = {
     "akeys": akeys,
     "aorganize_decryption_streams": aorganize_decryption_streams,
     "aorganize_encryption_streams": aorganize_encryption_streams,
+    "apasscrypt": apasscrypt,
     "asubkeys": asubkeys,
     "axor": axor,
     "bytes_decrypt": bytes_decrypt,
     "bytes_encrypt": bytes_encrypt,
+    "bytes_keys": bytes_keys,
     "cipher": cipher,
     "decipher": decipher,
     "decrypt": decrypt,
@@ -2913,9 +3202,11 @@ __extras = {
     "keys": keys,
     "organize_decryption_streams": organize_decryption_streams,
     "organize_encryption_streams": organize_encryption_streams,
+    "passcrypt": passcrypt,
     "subkeys": subkeys,
     "xor": xor,
 }
 
 
 ciphers = commons.Namespace.make_module("ciphers", mapping=__extras)
+

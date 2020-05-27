@@ -25,6 +25,11 @@ for variable in __all__:
     __exports.add(variable)
 
 
+from test_passcrypt_apasscrypt import *
+for variable in __all__:
+    __exports.add(variable)
+
+
 __all__ = list(__exports)
 
 
