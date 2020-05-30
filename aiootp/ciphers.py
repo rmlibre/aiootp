@@ -1106,7 +1106,7 @@ class Passcrypt:
 
 
 @wraps(Passcrypt._apasscrypt)
-async def apasscrypt(password, salt=None, kb=1024, cpu=40000, hardness=256):
+async def apasscrypt(password, salt, kb=1024, cpu=40000, hardness=256):
     """
     Creates an async function which simplifies the ui/ux for users to
     access the module's implementation of an scrypt-like password-based
@@ -1123,7 +1123,7 @@ async def apasscrypt(password, salt=None, kb=1024, cpu=40000, hardness=256):
 
 
 @wraps(Passcrypt._passcrypt)
-def passcrypt(password, salt=None, kb=1024, cpu=40000, hardness=256):
+def passcrypt(password, salt, kb=1024, cpu=40000, hardness=256):
     """
     Creates a function which simplifies the ui/ux for users to access
     the module's implementation of an scrypt-like password-based key
