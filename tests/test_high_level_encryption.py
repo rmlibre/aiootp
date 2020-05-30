@@ -66,6 +66,9 @@ def test_json_functions():
     assert ciphertext_of_dict != json_encrypt(plaintext_types, key)
     assert ciphertext_of_string != run(ajson_encrypt(plaintext_string, key))
 
+    assert ciphertext_of_dict != json_encrypt(plaintext_types, key, salt, pid)
+    assert ciphertext_of_string != run(ajson_encrypt(plaintext_string, key, salt, pid))
+
     plaintext_of_dict = json_decrypt(json.dumps(ciphertext_of_dict), key)
     plaintext_of_string = json_decrypt(json.dumps(ciphertext_of_string), key)
     assert plaintext_of_dict == run(ajson_decrypt(json.dumps(ciphertext_of_dict), key))
@@ -84,18 +87,18 @@ def test_bytes_functions():
     assert ciphertext_of_bytes != bytes_encrypt(plaintext_bytes, key, salt, pid)
     assert ciphertext_of_string != run(abytes_encrypt(plaintext_string, key, salt, pid))
 
-    plaintext_of_dict = bytes_decrypt(ciphertext_of_bytes, key)
+    plaintext_of_bytes = bytes_decrypt(ciphertext_of_bytes, key)
     plaintext_of_string = bytes_decrypt(ciphertext_of_string, key)
-    assert plaintext_of_dict == run(abytes_decrypt(ciphertext_of_bytes, key))
+    assert plaintext_of_bytes == run(abytes_decrypt(ciphertext_of_bytes, key))
     assert plaintext_of_string == run(abytes_decrypt(ciphertext_of_string, key))
 
 
 def test_generator_functions():
     encrypting = encrypt(plaintext_string, key)
-    decrypting = decrypt(encrypting.list(), key)
+    decrypting = decrypt(encrypting, key)
 
     aencrypting = aencrypt(plaintext_string, key)
-    adecrypting = adecrypt(run(aencrypting.alist()), key)
+    adecrypting = adecrypt(aencrypting, key)
 
     plaintext = decrypting.join()
     async_plaintext = run(adecrypting.ajoin())
