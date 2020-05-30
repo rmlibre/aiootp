@@ -34,9 +34,11 @@ from time import time
 from time import sleep
 from functools import wraps
 from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 from .commons import commons
 
 
+thread_pool = ThreadPoolExecutor()
 default_loop = asyncio.get_event_loop()
 
 
@@ -100,7 +102,7 @@ def stop():
     return loop().stop()
 
 
-def executor_wrapper(function):
+def wrap_in_executor(function):
     """
     A decorator that wraps synchronous blocking IO functions so they
     will run in an executor. This was adapted from the ``aiofiles``
@@ -143,7 +145,7 @@ def make_os_async(namespace=None):
     ]
     for attr in attrs:
         if hasattr(os, attr):
-            setattr(namespace, attr, executor_wrapper(getattr(os, attr)))
+            setattr(namespace, attr, wrap_in_executor(getattr(os, attr)))
     return namespace
 
 
@@ -181,8 +183,9 @@ __extras = {
     "gather": gather,
     "new_task": new_task,
     "new_future": new_future,
+    "thread_pool": thread_pool,
     "default_loop": default_loop,
-    "executor_wrapper": executor_wrapper,
+    "wrap_in_executor": wrap_in_executor,
 }
 
 
