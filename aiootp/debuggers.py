@@ -21,6 +21,7 @@ import inspect
 import datetime
 from time import time
 from functools import wraps
+from inspect import isasyncgenfunction
 from .commons import commons
 
 
@@ -480,12 +481,11 @@ def agen_timer(decorated_func):
 
     debugger = AsyncGenDebugTools()
 
-    @comprehension()
     def wrapped_generator_func(*a, **kw):
         debugger.timed_func = decorated_func
         debugger.generator = decorated_func(*a, **kw)
         return wraps(decorated_func)(
-            debugger._agen_wrapper(*a, **kw)
+            comprehension()(debugger._agen_wrapper(*a, **kw))
         )()
 
     return wrapped_generator_func
@@ -540,7 +540,6 @@ def gen_timer(decorated_func):
 
     debugger = GenDebugTools()
 
-    @comprehension()
     def wrapped_generator_func(*a, **kw):
         debugger.timed_func = decorated_func
         debugger.generator = decorated_func(*a, **kw)

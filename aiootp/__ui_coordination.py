@@ -19,6 +19,7 @@ package.
 """
 
 
+from .debuggers import gen_timer, agen_timer
 from .generics import Comprende, comprehension
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
@@ -27,24 +28,26 @@ from .keygens import insert_keyrings
 
 
 @comprehension()
-async def arandom_sleep(self, span=1):
+async def adebugger(self, *args, **kwargs):
     """
-    Applies a random sleep before each yielded value from the underlying
-    ``Comprende`` async generator.
+    Allows users to benchmark & read inspection details of running async
+    generators inline as a chainable method.
     """
-    async for result in self:
-        await _arandom_sleep(span)
+    args = args if args else self.args
+    kwargs = {**self.kwargs, **kwargs}
+    async for result in agen_timer(self.func)(*args, **kwargs):
         yield result
 
 
 @comprehension()
-def random_sleep(self, span=1):
+def debugger(self, *args, **kwargs):
     """
-    Applies a random sleep before each yielded value from the underlying
-    ``Comprende`` sync generator.
+    Allows users to benchmark & read inspection details of running sync
+    generators inline as a chainable method.
     """
-    for result in self:
-        _random_sleep(span)
+    args = args if args else self.args
+    kwargs = {**self.kwargs, **kwargs}
+    for result in gen_timer(self.func)(*args, **kwargs):
         yield result
 
 
@@ -76,11 +79,43 @@ def xor(self, key=None, convert=True):
         yield result
 
 
+@comprehension()
+async def arandom_sleep(self, span=1):
+    """
+    Applies a random sleep before each yielded value from the underlying
+    ``Comprende`` async generator.
+    """
+    async for result in self:
+        await _arandom_sleep(span)
+        yield result
+
+
+@comprehension()
+def random_sleep(self, span=1):
+    """
+    Applies a random sleep before each yielded value from the underlying
+    ``Comprende`` sync generator.
+    """
+    for result in self:
+        _random_sleep(span)
+        yield result
+
+
+def insert_debuggers():
+    """
+    Copies the addons over into the ``Comprende`` class.
+    """
+    addons = {debugger, adebugger}
+    for addon in addons:
+        setattr(Comprende, addon.__name__, addon)
+        Comprende.lazy_generators.add(addon.__name__)
+
+
 def insert_xor_methods():
     """
     Copies the addons over into the ``Comprende`` class.
     """
-    addons = {axor, xor}
+    addons = {xor, axor}
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
         Comprende.lazy_generators.add(addon.__name__)
@@ -150,6 +185,7 @@ def insert_stateful_key_generator_objects():
     OneTimePad.__init__ = insert_keyrings
 
 
+insert_debuggers()
 insert_xor_methods()
 insert_random_sleep_methods()
 insert_bytes_cipher_methods()

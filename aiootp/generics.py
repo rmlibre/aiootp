@@ -66,7 +66,6 @@ import random
 import binascii
 import pybase64
 import builtins
-import itertools
 import aioitertools
 from os import linesep
 from sys import getsizeof
@@ -97,9 +96,7 @@ from .asynchs import time
 from . import DEBUG_MODE
 
 
-count = itertools.count
 aiter = aioitertools.iter
-acount = aioitertools.count
 
 
 def src(obj, display=True):
@@ -184,16 +181,9 @@ def convert_static_method_to_member(
         Replaces the parameters to the static method or free function
         being turned into a member function of an object.
         """
-        try:
-            new_args = list(args)
-            for index, new_arg in enumerate(a):
-                new_args[index] = new_arg
-            new_kwargs = dict(kwargs)
-            new_kwargs.update(kw)
-        except IndexError as error:
-            raise NotImplementedError(
-                "Sending args into a method after they were replaced."
-            ) from error
+        new_args = list(args)
+        new_args[:len(a)] = a[:]
+        new_kwargs = {**kwargs, **kw}
         return static_method(*new_args, **new_kwargs)
 
     setattr(self, static_method_name, wrapped_static_method)
@@ -668,7 +658,7 @@ class Comprende:
     }
 
     eager_generators = {
-        "aheappop", "heappop", "areversed", "reversed", "asorted", "sorted"
+        "aheappop", "heappop", "areversed", "reversed", "asort", "sort"
     }
 
     _generators = {"__aiter__", "__iter__"}
@@ -1024,7 +1014,9 @@ class Comprende:
         printed to stdout.
         """
         if exit and silent:
-            async with aignore(TypeError, display=not silent):
+            async with aignore(
+                TypeError, StopAsyncIteration, display=not silent
+            ):
                 await self.gen.asend(UserWarning())
         elif exit:
             await self.gen.asend(UserWarning())
@@ -1075,13 +1067,13 @@ class Comprende:
         """
         return self._thrown
 
-    async def anext(self):
+    async def anext(self, *a):
         """
         Advances the wrapped async generator to the next yield.
         """
         return await self.iterator.asend(None)
 
-    def next(self):
+    def next(self, *a):
         """
         Advances the wrapped sync generator to the next yield.
         """
@@ -1479,9 +1471,12 @@ class Comprende:
         ``of`` can be passed a sync or async iterable & prepends those
         values to the generator's results.
         """
-        names = of if of != None else acount()
-        async for name, item in azip(names, self):
-            yield name, item
+        if of != None:
+            async for name, item in azip(of, self):
+                yield name, item
+        else:
+            async for name, item in Enumerate(self):
+                yield name, item
 
     def tag(self, of=None):
         """
@@ -1577,7 +1572,7 @@ class Comprende:
             for result in reversed(results):
                 yield result
 
-    async def asorted(self, span=None, key=None, *, of=None):
+    async def asort(self, span=None, key=None, *, of=None):
         """
         Exhausts the underlying Comprende async generator upto ``span``
         number of iterations, then yields the results in sorted order.
@@ -1589,14 +1584,14 @@ class Comprende:
             async for prev, result in azip(self, results):
                 yield prev, result
         else:
-            async with aunpack(self)[:span] as accumulator:
+            async with self[:span] as accumulator:
                 results = await accumulator.alist(mutable=True)
             results.sort(key=key)
             for result in results:
                 await switch()
                 yield result
 
-    def sorted(self, span=None, key=None, *, of=None):
+    def sort(self, span=None, key=None, *, of=None):
         """
         Exhausts the underlying Comprende sync generator upto ``span``
         number of iterations, then yields the results in sorted order.
@@ -1608,7 +1603,7 @@ class Comprende:
             for prev, result in zip(self, results):
                 yield prev, result
         else:
-            with unpack(self)[:span] as accumulator:
+            with self[:span] as accumulator:
                 results = accumulator.list(mutable=True)
             results.sort(key=key)
             for result in results:
@@ -2684,16 +2679,16 @@ class Comprende:
         Allows indexing of async generators to yield the values
         associated with the slice or integer passed into the brackets.
         """
-        start, stop, step, span = self._set_index(index, arange)
-        async with aignore(StopAsyncIteration):
-            target = await span.anext()
-            async for match, result in self.atag():
+        start, stop, step, span = self._set_index(index)
+        span = iter(span)
+        with ignore(StopIteration):
+            target = next(span)
+            async for match, result in Enumerate(self):
                 if match >= stop:
                     break
                 elif target == match:
                     yield result
-                    target = await span.anext()
-
+                    target = next(span)
 
     def _getitem(self, index):
         """
@@ -2738,14 +2733,10 @@ async def azip(*coros):
     """
     Creates an asynchronous version of the ``builtins.zip`` function.
     """
-    tasks = deque()
     coros = [aiter(coro).__anext__ for coro in coros]
     try:
         while True:
-            for coro in coros:
-                await aappend(tasks, new_task(coro()))
-            yield await gather(*tasks)
-            tasks.clear()
+            yield await gather(*[coro() for coro in coros])
     except StopAsyncIteration:
         pass
 
@@ -2761,42 +2752,22 @@ def _zip(*iterables):
 
 
 @comprehension()
-async def _acount(*args, **kwargs):
-    """
-    Creates an asynchronous version of ``aioitertools.count`` which is
-    wrapped by the ``Comprende`` class.
-    """
-    async for result in acount(*args, **kwargs):
-        yield result
-
-
-@comprehension()
-def _count(*args, **kwargs):
-    """
-    Creates a synchronous version of ``itertools.count`` that is wrapped
-    by the ``Comprende`` class.
-    """
-    for result in count(*args, **kwargs):
-        yield result
-
-
-@comprehension()
-async def _aiter(*a, **kw):
+async def _aiter(iterable, *a, **kw):
     """
     Creates an asynchronous version of ``aioitertools.iter`` which is
     wrapped by the ``Comprende`` class.
     """
-    async for result in aiter(*a, **kw):
+    async for result in aiter(iterable, *a, **kw):
         yield result
 
 
 @comprehension()
-def _iter(*a, **kw):
+def _iter(iterable, *a, **kw):
     """
     Creates an asynchronous version of ``builtins.iter`` that is wrapped
     by the ``Comprende`` class.
     """
-    for result in iter(*a, **kw):
+    for result in iter(iterable, *a, **kw):
         yield result
 
 
@@ -2828,6 +2799,26 @@ def cycle(iterable):
         while True:
             for result in results:
                 yield result
+
+
+@comprehension()
+async def acount(start=0):
+    """
+    Unendingly yields incrementing numbers starting from ``start``.
+    """
+    while True:
+        yield start
+        start += 1
+
+
+@comprehension()
+def count(start=0):
+    """
+    Unendingly yields incrementing numbers starting from ``start``.
+    """
+    while True:
+        yield start
+        start += 1
 
 
 @comprehension()
@@ -3004,15 +2995,15 @@ async def acompact(iterable, batch_size=1):
     An async generator that yields ``batch_size`` number of elements
     from an async or sync ``iterable`` at a time.
     """
-    stack = commons.Namespace()
+    stack = {}
     indexes = list(reversed(range(batch_size)))
     async for toggle, item in azip(cycle(indexes), iterable):
         stack[toggle] = item
         if not toggle:
-            yield list(stack.namespace.values())
-            stack.namespace.clear()
-    if len(stack.namespace) < batch_size:
-        yield list(stack.namespace.values())
+            yield list(stack.values())
+            stack.clear()
+    if stack:
+        yield list(stack.values())
 
 
 @comprehension()
@@ -3021,15 +3012,15 @@ def compact(iterable, batch_size=1):
     A generator that yields ``batch_size`` number of elements from an
     ``iterable`` at a time.
     """
-    stack = commons.Namespace()
+    stack = {}
     indexes = list(reversed(range(batch_size)))
     for toggle, item in zip(cycle(indexes), iterable):
         stack[toggle] = item
         if not toggle:
-            yield list(stack.namespace.values())
-            stack.namespace.clear()
-    if len(stack.namespace) < batch_size:
-        yield list(stack.namespace.values())
+            yield list(stack.values())
+            stack.clear()
+    if stack:
+        yield list(stack.values())
 
 
 @comprehension()
@@ -3385,7 +3376,7 @@ def ascii_to_int(input_ascii):
 
 async def abase_to_decimal(string, base, table=ASCII_ALPHANUMERIC):
     """
-    Convert ``string`` in numerical ``base`` into decimal.
+    Convert ``string`` in numerical ``base`` into decimal integer.
     """
     power = 1
     result = 0
@@ -3401,7 +3392,7 @@ async def abase_to_decimal(string, base, table=ASCII_ALPHANUMERIC):
 
 def base_to_decimal(string, base, table=ASCII_ALPHANUMERIC):
     """
-    Convert ``string`` in numerical ``base`` into decimal.
+    Convert ``string`` in numerical ``base`` into decimal integer.
     """
     power = 1
     result = 0
@@ -3419,7 +3410,7 @@ async def ainverse_int(number, base, table=ASCII_ALPHANUMERIC):
     Convert an ``number`` back into a string in numerical ``base``.
     """
     digits = []
-    num = await aabs(number)
+    num = abs(number)
     base_table = table[:base]
     while num:
         await aappend(digits, base_table[num % base])
@@ -3525,7 +3516,7 @@ __extras = {
     "abirth": abirth,
     "abytes_to_int": abytes_to_int,
     "acompact": acompact,
-    "acount": _acount,
+    "acount": acount,
     "acustomize_parameters": acustomize_parameters,
     "acycle": acycle,
     "adata": adata,
@@ -3565,7 +3556,7 @@ __extras = {
     "compact": compact,
     "comprehension": comprehension,
     "convert_static_method_to_member": convert_static_method_to_member,
-    "count": _count,
+    "count": count,
     "customize_parameters": customize_parameters,
     "cycle": cycle,
     "data": data,
