@@ -17,6 +17,61 @@
 =============
 
 
+Changes for version 0.6.0
+=========================
+
+
+Major Changes
+-------------
+
+-  Replaced the usage of ``os.urandom`` within the package with 
+   ``secrets.token_bytes`` to be more reliable across platforms. 
+-  Replaced several usages of ``random.randrange`` within ``randoms.py`` to 
+   calls to ``secrets.token_bytes`` which is faster & more secure. It
+   now also seeds ``random`` module periodically prior to usage.
+-  Changed the internal cache sorting algorithm of ``passcrypt`` & 
+   ``apasscrypt`` functions. The key function passed to ``list.sort(key=key)`` 
+   now not only updates the ``hashlib.sha3_512`` proof object with 
+   each element in the cache, but with it's own current output. This change 
+   is incompatible with previous versions of the functions. The key function 
+   is also trimmed down of unnecessary value checking. 
+-  The default value for the ``cpu`` argument in ``passcrypt`` & ``apasscrypt``
+   is now ``40_000``. This is right at the edge of when the argument begins
+   impacting the cpu work needed to comptute the password hash when the ``kb``
+   argument is the default of ``1024``.
+-  Switched the ``AsyncKeys.atest_hmac`` & ``Keys.test_hmac`` methods to a 
+   constant time algorithm.
+
+
+Minor Changes
+-------------
+
+-  Various code cleanups, refactorings & speedups.
+-  Added a ``concurrent.futures.ThreadPoolExecutor`` instance to the ``asynchs``
+   module for easily spinning off threads. It's available under 
+   ``asynchs.thread_pool``.
+-  Added ``sort`` & ``asort`` chainable generator method to the ``Comprende`` 
+   class. They support sorting by a ``key`` sorting function as well.
+-  Changed the name of ``asynchs.executor_wrapper`` to ``asynchs.wrap_in_executor``.
+-  Changed the name of ``randoms.non0_digit_stream``, ``randoms.anon0_digit_stream``,
+   ``randoms.digit_stream`` & ``randoms.adigit_stream`` to ``randoms.non_0_digits``,
+   ``randoms.anon_0_digits``, ``randoms.digits`` & ``randoms.adigits``.
+-  Several fixes to inaccurate documentation.
+-  ``apasscrypt`` & ``Passcrypt.anew`` now use the synchronous version of the 
+   algorithm internally because it's faster & it doesn't change the 
+   parallelization properties of the function since it's already run 
+   automatically in another process.
+-  Added ``shuffle``, ``ashuffle``, ``unshuffle``, & ``aunshuffle`` functions
+   to ``randoms.py`` that reorder sequences pseudo-randomly based on their
+   ``key`` & ``salt`` keyword arguments.
+-  Fixed bugs in ``AsyncKeys`` & ``debuggers.py``.
+-  Added ``debugger`` & ``adebugger`` chainable generator methods to the
+   ``Comprende`` class which benchmarks & inspects running generators with
+   an inline syntax.
+
+
+
+
 Changes for version 0.5.1
 =========================
 

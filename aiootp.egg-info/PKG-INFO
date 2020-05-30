@@ -1,6 +1,6 @@
 Metadata-Version: 1.2
 Name: aiootp
-Version: 0.5.1
+Version: 0.6.0
 Summary: aiootp - an asynchronous one-time-pad based crypto and anonymity library.
 Home-page: https://github.com/rmlibre/aiootp
 Author: Gonzo Investigatory Journalism Agency, LLC
@@ -101,7 +101,7 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             
             salt = db[tag]["password_salt"]
             
-            wrong_hmac = await db.ahmac("wrong password attempt", salt)
+            wrong_hmac = await db.apasscrypt("wrong password attempt", salt)
             
             db[tag][wrong_hmac]
             
@@ -580,84 +580,98 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             # methods in ``aiootp.Comprende.lazy_generators``.
             
             {
-                '_agetitem',
-                '_getitem',
-                'aascii_to_int',
-                'abin',
-                'abytes',
-                'abytes_decrypt',
-                'abytes_encrypt',
-                'adecode',
-                'adecrypt',
-                'adelimit',
-                'adelimit_resize',
-                'aencode',
-                'aencrypt',
-                'afeed',
-                'afeed_self',
-                'afrom_base',
-                'afrom_base64',
-                'ahalt',
-                'ahex',
-                'aint',
-                'aint_to_ascii',
-                'ajson_dumps',
-                'ajson_loads',
-                'amap_decrypt',
-                'amap_encrypt',
-                'arandom_sleep',
-                'areplace',
-                'aresize',
-                'ascii_to_int',
-                'asha_256',
-                'asha_256_hmac',
-                'asha_512',
-                'asha_512_hmac',
-                'aslice',
-                'asplit',
-                'astr',
-                'atag',
-                'atimeout',
-                'ato_base',
-                'ato_base64',
-                'azfill',
-                'bin',
-                'bytes',
-                'bytes_decrypt',
-                'bytes_encrypt',
-                'decode',
-                'decrypt',
-                'delimit',
-                'delimit_resize',
-                'encode',
-                'encrypt',
-                'feed',
-                'feed_self',
-                'from_base',
-                'from_base64',
-                'halt',
-                'hex',
-                'int',
-                'int_to_ascii',
-                'json_dumps',
-                'json_loads',
-                'map_decrypt',
-                'map_encrypt',
-                'random_sleep',
-                'replace',
-                'resize',
-                'sha_256',
-                'sha_256_hmac',
-                'sha_512',
-                'sha_512_hmac',
-                'slice',
-                'split',
-                'str',
-                'tag',
-                'timeout',
-                'to_base',
-                'to_base64',
-                'zfill',
+                "_agetitem",
+                "_getitem",
+                "aascii_to_int",
+                "abin",
+                "abytes",
+                "abytes_decrypt",
+                "abytes_encrypt",
+                "abytes_to_hex",
+                "abytes_to_int",
+                "adebugger",
+                "adecode",
+                "adecrypt",
+                "adelimit",
+                "adelimit_resize",
+                "aencode",
+                "aencrypt",
+                "afeed",
+                "afeed_self",
+                "afrom_base",
+                "afrom_base64",
+                "ahalt",
+                "ahex",
+                "ahex_to_bytes",
+                "aindex",
+                "aint",
+                "aint_to_ascii",
+                "aint_to_bytes",
+                "ajson_dumps",
+                "ajson_loads",
+                "amap_decrypt",
+                "amap_encrypt",
+                "arandom_sleep",
+                "areplace",
+                "aresize",
+                "ascii_to_int",
+                "asha_256",
+                "asha_256_hmac",
+                "asha_512",
+                "asha_512_hmac",
+                "aslice",
+                "asplit",
+                "astr",
+                "atag",
+                "atimeout",
+                "ato_base",
+                "ato_base64",
+                "axor",
+                "azfill",
+                "bin",
+                "bytes",
+                "bytes_decrypt",
+                "bytes_encrypt",
+                "bytes_to_hex",
+                "bytes_to_int",
+                "debugger",
+                "decode",
+                "decrypt",
+                "delimit",
+                "delimit_resize",
+                "encode",
+                "encrypt",
+                "feed",
+                "feed_self",
+                "from_base",
+                "from_base64",
+                "halt",
+                "hex",
+                "hex_to_bytes",
+                "index",
+                "int",
+                "int_to_ascii",
+                "int_to_bytes",
+                "json_dumps",
+                "json_loads",
+                "map_decrypt",
+                "map_encrypt",
+                "random_sleep",
+                "replace",
+                "resize",
+                "sha_256",
+                "sha_256_hmac",
+                "sha_512",
+                "sha_512_hmac",
+                "slice",
+                "split",
+                "str",
+                "tag",
+                "timeout",
+                "to_base",
+                "to_base64",
+                "xor",
+                "zfill",
             }
             
             
@@ -1000,6 +1014,61 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
         
         ``Changelog``
         =============
+        
+        
+        Changes for version 0.6.0
+        =========================
+        
+        
+        Major Changes
+        -------------
+        
+        -  Replaced the usage of ``os.urandom`` within the package with 
+           ``secrets.token_bytes`` to be more reliable across platforms. 
+        -  Replaced several usages of ``random.randrange`` within ``randoms.py`` to 
+           calls to ``secrets.token_bytes`` which is faster & more secure. It
+           now also seeds ``random`` module periodically prior to usage.
+        -  Changed the internal cache sorting algorithm of ``passcrypt`` & 
+           ``apasscrypt`` functions. The key function passed to ``list.sort(key=key)`` 
+           now not only updates the ``hashlib.sha3_512`` proof object with 
+           each element in the cache, but with it's own current output. This change 
+           is incompatible with previous versions of the functions. The key function 
+           is also trimmed down of unnecessary value checking. 
+        -  The default value for the ``cpu`` argument in ``passcrypt`` & ``apasscrypt``
+           is now ``40_000``. This is right at the edge of when the argument begins
+           impacting the cpu work needed to comptute the password hash when the ``kb``
+           argument is the default of ``1024``.
+        -  Switched the ``AsyncKeys.atest_hmac`` & ``Keys.test_hmac`` methods to a 
+           constant time algorithm.
+        
+        
+        Minor Changes
+        -------------
+        
+        -  Various code cleanups, refactorings & speedups.
+        -  Added a ``concurrent.futures.ThreadPoolExecutor`` instance to the ``asynchs``
+           module for easily spinning off threads. It's available under 
+           ``asynchs.thread_pool``.
+        -  Added ``sort`` & ``asort`` chainable generator method to the ``Comprende`` 
+           class. They support sorting by a ``key`` sorting function as well.
+        -  Changed the name of ``asynchs.executor_wrapper`` to ``asynchs.wrap_in_executor``.
+        -  Changed the name of ``randoms.non0_digit_stream``, ``randoms.anon0_digit_stream``,
+           ``randoms.digit_stream`` & ``randoms.adigit_stream`` to ``randoms.non_0_digits``,
+           ``randoms.anon_0_digits``, ``randoms.digits`` & ``randoms.adigits``.
+        -  Several fixes to inaccurate documentation.
+        -  ``apasscrypt`` & ``Passcrypt.anew`` now use the synchronous version of the 
+           algorithm internally because it's faster & it doesn't change the 
+           parallelization properties of the function since it's already run 
+           automatically in another process.
+        -  Added ``shuffle``, ``ashuffle``, ``unshuffle``, & ``aunshuffle`` functions
+           to ``randoms.py`` that reorder sequences pseudo-randomly based on their
+           ``key`` & ``salt`` keyword arguments.
+        -  Fixed bugs in ``AsyncKeys`` & ``debuggers.py``.
+        -  Added ``debugger`` & ``adebugger`` chainable generator methods to the
+           ``Comprende`` class which benchmarks & inspects running generators with
+           an inline syntax.
+        
+        
         
         
         Changes for version 0.5.1
