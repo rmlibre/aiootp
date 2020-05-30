@@ -20,15 +20,22 @@ A collection of highlevel tools for creating & managing symmetric keys.
 from .asynchs  import *
 from .commons import primes
 from .commons import commons
+from .randoms import salt
+from .randoms import asalt
 from .randoms import csprng
 from .randoms import acsprng
 from .ciphers import keys
 from .ciphers import akeys
 from .ciphers import subkeys
 from .ciphers import asubkeys
+from .ciphers import passcrypt
+from .ciphers import apasscrypt
+from .ciphers import bytes_keys
+from .ciphers import abytes_keys
 from .ciphers import OneTimePad
 from .ciphers import keypair_ratchets
 from .ciphers import akeypair_ratchets
+from .generics import azip
 from .generics import is_iterable
 from .generics import comprehension
 from .generics import sha_256_hmac
@@ -236,10 +243,12 @@ class AsyncKeys:
     & ``asubkeys`` methods. The class also contains static method key
     generators which function independantly from instance states.
     """
-    aseed = acsprng
+    aseed = staticmethod(asalt)
     akeys = staticmethod(akeys)
     asubkeys = staticmethod(asubkeys)
     akeypair = staticmethod(akeypair)
+    apasscrypt = staticmethod(apasscrypt)
+    abytes_keys = staticmethod(abytes_keys)
     atable_key = staticmethod(atable_key)
     atable_key_gen = staticmethod(atable_key_gen)
     akeypair_ratchets = staticmethod(akeypair_ratchets)
@@ -249,8 +258,8 @@ class AsyncKeys:
         Creates a symmetric key pair used to create deterministic streams
         of key material.
         """
-        self.key, self.salt = key, csprng(key) if key else keypair()
-        for method in [akeys, asubkeys]:
+        self.key, self.salt = (key, salt()) if key else keypair()
+        for method in [akeys, asubkeys, abytes_keys]:
             convert_static_method_to_member(
                 self, method.__name__, method, key=self.key, salt=self.salt
             )
@@ -272,15 +281,21 @@ class AsyncKeys:
         return await hasher(data, key=key if key else self.key)
 
     async def atest_hmac(
-        self, data=None, hmac=None, key=None, *, hasher=sha_256_hmac
+        self, data=None, hmac=None, key=None, *, hasher=asha_256_hmac
     ):
         """
         Tests the ``hmac`` code against the derived HMAC of ``data``
         using ``key`` & the async hashing function ``hasher``.
         """
-        if hmac == await self.ahmac(
+        true_hmac = await self.ahmac(
             data=data, key=key if key else self.key, hasher=hasher
-        ):
+        )
+        if len(true_hmac) != len(hmac):
+            raise ValueError("HMAC of ``data`` isn't valid.")
+        passed = 1
+        async for hmac_char, true_hmac_char in azip(hmac, true_hmac):
+            passed &= hmac_char == true_hmac_char
+        if passed:
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
@@ -299,8 +314,8 @@ class AsyncKeys:
         if both:
             self.key, self.salt = await akeypair()
         else:
-            self.salt = await acsprng(csprng())
-        for method in [akeys, asubkeys]:
+            self.salt = await self.aseed()
+        for method in [akeys, asubkeys, abytes_keys]:
             convert_static_method_to_member(
                 self, method.__name__, method, key=self.key, salt=self.salt
             )
@@ -314,10 +329,12 @@ class Keys:
     & ``subkeys`` methods. The class also contains static method key
     generators which function independantly from instance states.
     """
-    seed = csprng
+    seed = staticmethod(salt)
     keys = staticmethod(keys)
     subkeys = staticmethod(subkeys)
     keypair = staticmethod(keypair)
+    passcrypt = staticmethod(passcrypt)
+    bytes_keys = staticmethod(bytes_keys)
     table_key = staticmethod(table_key)
     table_key_gen = staticmethod(table_key_gen)
     keypair_ratchets = staticmethod(keypair_ratchets)
@@ -351,9 +368,15 @@ class Keys:
         Tests the ``hmac`` code against the derived HMAC of ``data``
         using ``key`` & the hashing function ``hasher``.
         """
-        if hmac == self.hmac(
+        true_hmac = self.hmac(
             data=data, key=key if key else self.key, hasher=hasher
-        ):
+        )
+        if len(true_hmac) != len(hmac):
+            raise ValueError("HMAC of ``data`` isn't valid.")
+        passed = 1
+        for hmac_char, true_hmac_char in zip(hmac, true_hmac):
+            passed &= hmac_char == true_hmac_char
+        if passed:
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
@@ -372,8 +395,8 @@ class Keys:
         if both:
             self.key, self.salt = keypair()
         else:
-            self.salt = csprng(csprng())
-        for method in [keys, subkeys]:
+            self.salt = self.seed()
+        for method in [keys, subkeys, bytes_keys]:
             convert_static_method_to_member(
                 self, method.__name__, method, key=self.key, salt=self.salt
             )
