@@ -9,7 +9,7 @@
 #
 
 
-__all__ = ["keygens", "AsyncKeys", "Keys"]
+__all__ = ["keygens", "AsyncKeys", "Keys", "amnemonic", "mnemonic"]
 
 
 __doc__ = """
@@ -17,9 +17,8 @@ A collection of highlevel tools for creating & managing symmetric keys.
 """
 
 
-from .asynchs  import *
-from .commons import primes
-from .commons import commons
+from .asynchs import *
+from .commons import *
 from .randoms import salt
 from .randoms import asalt
 from .randoms import csprng
@@ -44,7 +43,7 @@ from .generics import convert_static_method_to_member
 
 
 @comprehension()
-async def atable_key_gen(key=None, table=commons.ASCII_TABLE):
+async def atable_key_gen(key=None, table=ASCII_TABLE):
     """
     This table based key generator function converts any key string
     containing an arbitrary set of characters, into another key string
@@ -91,7 +90,7 @@ async def atable_key_gen(key=None, table=commons.ASCII_TABLE):
 
 
 @comprehension()
-def table_key_gen(key=None, table=commons.ASCII_TABLE):
+def table_key_gen(key=None, table=ASCII_TABLE):
     """
     This table based key generator function converts any key string
     containing an arbitrary set of characters, into another key string
@@ -138,7 +137,7 @@ def table_key_gen(key=None, table=commons.ASCII_TABLE):
         yield table[index % prime % table_size]
 
 
-async def atable_key(key=None, table=commons.ASCII_TABLE, size=64):
+async def atable_key(key=None, table=ASCII_TABLE, size=64):
     """
     This table based key function converts any key string containing
     any arbitrary set of characters, into another key string containing
@@ -174,10 +173,13 @@ async def atable_key(key=None, table=commons.ASCII_TABLE, size=64):
         if type(table) == dict:
             return await generator.alist()
         else:
-            return await generator.ajoin()
+            try:
+                return await generator.ajoin()
+            except TypeError:
+                return await generator.ajoin(b"")
 
 
-def table_key(key=None, table=commons.ASCII_TABLE, size=64):
+def table_key(key=None, table=ASCII_TABLE, size=64):
     """
     This table based key function converts any key string containing
     any arbitrary set of characters, into another key string containing
@@ -216,7 +218,52 @@ def table_key(key=None, table=commons.ASCII_TABLE, size=64):
         if type(table) == dict:
             return generator.list()
         else:
-            return generator.join()
+            try:
+                return generator.join()
+            except TypeError:
+                return generator.join(b"")
+
+
+@comprehension()
+async def amnemonic(password, salt=None, words=WORD_LIST):
+    """
+    Creates a stream of words for a mnemonic key from a user password &
+    random salt. If a salt isn't passed, then a random salt is generated
+    & is available by calling ``result(exit=True)`` on the generator
+    object. The ``words`` used for the mnemonic can be passed in, but by
+    default are a 2048 word list of unique, all lowercase english words.
+    """
+    translate = None
+    length = len(words)
+    salt = salt if salt else await asalt()
+    key = await apasscrypt(password, salt)
+    entropy = abytes_keys(password, salt, key)
+    async with entropy.abytes_to_int().arelay(salt) as indexes:
+        while True:
+            if translate:
+                await entropy.gen.asend(translate)
+            translate = yield words[await indexes() % length]
+
+
+@comprehension()
+def mnemonic(password, salt=None, words=WORD_LIST):
+    """
+    Creates a stream of words for a mnemonic key from a user password &
+    random salt. If a salt isn't passed, then a random salt is generated
+    & is available by calling ``result(exit=True)`` on the generator
+    object. The ``words`` used for the mnemonic can be passed in, but by
+    default are a 2048 word list of unique, all lowercase english words.
+    """
+    translate = None
+    length = len(words)
+    salt = salt if salt else globals()["salt"]()
+    key = passcrypt(password, salt)
+    entropy = bytes_keys(password, salt, key)
+    with entropy.bytes_to_int().relay(salt) as indexes:
+        while True:
+            if translate:
+                entropy.gen.send(translate)
+            translate = yield words[indexes() % length]
 
 
 async def akeypair(entropy=csprng()):
@@ -243,6 +290,7 @@ class AsyncKeys:
     & ``asubkeys`` methods. The class also contains static method key
     generators which function independantly from instance states.
     """
+
     aseed = staticmethod(asalt)
     akeys = staticmethod(akeys)
     asubkeys = staticmethod(asubkeys)
@@ -272,7 +320,7 @@ class AsyncKeys:
         return self.akeys(key=self.key, salt=self.salt, pid=salt)
 
     async def ahmac(
-        self, data=None, key=None, *, hasher=asha_256_hmac
+        self, data=None, *, key=None, hasher=asha_256_hmac
     ):
         """
         Creates an HMAC code of ``data`` using ``key`` & the hashing
@@ -281,21 +329,29 @@ class AsyncKeys:
         return await hasher(data, key=key if key else self.key)
 
     async def atest_hmac(
-        self, data=None, hmac=None, key=None, *, hasher=asha_256_hmac
+        self, data=None, hmac=None, *, key=None, hasher=asha_256_hmac
     ):
         """
-        Tests the ``hmac`` code against the derived HMAC of ``data``
-        using ``key`` & the async hashing function ``hasher``.
+        Tests if ``hmac`` of ``data`` is valid using ``key`` or the
+        instance's ``self.key`` if it's not supplied. Instead of using a
+        constant time character by character check on the hmac, the hmac
+        itself is hmac'd & is checked against the hmac of the correct
+        hmac. This non-constant time check on the hmac of the supplied
+        hmac doesn't reveal meaningful information about the true hmac
+        if the attacker does not have access to the secret key. This
+        scheme is easier to implement correctly & is easier to guarantee
+        the infeasibility of a timing attack. An async ``hasher``
+        function can also be supplied to use that algorithm instead of
+        the default ``asha_256_hmac``.
         """
-        true_hmac = await self.ahmac(
-            data=data, key=key if key else self.key, hasher=hasher
-        )
-        if len(true_hmac) != len(hmac):
-            raise ValueError("HMAC of ``data`` isn't valid.")
-        passed = 1
-        async for hmac_char, true_hmac_char in azip(hmac, true_hmac):
-            passed &= hmac_char == true_hmac_char
-        if passed:
+        if not hmac:
+            raise ValueError("`hmac` keyword argument was not given.")
+        key = key if key else self.key
+        true_hmac = await self.ahmac(data=data, key=key, hasher=hasher)
+        if (
+            await self.ahmac(hmac, key=key)
+            == await self.ahmac(true_hmac, key=key)
+        ):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
@@ -329,6 +385,7 @@ class Keys:
     & ``subkeys`` methods. The class also contains static method key
     generators which function independantly from instance states.
     """
+
     seed = staticmethod(salt)
     keys = staticmethod(keys)
     subkeys = staticmethod(subkeys)
@@ -354,7 +411,7 @@ class Keys:
         """
         return self.keys(key=self.key, salt=self.salt, pid=salt)
 
-    def hmac(self, data=None, key=None, *, hasher=sha_256_hmac):
+    def hmac(self, data=None, *, key=None, hasher=sha_256_hmac):
         """
         Creates an HMAC code of ``data`` using ``key`` & the hashing
         function ``hasher``.
@@ -362,21 +419,26 @@ class Keys:
         return hasher(data, key=key if key else self.key)
 
     def test_hmac(
-        self, data=None, hmac=None, key=None, *, hasher=sha_256_hmac
+        self, data=None, hmac=None, *, key=None, hasher=sha_256_hmac
     ):
         """
-        Tests the ``hmac`` code against the derived HMAC of ``data``
-        using ``key`` & the hashing function ``hasher``.
+        Tests if ``hmac`` of ``data`` is valid using ``key`` or the
+        instance's ``self.key`` if it's not supplied. Instead of using a
+        constant time character by character check on the hmac, the hmac
+        itself is hmac'd & is checked against the hmac of the correct
+        hmac. This non-constant time check on the hmac of the supplied
+        hmac doesn't reveal meaningful information about the true hmac
+        if the attacker does not have access to the secret key. This
+        scheme is easier to implement correctly & is easier to guarantee
+        the infeasibility of a timing attack. A sync ``hasher`` function
+        can also be supplied to use that algorithm instead of the
+        default ``sha_256_hmac``.
         """
-        true_hmac = self.hmac(
-            data=data, key=key if key else self.key, hasher=hasher
-        )
-        if len(true_hmac) != len(hmac):
-            raise ValueError("HMAC of ``data`` isn't valid.")
-        passed = 1
-        for hmac_char, true_hmac_char in zip(hmac, true_hmac):
-            passed &= hmac_char == true_hmac_char
-        if passed:
+        if not hmac:
+            raise ValueError("`hmac` keyword argument was not given.")
+        key = key if key else self.key
+        true_hmac = self.hmac(data=data, key=key, hasher=hasher)
+        if self.hmac(hmac, key=key) == self.hmac(true_hmac, key=key):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
@@ -432,12 +494,14 @@ __extras = {
     "insert_keyrings": insert_keyrings,
     "akeys": akeys,
     "keys": keys,
+    "mnemonic": mnemonic,
     "asubkeys": asubkeys,
     "subkeys": subkeys,
     "akeypair": akeypair,
     "keypair": keypair,
     "akeypair_ratchets": akeypair_ratchets,
     "keypair_ratchets": keypair_ratchets,
+    "amnemonic": amnemonic,
     "atable_key": atable_key,
     "table_key": table_key,
     "atable_key_gen": atable_key_gen,
@@ -445,5 +509,5 @@ __extras = {
 }
 
 
-keygens = commons.Namespace.make_module("keygens", mapping=__extras)
+keygens = Namespace.make_module("keygens", mapping=__extras)
 

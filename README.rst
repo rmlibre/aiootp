@@ -1,16 +1,16 @@
 aiootp - Asynchronous one-time-pad based crypto and anonymity library.
 ======================================================================
 
-``aiootp`` is an asynchronous library providing access to cryptographic
-primatives and abstractions, transparently encrypted / decrypted file
-I/O and databases, as well as powerful, pythonic utilities that
+``aiootp`` is an asynchronous library providing access to cryptographic 
+primatives and abstractions, transparently encrypted / decrypted file 
+I/O and databases, as well as powerful, pythonic utilities that 
 simplify data processing & cryptographic procedures in python code. 
-This library's cipher is an implementation of the **one-time pad**.
-The aim is to create a simple, standard, efficient implementation of
-this unbreakable cipher, to give users and applications access to
-user-friendly cryptographic tools, and to increase the overall
-security, privacy, and anonymity on the web, and in the digital world.
-Users will find ``aiootp`` to be easy to write, easy to read, and fun.
+This library's cipher is an implementation of the **one-time pad**. 
+The aim is to create a simple, standard, efficient implementation of 
+this unbreakable cipher, to give users and applications access to 
+user-friendly cryptographic tools, and to increase the overall 
+security, privacy, and anonymity on the web, and in the digital world. 
+Users will find ``aiootp`` to be easy to write, easy to read, and fun. 
 
 
 
@@ -22,7 +22,7 @@ Important Disclaimer
 It's a work in progress. The programming API could change with 
 future updates, and it isn't bug free. ``aiootp`` provides powerful 
 security tools and misc utilities that're designed to be 
-developer-friendly and privacy preserving.
+developer-friendly and privacy preserving. 
 As a security tool, ``aiootp`` needs to be tested and reviewed 
 extensively by the programming and cryptography communities to 
 ensure its implementations are sound. We provide no guarantees. 
@@ -70,30 +70,30 @@ Users can create and modify transparently encrypted databases:
     
     # This is a memory & cpu hard function to protect passwords ->
     
-    hmac = await db.apasscrypt("password012345", salt)
+    password = await db.apasscrypt("password012345", salt)
     
-    db[tag] = {hmac: "secured data"}
+    db[tag] = {password: "secured data"}
     
     
     # Add to existing stored data ->
     
-    db[tag].update({"password_salt": salt})
+    db[tag].update({"salt": salt})
     
     
     # Read from the database with ``aquery`` ->
     
-    (await db.aquery(tag))[hmac]
+    (await db.aquery(tag))[password]
     
  >>>'secured data'
     
     
     # Or use bracketed lookup (it's an async-safe operation) ->
     
-    salt = db[tag]["password_salt"]
+    salt = db[tag]["salt"]
     
-    wrong_hmac = await db.apasscrypt("wrong password attempt", salt)
+    wrong_password = await db.apasscrypt("wrong password attempt", salt)
     
-    db[tag][wrong_hmac]
+    db[tag][wrong_password]
     
  >>>KeyError: 
     
@@ -601,6 +601,7 @@ What other tools are available to users?:
         "ajson_loads",
         "amap_decrypt",
         "amap_encrypt",
+        "apasscrypt",
         "arandom_sleep",
         "areplace",
         "aresize",
@@ -612,6 +613,8 @@ What other tools are available to users?:
         "aslice",
         "asplit",
         "astr",
+        "asum_sha_256",
+        "asum_sha_512",
         "atag",
         "atimeout",
         "ato_base",
@@ -646,6 +649,7 @@ What other tools are available to users?:
         "json_loads",
         "map_decrypt",
         "map_encrypt",
+        "passcrypt",
         "random_sleep",
         "replace",
         "resize",
@@ -656,6 +660,8 @@ What other tools are available to users?:
         "slice",
         "split",
         "str",
+        "sum_sha_256",
+        "sum_sha_512",
         "tag",
         "timeout",
         "to_base",
@@ -1004,6 +1010,51 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 ``Changelog``
 =============
+
+
+Changes for version 0.7.0
+=========================
+
+
+Major Changes
+-------------
+
+-  Replaced usage of bare ``random`` module functions, to usage of an 
+   instance of ``random.Random`` to keep from messing with user's settings 
+   on that module. 
+-  Finalized the algorithm for the ``passcrypt`` & ``apasscrypt`` functions. 
+   The algorithm is now provably memory & cpu hard with a wide security 
+   margin with adequate settings. The algorithm isn't likely change with 
+   upcoming versions unless a major flaw is found. 
+-  The default value for the ``cpu`` argument in ``passcrypt`` & ``apasscrypt`` 
+   is now ``3`` & now directly determines how many hash iterations are done 
+   for each element in the memory cache. This provides much more 
+   responsiveness to users & increases the capacity to impact resource cost
+   with less tinkering. 
+-  Switched the ``AsyncKeys.atest_hmac`` & ``Keys.test_hmac`` methods to a 
+   scheme which is not constant time, but which instead does not leak useful 
+   information. It does this by not comparing the hmacs of the data, but of 
+   a pair of secondary hmacs. The timing analysis itself is now dependant 
+   on knowledge of the key, since any conclusions of such an analysis would 
+   be unable correlate its findings with any supplied hmac without it. 
+-  Added  ``test_hmac`` & ``atest_hmac`` to the database classes, & changed 
+   their hmac algorithm from ``sha3_512`` to ``sha3_256``. 
+
+
+Minor Changes
+-------------
+
+-  Various code cleanups, refactorings & speedups.
+-  Several fixes to inaccurate documentation.
+-  Several fixes to inaccurate function signatures.
+-  Added ``mnemonic`` & ``amnemonic`` key generators to ``keygens.py`` with
+   a wordlist 2048 entries long. A custom wordlist can also be passed in.
+-  Minor changes in ``Comprende`` to track down a bug in the functions that 
+   use the asyncio_contextmanager package. It causes a warning when asking
+   async generators to return (not yield) values.
+-  Some refactoring of ``random_number_generator`` & ``arandom_number_generator``.
+
+
 
 
 Changes for version 0.6.0

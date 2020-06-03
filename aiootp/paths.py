@@ -20,7 +20,7 @@ potentially helpful directories.
 
 import os
 from pathlib import Path
-from .commons import commons
+from .commons import Namespace
 
 
 def CurrentPath():
@@ -76,5 +76,5 @@ __extras = {
 }
 
 
-paths = commons.Namespace.make_module("paths", mapping=__extras)
+paths = Namespace.make_module("paths", mapping=__extras)
 

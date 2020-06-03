@@ -21,10 +21,10 @@ __all__ = [
 
 
 __doc__ = """
-A collection of asyncio & uvloop references to simplify the standard
-usage of those libraries in this package. This module can be used to
-replace the default event loop policy, for instance, to run uvloop. The
-default asyncio loop is still available in ``default_loop``.
+A collection of asyncio & concurrency references to simplify their
+standard usage in this package. This module can be used to replace the
+default event loop policy, for instance, to run uvloop or change async
+frameworks. The default asyncio loop is available in ``default_loop``.
 """
 
 
@@ -35,10 +35,12 @@ from time import sleep
 from functools import wraps
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
-from .commons import commons
+from concurrent.futures import ProcessPoolExecutor
+from .commons import Namespace
 
 
 thread_pool = ThreadPoolExecutor()
+process_pool = ProcessPoolExecutor()
 default_loop = asyncio.get_event_loop()
 
 
@@ -139,7 +141,7 @@ def make_os_async(namespace=None):
     http://www.apache.org/licenses/LICENSE-2.0
     """
     if namespace == None:
-        namespace = commons.Namespace()
+        namespace = Namespace()
     attrs = [
         "sendfile", "stat", "rename", "remove", "mkdir", "makedirs", "rmdir"
     ]
@@ -184,10 +186,11 @@ __extras = {
     "new_task": new_task,
     "new_future": new_future,
     "thread_pool": thread_pool,
+    "process_pool": process_pool,
     "default_loop": default_loop,
     "wrap_in_executor": wrap_in_executor,
 }
 
 
-asynchs = commons.Namespace.make_module("asynchs", mapping=__extras)
+asynchs = Namespace.make_module("asynchs", mapping=__extras)
 

@@ -22,7 +22,7 @@ import datetime
 from time import time
 from functools import wraps
 from inspect import isasyncgenfunction
-from .commons import commons
+from .commons import Namespace
 
 
 class DebugTools:
@@ -408,6 +408,15 @@ class AsyncGenDebugTools(AsyncDebugTools):
                 raise error
         self.time_after = time()
 
+    @staticmethod
+    async def aprint_trace_call():
+        """
+        Displays the name of the function which has called the wrapped
+        async function in user code by inspecting the stack.
+        """
+        calling_function = inspect.stack()[7][3], inspect.stack()[2][3]
+        print(f"Calling Function: {calling_function}\n\n")
+
 
 class GenDebugTools(DebugTools):
     _sync_non_none_error = (
@@ -458,6 +467,15 @@ class GenDebugTools(DebugTools):
             else:
                 raise error
         self.time_after = time()
+
+    @staticmethod
+    def print_trace_call():
+        """
+        Displays the name of the function which has called the wrapped
+        async function in user code by inspecting the stack.
+        """
+        calling_function = inspect.stack()[5][3], inspect.stack()[2][3]
+        print(f"Calling Function: {calling_function}\n\n")
 
 
 def agen_timer(decorated_func):
@@ -611,5 +629,5 @@ __extras = {
 }
 
 
-debuggers = commons.Namespace.make_module("debuggers", mapping=__extras)
+debuggers = Namespace.make_module("debuggers", mapping=__extras)
 

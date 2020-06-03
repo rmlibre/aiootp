@@ -15,7 +15,9 @@ __all__ = [
     "primes",
     "power10",
     "Namespace",
+    "WORD_LIST",
     "ASCII_TABLE",
+    "BYTES_TABLE",
     "BASE_64_TABLE",
     "ONION_CHAR_TABLE",
     "ASCII_ALPHANUMERIC",
@@ -60,22 +62,22 @@ def import_namespace(dictionary=None, *, mapping=None, deepcopy=False):
         dictionary.update(dict(mapping))
 
 
-async def acreate_namespace(mapping=None):
+async def acreate_namespace(mapping=None, **kwargs):
     """
     Takes in a mapping of key-value pairs and returns a Namespace object
     that allows dotted lookup & assignment on the mapping. The
     mappings are mutated when the user mutates Namespace object values.
     """
-    return Namespace(mapping)
+    return Namespace(mapping, **kwargs)
 
 
-def create_namespace(mapping=None):
+def create_namespace(mapping=None, **kwargs):
     """
     Takes in a mapping of key-value pairs and returns a Namespace object
     that allows dotted lookup & assignment on the mapping. The
     mappings are mutated when the user mutates Namespace object values.
     """
-    return Namespace(mapping)
+    return Namespace(mapping, **kwargs)
 
 
 async def amake_module(name=None, *, mapping=None, deepcopy=False):
@@ -119,8 +121,8 @@ class Namespace:
 
     def __init__(self, mapping=None, **kwargs):
         """
-        Maps the user-defined mapping to the Namespace's instance
-        dictionary.
+        Maps the user-defined mapping & kwargs to the Namespace's
+        instance dictionary.
         """
         self.__dict__.update(
             {**mapping, **kwargs} if mapping else {**kwargs}
@@ -231,6 +233,7 @@ __extras = {
     "ASCII_ALPHANUMERIC": ASCII_ALPHANUMERIC,
     "ASCII_TABLE": ASCII_TABLE,
     "BASE_64_TABLE": BASE_64_TABLE,
+    "BYTES_TABLE": BYTES_TABLE,
     "CHANNEL": "channel",
     "CHANNELS": "channels",
     "CIPHERED_SALT": "ciphered_salt",
@@ -284,6 +287,7 @@ __extras = {
     "USER_PUB": "user_public_key_part",
     "USER_SECRET": "user_secret",
     "VERIFID": "verification_code",
+    "WORD_LIST": WORD_LIST,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",

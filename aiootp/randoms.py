@@ -35,12 +35,10 @@ for end-user cryptographic applications.
 
 
 import math
-import random
 from os import urandom
+import random as _random
 from secrets import choice
 from secrets import token_bytes
-from random import uniform
-from random import randrange as random_range
 from hashlib import sha3_256
 from hashlib import sha3_512
 from collections import deque
@@ -48,12 +46,10 @@ from collections import defaultdict
 from sympy import prevprime as prev_prime
 from sympy import nextprime as next_prime
 from sympy import randprime as random_prime
+from .commons import *
 from .asynchs import *
 from .asynchs import sleep
 from .asynchs import asleep
-from .commons import bits
-from .commons import primes
-from .commons import commons
 from .generics import aint
 from .generics import astr
 from .generics import arange
@@ -254,7 +250,6 @@ def prime_table(low=None, high=None, step=1, depth=10, depth_error=25):
     set_arguments()
     table = defaultdict(list)
     for prime_group in range(low, high, step):
-        table[prime_group] = []
         for loop in range(depth):
             prime = create_prime(bits=prime_group)
             infinite_loop_checker = 0
@@ -476,7 +471,10 @@ def salted_multiply(mod=primes[258][-1], offset=None):
 
 try:
     #  initializing weakly entropic coroutines
-    random.seed(token_bytes(2500))
+    random = _random.Random(token_bytes(2500))
+    uniform = random.uniform
+    random_range = random.randrange
+
     mod = primes[512][0]
 
     _asalt_multiply = run(asalted_multiply(mod).aprime())
@@ -650,19 +648,14 @@ async def arandom_number_generator(
             await gather(*tasks)
 
         async def hash_cache(seed=await atoken_bytes(64)):
-            await arandom_sleep(0.001)
+            await arandom_sleep(0.003)
             _completed.appendleft(await asha_512(_completed, entropy, seed))
 
         async def modular_multiplication(seed=await _asalt()):
-            multiples = deque()
-            for _ in range(3):
-                await arandom_sleep(0.001)
-                multiples.appendleft(
-                    new_task(create_unique_multiple(seed))
-                )
-            result = await big_modulation(
-                seed, *[await calculation for calculation in multiples]
-            )
+            await arandom_sleep(0.003)
+            multiples = (create_unique_multiple(seed) for _ in range(3))
+            multiples = await gather(*multiples)
+            result = await big_modulation(seed, *multiples)
             _completed.appendleft(await asha_512(result, seed))
 
         async def create_unique_multiple(seed):
@@ -768,19 +761,14 @@ def random_number_generator(
             await gather(*tasks)
 
         async def hash_cache(seed=token_bytes(64)):
-            await arandom_sleep(0.001)
+            await arandom_sleep(0.003)
             _completed.appendleft(await asha_512(_completed, entropy, seed))
 
         async def modular_multiplication(seed=_salt()):
-            multiples = deque()
-            for _ in range(3):
-                await arandom_sleep(0.001)
-                multiples.appendleft(
-                    new_task(create_unique_multiple(seed))
-                )
-            result = await big_modulation(
-                seed, *[await calculation for calculation in multiples]
-            )
+            await arandom_sleep(0.003)
+            multiples = (create_unique_multiple(seed) for _ in range(3))
+            multiples = await gather(*multiples)
+            result = await big_modulation(seed, *multiples)
             _completed.appendleft(await asha_512(result, seed))
 
         async def create_unique_multiple(seed):
@@ -1110,7 +1098,7 @@ async def aseeder(entropy=_salt(), refresh=False, runs=26):
     await csprng(None)
     seed = await csprng(entropy)  # &/or entropy can be added here
     """
-    seed, seed_key = await asafe_symm_keypair(entropy, refresh)
+    seed, seed_key = await asafe_symm_keypair(entropy, refresh, runs)
     kdf = sha3_512(seed + seed_key)
     while True:
         entropy = (await astr(entropy)).encode()
@@ -1215,7 +1203,7 @@ async def apermute(sequence=None, key=None, salt=None):
     seed = await asha_512_hmac(salt, key=key)
     async with arange(len(sequence)) as template:
         mappings = await template.alist(True)
-    random.Random(seed).shuffle(mappings)
+    random.__class__(seed).shuffle(mappings)
     return mappings
 
 
@@ -1228,7 +1216,7 @@ def permute(sequence=None, key=None, salt=None):
     seed = sha_512_hmac(salt, key=key)
     with generics.range(len(sequence)) as template:
         mappings = template.list(True)
-    random.Random(seed).shuffle(mappings)
+    random.__class__(seed).shuffle(mappings)
     return mappings
 
 
@@ -1525,5 +1513,5 @@ __extras = {
 }
 
 
-randoms = commons.Namespace.make_module("randoms", mapping=__extras)
+randoms = Namespace.make_module("randoms", mapping=__extras)
 

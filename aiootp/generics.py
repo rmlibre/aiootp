@@ -210,10 +210,11 @@ class AsyncRelayExceptions:
 
     read_me = f"""
     Overwrite {__slots__} methods with custom async functions.
-    They will proc in ``aiootp.generics.aignore`` async context manager if:
+    They will proc in ``aiootp.generics.aignore`` async context manager
+    when:
 
-    1.  {__slots__[0]} - when the ignored exceptions are raised
-    within the context.
+    1.  {__slots__[0]} - the ignored exceptions are raised within the
+    context.
 
     But always,
     2.  {__slots__[1]} - at the end of the context.
@@ -232,10 +233,10 @@ class RelayExceptions:
 
     read_me = f"""
     Overwrite {__slots__} methods with custom functions.
-    They will proc in ``aiootp.generics.ignore`` context manager if:
+    They will proc in ``aiootp.generics.ignore`` context manager when:
 
-    1.  {__slots__[0]} - when the ignored exceptions are raised
-    within the context.
+    1.  {__slots__[0]} - the ignored exceptions are raised within the
+    context.
 
     But always,
     2.  {__slots__[1]} - at the end of the context.
@@ -651,10 +652,14 @@ class Comprende:
         "sha_512",
         "asha_512_hmac",
         "sha_512_hmac",
+        "asum_sha_512",
+        "sum_sha_512",
         "asha_256",
         "sha_256",
         "asha_256_hmac",
         "sha_256_hmac",
+        "asum_sha_256",
+        "sum_sha_256",
     }
 
     eager_generators = {
@@ -701,8 +706,8 @@ class Comprende:
         "relay",
         "acache_check",
         "cache_check",
-        "aclass_clear",
-        "class_clear",
+        "aclear_class",
+        "clear_class",
         "runsum",
         "precomputed",
     }
@@ -829,6 +834,8 @@ class Comprende:
                 self._return.append(done.args[0])
         except StopAsyncIteration:
             pass
+        except GeneratorExit as error:
+            raise GeneratorExit from error
 
     @contextmanager
     def catch(self):
@@ -867,6 +874,8 @@ class Comprende:
             if result != None:
                 raise UserWarning(result)
             raise UserWarning(await source.aresult(exit=True))
+        except GeneratorExit as error:
+            raise GeneratorExit from error
 
     @contextmanager
     def relay(self, result=None, source=None):
@@ -1015,7 +1024,10 @@ class Comprende:
         """
         if exit and silent:
             async with aignore(
-                TypeError, StopAsyncIteration, display=not silent
+                TypeError,
+                GeneratorExit,
+                StopAsyncIteration,
+                display=not silent,
             ):
                 await self.gen.asend(UserWarning())
         elif exit:
@@ -1572,38 +1584,42 @@ class Comprende:
             for result in reversed(results):
                 yield result
 
-    async def asort(self, span=None, key=None, *, of=None):
+    async def asort(self, key=None, span=None, *, of=None):
         """
         Exhausts the underlying Comprende async generator upto ``span``
         number of iterations, then yields the results in sorted order.
         """
         if of != None:
-            async with aunpack(of)[:span] as accumulator:
+            target = aunpack(of)[:span] if span else aunpack(of)
+            async with target as accumulator:
                 results = await accumulator.alist(mutable=True)
             results.sort(key=key)
             async for prev, result in azip(self, results):
                 yield prev, result
         else:
-            async with self[:span] as accumulator:
+            self = self[:span] if span else self
+            async with self as accumulator:
                 results = await accumulator.alist(mutable=True)
             results.sort(key=key)
             for result in results:
                 await switch()
                 yield result
 
-    def sort(self, span=None, key=None, *, of=None):
+    def sort(self, key=None, span=None, *, of=None):
         """
         Exhausts the underlying Comprende sync generator upto ``span``
         number of iterations, then yields the results in sorted order.
         """
         if of != None:
-            with unpack(of)[:span] as accumulator:
+            target = unpack(of)[:span] if span else unpack(of)
+            with target as accumulator:
                 results = accumulator.list(mutable=True)
             results.sort(key=key)
             for prev, result in zip(self, results):
                 yield prev, result
         else:
-            with self[:span] as accumulator:
+            self = self[:span] if span else self
+            with self as accumulator:
                 results = accumulator.list(mutable=True)
             results.sort(key=key)
             for result in results:
@@ -1925,6 +1941,28 @@ class Comprende:
                 for result in self:
                     yield sha_512_hmac(result, key=key)
 
+    async def asum_sha_512(self, salt=None):
+        """
+        Cumulatively applies a ``hashlib.sha3_512()`` to each value
+        that's yielded from the underlying Comprende async generator
+        with the results of prior hashing before yielding the result.
+        """
+        summary = await asha_512(salt)
+        async for result in self:
+            summary = await asha_512(result, summary)
+            yield summary
+
+    def sum_sha_512(self, salt=None):
+        """
+        Cumulatively applies a ``hashlib.sha3_512()`` to each value
+        that's yielded from the underlying Comprende sync generator with
+        the results of prior hashing before yielding the result.
+        """
+        summary = sha_512(salt)
+        for result in self:
+            summary = sha_512(result, summary)
+            yield summary
+
     async def asha_256(self, salt=None, *, of=None):
         """
         Applies ``hashlib.sha3_256()`` to each value that's yielded
@@ -2008,6 +2046,28 @@ class Comprende:
             else:
                 for result in self:
                     yield sha_256_hmac(result, key=key)
+
+    async def asum_sha_256(self, salt=None):
+        """
+        Cumulatively applies a ``hashlib.sha3_256()`` to each value
+        that's yielded from the underlying Comprende async generator
+        with the results of prior hashing before yielding the result.
+        """
+        summary = await asha_256(salt)
+        async for result in self:
+            summary = await asha_256(result, summary)
+            yield summary
+
+    def sum_sha_256(self, salt=None):
+        """
+        Cumulatively applies a ``hashlib.sha3_256()`` to each value
+        that's yielded from the underlying Comprende sync generator with
+        the results of prior hashing before yielding the result.
+        """
+        summary = sha_256(salt)
+        for result in self:
+            summary = sha_256(result, summary)
+            yield summary
 
     async def aint(self, *a, of=None, **kw):
         """
@@ -2680,15 +2740,13 @@ class Comprende:
         associated with the slice or integer passed into the brackets.
         """
         start, stop, step, span = self._set_index(index)
-        span = iter(span)
+        next_target = iter(span).__next__
         with ignore(StopIteration):
-            target = next(span)
+            target = next_target()
             async for match, result in Enumerate(self):
-                if match >= stop:
-                    break
-                elif target == match:
+                if target == match:
                     yield result
-                    target = next(span)
+                    target = next_target()
 
     def _getitem(self, index):
         """
@@ -2696,15 +2754,13 @@ class Comprende:
         with the slice or integer passed into the brackets.
         """
         start, stop, step, span = self._set_index(index)
-        span = iter(span)
+        next_target = iter(span).__next__
         with ignore(StopIteration):
-            target = next(span)
+            target = next_target()
             for match, result in enumerate(self):
-                if match >= stop:
-                    break
                 if target == match:
                     yield result
-                    target = next(span)
+                    target = next_target()
 
     def __getitem__(self, index):
         """
@@ -3288,11 +3344,11 @@ def nc_256(*data):
     return sha_256(*data, *data) + sha_256(*data)
 
 
-async def anc_256_hmac(*data, key=None):
+async def anc_256_hmac(data, key=None):
     """
     An HMAC version of the no collision 256-bit hash.
     """
-    return await anc_256(await anc_256(*data, key), key)
+    return await anc_256(await anc_256(data, key), key)
 
 
 def nc_256_hmac(data, key=None):
@@ -3328,11 +3384,11 @@ def nc_512(*data):
     return sha_512(*data, *data) + sha_512(*data)
 
 
-async def anc_512_hmac(*data, key=None):
+async def anc_512_hmac(data, key=None):
     """
     An HMAC version of the no collision 512-bit hash.
     """
-    return await anc_512(await anc_512(*data, key), key)
+    return await anc_512(await anc_512(data, key), key)
 
 
 def nc_512_hmac(data, key=None):
@@ -3605,5 +3661,5 @@ __extras = {
 }
 
 
-generics = commons.Namespace.make_module("generics", mapping=__extras)
+generics = Namespace.make_module("generics", mapping=__extras)
 

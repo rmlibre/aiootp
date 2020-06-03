@@ -17,6 +17,51 @@
 =============
 
 
+Changes for version 0.7.0
+=========================
+
+
+Major Changes
+-------------
+
+-  Replaced usage of bare ``random`` module functions, to usage of an 
+   instance of ``random.Random`` to keep from messing with user's settings 
+   on that module. 
+-  Finalized the algorithm for the ``passcrypt`` & ``apasscrypt`` functions. 
+   The algorithm is now provably memory & cpu hard with a wide security 
+   margin with adequate settings. The algorithm isn't likely change with 
+   upcoming versions unless a major flaw is found. 
+-  The default value for the ``cpu`` argument in ``passcrypt`` & ``apasscrypt`` 
+   is now ``3`` & now directly determines how many hash iterations are done 
+   for each element in the memory cache. This provides much more 
+   responsiveness to users & increases the capacity to impact resource cost
+   with less tinkering. 
+-  Switched the ``AsyncKeys.atest_hmac`` & ``Keys.test_hmac`` methods to a 
+   scheme which is not constant time, but which instead does not leak useful 
+   information. It does this by not comparing the hmacs of the data, but of 
+   a pair of secondary hmacs. The timing analysis itself is now dependant 
+   on knowledge of the key, since any conclusions of such an analysis would 
+   be unable correlate its findings with any supplied hmac without it. 
+-  Added  ``test_hmac`` & ``atest_hmac`` to the database classes, & changed 
+   their hmac algorithm from ``sha3_512`` to ``sha3_256``. 
+
+
+Minor Changes
+-------------
+
+-  Various code cleanups, refactorings & speedups.
+-  Several fixes to inaccurate documentation.
+-  Several fixes to inaccurate function signatures.
+-  Added ``mnemonic`` & ``amnemonic`` key generators to ``keygens.py`` with
+   a wordlist 2048 entries long. A custom wordlist can also be passed in.
+-  Minor changes in ``Comprende`` to track down a bug in the functions that 
+   use the asyncio_contextmanager package. It causes a warning when asking
+   async generators to return (not yield) values.
+-  Some refactoring of ``random_number_generator`` & ``arandom_number_generator``.
+
+
+
+
 Changes for version 0.6.0
 =========================
 

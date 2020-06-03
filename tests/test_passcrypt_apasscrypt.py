@@ -32,7 +32,7 @@ salt_2 = dict(some_data=list(password_1))
 salts = [salt_0, salt_1, salt_2]
 
 
-settings = dict(kb=256, cpu=2048, hardness=256)
+settings = dict(kb=256, cpu=2, hardness=256)
 
 
 passcrypt_passwords = []

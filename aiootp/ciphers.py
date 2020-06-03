@@ -47,28 +47,30 @@ import json
 import asyncio
 import aiofiles
 import builtins
-from hashlib import sha3_512
 from functools import wraps
+from hashlib import sha3_512
 from multiprocessing import Manager
 from multiprocessing import Process
 from aiocontext import async_contextmanager
 from .paths import *
 from .paths import Path
+from .asynchs import *
 from .commons import *
 from .commons import NONE
-from .asynchs import *
+from .randoms import salt
+from .randoms import asalt
 from .randoms import csprng
 from .randoms import acsprng
 from .randoms import make_uuid
 from .randoms import amake_uuid
 from .randoms import token_bytes
 from .generics import astr
-from .generics import azip
 from .generics import aiter
 from .generics import anext
 from .generics import arange
 from .generics import generics
 from .generics import AsyncInit
+from .generics import _zip, azip
 from .generics import data, adata
 from .generics import pick, apick
 from .generics import cycle, acycle
@@ -930,19 +932,25 @@ def bytes_decrypt(data=None, key=None, pid=0):
 class Passcrypt:
     """
     This class is used to implement of an scrypt-like password-based key
-    derivation function which requires a tunable amount of memory & cpu
-    time to compute. The ``apasscrypt`` & ``passcrypt`` methods take a
-    ``password`` & a random ``salt`` of any arbitrary size & type. The
-    memory cost is measured in ``kb`` kilobytes. If the memory cost is
-    too high, it will eat up all the ram on a machine very quickly. The
-    cpu time cost is measured in the number of sha3_512 hashes by the
-    ``cpu`` argument. By default, those methods cost 1MB to compute, &
-    the number of hashes done is 4096, which is just the hashing
-    overhead of building the cache for the proof of memory. The ``cpu``
-    parameter can be quite high before slowing down the algorithm.
+    derivation function that is resistant to cache-timing side-channel
+    attacks, & which requires a tunable amount of memory & cpu time to
+    compute. The ``anew`` & ``new`` methods take a ``password`` & a
+    random ``salt`` of any arbitrary size & type. The memory cost is
+    measured in ``kb`` kilobytes. If the memory cost is too high, it
+    will eat up all the ram on a machine very quickly. The ``cpu`` time
+    cost is measured in the number of sha3_512 hashes & cache proofs
+    calculated per element in the memory cache. By default, the
+    algorithm costs 1MB to compute, & the number of hashes done is
+    computed dynamically to reach the memory cost considering that 2
+    extra hashes are added to the memory cache ``cpu`` times for each
+    element in the cache.
     """
+
+    salt = staticmethod(salt)
+    asalt = staticmethod(asalt)
+
     def __call__(
-        self, password, salt, kb=1024, cpu=40000, hardness=256, aio=False
+        self, password, salt, *, kb=1024, cpu=3, hardness=1024, aio=False
     ):
         if aio:
             return self.anew(password, salt, kb, cpu, hardness)
@@ -950,126 +958,213 @@ class Passcrypt:
             return self.new(password, salt, kb, cpu, hardness)
 
     @staticmethod
-    def _validate_passcrypt_args(kb, cpu, hardness):
+    def _validate_args(kb: int, cpu: int, hardness: int):
         """
         Ensures the values ``kb``, ``cpu`` and ``hardness`` passed into
-        this module's scrypt-like, password-based key derivation functions
-        are within acceptable bounds and types.
+        this module's scrypt-like, password-based key derivation
+        functions are within acceptable bounds & types. Then performs a
+        calculation to determine how many iterations of the ``bytes_keys``
+        generator will sum to the desired number of kilobytes, taking
+        into account that for every element in that cache, 2 * ``cpu``
+        number of extra sha3_512 hashes will be added to the cache as
+        proofs of memory & work.
         """
         if hardness < 256 or not isinstance(hardness, int):
             raise PermissionError(f"hardness:{hardness} must be int >= 256")
-        elif cpu <= 0 or not isinstance(cpu, int):
-            raise PermissionError(f"cpu:{cpu} must be int > 0")
+        elif cpu <= 1 or not isinstance(cpu, int):
+            raise PermissionError(f"cpu:{cpu} must be int >= 2")
         elif kb < hardness or not isinstance(kb, int):
             raise PermissionError(
                 f"kb:{kb} must be int >= hardness:{hardness}"
             )
-        return 8 * kb
-
-    @staticmethod
-    def _passcrypt_ratios(cpu, kilobytes):
-        """
-        Takes the raw desired iterations ``cpu`` from the user, and the
-        iterations of ``bytes_keys`` necessary to build the desired
-        amount of memory cost in ``kilobytes``.
-        Returns the number of iterations of sha3_512 updates that will
-        be done (``proof_count``), and a rounded integer calcution of
-        the how much the cpu is desired to be taxed over memory.
-        """
-        memory_building_overhead = 3 * kilobytes
-        ratio = (cpu - memory_building_overhead) // kilobytes
-        proof_count = 1 if ratio < 1 else ratio
-        return ratio, proof_count
 
     @classmethod
-    def _passcrypt_key_sorter(cls, proof, kilobytes, cpu):
+    def cache_width(cls, kb: int, cpu: int, hardness: int):
         """
-        Returns the key function which pseudo-randomly sorts the cache
-        of calculated keys. It ensures an attacker attempting to crack a
-        password hash must have the entirety of the cache in memory in
-        order to determine if a particular password matches to a
-        particular hash.
-        """
-        def key(element):
-            """
-            Sorts the cache of calculated keys based on the returned
-            digest. The ``proof`` argument is a ``sha3_512`` object that
-            has been primed with the last element in the cache of keys,
-            and the hash of the arguments passed into the ``passcrypt``
-            or ``apasscrypt`` functions. It is then updated with each
-            element in the cache & its current digest, then the updated
-            digest is used to sort that element within the cache. More
-            updating is done per element in the cache if more cpu usage
-            is specified with the ``cpu`` argument. This algorithm
-            further ensures the whole cache is processed sequentially.
-            """
-            for _ in range(proof_count):
-                proof.update(element + proof.digest())
-            return proof.digest()
+        Returns the width of the cache that will be built given the
+        desired amount of kilobytes ``kb`` & the depth of hash updates &
+        proofs ``cpu`` that will be computed & added to the cache
+        sequentially. This should help users determine optimal ratios
+        for their applications.
 
-        _, proof_count = cls._passcrypt_ratios(cpu, kilobytes)
-        return key
+        Explanation:
+        user_input = kb
+        desired_bytes = user_input * 1024
+        build_size = 128 * build_iterations
+        proof_size = (64 + 64) * build_iterations * cpu
+        desired_bytes == build_size + proof_size
+        kilobytes = solve for build_iterations given cpu & kb
+        """
+        cls._validate_args(kb, cpu, hardness)
+        width = int((kb * 1024) / (128 * (1 + cpu)))
+        return width if width >= hardness else hardness
+
+    @staticmethod
+    def _work_memory_prover(proof: sha3_512, ram: list, cpu: int):
+        """
+        Returns the key scanning function which combines sequential
+        passes over the memory cache with a pseudo-random selection
+        algorithm which makes the scheme hybrid data-dependent /
+        independent. It ensures an attacker attempting to crack a
+        password hash must have the entirety of the cache in memory &
+        compute the algorithm sequentially.
+        """
+
+        def keyed_scanner():
+            """
+            Combines sequential passes over the memory cache with a
+            pseudo-random selection algorithm which makes this scheme
+            hybrid data-dependent/independent.
+
+            The ``proof`` argument is a ``sha3_512`` object that has
+            been primed with the last element in the cache of keys & the
+            hash of the arguments passed into the algorithm. For each
+            element in the cache, it passes over the cache ``cpu`` times,
+            updating itself with a pseudo-random selection from the
+            cache & the current indexed item, then the item of the
+            reflected index, & sequentially adds ``proof``'s digests
+            to the cache at every index & reflected index.
+
+            More updating of the proof per element is done if more cpu
+            usage is specified with the ``cpu`` argument. This algorithm
+            further ensures the whole cache is processed sequentially &
+            is held in memory in its entirety for the duration of the
+            computation of proofs. Even if a side-channel attack on the
+            pseudo-random selection is performed, the memory savings at
+            the mid-way point of the last pass are upper bounded by the
+            the size of the last layer which is = total/(2*(cpu+1)).
+
+                                        pseudo-random selection
+                                                  |
+            ram = |--------'----------------------'--------'--------|
+                = |--------'----------------------'--------'--------|
+                  |oooooooo'                               'xxxxxxxx|
+                           |   ->                     <-   |
+                         index                        reflection
+
+                                   reflection
+                                  <-   |
+            ram = |-'------------------'-------'--------------------|
+                = |-'------------------'-------'--------------------|
+                  |o'oooooooooooooooooo'ooooxxx'xxxxxxxxxxxxxxxxxxxx|
+                    |                  'xxxxooo'
+            pseudo-random selection            |   ->
+                                             index
+
+               pseudo-random selection
+                         |
+            ram = |--'---'---------------------------------------'--|
+                = |--'---'---------------------------------------'--|
+                  |oo'ooo'ooooooooooooooooooxxxxxxxxxxxxxxxxxxxxx'xx|
+                  |xx'xxx'xxxxxxxxxxxxxxxxxxooooooooooooooooooooo'oo|
+                  |oo'                                           'xx|
+                     |   ->                                 <-   |
+                   index                                    reflection
+                                           |
+                                           |
+                                           v Continue until there are
+                                             2 * (cpu + 1) total layers
+            """
+            nonlocal digest
+
+            for _ in range(cpu):
+                index = next_index()
+                reflection = -index - 1
+
+                update(ram[index] + choose())
+                ram[index] += summary()
+
+                update(ram[reflection])
+                digest = summary()
+                ram[reflection] += digest
+            return digest
+
+        update = proof.update
+        summary = proof.digest
+        digest = summary()
+        to_int = int.from_bytes
+        cache_width = len(ram)
+        next_index = cycle(range(cache_width)).__next__
+        choose = lambda: ram[to_int(digest, "big") % cache_width]
+        return keyed_scanner
 
     @classmethod
     async def _apasscrypt(
-        cls, password, salt, kb=1024, cpu=40000, hardness=256, state=()
+        cls, password, salt, *, kb=1024, cpu=3, hardness=1024, state=()
     ):
         """
-        An implementation of an scrypt-like password-based key
+        An async implementation of an scrypt-like password-based key
         derivation function which requires a tunable amount of memory &
-        cpu time to compute. The function takes a ``password`` & a
-        random ``salt`` of any arbitrary size & type. The memory cost is
+        cpu time to compute. This method takes a ``password`` & a random
+        ``salt`` of any arbitrary size & type. The memory cost is
         measured in ``kb`` kilobytes. If the memory cost is too high, it
-        will eat up all the ram on a machine very quickly. The cpu time
-        cost is measured in the number of ``iterations`` of ``sha3_512``
-        updates desired.
+        will eat up all the ram on a machine very quickly. The ``cpu``
+        time cost is measured in the number of sha3_512 hashes done per
+        element in the cache. By default, the algorithm costs 1MB to
+        compute, & the number of hashes done is computed dynamically to
+        reach the memory overhead considering that two extra hashes are
+        added to the memory cache ``cpu`` times for each element in the
+        cache. To fully prove use of memory, a simple rule for users is:
+        if ``kb`` == ``hardness`` then ``cpu`` only needs to be set to 3,
+        since that will cause the final proof the scan over the entire
+        cache when producing the summary.
         """
-        kilobytes = cls._validate_passcrypt_args(kb, cpu, hardness)
+        cache_width = cls.cache_width(kb, cpu, hardness)
         args = sha_512(password, salt, kb, cpu, hardness).encode()
-        async with abytes_keys(password, salt, args)[:kilobytes] as cache:
-            cachee = await cache.alist(True)
-            proof = sha3_512(cachee[-1] + args)
-            key = cls._passcrypt_key_sorter(proof, kilobytes, cpu)
-            cachee.sort(key=key)
-            async with aunpack(cachee)[:hardness] as summary:
-                state.append(
-                    sha_512(await summary.alist(True), proof.digest())
-                )
+        async with abytes_keys(password, salt, args)[:cache_width] as cache:
+            ram = await cache.alist(mutable=True)
+            proof = sha3_512(ram[-1] + args)
+            prove = cls._work_memory_prover(proof, ram, cpu)
+            for element in ram:
+                prove()
+                await switch()
+            final_proof = azip(ram[:hardness], reversed(ram))
+            async with final_proof.asum_sha_256(proof.digest()) as summary:
+                state.append(sha_512(await summary.alist(mutable=True)))
 
     @classmethod
     def _passcrypt(
-        cls, password, salt, kb=1024, cpu=40000, hardness=256, state=()
+        cls, password, salt, *, kb=1024, cpu=3, hardness=1024, state=()
     ):
         """
-        An implementation of an scrypt-like password-based key
+        A sync implementation of an scrypt-like password-based key
         derivation function which requires a tunable amount of memory &
-        cpu time to compute. The function takes a ``password`` & a
-        random ``salt`` of any arbitrary size & type. The memory cost is
+        cpu time to compute. This method takes a ``password`` & a random
+        ``salt`` of any arbitrary size & type. The memory cost is
         measured in ``kb`` kilobytes. If the memory cost is too high, it
-        will eat up all the ram on a machine very quickly. The cpu time
-        cost is measured in the number of ``iterations`` of ``sha3_512``
-        updates desired.
+        will eat up all the ram on a machine very quickly. The ``cpu``
+        time cost is measured in the number of sha3_512 hashes done per
+        element in the cache. By default, the algorithm costs 1MB to
+        compute, & the number of hashes done is computed dynamically to
+        reach the memory overhead considering that two extra hashes are
+        added to the memory cache ``cpu`` times for each element in the
+        cache. To fully prove use of memory, a simple rule for users is:
+        if ``kb`` == ``hardness`` then ``cpu`` only needs to be set to 3,
+        since that will cause the final proof the scan over the entire
+        cache when producing the summary.
         """
-        kilobytes = cls._validate_passcrypt_args(kb, cpu, hardness)
+        cache_width = cls.cache_width(kb, cpu, hardness)
         args = sha_512(password, salt, kb, cpu, hardness).encode()
-        with bytes_keys(password, salt, args)[:kilobytes] as cache:
-            cachee = cache.list(True)
-            proof = sha3_512(cachee[-1] + args)
-            key = cls._passcrypt_key_sorter(proof, kilobytes, cpu)
-            cachee.sort(key=key)
-            with unpack(cachee)[:hardness] as summary:
-                state.append(sha_512(summary.list(True), proof.digest()))
+        with bytes_keys(password, salt, args)[:cache_width] as cache:
+            ram = cache.list(mutable=True)
+            proof = sha3_512(ram[-1] + args)
+            prove = cls._work_memory_prover(proof, ram, cpu)
+            for element in ram:
+                prove()
+            final_proof = _zip(ram[:hardness], reversed(ram))
+            with final_proof.sum_sha_256(proof.digest()) as summary:
+                state.append(sha_512(summary.list(mutable=True)))
 
     @classmethod
-    async def anew(cls, password, salt, kb=1024, cpu=40000, hardness=256):
+    async def anew(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
         """
-        The ``apasscrypt`` function can be highly memory intensive.
-        These resources may not be freed up, & often are not, because of
+        The passcrypt algorithm can be highly memory intensive. These
+        resources may not be freed up, & often are not, because of
         python quirks around memory management. This is a huge problem.
         So to force the release of those resources, we run the function
         in another process which is guaranteed to release them.
         """
-        cls._validate_passcrypt_args(kb, cpu, hardness)
+        cls._validate_args(kb, cpu, hardness)
         state = Manager().list()
         process = Process(
             target=cls._passcrypt,
@@ -1083,15 +1178,15 @@ class Passcrypt:
         return state.pop()
 
     @classmethod
-    def new(cls, password, salt, kb=1024, cpu=40000, hardness=256):
+    def new(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
         """
-        The ``passcrypt`` function can be highly memory intensive.
-        These resources may not be freed up, & often are not, because of
+        The passcrypt algorithm can be highly memory intensive. These
+        resources may not be freed up, & often are not, because of
         python quirks around memory management. This is a huge problem.
         So to force the release of those resources, we run the function
         in another process which is guaranteed to release them.
         """
-        cls._validate_passcrypt_args(kb, cpu, hardness)
+        cls._validate_args(kb, cpu, hardness)
         state = Manager().list()
         process = Process(
             target=cls._passcrypt,
@@ -1106,7 +1201,7 @@ class Passcrypt:
 
 
 @wraps(Passcrypt._apasscrypt)
-async def apasscrypt(password, salt, kb=1024, cpu=40000, hardness=256):
+async def apasscrypt(password, salt, *, kb=1024, cpu=3, hardness=1024):
     """
     Creates an async function which simplifies the ui/ux for users to
     access the module's implementation of an scrypt-like password-based
@@ -1115,7 +1210,8 @@ async def apasscrypt(password, salt, kb=1024, cpu=40000, hardness=256):
     ``salt`` of any arbitrary size & type. The memory cost is measured
     in ``kb`` kilobytes. If the memory cost is too high, it will eat up
     all the ram on a machine very quickly. The cpu time cost is measured
-    in the number of ``iterations`` of ``sha3_512`` updates desired.
+    in the ``cpu`` number of passes over the cache & iterations of
+    ``sha3_512`` updates desired per element in the memory cache.
     """
     return await Passcrypt.anew(
         password, salt, kb=kb, cpu=cpu, hardness=hardness
@@ -1123,7 +1219,7 @@ async def apasscrypt(password, salt, kb=1024, cpu=40000, hardness=256):
 
 
 @wraps(Passcrypt._passcrypt)
-def passcrypt(password, salt, kb=1024, cpu=40000, hardness=256):
+def passcrypt(password, salt, *, kb=1024, cpu=3, hardness=1024):
     """
     Creates a function which simplifies the ui/ux for users to access
     the module's implementation of an scrypt-like password-based key
@@ -1132,7 +1228,8 @@ def passcrypt(password, salt, kb=1024, cpu=40000, hardness=256):
     ``salt`` of any arbitrary size & type. The memory cost is measured
     in ``kb`` kilobytes. If the memory cost is too high, it will eat up
     all the ram on a machine very quickly. The cpu time cost is measured
-    in the number of ``iterations`` of ``sha3_512`` updates desired.
+    in the ``cpu`` number of passes over the cache & iterations of
+    ``sha3_512`` updates desired per element in the memory cache.
     """
     return Passcrypt.new(
         password, salt, kb=kb, cpu=cpu, hardness=hardness
@@ -1577,8 +1674,8 @@ class AsyncDatabase(metaclass=AsyncInit):
             to existing databases.
         """
         self.directory = Path(directory)
-        self._cache = commons.Namespace()
-        self._manifest = commons.Namespace()
+        self._cache = Namespace()
+        self._manifest = Namespace()
         self.root_key, self.root_hash, self.root_filename = (
             await self.ainitialize_keys(key, password_depth)
         )
@@ -1768,10 +1865,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         an existing one from the filesystem.
         """
         if self.root_path.exists():
-            self._manifest = commons.Namespace(await self.aopen_manifest())
+            self._manifest = Namespace(await self.aopen_manifest())
             root_salt = self._manifest[self.root_filename]
         else:
-            self._manifest = commons.Namespace()
+            self._manifest = Namespace()
             self._root_session_salt = (await acsprng())[:64]
             if self.is_metatag:
                 root_salt = (await acsprng())[:64]
@@ -1853,7 +1950,8 @@ class AsyncDatabase(metaclass=AsyncInit):
             (tag, self.root_seed), key=self.root_hash
         )
 
-    async def asalt(self, entropy=csprng()):
+    @staticmethod
+    async def asalt(entropy=csprng()):
         """
         Returns a random 512-bit hexidecimal string.
         """
@@ -1864,11 +1962,32 @@ class AsyncDatabase(metaclass=AsyncInit):
         Creates an HMAC hash of the arguments passed into ``*data`` with
         keys derived from the key used to open the database instance.
         """
-        return await asha_512_hmac(
+        return await asha_256_hmac(
             (data, self.root_hash), key=self.root_seed
         )
 
-    async def apasscrypt(self, password, salt, kb=1024, cpu=40000):
+    async def atest_hmac(self, *data, hmac=None):
+        """
+        Tests if ``hmac`` of ``*data`` is valid using database keys.
+        Instead of using a constant time character by character check on
+        the hmac, the hmac itself is hmac'd & is checked against the
+        hmac of the correct hmac. This non-constant time check on the
+        hmac of the supplied hmac doesn't reveal meaningful information
+        about the true hmac if the attacker does not have access to the
+        secret key. This scheme is easier to implement correctly & is
+        easier to guarantee the infeasibility of a timing attack.
+        """
+        if not hmac:
+            raise ValueError("`hmac` keyword argument was not given.")
+        true_hmac = await self.ahmac(*data)
+        if await self.ahmac(hmac) == await self.ahmac(true_hmac):
+            return True
+        else:
+            raise ValueError("HMAC of ``data`` isn't valid.")
+
+    async def apasscrypt(
+        self, password, salt, kb=1024, cpu=3, hardness=1024
+    ):
         """
         An implementation of an scrypt-like password derivation function
         which requires a tunable amount of memory & cpu time to compute.
@@ -1881,7 +2000,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         _apasscrypt = globals()["apasscrypt"]
         salted_password = await self.ahmac(password, salt)
-        return await _apasscrypt(salted_password, salt, kb, cpu)
+        return await _apasscrypt(
+            salted_password, salt, kb, cpu, hardness
+        )
 
     async def auuids(self, category=None, length=16, salt=None):
         """
@@ -2223,11 +2344,11 @@ class AsyncDatabase(metaclass=AsyncInit):
         Completely clears all of the entries in database instance & its
         associated files.
         """
-        self.cache.namespace.clear()
         for metatag in self.metatags:
             await (await self.ametatag(metatag)).adelete_database()
         for filename in self.manifest.namespace:
             await self.adelete_file(filename)
+        self.cache.namespace.clear()
         self.manifest.namespace.clear()
 
     async def asave_metatags(self):
@@ -2278,7 +2399,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         assert namespace.tag is db["tag"]
         """
         async with aunpack(self) as namespace:
-            return commons.Namespace(await namespace.adict())
+            return Namespace(await namespace.adict())
 
     def __contains__(self, tag=None):
         """
@@ -2436,8 +2557,8 @@ class Database:
             to existing databases.
         """
         self.directory = Path(directory)
-        self._cache = commons.Namespace()
-        self._manifest = commons.Namespace()
+        self._cache = Namespace()
+        self._manifest = Namespace()
         self.root_key, self.root_hash, self.root_filename = (
             self.initialize_keys(key, password_depth)
         )
@@ -2642,10 +2763,10 @@ class Database:
         an existing one from the filesystem.
         """
         if self.root_path.exists():
-            self._manifest = commons.Namespace(self.open_manifest())
+            self._manifest = Namespace(self.open_manifest())
             root_salt = self._manifest[self.root_filename]
         else:
-            self._manifest = commons.Namespace()
+            self._manifest = Namespace()
             self._root_session_salt = csprng()[:64]
             if self.is_metatag:
                 root_salt = csprng()[:64]
@@ -2713,7 +2834,8 @@ class Database:
         """
         return sha_256_hmac((tag, self.root_seed), key=self.root_hash)
 
-    def salt(self, entropy=csprng()):
+    @staticmethod
+    def salt(entropy=csprng()):
         """
         Returns a random 512-bit hexidecimal string.
         """
@@ -2724,9 +2846,28 @@ class Database:
         Creates an HMAC hash of the arguments passed into ``*data`` with
         keys derived from the key used to open the database instance.
         """
-        return sha_512_hmac((data, self.root_hash), key=self.root_seed)
+        return sha_256_hmac((data, self.root_hash), key=self.root_seed)
 
-    def passcrypt(self, password, salt, kb=1024, cpu=40000):
+    def test_hmac(self, *data, hmac=None):
+        """
+        Tests if ``hmac`` of ``*data`` is valid using database keys.
+        Instead of using a constant time character by character check on
+        the hmac, the hmac itself is hmac'd & is checked against the
+        hmac of the correct hmac. This non-constant time check on the
+        hmac of the supplied hmac doesn't reveal meaningful information
+        about the true hmac if the attacker does not have access to the
+        secret key. This scheme is easier to implement correctly & is
+        easier to guarantee the infeasibility of a timing attack.
+        """
+        if not hmac:
+            raise ValueError("`hmac` keyword argument was not given.")
+        true_hmac = self.hmac(*data)
+        if self.hmac(hmac) == self.hmac(true_hmac):
+            return True
+        else:
+            raise ValueError("HMAC of ``data`` isn't valid.")
+
+    def passcrypt(self, password, salt, kb=1024, cpu=3, hardness=1024):
         """
         An implementation of an scrypt-like password derivation function
         which requires a tunable amount of memory & cpu time to compute.
@@ -2739,7 +2880,7 @@ class Database:
         """
         _passcrypt = globals()["passcrypt"]
         salted_password = self.hmac(password, salt)
-        return _passcrypt(salted_password, salt, kb, cpu)
+        return _passcrypt(salted_password, salt, kb, cpu, hardness)
 
     def uuids(self, category=None, length=16, salt=None):
         """
@@ -3079,11 +3220,11 @@ class Database:
         Completely clears all of the entries in database instance & its
         associated files.
         """
-        self.cache.namespace.clear()
         for metatag in self.metatags:
             self.metatag(metatag).delete_database()
         for filename in self.manifest.namespace:
             self.delete_file(filename)
+        self.cache.namespace.clear()
         self.manifest.namespace.clear()
 
     def save_metatags(self):
@@ -3135,7 +3276,7 @@ class Database:
         assert namespace.tag is db["tag"]
         """
         with unpack(self) as namespace:
-            return commons.Namespace(namespace.dict())
+            return Namespace(namespace.dict())
 
     def __contains__(self, tag=None):
         """
@@ -3218,5 +3359,5 @@ __extras = {
 }
 
 
-ciphers = commons.Namespace.make_module("ciphers", mapping=__extras)
+ciphers = Namespace.make_module("ciphers", mapping=__extras)
 

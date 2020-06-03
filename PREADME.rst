@@ -1,16 +1,16 @@
 aiootp - Asynchronous one-time-pad based crypto and anonymity library.
 ======================================================================
 
-``aiootp`` is an asynchronous library providing access to cryptographic
-primatives and abstractions, transparently encrypted / decrypted file
-I/O and databases, as well as powerful, pythonic utilities that
+``aiootp`` is an asynchronous library providing access to cryptographic 
+primatives and abstractions, transparently encrypted / decrypted file 
+I/O and databases, as well as powerful, pythonic utilities that 
 simplify data processing & cryptographic procedures in python code. 
-This library's cipher is an implementation of the **one-time pad**.
-The aim is to create a simple, standard, efficient implementation of
-this unbreakable cipher, to give users and applications access to
-user-friendly cryptographic tools, and to increase the overall
-security, privacy, and anonymity on the web, and in the digital world.
-Users will find ``aiootp`` to be easy to write, easy to read, and fun.
+This library's cipher is an implementation of the **one-time pad**. 
+The aim is to create a simple, standard, efficient implementation of 
+this unbreakable cipher, to give users and applications access to 
+user-friendly cryptographic tools, and to increase the overall 
+security, privacy, and anonymity on the web, and in the digital world. 
+Users will find ``aiootp`` to be easy to write, easy to read, and fun. 
 
 
 
@@ -22,7 +22,7 @@ Important Disclaimer
 It's a work in progress. The programming API could change with 
 future updates, and it isn't bug free. ``aiootp`` provides powerful 
 security tools and misc utilities that're designed to be 
-developer-friendly and privacy preserving.
+developer-friendly and privacy preserving. 
 As a security tool, ``aiootp`` needs to be tested and reviewed 
 extensively by the programming and cryptography communities to 
 ensure its implementations are sound. We provide no guarantees. 
@@ -70,30 +70,30 @@ Users can create and modify transparently encrypted databases:
     
     # This is a memory & cpu hard function to protect passwords ->
     
-    hmac = await db.apasscrypt("password012345", salt)
+    password = await db.apasscrypt("password012345", salt)
     
-    db[tag] = {hmac: "secured data"}
+    db[tag] = {password: "secured data"}
     
     
     # Add to existing stored data ->
     
-    db[tag].update({"password_salt": salt})
+    db[tag].update({"salt": salt})
     
     
     # Read from the database with ``aquery`` ->
     
-    (await db.aquery(tag))[hmac]
+    (await db.aquery(tag))[password]
     
  >>>'secured data'
     
     
     # Or use bracketed lookup (it's an async-safe operation) ->
     
-    salt = db[tag]["password_salt"]
+    salt = db[tag]["salt"]
     
-    wrong_hmac = await db.apasscrypt("wrong password attempt", salt)
+    wrong_password = await db.apasscrypt("wrong password attempt", salt)
     
-    db[tag][wrong_hmac]
+    db[tag][wrong_password]
     
  >>>KeyError: 
     
@@ -601,6 +601,7 @@ What other tools are available to users?:
         "ajson_loads",
         "amap_decrypt",
         "amap_encrypt",
+        "apasscrypt",
         "arandom_sleep",
         "areplace",
         "aresize",
@@ -612,6 +613,8 @@ What other tools are available to users?:
         "aslice",
         "asplit",
         "astr",
+        "asum_sha_256",
+        "asum_sha_512",
         "atag",
         "atimeout",
         "ato_base",
@@ -646,6 +649,7 @@ What other tools are available to users?:
         "json_loads",
         "map_decrypt",
         "map_encrypt",
+        "passcrypt",
         "random_sleep",
         "replace",
         "resize",
@@ -656,6 +660,8 @@ What other tools are available to users?:
         "slice",
         "split",
         "str",
+        "sum_sha_256",
+        "sum_sha_512",
         "tag",
         "timeout",
         "to_base",

@@ -20,10 +20,14 @@ package.
 
 
 from .debuggers import gen_timer, agen_timer
+from .generics import azip
 from .generics import Comprende, comprehension
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
+from .ciphers import salt, asalt
 from .ciphers import OneTimePad
+from .ciphers import passcrypt as _passcrypt
+from .ciphers import apasscrypt as _apasscrypt
 from .keygens import insert_keyrings
 
 
@@ -80,6 +84,36 @@ def xor(self, key=None, convert=True):
 
 
 @comprehension()
+async def apasscrypt(self, salt, kb=1024, cpu=2, hardness=512, *, of=None):
+    """
+    Applies the ``apasscrypt`` algorithm to each value that's yielded
+    from the underlying Comprende sync generator before yielding the
+    result.
+    """
+    if of != None:
+        async for prev, result in azip(self, of):
+            yield prev, await _apasscrypt(result, salt, kb, cpu, hardness)
+    else:
+        async for result in self:
+            yield await _apasscrypt(result, salt, kb, cpu, hardness)
+
+
+@comprehension()
+def passcrypt(self, salt, kb=1024, cpu=2, hardness=512, *, of=None):
+    """
+    Applies the ``passcrypt`` algorithm to each value that's yielded
+    from the underlying Comprende sync generator before yielding the
+    result.
+    """
+    if of != None:
+        for prev, result in zip(self, of):
+            yield prev, _passcrypt(result, salt, kb, cpu, hardness)
+    else:
+        for result in self:
+            yield _passcrypt(result, salt, kb, cpu, hardness)
+
+
+@comprehension()
 async def arandom_sleep(self, span=1):
     """
     Applies a random sleep before each yielded value from the underlying
@@ -116,6 +150,18 @@ def insert_xor_methods():
     Copies the addons over into the ``Comprende`` class.
     """
     addons = {xor, axor}
+    for addon in addons:
+        setattr(Comprende, addon.__name__, addon)
+        Comprende.lazy_generators.add(addon.__name__)
+
+
+def insert_passcrypt_methods():
+    """
+    Copies the addons over into the ``Comprende`` class.
+    """
+    _passcrypt.salt = salt
+    _apasscrypt.asalt = asalt
+    addons = {passcrypt, apasscrypt}
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
         Comprende.lazy_generators.add(addon.__name__)
@@ -187,6 +233,7 @@ def insert_stateful_key_generator_objects():
 
 insert_debuggers()
 insert_xor_methods()
+insert_passcrypt_methods()
 insert_random_sleep_methods()
 insert_bytes_cipher_methods()
 insert_stream_cipher_methods()
