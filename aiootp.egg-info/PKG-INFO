@@ -1,6 +1,6 @@
 Metadata-Version: 1.2
 Name: aiootp
-Version: 0.7.0
+Version: 0.7.1
 Summary: aiootp - an asynchronous one-time-pad based crypto and anonymity library.
 Home-page: https://github.com/rmlibre/aiootp
 Author: Gonzo Investigatory Journalism Agency, LLC

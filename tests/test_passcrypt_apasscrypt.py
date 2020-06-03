@@ -16,6 +16,8 @@ __all__ = [
     "test_apasscrypt",
     "test_passcrypt",
     "test_passcrypts_equality",
+    "test_passcrypt_generators",
+    "test_apasscrypt_generators",
     "__all__",
 ]
 
@@ -58,3 +60,16 @@ def test_apasscrypt():
 def test_passcrypts_equality():
     assert passcrypt_passwords == apasscrypt_passwords
 
+
+async def async_generator_run():
+    async for _ in adata(100*"testing...").apasscrypt(salt_0, **settings)[0]:
+        pass
+
+
+def test_apasscrypt_generators():
+    run(async_generator_run())
+
+
+def test_passcrypt_generators():
+    for _ in data(100*"testing...").passcrypt(salt_0, **settings)[0]:
+        pass

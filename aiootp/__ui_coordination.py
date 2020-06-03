@@ -84,7 +84,7 @@ def xor(self, key=None, convert=True):
 
 
 @comprehension()
-async def apasscrypt(self, salt, kb=1024, cpu=2, hardness=512, *, of=None):
+async def apasscrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
     """
     Applies the ``apasscrypt`` algorithm to each value that's yielded
     from the underlying Comprende sync generator before yielding the
@@ -92,14 +92,18 @@ async def apasscrypt(self, salt, kb=1024, cpu=2, hardness=512, *, of=None):
     """
     if of != None:
         async for prev, result in azip(self, of):
-            yield prev, await _apasscrypt(result, salt, kb, cpu, hardness)
+            yield prev, await _apasscrypt(
+                result, salt, kb=kb, cpu=cpu, hardness=hardness
+            )
     else:
         async for result in self:
-            yield await _apasscrypt(result, salt, kb, cpu, hardness)
+            yield await _apasscrypt(
+                result, salt, kb=kb, cpu=cpu, hardness=hardness
+            )
 
 
 @comprehension()
-def passcrypt(self, salt, kb=1024, cpu=2, hardness=512, *, of=None):
+def passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
     """
     Applies the ``passcrypt`` algorithm to each value that's yielded
     from the underlying Comprende sync generator before yielding the
@@ -107,10 +111,14 @@ def passcrypt(self, salt, kb=1024, cpu=2, hardness=512, *, of=None):
     """
     if of != None:
         for prev, result in zip(self, of):
-            yield prev, _passcrypt(result, salt, kb, cpu, hardness)
+            yield prev, _passcrypt(
+                result, salt, kb=kb, cpu=cpu, hardness=hardness
+            )
     else:
         for result in self:
-            yield _passcrypt(result, salt, kb, cpu, hardness)
+            yield _passcrypt(
+                result, salt, kb=kb, cpu=cpu, hardness=hardness
+            )
 
 
 @comprehension()

@@ -993,7 +993,7 @@ class Passcrypt:
         build_size = 128 * build_iterations
         proof_size = (64 + 64) * build_iterations * cpu
         desired_bytes == build_size + proof_size
-        kilobytes = solve for build_iterations given cpu & kb
+        width = solve for build_iterations given cpu & kb
         """
         cls._validate_args(kb, cpu, hardness)
         width = int((kb * 1024) / (128 * (1 + cpu)))
@@ -1106,7 +1106,7 @@ class Passcrypt:
         added to the memory cache ``cpu`` times for each element in the
         cache. To fully prove use of memory, a simple rule for users is:
         if ``kb`` == ``hardness`` then ``cpu`` only needs to be set to 3,
-        since that will cause the final proof the scan over the entire
+        since that will cause the final proof to scan over the entire
         cache when producing the summary.
         """
         cache_width = cls.cache_width(kb, cpu, hardness)
@@ -1140,7 +1140,7 @@ class Passcrypt:
         added to the memory cache ``cpu`` times for each element in the
         cache. To fully prove use of memory, a simple rule for users is:
         if ``kb`` == ``hardness`` then ``cpu`` only needs to be set to 3,
-        since that will cause the final proof the scan over the entire
+        since that will cause the final proof to scan over the entire
         cache when producing the summary.
         """
         cache_width = cls.cache_width(kb, cpu, hardness)
