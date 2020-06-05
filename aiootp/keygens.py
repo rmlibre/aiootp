@@ -225,19 +225,20 @@ def table_key(key=None, table=ASCII_TABLE, size=64):
 
 
 @comprehension()
-async def amnemonic(password, salt=None, words=WORD_LIST):
+async def amnemonic(key, salt=None, words=WORD_LIST):
     """
-    Creates a stream of words for a mnemonic key from a user password &
-    random salt. If a salt isn't passed, then a random salt is generated
-    & is available by calling ``result(exit=True)`` on the generator
-    object. The ``words`` used for the mnemonic can be passed in, but by
-    default are a 2048 word list of unique, all lowercase english words.
+    Creates a stream of words for a mnemonic key from a user password
+    ``key`` & random salt. If a salt isn't passed, then a random salt is
+    generated & is available by calling ``result(exit=True)`` on the
+    generator object. The ``words`` used for the mnemonic can be passed
+    in, but by default are a 2048 word list of unique, all lowercase
+    english words.
     """
     translate = None
     length = len(words)
     salt = salt if salt else await asalt()
-    key = await apasscrypt(password, salt)
-    entropy = abytes_keys(password, salt, key)
+    key = await apasscrypt(key, salt)
+    entropy = abytes_keys(key, salt, key)
     async with entropy.abytes_to_int().arelay(salt) as indexes:
         while True:
             if translate:
@@ -246,19 +247,20 @@ async def amnemonic(password, salt=None, words=WORD_LIST):
 
 
 @comprehension()
-def mnemonic(password, salt=None, words=WORD_LIST):
+def mnemonic(key, salt=None, words=WORD_LIST):
     """
-    Creates a stream of words for a mnemonic key from a user password &
-    random salt. If a salt isn't passed, then a random salt is generated
-    & is available by calling ``result(exit=True)`` on the generator
-    object. The ``words`` used for the mnemonic can be passed in, but by
-    default are a 2048 word list of unique, all lowercase english words.
+    Creates a stream of words for a mnemonic key from a user password
+    ``key`` & random salt. If a salt isn't passed, then a random salt is
+    generated & is available by calling ``result(exit=True)`` on the
+    generator object. The ``words`` used for the mnemonic can be passed
+    in, but by default are a 2048 word list of unique, all lowercase
+    english words.
     """
     translate = None
     length = len(words)
     salt = salt if salt else globals()["salt"]()
-    key = passcrypt(password, salt)
-    entropy = bytes_keys(password, salt, key)
+    key = passcrypt(key, salt)
+    entropy = bytes_keys(key, salt, key)
     with entropy.bytes_to_int().relay(salt) as indexes:
         while True:
             if translate:
@@ -284,17 +286,23 @@ def keypair(entropy=csprng()):
 
 class AsyncKeys:
     """
-    This simple class coordinates and manages a pair of symmetric keys
-    for establishing an arbitrary number of secure, deterministic
-    streams of key material through its ``__getitem__``, ``akeys``,
-    & ``asubkeys`` methods. The class also contains static method key
-    generators which function independantly from instance states.
+    This simple class coordinates and manages a symmetric key for
+    establishing an arbitrary number of secure, deterministic
+    streams of key material through an instance's ``__getitem__`` method.
+    The class also contains static method key generators which function
+    independantly from instance states, as well as the ability to create
+    & validate HMAC code.
     """
+
+    instance_methods = {
+        akeys, asubkeys, abytes_keys, amnemonic, atable_key, atable_key_gen
+    }
 
     aseed = staticmethod(asalt)
     akeys = staticmethod(akeys)
     asubkeys = staticmethod(asubkeys)
     akeypair = staticmethod(akeypair)
+    amnemonic = staticmethod(amnemonic)
     apasscrypt = staticmethod(apasscrypt)
     abytes_keys = staticmethod(abytes_keys)
     atable_key = staticmethod(atable_key)
@@ -303,21 +311,31 @@ class AsyncKeys:
 
     def __init__(self, key=None):
         """
-        Creates a symmetric key pair used to create deterministic streams
-        of key material.
+        Stores a key in the instance used to create deterministic
+        streams of key material &, create & validate HMAC codes. If a
+        ``key`` argument is not passed then a new 512-bit random key is
+        created.
         """
-        self.key, self.salt = (key, salt()) if key else keypair()
-        for method in [akeys, asubkeys, abytes_keys]:
+        self._key = key if key else salt()
+        for method in self.instance_methods:
             convert_static_method_to_member(
-                self, method.__name__, method, key=self.key, salt=self.salt
+                self, method.__name__, method, key=self.key,
             )
 
-    def __getitem__(self, salt=""):
+    def __getitem__(self, pid=""):
         """
         Provides a simple interface for users to create deterministic
-        & externally uncorrelatable key material from a name or ``salt``.
+        & externally uncorrelatable key material stream from a user-
+        defined ``pid`` value.
         """
-        return self.akeys(key=self.key, salt=self.salt, pid=salt)
+        return akeys(key=self.key, pid=pid)
+
+    @property
+    def key(self):
+        """
+        Returns the main ``self.key``.
+        """
+        return self._key
 
     async def ahmac(
         self, data=None, *, key=None, hasher=asha_256_hmac
@@ -335,61 +353,64 @@ class AsyncKeys:
         Tests if ``hmac`` of ``data`` is valid using ``key`` or the
         instance's ``self.key`` if it's not supplied. Instead of using a
         constant time character by character check on the hmac, the hmac
-        itself is hmac'd & is checked against the hmac of the correct
-        hmac. This non-constant time check on the hmac of the supplied
-        hmac doesn't reveal meaningful information about the true hmac
-        if the attacker does not have access to the secret key. This
-        scheme is easier to implement correctly & is easier to guarantee
-        the infeasibility of a timing attack. An async ``hasher``
-        function can also be supplied to use that algorithm instead of
-        the default ``asha_256_hmac``.
+        itself is hmac'd with a random salt & is checked against the
+        hmac & salt of the correct hmac. This non-constant time check on
+        the hmac of the supplied hmac doesn't reveal meaningful
+        information about the true hmac if the attacker does not have
+        access to the secret key. Nor does it gain information about the
+        hmac it supplied since it is salted. This scheme is easier to
+        implement correctly & is easier to guarantee the infeasibility
+        of a timing attack, since "constant time" operations are truly
+        dependant on architectures, languages & resource allowcation for
+        those operations. An async ``hasher`` function can also be
+        supplied to use that algorithm instead of the default
+        ``asha_256_hmac``.
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
+        salt = await acsprng(hmac)
         key = key if key else self.key
         true_hmac = await self.ahmac(data=data, key=key, hasher=hasher)
         if (
-            await self.ahmac(hmac, key=key)
-            == await self.ahmac(true_hmac, key=key)
+            await self.ahmac((hmac, salt), key=key)
+            == await self.ahmac((true_hmac, salt), key=key)
         ):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
 
-    async def astate(self):
+    async def areset(self, key=None):
         """
-        Returns both the main ``self.key`` & the ephemeral ``self.salt``.
+        Replaces the stored instance key used to create deterministic
+        streams of key material &, create & validate HMAC codes.
         """
-        return self.key, self.salt
-
-    async def areset(self, both=False):
-        """
-        Creates a new pair of symmetric keys if ``both`` is truthy, else
-        just updates the ephemeral ``self.salt`` key.
-        """
-        if both:
-            self.key, self.salt = await akeypair()
-        else:
-            self.salt = await self.aseed()
-        for method in [akeys, asubkeys, abytes_keys]:
+        self._key = key if key else await asalt()
+        for method in self.instance_methods:
             convert_static_method_to_member(
-                self, method.__name__, method, key=self.key, salt=self.salt
+                self, method.__name__, method, key=self.key,
             )
+            await switch()
 
 
 class Keys:
     """
-    This simple class coordinates and manages a pair of symmetric keys
-    for establishing an arbitrary number of secure, deterministic
-    streams of key material through instances' ``__getitem__``, ``keys``
-    & ``subkeys`` methods. The class also contains static method key
-    generators which function independantly from instance states.
+    This simple class coordinates and manages a symmetric key for
+    establishing an arbitrary number of secure, deterministic
+    streams of key material through an instance's ``__getitem__`` method.
+    The class also contains static method key generators which function
+    independantly from instance states, as well as the ability to create
+    & validate HMAC code.
     """
+
+    instance_methods = {
+        keys, subkeys, bytes_keys, mnemonic, table_key, table_key_gen
+    }
 
     seed = staticmethod(salt)
     keys = staticmethod(keys)
     subkeys = staticmethod(subkeys)
     keypair = staticmethod(keypair)
+    amnemonic = staticmethod(amnemonic)
     passcrypt = staticmethod(passcrypt)
     bytes_keys = staticmethod(bytes_keys)
     table_key = staticmethod(table_key)
@@ -398,18 +419,27 @@ class Keys:
 
     def __init__(self, key=None):
         """
-        Creates a symmetric key pair used to create deterministic streams
-        of key material.
+        Stores a key in the instance used to create deterministic
+        streams of key material &, create & validate HMAC codes. If a
+        ``key`` argument is not passed then a new 512-bit random key is
+        created.
         """
-        self.key = key
-        self.reset(both=False if key else True)
+        self.reset(key)
 
-    def __getitem__(self, salt=""):
+    def __getitem__(self, pid=""):
         """
         Provides a simple interface for users to create deterministic
-        & externally uncorrelatable key material from a name or ``salt``.
+        & externally uncorrelatable key material stream from a user-
+        defined ``pid`` value.
         """
-        return self.keys(key=self.key, salt=self.salt, pid=salt)
+        return keys(key=self.key, pid=pid)
+
+    @property
+    def key(self):
+        """
+        Returns the main ``self.key``.
+        """
+        return self._key
 
     def hmac(self, data=None, *, key=None, hasher=sha_256_hmac):
         """
@@ -425,42 +455,41 @@ class Keys:
         Tests if ``hmac`` of ``data`` is valid using ``key`` or the
         instance's ``self.key`` if it's not supplied. Instead of using a
         constant time character by character check on the hmac, the hmac
-        itself is hmac'd & is checked against the hmac of the correct
-        hmac. This non-constant time check on the hmac of the supplied
-        hmac doesn't reveal meaningful information about the true hmac
-        if the attacker does not have access to the secret key. This
-        scheme is easier to implement correctly & is easier to guarantee
-        the infeasibility of a timing attack. A sync ``hasher`` function
-        can also be supplied to use that algorithm instead of the
-        default ``sha_256_hmac``.
+        itself is hmac'd with a random salt & is checked against the
+        hmac & salt of the correct hmac. This non-constant time check on
+        the hmac of the supplied hmac doesn't reveal meaningful
+        information about the true hmac if the attacker does not have
+        access to the secret key. Nor does it gain information about the
+        hmac it supplied since it is salted. This scheme is easier to
+        implement correctly & is easier to guarantee the infeasibility
+        of a timing attack, since "constant time" operations are truly
+        dependant on architectures, languages & resource allowcation for
+        those operations.  A sync ``hasher`` function can also be
+        supplied to use that algorithm instead of the default
+        ``sha_256_hmac``.
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
+        salt = csprng(hmac)
         key = key if key else self.key
         true_hmac = self.hmac(data=data, key=key, hasher=hasher)
-        if self.hmac(hmac, key=key) == self.hmac(true_hmac, key=key):
+        if (
+            self.hmac((hmac, salt), key=key)
+            == self.hmac((true_hmac, salt), key=key)
+        ):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
 
-    def state(self):
+    def reset(self, key=None):
         """
-        Returns both the main ``self.key`` & the ephemeral ``self.salt``.
+        Replaces the stored instance key used to create deterministic
+        streams of key material &, create & validate HMAC codes.
         """
-        return self.key, self.salt
-
-    def reset(self, both=False):
-        """
-        Creates a new pair of symmetric keys if ``both`` is truthy, else
-        just updates the ephemeral ``self.salt`` key.
-        """
-        if both:
-            self.key, self.salt = keypair()
-        else:
-            self.salt = self.seed()
-        for method in [keys, subkeys, bytes_keys]:
+        self._key = key if key else salt()
+        for method in self.instance_methods:
             convert_static_method_to_member(
-                self, method.__name__, method, key=self.key, salt=self.salt
+                self, method.__name__, method, key=self.key,
             )
 
 
@@ -470,6 +499,7 @@ async def ainsert_keyrings(self, key=None):
     or instance dictionaries to give those objects access to stateful
     & ephemeral key material generators.
     """
+    key = key if key else await asalt()
     self.keyring = Keys(key=key)
     self.akeyring = AsyncKeys(key=key)
 
@@ -480,6 +510,7 @@ def insert_keyrings(self, key=None):
     or instance dictionaries to give those objects access to stateful
     & ephemeral key material generators.
     """
+    key = key if key else salt()
     self.keyring = Keys(key=key)
     self.akeyring = AsyncKeys(key=key)
 
