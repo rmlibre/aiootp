@@ -22,6 +22,7 @@ package.
 from .debuggers import gen_timer, agen_timer
 from .generics import azip
 from .generics import Comprende, comprehension
+from .generics import convert_static_method_to_member
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
 from .ciphers import salt, asalt
@@ -236,7 +237,27 @@ def insert_stateful_key_generator_objects():
     """
     Copies the addons over into the ``OneTimePad`` class.
     """
-    OneTimePad.__init__ = insert_keyrings
+
+    def __init__(self, key=None):
+        """
+        Creates an object which manages a main encryption key for use in
+        a set of the package's static functions & generators. This
+        simplifies usage of encryption/decryption, key generation, &
+        HMAC creation/validation by automatically passing in the key as
+        a keyword argument.
+        """
+        insert_keyrings(self, key)
+        self._key = self.keyring.key
+        self.hmac = self.keyring.hmac
+        self.ahmac = self.akeyring.ahmac
+        self.test_hmac = self.keyring.test_hmac
+        self.atest_hmac = self.akeyring.atest_hmac
+        for method in self.instance_methods:
+            convert_static_method_to_member(
+                self, method.__name__, method, key=self.key,
+            )
+
+    OneTimePad.__init__ = __init__
 
 
 insert_debuggers()

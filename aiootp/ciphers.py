@@ -953,9 +953,13 @@ class Passcrypt:
         self, password, salt, *, kb=1024, cpu=3, hardness=1024, aio=False
     ):
         if aio:
-            return self.anew(password, salt, kb, cpu, hardness)
+            return self.anew(
+                password, salt, kb=kb, cpu=cpu, hardness=hardness
+            )
         else:
-            return self.new(password, salt, kb, cpu, hardness)
+            return self.new(
+                password, salt, kb=kb, cpu=cpu, hardness=hardness
+            )
 
     @staticmethod
     def _validate_args(kb: int, cpu: int, hardness: int):
@@ -1081,6 +1085,7 @@ class Passcrypt:
 
         update = proof.update
         summary = proof.digest
+        scanner = Namespace()
         digest = summary()
         to_int = int.from_bytes
         cache_width = len(ram)
@@ -1245,6 +1250,27 @@ class OneTimePad:
     that are made simple by this package's ``Comprende`` generators.
     """
 
+    instance_methods = {
+        akeys,
+        keys,
+        abytes_keys,
+        bytes_keys,
+        asubkeys,
+        subkeys,
+        aencrypt,
+        encrypt,
+        adecrypt,
+        decrypt,
+        ajson_encrypt,
+        json_encrypt,
+        ajson_decrypt,
+        json_decrypt,
+        abytes_encrypt,
+        bytes_encrypt,
+        abytes_decrypt,
+        bytes_decrypt,
+    }
+
     axor = staticmethod(axor)
     xor = staticmethod(xor)
     adata = staticmethod(adata)
@@ -1275,6 +1301,13 @@ class OneTimePad:
     bytes_encrypt = staticmethod(bytes_encrypt)
     abytes_decrypt = staticmethod(abytes_decrypt)
     bytes_decrypt = staticmethod(bytes_decrypt)
+
+    @property
+    def key(self):
+        """
+        Returns the instance's main symmetric key.
+        """
+        return self._key
 
     @comprehension()
     async def _amap_encrypt(self, names=None, entropy=None):
@@ -1970,17 +2003,25 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Tests if ``hmac`` of ``*data`` is valid using database keys.
         Instead of using a constant time character by character check on
-        the hmac, the hmac itself is hmac'd & is checked against the
-        hmac of the correct hmac. This non-constant time check on the
-        hmac of the supplied hmac doesn't reveal meaningful information
-        about the true hmac if the attacker does not have access to the
-        secret key. This scheme is easier to implement correctly & is
-        easier to guarantee the infeasibility of a timing attack.
+        the hmac, the hmac itself is hmac'd with a random salt & is
+        checked against the hmac & salt of the correct hmac. This
+        non-constant time check on the hmac of the supplied hmac doesn't
+        reveal meaningful information about the true hmac if the
+        attacker does not have access to the secret key. Nor does it
+        gain information about the hmac it supplied since it is salted.
+        This scheme is easier to implement correctly & is easier to
+        guarantee the infeasibility of a timing attack, since "constant
+        time" operations are truly dependant on architectures, languages
+        & resource allowcation for those operations.
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
+        salt = await acsprng(hmac)
         true_hmac = await self.ahmac(*data)
-        if await self.ahmac(hmac) == await self.ahmac(true_hmac):
+        if (
+            await self.ahmac(hmac, salt)
+            == await self.ahmac(true_hmac, salt)
+        ):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
@@ -2001,7 +2042,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         _apasscrypt = globals()["apasscrypt"]
         salted_password = await self.ahmac(password, salt)
         return await _apasscrypt(
-            salted_password, salt, kb, cpu, hardness
+            salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
         )
 
     async def auuids(self, category=None, length=16, salt=None):
@@ -2852,17 +2893,22 @@ class Database:
         """
         Tests if ``hmac`` of ``*data`` is valid using database keys.
         Instead of using a constant time character by character check on
-        the hmac, the hmac itself is hmac'd & is checked against the
-        hmac of the correct hmac. This non-constant time check on the
-        hmac of the supplied hmac doesn't reveal meaningful information
-        about the true hmac if the attacker does not have access to the
-        secret key. This scheme is easier to implement correctly & is
-        easier to guarantee the infeasibility of a timing attack.
+        the hmac, the hmac itself is hmac'd with a random salt & is
+        checked against the hmac & salt of the correct hmac. This
+        non-constant time check on the hmac of the supplied hmac doesn't
+        reveal meaningful information about the true hmac if the
+        attacker does not have access to the secret key. Nor does it
+        gain information about the hmac it supplied since it is salted.
+        This scheme is easier to implement correctly & is easier to
+        guarantee the infeasibility of a timing attack, since "constant
+        time" operations are truly dependant on architectures, languages
+        & resource allowcation for those operations.
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
+        salt = csprng(hmac)
         true_hmac = self.hmac(*data)
-        if self.hmac(hmac) == self.hmac(true_hmac):
+        if self.hmac(hmac, salt) == self.hmac(true_hmac, salt):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
@@ -2880,7 +2926,9 @@ class Database:
         """
         _passcrypt = globals()["passcrypt"]
         salted_password = self.hmac(password, salt)
-        return _passcrypt(salted_password, salt, kb, cpu, hardness)
+        return _passcrypt(
+            salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
+        )
 
     def uuids(self, category=None, length=16, salt=None):
         """
