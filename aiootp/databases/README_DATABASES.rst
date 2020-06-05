@@ -45,30 +45,30 @@ Description
     
     # This is a memory & cpu hard function to protect passwords ->
     
-    hmac = db.passcrypt("password012345", salt)
+    password = db.passcrypt("password012345", salt)
     
-    db[tag] = {hmac: "secured data"}
+    db[tag] = {password: "secured data"}
     
     
     # Add to existing stored data ->
     
-    db[tag].update({"password_salt": salt})
+    db[tag].update({"salt": salt})
     
     
     # Read from the database with ``aquery`` ->
     
-    db.query(tag)[hmac]
+    db.query(tag)[password]
     
  >>>'secured data'
     
     
     # Or use bracketed lookup (it's an async-safe operation) ->
     
-    salt = db[tag]["password_salt"]
+    salt = db[tag]["salt"]
     
-    wrong_hmac = db.passcrypt("wrong password attempt", salt)
+    wrong_password = db.passcrypt("wrong password attempt", salt)
     
-    db[tag][wrong_hmac]
+    db[tag][wrong_password]
     
  >>>KeyError: 
     
@@ -76,6 +76,17 @@ Description
     # Or, pop the value out of the database ->
     
     account_data = db.pop(tag)
+    
+    
+    # Any type & amount of data can be verified with an hmac, although
+    
+    # datatypes where order of values is not preserved may fail to validate ->
+    
+    hmac = db.hmac({"id": 1234, "payload": "message"})
+    
+    db.test_hmac({"payload": "message", "id": 1234}, hmac=hmac)
+    
+ >>>ValueError: "HMAC of ``data`` isn't valid."
     
     
     # Create child databases accessible from the parent by a ``metatag`` ->
@@ -213,30 +224,30 @@ Description
     
     # This is a memory & cpu hard function to protect passwords ->
     
-    hmac = await db.apasscrypt("password012345", salt)
+    password = await db.apasscrypt("password012345", salt)
     
-    db[tag] = {hmac: "secured data"}
+    db[tag] = {password: "secured data"}
     
     
     # Add to existing stored data ->
     
-    db[tag].update({"password_salt": salt})
+    db[tag].update({"salt": salt})
     
     
     # Read from the database with ``aquery`` ->
     
-    (await db.aquery(tag))[hmac]
+    (await db.aquery(tag))[password]
     
  >>>'secured data'
     
     
     # Or use bracketed lookup (it's an async-safe operation) ->
     
-    salt = db[tag]["password_salt"]
+    salt = db[tag]["salt"]
     
-    wrong_hmac = await db.apasscrypt("wrong password attempt", salt)
+    wrong_password = await db.apasscrypt("wrong password attempt", salt)
     
-    db[tag][wrong_hmac]
+    db[tag][wrong_password]
     
  >>>KeyError: 
     
@@ -244,6 +255,17 @@ Description
     # Or, pop the value out of the database ->
     
     account_data = await db.apop(tag)
+    
+    
+    # Any type & amount of data can be verified with an hmac, although
+    
+    # datatypes where order of values is not preserved may fail to validate ->
+    
+    hmac = await db.ahmac({"id": 1234, "payload": "message"})
+    
+    await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac)
+    
+ >>>ValueError: "HMAC of ``data`` isn't valid."
     
     
     # Create child databases accessible from the parent by a ``metatag`` ->

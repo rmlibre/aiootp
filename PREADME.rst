@@ -103,6 +103,17 @@ Users can create and modify transparently encrypted databases:
     account_data = await db.apop(tag)
     
     
+    # Any type & amount of data can be verified with an hmac, although
+    
+    # datatypes where order of values is not preserved may fail to validate ->
+    
+    hmac = await db.ahmac({"id": 1234, "payload": "message"})
+    
+    await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac)
+    
+ >>>ValueError: "HMAC of ``data`` isn't valid."
+    
+    
     # Create child databases accessible from the parent by a ``metatag`` ->
     
     metatag = "child"

@@ -13,8 +13,62 @@
 
 
 
+
 ``Changelog``
 =============
+
+
+Changes for version 0.8.0
+=========================
+
+
+Major Changes
+-------------
+
+-  Fix a ``test_hmac``, ``atest_hmac`` functions in the keys & database 
+   classes. The new non-constant-time algorithm needs a random salt to be 
+   added before doing the secondary hmac to prevent some potential exotic 
+   forms of chosen plaintext/ciphertext attacks on the algorithm. The last 
+   version of the algorithm should not be used. 
+-  The ``Keys`` & ``AsyncKeys`` interfaces were overhauled to remove the 
+   persistance of instance salts. They were intended to be updated by users 
+   with the ``reset`` & ``areset`` methods, but that cannot be guaranteed 
+   easily through the class, so it is an inappropriate interface since 
+   reusing salts for encryption is completely insecure. The instances do
+   still maintain state of their main encryption key, & new stateful methods
+   for key generation, like ``mnemonic`` & ``table_key``, have been added.
+   The ``state`` & ``astate`` methods have been removed.
+-  Gave ``OneTimePad`` instances new stateful methods from the ``ciphers.py`` 
+   module & ``keygens.py`` keys classes. Its instances now remember the main 
+   symmetric key behind the ``key`` property & automatically passes it as a 
+   keyword argument to the methods in ``OneTimePad.instance_methods``.
+
+
+Minor Changes
+-------------
+
+-  Update ``CHANGES.rst`` file with the updates that were not logged for
+   v0.7.1.
+-  ``BYTES_TABLE`` was turned into a list so that the byte characters can 
+   be retrieved instead of their ordinal numbers.
+
+
+
+
+Changes for version 0.7.1
+=========================
+
+
+Major Changes
+-------------
+
+-  Fix a mistake in the signatures of ``passcrypt`` & ``apasscrypt. The args
+   ``kb``, ``cpu`` & ``hardness`` were changed into keyword only arguments
+   to mitigate user mistakes, but the internal calls to those functions were
+   still using positional function calls, which broke the api. This issue
+   is now fixed.
+
+
 
 
 Changes for version 0.7.0
