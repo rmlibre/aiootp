@@ -91,16 +91,13 @@ async def apasscrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
     from the underlying Comprende sync generator before yielding the
     result.
     """
+    settings = dict(kb=kb, cpu=cpu, hardness=hardness)
     if of != None:
         async for prev, result in azip(self, of):
-            yield prev, await _apasscrypt(
-                result, salt, kb=kb, cpu=cpu, hardness=hardness
-            )
+            yield prev, await _apasscrypt(result, salt, **settings)
     else:
         async for result in self:
-            yield await _apasscrypt(
-                result, salt, kb=kb, cpu=cpu, hardness=hardness
-            )
+            yield await _apasscrypt(result, salt, **settings)
 
 
 @comprehension()
@@ -110,16 +107,41 @@ def passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
     from the underlying Comprende sync generator before yielding the
     result.
     """
+    settings = dict(kb=kb, cpu=cpu, hardness=hardness)
     if of != None:
         for prev, result in zip(self, of):
-            yield prev, _passcrypt(
-                result, salt, kb=kb, cpu=cpu, hardness=hardness
-            )
+            yield prev, _passcrypt(result, salt, **settings)
     else:
         for result in self:
-            yield _passcrypt(
-                result, salt, kb=kb, cpu=cpu, hardness=hardness
-            )
+            yield _passcrypt(result, salt, **settings)
+
+
+@comprehension()
+async def asum_passcrypt(self, salt, kb=1024, cpu=3, hardness=1024):
+    """
+    Cumulatively applies the ``apasscrypt`` algorithm to each value
+    that's yielded from the underlying Comprende async generator with
+    the previously processed result before yielding the current result.
+    """
+    settings = dict(kb=kb, cpu=cpu, hardness=hardness)
+    summary = await _apasscrypt(salt, salt, **settings)
+    async for result in self:
+        summary = await _apasscrypt(result, summary, **settings)
+        yield summary
+
+
+@comprehension()
+def sum_passcrypt(self, salt, kb=1024, cpu=3, hardness=1024):
+    """
+    Cumulatively applies the ``passcrypt`` algorithm to each value
+    that's yielded from the underlying Comprende sync generator with
+    the previously processed result before yielding the current result.
+    """
+    settings = dict(kb=kb, cpu=cpu, hardness=hardness)
+    summary = _passcrypt(salt, salt, **settings)
+    for result in self:
+        summary = _passcrypt(result, summary, **settings)
+        yield summary
 
 
 @comprehension()
@@ -170,7 +192,7 @@ def insert_passcrypt_methods():
     """
     _passcrypt.salt = salt
     _apasscrypt.asalt = asalt
-    addons = {passcrypt, apasscrypt}
+    addons = {passcrypt, apasscrypt, sum_passcrypt, asum_passcrypt}
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
         Comprende.lazy_generators.add(addon.__name__)
