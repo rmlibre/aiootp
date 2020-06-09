@@ -8,6 +8,7 @@
 # All rights reserved.
 #
 
+
 __all__ = [
     "ciphers",
     "akeys",
@@ -451,6 +452,78 @@ def decipher(data=None, key=None, convert=True):
             yield plaintext
 
 
+async def aencode_salt(seed=None, key=csprng(), salt=None, pid=0):
+    """
+    Returns a ciphered ``salt`` that is ciphered with a key stream
+    that's derived from the main symmetric ``key``, the ``seed`` which
+    is typically the first chunk of ciphertext, & the ``pid`` value.
+    This allows the salt to be secret even over a public channel. This
+    encriphered salt is then typically inserted as first element in some
+    ciphertext.
+    """
+    if len(salt) != 128:
+        raise ValueError(f"Invalid salt, salt != 512-bit hash string.")
+    session_entropy = akeys(key=key, salt=seed, pid=pid)
+    encode = axor(abirth(salt).aint(16), key=session_entropy)
+    return await encode.anext()
+
+
+def encode_salt(seed=None, key=csprng(), salt=None, pid=0):
+    """
+    Returns a ciphered ``salt`` that is ciphered with a key stream
+    that's derived from the main symmetric ``key``, the ``seed`` which
+    is typically the first chunk of ciphertext, & the ``pid`` value.
+    This allows the salt to be secret even over a public channel. This
+    encriphered salt is then typically inserted as first element in some
+    ciphertext.
+    """
+    if len(salt) != 128:
+        raise ValueError(f"Invalid salt, salt != 512-bit hash string.")
+    session_entropy = keys(key=key, salt=seed, pid=pid)
+    encode = xor(birth(salt).int(16), key=session_entropy)
+    return encode.next()
+
+
+async def adecode_salt(seed=None, key=csprng(), salt=None, pid=0):
+    """
+    Returns the deciphered ``salt`` that was ciphered with a key stream
+    that's derived from the main symmetric ``key``, the ``seed`` which
+    is typically the first chunk of ciphertext, & the ``pid`` value.
+    This allowed the salt to be secret even over a public channel. This
+    encriphered salt is typically inserted as first element in some
+    ciphertext.
+    """
+    entropy = akeys(key, seed, pid=pid)
+    decode = axor(abirth(salt), key=entropy)
+    decoded_salt = await decode.ahex().azfill(128).anext()
+    if len(decoded_salt) == 128:
+        return decoded_salt
+    else:
+        raise ValueError(
+            f"Decoding resulted in an invalid salt that != 512-bits."
+        )
+
+
+def decode_salt(seed=None, key=csprng(), salt=None, pid=0):
+    """
+    Returns the deciphered ``salt`` that was ciphered with a key stream
+    that's derived from the main symmetric ``key``, the ``seed`` which
+    is typically the first chunk of ciphertext, & the ``pid`` value.
+    This allowed the salt to be secret even over a public channel. This
+    encriphered salt is typically inserted as first element in some
+    ciphertext.
+    """
+    entropy = keys(key, seed, pid=pid)
+    decode = xor(birth(salt), key=entropy)
+    decoded_salt = decode.hex().zfill(128).next()
+    if len(decoded_salt) == 128:
+        return decoded_salt
+    else:
+        raise ValueError(
+            f"Decoding resulted in an invalid salt that != 512-bits."
+        )
+
+
 @comprehension()
 async def aorganize_encryption_streams(
     data=None, key=csprng(), salt=None, pid=0, size=246
@@ -609,9 +682,7 @@ async def aencrypt(data="", key=csprng(), salt=None, size=246, pid=0):
     )
     async with encrypting.arelay(salt):
         session_seed = await encrypting.anext()
-        entropy = akeys(key, session_seed, pid=pid)
-        encode_salt = axor(abirth(salt).aint(16), key=entropy)
-        yield await encode_salt.anext()
+        yield await aencode_salt(session_seed, key, salt, pid)
         async for ciphertext in aorder([session_seed], encrypting.iterator):
             yield ciphertext
 
@@ -646,9 +717,7 @@ def encrypt(data="", key=csprng(), salt=None, size=246, pid=0):
     )
     with encrypting.relay(salt):
         session_seed = encrypting.next()
-        entropy = keys(key, session_seed, pid=pid)
-        encode_salt = xor(birth(salt).int(16), key=entropy)
-        yield encode_salt.next()
+        yield encode_salt(session_seed, key, salt, pid)
         for ciphertext in order([session_seed], encrypting.iterator):
             yield ciphertext
 
@@ -677,10 +746,7 @@ async def adecrypt(data=(), key=csprng(), pid=0):
     ciphered_salt = await ciphertext.anext()
     session_seed = await ciphertext.anext()
 
-    entropy = akeys(key, session_seed, pid=pid)
-    decode_salt = axor(abirth(ciphered_salt), key=entropy)
-    salt = await decode_salt.ahex().azfill(128).anext()
-
+    salt = await adecode_salt(session_seed, key, ciphered_salt, pid)
     decrypting = aorganize_decryption_streams(
         data=aorder([session_seed], ciphertext.iterator),
         key=key,
@@ -715,10 +781,7 @@ def decrypt(data=(), key=csprng(), pid=0):
     ciphered_salt = ciphertext.next()
     session_seed = ciphertext.next()
 
-    entropy = keys(key, session_seed, pid=pid)
-    decode_salt = xor(birth(ciphered_salt), key=entropy)
-    salt = decode_salt.hex().zfill(128).next()
-
+    salt = decode_salt(session_seed, key, ciphered_salt, pid)
     decrypting = organize_decryption_streams(
         data=order([session_seed], ciphertext.iterator),
         key=key,
@@ -729,7 +792,7 @@ def decrypt(data=(), key=csprng(), pid=0):
         yield plaintext
 
 
-async def ajson_encrypt(data=None, key=None, salt=None, pid=0):
+async def ajson_encrypt(data=None, key=csprng(), salt=None, pid=0):
     """
     Returns a json ready dictionary containing one-time pad ciphertext
     of any json serializable ``data`` that's created from a key stream
@@ -752,10 +815,10 @@ async def ajson_encrypt(data=None, key=None, salt=None, pid=0):
     """
     plaintext = adata(json.dumps(data))
     async with plaintext.aencrypt(key, salt, pid=pid) as ciphertext:
-        return {"ciphertext": await ciphertext.alist()}
+        return {"ciphertext": await ciphertext.alist(True)}
 
 
-def json_encrypt(data=None, key=None, salt=None, pid=0):
+def json_encrypt(data=None, key=csprng(), salt=None, pid=0):
     """
     Returns a json ready dictionary containing one-time pad ciphertext
     of any json serializable ``data`` that's created from a key stream
@@ -778,7 +841,7 @@ def json_encrypt(data=None, key=None, salt=None, pid=0):
     """
     plaintext = globals()["data"](json.dumps(data))
     with plaintext.encrypt(key, salt, pid=pid) as ciphertext:
-        return {"ciphertext": ciphertext.list()}
+        return {"ciphertext": ciphertext.list(True)}
 
 
 async def ajson_decrypt(data=None, key=None, pid=0):
@@ -835,7 +898,7 @@ def json_decrypt(data=None, key=None, pid=0):
         return json.loads(plaintext.join())
 
 
-async def abytes_encrypt(data=None, key=None, salt=None, pid=0):
+async def abytes_encrypt(data=None, key=csprng(), salt=None, pid=0):
     """
     Returns a list of the encrypted one-time pad ciphertext of the
     binary ``data`` with a key stream derived from permutations of these
@@ -858,10 +921,10 @@ async def abytes_encrypt(data=None, key=None, salt=None, pid=0):
     """
     encrypting = adata(data).abytes_encrypt(key, salt, pid)
     async with encrypting as ciphertext:
-        return await ciphertext.alist()
+        return await ciphertext.alist(True)
 
 
-def bytes_encrypt(data=None, key=None, salt=None, pid=0):
+def bytes_encrypt(data=None, key=csprng(), salt=None, pid=0):
     """
     Returns a list of the encrypted one-time pad ciphertext of the
     binary ``data`` with a key stream derived from permutations of these
@@ -884,7 +947,7 @@ def bytes_encrypt(data=None, key=None, salt=None, pid=0):
     """
     encrypting = globals()["data"](data).bytes_encrypt(key, salt, pid)
     with encrypting as ciphertext:
-        return ciphertext.list()
+        return ciphertext.list(True)
 
 
 async def abytes_decrypt(data=None, key=None, pid=0):
@@ -948,18 +1011,19 @@ class Passcrypt:
 
     salt = staticmethod(salt)
     asalt = staticmethod(asalt)
+    decode_salt = staticmethod(decode_salt)
+    adecode_salt = staticmethod(adecode_salt)
+    encode_salt = staticmethod(encode_salt)
+    aencode_salt = staticmethod(aencode_salt)
 
     def __call__(
         self, password, salt, *, kb=1024, cpu=3, hardness=1024, aio=False
     ):
+        settings = dict(kb=kb, cpu=cpu, hardness=hardness)
         if aio:
-            return self.anew(
-                password, salt, kb=kb, cpu=cpu, hardness=hardness
-            )
+            return self.anew(password, salt, **settings)
         else:
-            return self.new(
-                password, salt, kb=kb, cpu=cpu, hardness=hardness
-            )
+            return self.new(password, salt, **settings)
 
     @staticmethod
     def _validate_args(kb: int, cpu: int, hardness: int):
@@ -1085,7 +1149,6 @@ class Passcrypt:
 
         update = proof.update
         summary = proof.digest
-        scanner = Namespace()
         digest = summary()
         to_int = int.from_bytes
         cache_width = len(ram)
@@ -1285,6 +1348,10 @@ class OneTimePad:
     subkeys = staticmethod(subkeys)
     apasscrypt = staticmethod(apasscrypt)
     passcrypt = staticmethod(passcrypt)
+    decode_salt = staticmethod(decode_salt)
+    adecode_salt = staticmethod(adecode_salt)
+    encode_salt = staticmethod(encode_salt)
+    aencode_salt = staticmethod(aencode_salt)
     acipher = staticmethod(acipher)
     cipher = staticmethod(cipher)
     adecipher = staticmethod(adecipher)
@@ -1409,9 +1476,9 @@ class OneTimePad:
         keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all generators that
-        are decorated with ``comprehension`` can encrypt valid streams
-        of one-time-pad encrypted ciphertext.
+        instance of ``Comprende``. With that, now all async generators
+        that are decorated with ``comprehension`` can encrypt the
+        plaintext str type strings it yields.
 
         The ``key`` keyword is the user's main encryption / decryption
         key for any particular context. This main key & the first chunk
@@ -1429,6 +1496,16 @@ class OneTimePad:
         used to create a deterministic stream of key material which is
         unlinkable and unique to other ``pid`` streams with the same
         pair of ``key`` & ``salt``.
+
+        The ``size`` keyword argument is the number of characters in the
+        plaintext strings that're processed during encryption & turned
+        into chunks of ciphertext. If ``size`` is set to ``None`` then
+        the plaintext strings are not resized before processing in this
+        way. This may be less efficient to the cipher algorithm, but
+        allows the decryption process to yield plaintext items exactly
+        as they were produced from the plaintext generator. The value
+        246 tends to be the most efficient, especially when the
+        plaintext contains only 7-bit ascii characters.
         """
         salt = salt if salt != None else await acsprng(key)
 
@@ -1439,10 +1516,7 @@ class OneTimePad:
             encrypting = acipher(data=self.aresize(size), key=entropy)
 
         session_seed = await encrypting.anext()
-        session_entropy = akeys(key=key, salt=session_seed, pid=pid)
-        encode_salt = axor(abirth(salt).aint(16), key=session_entropy)
-
-        yield await encode_salt.anext()
+        yield await aencode_salt(session_seed, key, salt, pid)
         async for result in aorder([session_seed], encrypting.iterator):
             yield result
 
@@ -1456,8 +1530,8 @@ class OneTimePad:
 
         Once copied, the ``self`` argument becomes a reference to an
         instance of ``Comprende``. With that, now all generators that
-        are decorated with ``comprehension`` can encrypt valid streams
-        of one-time-pad encrypted ciphertext.
+        are decorated with ``comprehension`` can encrypt the plaintext
+        str type strings it yields.
 
         The ``key`` keyword is the user's main encryption / decryption
         key for any particular context. This main key & the first chunk
@@ -1475,6 +1549,16 @@ class OneTimePad:
         used to create a deterministic stream of key material which is
         unlinkable and unique to other ``pid`` streams with the same
         pair of ``key`` & ``salt``.
+
+        The ``size`` keyword argument is the number of characters in the
+        plaintext strings that're processed during encryption & turned
+        into chunks of ciphertext. If ``size`` is set to ``None`` then
+        the plaintext strings are not resized before processing in this
+        way. This may be less efficient to the cipher algorithm, but
+        allows the decryption process to yield plaintext items exactly
+        as they were produced from the plaintext generator. The value
+        246 tends to be the most efficient, especially when the
+        plaintext contains only 7-bit ascii characters.
         """
         salt = salt if salt != None else csprng(key)
 
@@ -1485,10 +1569,7 @@ class OneTimePad:
             encrypting = cipher(data=self.resize(size), key=entropy)
 
         session_seed = encrypting.next()
-        session_entropy = keys(key=key, salt=session_seed, pid=pid)
-        encode_salt = xor(birth(salt).int(16), key=session_entropy)
-
-        yield encode_salt.next()
+        yield encode_salt(session_seed, key, salt, pid)
         for result in order([session_seed], encrypting.iterator):
             yield result
 
@@ -1501,9 +1582,9 @@ class OneTimePad:
         keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all generators that
-        are decorated with ``comprehension`` can decrypt valid streams
-        of one-time-pad encrypted ciphertext.
+        instance of ``Comprende``. With that, now all async generators
+        that are decorated with ``comprehension`` can decrypt valid
+        streams of one-time-pad encrypted ciphertext.
 
         The ``key`` keyword is the user's main encryption / decryption
         key. This main key & the first chunk of ciphertext are combined
@@ -1523,10 +1604,8 @@ class OneTimePad:
         ciphertext = generics.aiter(self)
         ciphered_salt = await ciphertext.anext()
         session_seed = await ciphertext.anext()
-        session_entropy = akeys(key=key, salt=session_seed, pid=pid)
-        decode_salt = axor(abirth(ciphered_salt), key=session_entropy)
 
-        salt = await decode_salt.ahex().azfill(128).anext()
+        salt = await adecode_salt(session_seed, key, ciphered_salt, pid)
         entropy = akeys(key=key, salt=salt, pid=pid)
         async for plaintext in adecipher(
             data=aorder([session_seed], ciphertext.iterator), key=entropy
@@ -1564,10 +1643,8 @@ class OneTimePad:
         ciphertext = generics.iter(self)
         ciphered_salt = ciphertext.next()
         session_seed = ciphertext.next()
-        session_entropy = keys(key=key, salt=session_seed, pid=pid)
-        decode_salt = xor(birth(ciphered_salt), key=session_entropy)
 
-        salt = decode_salt.hex().zfill(128).next()
+        salt = decode_salt(session_seed, key, ciphered_salt, pid)
         entropy = keys(key=key, salt=salt, pid=pid)
         for plaintext in decipher(
             data=order([session_seed], ciphertext.iterator), key=entropy
@@ -1575,24 +1652,68 @@ class OneTimePad:
             yield plaintext
 
     @comprehension()
-    async def _abytes_encrypt(self, key=None, salt=None, pid=0):
+    async def _abytes_encrypt(self, key=csprng(), salt=None, pid=0):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
         a baked-in, one-time-pad encryption algorithm for binary data,
         while also keeping some encapsulation of code and functionality.
+
+        Once copied, the ``self`` argument becomes a reference to an
+        instance of ``Comprende``. With that, now all async generators
+        that are decorated with ``comprehension`` can encrypt the
+        plaintext bytes type strings it yields.
+
+        The ``key`` keyword is the user's main encryption / decryption
+        key for any particular context. This main key & the first chunk
+        of ciphertext are combined & used to encrypt / decrypt the
+        ``salt`` key. The ciphered salt key is the first transmitted
+        chunk in a ciphertext stream.
+
+        The ``salt`` keyword should be a random 512-bit hash. The
+        plaintext ``salt`` is used as an ephemeral key to initialize a
+        deterministc stream of key material which is unique to a
+        particualr ``key``.
+
+        The ``pid`` keyword argument is any identifier which is unique
+        to a particular pair of ``key`` & ``salt``. This identifier is
+        used to create a deterministic stream of key material which is
+        unlinkable and unique to other ``pid`` streams with the same
+        pair of ``key`` & ``salt``.
         """
         encoder = self.ato_base64().adecode().adelimit()
         async for result in encoder.aencrypt(key, salt, pid):
             yield result
 
     @comprehension()
-    def _bytes_encrypt(self, key=None, salt=None, pid=0):
+    def _bytes_encrypt(self, key=csprng(), salt=None, pid=0):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
         a baked-in, one-time-pad encryption algorithm for binary data,
         while also keeping some encapsulation of code and functionality.
+
+        Once copied, the ``self`` argument becomes a reference to an
+        instance of ``Comprende``. With that, now all generators that
+        are decorated with ``comprehension`` can encrypt the plaintext
+        bytes type strings it yields.
+
+        The ``key`` keyword is the user's main encryption / decryption
+        key for any particular context. This main key & the first chunk
+        of ciphertext are combined & used to encrypt / decrypt the
+        ``salt`` key. The ciphered salt key is the first transmitted
+        chunk in a ciphertext stream.
+
+        The ``salt`` keyword should be a random 512-bit hash. The
+        plaintext ``salt`` is used as an ephemeral key to initialize a
+        deterministc stream of key material which is unique to a
+        particualr ``key``.
+
+        The ``pid`` keyword argument is any identifier which is unique
+        to a particular pair of ``key`` & ``salt``. This identifier is
+        used to create a deterministic stream of key material which is
+        unlinkable and unique to other ``pid`` streams with the same
+        pair of ``key`` & ``salt``.
         """
         encoder = self.to_base64().decode().delimit()
         for result in encoder.encrypt(key, salt, pid):
@@ -2012,7 +2133,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         This scheme is easier to implement correctly & is easier to
         guarantee the infeasibility of a timing attack, since "constant
         time" operations are truly dependant on architectures, languages
-        & resource allowcation for those operations.
+        & resource allocation for those operations.
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
@@ -2027,7 +2148,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             raise ValueError("HMAC of ``data`` isn't valid.")
 
     async def apasscrypt(
-        self, password, salt, kb=1024, cpu=3, hardness=1024
+        self, password, salt, *, kb=1024, cpu=3, hardness=1024
     ):
         """
         An implementation of an scrypt-like password derivation function
@@ -2045,7 +2166,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
         )
 
-    async def auuids(self, category=None, length=16, salt=None):
+    async def auuids(self, category=None, size=16, salt=None):
         """
         Returns an async coroutine that can safely create unique user
         IDs based on the category set by the user. The keyword arguments
@@ -2056,7 +2177,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             as 'emails', 'unregistered_user', 'address'. It is up to the
             user, these categories distinguish the uuids created
             uniquely from other categories.
-        ``length``      The length of the hex strings returned by this
+        ``size``        The length of the hex strings returned by this
             uuid generator.
         ``salt``        An optional random salt value of arbitrary type &
             size that, if passed needs to be managed manually by the
@@ -2091,7 +2212,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             that are specific to a particular category.
             """
             name = await (await self.anamestream(category)).anext()
-            uuids = await amake_uuid(length, salt=name).aprime()
+            uuids = await amake_uuid(size, salt=name).aprime()
             salt = salt if salt != None else csprng(name)[:64]
             async with uuids.arelay(salt) as ids:
                 stamp = None
@@ -2902,7 +3023,7 @@ class Database:
         This scheme is easier to implement correctly & is easier to
         guarantee the infeasibility of a timing attack, since "constant
         time" operations are truly dependant on architectures, languages
-        & resource allowcation for those operations.
+        & resource allocation for those operations.
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
@@ -2913,7 +3034,7 @@ class Database:
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
 
-    def passcrypt(self, password, salt, kb=1024, cpu=3, hardness=1024):
+    def passcrypt(self, password, salt, *, kb=1024, cpu=3, hardness=1024):
         """
         An implementation of an scrypt-like password derivation function
         which requires a tunable amount of memory & cpu time to compute.
@@ -2930,7 +3051,7 @@ class Database:
             salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
         )
 
-    def uuids(self, category=None, length=16, salt=None):
+    def uuids(self, category=None, size=16, salt=None):
         """
         Returns a coroutine that can safely create unique user IDs based
         on the category set by the user. The keyword arguments refer to:
@@ -2940,7 +3061,7 @@ class Database:
             as 'emails', 'unregistered_user', 'address'. It is up to the
             user, these categories distinguish the uuids created
             uniquely from other categories.
-        ``length``      The length of the hex strings returned by this
+        ``size``        The length of the hex strings returned by this
             uuid generator.
         ``salt``        An optional random salt value of arbitrary type &
             size that, if passed needs to be managed manually by the
@@ -2975,7 +3096,7 @@ class Database:
             that are specific to a particular category.
             """
             name = self.namestream(category).next()
-            uuids = make_uuid(length, salt=name).prime()
+            uuids = make_uuid(size, salt=name).prime()
             salt = salt if salt != None else csprng(name)[:64]
             with uuids.relay(salt) as ids:
                 stamp = None
@@ -3377,7 +3498,9 @@ __extras = {
     "abytes_keys": abytes_keys,
     "acipher": acipher,
     "adecipher": adecipher,
+    "adecode_salt": adecode_salt,
     "adecrypt": adecrypt,
+    "aencode_salt": aencode_salt,
     "aencrypt": aencrypt,
     "ajson_decrypt": ajson_decrypt,
     "ajson_encrypt": ajson_encrypt,
@@ -3393,7 +3516,9 @@ __extras = {
     "bytes_keys": bytes_keys,
     "cipher": cipher,
     "decipher": decipher,
+    "decode_salt": decode_salt,
     "decrypt": decrypt,
+    "encode_salt": encode_salt,
     "encrypt": encrypt,
     "json_decrypt": json_decrypt,
     "json_encrypt": json_encrypt,
