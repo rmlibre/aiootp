@@ -18,6 +18,45 @@
 =============
 
 
+Changes for version 0.8.1 
+========================= 
+
+
+Major Changes 
+------------- 
+
+-  Added ``sum_passcrypt`` & ``asum_passcrypt`` chainable generator methods 
+   to ``Comprende`` class. They cumulatively apply the passcrypt algorithm 
+   to each yielded value from an underlying generator with the passcrypt'd 
+   prior yielded result used as a salt. This allows making proofs of work, 
+   memory & space-time out of iterations of the passcrypt algorithm very 
+   simple. 
+
+
+Minor Changes 
+------------- 
+
+-  Various inaccurate docstrings fixed. 
+-  Various refactorings of the codebase. 
+-  Made ``kb``, ``cpu``, & ``hardness`` arguments into keyword only arguments 
+   in ``AsyncDatabase`` & ``Database`` classes. 
+-  The ``length`` keyword argument in functions around the library was 
+   changed to ``size`` to be consistent across the whole package. Reducing 
+   the cognitive burden of memorizing more than one name for the same concept. 
+-  Various efficiency boosts. 
+-  Edits to ``README.rst``. 
+-  Added ``encode_salt``, ``aencode_salt``, ``decode_salt`` & ``adecode_salt`` 
+   functions to the library, which gives access to the procedure used to 
+   encrypt & decrypt the random salt which is often the first element 
+   produced in one-time pad ciphertexts. 
+-  Added cryptographically secure pseudo-random values as default keys in 
+   encryption functions to safeguard against users accidentally encrypting 
+   data without specifying a key. This way, such mistakes will produce 
+   ciphertext with an unrecoverable key, instead of without a key at all. 
+
+
+
+
 Changes for version 0.8.0
 =========================
 
@@ -25,7 +64,7 @@ Changes for version 0.8.0
 Major Changes
 -------------
 
--  Fix a ``test_hmac``, ``atest_hmac`` functions in the keys & database 
+-  Fix ``test_hmac``, ``atest_hmac`` functions in the keys & database 
    classes. The new non-constant-time algorithm needs a random salt to be 
    added before doing the secondary hmac to prevent some potential exotic 
    forms of chosen plaintext/ciphertext attacks on the algorithm. The last 
@@ -227,7 +266,7 @@ Major Changes
    metatag child databases.
 -  Added the methods ``auuids`` & ``uuids`` to ``AsyncDatabase`` & ``Database``
    which return coroutines that accept potentially sensitive identifiers &
-   turns them into salted ``length`` sized hashes distinguished by a ``salt``
+   turns them into salted ``size`` length hashes distinguished by a ``salt``
    & a ``category``.
 
 

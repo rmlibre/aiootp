@@ -68,7 +68,7 @@ Users can create and modify transparently encrypted databases:
     
     salt = await db.asalt()
     
-    # This is a memory & cpu hard function to protect passwords ->
+    # This is a tunably memory & cpu hard function to protect passwords ->
     
     password = await db.apasscrypt("password012345", salt)
     
@@ -103,15 +103,21 @@ Users can create and modify transparently encrypted databases:
     account_data = await db.apop(tag)
     
     
-    # Any type & amount of data can be verified with an hmac, although
-    
-    # datatypes where order of values is not preserved may fail to validate ->
+    # Any type & amount of data can be verified with an hmac ->
     
     hmac = await db.ahmac({"id": 1234, "payload": "message"})
     
-    await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac)
+    await db.atest_hmac({"id": 1234, "payload": "message"}, hmac=hmac)
     
- >>>ValueError: "HMAC of ``data`` isn't valid."
+ >>>True
+    
+    # Although, datatypes where order of values is not preserved may fail to 
+    
+    # validate -> 
+    
+    await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac) 
+    
+ >>>ValueError: "HMAC of ``data`` isn't valid." 
     
     
     # Create child databases accessible from the parent by a ``metatag`` ->
@@ -128,7 +134,7 @@ Users can create and modify transparently encrypted databases:
     
  >>>True
     
-    assert isinstance(molly, AsyncDatabase)
+    assert isinstance(molly, aiootp.AsyncDatabase)
     
     
     # Write database changes to disk with transparent encryption ->
@@ -149,7 +155,7 @@ Users can create and modify transparently encrypted databases:
     
     clients = await db.ametatag("clients")
     
-    email_uuids = await clients.auuids("emails", length=32)
+    email_uuids = await clients.auuids("emails", size=32)
     
     for email_address in ["brittany@email.com", "john.doe@email.net"]:
     
@@ -1024,6 +1030,45 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 =============
 
 
+Changes for version 0.8.1 
+========================= 
+
+
+Major Changes 
+------------- 
+
+-  Added ``sum_passcrypt`` & ``asum_passcrypt`` chainable generator methods 
+   to ``Comprende`` class. They cumulatively apply the passcrypt algorithm 
+   to each yielded value from an underlying generator with the passcrypt'd 
+   prior yielded result used as a salt. This allows making proofs of work, 
+   memory & space-time out of iterations of the passcrypt algorithm very 
+   simple. 
+
+
+Minor Changes 
+------------- 
+
+-  Various inaccurate docstrings fixed. 
+-  Various refactorings of the codebase. 
+-  Made ``kb``, ``cpu``, & ``hardness`` arguments into keyword only arguments 
+   in ``AsyncDatabase`` & ``Database`` classes. 
+-  The ``length`` keyword argument in functions around the library was 
+   changed to ``size`` to be consistent across the whole package. Reducing 
+   the cognitive burden of memorizing more than one name for the same concept. 
+-  Various efficiency boosts. 
+-  Edits to ``README.rst``. 
+-  Added ``encode_salt``, ``aencode_salt``, ``decode_salt`` & ``adecode_salt`` 
+   functions to the library, which gives access to the procedure used to 
+   encrypt & decrypt the random salt which is often the first element 
+   produced in one-time pad ciphertexts. 
+-  Added cryptographically secure pseudo-random values as default keys in 
+   encryption functions to safeguard against users accidentally encrypting 
+   data without specifying a key. This way, such mistakes will produce 
+   ciphertext with an unrecoverable key, instead of without a key at all. 
+
+
+
+
 Changes for version 0.8.0
 =========================
 
@@ -1031,7 +1076,7 @@ Changes for version 0.8.0
 Major Changes
 -------------
 
--  Fix a ``test_hmac``, ``atest_hmac`` functions in the keys & database 
+-  Fix ``test_hmac``, ``atest_hmac`` functions in the keys & database 
    classes. The new non-constant-time algorithm needs a random salt to be 
    added before doing the secondary hmac to prevent some potential exotic 
    forms of chosen plaintext/ciphertext attacks on the algorithm. The last 
@@ -1233,7 +1278,7 @@ Major Changes
    metatag child databases.
 -  Added the methods ``auuids`` & ``uuids`` to ``AsyncDatabase`` & ``Database``
    which return coroutines that accept potentially sensitive identifiers &
-   turns them into salted ``length`` sized hashes distinguished by a ``salt``
+   turns them into salted ``size`` length hashes distinguished by a ``salt``
    & a ``category``.
 
 

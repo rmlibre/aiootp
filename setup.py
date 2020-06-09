@@ -66,7 +66,7 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
 setup(
     name="aiootp",
     license="AGPLv3",
-    version="0.8.0",
+    version="0.8.1",
     description=description,
     long_description=long_description,
     url="https://github.com/rmlibre/aiootp",

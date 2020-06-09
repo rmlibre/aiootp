@@ -68,7 +68,7 @@ Users can create and modify transparently encrypted databases:
     
     salt = await db.asalt()
     
-    # This is a memory & cpu hard function to protect passwords ->
+    # This is a tunably memory & cpu hard function to protect passwords ->
     
     password = await db.apasscrypt("password012345", salt)
     
@@ -103,15 +103,21 @@ Users can create and modify transparently encrypted databases:
     account_data = await db.apop(tag)
     
     
-    # Any type & amount of data can be verified with an hmac, although
-    
-    # datatypes where order of values is not preserved may fail to validate ->
+    # Any type & amount of data can be verified with an hmac ->
     
     hmac = await db.ahmac({"id": 1234, "payload": "message"})
     
-    await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac)
+    await db.atest_hmac({"id": 1234, "payload": "message"}, hmac=hmac)
     
- >>>ValueError: "HMAC of ``data`` isn't valid."
+ >>>True
+    
+    # Although, datatypes where order of values is not preserved may fail to 
+    
+    # validate -> 
+    
+    await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac) 
+    
+ >>>ValueError: "HMAC of ``data`` isn't valid." 
     
     
     # Create child databases accessible from the parent by a ``metatag`` ->
@@ -128,7 +134,7 @@ Users can create and modify transparently encrypted databases:
     
  >>>True
     
-    assert isinstance(molly, AsyncDatabase)
+    assert isinstance(molly, aiootp.AsyncDatabase)
     
     
     # Write database changes to disk with transparent encryption ->
@@ -149,7 +155,7 @@ Users can create and modify transparently encrypted databases:
     
     clients = await db.ametatag("clients")
     
-    email_uuids = await clients.auuids("emails", length=32)
+    email_uuids = await clients.auuids("emails", size=32)
     
     for email_address in ["brittany@email.com", "john.doe@email.net"]:
     

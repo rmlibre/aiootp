@@ -78,15 +78,21 @@ Description
     account_data = db.pop(tag)
     
     
-    # Any type & amount of data can be verified with an hmac, although
-    
-    # datatypes where order of values is not preserved may fail to validate ->
+    # Any type & amount of data can be verified with an hmac ->
     
     hmac = db.hmac({"id": 1234, "payload": "message"})
     
-    db.test_hmac({"payload": "message", "id": 1234}, hmac=hmac)
+    db.test_hmac({"id": 1234, "payload": "message"}, hmac=hmac)
     
- >>>ValueError: "HMAC of ``data`` isn't valid."
+ >>>True
+    
+    # Although, datatypes where order of values is not preserved may fail to 
+    
+    # validate -> 
+    
+    db.test_hmac({"payload": "message", "id": 1234}, hmac=hmac) 
+    
+ >>>ValueError: "HMAC of ``data`` isn't valid." 
     
     
     # Create child databases accessible from the parent by a ``metatag`` ->
@@ -103,7 +109,7 @@ Description
     
  >>>True
     
-    assert isinstance(molly.__class__, Database)
+    assert isinstance(molly, aiootp.Database)
     
     
     # Write database changes to disk ->
@@ -257,15 +263,21 @@ Description
     account_data = await db.apop(tag)
     
     
-    # Any type & amount of data can be verified with an hmac, although
-    
-    # datatypes where order of values is not preserved may fail to validate ->
+    # Any type & amount of data can be verified with an hmac ->
     
     hmac = await db.ahmac({"id": 1234, "payload": "message"})
     
-    await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac)
+    await db.atest_hmac({"id": 1234, "payload": "message"}, hmac=hmac)
     
- >>>ValueError: "HMAC of ``data`` isn't valid."
+ >>>True
+    
+    # Although, datatypes where order of values is not preserved may fail to 
+    
+    # validate -> 
+    
+    await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac) 
+    
+ >>>ValueError: "HMAC of ``data`` isn't valid." 
     
     
     # Create child databases accessible from the parent by a ``metatag`` ->
@@ -282,7 +294,7 @@ Description
     
  >>>True
     
-    assert isinstance(molly.__class__, AsyncDatabase)
+    assert isinstance(molly, aiootp.AsyncDatabase)
     
     
     # Write database changes to disk ->
