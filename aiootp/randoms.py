@@ -395,10 +395,10 @@ async def atoken_bytes(size):
 @comprehension()
 async def asalted_multiply(mod=primes[258][-1], offset=None):
     """
-    Allows for non-communitive multiplication. This assists pseudo-random
-    number generators in turning combinations of low entropy number
-    sources into permutations. This greatly increases the amount of
-    knowledge an attacker must have to perform pre-image or known-
+    Allows for non-commutative multiplication. This assists pseudo-
+    random number generators in turning combinations of low entropy
+    number sources into permutations. This greatly increases the amount
+    of knowledge an attacker must have to perform pre-image or known-
     plaintext attacks on the hashes of those permutations.
 
     ``mod``:    Should be a prime of bit-size matching the key space
@@ -434,10 +434,10 @@ async def asalted_multiply(mod=primes[258][-1], offset=None):
 @comprehension()
 def salted_multiply(mod=primes[258][-1], offset=None):
     """
-    Allows for non-communitive multiplication. This assists pseudo-random
-    number generators in turning combinations of low entropy number
-    sources into permutations. This greatly increases the amount of
-    knowledge an attacker must have to perform pre-image or known-
+    Allows for non-commutative multiplication. This assists pseudo-
+    random number generators in turning combinations of low entropy
+    number sources into permutations. This greatly increases the amount
+    of knowledge an attacker must have to perform pre-image or known-
     plaintext attacks on the hashes of those permutations.
 
     ``mod``:    Should be a prime of bit-size matching the key space
@@ -1363,7 +1363,7 @@ def leaf(
 
 
 @comprehension()
-async def amake_uuid(length=16, salt=None):
+async def amake_uuid(size=16, salt=None):
     """
     Creates a deterministic, unique user id from a ``salt`` & a ``stamp``
     sent into coroutine.
@@ -1373,13 +1373,13 @@ async def amake_uuid(length=16, salt=None):
     async with Comprende().arelay(salt):
         while True:
             uuid = ""
-            while len(uuid) < length:
+            while len(uuid) < size:
                 uuid += sha_512(uuid, stamp, salt)
-            stamp = yield uuid[:length]
+            stamp = yield uuid[:size]
 
 
 @comprehension()
-def make_uuid(length=16, salt=None):
+def make_uuid(size=16, salt=None):
     """
     Creates a deterministic, unique user id from a ``salt`` & a ``stamp``
     sent into coroutine.
@@ -1389,25 +1389,25 @@ def make_uuid(length=16, salt=None):
     with Comprende().relay(salt):
         while True:
             uuid = ""
-            while len(uuid) < length:
+            while len(uuid) < size:
                 uuid += sha_512(uuid, stamp, salt)
-            stamp = yield uuid[:length]
+            stamp = yield uuid[:size]
 
 
-async def asalt():
+async def asalt(entropy=_salt()):
     """
     Returns a cryptographically secure pseudo-random hex number
     that also seeds new entropy into the acsprng generator.
     """
-    return  await acsprng(await atoken_bytes(128))
+    return  await acsprng([entropy, await atoken_bytes(128)])
 
 
-def salt():
+def salt(entropy=_salt()):
     """
     Returns a cryptographically secure pseudo-random hex number
     that also seeds new entropy into the csprng generator.
     """
-    return csprng(token_bytes(128))
+    return csprng([entropy, token_bytes(128)])
 
 
 try:

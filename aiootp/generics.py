@@ -503,7 +503,11 @@ class Comprende:
         ciphertext.append(result)
 
     for result in aiootp.unpack(ciphertext).decrypt(key):
-        # This will yield the original results in plaintext
+        # This will yield the original results in plaintext, but all the
+        # numbers will be concatenated together. To separate each number
+        # then ``size=None`` should be passed into ``encrypt`` to tell
+        # the algorithm not to resize the inputs to the most efficient
+        # buffer size, which is 246.
         print(result)
 
 
@@ -556,7 +560,12 @@ class Comprende:
         ciphertext.append(result)
 
     async for result in aiootp.aunpack(ciphertext).adecrypt(key):
-        # This will yield the original results in plaintext
+        # This will yield the original results in plaintext, but all the
+        # numbers will be concatenated together. To separate each number
+        # then ``size=None`` should be passed into ``aencrypt`` to tell
+        # the algorithm not to resize the inputs to the most efficient
+        # buffer size, which is 246.
+        print(result)
 
 
     Comprende has many more useful features to play around with! Have
@@ -2121,31 +2130,31 @@ class Comprende:
             for result in self:
                 yield int.from_bytes(result, byte_order)
 
-    async def aint_to_bytes(self, length=128, byte_order="big", *, of=None):
+    async def aint_to_bytes(self, size=128, byte_order="big", *, of=None):
         """
-        Applies ``int.to_bytes(result, length, byte_order)`` to each
+        Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende async
         generator before yielding the result.
         """
         if of != None:
             async for prev, result in azip(self, of):
-                yield prev, int.to_bytes(result, length, byte_order)
+                yield prev, int.to_bytes(result, size, byte_order)
         else:
             async for result in self:
-                yield int.to_bytes(result, length, byte_order)
+                yield int.to_bytes(result, size, byte_order)
 
-    def int_to_bytes(self, length=128, byte_order="big", *, of=None):
+    def int_to_bytes(self, size=128, byte_order="big", *, of=None):
         """
-        Applies ``int.to_bytes(result, length, byte_order)`` to each
+        Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende sync
         generator before yielding the result.
         """
         if of != None:
             for prev, result in zip(self, of):
-                yield prev, int.to_bytes(result, length, byte_order)
+                yield prev, int.to_bytes(result, size, byte_order)
         else:
             for result in self:
-                yield int.to_bytes(result, length, byte_order)
+                yield int.to_bytes(result, size, byte_order)
 
     async def ahex_to_bytes(self, *, of=None):
         """
@@ -3505,18 +3514,18 @@ def bytes_to_int(bytes_object, byte_order="big"):
     return int.from_bytes(bytes_object, byte_order)
 
 
-async def aint_to_bytes(bytes_object, length=128, byte_order="big"):
+async def aint_to_bytes(bytes_object, size=128, byte_order="big"):
     """
     Returns the bytes object representation of an integer.
     """
-    return int.to_bytes(bytes_object, length, byte_order)
+    return int.to_bytes(bytes_object, size, byte_order)
 
 
-def int_to_bytes(bytes_object, length=128, byte_order="big"):
+def int_to_bytes(bytes_object, size=128, byte_order="big"):
     """
     Returns the bytes object representation of an integer.
     """
-    return int.to_bytes(bytes_object, length, byte_order)
+    return int.to_bytes(bytes_object, size, byte_order)
 
 
 async def abinary_tree(depth=4, leaf={}, current=0):

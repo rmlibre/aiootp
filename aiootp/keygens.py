@@ -327,13 +327,31 @@ class AsyncKeys:
         Provides a simple interface for users to create deterministic
         & externally uncorrelatable key material stream from a user-
         defined ``pid`` value.
+
+        Usage Example:
+
+        import aiootp
+
+        keyring = aiootp.AsyncKeys(key)
+        keystream = keyring["conversation"]
+        datastream = aiootp.adata("Hey, when's the party?").aascii_to_int()
+
+        async with datastream.axor(keystream) as ciphering:
+            ciphered = await ciphering.alist()
+
+        salt = await keystream.aresult(exit=True)
+
+        derived_keystream = keyring.akeys(salt=salt, pid="conversation")
+        deciphering = aiootp.aunpack(ciphered).axor(derived_keystream)
+        async with deciphering.aint_to_ascii() as plaintext:
+            assert "Hey, when's the party?" == await plaintext.ajoin()
         """
         return akeys(key=self.key, pid=pid)
 
     @property
     def key(self):
         """
-        Returns the main ``self.key``.
+        Returns the instance's main symmetric key.
         """
         return self._key
 
@@ -341,7 +359,8 @@ class AsyncKeys:
         self, data=None, *, key=None, hasher=asha_256_hmac
     ):
         """
-        Creates an HMAC code of ``data`` using ``key`` & the hashing
+        Creates an HMAC code of ``data`` using ``key``  or the
+        instance's ``self.key`` if it's not supplied & the hashing
         function ``hasher``.
         """
         return await hasher(data, key=key if key else self.key)
@@ -361,7 +380,7 @@ class AsyncKeys:
         hmac it supplied since it is salted. This scheme is easier to
         implement correctly & is easier to guarantee the infeasibility
         of a timing attack, since "constant time" operations are truly
-        dependant on architectures, languages & resource allowcation for
+        dependant on architectures, languages & resource allocation for
         those operations. An async ``hasher`` function can also be
         supplied to use that algorithm instead of the default
         ``asha_256_hmac``.
@@ -431,19 +450,38 @@ class Keys:
         Provides a simple interface for users to create deterministic
         & externally uncorrelatable key material stream from a user-
         defined ``pid`` value.
+
+        Usage Example:
+
+        import aiootp
+
+        keyring = aiootp.Keys(key)
+        keystream = keyring["conversation"]
+        datastream = aiootp.data("Hey, when's the party?").ascii_to_int()
+
+        with datastream.xor(keystream) as ciphering:
+            ciphered = ciphering.list()
+
+        salt = keystream.result(exit=True)
+
+        derived_keystream = keyring.keys(salt=salt, pid="conversation")
+        deciphering = aiootp.unpack(ciphered).xor(derived_keystream)
+        with deciphering.int_to_ascii() as plaintext:
+            assert "Hey, when's the party?" == plaintext.join()
         """
         return keys(key=self.key, pid=pid)
 
     @property
     def key(self):
         """
-        Returns the main ``self.key``.
+        Returns the instance's main symmetric key.
         """
         return self._key
 
     def hmac(self, data=None, *, key=None, hasher=sha_256_hmac):
         """
-        Creates an HMAC code of ``data`` using ``key`` & the hashing
+        Creates an HMAC code of ``data`` using ``key``  or the
+        instance's ``self.key`` if it's not supplied & the hashing
         function ``hasher``.
         """
         return hasher(data, key=key if key else self.key)
@@ -463,7 +501,7 @@ class Keys:
         hmac it supplied since it is salted. This scheme is easier to
         implement correctly & is easier to guarantee the infeasibility
         of a timing attack, since "constant time" operations are truly
-        dependant on architectures, languages & resource allowcation for
+        dependant on architectures, languages & resource allocation for
         those operations.  A sync ``hasher`` function can also be
         supplied to use that algorithm instead of the default
         ``sha_256_hmac``.
