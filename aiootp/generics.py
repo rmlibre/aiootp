@@ -1606,8 +1606,8 @@ class Comprende:
             async for prev, result in azip(self, results):
                 yield prev, result
         else:
-            self = self[:span] if span else self
-            async with self as accumulator:
+            target = self[:span] if span else self
+            async with target as accumulator:
                 results = await accumulator.alist(mutable=True)
             results.sort(key=key)
             for result in results:
@@ -1627,8 +1627,8 @@ class Comprende:
             for prev, result in zip(self, results):
                 yield prev, result
         else:
-            self = self[:span] if span else self
-            with self as accumulator:
+            target = self[:span] if span else self
+            with target as accumulator:
                 results = accumulator.list(mutable=True)
             results.sort(key=key)
             for result in results:
