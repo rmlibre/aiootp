@@ -25,6 +25,7 @@ from .generics import Comprende, comprehension
 from .generics import convert_static_method_to_member
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
+from .ciphers import validator
 from .ciphers import salt, asalt
 from .ciphers import OneTimePad
 from .ciphers import passcrypt as _passcrypt
@@ -117,7 +118,7 @@ def passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
 
 
 @comprehension()
-async def asum_passcrypt(self, salt, kb=1024, cpu=3, hardness=1024):
+async def asum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
     """
     Cumulatively applies the ``apasscrypt`` algorithm to each value
     that's yielded from the underlying Comprende async generator with
@@ -131,7 +132,7 @@ async def asum_passcrypt(self, salt, kb=1024, cpu=3, hardness=1024):
 
 
 @comprehension()
-def sum_passcrypt(self, salt, kb=1024, cpu=3, hardness=1024):
+def sum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
     """
     Cumulatively applies the ``passcrypt`` algorithm to each value
     that's yielded from the underlying Comprende sync generator with
@@ -280,6 +281,11 @@ def insert_stateful_key_generator_objects():
             )
 
     OneTimePad.__init__ = __init__
+    pad = OneTimePad(salt())
+    validator.hmac = pad.hmac
+    validator.ahmac = pad.ahmac
+    validator.test_hmac = pad.test_hmac
+    validator.atest_hmac = pad.atest_hmac
 
 
 insert_debuggers()
