@@ -587,8 +587,8 @@ What other tools are available to users?:
     # methods in ``aiootp.Comprende.lazy_generators``.
     
     {
-        "_agetitem",
-        "_getitem",
+        "_agetitem",  # These getitem methods are accessible from an
+        "_getitem",   # instance's ``__getitem__`` bracket lookup syntax.
         "aascii_to_int",
         "abin",
         "abytes",
@@ -630,6 +630,7 @@ What other tools are available to users?:
         "aslice",
         "asplit",
         "astr",
+        "asum_passcrypt",
         "asum_sha_256",
         "asum_sha_512",
         "atag",
@@ -677,6 +678,7 @@ What other tools are available to users?:
         "slice",
         "split",
         "str",
+        "sum_passcrypt",
         "sum_sha_256",
         "sum_sha_512",
         "tag",

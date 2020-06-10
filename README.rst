@@ -587,8 +587,8 @@ What other tools are available to users?:
     # methods in ``aiootp.Comprende.lazy_generators``.
     
     {
-        "_agetitem",
-        "_getitem",
+        "_agetitem",  # These getitem methods are accessible from an
+        "_getitem",   # instance's ``__getitem__`` bracket lookup syntax.
         "aascii_to_int",
         "abin",
         "abytes",
@@ -630,6 +630,7 @@ What other tools are available to users?:
         "aslice",
         "asplit",
         "astr",
+        "asum_passcrypt",
         "asum_sha_256",
         "asum_sha_512",
         "atag",
@@ -677,6 +678,7 @@ What other tools are available to users?:
         "slice",
         "split",
         "str",
+        "sum_passcrypt",
         "sum_sha_256",
         "sum_sha_512",
         "tag",
@@ -1028,6 +1030,52 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 ``Changelog``
 =============
+
+
+Changes for version 0.9.0 
+========================= 
+
+
+Major Changes 
+------------- 
+
+-  Added hmac codes to ciphertext for the following functions: ``json_encrypt``, 
+   ``ajson_encrypt``, ``bytes_encrypt``, ``abytes_encrypt``, 
+   ``Database.encrypt`` & ``AsyncDatabase.aencrypt``. This change greatly 
+   increases the security of ciphertext by ensuring it hasn't been modified 
+   or tampered with maliciously. One-time pad ciphertext is maleable, so 
+   without hmac validation it can be changed to successfully allow 
+   decryption but return the wrong plaintext. These functions are the 
+   highest level abstractions of the library for encryption/decryption, 
+   which made them excellent targets for this important security update. 
+   As well, it isn't easily possible for the library to provide hmac codes 
+   for generators that produce ciphertext, because the end of a stream of 
+   ciphertext isn't known until after the results have left the scope 
+   of library code. So users will need to produce their own hmac codes for 
+   generator ciphertext unless we find an elegant solution to this issue. 
+   These functions now all return dictionaries with the associated hmac 
+   stored in the ``"hmac"`` entry. The bytes functions formerly returned 
+   lists, now their ciphertext is available from the ``"ciphertext"`` entry. 
+   And, all database files will have an hmac attached to them now. These 
+   changes were designed to still be compatible with old ciphertexts but 
+   they'll likely be made incompatible by the v0.11.x major release. 
+-  Only truthy values are now valid ``key`` keyword arguments in the 
+   library's ``keys``, ``akeys``, ``bytes_keys``, ``abytes_keys``, ``subkeys``, 
+   & ``asubkeys`` infinite keystream generators. Also now seeding extra entropy 
+   into ``csprng`` & ``acsprng`` when ``salt`` is falsey within them. 
+-  Only truthy values are now valid for ``password`` & ``salt`` arguments in 
+   ``apasscrypt``, ``passcrypt`` & their variants. 
+
+
+Minor Changes 
+------------- 
+
+-  Updates to documentation & ``README.rst`` tutorials.
+-  The ``kb``, ``cpu``, & ``hardness`` arguments in ``sum_passcrypt`` &
+   ``asum_passcrypt`` chainable generator methods were switched to keyword
+   only arguments.
+
+
 
 
 Changes for version 0.8.1 
