@@ -39,6 +39,7 @@ from os import urandom
 import random as _random
 from secrets import choice
 from secrets import token_bytes
+from secrets import randbits as token_bits
 from hashlib import sha3_256
 from hashlib import sha3_512
 from collections import deque
@@ -392,6 +393,13 @@ async def atoken_bytes(size):
     return token_bytes(size)
 
 
+async def atoken_bits(size):
+    """
+    Returns ``size`` bytes of ``secrets.randbits`` entropy.
+    """
+    return token_bits(size)
+
+
 @comprehension()
 async def asalted_multiply(mod=primes[258][-1], offset=None):
     """
@@ -414,7 +422,7 @@ async def asalted_multiply(mod=primes[258][-1], offset=None):
     randomized_number = await multiply(numbers)
     """
     if offset == None:
-        offset = token_number(int(math.log2(mod)//5))
+        offset = token_bits(int(math.log2(mod) + 128))
     mix = int(sha_512(mod, offset), 16)
     start = seed = int(sha_256(mix, offset), 16)
     numbers = (mix * seed * offset,)
@@ -453,7 +461,7 @@ def salted_multiply(mod=primes[258][-1], offset=None):
     randomized_number = multiply(numbers)
     """
     if offset == None:
-        offset = token_number(int(math.log2(mod)//5))
+        offset = token_bits(int(math.log2(mod) + 128))
     mix = int(sha_512(mod, offset), 16)
     start = seed = int(sha_256(mix, offset), 16)
     numbers = (mix * seed * offset,)
@@ -510,7 +518,7 @@ def _salt(*, _entropy=_initial_entropy):
     return _salt_multiply(_entropy)
 
 
-async def arandom_256(entropy=_salt(), runs=26, refresh=False):
+async def arandom_256(entropy=sha_512(_salt()), runs=26, refresh=False):
     """
     Returns a 256-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -527,7 +535,7 @@ async def arandom_256(entropy=_salt(), runs=26, refresh=False):
     )
 
 
-def random_256(entropy=_salt(), runs=26, refresh=False):
+def random_256(entropy=sha_512(_salt()), runs=26, refresh=False):
     """
     Returns a 256-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -544,7 +552,7 @@ def random_256(entropy=_salt(), runs=26, refresh=False):
     )
 
 
-async def arandom_512(entropy=_salt(), runs=26, refresh=False):
+async def arandom_512(entropy=sha_512(_salt()), runs=26, refresh=False):
     """
     Returns a 512-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -561,7 +569,7 @@ async def arandom_512(entropy=_salt(), runs=26, refresh=False):
     )
 
 
-def random_512(entropy=_salt(), runs=26, refresh=False):
+def random_512(entropy=sha_512(_salt()), runs=26, refresh=False):
     """
     Returns a 512-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -579,7 +587,7 @@ def random_512(entropy=_salt(), runs=26, refresh=False):
 
 
 async def arandom_number_generator(
-    entropy=_salt(),
+    entropy=sha_512(_salt()),
     runs=26,
     refresh=False,
     *,
@@ -647,11 +655,13 @@ async def arandom_number_generator(
                     tasks.appendleft(new_task(hash_cache()))
             await gather(*tasks)
 
-        async def hash_cache(seed=await atoken_bytes(64)):
+        async def hash_cache():
+            seed = await atoken_bytes(64)
             await arandom_sleep(0.003)
             _completed.appendleft(await asha_512(_completed, entropy, seed))
 
-        async def modular_multiplication(seed=await _asalt()):
+        async def modular_multiplication():
+            seed = await _asalt()
             await arandom_sleep(0.003)
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples)
@@ -666,12 +676,9 @@ async def arandom_number_generator(
                 await atoken_number(64),
             )
 
-        async def big_modulation(seed, multiple_0, multiple_1, multiple_2):
+        async def big_modulation(*args):
             return await big_multiply(
-                seed,
-                multiple_0,
-                multiple_1,
-                multiple_2,
+                *args,
                 await aunique_big_int(),
             ) % await achoice(primes[4096])
 
@@ -688,11 +695,11 @@ async def arandom_number_generator(
             )
         )
 
-    return await asha_512_hmac((_completed, _salt()), entropy)
+    return await asha_512_hmac((_completed, sha_512(_salt())), entropy)
 
 
 def random_number_generator(
-    entropy=_salt(),
+    entropy=sha_512(_salt()),
     runs=26,
     refresh=False,
     *,
@@ -760,11 +767,13 @@ def random_number_generator(
                     tasks.appendleft(new_task(hash_cache()))
             await gather(*tasks)
 
-        async def hash_cache(seed=token_bytes(64)):
+        async def hash_cache():
+            seed = await atoken_bytes(64)
             await arandom_sleep(0.003)
             _completed.appendleft(await asha_512(_completed, entropy, seed))
 
-        async def modular_multiplication(seed=_salt()):
+        async def modular_multiplication():
+            seed = await _asalt()
             await arandom_sleep(0.003)
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples)
@@ -779,13 +788,9 @@ def random_number_generator(
                 await atoken_number(64),
             )
 
-        async def big_modulation(seed, multiple_0, multiple_1, multiple_2):
+        async def big_modulation(*args):
             return await big_multiply(
-                seed,
-                multiple_0,
-                multiple_1,
-                multiple_2,
-                await aunique_big_int(),
+                *args, await aunique_big_int(),
             ) % await achoice(primes[4096])
 
         async def big_multiply(*args):
@@ -799,7 +804,7 @@ def random_number_generator(
             sha_512_hmac((_completed, token_bytes(64)), entropy)
         )
 
-    return sha_512_hmac((_completed, _salt()), entropy)
+    return sha_512_hmac((_completed, sha_512(_salt())), entropy)
 
 
 async def aunique_integer():
@@ -1026,7 +1031,9 @@ def template_unique_number(number):
     return int(str(seed)[: len(str(number))])
 
 
-async def asafe_symm_keypair(entropy=_salt(), refresh=False, runs=26):
+async def asafe_symm_keypair(
+    entropy=sha_512(_salt()), refresh=False, runs=26
+):
     """
     Returns two ``bytes`` type, 512-bit hexidecimal keys. This function
     updates the package's static random seeds before & after deriving
@@ -1049,7 +1056,7 @@ async def asafe_symm_keypair(entropy=_salt(), refresh=False, runs=26):
     return seed, seed_key
 
 
-def safe_symm_keypair(entropy=_salt(), refresh=False, runs=26):
+def safe_symm_keypair(entropy=sha_512(_salt()), refresh=False, runs=26):
     """
     Returns two ``bytes`` type, 512-bit hexidecimal keys. This function
     updates the package's static random seeds before & after deriving
@@ -1073,7 +1080,7 @@ def safe_symm_keypair(entropy=_salt(), refresh=False, runs=26):
 
 
 @comprehension()
-async def aseeder(entropy=_salt(), refresh=False, runs=26):
+async def aseeder(entropy=sha_512(_salt()), refresh=False, runs=26):
     """
     A fast random number generator that supports adding entropy during
     async iteration. It's based on the randomness produced from combining
@@ -1102,7 +1109,7 @@ async def aseeder(entropy=_salt(), refresh=False, runs=26):
     kdf = sha3_512(seed + seed_key)
     while True:
         entropy = (await astr(entropy)).encode()
-        kdf.update(seed + seed_key + entropy)
+        kdf.update(seed + seed_key + entropy + token_bytes(64))
         seed_key = kdf.digest()
         kdf.update(seed + seed_key + entropy)
         seed = kdf.digest()
@@ -1111,7 +1118,7 @@ async def aseeder(entropy=_salt(), refresh=False, runs=26):
 
 
 @comprehension()
-def seeder(entropy=_salt(), refresh=False, runs=26):
+def seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
     """
     A fast random number generator that supports adding entropy during
     iteration. It's based on the randomness produced from combining a
@@ -1138,7 +1145,7 @@ def seeder(entropy=_salt(), refresh=False, runs=26):
     kdf = sha3_512(seed + seed_key)
     while True:
         entropy = str(entropy).encode()
-        kdf.update(seed + seed_key + entropy)
+        kdf.update(seed + seed_key + entropy + token_bytes(64))
         seed_key = kdf.digest()
         kdf.update(seed + seed_key + entropy)
         seed = kdf.digest()
@@ -1147,7 +1154,7 @@ def seeder(entropy=_salt(), refresh=False, runs=26):
 
 
 @comprehension()
-async def anon_0_digits(key=_salt(), stream_key=""):
+async def anon_0_digits(key=sha_512(_salt()), stream_key=""):
     """
     Creates a deterministic stream of non-zero digits from a key.
     """
@@ -1159,7 +1166,7 @@ async def anon_0_digits(key=_salt(), stream_key=""):
 
 
 @comprehension()
-def non_0_digits(key=_salt(), stream_key=""):
+def non_0_digits(key=sha_512(_salt()), stream_key=""):
     """
     Creates a deterministic stream of non-zero digits from a key.
     """
@@ -1171,7 +1178,7 @@ def non_0_digits(key=_salt(), stream_key=""):
 
 
 @comprehension()
-async def adigits(key=_salt(), stream_key=""):
+async def adigits(key=sha_512(_salt()), stream_key=""):
     """
     Creates a deterministic stream of digits from a key.
     """
@@ -1183,7 +1190,7 @@ async def adigits(key=_salt(), stream_key=""):
 
 
 @comprehension()
-def digits(key=_salt(), stream_key=""):
+def digits(key=sha_512(_salt()), stream_key=""):
     """
     Creates a deterministic stream of digits from a key.
     """
@@ -1369,7 +1376,7 @@ async def amake_uuid(size=16, salt=None):
     sent into coroutine.
     """
     stamp = None
-    salt = salt if salt != None else await acsprng(global_seed)
+    salt = salt if salt else await acsprng()
     async with Comprende().arelay(salt):
         while True:
             uuid = ""
@@ -1385,7 +1392,7 @@ def make_uuid(size=16, salt=None):
     sent into coroutine.
     """
     stamp = None
-    salt = salt if salt != None else csprng(global_seed)
+    salt = salt if salt else csprng()
     with Comprende().relay(salt):
         while True:
             uuid = ""
@@ -1394,26 +1401,26 @@ def make_uuid(size=16, salt=None):
             stamp = yield uuid[:size]
 
 
-async def asalt(entropy=_salt()):
+async def asalt(entropy=sha_512(_salt())):
     """
     Returns a cryptographically secure pseudo-random hex number
     that also seeds new entropy into the acsprng generator.
     """
-    return  await acsprng([entropy, await atoken_bytes(128)])
+    return  await acsprng(str(entropy).encode())
 
 
-def salt(entropy=_salt()):
+def salt(entropy=sha_512(_salt())):
     """
     Returns a cryptographically secure pseudo-random hex number
     that also seeds new entropy into the csprng generator.
     """
-    return csprng([entropy, token_bytes(128)])
+    return csprng(str(entropy).encode())
 
 
 try:
     # Initalize package entropy pool & cryptographically secure pseudo-
     # random number generators.
-    global_seed_key = random_512(entropy=_salt())
+    global_seed_key = random_512(entropy=sha_512(_salt()))
     global_seed = random_512(entropy=global_seed_key)
     csprng = seeder(global_seed).send
     acsprng = aseeder(csprng()).asend
@@ -1456,6 +1463,7 @@ __extras = {
     "aseeder": aseeder,
     "ashuffle": ashuffle,
     "atemplate_unique_number": atemplate_unique_number,
+    "atoken_bits": atoken_bits,
     "atoken_bytes": atoken_bytes,
     "atoken_hash": atoken_hash,
     "atoken_number": atoken_number,
@@ -1497,6 +1505,7 @@ __extras = {
     "seeder": seeder,
     "shuffle": shuffle,
     "template_unique_number": template_unique_number,
+    "token_bits": token_bits,
     "token_bytes": token_bytes,
     "token_hash": token_hash,
     "token_number": token_number,
