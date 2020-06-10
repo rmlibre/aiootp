@@ -214,7 +214,7 @@ async def akeys(key=csprng(), salt=None, pid=0):
     """
     if not key:
         raise ValueError("No main symmetric ``key`` was specified.")
-    salt = salt if salt != None else await acsprng(token_bytes(64))
+    salt = salt if salt else await acsprng()
     seed, kdf_0, kdf_1, kdf_2 = await akeypair_ratchets(key, salt, pid)
     async with Comprende().arelay(salt):
         while True:
@@ -243,7 +243,7 @@ def keys(key=csprng(), salt=None, pid=0):
     """
     if not key:
         raise ValueError("No main symmetric ``key`` was specified.")
-    salt = salt if salt != None else csprng(token_bytes(64))
+    salt = salt if salt else csprng()
     seed, kdf_0, kdf_1, kdf_2 = keypair_ratchets(key, salt, pid)
     with Comprende().relay(salt):
         while True:
@@ -273,7 +273,7 @@ async def abytes_keys(key=csprng(), salt=None, pid=0):
     """
     if not key:
         raise ValueError("No main symmetric ``key`` was specified.")
-    salt = salt if salt != None else await acsprng(token_bytes(64))
+    salt = salt if salt else await acsprng()
     seed, kdf_0, kdf_1, kdf_2 = await akeypair_ratchets(key, salt, pid)
     async with Comprende().arelay(salt):
         while True:
@@ -303,7 +303,7 @@ def bytes_keys(key=csprng(), salt=None, pid=0):
     """
     if not key:
         raise ValueError("No main symmetric ``key`` was specified.")
-    salt = salt if salt != None else csprng(token_bytes(64))
+    salt = salt if salt else csprng()
     seed, kdf_0, kdf_1, kdf_2 = keypair_ratchets(key, salt, pid)
     with Comprende().relay(salt):
         while True:
@@ -665,7 +665,7 @@ def organize_decryption_streams(data=None, key=None, salt=None, pid=0):
 
 
 @comprehension()
-async def aencrypt(data="", key=csprng(), salt=None, size=246, pid=0):
+async def aencrypt(data="", key=csprng(), salt=None, pid=0, size=246):
     """
     Creates & organizes user plaintext & key material streams into a
     single stream of integer ciphertext based on user-defined values:
@@ -678,8 +678,6 @@ async def aencrypt(data="", key=csprng(), salt=None, size=246, pid=0):
     ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
                 material whose str() representation contains the user's
                 desired entropy & cryptographic strength.
-    ``size``:   The number of elements in the ``data`` sequence that are
-                produced per iteration.
     ``pid``:    An arbitrary value that can be used to categorize key
                 material streams & safely distinguishes the values they
                 produce. Designed to safely destinguish parallelized key
@@ -687,10 +685,12 @@ async def aencrypt(data="", key=csprng(), salt=None, size=246, pid=0):
                 can be used for any arbitrary categorization of streams
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
+    ``size``:   The number of elements in the ``data`` sequence that are
+                produced per iteration.
     """
-    salt = salt if salt != None else await acsprng(key)
+    salt = salt if salt else await acsprng()
     encrypting = aorganize_encryption_streams(
-        data=data, key=key, salt=salt, size=size, pid=pid
+        data=data, key=key, salt=salt, pid=pid, size=size
     )
     async with encrypting.arelay(salt):
         session_seed = await encrypting.anext()
@@ -700,7 +700,7 @@ async def aencrypt(data="", key=csprng(), salt=None, size=246, pid=0):
 
 
 @comprehension()
-def encrypt(data="", key=csprng(), salt=None, size=246, pid=0):
+def encrypt(data="", key=csprng(), salt=None, pid=0, size=246):
     """
     Creates & organizes user plaintext & key material streams into a
     single stream of integer ciphertext based on user-defined values:
@@ -713,8 +713,6 @@ def encrypt(data="", key=csprng(), salt=None, size=246, pid=0):
     ``salt``:   A 512-bit hexidecimal string of ephemeral entropic
                 material whose str() representation contains the user's
                 desired entropy & cryptographic strength.
-    ``size``:   The number of elements in the ``data`` sequence that are
-                produced per iteration.
     ``pid``:    An arbitrary value that can be used to categorize key
                 material streams & safely distinguishes the values they
                 produce. Designed to safely destinguish parallelized key
@@ -722,10 +720,12 @@ def encrypt(data="", key=csprng(), salt=None, size=246, pid=0):
                 can be used for any arbitrary categorization of streams
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
+    ``size``:   The number of elements in the ``data`` sequence that are
+                produced per iteration.
     """
-    salt = salt if salt != None else csprng(key)
+    salt = salt if salt else csprng()
     encrypting = organize_encryption_streams(
-        data=data, key=key, salt=salt, size=size, pid=pid
+        data=data, key=key, salt=salt, pid=pid, size=size
     )
     with encrypting.relay(salt):
         session_seed = encrypting.next()
@@ -1556,7 +1556,7 @@ class OneTimePad:
         246 tends to be the most efficient, especially when the
         plaintext contains only 7-bit ascii characters.
         """
-        salt = salt if salt != None else await acsprng(key)
+        salt = salt if salt else await acsprng()
 
         entropy = akeys(key=key, salt=salt, pid=pid)
         if not size:
@@ -1609,7 +1609,7 @@ class OneTimePad:
         246 tends to be the most efficient, especially when the
         plaintext contains only 7-bit ascii characters.
         """
-        salt = salt if salt != None else csprng(key)
+        salt = salt if salt else csprng()
 
         entropy = keys(key=key, salt=salt, pid=pid)
         if not size:
@@ -2215,7 +2215,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Returns a random 512-bit hexidecimal string.
         """
-        return await acsprng([entropy, token_bytes(128)])
+        return await acsprng(str(entropy).encode())
 
     async def ahmac(self, *data):
         """
@@ -2243,7 +2243,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
-        salt = await acsprng(hmac)
+        salt = await acsprng()
         true_hmac = await self.ahmac(*data)
         if (
             await self.ahmac(hmac, salt)
@@ -2319,7 +2319,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             """
             name = await (await self.anamestream(category)).anext()
             uuids = await amake_uuid(size, salt=name).aprime()
-            salt = salt if salt != None else csprng(name)[:64]
+            salt = salt if salt else csprng()[:64]
             async with uuids.arelay(salt) as ids:
                 stamp = None
                 while True:
@@ -3106,7 +3106,7 @@ class Database:
         """
         Returns a random 512-bit hexidecimal string.
         """
-        return csprng([entropy, token_bytes(128)])
+        return csprng(str(entropy).encode())
 
     def hmac(self, *data):
         """
@@ -3132,7 +3132,7 @@ class Database:
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
-        salt = csprng(hmac)
+        salt = csprng()
         true_hmac = self.hmac(*data)
         if self.hmac(hmac, salt) == self.hmac(true_hmac, salt):
             return True
@@ -3202,7 +3202,7 @@ class Database:
             """
             name = self.namestream(category).next()
             uuids = make_uuid(size, salt=name).prime()
-            salt = salt if salt != None else csprng(name)[:64]
+            salt = salt if salt else csprng()[:64]
             with uuids.relay(salt) as ids:
                 stamp = None
                 while True:
