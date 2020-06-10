@@ -95,7 +95,7 @@ async def axor(
     *datastreams, key=None, buffer_size=power10[20], convert=True
 ):
     """
-    'The one-time-pad algorithm'
+    'The one-time-stream algorithm'
 
     Gathers both an arbitrary set of async or sync iterable integer
     ``*datastreams``, & a non-repeating async iterable of deterministic
@@ -132,7 +132,7 @@ async def axor(
 @comprehension()
 def xor(*datastreams, key=None, buffer_size=power10[20], convert=True):
     """
-    'The one-time-pad algorithm'
+    'The one-time-stream algorithm'
 
     Gathers both an arbitrary set of iterable integer ``*datastreams``,
     & a non-repeating iterable of deterministic string ``key`` material,
@@ -197,7 +197,7 @@ def keypair_ratchets(key=None, salt=None, pid=0):
 
 
 @comprehension()
-async def akeys(key=None, salt=None, pid=0):
+async def akeys(key=csprng(), salt=None, pid=0):
     """
     An efficient async generator which produces an unending, non
     repeating, deterministc stream of string key material. Each
@@ -212,7 +212,9 @@ async def akeys(key=None, salt=None, pid=0):
     by specifying a unique ``pid`` to each process, thread or the like,
     which will result in a unique key stream for each.
     """
-    salt = salt if salt != None else await acsprng(key)
+    if not key:
+        raise ValueError("No main symmetric ``key`` was specified.")
+    salt = salt if salt != None else await acsprng(token_bytes(64))
     seed, kdf_0, kdf_1, kdf_2 = await akeypair_ratchets(key, salt, pid)
     async with Comprende().arelay(salt):
         while True:
@@ -224,7 +226,7 @@ async def akeys(key=None, salt=None, pid=0):
 
 
 @comprehension()
-def keys(key=None, salt=None, pid=0):
+def keys(key=csprng(), salt=None, pid=0):
     """
     An efficient sync generator which produces an unending, non
     repeating, deterministc stream of string key material. Each
@@ -239,7 +241,9 @@ def keys(key=None, salt=None, pid=0):
     by specifying a unique ``pid`` to each process, thread or the like,
     which will result in a unique key stream for each.
     """
-    salt = salt if salt != None else csprng(key)
+    if not key:
+        raise ValueError("No main symmetric ``key`` was specified.")
+    salt = salt if salt != None else csprng(token_bytes(64))
     seed, kdf_0, kdf_1, kdf_2 = keypair_ratchets(key, salt, pid)
     with Comprende().relay(salt):
         while True:
@@ -251,7 +255,7 @@ def keys(key=None, salt=None, pid=0):
 
 
 @comprehension()
-async def abytes_keys(key=None, salt=None, pid=0):
+async def abytes_keys(key=csprng(), salt=None, pid=0):
     """
     An efficient async generator which produces an unending, non
     repeating, deterministc stream of bytes key material. Each
@@ -267,7 +271,9 @@ async def abytes_keys(key=None, salt=None, pid=0):
     thread or the like, which will result in a unique key stream for
     each.
     """
-    salt = salt if salt != None else await acsprng(key)
+    if not key:
+        raise ValueError("No main symmetric ``key`` was specified.")
+    salt = salt if salt != None else await acsprng(token_bytes(64))
     seed, kdf_0, kdf_1, kdf_2 = await akeypair_ratchets(key, salt, pid)
     async with Comprende().arelay(salt):
         while True:
@@ -279,7 +285,7 @@ async def abytes_keys(key=None, salt=None, pid=0):
 
 
 @comprehension()
-def bytes_keys(key=None, salt=None, pid=0):
+def bytes_keys(key=csprng(), salt=None, pid=0):
     """
     An efficient sync generator which produces an unending, non
     repeating, deterministc stream of bytes key material. Each
@@ -295,7 +301,9 @@ def bytes_keys(key=None, salt=None, pid=0):
     thread or the like, which will result in a unique key stream for
     each.
     """
-    salt = salt if salt != None else csprng(key)
+    if not key:
+        raise ValueError("No main symmetric ``key`` was specified.")
+    salt = salt if salt != None else csprng(token_bytes(64))
     seed, kdf_0, kdf_1, kdf_2 = keypair_ratchets(key, salt, pid)
     with Comprende().relay(salt):
         while True:
@@ -325,7 +333,9 @@ async def asubkeys(key=csprng(), salt=None, pid=0, group_size=512):
     by specifying a unique ``pid`` to each process, thread or the like,
     which will result in a unique key stream for each.
     """
-    if not group_size >= 1:
+    if not key:
+        raise ValueError("No main symmetric ``key`` was specified.")
+    elif not group_size >= 1:
         raise ValueError(
             "No infinite loops please. ``group_size`` must be >= 1"
         )
@@ -357,7 +367,9 @@ def subkeys(key=csprng(), salt=None, pid=0, group_size=512):
     by specifying a unique ``pid`` to each process, thread or the like,
     which will result in a unique key stream for each.
     """
-    if not group_size >= 1:
+    if not key:
+        raise ValueError("No main symmetric ``key`` was specified.")
+    elif not group_size >= 1:
         raise ValueError(
             "No infinite loops please. ``group_size`` must be >= 1"
         )
@@ -815,7 +827,11 @@ async def ajson_encrypt(data=None, key=csprng(), salt=None, pid=0):
     """
     plaintext = adata(json.dumps(data))
     async with plaintext.aencrypt(key, salt, pid=pid) as ciphertext:
-        return {"ciphertext": await ciphertext.alist(True)}
+        result = await ciphertext.alist(True)
+        return {
+            "ciphertext": result,
+            "hmac": await validator.ahmac(result, key=key),
+        }
 
 
 def json_encrypt(data=None, key=csprng(), salt=None, pid=0):
@@ -841,7 +857,10 @@ def json_encrypt(data=None, key=csprng(), salt=None, pid=0):
     """
     plaintext = globals()["data"](json.dumps(data))
     with plaintext.encrypt(key, salt, pid=pid) as ciphertext:
-        return {"ciphertext": ciphertext.list(True)}
+        result = ciphertext.list(True)
+        return {
+            "ciphertext": result, "hmac": validator.hmac(result, key=key)
+        }
 
 
 async def ajson_decrypt(data=None, key=None, pid=0):
@@ -867,6 +886,9 @@ async def ajson_decrypt(data=None, key=None, pid=0):
     except TypeError:
         data = json.loads(data)
         ciphertext = aunpack(data["ciphertext"])
+    hmac = data.get("hmac")
+    if hmac:
+        await validator.atest_hmac(data["ciphertext"], key=key, hmac=hmac)
     async with ciphertext.adecrypt(key=key, pid=pid) as plaintext:
         return json.loads(await plaintext.ajoin())
 
@@ -894,6 +916,9 @@ def json_decrypt(data=None, key=None, pid=0):
     except TypeError:
         data = json.loads(data)
         ciphertext = unpack(data["ciphertext"])
+    hmac = data.get("hmac")
+    if hmac:
+        validator.test_hmac(data["ciphertext"], key=key, hmac=hmac)
     with ciphertext.decrypt(key=key, pid=pid) as plaintext:
         return json.loads(plaintext.join())
 
@@ -919,9 +944,13 @@ async def abytes_encrypt(data=None, key=csprng(), salt=None, pid=0):
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
     """
+    if not data:
+        raise ValueError("No ``data`` was specified.")
     encrypting = adata(data).abytes_encrypt(key, salt, pid)
     async with encrypting as ciphertext:
-        return await ciphertext.alist(True)
+        result = await ciphertext.alist(True)
+        hmac = await validator.ahmac(result, key=key)
+        return {"ciphertext": result, "hmac": hmac}
 
 
 def bytes_encrypt(data=None, key=csprng(), salt=None, pid=0):
@@ -945,9 +974,13 @@ def bytes_encrypt(data=None, key=csprng(), salt=None, pid=0):
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
     """
+    if not data:
+        raise ValueError("No ``data`` was specified.")
     encrypting = globals()["data"](data).bytes_encrypt(key, salt, pid)
     with encrypting as ciphertext:
-        return ciphertext.list(True)
+        result = ciphertext.list(True)
+        hmac = validator.hmac(result, key=key)
+        return {"ciphertext": result, "hmac": hmac}
 
 
 async def abytes_decrypt(data=None, key=None, pid=0):
@@ -967,6 +1000,10 @@ async def abytes_decrypt(data=None, key=None, pid=0):
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
     """
+    if isinstance(data, dict):
+        hmac = data.get("hmac")
+        data = data.get("ciphertext")
+        await validator.atest_hmac(data, key=key, hmac=hmac)
     async with aunpack(data).abytes_decrypt(key, pid) as decrypting:
         return await decrypting.ajoin(b"")
 
@@ -988,6 +1025,10 @@ def bytes_decrypt(data=None, key=None, pid=0):
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
     """
+    if isinstance(data, dict):
+        hmac = data.get("hmac")
+        data = data.get("ciphertext")
+        validator.test_hmac(data, key=key, hmac=hmac)
     with unpack(data).bytes_decrypt(key, pid) as decrypting:
         return decrypting.join(b"")
 
@@ -1232,6 +1273,10 @@ class Passcrypt:
         So to force the release of those resources, we run the function
         in another process which is guaranteed to release them.
         """
+        if not password:
+            raise ValueError("No ``password`` was specified.")
+        elif not salt:
+            raise ValueError("No ``salt`` was specified.")
         cls._validate_args(kb, cpu, hardness)
         state = Manager().list()
         process = Process(
@@ -1254,6 +1299,10 @@ class Passcrypt:
         So to force the release of those resources, we run the function
         in another process which is guaranteed to release them.
         """
+        if not password:
+            raise ValueError("No ``password`` was specified.")
+        elif not salt:
+            raise ValueError("No ``salt`` was specified.")
         cls._validate_args(kb, cpu, hardness)
         state = Manager().list()
         process = Process(
@@ -1726,6 +1775,28 @@ class OneTimePad:
         Doing so allows instances of ``Comprende`` generators access to
         a baked-in, one-time-pad decryption algorithm for binary data,
         while also keeping some encapsulation of code and functionality.
+
+        Once copied, the ``self`` argument becomes a reference to an
+        instance of ``Comprende``. With that, now all async generators
+        that are decorated with ``comprehension`` can decrypt valid
+        streams of one-time-pad encrypted ciphertext of bytes type data.
+
+        The ``key`` keyword is the user's main encryption / decryption
+        key for any particular context. This main key & the first chunk
+        of ciphertext are combined & used to encrypt / decrypt the
+        ``salt`` key. The ciphered salt key is the first transmitted
+        chunk in a ciphertext stream.
+
+        The ``salt`` keyword should be a random 512-bit hash. The
+        plaintext ``salt`` is used as an ephemeral key to initialize a
+        deterministc stream of key material which is unique to a
+        particualr ``key``.
+
+        The ``pid`` keyword argument is any identifier which is unique
+        to a particular pair of ``key`` & ``salt``. This identifier is
+        used to create a deterministic stream of key material which is
+        unlinkable and unique to other ``pid`` streams with the same
+        pair of ``key`` & ``salt``.
         """
         decrypting = self.adecrypt(key, pid)
         decoder = decrypting.adelimit_resize().afrom_base64()
@@ -1739,6 +1810,28 @@ class OneTimePad:
         Doing so allows instances of ``Comprende`` generators access to
         a baked-in, one-time-pad decryption algorithm for binary data,
         while also keeping some encapsulation of code and functionality.
+
+        Once copied, the ``self`` argument becomes a reference to an
+        instance of ``Comprende``. With that, now all generators that
+        are decorated with ``comprehension`` can decrypt valid streams
+        of one-time-pad encrypted ciphertext of bytes type data.
+
+        The ``key`` keyword is the user's main encryption / decryption
+        key for any particular context. This main key & the first chunk
+        of ciphertext are combined & used to encrypt / decrypt the
+        ``salt`` key. The ciphered salt key is the first transmitted
+        chunk in a ciphertext stream.
+
+        The ``salt`` keyword should be a random 512-bit hash. The
+        plaintext ``salt`` is used as an ephemeral key to initialize a
+        deterministc stream of key material which is unique to a
+        particualr ``key``.
+
+        The ``pid`` keyword argument is any identifier which is unique
+        to a particular pair of ``key`` & ``salt``. This identifier is
+        used to create a deterministic stream of key material which is
+        unlinkable and unique to other ``pid`` streams with the same
+        pair of ``key`` & ``salt``.
         """
         decrypting = self.decrypt(key, pid)
         decoder = decrypting.delimit_resize().from_base64()
@@ -1935,9 +2028,9 @@ class AsyncDatabase(metaclass=AsyncInit):
 
         The database object uses this function internally to pick the
         stream of shard names for ciphertext within files, but first
-        passes the user-defined ``tag`` through the ``filename(tag)``
-        method, thereby making a unique, deterministic name stream for
-        each ``tag``.
+        passes the user-defined ``tag`` through the
+        ``afilename((tag, salt))`` method, thereby making a unique,
+        deterministic key stream for each ``tag`` & salt pair.
         """
         return akeys(self.root_hash, self.root_seed, tag).aresize(64)
 
@@ -1950,9 +2043,9 @@ class AsyncDatabase(metaclass=AsyncInit):
 
         The database object uses this function internally to pick the
         stream of key material for transparent file encryption, but
-        first passes the user-defined ``tag`` through the ``filename(tag)``
-        method, thereby making a unique, deterministic key stream for
-        each ``tag``.
+        first passes the user-defined ``tag`` through the
+        ``afilename((tag, salt))`` method, thereby making a unique,
+        deterministic key stream for each ``tag`` & salt pair.
         """
         return akeys(self.root_key, await self.__aroot_salt(), tag)
 
@@ -1963,7 +2056,17 @@ class AsyncDatabase(metaclass=AsyncInit):
         async with aiofiles.open(self.root_path, "r") as root_file:
             ciphertext = json.loads(await root_file.read())
 
-        self._root_session_salt = ciphertext.get("salt")
+        if ciphertext.get("hmac"):
+            async with aunpack(ciphertext.items()).asort() as sorting:
+                ciphertext = await sorting.adict()
+            salt = ciphertext.pop("salt")
+            hmac = ciphertext.pop("hmac")
+            await validator.atest_hmac(
+                ciphertext, hmac=hmac, key=self.root_hash
+            )
+        else:
+            salt = ciphertext.get("salt")
+        self._root_session_salt = salt
         names = self.root_names
         entropy = self.root_entropy
         decrypting = apick(names, ciphertext).amap_decrypt(entropy)
@@ -2052,9 +2155,12 @@ class AsyncDatabase(metaclass=AsyncInit):
         names = self.root_names
         entropy = self.root_entropy
         plaintext = adata(json.dumps(self.manifest.namespace))
-        async with plaintext.amap_encrypt(names, entropy) as manifest:
+        encrypting = plaintext.amap_encrypt(names, entropy)
+        async with encrypting.asort() as manifest:
+            result = await manifest.adict()
+            hmac = await validator.ahmac(result, key=self.root_hash)
             await self.asave_manifest(
-                ciphertext={"salt": salt, **(await manifest.adict())}
+                {"salt": salt, "hmac": hmac, **result}
             )
 
     async def aload_metatags(self, *, preload=True):
@@ -2290,7 +2396,14 @@ class AsyncDatabase(metaclass=AsyncInit):
             labeled "salt". The salt should contain at least 256-bits of
             entropy.
         """
-        salt = ciphertext.get("salt")
+        if ciphertext.get("hmac"):
+            async with aunpack(ciphertext.items()).asort() as sorting:
+                ciphertext = await sorting.adict()
+            salt = ciphertext.pop("salt")
+            hmac = ciphertext.pop("hmac")
+            await self.atest_hmac(ciphertext, hmac=hmac)
+        else:
+            salt = ciphertext.get("salt")
         salted_filename = await self.afilename((filename, salt))
         stream = await self.aciphertext_stream(salted_filename, ciphertext)
         decrypting = self.adecrypt_stream(salted_filename, stream)
@@ -2358,8 +2471,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         salt = (await acsprng())[:64]
         encoder = ajson_encode(plaintext)
         encrypting = self.aencrypt_stream(filename, encoder, salt)
-        async with encrypting as ciphertext:
-            return {"salt": salt, **(await ciphertext.adict())}
+        async with encrypting.asort() as ciphertext:
+            result = await ciphertext.adict()
+            hmac = await self.ahmac(result)
+            return {"salt": salt, "hmac": hmac, **result}
 
     async def aset(self, tag=None, data=None):
         """
@@ -2826,9 +2941,9 @@ class Database:
 
         The database object uses this function internally to pick the
         stream of shard names for ciphertext within files, but first
-        passes the user-defined ``tag`` through the ``filename(tag)``
-        method, thereby making a unique, deterministic name stream for
-        each ``tag``.
+        passes the user-defined ``tag`` through the
+        ``filename((tag, salt))`` method, thereby making a unique,
+        deterministic key stream for each ``tag`` & salt pair.
         """
         return keys(self.root_hash, self.root_seed, tag).resize(64)
 
@@ -2841,9 +2956,9 @@ class Database:
 
         The database object uses this function internally to pick the
         stream of key material for transparent file encryption, but
-        first passes the user-defined ``tag`` through the ``filename(tag)``
-        method, thereby making a unique, deterministic key stream for
-        each ``tag``.
+        first passes the user-defined ``tag`` through the
+        ``filename((tag, salt))`` method, thereby making a unique,
+        deterministic key stream for each ``tag`` & salt pair.
         """
         return keys(self.root_key, self.__root_salt(), tag)
 
@@ -2854,7 +2969,15 @@ class Database:
         with open(self.root_path, "r") as root_file:
             ciphertext = json.load(root_file)
 
-        self._root_session_salt = ciphertext.get("salt")
+        if ciphertext.get("hmac"):
+            with unpack(ciphertext.items()).sort() as sorting:
+                ciphertext = sorting.dict()
+            salt = ciphertext.pop("salt")
+            hmac = ciphertext.pop("hmac")
+            validator.test_hmac(ciphertext, hmac=hmac, key=self.root_hash)
+        else:
+            salt = ciphertext.get("salt")
+        self._root_session_salt = salt
         names = self.root_names
         entropy = self.root_entropy
         with pick(names, ciphertext).map_decrypt(entropy) as manifest:
@@ -2899,26 +3022,6 @@ class Database:
         self.__root_salt = self.create_salting_function(salt)
         self.root_seed = sha_512_hmac(self.__root_salt(), self.root_key)
 
-    def _replace_root_salt(self, salt=None):
-        """
-        A non-functioning first try at adding a feature which will allow
-        users to change the root cryptographic salt of the database
-        instance in place.
-        """
-        if len(str(salt)) < 64:
-            raise PermissionError("Cannot use a salt string < 64 chars.")
-        database = {tag: self.pop(tag) for tag in self.tags}
-        self.install_root_salt(salt)
-        for tag, value in database.items():
-            self[tag] = value
-        children = self.manifest.namespace.pop(self.metatag_filename)
-        self.initialize_metatags()
-        self.manifest[self.metatags_filename] = children
-        for metatag in self.metatags:
-            with ignore(KeyError):
-                del self.__dict__[metatag]
-                self.metatag(metatag)
-
     def load_manifest(self):
         """
         Initalizes the object with a new database file ledger or loads
@@ -2958,8 +3061,10 @@ class Database:
         names = self.root_names
         entropy = self.root_entropy
         plaintext = data(json.dumps(self.manifest.namespace))
-        with plaintext.map_encrypt(names, entropy) as manifest:
-            self.save_manifest(ciphertext={"salt": salt, **manifest.dict()})
+        with plaintext.map_encrypt(names, entropy).sort() as manifest:
+            result = manifest.dict()
+            hmac = validator.hmac(result, key=self.root_hash)
+            self.save_manifest({"salt": salt, "hmac": hmac, **result})
 
     def load_metatags(self, *, preload=True):
         """
@@ -3168,7 +3273,14 @@ class Database:
             labeled "salt". The salt should contain at least 256-bits of
             entropy.
         """
-        salt = ciphertext.get("salt")
+        if ciphertext.get("hmac"):
+            with unpack(ciphertext.items()).sort() as sorting:
+                ciphertext = sorting.dict()
+            salt = ciphertext.pop("salt")
+            hmac = ciphertext.pop("hmac")
+            self.test_hmac(ciphertext, hmac=hmac)
+        else:
+            salt = ciphertext.get("salt")
         salted_filename = self.filename((filename, salt))
         stream = self.ciphertext_stream(salted_filename, ciphertext)
         decrypting = self.decrypt_stream(salted_filename, stream)
@@ -3234,8 +3346,10 @@ class Database:
         salt = csprng()[:64]
         encoder = json_encode(plaintext)
         encrypting = self.encrypt_stream(filename, encoder, salt)
-        with encrypting as ciphertext:
-            return {"salt": salt, **ciphertext.dict()}
+        with encrypting.sort() as ciphertext:
+            result = ciphertext.dict()
+            hmac = self.hmac(result)
+            return {"salt": salt, "hmac": hmac, **result}
 
     def set(self, tag=None, data=None):
         """
@@ -3483,6 +3597,9 @@ class Database:
     __getitem__ = query
     __setitem__ = vars()["set"]
     __len__ = lambda self: len(self.manifest.namespace)
+
+
+validator = Namespace()
 
 
 __extras = {
