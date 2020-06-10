@@ -1032,6 +1032,35 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 =============
 
 
+Changes for version 0.9.1 
+========================= 
+
+
+Minor Changes 
+------------- 
+
+-  Now any falsey values for the ``salt`` keyword argument in the library's 
+   ``keys``, ``akeys``, ``bytes_keys``, ``abytes_keys``, ``subkeys``, & 
+   ``asubkeys`` infinite keystream generators, & other functions around the 
+   library, will cause them to generate a new cryptographically secure 
+   pseudo-random value for the salt. It formerly only did this when ``salt`` 
+   was ``None``. 
+-  The ``seeder`` & ``aseeder`` generators have been updated to introduce 
+   512 new bits of entropy from ``secrets.token_bytes`` on every iteration 
+   to ensure that the CSPRNG will produce secure outputs even if its 
+   internal state is somehow discovered. This also allows for simply calling 
+   the CSPRNG is enough, there's no longer a strong reason to pass new 
+   entropy into it manually, except to add even more entropy as desired.
+-  Made ``size`` the last keywordCHECKSUMS.txt argument in ``encrypt`` & 
+   ``aencrypt`` to better mirror the signatures for rest of the library. 
+-  Added ``token_bits`` & ``atoken_bits`` functions to ``randoms.py`` which 
+   are renamings of ``secrets.randbits``. 
+-  Refactored & improved the security og ``randoms.py``'s random number 
+   generator. 
+
+
+
+
 Changes for version 0.9.0 
 ========================= 
 
