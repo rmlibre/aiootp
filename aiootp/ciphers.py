@@ -1067,6 +1067,13 @@ class Passcrypt:
             return self.new(password, salt, **settings)
 
     @staticmethod
+    def _check_inputs(password: any, salt: any):
+        if not password:
+            raise ValueError("No ``password`` was specified.")
+        elif not salt:
+            raise ValueError("No ``salt`` was specified.")
+
+    @staticmethod
     def _validate_args(kb: int, cpu: int, hardness: int):
         """
         Ensures the values ``kb``, ``cpu`` and ``hardness`` passed into
@@ -1079,13 +1086,11 @@ class Passcrypt:
         proofs of memory & work.
         """
         if hardness < 256 or not isinstance(hardness, int):
-            raise PermissionError(f"hardness:{hardness} must be int >= 256")
+            raise ValueError(f"hardness:{hardness} must be int >= 256")
         elif cpu <= 1 or not isinstance(cpu, int):
-            raise PermissionError(f"cpu:{cpu} must be int >= 2")
+            raise ValueError(f"cpu:{cpu} must be int >= 2")
         elif kb < hardness or not isinstance(kb, int):
-            raise PermissionError(
-                f"kb:{kb} must be int >= hardness:{hardness}"
-            )
+            raise ValueError(f"kb:{kb} must be int >= hardness:{hardness}")
 
     @classmethod
     def cache_width(cls, kb: int, cpu: int, hardness: int):
@@ -1191,8 +1196,8 @@ class Passcrypt:
         update = proof.update
         summary = proof.digest
         digest = summary()
-        to_int = int.from_bytes
         cache_width = len(ram)
+        to_int = int.from_bytes
         next_index = cycle(range(cache_width)).__next__
         choose = lambda: ram[to_int(digest, "big") % cache_width]
         return keyed_scanner
@@ -1218,6 +1223,7 @@ class Passcrypt:
         since that will cause the final proof to scan over the entire
         cache when producing the summary.
         """
+        cls._check_inputs(password, salt)
         cache_width = cls.cache_width(kb, cpu, hardness)
         args = sha_512(password, salt, kb, cpu, hardness).encode()
         async with abytes_keys(password, salt, args)[:cache_width] as cache:
@@ -1252,6 +1258,7 @@ class Passcrypt:
         since that will cause the final proof to scan over the entire
         cache when producing the summary.
         """
+        cls._check_inputs(password, salt)
         cache_width = cls.cache_width(kb, cpu, hardness)
         args = sha_512(password, salt, kb, cpu, hardness).encode()
         with bytes_keys(password, salt, args)[:cache_width] as cache:
@@ -1273,10 +1280,7 @@ class Passcrypt:
         So to force the release of those resources, we run the function
         in another process which is guaranteed to release them.
         """
-        if not password:
-            raise ValueError("No ``password`` was specified.")
-        elif not salt:
-            raise ValueError("No ``salt`` was specified.")
+        cls._check_inputs(password, salt)
         cls._validate_args(kb, cpu, hardness)
         state = Manager().list()
         process = Process(
@@ -1299,10 +1303,7 @@ class Passcrypt:
         So to force the release of those resources, we run the function
         in another process which is guaranteed to release them.
         """
-        if not password:
-            raise ValueError("No ``password`` was specified.")
-        elif not salt:
-            raise ValueError("No ``salt`` was specified.")
+        cls._check_inputs(password, salt)
         cls._validate_args(kb, cpu, hardness)
         state = Manager().list()
         process = Process(
@@ -1381,6 +1382,14 @@ class OneTimePad:
         bytes_encrypt,
         abytes_decrypt,
         bytes_decrypt,
+        ## Do Not Uncomment:
+        ## apasscrypt,  Instance passcrypt methods use the instance key
+        ## passcrypt,   to further protect processed passwords.
+
+        ## ahmac,       Instances can also validate data with hmac
+        ## hmac,        methods that are automatically passed the
+        ## atest_hmac,  instance key to do the hashing & validation.
+        ## test_hmac,
     }
 
     axor = staticmethod(axor)
@@ -2264,8 +2273,12 @@ class AsyncDatabase(metaclass=AsyncInit):
         kilobytes. If the memory cost is too high, it will eat up all
         the ram on a machine very quickly. The ``cpu`` time cost is
         measured in the number of iterations of the sha3_512 hashing
-        algorithm.
+        algorithm done per element in the memory cache. This method also
+        protects the passwords it processes with a pair of the
+        instance's keys, which forces attackers to also find a way to
+        retrieve them in order to crack the passwords.
         """
+        Passcrypt._check_inputs(password, salt)
         _apasscrypt = globals()["apasscrypt"]
         salted_password = await self.ahmac(password, salt)
         return await _apasscrypt(
@@ -3148,8 +3161,12 @@ class Database:
         kilobytes. If the memory cost is too high, it will eat up all
         the ram on a machine very quickly. The ``cpu`` time cost is
         measured in the number of iterations of the sha3_512 hashing
-        algorithm.
+        algorithm done per element in the memory cache. This method also
+        protects the passwords it processes with a pair of the
+        instance's keys, which forces attackers to also find a way to
+        retrieve them in order to crack the passwords.
         """
+        Passcrypt._check_inputs(password, salt)
         _passcrypt = globals()["passcrypt"]
         salted_password = self.hmac(password, salt)
         return _passcrypt(
