@@ -28,6 +28,7 @@ from .randoms import arandom_sleep as _arandom_sleep
 from .ciphers import validator
 from .ciphers import salt, asalt
 from .ciphers import OneTimePad
+from .ciphers import Passcrypt
 from .ciphers import passcrypt as _passcrypt
 from .ciphers import apasscrypt as _apasscrypt
 from .keygens import insert_keyrings
@@ -92,6 +93,7 @@ async def apasscrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
     from the underlying Comprende sync generator before yielding the
     result.
     """
+    Passcrypt._check_inputs(any, salt)
     settings = dict(kb=kb, cpu=cpu, hardness=hardness)
     if of != None:
         async for prev, result in azip(self, of):
@@ -108,6 +110,7 @@ def passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
     from the underlying Comprende sync generator before yielding the
     result.
     """
+    Passcrypt._check_inputs(any, salt)
     settings = dict(kb=kb, cpu=cpu, hardness=hardness)
     if of != None:
         for prev, result in zip(self, of):
@@ -124,6 +127,7 @@ async def asum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
     that's yielded from the underlying Comprende async generator with
     the previously processed result before yielding the current result.
     """
+    Passcrypt._check_inputs(any, salt)
     settings = dict(kb=kb, cpu=cpu, hardness=hardness)
     summary = await _apasscrypt(salt, salt, **settings)
     async for result in self:
@@ -138,6 +142,7 @@ def sum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
     that's yielded from the underlying Comprende sync generator with
     the previously processed result before yielding the current result.
     """
+    Passcrypt._check_inputs(any, salt)
     settings = dict(kb=kb, cpu=cpu, hardness=hardness)
     summary = _passcrypt(salt, salt, **settings)
     for result in self:
@@ -275,6 +280,8 @@ def insert_stateful_key_generator_objects():
         self.ahmac = self.akeyring.ahmac
         self.test_hmac = self.keyring.test_hmac
         self.atest_hmac = self.akeyring.atest_hmac
+        self.passcrypt = self.keyring.passcrypt
+        self.apasscrypt = self.akeyring.apasscrypt
         for method in self.instance_methods:
             convert_static_method_to_member(
                 self, method.__name__, method, key=self.key,
