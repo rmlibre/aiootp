@@ -728,6 +728,8 @@ What other tools are available to users?:
             
             assert index == len(ordered_entries) + 1
             
+            break
+            
             
     # There's a prepackaged ``Comprende`` generator function that does
     
@@ -998,7 +1000,7 @@ A: Although primatives like AES are strong enough for now, there's no guarantee 
 
 **Q: What size keys does this one-time pad cipher use?**
 
-A: It's been designed to work with 512-bit hexidecimal or 128 arbitrary character keys. 
+A: It's been designed to work with 512-bit hexidecimal keys. 
 
 
 **Q: What's up with the ``AsyncDatabase`` / ``Database``?**
@@ -1030,6 +1032,35 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 ``Changelog``
 =============
+
+
+Changes for version 0.9.2 
+========================= 
+
+
+Major Changes 
+------------- 
+
+-  Added ``passcrypt`` & ``apasscrypt`` instance methods to ``OneTimePad``,
+   ``Keys``, & ``AsyncKeys`` classes. They produce password hashes that are
+   not just secured by the salt & passcrypt algorithm settings, but also by
+   their main symmetric instance keys. This makes passwords infeasible to
+   crack without also compromising the instance's 512-bit key.
+
+
+Minor Changes 
+------------- 
+
+-  Further improvements to the random number generator in ``randoms.py``.
+   Made its internals less sequential thereby raising the bar of work needed
+   by an attacker to successfully carry out an order prediction attack.
+-  Added checks in the ``Passcrypt`` class to make sure both a salt & 
+   password were passed into the algorithm.
+-  Switched ``PermissionError`` exceptions in ``Passcrypt._validate_args``
+   to ``ValueError`` to be more consistent with the rest of the class.
+-  Documentation updates / fixes.
+
+
 
 
 Changes for version 0.9.1 

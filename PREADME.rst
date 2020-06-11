@@ -728,6 +728,8 @@ What other tools are available to users?:
             
             assert index == len(ordered_entries) + 1
             
+            break
+            
             
     # There's a prepackaged ``Comprende`` generator function that does
     
@@ -998,7 +1000,7 @@ A: Although primatives like AES are strong enough for now, there's no guarantee 
 
 **Q: What size keys does this one-time pad cipher use?**
 
-A: It's been designed to work with 512-bit hexidecimal or 128 arbitrary character keys. 
+A: It's been designed to work with 512-bit hexidecimal keys. 
 
 
 **Q: What's up with the ``AsyncDatabase`` / ``Database``?**
