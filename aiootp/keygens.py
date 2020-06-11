@@ -27,6 +27,7 @@ from .ciphers import keys
 from .ciphers import akeys
 from .ciphers import subkeys
 from .ciphers import asubkeys
+from .ciphers import Passcrypt
 from .ciphers import passcrypt
 from .ciphers import apasscrypt
 from .ciphers import bytes_keys
@@ -321,6 +322,7 @@ class AsyncKeys:
             convert_static_method_to_member(
                 self, method.__name__, method, key=self.key,
             )
+        self.apasscrypt = self._apasscrypt
 
     def __getitem__(self, pid=""):
         """
@@ -410,6 +412,21 @@ class AsyncKeys:
             )
             await switch()
 
+    async def _apasscrypt(
+        self, password, salt, *, kb=1024, cpu=3, hardness=1024
+    ):
+        """
+        A tunably memory & cpu hard method which returns a key from a
+        user password & salt. This method also protects the passwords
+        it processes with the instance's key, which forces attackers to
+        also find a way to retrieve it in order to crack the passwords.
+        """
+        Passcrypt._check_inputs(password, salt)
+        salted_password = await self.ahmac((password, salt))
+        return await apasscrypt(
+            salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
+        )
+
 
 class Keys:
     """
@@ -444,6 +461,7 @@ class Keys:
         created.
         """
         self.reset(key)
+        self.passcrypt = self._passcrypt
 
     def __getitem__(self, pid=""):
         """
@@ -529,6 +547,21 @@ class Keys:
             convert_static_method_to_member(
                 self, method.__name__, method, key=self.key,
             )
+
+    def _passcrypt(
+        self, password, salt, *, kb=1024, cpu=3, hardness=1024
+    ):
+        """
+        A tunably memory & cpu hard method which returns a key from a
+        user password & salt. This method also protects the passwords
+        it processes with the instance's key, which forces attackers to
+        also find a way to retrieve it in order to crack the passwords.
+        """
+        Passcrypt._check_inputs(password, salt)
+        salted_password = self.hmac((password, salt))
+        return passcrypt(
+            salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
+        )
 
 
 async def ainsert_keyrings(self, key=None):
