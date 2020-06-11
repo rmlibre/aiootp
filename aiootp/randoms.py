@@ -395,7 +395,7 @@ async def atoken_bytes(size):
 
 async def atoken_bits(size):
     """
-    Returns ``size`` bytes of ``secrets.randbits`` entropy.
+    Returns ``size`` number of bits from ``secrets.randbits``.
     """
     return token_bits(size)
 
@@ -650,9 +650,9 @@ async def arandom_number_generator(
         async def start_generator(runs, tasks=deque()):
             for _ in range(runs):
                 await switch()
-                tasks.appendleft(new_task(modular_multiplication()))
+                tasks.appendleft(modular_multiplication())
                 for _ in range(10):
-                    tasks.appendleft(new_task(hash_cache()))
+                    tasks.appendleft(hash_cache())
             await gather(*tasks)
 
         async def hash_cache():
@@ -678,8 +678,7 @@ async def arandom_number_generator(
 
         async def big_modulation(*args):
             return await big_multiply(
-                *args,
-                await aunique_big_int(),
+                *args, await aunique_big_int(),
             ) % await achoice(primes[4096])
 
         async def big_multiply(*args):
@@ -762,9 +761,9 @@ def random_number_generator(
         async def start_generator(runs, tasks=deque()):
             for _ in range(runs):
                 await switch()
-                tasks.appendleft(new_task(modular_multiplication()))
+                tasks.appendleft(modular_multiplication())
                 for _ in range(10):
-                    tasks.appendleft(new_task(hash_cache()))
+                    tasks.appendleft(hash_cache())
             await gather(*tasks)
 
         async def hash_cache():
