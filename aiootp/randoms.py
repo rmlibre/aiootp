@@ -421,7 +421,7 @@ async def asalted_multiply(mod=primes[258][-1], offset=None):
     multiply = await asalted_multiply().aprime()
     randomized_number = await multiply(numbers)
     """
-    if offset == None:
+    if not offset:
         offset = token_bits(int(math.log2(mod) + 128))
     mix = int(sha_512(mod, offset), 16)
     start = seed = int(sha_256(mix, offset), 16)
@@ -460,7 +460,7 @@ def salted_multiply(mod=primes[258][-1], offset=None):
     multiply = salted_multiply().prime()
     randomized_number = multiply(numbers)
     """
-    if offset == None:
+    if not offset:
         offset = token_bits(int(math.log2(mod) + 128))
     mix = int(sha_512(mod, offset), 16)
     start = seed = int(sha_256(mix, offset), 16)
@@ -1153,10 +1153,11 @@ def seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
 
 
 @comprehension()
-async def anon_0_digits(key=sha_512(_salt()), stream_key=""):
+async def anon_0_digits(key=None, stream_key=""):
     """
     Creates a deterministic stream of non-zero digits from a key.
     """
+    key = key if key else await acsprng()
     seed = await asha_512(key)
     while True:
         stream_key = await aint(await anc_512(seed, key, stream_key), 16)
@@ -1165,10 +1166,11 @@ async def anon_0_digits(key=sha_512(_salt()), stream_key=""):
 
 
 @comprehension()
-def non_0_digits(key=sha_512(_salt()), stream_key=""):
+def non_0_digits(key=None, stream_key=""):
     """
     Creates a deterministic stream of non-zero digits from a key.
     """
+    key = key if key else csprng()
     seed = sha_512(key)
     while True:
         stream_key = int(nc_512(seed, key, stream_key), 16)
@@ -1177,10 +1179,39 @@ def non_0_digits(key=sha_512(_salt()), stream_key=""):
 
 
 @comprehension()
-async def adigits(key=sha_512(_salt()), stream_key=""):
+async def abytes_digits(key=None, stream_key=""):
+    """
+    Creates a deterministic stream of bytes numbers from a key.
+    """
+    key = key if key else await acsprng()
+    seed = await asha_512(key)
+    from_hex = bytes.fromhex
+    while True:
+        stream_key = from_hex(await anc_512(seed, key, stream_key))
+        for char in stream_key[4:]:
+            yield char
+
+
+@comprehension()
+def bytes_digits(key=None, stream_key=""):
+    """
+    Creates a deterministic stream of bytes numbers from a key.
+    """
+    key = key if key else csprng()
+    seed = sha_512(key)
+    from_hex = bytes.fromhex
+    while True:
+        stream_key = from_hex(nc_512(seed, key, stream_key))
+        for char in stream_key[4:]:
+            yield char
+
+
+@comprehension()
+async def adigits(key=None, stream_key=""):
     """
     Creates a deterministic stream of digits from a key.
     """
+    key = key if key else await acsprng()
     seed = await asha_512(key)
     while True:
         stream_key = await aint(await anc_512(seed, key, stream_key), 16)
@@ -1189,10 +1220,11 @@ async def adigits(key=sha_512(_salt()), stream_key=""):
 
 
 @comprehension()
-def digits(key=sha_512(_salt()), stream_key=""):
+def digits(key=None, stream_key=""):
     """
     Creates a deterministic stream of digits from a key.
     """
+    key = key if key else csprng()
     seed = sha_512(key)
     while True:
         stream_key = int(nc_512(seed, key, stream_key), 16)
@@ -1437,6 +1469,7 @@ __extras = {
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
+    "abytes_digits": abytes_digits,
     "achoice": achoice,
     "acreate_prime": acreate_prime,
     "acsprng": acsprng,
@@ -1476,6 +1509,7 @@ __extras = {
     "aurandom": aurandom,
     "aurandom_hash": aurandom_hash,
     "aurandom_number": aurandom_number,
+    "bytes_digits": bytes_digits,
     "choice": choice,
     "create_prime": create_prime,
     "csprng": csprng,
