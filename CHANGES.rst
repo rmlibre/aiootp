@@ -1,4 +1,3 @@
-
 ``Known Issues``
 =================
 
@@ -16,6 +15,31 @@
 
 ``Changelog``
 =============
+
+
+Changes for version 0.9.3 
+========================= 
+
+
+Major Changes 
+------------- 
+
+-  Speed & efficiency improvements in the ``Comprende`` class & ``azip``. 
+
+
+Minor Changes 
+------------- 
+
+-  Various refactorings & code cleanups.
+-  Added ``apop`` & ``pop`` ``Comprende`` generators to the library.
+-  Switched the default character table in the ``ato_base``, ``to_base``, 
+   ``afrom_base``, & ``from_base`` chainable generator methods from the 62
+   character ``ASCII_ALPHANUMERIC`` table, to the 95 character ``ASCII_TABLE``.
+-  Made the digits generators in ``randoms.py`` automatically create a new
+   cryptographically secure key if a key isn't passed by a user.
+-  Some extra data processing functions added to ``generics.py``.
+
+
 
 
 Changes for version 0.9.2 
