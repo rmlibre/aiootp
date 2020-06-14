@@ -79,13 +79,11 @@ from .generics import order, aorder
 from .generics import birth, abirth
 from .generics import unpack, aunpack
 from .generics import ignore, aignore
-from .generics import nc_512, anc_512
 from .generics import sha_256, asha_256
 from .generics import sha_512, asha_512
 from .generics import lru_cache, alru_cache
 from .generics import Comprende, comprehension
 from .generics import json_encode, ajson_encode
-from .generics import json_decode, ajson_decode
 from .generics import sha_256_hmac, asha_256_hmac
 from .generics import sha_512_hmac, asha_512_hmac
 
