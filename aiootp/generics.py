@@ -28,6 +28,8 @@ __all__ = [
     "pick",
     "acycle",
     "cycle",
+    "apop",
+    "pop",
     "apopleft",
     "popleft",
     "ajson_decode",
@@ -832,19 +834,11 @@ class Comprende:
         """
         try:
             yield self
-        except RuntimeError as done:
-            if (
-                self.ASYNC_GEN_DONE not in done.args
-                and self.ASYNC_GEN_THROWN not in done.args
-            ):
-                raise done
         except UserWarning as done:
             if done.args:
                 self._return.append(done.args[0])
         except StopAsyncIteration:
             pass
-        except GeneratorExit as error:
-            raise GeneratorExit from error
 
     @contextmanager
     def catch(self):
@@ -883,8 +877,6 @@ class Comprende:
             if result != None:
                 raise UserWarning(result)
             raise UserWarning(await source.aresult(exit=True))
-        except GeneratorExit as error:
-            raise GeneratorExit from error
 
     @contextmanager
     def relay(self, result=None, source=None):
@@ -1506,9 +1498,12 @@ class Comprende:
         can be passed an iterable & prepends those values to the
         generator's results.
         """
-        names = of if of != None else count()
-        for name, item in zip(names, self):
-            yield name, item
+        if of != None:
+            for name, item in zip(of, self):
+                yield name, item
+        else:
+            for name, item in enumerate(self):
+                yield name, item
 
     async def aheappop(self, span=None, *, of=None):
         """
@@ -1517,7 +1512,8 @@ class Comprende:
         based on the ``heapq.heappop`` function.
         """
         if of != None:
-            async with aunpack(of)[:span] as accumulator:
+            target = aunpack(of)[:span] if span else aunpack(of)
+            async with target as accumulator:
                 results = await accumulator.alist()
             heapq.heapify(results)
             async for result in self:
@@ -1526,7 +1522,8 @@ class Comprende:
                 except IndexError:
                     break
         else:
-            async with aunpack(self)[:span] as accumulator:
+            target = self[:span] if span else self
+            async with target as accumulator:
                 results = await accumulator.alist()
             heapq.heapify(results)
             while True:
@@ -1542,7 +1539,8 @@ class Comprende:
         based on the ``heapq.heappop`` function.
         """
         if of != None:
-            with unpack(of)[:span] as accumulator:
+            target = unpack(of)[:span] if span else unpack(of)
+            with target as accumulator:
                 results = accumulator.list()
             heapq.heapify(results)
             for result in self:
@@ -1551,7 +1549,8 @@ class Comprende:
                 except IndexError:
                     break
         else:
-            with unpack(self)[:span] as accumulator:
+            target = self[:span] if span else self
+            with target as accumulator:
                 results = accumulator.list()
             heapq.heapify(results)
             while True:
@@ -1566,12 +1565,14 @@ class Comprende:
         number of iterations, then yields the results in reversed order.
         """
         if of != None:
-            async with unpack(of)[:span] as accumulator:
+            target = aunpack(of)[:span] if span else aunpack(of)
+            async with target as accumulator:
                 results = await accumulator.adeque()
             async for prev, result in azip(self, reversed(results)):
                 yield prev, result
         else:
-            async with unpack(self)[:span] as accumulator:
+            target = self[:span] if span else self
+            async with target as accumulator:
                 results = await accumulator.adeque()
             for result in reversed(results):
                 await switch()
@@ -1583,12 +1584,14 @@ class Comprende:
         number of iterations, then yields the results in reversed order.
         """
         if of != None:
-            with unpack(of)[:span] as accumulator:
+            target = unpack(of)[:span] if span else unpack(of)
+            with target as accumulator:
                 results = accumulator.deque()
             for prev, result in zip(self, reversed(results)):
                 yield prev, result
         else:
-            with unpack(self)[:span] as accumulator:
+            target = self[:span] if span else self
+            with target as accumulator:
                 results = accumulator.deque()
             for result in reversed(results):
                 yield result
@@ -1639,30 +1642,30 @@ class Comprende:
         Buffers the output from the underlying Comprende async generator
         to yield the results in chunks of length ``size``.
         """
-        iterable_self = aiter(self)
+        next_self = self.anext
         if of != None:
-            new_source = aiter(of)
-            result = await anext(new_source)
+            next_source = aiter(of).__anext__
+            result = await next_source()
             while True:
                 while len(result) >= size:
                     cache = result[size:]
-                    yield await anext(iterable_self), result[:size]
+                    yield await next_self(), result[:size]
                     result = cache
                 try:
-                    result += await anext(new_source)
+                    result += await next_source()
                 except StopAsyncIteration:
                     break
             if result:
-                yield await anext(iterable_self), result
+                yield await next_self(), result
         else:
-            result = await anext(iterable_self)
+            result = await next_self()
             while True:
                 while len(result) >= size:
                     cache = result[size:]
                     yield result[:size]
                     result = cache
                 try:
-                    result += await anext(iterable_self)
+                    result += await next_self()
                 except StopAsyncIteration:
                     break
             if result:
@@ -1673,30 +1676,30 @@ class Comprende:
         Buffers the output from the underlying Comprende sync generator
         to yield the results in chunks of length ``size``.
         """
-        iterable_self = iter(self)
+        next_self = self.next
         if of != None:
-            new_source = iter(of)
-            result = next(new_source)
+            next_source = iter(of).__next__
+            result = next_source()
             while True:
                 while len(result) >= size:
                     cache = result[size:]
-                    yield next(iterable_self), result[:size]
+                    yield next_self(), result[:size]
                     result = cache
                 try:
-                    result += next(new_source)
+                    result += next_source()
                 except StopIteration:
                     break
             if result:
-                yield next(iterable_self), result
+                yield next_self(), result
         else:
-            result = next(iterable_self)
+            result = next_self()
             while True:
                 while len(result) >= size:
                     cache = result[size:]
                     yield result[:size]
                     result = cache
                 try:
-                    result += next(iterable_self)
+                    result += next_self()
                 except StopIteration:
                     break
             if result:
@@ -2208,7 +2211,7 @@ class Comprende:
             for result in self:
                 yield bytes.hex(result)
 
-    async def ato_base(self, base=16, table=ASCII_ALPHANUMERIC, *, of=None):
+    async def ato_base(self, base=95, table=ASCII_TABLE, *, of=None):
         """
         Converts each integer value that's yielded from the underlying
         Comprende async generator to a string in ``base`` before yielding
@@ -2221,7 +2224,7 @@ class Comprende:
             async for result in self:
                 yield await ainverse_int(result, base, table)
 
-    def to_base(self, base=16, table=ASCII_ALPHANUMERIC, *, of=None):
+    def to_base(self, base=95, table=ASCII_TABLE, *, of=None):
         """
         Converts each integer value that's yielded from the underlying
         Comprende sync generator to a string in ``base`` before yielding
@@ -2234,7 +2237,7 @@ class Comprende:
             for result in self:
                 yield inverse_int(result, base, table)
 
-    async def afrom_base(self, base, table=ASCII_ALPHANUMERIC, *, of=None):
+    async def afrom_base(self, base=95, table=ASCII_TABLE, *, of=None):
         """
         Convert string results of generator results in numerical ``base``
         into decimal.
@@ -2246,7 +2249,7 @@ class Comprende:
             async for result in self:
                 yield await abase_to_decimal(result, base, table)
 
-    def from_base(self, base, table=ASCII_ALPHANUMERIC, *, of=None):
+    def from_base(self, base=95, table=ASCII_TABLE, *, of=None):
         """
         Convert ``string`` in numerical ``base`` into decimal.
         """
@@ -2801,7 +2804,7 @@ async def azip(*coros):
     coros = [aiter(coro).__anext__ for coro in coros]
     try:
         while True:
-            yield await gather(*[coro() for coro in coros])
+            yield [await coro() for coro in coros]
     except StopAsyncIteration:
         pass
 
@@ -3110,6 +3113,32 @@ def popleft(queue):
     while True:
         try:
             yield queue.popleft()
+        except IndexError:
+            break
+
+
+@comprehension()
+async def apop(queue):
+    """
+    An async generator which calls the ``pop()`` method on ``queue``
+    for every iteration, & exits on ``IndexError``.
+    """
+    while True:
+        try:
+            yield queue.pop()
+        except IndexError:
+            break
+
+
+@comprehension()
+def pop(queue):
+    """
+    A generator which calls the ``pop()`` method on ``queue`` for
+    every iteration, & exits on ``IndexError``.
+    """
+    while True:
+        try:
+            yield queue.pop()
         except IndexError:
             break
 
@@ -3528,6 +3557,36 @@ def int_to_bytes(bytes_object, size=128, byte_order="big"):
     return int.to_bytes(bytes_object, size, byte_order)
 
 
+async def ahex_to_bytes(data):
+    """
+    Applies ``bytes.fromhex(data)`` to ``data`` & returns the bytes
+    result.
+    """
+    yield bytes.fromhex(result)
+
+
+def hex_to_bytes(data):
+    """
+    Applies ``bytes.fromhex(data)`` to ``data`` & returns the bytes
+    result.
+    """
+    yield bytes.fromhex(result)
+
+
+async def abytes_to_hex(data):
+    """
+    Applies ``bytes.hex(data)`` to ``data`` & returns the hex result.
+    """
+    return bytes.hex(result)
+
+
+def bytes_to_hex(data):
+    """
+    Applies ``bytes.hex(data)`` to ``data`` & returns the hex result.
+    """
+    return bytes.hex(result)
+
+
 async def abinary_tree(depth=4, leaf={}, current=0):
     """
     Recursively builds a binary tree ``depth`` branches deep & places
@@ -3579,6 +3638,7 @@ __extras = {
     "abase_to_decimal": abase_to_decimal,
     "abinary_tree": abinary_tree,
     "abirth": abirth,
+    "abytes_to_hex": abytes_to_hex,
     "abytes_to_int": abytes_to_int,
     "acompact": acompact,
     "acount": acount,
@@ -3586,7 +3646,7 @@ __extras = {
     "acycle": acycle,
     "adata": adata,
     "afrom_b64": afrom_b64,
-    "apick": apick,
+    "ahex_to_bytes": ahex_to_bytes,
     "aignore": aignore,
     "aint": aint,
     "aint_to_ascii": aint_to_ascii,
@@ -3601,6 +3661,8 @@ __extras = {
     "anc_512_hmac": anc_512_hmac,
     "anext": anext,
     "aorder": aorder,
+    "apick": apick,
+    "apop": apop,
     "apopleft": apopleft,
     "arange": arange,
     "ascii_to_int": ascii_to_int,
@@ -3617,6 +3679,7 @@ __extras = {
     "base_to_decimal": base_to_decimal,
     "binary_tree": binary_tree,
     "birth": birth,
+    "bytes_to_hex": bytes_to_hex,
     "bytes_to_int": bytes_to_int,
     "compact": compact,
     "comprehension": comprehension,
@@ -3627,7 +3690,7 @@ __extras = {
     "data": data,
     "display_exception_info": display_exception_info,
     "from_b64": from_b64,
-    "pick": pick,
+    "hex_to_bytes": hex_to_bytes,
     "ignore": ignore,
     "int_to_ascii": int_to_ascii,
     "int_to_bytes": int_to_bytes,
@@ -3652,6 +3715,8 @@ __extras = {
     "nc_512": nc_512,
     "nc_512_hmac": nc_512_hmac,
     "order": order,
+    "pick": pick,
+    "pop": pop,
     "popleft": popleft,
     "range": _range,
     "seedrange": seedrange,
