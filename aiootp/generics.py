@@ -769,6 +769,11 @@ class Comprende:
             if issubclass(got.__class__, UserWarning):
                 if any(got.args):
                     self._thrown.append(got.args[0])
+                [
+                    self._return.append(await child.aresult(exit=True))
+                    for child in self.args
+                    if issubclass(child.__class__, self.__class__)
+                ]
                 await gen.athrow(got)
 
     def __set_async(self):
@@ -800,6 +805,11 @@ class Comprende:
             if issubclass(got.__class__, UserWarning):
                 if any(got.args):
                     self._thrown.append(got.args[0])
+                [
+                    self._return.append(child.result(exit=True))
+                    for child in self.args
+                    if issubclass(child.__class__, self.__class__)
+                ]
                 gen.throw(got)
 
     def __set_sync(self):
@@ -3191,6 +3201,36 @@ def timeout(iterable, delay=None):
 
 
 @comprehension()
+async def await_on(queue, delay=0.01, timeout=bits[128]):
+    """
+    An async generator that waits on entries to populate a queue &
+    yields the queue when an entry exists in the queue.
+    """
+    start = time()
+    while True:
+        while not queue and (time() - start < timeout):
+            await asynchs.asleep(delay)
+        if time() - start > timeout:
+            break
+        yield queue
+
+
+@comprehension()
+def wait_on(queue, delay=0.01, timeout=bits[128]):
+    """
+    A generator that waits on entries to populate a queue & yields the
+    queue when an entry exists in the queue.
+    """
+    start = time()
+    while True:
+        while not queue and (time() - start < timeout):
+            asynchs.sleep(delay)
+        if time() - start > timeout:
+            break
+        yield queue
+
+
+@comprehension()
 async def arange(*a, **kw):
     """
     An async version of ``builtins.range``.
@@ -3436,6 +3476,114 @@ def nc_512_hmac(data, key=None):
     return nc_512(nc_512(data, key), key)
 
 
+async def anc_1024(*data):
+    """
+    A "no collision" 1024-bit hash which concatenates the output of two
+    ``nc_512`` functions with one receiving the input ``data``, & the
+    other receiving the input ``data`` twice. This means a collision
+    would have to match the output of two separate hashes & the hash
+    size is doubled. This theoretically increases the strength of
+    collision resistance from 512-bits for a 1024-bit hash, to 1024-bits
+    for the newly created 2048-bit joint hash.
+    """
+    return (
+        await asha_512(*data, *data, *data, *data)
+        + await asha_512(*data, *data, *data)
+        + await asha_512(*data, *data)
+        + await asha_512(*data)
+    )
+
+
+def nc_1024(*data):
+    """
+    A "no collision" 1024-bit hash which concatenates the output of two
+    ``nc_512`` functions with one receiving the input ``data``, & the
+    other receiving the input ``data`` twice. This means a collision
+    would have to match the output of two separate hashes & the hash
+    size is doubled. This theoretically increases the strength of
+    collision resistance from 512-bits for a 1024-bit hash, to 1024-bits
+    for the newly created 2048-bit joint hash.
+    """
+    return (
+        sha_512(*data, *data, *data, *data)
+        + sha_512(*data, *data, *data)
+        + sha_512(*data, *data)
+        + sha_512(*data)
+    )
+
+
+async def anc_1024_hmac(data, key=None):
+    """
+    An HMAC version of the no collision 1024-bit hash.
+    """
+    return await anc_1024(await anc_1024(data, key), key)
+
+
+def nc_1024_hmac(data, key=None):
+    """
+    An HMAC version of the no collision 1024-bit hash.
+    """
+    return nc_1024(nc_1024(data, key), key)
+
+
+async def anc_2048(*data):
+    """
+    A "no collision" 2048-bit hash which concatenates the output of two
+    ``nc_1024`` functions with one receiving the input ``data``, & the
+    other receiving the input ``data`` twice. This means a collision
+    would have to match the output of two separate hashes & the hash
+    size is doubled. This theoretically increases the strength of
+    collision resistance from 1024-bits for a 2048-bit hash, to
+    2048-bits for the newly created 4096-bit joint hash.
+    """
+    return (
+        sha_512(*data, *data, *data, *data, *data, *data, *data, *data)
+        + await asha_512(*data, *data, *data, *data, *data, *data, *data)
+        + await asha_512(*data, *data, *data, *data, *data, *data)
+        + await asha_512(*data, *data, *data, *data, *data)
+        + await asha_512(*data, *data, *data, *data)
+        + await asha_512(*data, *data, *data)
+        + await asha_512(*data, *data)
+        + await asha_512(*data)
+    )
+
+
+def nc_2048(*data):
+    """
+    A "no collision" 1024-bit hash which concatenates the output of two
+    ``nc_512`` functions with one receiving the input ``data``, & the
+    other receiving the input ``data`` twice. This means a collision
+    would have to match the output of two separate hashes & the hash
+    size is doubled. This theoretically increases the strength of
+    collision resistance from 512-bits for a 1024-bit hash, to 1024-bits
+    for the newly created 2048-bit joint hash.
+    """
+    return (
+        sha_512(*data, *data, *data, *data, *data, *data, *data, *data)
+        + sha_512(*data, *data, *data, *data, *data, *data, *data)
+        + sha_512(*data, *data, *data, *data, *data, *data)
+        + sha_512(*data, *data, *data, *data, *data)
+        + sha_512(*data, *data, *data, *data)
+        + sha_512(*data, *data, *data)
+        + sha_512(*data, *data)
+        + sha_512(*data)
+    )
+
+
+async def anc_2048_hmac(data, key=None):
+    """
+    An HMAC version of the no collision 2048-bit hash.
+    """
+    return await anc_2048(await anc_2048(data, key), key)
+
+
+def nc_2048_hmac(data, key=None):
+    """
+    An HMAC version of the no collision 2048-bit hash.
+    """
+    return nc_2048(nc_2048(data, key), key)
+
+
 async def aint_to_ascii(input_integer):
     """
     Uses ``binascii`` to convert integers into strings.
@@ -3562,7 +3710,7 @@ async def ahex_to_bytes(data):
     Applies ``bytes.fromhex(data)`` to ``data`` & returns the bytes
     result.
     """
-    yield bytes.fromhex(result)
+    return bytes.fromhex(data)
 
 
 def hex_to_bytes(data):
@@ -3570,21 +3718,21 @@ def hex_to_bytes(data):
     Applies ``bytes.fromhex(data)`` to ``data`` & returns the bytes
     result.
     """
-    yield bytes.fromhex(result)
+    return bytes.fromhex(data)
 
 
 async def abytes_to_hex(data):
     """
     Applies ``bytes.hex(data)`` to ``data`` & returns the hex result.
     """
-    return bytes.hex(result)
+    return bytes.hex(data)
 
 
 def bytes_to_hex(data):
     """
     Applies ``bytes.hex(data)`` to ``data`` & returns the hex result.
     """
-    return bytes.hex(result)
+    return bytes.hex(data)
 
 
 async def abinary_tree(depth=4, leaf={}, current=0):
@@ -3659,6 +3807,10 @@ __extras = {
     "anc_256_hmac": anc_256_hmac,
     "anc_512": anc_512,
     "anc_512_hmac": anc_512_hmac,
+    "anc_1024": anc_1024,
+    "anc_1024_hmac": anc_1024_hmac,
+    "anc_2048": anc_2048,
+    "anc_2048_hmac": anc_2048_hmac,
     "anext": anext,
     "aorder": aorder,
     "apick": apick,
@@ -3714,6 +3866,10 @@ __extras = {
     "nc_256_hmac": nc_256_hmac,
     "nc_512": nc_512,
     "nc_512_hmac": nc_512_hmac,
+    "nc_1024": nc_1024,
+    "nc_1024_hmac": nc_1024_hmac,
+    "nc_2048": nc_2048,
+    "nc_2048_hmac": nc_2048_hmac,
     "order": order,
     "pick": pick,
     "pop": pop,
