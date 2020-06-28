@@ -653,7 +653,7 @@ async def arandom_number_generator(
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
                     tasks.appendleft(hash_cache())
-            await gather(*tasks)
+            await gather(*tasks, return_exceptions=True)
 
         async def hash_cache():
             seed = await atoken_bytes(64)
@@ -664,7 +664,7 @@ async def arandom_number_generator(
             seed = await _asalt()
             await arandom_sleep(0.003)
             multiples = (create_unique_multiple(seed) for _ in range(3))
-            multiples = await gather(*multiples)
+            multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
             _completed.appendleft(await asha_512(result, seed))
 
@@ -764,7 +764,7 @@ def random_number_generator(
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
                     tasks.appendleft(hash_cache())
-            await gather(*tasks)
+            await gather(*tasks, return_exceptions=True)
 
         async def hash_cache():
             seed = await atoken_bytes(64)
@@ -775,7 +775,7 @@ def random_number_generator(
             seed = await _asalt()
             await arandom_sleep(0.003)
             multiples = (create_unique_multiple(seed) for _ in range(3))
-            multiples = await gather(*multiples)
+            multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
             _completed.appendleft(await asha_512(result, seed))
 
