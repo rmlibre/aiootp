@@ -326,6 +326,42 @@ What other tools are available to users?:
     assert decrypted == binary_data
     
     
+    # Oblivious password authenticated key exchange with online services ->
+    
+    uuid = aiootp.sha_256("service-url.com", "username")
+    
+    client = aiootp.Opake.client_registration(uuid, "password")
+    
+    client_hello = client()
+    
+    server_response = internet.post("service-url.com", client_hello)
+    
+    try:
+    
+        client(server_response)
+        
+    except StopIteration:
+    
+        shared_keys = client.result()
+        
+        
+    # Now the client is securely registered with the service & can login ->
+    
+    client = aiootp.Opake.client(uuid, "password")
+    
+    client_hello = client()
+    
+    server_response = internet.post("service-url.com", client_hello)
+    
+    try:
+    
+        client(server_response)
+        
+    except StopIteration:
+    
+        shared_keys = client.result()
+    
+    
     # Generators under-pin most procedures in the library ->
     
     from aiootp import json_encode   # <- A simple generator

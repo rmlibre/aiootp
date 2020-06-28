@@ -37,8 +37,10 @@ licenses/cpython_LICENSE.txt
 licenses/pybase64_LICENSE.txt
 licenses/pytest_LICENSE.txt
 licenses/sympy_LICENSE.txt
-licenses/uvloop_LICENSE_0.txt
-licenses/uvloop_LICENSE_1.txt
+licenses/cryptography_LICENSES/LICENSE.APACHE
+licenses/cryptography_LICENSES/LICENSE.BSD
+licenses/cryptography_LICENSES/LICENSE.PSF
+licenses/cryptography_LICENSES/LICENSE.txt
 tests/test_Comprende.py
 tests/test_Database_AsyncDatabase.py
 tests/test_aiootp.py

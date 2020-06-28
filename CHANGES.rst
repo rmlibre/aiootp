@@ -17,6 +17,57 @@
 =============
 
 
+Changes for version 0.10.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Added a new oblivious, one-message, password authenticated key exchange 
+   protocol class in ``aiootp.ciphers.Opake``. It is a first attempt at the 
+   protocol, which works rather well, but may be changed or cleaned up in a 
+   future update. 
+-  Added the ``cryptography`` package as a dependency for elliptic curve 
+   25519 diffie-hellman key exchange in the ``Opake`` protocol. 
+-  Fix buggy data processing functions in ``generics.py`` module. 
+-  Added ``silent`` flag to ``AsyncDatabase`` & ``Database`` methods, which 
+   allows their instances to finish initializing even if a file is missing 
+   from the filesystem, normally causing a ``FileNotFoundError``. This makes 
+   trouble-shooting corrupted databases easier. 
+-  Added new ``aiootp.paths.SecurePath`` function which returns the path to 
+   a unique directory within the database's default directory. The name of 
+   the returned directory is a cryptographic value used to create & open the 
+   default database used by the ``Opake`` class to store the cryptographic 
+   salt that secures the class' client passwords. It's highly recommended 
+   to override this default database by instantiating the Opake class with 
+   a custom user-defined key. The instance doesn't need to be saved, since 
+   all the class' methods are either class or static methods. The ``__init__`` 
+   method only changes the class' default database to one opened with the 
+   user-defined ``key`` &/or ``directory`` kwargs, & should really only be 
+   done once at the beginning of an application. 
+
+
+Minor Changes 
+------------- 
+
+-  Various refactorings & cleanups around the package. 
+-  Added ``Comprende`` class feature to return the values from even the 
+   generators within an instance's arguments. This change better returns 
+   values to the caller from chains of ``Comprende`` generators. 
+-  Fixed ``commons.BYTES_TABLE`` missing values. 
+-  Added ``commons.DH_PRIME_4096_BIT_GROUP_16`` & ``commons.DH_GENERATOR_4096_BIT_GROUP_16`` 
+   constants for use in the ``Opake`` protocol's public key verifiers. 
+-  Added other values to the ``commons.py`` module. 
+-  Added new very large no-collision hash functions to the ``generics.py`` 
+   module used to xor with diffie-hellman public keys in the ``Opake`` class. 
+-  Added new ``wait_on`` & ``await_on`` ``Comprende`` generators to ``generics.py`` 
+   which waits for a queue or container to be populated & yields it whenever 
+   it isn't empty. 
+
+
+
+
 Changes for version 0.9.3 
 ========================= 
 

@@ -3,4 +3,5 @@ aiofiles
 pybase64
 async_lru
 aioitertools
+cryptography
 asyncio_contextmanager
