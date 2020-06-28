@@ -33,6 +33,7 @@ __all__ = [
     "bytes_encrypt",
     "OneTimePad",
     "Passcrypt",
+    "Opake",
     "AsyncDatabase",
     "Database",
 ]
@@ -53,6 +54,11 @@ from hashlib import sha3_512
 from multiprocessing import Manager
 from multiprocessing import Process
 from aiocontext import async_contextmanager
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from .paths import *
 from .paths import Path
 from .asynchs import *
@@ -64,6 +70,7 @@ from .randoms import csprng
 from .randoms import acsprng
 from .randoms import make_uuid
 from .randoms import amake_uuid
+from .randoms import next_prime
 from .randoms import token_bytes
 from .generics import astr
 from .generics import aiter
@@ -79,11 +86,16 @@ from .generics import order, aorder
 from .generics import birth, abirth
 from .generics import unpack, aunpack
 from .generics import ignore, aignore
+from .generics import nc_512, anc_512
+from .generics import nc_2048, anc_2048
 from .generics import sha_256, asha_256
 from .generics import sha_512, asha_512
+from .generics import wait_on, await_on
+from .generics import is_async_function
 from .generics import lru_cache, alru_cache
 from .generics import Comprende, comprehension
 from .generics import json_encode, ajson_encode
+from .generics import nc_512_hmac, anc_512_hmac
 from .generics import sha_256_hmac, asha_256_hmac
 from .generics import sha_512_hmac, asha_512_hmac
 
@@ -1886,8 +1898,9 @@ class AsyncDatabase(metaclass=AsyncInit):
     await db.adelete_database()
     """
 
-    _METATAG = sha_256(f"__metatags__{NONE}")
     directory = DatabasePath()
+    asalt = staticmethod(asalt)
+    _METATAG = sha_256(f"__metatags__{NONE}")
 
     async def __init__(
         self,
@@ -1896,6 +1909,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         preload=True,
         directory=directory,
         metatag=False,
+        silent=True,
     ):
         """
         Sets a database object's basic key generators & cryptographic
@@ -1927,9 +1941,10 @@ class AsyncDatabase(metaclass=AsyncInit):
             child databases more light-weight organizational additions
             to existing databases.
         """
-        self.directory = Path(directory)
+        self._silent = silent
         self._cache = Namespace()
         self._manifest = Namespace()
+        self.directory = Path(directory)
         self.root_key, self.root_hash, self.root_filename = (
             await self.ainitialize_keys(key, password_depth)
         )
@@ -1940,7 +1955,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         await self.aload_manifest()
         await self.ainitialize_metatags()
         if preload:
-            await self.aload()
+            await self.aload(silent=silent)
 
     @staticmethod
     async def ainitialize_keys(key=None, password_depth=0):
@@ -2170,7 +2185,7 @@ class AsyncDatabase(metaclass=AsyncInit):
                 {"salt": salt, "hmac": hmac, **result}
             )
 
-    async def aload_metatags(self, *, preload=True):
+    async def aload_metatags(self, *, preload=True, silent=False):
         """
         Specifically loads all of the database's metatag values into the
         cache. If the ``preload`` keyword argument is falsey then the
@@ -2179,12 +2194,12 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         await gather(
             *[
-                self.ametatag(metatag, preload=preload)
+                self.ametatag(metatag, preload=preload, silent=silent)
                 for metatag in set(self.metatags)
             ]
         )
 
-    async def aload_tags(self):
+    async def aload_tags(self, silent=False):
         """
         Specifically loads all of the database's tag values into the
         cache.
@@ -2193,10 +2208,13 @@ class AsyncDatabase(metaclass=AsyncInit):
         for maintenance_file in self.maintenance_files:
             del database[maintenance_file]
         await gather(
-            *[self.aquery(tag) for filename, tag in database.items()]
+            *[
+                self.aquery(tag, silent=silent)
+                for filename, tag in database.items()
+            ]
         )
 
-    async def aload(self, *, metatags=True):
+    async def aload(self, *, metatags=True, silent=False):
         """
         Loads all the database object's values from the filesystem into
         the database cache. This brings the database values into the
@@ -2205,7 +2223,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         using the awaitable ``aquery`` & ``ametatag`` methods.
         """
         await gather(
-            self.aload_metatags(preload=metatags), self.aload_tags()
+            self.aload_metatags(preload=metatags, silent=silent),
+            self.aload_tags(silent=silent),
         )
         return self
 
@@ -2216,13 +2235,6 @@ class AsyncDatabase(metaclass=AsyncInit):
         return await asha_256_hmac(
             (tag, self.root_seed), key=self.root_hash
         )
-
-    @staticmethod
-    async def asalt(entropy=csprng()):
-        """
-        Returns a random 512-bit hexidecimal string.
-        """
-        return await acsprng(str(entropy).encode())
 
     async def ahmac(self, *data):
         """
@@ -2340,13 +2352,18 @@ class AsyncDatabase(metaclass=AsyncInit):
 
         return await _auuids().aprime()
 
-    async def aquery_ciphertext(self, filename=None):
+    async def aquery_ciphertext(self, filename=None, silent=False):
         """
         Retrieves the value stored in the database file that's called
         ``filename``.
         """
-        async with aiofiles.open(self.directory / filename, "r") as db_file:
-            return json.loads(await db_file.read())
+        try:
+            opening = aiofiles.open(self.directory / filename, "r")
+            async with opening as db_file:
+                return json.loads(await db_file.read())
+        except FileNotFoundError as corrupt_database:
+            if not silent:
+                raise corrupt_database
 
     @comprehension()
     async def adecrypt_stream(
@@ -2496,7 +2513,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         self.cache[filename] = data
         self.manifest[filename] = tag
 
-    async def aquery(self, tag=None):
+    async def aquery(self, tag=None, silent=False):
         """
         Allows users to retrieve the value stored under the name ``tag``
         from the database.
@@ -2505,7 +2522,11 @@ class AsyncDatabase(metaclass=AsyncInit):
         if filename in self.cache:
             return self.cache[filename]
         elif filename in self.manifest:
-            ciphertext = await self.aquery_ciphertext(filename)
+            ciphertext = await self.aquery_ciphertext(
+                filename, silent=silent
+            )
+            if not ciphertext and silent:
+                return
             result = await self.adecrypt(filename, ciphertext)
             self.cache[filename] = result
             return result
@@ -2562,7 +2583,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         return await asha_512_hmac((tag, self.root_seed), self.root_hash)
 
-    async def ametatag(self, tag=None, preload=True):
+    async def ametatag(self, tag=None, preload=True, silent=False):
         """
         Allows a user to create a child database with the name ``tag``
         accessible by dotted lookup from the parent database. Child
@@ -2594,6 +2615,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             preload=preload,
             directory=self.directory,
             metatag=True,
+            silent=silent,
         )
         if not tag in self.metatags:
             self.metatags.append(tag)
@@ -2721,7 +2743,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         for filename, tag in dict(self.manifest.namespace).items():
             if filename in maintenance_files:
                 continue
-            yield tag, await self.aquery(tag)
+            yield tag, await self.aquery(tag, silent=self._silent)
 
     def __setitem__(self, tag=None, data=None):
         """
@@ -2803,8 +2825,9 @@ class Database:
     db.delete_database()
     """
 
-    _METATAG = sha_256(f"__metatags__{NONE}")
     directory = DatabasePath()
+    salt = staticmethod(salt)
+    _METATAG = sha_256(f"__metatags__{NONE}")
 
     def __init__(
         self,
@@ -2813,6 +2836,7 @@ class Database:
         preload=True,
         directory=directory,
         metatag=False,
+        silent=True,
     ):
         """
         Sets a database object's basic key generators & cryptographic
@@ -2844,9 +2868,10 @@ class Database:
             child databases more light-weight organizational additions
             to existing databases.
         """
-        self.directory = Path(directory)
+        self._silent = silent
         self._cache = Namespace()
         self._manifest = Namespace()
+        self.directory = Path(directory)
         self.root_key, self.root_hash, self.root_filename = (
             self.initialize_keys(key, password_depth)
         )
@@ -2857,7 +2882,7 @@ class Database:
         self.load_manifest()
         self.initialize_metatags()
         if preload:
-            self.load()
+            self.load(silent=silent)
 
     @staticmethod
     def initialize_keys(key=None, password_depth=0):
@@ -3077,7 +3102,7 @@ class Database:
             hmac = validator.hmac(result, key=self.root_hash)
             self.save_manifest({"salt": salt, "hmac": hmac, **result})
 
-    def load_metatags(self, *, preload=True):
+    def load_metatags(self, *, preload=True, silent=False):
         """
         Specifically loads all of the database's metatag values into the
         cache. If the ``preload`` keyword argument is falsey then the
@@ -3085,25 +3110,28 @@ class Database:
         dictionary, but their internal values are not loaded.
         """
         for metatag in set(self.metatags):
-            self.metatag(metatag, preload=preload)
+            self.metatag(metatag, preload=preload, silent=silent)
 
-    def load_tags(self):
+    def load_tags(self, silent=False):
         """
         Specifically loads all of the database's tag values into the
         cache.
         """
-        for tag, value in self:
-            pass
+        database = dict(self.manifest.namespace)
+        for maintenance_file in self.maintenance_files:
+            del database[maintenance_file]
+        for filename, tag in database.items():
+            self.query(tag, silent=silent)
 
-    def load(self, *, metatags=True):
+    def load(self, *, metatags=True, silent=False):
         """
         Loads all the database object's values from the filesystem into
         the database cache. This brings the database values into the
         cache, enables up-to-date bracket lookup of tag values & dotted
         lookup of metatags.
         """
-        self.load_metatags(preload=metatags)
-        self.load_tags()
+        self.load_metatags(preload=metatags, silent=silent)
+        self.load_tags(silent=silent)
         return self
 
     def filename(self, tag=None):
@@ -3111,13 +3139,6 @@ class Database:
         Derives the filename hash given a user-defined ``tag``.
         """
         return sha_256_hmac((tag, self.root_seed), key=self.root_hash)
-
-    @staticmethod
-    def salt(entropy=csprng()):
-        """
-        Returns a random 512-bit hexidecimal string.
-        """
-        return csprng(str(entropy).encode())
 
     def hmac(self, *data):
         """
@@ -3225,13 +3246,17 @@ class Database:
 
         return _uuids().prime()
 
-    def query_ciphertext(self, filename=None):
+    def query_ciphertext(self, filename=None, silent=False):
         """
         Retrieves the value stored in the database file that's called
         ``filename``.
         """
-        with open(self.directory / filename, "r") as db_file:
-            return json.load(db_file)
+        try:
+            with open(self.directory / filename, "r") as db_file:
+                return json.load(db_file)
+        except FileNotFoundError as corrupt_database:
+            if not silent:
+                raise corrupt_database
 
     @comprehension()
     def decrypt_stream(self, filename=None, stream=None, salt=None):
@@ -3375,7 +3400,7 @@ class Database:
         self.cache[filename] = data
         self.manifest[filename] = tag
 
-    def query(self, tag=None):
+    def query(self, tag=None, silent=False):
         """
         Allows users to retrieve the value stored under the name ``tag``
         from the database.
@@ -3384,7 +3409,9 @@ class Database:
         if filename in self.cache:
             return self.cache[filename]
         elif filename in self.manifest:
-            ciphertext = self.query_ciphertext(filename)
+            ciphertext = self.query_ciphertext(filename, silent=silent)
+            if not ciphertext and silent:
+                return
             result = self.decrypt(filename, ciphertext)
             self.cache[filename] = result
             return result
@@ -3441,7 +3468,7 @@ class Database:
         """
         return sha_512_hmac((tag, self.root_seed), self.root_hash)
 
-    def metatag(self, tag=None, preload=True):
+    def metatag(self, tag=None, preload=True, silent=False):
         """
         Allows a user to create a child database with the name ``tag``
         accessible by dotted lookup from the parent database. Child
@@ -3473,6 +3500,7 @@ class Database:
             preload=preload,
             directory=self.directory,
             metatag=True,
+            silent=silent,
         )
         if not tag in self.metatags:
             self.metatags.append(tag)
@@ -3606,12 +3634,1396 @@ class Database:
         for filename, tag in dict(self.manifest.namespace).items():
             if filename in maintenance_files:
                 continue
-            yield tag, self.query(tag)
+            yield tag, self.query(tag, silent=self._silent)
 
     __delitem__ = pop
     __getitem__ = query
     __setitem__ = vars()["set"]
     __len__ = lambda self: len(self.manifest.namespace)
+
+
+class Opake():
+    """
+    An implementation of a password-authenticated key exchange protocol
+    for servers to securely authenticate users & users to authenticate
+    servers. User passwords aren't disclosed to the servers. They are
+    used to build persistently secure connection keys which are made
+    future & forward secure with a new elliptic curve diffie-hellman
+    shared key being used for every authentication & mixed with keys
+    established from past authentications. The protocol requires that
+    the client & server are able to securely store cryptographic
+    material, & by default this module's ``AsyncDatabase`` & ``Database``
+    classes are intended to be used for this purpose.
+
+    Usage Examples:
+
+    import aiootp
+    from aiootp import Opake
+
+    new_account = True
+    # The arguments must contain at least one unique element for each
+    # service the client wants to authenticate with, such as ->
+    uuid = aiootp.sha_256("server_url", "username")
+    if new_account:
+        client = Opake.client_registration(uuid, "password")
+    else:
+        client = Opake.client(uuid, "password")
+    client_hello = client()
+    internet.send(client_hello)
+
+    server_db = Database("some_cryptographic_key")
+    client_hello = internet.receive()
+    if client_hello.get(Opake.KEY_ID):
+        server = Opake.server_registration(client_hello, server_db)
+    else:
+        server = Opake.server(client_hello, server_db)
+    server_hello = server()
+    internet.send(server_hello)
+    try:
+        server()
+    except StopIteration:
+        shared_keys = server.result()
+        # The user's KEY_ID for storing account data in the server
+        # database does not need to be remain secret to ensure the
+        # security of the encryption keys.
+        key_id = shared_keys[Opake.KEY_ID]
+        # The key used during the user's next login authentication
+        server_db[key_id][Opake.KEY] == shared_keys[Opake.KEY]
+        # The key used to encrypt communication for the current session
+        server_db[key_id][Opake.SESSION_KEY] == shared_keys[Opake.SESSION_KEY]
+        # A verification
+
+    server_hello = internet.receive()
+    try:
+        client(server_hello)
+    except StopIteration:
+        shared_keys = client.result()
+        # These shared keys will be the same as the one's the server
+        # derived if the registration / authentication was successful.
+    """
+
+    salt = staticmethod(salt)
+    asalt = staticmethod(asalt)
+    directory = DatabasePath()
+    default_directory = DatabasePath()
+    PUB = commons.PUB
+    KEY = commons.KEY
+    SALT = commons.SALT
+    KEY_ID = commons.KEY_ID
+    SECRET = commons.SECRET
+    NEXT_SALT = commons.NEXT_SALT
+    SHARED_KEY = commons.SHARED_KEY
+    SESSION_KEY = commons.SESSION_KEY
+    SESSION_SALT = commons.SESSION_SALT
+    REGISTRATION = commons.REGISTRATION
+    VERIFICATION = commons.VERIFICATION
+    SHARED_SECRET = commons.SHARED_SECRET
+    PASSWORD_SALT = commons.PASSWORD_SALT
+    KEYED_PASSWORD = commons.KEYED_PASSWORD
+    NEXT_KEYED_PASSWORD = commons.NEXT_KEYED_PASSWORD
+    PRIME = commons.DH_PRIME_4096_BIT_GROUP_16
+    GENERATOR = commons.DH_GENERATOR_4096_BIT_GROUP_16
+    X25519PublicKey = X25519PublicKey
+    X25519PrivateKey = X25519PrivateKey
+    Ed25519PublicKey = Ed25519PublicKey
+    Ed25519PrivateKey = Ed25519PrivateKey
+
+    _state_machine = Manager()
+    _keyed_password_tutorial = f"""\
+    ``database`` needs a {commons.KEYED_PASSWORD} entry.
+    H = lambda *x: sha_512(*x)
+    H_0 = lambda *x: int(nc_512(*x), 16)
+    H_1 = lambda *x: int(nc_2048(*x), 16)
+    db_key = Opake.db_login(username, password, secret_salt, **settings)
+    db = Database(db_key, password_depth=8192)
+    db["salt"] = salt = Opake.salt()
+    db["keyed_password"] = (
+        Opake.exchange(exp=H_0(db_key, salt)) ^ H_1(H(salt))
+    )
+    db["next_salt"] = next_salt = Opake.salt()
+    db["next_keyed_password"] = (
+        Opake.exchange(exp=H_0(db_key, next_salt)) ^ H_1(H(next_salt))
+    )
+    # client sends keyed_password to server during registration & sends
+    # H_1(salt) to the server during authentication, as well as the next
+    # keyed_password to be used buring the next authentication.
+    """
+
+    def __init__(self, key: any, directory=default_directory):
+        """
+        An optional initializer which instructs the class to use either
+        a default key to open a default database for clients to store
+        cryptographic material. Or, it can receive a key from a user to
+        instruct the class to create or open a custom database for
+        better security of cryptographic material stored on the user's
+        filesystem. The default key is not secure if an adversary can
+        read arbitrary directory names on the user's filesystem. It is
+        highly recommended to create a user-defined key for the class
+        instead, potentially with a password & using the class's
+        ``db_login`` method like such ->
+        Opake(key=Opake.db_login("username", "password", "salt"))
+
+        This should be thought of as a class method as it will impact
+        the entire class and all instances of the class.
+        """
+        cls = self.__class__
+        cls.directory = Path(directory).absolute()
+        cls._key = key if key else sha_512_hmac(SecurePath(), key=NONE)
+        db = cls._db = Database(cls._key)
+        default_db = db["default"]
+        if not (default_db or isinstance(default_db, dict)):
+            db["default"] = {cls.SALT: salt()}
+        elif not (cls.SALT in default_db or default_db[cls.SALT]):
+            db["default"][cls.SALT] = salt()
+        db.save()
+
+    @classmethod
+    async def _aprocess(cls, func=None, *args, **kwargs):
+        """
+        Runs an async or sync function in another process so heavy
+        cpu-bound computations can better coexist with asynchronous
+        or multithreaded code.
+        """
+        def run_async_func(func=None, *args, state=None, **kwargs):
+            if is_async_function(func):
+                run = asynchs.asyncio.new_event_loop().run_until_complete
+                state.append(run(func(*args, **kwargs)))
+            else:
+                state.append(func(*args, **kwargs))
+
+        state = cls._state_machine.list()
+        process = Process(
+            target=run_async_func,
+            args=(func, *args),
+            kwargs=dict(state=state, **kwargs),
+        )
+        process.start()
+        while process.is_alive():
+            await asynchs.asleep(0.01)
+        process.join()
+        return state.pop()
+
+    @classmethod
+    def _process(cls, func=None, *args, **kwargs):
+        """
+        Runs a sync function in another process so heavy cpu-bound
+        computations can better coexist with multithreaded code.
+        """
+        def run_func(func=None, *args, state=None, **kwargs):
+            state.append(func(*args, **kwargs))
+
+        state = cls._state_machine.list()
+        process = Process(
+            target=run_func,
+            args=(func, *args),
+            kwargs=dict(state=state, **kwargs),
+        )
+        process.start()
+        while process.is_alive():
+            asynchs.sleep(0.01)
+        process.join()
+        return state.pop()
+
+    @classmethod
+    async def aexchange(cls, base=GENERATOR, exp=None, mod=PRIME):
+        """
+        Runs a modular exponentiation calculation in another process
+        which is able to better coexist with asynchronous &
+        multithreaded code.
+        """
+        if 1 >= base or base >= mod:
+            raise ValueError("Invalid public key / generator.")
+        return await cls._aprocess(pow, base, exp, mod)
+
+    @classmethod
+    def exchange(cls, base=GENERATOR, exp=None, mod=PRIME):
+        """
+        Runs a modular exponentiation calculation in another process
+        which is able to better coexist with multithreaded code.
+        """
+        if 1 >= base or base >= mod:
+            raise ValueError("Invalid public key / generator.")
+        return cls._process(pow, base, exp, mod)
+
+    @staticmethod
+    async def akey():
+        """
+        An asynchronous function that returns a random 1024-bit
+        hexidecimal key.
+        """
+        return await anc_512(await asalt(), await asalt())
+
+    @staticmethod
+    def key():
+        """
+        An synchronous function that returns a random 1024-bit
+        hexidecimal key.
+        """
+        return nc_512(salt(), salt())
+
+    @staticmethod
+    async def aid(key=None):
+        """
+        Returns a deterministic hmac of any arbitrary key material which
+        is used to identify a particular connection between a server &
+        client. It's a pseudonym for the server and/or client which
+        avoids personal or device identfiable information needing to be
+        transmitted in order for authenticating parties to authenticate
+        each other.
+        """
+        return await asha_512_hmac(key, key=key)
+
+    @staticmethod
+    def id(key=None):
+        """
+        Returns a deterministic hmac of any arbitrary key material which
+        is used to identify a particular connection between a server &
+        client. It's a pseudonym for the server and/or client which
+        avoids personal or device identfiable information needing to be
+        transmitted in order for authenticating parties to authenticate
+        each other.
+        """
+        return sha_512_hmac(key, key=key)
+
+    @classmethod
+    async def adb_login(
+        uuid: any,
+        password: any,
+        salt: any,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+    ):
+        """
+        Processes user defined credentials with a tunably memory & cpu
+        hard hash function & returns a cryptohraphic key used to open a
+        database.
+        """
+        login = await anc_512(uuid, password, salt, *credentials)
+        return await apasscrypt(
+            login, salt, kb=kb, cpu=cpu, hardness=hardness
+        )
+
+    @staticmethod
+    def db_login(
+        uuid: any,
+        password: any,
+        salt: any,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+    ):
+        """
+        Processes user defined credentials with a tunably memory & cpu
+        hard hash function & returns a cryptohraphic key used to open a
+        database.
+        """
+        login = nc_512(uuid, password, salt, *credentials)
+        return passcrypt(login, salt, kb=kb, cpu=cpu, hardness=hardness)
+
+    @classmethod
+    async def ainit_database(
+        cls,
+        uuid: any,
+        password: any,
+        salt=None,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+        directory=None,
+    ):
+        """
+        Prepares a client database with session values for use in the
+        registration & authentication processes. A unique database is
+        opened for each permutation of the arguments & keyword arguments
+        to this method. If no salt is specified then the default class
+        salt which is stored encrypted on the user filesystem is used
+        instead.
+        """
+        salt = salt if salt else cls._db["default"][cls.SALT]
+        db_key = await cls.adb_login(
+            uuid,
+            password,
+            salt,
+            *credentials,
+            kb=kb,
+            cpu=cpu,
+            hardness=hardness,
+        )
+        directory = directory if directory else cls.directory
+        db = await AsyncDatabase(
+            key=db_key, password_depth=8192, directory=directory
+        )
+        if not db[cls.KEY]:
+            db[cls.KEY] = await cls.akey()
+            db[cls.SALT] = password_salt = await cls.asalt()
+            db[cls.KEYED_PASSWORD] = await cls.aexchange(
+                exp=int(await anc_512(db_key, password_salt), 16)
+            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
+        else:
+            password_salt = db[cls.SALT]
+            db[cls.KEYED_PASSWORD] = await cls.aexchange(
+                exp=int(await anc_512(db_key, password_salt), 16)
+            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
+            password_salt = db[cls.NEXT_SALT] = await cls.asalt()
+            db[cls.NEXT_KEYED_PASSWORD] = await cls.aexchange(
+                exp=int(await anc_512(db_key, password_salt), 16)
+            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
+        return db
+
+    @classmethod
+    def init_database(
+        cls,
+        uuid: any,
+        password: any,
+        salt=None,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+        directory=None,
+    ):
+        """
+        Prepares a client database with session values for use in the
+        registration & authentication processes. A unique database is
+        opened for each permutation of the arguments & keyword arguments
+        to this method. If no salt is specified then the default class
+        salt which is stored encrypted on the user filesystem is used
+        instead.
+        """
+        salt = salt if salt else cls._db["default"][cls.SALT]
+        db_key = cls.db_login(
+            uuid,
+            password,
+            salt,
+            *credentials,
+            kb=kb,
+            cpu=cpu,
+            hardness=hardness,
+        )
+        directory = directory if directory else cls.directory
+        db = Database(
+            key=db_key, password_depth=8192, directory=directory
+        )
+        if not db[cls.KEY]:
+            db[cls.KEY] = cls.key()
+            db[cls.SALT] = password_salt = cls.salt()
+            db[cls.KEYED_PASSWORD] = cls.exchange(
+                exp=int(nc_512(db_key, password_salt), 16)
+            ) ^ int(nc_2048(sha_512(password_salt)), 16)
+        else:
+            password_salt = db[cls.SALT]
+            db[cls.KEYED_PASSWORD] = cls.exchange(
+                exp=int(nc_512(db_key, password_salt), 16)
+            ) ^ int(nc_2048(sha_512(password_salt)), 16)
+            password_salt = db[cls.NEXT_SALT] = cls.salt()
+            db[cls.NEXT_KEYED_PASSWORD] = cls.exchange(
+                exp=int(nc_512(db_key, password_salt), 16)
+            ) ^ int(nc_2048(sha_512(password_salt)), 16)
+        return db
+
+    @classmethod
+    async def aclient_database(
+        cls,
+        uuid: any,
+        password: any,
+        salt=None,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+        directory=None,
+        database=None,
+    ):
+        """
+        Prepares a client database with session values for use in the
+        registration & authentication processes. A unique database is
+        opened for each permutation of the arguments & keyword arguments
+        to this method. If no salt is specified then the default class
+        salt which is stored encrypted on the user filesystem is used
+        instead. If a user client passes an already instantiated
+        database, then the database is checked to make sure it contains
+        the minimum entries needed to complete the protocol. This method
+        returns an ``AsyncDatabase`` & users should pass this method an
+        ``AsyncDatabase`` if they use the ``database`` kwarg.
+        """
+        if not database:
+            return await cls.ainit_database(
+                uuid,
+                password,
+                salt,
+                *credentials,
+                kb=kb,
+                cpu=cpu,
+                hardness=hardness,
+                directory=directory,
+            )
+        else:
+            if cls.KEY not in database:
+                raise ValueError(f"``database`` needs a {cls.KEY} entry.")
+            elif cls.SALT not in database:
+                raise ValueError(f"``database`` needs a {cls.SALT} entry.")
+            elif cls.KEYED_PASSWORD not in database:
+                raise ValueError(cls._keyed_password_tutorial)
+            return database
+
+    @classmethod
+    def client_database(
+        cls,
+        uuid: any,
+        password: any,
+        salt=None,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+        directory=None,
+        database=None,
+    ):
+        """
+        Prepares a client database with session values for use in the
+        registration & authentication processes. A unique database is
+        opened for each permutation of the arguments & keyword arguments
+        to this method. If no salt is specified then the default class
+        salt which is stored encrypted on the user filesystem is used
+        instead. If a user client passes an already instantiated
+        database, then the database is checked to make sure it contains
+        the minimum entries needed to complete the protocol. This method
+        returns a ``Database`` & users should pass this method a
+        ``Database`` if they use the ``database`` kwarg.
+        """
+        if not database:
+            return cls.init_database(
+                uuid,
+                password,
+                salt,
+                *credentials,
+                kb=kb,
+                cpu=cpu,
+                hardness=hardness,
+                directory=directory,
+            )
+        else:
+            if cls.KEY not in database:
+                raise ValueError(f"``database`` needs a {cls.KEY} entry.")
+            elif cls.SALT not in database:
+                raise ValueError(f"``database`` needs a {cls.SALT} entry.")
+            elif cls.KEYED_PASSWORD not in database:
+                raise ValueError(cls._keyed_password_tutorial)
+            return database
+
+    @classmethod
+    async def ainit_exchange(cls, *, base=GENERATOR, mod=PRIME):
+        """
+        Initializes values for a server or client side diffie-hellman
+        exchange. Returns a ``Namespace`` object with the necessary
+        values.
+        """
+        secret = await cls.akey()
+        return Namespace(
+            mapping={
+                cls.SALT: await cls.asalt(),
+                cls.SECRET: secret,
+                cls.PUB: await cls.aexchange(base, int(secret, 16), mod),
+            }
+        )
+
+    @classmethod
+    def init_exchange(cls, *, base=GENERATOR, mod=PRIME):
+        """
+        Initializes values for a server or client side diffie-hellman
+        exchange. Returns a ``Namespace`` object with the necessary
+        values.
+        """
+        secret = cls.key()
+        return Namespace(
+            mapping={
+                cls.SALT: cls.salt(),
+                cls.SECRET: secret,
+                cls.PUB: cls.exchange(base, int(secret, 16), mod),
+            }
+        )
+
+    @classmethod
+    async def aderive_key(cls, secret: int, pub: int, *, mod=PRIME):
+        """
+        Derives the shared key resulting from a diffie-hellman key
+        exchange with the specified ``secret``, ``pub`` & ``mod`` kwargs.
+        """
+        secret = secret if isinstance(secret, int) else int(secret, 16)
+        return await cls.aexchange(pub, secret, mod)
+
+    @classmethod
+    def derive_key(cls, secret: int, pub: int, *, mod=PRIME):
+        """
+        Derives the shared key resulting from a diffie-hellman key
+        exchange with the specified ``secret``, ``pub`` & ``mod`` kwargs.
+        """
+        secret = secret if isinstance(secret, int) else int(secret, 16)
+        return cls.exchange(pub, secret, mod)
+
+    @classmethod
+    async def aderive_secret(
+        cls, key: str, client_salt: str, server_salt: str, base=GENERATOR
+    ):
+        """
+        Derives & processes a form of shared key resulting from a diffie-
+        hellman key exchange, but takes a ``key``, ``client_salt`` &
+        ``server_salt`` kwargs. The ``base`` kwarg is the keyed_password
+        during the authentication step, which allows the current session
+        to be also given the trust of the previous session, which makes
+        man-in-the-middle attacks impossible without both the current
+        & previous sessions being compromised.
+        """
+        x = await cls.aexchange(
+            base=base,
+            exp=int(await anc_512(key, client_salt, server_salt), 16),
+        )
+        return int(await anc_512(x, key, client_salt, server_salt), 16)
+
+    @classmethod
+    def derive_secret(
+        cls, key: str, client_salt: str, server_salt: str, base=GENERATOR
+    ):
+        """
+        Derives & processes a form of shared key resulting from a diffie-
+        hellman key exchange, but takes a ``key``, ``client_salt`` &
+        ``server_salt`` kwargs. The ``base`` kwarg is the keyed_password
+        during the authentication step, which allows the current session
+        to be also given the trust of the previous session, which makes
+        man-in-the-middle attacks impossible without both the current
+        & previous sessions being compromised.
+        """
+        x = cls.exchange(
+            base=base,
+            exp=int(nc_512(key, client_salt, server_salt), 16),
+        )
+        return int(nc_512(x, key, client_salt, server_salt), 16)
+
+    @classmethod
+    async def afinalize(cls, key: any, shared_key: any, shared_secret: any):
+        """
+        Combines the current sessions' derived keys, with the keys
+        derived during the last session & the current session encryption
+        key into brand new key for the next authentication, & a new
+        session key which updates the current session's encryption key.
+        Returns a ``Namespace`` object containing these new keys.
+        """
+        keyspace = await anc_512_hmac((shared_secret, key), key=shared_key)
+        return Namespace(
+            mapping={
+                cls.KEY: keyspace[:128],
+                cls.SESSION_KEY: keyspace[128:],
+            }
+        )
+
+    @classmethod
+    def finalize(cls, key: any, shared_key: any, shared_secret: any):
+        """
+        Combines the current sessions' derived keys, with the keys
+        derived during the last session & the current session encryption
+        key into brand new key for the next authentication, & a new
+        session key which updates the current session's encryption key.
+        Returns a ``Namespace`` object containing these new keys.
+        """
+        keyspace = nc_512_hmac((shared_secret, key), key=shared_key)
+        return Namespace(
+            mapping={
+                cls.KEY: keyspace[:128],
+                cls.SESSION_KEY: keyspace[128:],
+            }
+        )
+
+    @classmethod
+    async def aencrypt(cls, *, key_id=None, message_key=None, **plaintext):
+        """
+        A flexible one-time pad encryption method which turns the
+        keyword arguments passed as ``**plaintext`` into a dictionary
+        which is encrypted as a json object with the ``message_key``
+        value. If a ``key_id`` is specified, then a registration has
+        already established a shared key between the client & server,
+        so the key_id is attached to the outside of the ciphertext so
+        the other party knows which user/server is attempting to
+        communicate with them.
+        """
+        message = await ajson_encrypt(plaintext, key=message_key)
+        if key_id:
+            return {cls.KEY_ID: key_id, **message}
+        else:
+            return message
+
+    @classmethod
+    def encrypt(cls, *, key_id=None, message_key=None, **plaintext):
+        """
+        A flexible one-time pad encryption method which turns the
+        keyword arguments passed as ``**plaintext`` into a dictionary
+        which is encrypted as a json object with the ``message_key``
+        value. If a ``key_id`` is specified, then a registration has
+        already established a shared key between the client & server,
+        so the key_id is attached to the outside of the ciphertext so
+        the other party knows which user/server is attempting to
+        communicate with them.
+        """
+        message = json_encrypt(plaintext, key=message_key)
+        if key_id:
+            return {cls.KEY_ID: key_id, **message}
+        else:
+            return message
+
+    @classmethod
+    async def adecrypt(cls, *, message_key=None, ciphertext=None):
+        """
+        Decrypts a one-time pad ``ciphertext`` of json data with the
+        ``message_key`` & returns the plaintext as well as the key_id
+        in a dictionary if it was attached to the ciphertext.
+        """
+        if ciphertext.get(cls.KEY_ID):
+            key_id = ciphertext.pop(cls.KEY_ID)
+            message = await ajson_decrypt(ciphertext, key=message_key)
+            return {cls.KEY_ID: key_id, **message}
+        else:
+            return await ajson_decrypt(ciphertext, key=message_key)
+
+    @classmethod
+    def decrypt(cls, *, message_key=None, ciphertext=None):
+        """
+        Decrypts a one-time pad ``ciphertext`` of json data with the
+        ``message_key`` & returns the plaintext as well as the key_id
+        in a dictionary if it was attached to the ciphertext.
+        """
+        if ciphertext.get(cls.KEY_ID):
+            key_id = ciphertext.pop(cls.KEY_ID)
+            message = json_decrypt(ciphertext, key=message_key)
+            return {cls.KEY_ID: key_id, **message}
+        else:
+            return json_decrypt(ciphertext, key=message_key)
+
+    @staticmethod
+    async def aed25519_key():
+        """
+        Returns an ``Ed25519PrivateKey`` from the cryptography package
+        used to make elliptic curve signatures of data.
+        """
+        return Ed25519PrivateKey.generate()
+
+    @staticmethod
+    def ed25519_key():
+        """
+        Returns an ``Ed25519PrivateKey`` from the cryptography package
+        used to make elliptic curve signatures of data.
+        """
+        return Ed25519PrivateKey.generate()
+
+    @staticmethod
+    async def ax25519_key():
+        """
+        Returns a ``X25519PrivateKey`` from the cryptography package for
+        use in an elliptic curve diffie-hellman exchange.
+        """
+        return X25519PrivateKey.generate()
+
+    @staticmethod
+    def x25519_key():
+        """
+        Returns a ``X25519PrivateKey`` from the cryptography package for
+        use in an elliptic curve diffie-hellman exchange.
+        """
+        return X25519PrivateKey.generate()
+
+    @staticmethod
+    async def aec25519_pub(secret: X25519PrivateKey, hex=False):
+        """
+        Returns the public key bytes of an ``X25519PrivateKey`` from the
+        cryptography package for use in an elliptic curve diffie-hellman
+        exchange. If ``hex`` is truthy, then a hex string of the public
+        key is returned instead.
+        """
+        pub = secret.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        if hex:
+            return bytes.hex(pub)
+        else:
+            return pub
+
+    @staticmethod
+    def ec25519_pub(secret: X25519PrivateKey, hex=False):
+        """
+        Returns the public key bytes of an ``X25519PrivateKey`` from the
+        cryptography package for use in an elliptic curve diffie-hellman
+        exchange. If ``hex`` is truthy, then a hex string of the public
+        key is returned instead.
+        """
+        pub = secret.public_key().public_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PublicFormat.Raw,
+        )
+        if hex:
+            return bytes.hex(pub)
+        else:
+            return pub
+
+    @staticmethod
+    async def ax25519_exchange(secret: X25519PrivateKey, pub: bytes):
+        """
+        Returns the shared key bytes derived from an elliptic curve key
+        exchange with the user's ``secret`` key, & their communicating
+        peer's ``pub`` public key's bytes or hex value.
+        """
+        pub = pub if isinstance(pub, bytes) else bytes.fromhex(pub)
+        return secret.exchange(X25519PublicKey.from_public_bytes(pub))
+
+    @staticmethod
+    def x25519_exchange(secret: X25519PrivateKey, pub: bytes):
+        """
+        Returns the shared key bytes derived from an elliptic curve key
+        exchange with the user's ``secret`` key, & their communicating
+        peer's ``pub`` public key's bytes or hex value.
+        """
+        pub = pub if isinstance(pub, bytes) else bytes.fromhex(pub)
+        return secret.exchange(X25519PublicKey.from_public_bytes(pub))
+
+    @classmethod
+    async def ainit_protocol(cls):
+        """
+        Instatiates a ``Namespace`` object with the generic values used
+        to execute the ``Opake`` registration & authentication protocols
+        for both the server & client, then returns it.
+        """
+        values = Namespace()
+        values.salt = await cls.asalt()
+        values.session_salt = await cls.asalt()
+        values.ecdhe_key = await cls.ax25519_key()
+        values.pub = await cls.aec25519_pub(values.ecdhe_key)
+        return values
+
+    @classmethod
+    def init_protocol(cls):
+        """
+        Instatiates a ``Namespace`` object with the generic values used
+        to execute the ``Opake`` registration & authentication protocols
+        for both the server & client, then returns it.
+        """
+        values = Namespace()
+        values.salt = cls.salt()
+        values.session_salt = cls.salt()
+        values.ecdhe_key = cls.x25519_key()
+        values.pub = cls.ec25519_pub(values.ecdhe_key)
+        return values
+
+    @classmethod
+    async def aunpack_client_hello(cls, client_hello: dict, key=None):
+        """
+        Allows a server to quickly decrypt or unpack the client's hello
+        data into a ``Namespace`` object for efficient & more readable
+        processing of the data for authentication & registration.
+        """
+        if key:
+            client_hello = await cls.adecrypt(
+                ciphertext=client_hello, message_key=key
+            )
+        return Namespace(client_hello)
+
+    @classmethod
+    def unpack_client_hello(cls, client_hello: dict, key=None):
+        """
+        Allows a server to quickly decrypt or unpack the client's hello
+        data into a ``Namespace`` object for efficient & more readable
+        processing of the data for authentication & registration.
+        """
+        if key:
+            client_hello = cls.decrypt(
+                ciphertext=client_hello, message_key=key
+            )
+        return Namespace(client_hello)
+
+    @classmethod
+    @comprehension()
+    async def aclient_registration(
+        cls,
+        uuid: any,
+        password: any,
+        salt=None,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+        directory=None,
+        database=None,
+    ):
+        """
+        This is an oblivious, one-message async password authenticated
+        key exchange registration protocol. Takes in user credentials
+        to open an encrypted database on the client's filesystem to
+        retrieve & store the cryptographic values used in the exchange.
+        The user password is never transmitted to the server, instead
+        it is processed through the ``passcrypt`` function, then hashed
+        with a random secret salt stored on the filesystem & used as the
+        private exponent in a diffie-hellman public key to create a new
+        shared key with the server during the next authentication.
+
+        Usage Example:
+
+        # The arguments must contain at least one unique element for
+        # each service the client wants to authenticate with, such as ->
+        uuid = await aiootp.asha_256("server_url", "username")
+        client = Opake.aclient_registration(uuid, "password")
+        client_hello = await client()
+        internet.send(client_hello)
+        server_hello = internet.receive()
+        try:
+            await client(server_hello)
+        except StopAsyncIteration:
+            shared_keys = await client.aresult()
+        """
+        db = await cls.aclient_database(
+            uuid,
+            password,
+            salt,
+            *credentials,
+            kb=kb,
+            cpu=cpu,
+            hardness=hardness,
+            directory=directory,
+            database=database,
+        )
+        values = await cls.ainit_protocol()
+        response = yield {
+            cls.PUB: bytes.hex(values.pub),
+            cls.SALT: values.salt,
+            cls.SESSION_SALT: values.session_salt,
+            cls.KEYED_PASSWORD: await db.apop(cls.KEYED_PASSWORD),
+        }
+        shared_key = await cls.ax25519_exchange(
+            secret=values.ecdhe_key, pub=response[cls.PUB]
+        )
+        results = await cls.afinalize(
+            shared_key, values.salt, response[cls.SALT]
+        )
+        session_salt = await anc_512(
+            values.session_salt, response[cls.SESSION_SALT]
+        )
+        key = db[cls.KEY] = await anc_512(session_salt, results.key)
+        session_key = await anc_512(session_salt, results.session_key)
+        await db.asave()
+        raise UserWarning(
+            {
+                cls.KEY: key,
+                cls.SESSION_KEY: session_key,
+                cls.KEY_ID: await cls.aid(key),
+            }
+        )
+
+    @classmethod
+    @comprehension()
+    def client_registration(
+        cls,
+        uuid: any,
+        password: any,
+        salt=None,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+        directory=None,
+        database=None,
+    ):
+        """
+        This is an oblivious, one-message sync password authenticated
+        key exchange registration protocol. Takes in user credentials
+        to open an encrypted database on the client's filesystem to
+        retrieve & store the cryptographic values used in the exchange.
+        The user password is never transmitted to the server, instead
+        it is processed through the ``passcrypt`` function, then hashed
+        with a random secret salt stored on the filesystem & used as the
+        private exponent in a diffie-hellman public key to create a new
+        shared key with the server during the next authentication.
+
+        Usage Example:
+
+        # The arguments must contain at least one unique element for
+        # each service the client wants to authenticate with, such as ->
+        uuid = aiootp.sha_256("server_url", "username")
+        client = Opake.client_registration(uuid, "password")
+        client_hello = client()
+        internet.send(client_hello)
+        server_hello = internet.receive()
+        try:
+            client(server_hello)
+        except StopIteration:
+            shared_keys = client.result()
+        """
+        db = cls.client_database(
+            uuid,
+            password,
+            salt,
+            *credentials,
+            kb=kb,
+            cpu=cpu,
+            hardness=hardness,
+            directory=directory,
+            database=database,
+        )
+        values = cls.init_protocol()
+        response = yield {
+            cls.PUB: bytes.hex(values.pub),
+            cls.SALT: values.salt,
+            cls.SESSION_SALT: values.session_salt,
+            cls.KEYED_PASSWORD: db.pop(cls.KEYED_PASSWORD),
+        }
+        shared_key = cls.x25519_exchange(
+            secret=values.ecdhe_key, pub=response[cls.PUB]
+        )
+        results = cls.finalize(
+            shared_key, values.salt, response[cls.SALT]
+        )
+        session_salt = nc_512(
+            values.session_salt, response[cls.SESSION_SALT]
+        )
+        key = db[cls.KEY] = nc_512(session_salt, results.key)
+        session_key = nc_512(session_salt, results.session_key)
+        db.save()
+        return {
+            cls.KEY: key,
+            cls.KEY_ID: cls.id(key),
+            cls.SESSION_KEY: session_key,
+        }
+
+    @classmethod
+    @comprehension()
+    async def aserver_registration(cls, client_hello=None, database=None):
+        """
+        This is an oblivious, one-message async password authentication
+        key exchange registration protocol. It takes in a client's
+        hello protocol message, & an encrypted server database, to
+        retrieve & store the cryptographic values used in the exchange.
+        The user's password is never transmitted to the server, but is
+        used to make a new verifier which is stored on the server during
+        each registration & authentication step, & used for secure
+        authentication on each subsequent authentication. The point is
+        to build a shared key with the client based on a shared elliptic
+        curve diffie-hellman exchange, key material from past sessions
+        & the diffie-hellman public key verifier, which protects the
+        protocol from man-in-the-middle attacks by updating the shared
+        keys with the combination of past & current sessions' keys.
+
+        Usage Example:
+
+        server_db = await AsyncDatabase("server_database_key")
+        client_hello = internet.receive()
+        server = Opake.aserver_registration(client_hello, server_db)
+        server_hello = await server()
+        internet.send(server_hello)
+        try:
+            await server()
+        except StopAsyncIteration:
+            shared_keys = await server.aresult()
+        """
+        values = await cls.ainit_protocol()
+        client = await cls.aunpack_client_hello(client_hello)
+        shared_key = await cls.ax25519_exchange(
+            secret=values.ecdhe_key, pub=client.pub
+        )
+        results = await cls.afinalize(
+            shared_key, client.salt, values.salt
+        )
+        session_salt = await anc_512(
+            client.session_salt, values.session_salt
+        )
+        key = await anc_512(session_salt, results.key)
+        session_key = await anc_512(session_salt, results.session_key)
+        key_id = await cls.aid(key)
+        database[key_id] = {
+            cls.KEY: key, cls.KEYED_PASSWORD: client.keyed_password
+        }
+        yield {
+            cls.PUB: values.pub,
+            cls.SALT: values.salt,
+            cls.SESSION_SALT: values.session_salt,
+        }
+        raise UserWarning(
+            {
+                cls.KEY: key,
+                cls.KEY_ID: key_id,
+                cls.SESSION_KEY: session_key,
+            }
+        )
+
+    @classmethod
+    @comprehension()
+    def server_registration(cls, client_hello=None, database=None):
+        """
+        This is an oblivious, one-message sync password authentication
+        key exchange registration protocol. It takes in a client's
+        hello protocol message, & an encrypted server database, to
+        retrieve & store the cryptographic values used in the exchange.
+        The user's password is never transmitted to the server, but is
+        used to make a new verifier which is stored on the server during
+        each registration & authentication step, & used for secure
+        authentication on each subsequent authentication. The point is
+        to build a shared key with the client based on a shared elliptic
+        curve diffie-hellman exchange, key material from past sessions
+        & the diffie-hellman public key verifier, which protects the
+        protocol from man-in-the-middle attacks by updating the shared
+        keys with the combination of past & current sessions' keys.
+
+        Usage Example:
+
+        server_db = Database("server_database_key")
+        client_hello = internet.receive()
+        server = Opake.server_registration(client_hello, server_db)
+        server_hello = server()
+        internet.send(server_hello)
+        try:
+            server()
+        except StopIteration:
+            shared_keys = server.result()
+        """
+        values = cls.init_protocol()
+        client = cls.unpack_client_hello(client_hello)
+        shared_key = cls.x25519_exchange(
+            secret=values.ecdhe_key, pub=client.pub
+        )
+        results = cls.finalize(
+            shared_key, client.salt, values.salt
+        )
+        session_salt = nc_512(
+            client.session_salt, values.session_salt
+        )
+        key = nc_512(session_salt, results.key)
+        session_key = nc_512(session_salt, results.session_key)
+        key_id = cls.id(key)
+        database[key_id] = {
+            cls.KEY: key, cls.KEYED_PASSWORD: client.keyed_password
+        }
+        yield {
+            cls.PUB: values.pub,
+            cls.SALT: values.salt,
+            cls.SESSION_SALT: values.session_salt,
+        }
+        return {
+            cls.KEY: key,
+            cls.KEY_ID: key_id,
+            cls.SESSION_KEY: session_key,
+        }
+
+    @classmethod
+    @comprehension()
+    async def aclient(
+        cls,
+        uuid: any,
+        password: any,
+        salt=None,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+        directory=None,
+        database=None,
+    ):
+        """
+        This is an oblivious, one-message async password authenticated
+        key exchange authentication protocol. Takes in user credentials
+        to open an encrypted database on the client's filesystem to
+        retrieve & store the cryptographic values used in the exchange.
+        The user password is never transmitted to the server, instead
+        it is processed through the ``passcrypt`` function, then hashed
+        with a random secret salt stored on the filesystem & used as the
+        private exponent in a diffie-hellman public key to create a new
+        shared key with the server.
+
+        Usage Example:
+
+        # The arguments must contain at least one unique element for
+        # each service the client wants to authenticate with, such as ->
+        uuid = await aiootp.asha_256("server_url", "username")
+        client = Opake.aclient(uuid, "password")
+        client_hello = await client()
+        internet.send(client_hello)
+        server_hello = internet.receive()
+        try:
+            await client(server_hello)
+        except StopAsyncIteration:
+            shared_keys = await client.aresult()
+        """
+        db = await cls.aclient_database(
+            uuid,
+            password,
+            salt,
+            *credentials,
+            kb=kb,
+            cpu=cpu,
+            hardness=hardness,
+            directory=directory,
+            database=database,
+        )
+        key = db[cls.KEY]
+        key_id = await cls.aid(key)
+        values = await cls.ainit_protocol()
+        password_salt = await asha_512(db[cls.SALT])
+        encrypted_response = yield await cls.aencrypt(
+            key_id=key_id,
+            message_key=key,
+            salt=values.salt,
+            pub=bytes.hex(values.pub),
+            password_salt=password_salt,
+            session_salt=values.session_salt,
+            keyed_password=await db.apop(cls.NEXT_KEYED_PASSWORD),
+        )
+        response = await ajson_decrypt(encrypted_response, key=key)
+        shared_key = await cls.ax25519_exchange(
+            secret=values.ecdhe_key, pub=response[cls.PUB]
+        )
+        shared_secret = await cls.aderive_secret(
+            key=await anc_512(key, shared_key),
+            client_salt=values.salt,
+            server_salt=response[cls.SALT],
+            base=await db.apop(cls.KEYED_PASSWORD) ^ int(
+                await anc_2048(password_salt), 16
+            ),
+        )
+        db[cls.SALT] = await db.apop(cls.NEXT_SALT)
+        results = await cls.afinalize(key, shared_key, shared_secret)
+        session_salt = await anc_512(
+            values.session_salt, response[cls.SESSION_SALT]
+        )
+        key = db[cls.KEY] = await anc_512(session_salt, results.key)
+        session_key = await anc_512(session_salt, results.session_key)
+        await db.asave()
+        raise UserWarning(
+            {
+                cls.KEY: key,
+                cls.SESSION_KEY: session_key,
+                cls.KEY_ID: await cls.aid(key),
+            }
+        )
+
+    @classmethod
+    @comprehension()
+    def client(
+        cls,
+        uuid: any,
+        password: any,
+        salt=None,
+        *credentials,
+        kb=1024,
+        cpu=3,
+        hardness=1024,
+        directory=None,
+        database=None,
+    ):
+        """
+        This is an oblivious, one-message sync password authenticated
+        key exchange authentication protocol. Takes in user credentials
+        to open an encrypted database on the client's filesystem to
+        retrieve & store the cryptographic values used in the exchange.
+        The user password is never transmitted to the server, instead
+        it is processed through the ``passcrypt`` function, then hashed
+        with a random secret salt stored on the filesystem & used as the
+        private exponent in a diffie-hellman public key to create a new
+        shared key with the server.
+
+        Usage Example:
+
+        # The arguments must contain at least one unique element for
+        # each service the client wants to authenticate with, such as ->
+        uuid = aiootp.sha_256("server_url", "username")
+        client = Opake.client(uuid, "password")
+        client_hello = client()
+        internet.send(client_hello)
+        server_hello = internet.receive()
+        try:
+            client(server_hello)
+        except StopIteration:
+            shared_keys = client.result()
+        """
+        db = cls.client_database(
+            uuid,
+            password,
+            salt,
+            *credentials,
+            kb=kb,
+            cpu=cpu,
+            hardness=hardness,
+            directory=directory,
+            database=database,
+        )
+        key = db[cls.KEY]
+        key_id = cls.id(key)
+        values = cls.init_protocol()
+        password_salt = sha_512(db[cls.SALT])
+        encrypted_response = yield cls.encrypt(
+            key_id=key_id,
+            message_key=key,
+            salt=values.salt,
+            pub=bytes.hex(values.pub),
+            password_salt=password_salt,
+            session_salt=values.session_salt,
+            keyed_password=db.pop(cls.NEXT_KEYED_PASSWORD),
+        )
+        response = json_decrypt(encrypted_response, key=key)
+        shared_key = cls.x25519_exchange(
+            secret=values.ecdhe_key, pub=response[cls.PUB]
+        )
+        shared_secret = cls.derive_secret(
+            key=nc_512(key, shared_key),
+            client_salt=values.salt,
+            server_salt=response[cls.SALT],
+            base=db.pop(cls.KEYED_PASSWORD) ^ int(
+                nc_2048(password_salt), 16
+            ),
+        )
+        db[cls.SALT] = db.pop(cls.NEXT_SALT)
+        results = cls.finalize(key, shared_key, shared_secret)
+        session_salt = nc_512(
+            values.session_salt, response[cls.SESSION_SALT]
+        )
+        key = db[cls.KEY] = nc_512(session_salt, results.key)
+        session_key = nc_512(session_salt, results.session_key)
+        db.save()
+        return {
+            cls.KEY: key,
+            cls.KEY_ID: cls.id(key),
+            cls.SESSION_KEY: session_key,
+        }
+
+    @classmethod
+    @comprehension()
+    async def aserver(cls, client_hello=None, database=None):
+        """
+        This is an oblivious, one-message async password authentication
+        key exchange authentication protocol. It takes in a client's
+        hello protocol message, & an encrypted server database to
+        retrieve & store the cryptographic values used in the exchange.
+        The user's password is never transmitted to the server, but is
+        used to make a new verifier which is stored on the server during
+        each registration & authentication step, & used for secure
+        authentication on each subsequent authentication. The point is
+        to build a shared key with the client based on a shared elliptic
+        curve diffie-hellman exchange, key material from past sessions
+        & the diffie-hellman public key verifier, which protects the
+        protocol from man-in-the-middle attacks by updating the shared
+        keys with the combination of past & current sessions' keys.
+
+        Usage Example:
+
+        server_db = await AsyncDatabase("server_database_key")
+        client_hello = internet.receive()
+        server = Opake.aserver(client_hello, server_db)
+        server_hello = await server()
+        internet.send(server_hello)
+        try:
+            await server()
+        except StopAsyncIteration:
+            shared_keys = await server.aresult()
+        """
+        key = database[client_hello[cls.KEY_ID]][cls.KEY]
+        values = await cls.ainit_protocol()
+        client = await cls.aunpack_client_hello(client_hello, key=key)
+        shared_key = await cls.ax25519_exchange(
+            secret=values.ecdhe_key, pub=client.pub
+        )
+        keyed_password = database[client.key_id][cls.KEYED_PASSWORD]
+        shared_secret = await cls.aderive_secret(
+            key=await anc_512(key, shared_key),
+            client_salt=client.salt,
+            server_salt=values.salt,
+            base=keyed_password ^ int(
+                await anc_2048(client.password_salt), 16
+            ),
+        )
+        results = await cls.afinalize(key, shared_key, shared_secret)
+        session_salt = await anc_512(
+            client.session_salt, values.session_salt
+        )
+        new_key = await anc_512(session_salt, results.key)
+        session_key = await anc_512(session_salt, results.session_key)
+        key_id = await cls.aid(new_key)
+        database[key_id] = {
+            cls.KEY: new_key, cls.KEYED_PASSWORD: client.keyed_password
+        }
+        del database[client.key_id]
+        yield await cls.aencrypt(
+            message_key=key,
+            salt=values.salt,
+            pub=bytes.hex(values.pub),
+            session_salt=values.session_salt,
+        )
+        raise UserWarning(
+            {
+                cls.KEY: new_key,
+                cls.KEY_ID: key_id,
+                cls.SESSION_KEY: session_key,
+            }
+        )
+
+    @classmethod
+    @comprehension()
+    def server(cls, client_hello=None, database=None):
+        """
+        This is an oblivious, one-message sync password authentication
+        key exchange authentication protocol. It takes in a client's
+        hello protocol message, & an encrypted server database to
+        retrieve & store the cryptographic values used in the exchange.
+        The user's password is never transmitted to the server, but is
+        used to make a new verifier which is stored on the server during
+        each registration & authentication step, & used for secure
+        authentication on each subsequent authentication. The point is
+        to build a shared key with the client based on a shared elliptic
+        curve diffie-hellman exchange, key material from past sessions
+        & the diffie-hellman public key verifier, which protects the
+        protocol from man-in-the-middle attacks by updating the shared
+        keys with the combination of past & current sessions' keys.
+
+        Usage Example:
+
+        server_db = Database("server_database_key")
+        client_hello = internet.receive()
+        server = Opake.server(client_hello, server_db)
+        server_hello = server()
+        internet.send(server_hello)
+        try:
+            server()
+        except StopIteration:
+            shared_keys = server.result()
+        """
+        key = database[client_hello[cls.KEY_ID]][cls.KEY]
+        values = cls.init_protocol()
+        client = cls.unpack_client_hello(client_hello, key=key)
+        shared_key = cls.x25519_exchange(
+            secret=values.ecdhe_key, pub=client.pub
+        )
+        keyed_password = database[client.key_id][cls.KEYED_PASSWORD]
+        shared_secret = cls.derive_secret(
+            key=nc_512(key, shared_key),
+            client_salt=client.salt,
+            server_salt=values.salt,
+            base=keyed_password ^ int(nc_2048(client.password_salt), 16),
+        )
+        results = cls.finalize(key, shared_key, shared_secret)
+        session_salt = nc_512(client.session_salt, values.session_salt)
+        new_key = nc_512(session_salt, results.key)
+        session_key = nc_512(session_salt, results.session_key)
+        key_id = cls.id(new_key)
+        database[key_id] = {
+            cls.KEY: new_key, cls.KEYED_PASSWORD: client.keyed_password
+        }
+        del database[client.key_id]
+        yield cls.encrypt(
+            message_key=key,
+            salt=values.salt,
+            pub=bytes.hex(values.pub),
+            session_salt=values.session_salt,
+        )
+        return {
+            cls.KEY: new_key,
+            cls.KEY_ID: key_id,
+            cls.SESSION_KEY: session_key,
+        }
 
 
 validator = Namespace()
@@ -3622,6 +5034,7 @@ __extras = {
     "Database": Database,
     "Passcrypt": Passcrypt,
     "OneTimePad": OneTimePad,
+    "Opake": Opake,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
