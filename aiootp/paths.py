@@ -9,7 +9,7 @@
 #
 
 
-__all__ = ["paths", "DatabasePath"]
+__all__ = ["paths", "SecurePath", "DatabasePath"]
 
 
 __doc__ = """
@@ -63,10 +63,22 @@ def DatabasePath(dir_function=RootPath):
     return dir_function() / "databases"
 
 
+def SecurePath(dir_function=DatabasePath):
+    from .ciphers import salt
+
+    secured_directory = dir_function() / "secure"
+    if not secured_directory.exists():
+        secured_directory.mkdir()
+        (secured_directory / salt()[:64]).mkdir()
+    for path in secured_directory.iterdir():
+        return path.absolute()
+
+
 __extras = {
     "Path": Path,
     "TorPath": TorPath,
     "RootPath": RootPath,
+    "SecurePath": SecurePath,
     "PackagePath": PackagePath,
     "CurrentPath": CurrentPath,
     "DatabasePath": DatabasePath,
