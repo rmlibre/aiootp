@@ -25,6 +25,7 @@ from .generics import Comprende, comprehension
 from .generics import convert_static_method_to_member
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
+from .ciphers import Opake
 from .ciphers import validator
 from .ciphers import salt, asalt
 from .ciphers import OneTimePad
@@ -295,6 +296,18 @@ def insert_stateful_key_generator_objects():
     validator.atest_hmac = pad.atest_hmac
 
 
+def initialize_default_opake_class_database():
+    """
+    Establishes a default encrypted database for the Opake class with a
+    key derived from the name of the ``aiootp.paths.SecurePath()``
+    directory. If it doesn't already exist, it is created, & a
+    cryptographic salt is stored within the default database for clients
+    to be able to secure the password hashes which then open the user
+    databases that are specific to each account.
+    """
+    Opake(key=None)
+
+
 insert_debuggers()
 insert_xor_methods()
 insert_passcrypt_methods()
@@ -303,4 +316,5 @@ insert_bytes_cipher_methods()
 insert_stream_cipher_methods()
 insert_hashmap_cipher_methods()
 insert_stateful_key_generator_objects()
+initialize_default_opake_class_database()
 
