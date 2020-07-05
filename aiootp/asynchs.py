@@ -17,6 +17,7 @@ __all__ = [
     "asleep",
     "new_task",
     "new_future",
+    "Processes",
 ]
 
 
@@ -34,8 +35,11 @@ from time import time
 from time import sleep
 from functools import wraps
 from functools import partial
+from threading import Thread
+from multiprocessing import Process, Manager
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
+from inspect import iscoroutinefunction as is_async_function
 from .commons import Namespace
 
 
@@ -168,10 +172,135 @@ async def _switch():
 switch = _switch().__aiter__().__anext__
 
 
+class Processes:
+    """
+    Simplifies spawning & returning values from ``multiprocessing``
+    ``Process`` objects.
+    """
+    _type = Process
+    _pool = process_pool
+    _state_machine = Manager()
+
+    @staticmethod
+    def _return_state(runner, func=None, state=None, *args):
+        """
+        Used by the class to handle retreiving return values from new
+        processes spawned using the process pool.
+        """
+        runner(func, *args, state=state)
+        return state.pop()
+
+    @classmethod
+    async def asubmit(cls, func=None, *args, _delay=0.01):
+        """
+        Submits an async or sync ``func`` to a process pool & returns
+        the Future of that submission.
+        """
+        async def aresult(start=time()):
+            while not future.done() or time() - start < _delay:
+                await asleep(_delay)
+            return future.result()
+
+        if is_async_function(func):
+            runner = cls._run_async_func
+            state = cls._state_machine.list()
+            future = cls.submit(
+                cls._return_state, runner, func, state, *args
+            )
+        else:
+            future = cls.submit(func, *args)
+
+        future.aresult = aresult
+        return future
+
+    @classmethod
+    def submit(cls, func=None, *args, _delay=0.01):
+        """
+        Submits a sync ``func`` to a process pool & returns the Future
+        of that submission.
+        """
+        def result(start=time()):
+            while not future.done() or time() - start < _delay:
+                sleep(_delay)
+            return future._original_result()
+
+        future = cls._pool.submit(func, *args)
+        future._original_result = future.result
+        future.result = result
+        return future
+
+    @staticmethod
+    def _run_async_func(func=None, *args, state=None, **kwargs):
+        """
+        Used by the class to handle retreiving return values from new
+        processes spawned, even if the target function is async.
+        """
+        if is_async_function(func):
+            run = asyncio.new_event_loop().run_until_complete
+            state.append(run(func(*args, **kwargs)))
+        else:
+            state.append(func(*args, **kwargs))
+
+    @classmethod
+    async def anew(cls, func=None, *args, _delay=0.01, **kwargs):
+        """
+        Runs an async or sync function in another process so heavy
+        cpu-bound computations can better coexist with asynchronous
+        or multithreaded code.
+        """
+        state = cls._state_machine.list()
+        process = cls._type(
+            target=cls._run_async_func,
+            args=(func, *args),
+            kwargs=dict(state=state, **kwargs),
+        )
+        start = time()
+        process.start()
+        while process.is_alive() or time() - start < _delay:
+            await asleep(_delay)
+        process.join()
+        return state.pop()
+
+    @staticmethod
+    def _run_func(func=None, *args, state=None, **kwargs):
+        """
+        Used by the class to handle retreiving return values from new
+        processes spawned.
+        """
+        state.append(func(*args, **kwargs))
+
+    @classmethod
+    def new(cls, func=None, *args, _delay=0.01, **kwargs):
+        """
+        Runs a sync function in another process so heavy cpu-bound
+        computations can better coexist with multithreaded code.
+        """
+        state = cls._state_machine.list()
+        process = cls._type(
+            target=cls._run_func,
+            args=(func, *args),
+            kwargs=dict(state=state, **kwargs),
+        )
+        start = time()
+        process.start()
+        while process.is_alive() or time() - start < _delay:
+            sleep(_delay)
+        process.join()
+        return state.pop()
+
+
+class Threads(Processes):
+    _type = Thread
+    _pool = thread_pool
+    _state_machine = Manager()
+
+
 __extras = {
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
+    "Processes": Processes,
+    "Threads": Threads,
     "asyncio": asyncio,
     "aos": aos,
     "run": run,
