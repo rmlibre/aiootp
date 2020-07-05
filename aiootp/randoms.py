@@ -44,6 +44,7 @@ from hashlib import sha3_256
 from hashlib import sha3_512
 from collections import deque
 from collections import defaultdict
+from sympy import isprime as is_prime
 from sympy import prevprime as prev_prime
 from sympy import nextprime as next_prime
 from sympy import randprime as random_prime
@@ -841,9 +842,11 @@ async def aunique_big_int():
     Uses unique lower & upper bound integers to feed into the standard
     library's ``randrange`` function & returns the result.
     """
-    return await arandom_range(
-        *(await gather(aunique_lower_bound(), aunique_upper_bound()))
-    ) ^ await atoken_number(64)
+
+    numbers = await gather(
+        aunique_lower_bound(), aunique_upper_bound(), return_exceptions=True
+    )
+    return await arandom_range(*numbers) ^ await atoken_number(64)
 
 
 def unique_big_int():
@@ -866,7 +869,9 @@ async def aunique_lower_bound():
     global SMALL_LOWER_BOUND
     number_0 = arandom_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
     number_1 = arandom_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
-    return await _asalt_multiply(await gather(number_0, number_1))
+    return await _asalt_multiply(
+        await gather(number_0, number_1, return_exceptions=True)
+    )
 
 
 def unique_lower_bound():
@@ -893,7 +898,9 @@ async def aunique_upper_bound():
     global BIG_LOWER_BOUND
     number_0 = arandom_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
     number_1 = arandom_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
-    return await _asalt_multiply(await gather(number_0, number_1))
+    return await _asalt_multiply(
+        await gather(number_0, number_1, return_exceptions=True)
+    )
 
 
 def unique_upper_bound():
@@ -920,7 +927,9 @@ async def agenerate_unique_range_bounds():
     """
     random.seed(token_bytes(2500))
     await gather(
-        agenerate_small_range_bounds(), agenerate_big_range_bounds()
+        agenerate_small_range_bounds(),
+        agenerate_big_range_bounds(),
+        return_exceptions=True,
     )
 
 
@@ -1517,6 +1526,7 @@ __extras = {
     "generate_big_range_bounds": generate_big_range_bounds,
     "generate_small_range_bounds": generate_small_range_bounds,
     "generate_unique_range_bounds": generate_unique_range_bounds,
+    "is_prime": is_prime,
     "leaf": leaf,
     "leaf_walk": leaf_walk,
     "make_uuid": make_uuid,
