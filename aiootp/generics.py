@@ -785,11 +785,18 @@ class Comprende:
         async def _acomprehension(gen=None):
             catch_UserWarning = self.__aexamine_sent_exceptions(gen)
             await catch_UserWarning.asend(None)
-            async with self.acatch():
-                got = None
-                while True:
-                    got = yield await gen.asend(got)
-                    await catch_UserWarning.asend(got)
+            try:
+                async with self.acatch():
+                    got = None
+                    while True:
+                        got = yield await gen.asend(got)
+                        await catch_UserWarning.asend(got)
+            except RuntimeError as done:
+                if not (
+                    self.ASYNC_GEN_DONE in done.args
+                    or self.ASYNC_GEN_THROWN in done.args
+                ):
+                    raise done
 
         self._async = True
         self.__call__ = self._acall
@@ -849,6 +856,8 @@ class Comprende:
                 self._return.append(done.args[0])
         except StopAsyncIteration:
             pass
+        except GeneratorExit:
+            pass
 
     @contextmanager
     def catch(self):
@@ -887,6 +896,8 @@ class Comprende:
             if result != None:
                 raise UserWarning(result)
             raise UserWarning(await source.aresult(exit=True))
+        except GeneratorExit:
+            pass
 
     @contextmanager
     def relay(self, result=None, source=None):
@@ -3584,22 +3595,18 @@ def nc_2048_hmac(data, key=None):
     return nc_2048(nc_2048(data, key), key)
 
 
-async def aint_to_ascii(input_integer):
+async def aint_to_ascii(data):
     """
     Uses ``binascii`` to convert integers into strings.
     """
-    return input_integer.to_bytes(
-        (input_integer.bit_length() + 7) // 8, "big"
-    ).decode()
+    return data.to_bytes((data.bit_length() + 7) // 8, "big").decode()
 
 
-def int_to_ascii(input_integer):
+def int_to_ascii(data):
     """
     Uses ``binascii`` to convert integers into strings.
     """
-    return input_integer.to_bytes(
-        (input_integer.bit_length() + 7) // 8, "big"
-    ).decode()
+    return data.to_bytes((data.bit_length() + 7) // 8, "big").decode()
 
 
 async def aascii_to_int(data):
@@ -3609,11 +3616,11 @@ async def aascii_to_int(data):
     return int.from_bytes(data.encode(), "big")
 
 
-def ascii_to_int(input_ascii):
+def ascii_to_int(data):
     """
     Uses ``binascii`` to convert strings into integers.
     """
-    return int.from_bytes(input_ascii.encode(), "big")
+    return int.from_bytes(data.encode(), "big")
 
 
 async def abase_to_decimal(string, base, table=ASCII_ALPHANUMERIC):
@@ -3677,32 +3684,32 @@ def inverse_int(number, base, table=ASCII_ALPHANUMERIC):
     return "".join(digits)
 
 
-async def abytes_to_int(bytes_object, byte_order="big"):
+async def abytes_to_int(data, byte_order="big"):
     """
     Returns the integer representation of a bytes object.
     """
-    return int.from_bytes(bytes_object, byte_order)
+    return int.from_bytes(data, byte_order)
 
 
-def bytes_to_int(bytes_object, byte_order="big"):
+def bytes_to_int(data, byte_order="big"):
     """
     Returns the integer representation of a bytes object.
     """
-    return int.from_bytes(bytes_object, byte_order)
+    return int.from_bytes(data, byte_order)
 
 
-async def aint_to_bytes(bytes_object, size=128, byte_order="big"):
+async def aint_to_bytes(data, size=128, byte_order="big"):
     """
     Returns the bytes object representation of an integer.
     """
-    return int.to_bytes(bytes_object, size, byte_order)
+    return int.to_bytes(data, size, byte_order)
 
 
-def int_to_bytes(bytes_object, size=128, byte_order="big"):
+def int_to_bytes(data, size=128, byte_order="big"):
     """
     Returns the bytes object representation of an integer.
     """
-    return int.to_bytes(bytes_object, size, byte_order)
+    return int.to_bytes(data, size, byte_order)
 
 
 async def ahex_to_bytes(data):
