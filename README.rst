@@ -1069,6 +1069,43 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 =============
 
 
+Changes for version 0.10.1 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Added ``Processes`` & ``Threads`` classes to ``asynchs.py`` which abstract 
+   spawning & getting return values from async & sync functions intended to 
+   be run in threads, processes or pools of the former types. This simplifies 
+   & adds time control to usages of processes & threads throughout the 
+   library. 
+-  Reduced the effectiveness of timing analysis of the modular exponentiation 
+   in the ``Opake`` class' verifiers by making the process return values 
+   only after discrete intervals of time. Timing attacks on that part of the 
+   protocol may still be viable, but should be significantly reduced. 
+-  Bug fix in ``Comprende`` which should take care of warnings raised from 
+   the ``aiocontext`` package when retrieving async generator values by 
+   raising ``UserWarning`` within them. 
+
+
+Minor Changes 
+------------- 
+
+-  Heavy refactorings of the ``Opake`` class. 
+-  Various refactorings & cleanups around the package. 
+-  Further add ``return_exceptions=True`` flag to gather calls in ``ciphers.py``. 
+-  Added ``is_registration`` & ``is_authentication`` which take a client 
+   hello message that begin the ``Opake`` protocol, & return ``False`` if 
+   the message is not either a registration or authentication message, 
+   respectively, & return ``"Maybe"`` otherwise, since these functions can't 
+   determine without running the protocol whether or not the message is 
+   valid. 
+
+
+
+
 Changes for version 0.10.0 
 ========================== 
 
