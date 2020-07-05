@@ -314,6 +314,8 @@ __extras = {
     "create_namespace": create_namespace,
     "aimport_namespace": aimport_namespace,
     "import_namespace": import_namespace,
+    "amake_module": amake_module,
+    "make_module": make_module,
     "bits": bits,
     "power10": power10,
     "primes": primes,
