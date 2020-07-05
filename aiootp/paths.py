@@ -71,7 +71,11 @@ def SecurePath(dir_function=DatabasePath):
         secured_directory.mkdir()
         (secured_directory / salt()[:64]).mkdir()
     for path in secured_directory.iterdir():
-        return path.absolute()
+        if len(path.stem) == 64:
+            return path.absolute()
+    path = secured_directory / salt()[:64]
+    path.mkdir()
+    return path.absolute()
 
 
 __extras = {
