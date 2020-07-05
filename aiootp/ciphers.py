@@ -51,8 +51,6 @@ import aiofiles
 import builtins
 from functools import wraps
 from hashlib import sha3_512
-from multiprocessing import Manager
-from multiprocessing import Process
 from aiocontext import async_contextmanager
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
@@ -62,6 +60,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from .paths import *
 from .paths import Path
 from .asynchs import *
+from .asynchs import Processes
 from .commons import *
 from .commons import NONE
 from .randoms import salt
@@ -70,8 +69,6 @@ from .randoms import csprng
 from .randoms import acsprng
 from .randoms import make_uuid
 from .randoms import amake_uuid
-from .randoms import next_prime
-from .randoms import token_bytes
 from .generics import astr
 from .generics import aiter
 from .generics import anext
@@ -1214,7 +1211,7 @@ class Passcrypt:
 
     @classmethod
     async def _apasscrypt(
-        cls, password, salt, *, kb=1024, cpu=3, hardness=1024, state=()
+        cls, password, salt, *, kb=1024, cpu=3, hardness=1024
     ):
         """
         An async implementation of an scrypt-like password-based key
@@ -1245,12 +1242,10 @@ class Passcrypt:
                 await switch()
             final_proof = azip(ram[:hardness], reversed(ram))
             async with final_proof.asum_sha_256(proof.digest()) as summary:
-                state.append(sha_512(await summary.alist(mutable=True)))
+                return await asha_512(await summary.alist(mutable=True))
 
     @classmethod
-    def _passcrypt(
-        cls, password, salt, *, kb=1024, cpu=3, hardness=1024, state=()
-    ):
+    def _passcrypt(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
         """
         A sync implementation of an scrypt-like password-based key
         derivation function which requires a tunable amount of memory &
@@ -1279,7 +1274,7 @@ class Passcrypt:
                 prove()
             final_proof = _zip(ram[:hardness], reversed(ram))
             with final_proof.sum_sha_256(proof.digest()) as summary:
-                state.append(sha_512(summary.list(mutable=True)))
+                return sha_512(summary.list(mutable=True))
 
     @classmethod
     async def anew(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
@@ -1292,17 +1287,14 @@ class Passcrypt:
         """
         cls._check_inputs(password, salt)
         cls._validate_args(kb, cpu, hardness)
-        state = Manager().list()
-        process = Process(
-            target=cls._passcrypt,
-            args=(password, salt),
-            kwargs=dict(kb=kb, cpu=cpu, hardness=hardness, state=state),
+        return await Processes.anew(
+            cls._passcrypt,
+            password,
+            salt,
+            kb=kb,
+            cpu=cpu,
+            hardness=hardness
         )
-        process.start()
-        while process.is_alive():
-            await asleep(0.01)
-        process.join()
-        return state.pop()
 
     @classmethod
     def new(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
@@ -1315,17 +1307,14 @@ class Passcrypt:
         """
         cls._check_inputs(password, salt)
         cls._validate_args(kb, cpu, hardness)
-        state = Manager().list()
-        process = Process(
-            target=cls._passcrypt,
-            args=(password, salt),
-            kwargs=dict(kb=kb, cpu=cpu, hardness=hardness, state=state),
+        return Processes.new(
+            cls._passcrypt,
+            password,
+            salt,
+            kb=kb,
+            cpu=cpu,
+            hardness=hardness
         )
-        process.start()
-        while process.is_alive():
-            asynchs.sleep(0.01)
-        process.join()
-        return state.pop()
 
 
 @wraps(Passcrypt._apasscrypt)
@@ -1669,7 +1658,7 @@ class OneTimePad:
         unlinkable and unique to other ``pid`` streams with the same
         pair of ``key`` & ``salt``.
         """
-        ciphertext = generics.aiter(self)
+        ciphertext = self
         ciphered_salt = await ciphertext.anext()
         session_seed = await ciphertext.anext()
 
@@ -1708,7 +1697,7 @@ class OneTimePad:
         unlinkable and unique to other ``pid`` streams with the same
         pair of ``key`` & ``salt``.
         """
-        ciphertext = generics.iter(self)
+        ciphertext = self
         ciphered_salt = ciphertext.next()
         session_seed = ciphertext.next()
 
@@ -2196,7 +2185,8 @@ class AsyncDatabase(metaclass=AsyncInit):
             *[
                 self.ametatag(metatag, preload=preload, silent=silent)
                 for metatag in set(self.metatags)
-            ]
+            ],
+            return_exceptions=True,
         )
 
     async def aload_tags(self, silent=False):
@@ -2211,7 +2201,8 @@ class AsyncDatabase(metaclass=AsyncInit):
             *[
                 self.aquery(tag, silent=silent)
                 for filename, tag in database.items()
-            ]
+            ],
+            return_exceptions=True,
         )
 
     async def aload(self, *, metatags=True, silent=False):
@@ -2225,6 +2216,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         await gather(
             self.aload_metatags(preload=metatags, silent=silent),
             self.aload_tags(silent=silent),
+            return_exceptions=True,
         )
         return self
 
@@ -2688,7 +2680,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         if self.root_filename not in self.manifest:
             raise PermissionError("The database keys have been deleted.")
         await self.aclose_manifest()
-        await gather(self.asave_metatags(), self.asave_tags())
+        await gather(
+            self.asave_metatags(), self.asave_tags(), return_exceptions=True
+        )
 
     async def ainto_namespace(self):
         """
@@ -3673,7 +3667,7 @@ class Opake():
 
     server_db = Database("some_cryptographic_key")
     client_hello = internet.receive()
-    if client_hello.get(Opake.KEY_ID):
+    if Opake.is_registration(client_hello):
         server = Opake.server_registration(client_hello, server_db)
     else:
         server = Opake.server(client_hello, server_db)
@@ -3728,7 +3722,6 @@ class Opake():
     Ed25519PublicKey = Ed25519PublicKey
     Ed25519PrivateKey = Ed25519PrivateKey
 
-    _state_machine = Manager()
     _keyed_password_tutorial = f"""\
     ``database`` needs a {commons.KEYED_PASSWORD} entry.
     H = lambda *x: sha_512(*x)
@@ -3778,51 +3771,37 @@ class Opake():
         db.save()
 
     @classmethod
-    async def _aprocess(cls, func=None, *args, **kwargs):
+    def is_registration(cls, client_hello=None):
         """
-        Runs an async or sync function in another process so heavy
-        cpu-bound computations can better coexist with asynchronous
-        or multithreaded code.
+        Takes a ``client_hello`` protocol packet & returns ``Maybe`` if
+        it doesn't contain a KEY_ID element signifying that it may be a
+        registration packet instead of an authentication packet. Returns
+        ``False`` if the KEY_ID element is present, meaning it's
+        definitely not a registration packet.
         """
-        def run_async_func(func=None, *args, state=None, **kwargs):
-            if is_async_function(func):
-                run = asynchs.asyncio.new_event_loop().run_until_complete
-                state.append(run(func(*args, **kwargs)))
-            else:
-                state.append(func(*args, **kwargs))
-
-        state = cls._state_machine.list()
-        process = Process(
-            target=run_async_func,
-            args=(func, *args),
-            kwargs=dict(state=state, **kwargs),
-        )
-        process.start()
-        while process.is_alive():
-            await asynchs.asleep(0.01)
-        process.join()
-        return state.pop()
+        if (
+            cls.KEY_ID not in client_hello
+            and isinstance(client_hello, dict)
+        ):
+            return "Maybe"
+        else:
+            return False
 
     @classmethod
-    def _process(cls, func=None, *args, **kwargs):
+    def is_authentication(cls, client_hello=None):
         """
-        Runs a sync function in another process so heavy cpu-bound
-        computations can better coexist with multithreaded code.
+        Takes a ``client_hello`` protocol packet & returns ``Maybe`` if
+        it does contain a KEY_ID element signifying that it may be an
+        authentication packet instead of an registrationation packet.
+        Returns ``False`` if the KEY_ID element isn't present, meaning
+        it's definitely not an authentication packet.
         """
-        def run_func(func=None, *args, state=None, **kwargs):
-            state.append(func(*args, **kwargs))
-
-        state = cls._state_machine.list()
-        process = Process(
-            target=run_func,
-            args=(func, *args),
-            kwargs=dict(state=state, **kwargs),
-        )
-        process.start()
-        while process.is_alive():
-            asynchs.sleep(0.01)
-        process.join()
-        return state.pop()
+        if (
+            cls.KEY_ID in client_hello and isinstance(client_hello, dict)
+        ):
+            return "Maybe"
+        else:
+            return False
 
     @classmethod
     async def aexchange(cls, base=GENERATOR, exp=None, mod=PRIME):
@@ -3833,7 +3812,7 @@ class Opake():
         """
         if 1 >= base or base >= mod:
             raise ValueError("Invalid public key / generator.")
-        return await cls._aprocess(pow, base, exp, mod)
+        return await Processes.anew(pow, base, exp, mod, _delay=0.08)
 
     @classmethod
     def exchange(cls, base=GENERATOR, exp=None, mod=PRIME):
@@ -3843,7 +3822,7 @@ class Opake():
         """
         if 1 >= base or base >= mod:
             raise ValueError("Invalid public key / generator.")
-        return cls._process(pow, base, exp, mod)
+        return Processes.new(pow, base, exp, mod, _delay=0.08)
 
     @staticmethod
     async def akey():
@@ -3887,6 +3866,7 @@ class Opake():
 
     @classmethod
     async def adb_login(
+        cls,
         uuid: any,
         password: any,
         salt: any,
@@ -3900,13 +3880,15 @@ class Opake():
         hard hash function & returns a cryptohraphic key used to open a
         database.
         """
+        salt = salt if salt else cls._db["default"][cls.SALT]
         login = await anc_512(uuid, password, salt, *credentials)
         return await apasscrypt(
             login, salt, kb=kb, cpu=cpu, hardness=hardness
         )
 
-    @staticmethod
+    @classmethod
     def db_login(
+        cls,
         uuid: any,
         password: any,
         salt: any,
@@ -3920,8 +3902,55 @@ class Opake():
         hard hash function & returns a cryptohraphic key used to open a
         database.
         """
+        salt = salt if salt else cls._db["default"][cls.SALT]
         login = nc_512(uuid, password, salt, *credentials)
         return passcrypt(login, salt, kb=kb, cpu=cpu, hardness=hardness)
+
+    @classmethod
+    async def apopulate_database(cls, database, db_key):
+        """
+        Inserts session values into a client database for their use in
+        the registration & authentication processes.
+        """
+        db = database
+        if not db[cls.KEY]:
+            db[cls.SALT] = password_salt = await cls.asalt()
+            db[cls.KEYED_PASSWORD] = await cls.aexchange(
+                exp=int(await anc_512(db_key, password_salt), 16)
+            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
+        else:
+            password_salt = db[cls.SALT]
+            db[cls.KEYED_PASSWORD] = await cls.aexchange(
+                exp=int(await anc_512(db_key, password_salt), 16)
+            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
+            password_salt = db[cls.NEXT_SALT] = await cls.asalt()
+            db[cls.NEXT_KEYED_PASSWORD] = await cls.aexchange(
+                exp=int(await anc_512(db_key, password_salt), 16)
+            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
+        return database
+
+    @classmethod
+    def populate_database(cls, database, db_key):
+        """
+        Inserts session values into a client database for their use in
+        the registration & authentication processes.
+        """
+        db = database
+        if not db[cls.KEY]:
+            db[cls.SALT] = password_salt = cls.salt()
+            db[cls.KEYED_PASSWORD] = cls.exchange(
+                exp=int(nc_512(db_key, password_salt), 16)
+            ) ^ int(nc_2048(sha_512(password_salt)), 16)
+        else:
+            password_salt = db[cls.SALT]
+            db[cls.KEYED_PASSWORD] = cls.exchange(
+                exp=int(nc_512(db_key, password_salt), 16)
+            ) ^ int(nc_2048(sha_512(password_salt)), 16)
+            password_salt = db[cls.NEXT_SALT] = cls.salt()
+            db[cls.NEXT_KEYED_PASSWORD] = cls.exchange(
+                exp=int(nc_512(db_key, password_salt), 16)
+            ) ^ int(nc_2048(sha_512(password_salt)), 16)
+        return database
 
     @classmethod
     async def ainit_database(
@@ -3943,7 +3972,6 @@ class Opake():
         salt which is stored encrypted on the user filesystem is used
         instead.
         """
-        salt = salt if salt else cls._db["default"][cls.SALT]
         db_key = await cls.adb_login(
             uuid,
             password,
@@ -3957,21 +3985,7 @@ class Opake():
         db = await AsyncDatabase(
             key=db_key, password_depth=8192, directory=directory
         )
-        if not db[cls.KEY]:
-            db[cls.KEY] = await cls.akey()
-            db[cls.SALT] = password_salt = await cls.asalt()
-            db[cls.KEYED_PASSWORD] = await cls.aexchange(
-                exp=int(await anc_512(db_key, password_salt), 16)
-            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
-        else:
-            password_salt = db[cls.SALT]
-            db[cls.KEYED_PASSWORD] = await cls.aexchange(
-                exp=int(await anc_512(db_key, password_salt), 16)
-            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
-            password_salt = db[cls.NEXT_SALT] = await cls.asalt()
-            db[cls.NEXT_KEYED_PASSWORD] = await cls.aexchange(
-                exp=int(await anc_512(db_key, password_salt), 16)
-            ) ^ int(await anc_2048(await asha_512(password_salt)), 16)
+        await cls.apopulate_database(db, db_key)
         return db
 
     @classmethod
@@ -3994,7 +4008,6 @@ class Opake():
         salt which is stored encrypted on the user filesystem is used
         instead.
         """
-        salt = salt if salt else cls._db["default"][cls.SALT]
         db_key = cls.db_login(
             uuid,
             password,
@@ -4008,21 +4021,7 @@ class Opake():
         db = Database(
             key=db_key, password_depth=8192, directory=directory
         )
-        if not db[cls.KEY]:
-            db[cls.KEY] = cls.key()
-            db[cls.SALT] = password_salt = cls.salt()
-            db[cls.KEYED_PASSWORD] = cls.exchange(
-                exp=int(nc_512(db_key, password_salt), 16)
-            ) ^ int(nc_2048(sha_512(password_salt)), 16)
-        else:
-            password_salt = db[cls.SALT]
-            db[cls.KEYED_PASSWORD] = cls.exchange(
-                exp=int(nc_512(db_key, password_salt), 16)
-            ) ^ int(nc_2048(sha_512(password_salt)), 16)
-            password_salt = db[cls.NEXT_SALT] = cls.salt()
-            db[cls.NEXT_KEYED_PASSWORD] = cls.exchange(
-                exp=int(nc_512(db_key, password_salt), 16)
-            ) ^ int(nc_2048(sha_512(password_salt)), 16)
+        cls.populate_database(db, db_key)
         return db
 
     @classmethod
@@ -4062,12 +4061,16 @@ class Opake():
                 directory=directory,
             )
         else:
-            if cls.KEY not in database:
-                raise ValueError(f"``database`` needs a {cls.KEY} entry.")
-            elif cls.SALT not in database:
-                raise ValueError(f"``database`` needs a {cls.SALT} entry.")
-            elif cls.KEYED_PASSWORD not in database:
-                raise ValueError(cls._keyed_password_tutorial)
+            db_key = await cls.adb_login(
+                uuid,
+                password,
+                salt,
+                *credentials,
+                kb=kb,
+                cpu=cpu,
+                hardness=hardness,
+            )
+            await cls.apopulate_database(database, db_key)
             return database
 
     @classmethod
@@ -4107,12 +4110,16 @@ class Opake():
                 directory=directory,
             )
         else:
-            if cls.KEY not in database:
-                raise ValueError(f"``database`` needs a {cls.KEY} entry.")
-            elif cls.SALT not in database:
-                raise ValueError(f"``database`` needs a {cls.SALT} entry.")
-            elif cls.KEYED_PASSWORD not in database:
-                raise ValueError(cls._keyed_password_tutorial)
+            db_key = cls.db_login(
+                uuid,
+                password,
+                salt,
+                *credentials,
+                kb=kb,
+                cpu=cpu,
+                hardness=hardness,
+            )
+            cls.populate_database(database, db_key)
             return database
 
     @classmethod
@@ -4171,18 +4178,20 @@ class Opake():
     ):
         """
         Derives & processes a form of shared key resulting from a diffie-
-        hellman key exchange, but takes a ``key``, ``client_salt`` &
+        hellman key exchange, but takes ``key``, ``client_salt`` &
         ``server_salt`` kwargs. The ``base`` kwarg is the keyed_password
         during the authentication step, which allows the current session
         to be also given the trust of the previous session, which makes
         man-in-the-middle attacks impossible without both the current
         & previous sessions being compromised.
         """
-        x = await cls.aexchange(
+        presecret = await cls.aexchange(
             base=base,
             exp=int(await anc_512(key, client_salt, server_salt), 16),
         )
-        return int(await anc_512(x, key, client_salt, server_salt), 16)
+        return int(
+            await anc_512(presecret, key, client_salt, server_salt), 16
+        )
 
     @classmethod
     def derive_secret(
@@ -4197,11 +4206,11 @@ class Opake():
         man-in-the-middle attacks impossible without both the current
         & previous sessions being compromised.
         """
-        x = cls.exchange(
+        presecret = cls.exchange(
             base=base,
             exp=int(nc_512(key, client_salt, server_salt), 16),
         )
-        return int(nc_512(x, key, client_salt, server_salt), 16)
+        return int(nc_512(presecret, key, client_salt, server_salt), 16)
 
     @classmethod
     async def afinalize(cls, key: any, shared_key: any, shared_secret: any):
@@ -4236,6 +4245,38 @@ class Opake():
                 cls.SESSION_KEY: keyspace[128:],
             }
         )
+
+    @classmethod
+    async def aintegrate_salts(
+        cls, results: Namespace, client_session_salt, server_session_salt
+    ):
+        """
+        Mixes in random session salts to the shared key generation
+        results of the Opake protocol & returns the mutated results.
+        """
+        salt = results.session_salt = await anc_512(
+            client_session_salt, server_session_salt
+        )
+        results.key = await anc_512(salt, results.key)
+        results.session_key = await anc_512(salt, results.session_key)
+        results.key_id = await cls.aid(results.key)
+        return results
+
+    @classmethod
+    def integrate_salts(
+        cls, results: Namespace, client_session_salt, server_session_salt
+    ):
+        """
+        Mixes in random session salts to the shared key generation
+        results of the Opake protocol & returns the mutated results.
+        """
+        salt = results.session_salt = nc_512(
+            client_session_salt, server_session_salt
+        )
+        results.key = nc_512(salt, results.key)
+        results.session_key = nc_512(salt, results.session_key)
+        results.key_id = cls.id(results.key)
+        return results
 
     @classmethod
     async def aencrypt(cls, *, key_id=None, message_key=None, **plaintext):
@@ -4334,12 +4375,13 @@ class Opake():
         return X25519PrivateKey.generate()
 
     @staticmethod
-    async def aec25519_pub(secret: X25519PrivateKey, hex=False):
+    async def aec25519_pub(secret, hex=False):
         """
-        Returns the public key bytes of an ``X25519PrivateKey`` from the
-        cryptography package for use in an elliptic curve diffie-hellman
-        exchange. If ``hex`` is truthy, then a hex string of the public
-        key is returned instead.
+        Returns the public key bytes of either an ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` from the cryptography package for an
+        elliptic curve diffie-hellman exchange or signature verification
+        key. If ``hex`` is truthy, then a hex string of the public key
+        is returned instead of bytes.
         """
         pub = secret.public_key().public_bytes(
             encoding=serialization.Encoding.Raw,
@@ -4351,12 +4393,13 @@ class Opake():
             return pub
 
     @staticmethod
-    def ec25519_pub(secret: X25519PrivateKey, hex=False):
+    def ec25519_pub(secret, hex=False):
         """
-        Returns the public key bytes of an ``X25519PrivateKey`` from the
-        cryptography package for use in an elliptic curve diffie-hellman
-        exchange. If ``hex`` is truthy, then a hex string of the public
-        key is returned instead.
+        Returns the public key bytes of either an ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` from the cryptography package for an
+        elliptic curve diffie-hellman exchange or signature verification
+        key. If ``hex`` is truthy, then a hex string of the public key
+        is returned instead of bytes.
         """
         pub = secret.public_key().public_bytes(
             encoding=serialization.Encoding.Raw,
@@ -4366,6 +4409,44 @@ class Opake():
             return bytes.hex(pub)
         else:
             return pub
+
+    @staticmethod
+    async def aec25519_priv(secret, hex=False):
+        """
+        Returns the private key bytes of either an ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` from the cryptography package for an
+        elliptic curve diffie-hellman exchange or signature creation
+        key. If ``hex`` is truthy, then a hex string of the private key
+        is returned instead of bytes.
+        """
+        private_key = secret.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        if hex:
+            return bytes.hex(private_key)
+        else:
+            return private_key
+
+    @staticmethod
+    def ec25519_priv(secret, hex=False):
+        """
+        Returns the private key bytes of either an ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` from the cryptography package for an
+        elliptic curve diffie-hellman exchange or signature creation
+        key. If ``hex`` is truthy, then a hex string of the private key
+        is returned instead of bytes.
+        """
+        private_key = secret.private_bytes(
+            encoding=serialization.Encoding.Raw,
+            format=serialization.PrivateFormat.Raw,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        if hex:
+            return bytes.hex(private_key)
+        else:
+            return private_key
 
     @staticmethod
     async def ax25519_exchange(secret: X25519PrivateKey, pub: bytes):
@@ -4504,17 +4585,16 @@ class Opake():
         results = await cls.afinalize(
             shared_key, values.salt, response[cls.SALT]
         )
-        session_salt = await anc_512(
-            values.session_salt, response[cls.SESSION_SALT]
+        await cls.aintegrate_salts(
+            results, values.session_salt, response[cls.SESSION_SALT]
         )
-        key = db[cls.KEY] = await anc_512(session_salt, results.key)
-        session_key = await anc_512(session_salt, results.session_key)
+        db[cls.KEY] = results.key
         await db.asave()
         raise UserWarning(
             {
-                cls.KEY: key,
-                cls.SESSION_KEY: session_key,
-                cls.KEY_ID: await cls.aid(key),
+                cls.KEY: results.key,
+                cls.KEY_ID: results.key_id,
+                cls.SESSION_KEY: results.session_key,
             }
         )
 
@@ -4581,16 +4661,15 @@ class Opake():
         results = cls.finalize(
             shared_key, values.salt, response[cls.SALT]
         )
-        session_salt = nc_512(
-            values.session_salt, response[cls.SESSION_SALT]
+        cls.integrate_salts(
+            results, values.session_salt, response[cls.SESSION_SALT]
         )
-        key = db[cls.KEY] = nc_512(session_salt, results.key)
-        session_key = nc_512(session_salt, results.session_key)
+        db[cls.KEY] = results.key
         db.save()
         return {
-            cls.KEY: key,
-            cls.KEY_ID: cls.id(key),
-            cls.SESSION_KEY: session_key,
+            cls.KEY: results.key,
+            cls.KEY_ID: results.key_id,
+            cls.SESSION_KEY: results.session_key,
         }
 
     @classmethod
@@ -4631,14 +4710,11 @@ class Opake():
         results = await cls.afinalize(
             shared_key, client.salt, values.salt
         )
-        session_salt = await anc_512(
-            client.session_salt, values.session_salt
+        await cls.aintegrate_salts(
+            results, client.session_salt, values.session_salt
         )
-        key = await anc_512(session_salt, results.key)
-        session_key = await anc_512(session_salt, results.session_key)
-        key_id = await cls.aid(key)
-        database[key_id] = {
-            cls.KEY: key, cls.KEYED_PASSWORD: client.keyed_password
+        database[results.key_id] = {
+            cls.KEY: results.key, cls.KEYED_PASSWORD: client.keyed_password
         }
         yield {
             cls.PUB: values.pub,
@@ -4647,9 +4723,9 @@ class Opake():
         }
         raise UserWarning(
             {
-                cls.KEY: key,
-                cls.KEY_ID: key_id,
-                cls.SESSION_KEY: session_key,
+                cls.KEY: results.key,
+                cls.KEY_ID: results.key_id,
+                cls.SESSION_KEY: results.session_key,
             }
         )
 
@@ -4691,14 +4767,11 @@ class Opake():
         results = cls.finalize(
             shared_key, client.salt, values.salt
         )
-        session_salt = nc_512(
-            client.session_salt, values.session_salt
+        cls.integrate_salts(
+            results, client.session_salt, values.session_salt
         )
-        key = nc_512(session_salt, results.key)
-        session_key = nc_512(session_salt, results.session_key)
-        key_id = cls.id(key)
-        database[key_id] = {
-            cls.KEY: key, cls.KEYED_PASSWORD: client.keyed_password
+        database[results.key_id] = {
+            cls.KEY: results.key, cls.KEYED_PASSWORD: client.keyed_password
         }
         yield {
             cls.PUB: values.pub,
@@ -4706,9 +4779,9 @@ class Opake():
             cls.SESSION_SALT: values.session_salt,
         }
         return {
-            cls.KEY: key,
-            cls.KEY_ID: key_id,
-            cls.SESSION_KEY: session_key,
+            cls.KEY: results.key,
+            cls.KEY_ID: results.key_id,
+            cls.SESSION_KEY: results.session_key,
         }
 
     @classmethod
@@ -4788,17 +4861,16 @@ class Opake():
         )
         db[cls.SALT] = await db.apop(cls.NEXT_SALT)
         results = await cls.afinalize(key, shared_key, shared_secret)
-        session_salt = await anc_512(
-            values.session_salt, response[cls.SESSION_SALT]
+        await cls.aintegrate_salts(
+            results, values.session_salt, response[cls.SESSION_SALT]
         )
-        key = db[cls.KEY] = await anc_512(session_salt, results.key)
-        session_key = await anc_512(session_salt, results.session_key)
+        db[cls.KEY] = results.key
         await db.asave()
         raise UserWarning(
             {
-                cls.KEY: key,
-                cls.SESSION_KEY: session_key,
-                cls.KEY_ID: await cls.aid(key),
+                cls.KEY: results.key,
+                cls.KEY_ID: results.key_id,
+                cls.SESSION_KEY: results.session_key,
             }
         )
 
@@ -4879,16 +4951,15 @@ class Opake():
         )
         db[cls.SALT] = db.pop(cls.NEXT_SALT)
         results = cls.finalize(key, shared_key, shared_secret)
-        session_salt = nc_512(
-            values.session_salt, response[cls.SESSION_SALT]
+        cls.integrate_salts(
+            results, values.session_salt, response[cls.SESSION_SALT]
         )
-        key = db[cls.KEY] = nc_512(session_salt, results.key)
-        session_key = nc_512(session_salt, results.session_key)
+        db[cls.KEY] = results.key
         db.save()
         return {
-            cls.KEY: key,
-            cls.KEY_ID: cls.id(key),
-            cls.SESSION_KEY: session_key,
+            cls.KEY: results.key,
+            cls.KEY_ID: results.key_id,
+            cls.SESSION_KEY: results.session_key,
         }
 
     @classmethod
@@ -4937,14 +5008,11 @@ class Opake():
             ),
         )
         results = await cls.afinalize(key, shared_key, shared_secret)
-        session_salt = await anc_512(
-            client.session_salt, values.session_salt
+        await cls.aintegrate_salts(
+            results, client.session_salt, values.session_salt
         )
-        new_key = await anc_512(session_salt, results.key)
-        session_key = await anc_512(session_salt, results.session_key)
-        key_id = await cls.aid(new_key)
-        database[key_id] = {
-            cls.KEY: new_key, cls.KEYED_PASSWORD: client.keyed_password
+        database[results.key_id] = {
+            cls.KEY: results.key, cls.KEYED_PASSWORD: client.keyed_password
         }
         del database[client.key_id]
         yield await cls.aencrypt(
@@ -4955,9 +5023,9 @@ class Opake():
         )
         raise UserWarning(
             {
-                cls.KEY: new_key,
-                cls.KEY_ID: key_id,
-                cls.SESSION_KEY: session_key,
+                cls.KEY: results.key,
+                cls.KEY_ID: results.key_id,
+                cls.SESSION_KEY: results.session_key,
             }
         )
 
@@ -5005,12 +5073,11 @@ class Opake():
             base=keyed_password ^ int(nc_2048(client.password_salt), 16),
         )
         results = cls.finalize(key, shared_key, shared_secret)
-        session_salt = nc_512(client.session_salt, values.session_salt)
-        new_key = nc_512(session_salt, results.key)
-        session_key = nc_512(session_salt, results.session_key)
-        key_id = cls.id(new_key)
-        database[key_id] = {
-            cls.KEY: new_key, cls.KEYED_PASSWORD: client.keyed_password
+        cls.integrate_salts(
+            results, client.session_salt, values.session_salt
+        )
+        database[results.key_id] = {
+            cls.KEY: results.key, cls.KEYED_PASSWORD: client.keyed_password
         }
         del database[client.key_id]
         yield cls.encrypt(
@@ -5020,9 +5087,9 @@ class Opake():
             session_salt=values.session_salt,
         )
         return {
-            cls.KEY: new_key,
-            cls.KEY_ID: key_id,
-            cls.SESSION_KEY: session_key,
+            cls.KEY: results.key,
+            cls.KEY_ID: results.key_id,
+            cls.SESSION_KEY: results.session_key,
         }
 
 
