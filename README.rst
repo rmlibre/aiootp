@@ -47,6 +47,8 @@ Users can create and modify transparently encrypted databases:
 
 .. code:: python
 
+    #
+
     import aiootp
     
     
@@ -283,6 +285,8 @@ What other tools are available to users?:
 
 .. code:: python
 
+    #
+    
     import aiootp   
     
     
@@ -330,7 +334,28 @@ What other tools are available to users?:
     
     uuid = aiootp.sha_256("service-url.com", "username")
     
-    client = aiootp.Opake.client_registration(uuid, "password")
+    db = aiootp.Opake.client_database(uuid, password, *any_other_credentials)
+    
+    client = aiootp.Opake.client_registration(db)
+    
+    client_hello = client()
+    
+    server_response = internet.post("service-url.com", json=client_hello)
+    
+    try:
+    
+        client(server_response)
+        
+    except StopIteration:
+    
+        shared_keys = client.result()
+        
+        
+    # The client is securely registered with the service if there was no 
+
+    # active adversary in the middle, & the user can authenticate & login ->
+    
+    client = aiootp.Opake.client(db)
     
     client_hello = client()
     
@@ -345,24 +370,37 @@ What other tools are available to users?:
         shared_keys = client.result()
         
         
-    # Now the client is securely registered with the service & can login ->
+    # Upon the first uncompromised registration or authentication, then 
+
+    # future authentications will be immune to adversaries in the middle 
+
+    # because the protocol generates new keys by combining the prior key, 
+
+    # the current ecdhe ephemeral key, & the revealed keyed password that 
+
+    # was transmitted with an extra mask during the prior exchange. The 
+
+    # keyed password authenticates the user & the server to each other when 
+
+    # the commit is revealed, the ephemeral ecdhe key assures future security, 
+
+    # & the prior key encrypts & HMACs the authentication packets which 
+
+    # provides privacy, & added authentication, & the KDF which combines all 
+
+    # these keys ensures forward security.
     
-    client = aiootp.Opake.client(uuid, "password")
     
-    client_hello = client()
-    
-    server_response = internet.post("service-url.com", client_hello)
-    
-    try:
-    
-        client(server_response)
-        
-    except StopIteration:
-    
-        shared_keys = client.result()
-    
-    
-    # Generators under-pin most procedures in the library ->
+    #
+
+
+
+
+Generators under-pin most procedures in the library, let's take a look ->
+
+.. code:: python
+
+    #
     
     from aiootp import json_encode   # <- A simple generator
     
@@ -623,8 +661,8 @@ What other tools are available to users?:
     # methods in ``aiootp.Comprende.lazy_generators``.
     
     {
-        "_agetitem",  # These getitem methods are accessible from an
-        "_getitem",   # instance's ``__getitem__`` bracket lookup syntax.
+        "_agetitem",
+        "_getitem",
         "aascii_to_int",
         "abin",
         "abytes",
@@ -818,6 +856,8 @@ What other tools are available to users?:
 Let's take a deep dive into the low-level xor procedure used to implement the one-time-pad:
 
 .. code:: python
+
+    #
     
     import aiootp
     
@@ -962,6 +1002,8 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
 Here's a quick overview of this package's modules:
 
 .. code:: python
+
+    #
     
     import aiootp
     
