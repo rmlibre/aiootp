@@ -856,8 +856,6 @@ class Comprende:
                 self._return.append(done.args[0])
         except StopAsyncIteration:
             pass
-        except GeneratorExit:
-            pass
 
     @contextmanager
     def catch(self):
@@ -880,7 +878,7 @@ class Comprende:
             if getattr(done, "value", None) != None:
                 self._return.append(done.value)
 
-    @async_contextmanager
+    @comprehension()
     async def arelay(self, result=None, source=None):
         """
         This is a lower level context manager for users who've created
@@ -896,10 +894,8 @@ class Comprende:
             if result != None:
                 raise UserWarning(result)
             raise UserWarning(await source.aresult(exit=True))
-        except GeneratorExit:
-            pass
 
-    @contextmanager
+    @comprehension()
     def relay(self, result=None, source=None):
         """
         This is a lower level context manager for users who've created
