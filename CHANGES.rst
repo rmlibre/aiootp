@@ -17,6 +17,44 @@
 =============
 
 
+Changes for version 0.11.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  The Opake protocol was made greatly more efficient. This was done by 
+   replacing the diffie-hellman verifiers with a hash & xor commit & reveal
+   system. Most hashing was made more efficient my using quicker & smaller
+   ``sha_512`` function instead of ``nc_512``, & streamlining the protocol.
+-  The ``Opake.client`` & ``Opake.client_registration`` methods now take
+   an instantiated client database instead of client credentials which 
+   improves security, efficiency & usability. This change reduces the amount
+   of exposure received by user passwords & other credentials. It also 
+   simplifies usage of the protocol by only needing to carry around a 
+   database instead of a slew of credentials, which is also faster, since
+   the credentials are passed through the cpu & memory hard ``passcrypt``
+   function everytime to open the database.
+
+
+Minor Changes 
+------------- 
+
+-  Heavy refactorings & documentation additions / modifications of the 
+   ``Opake`` class. Removed the ``Opake.ainit_database`` & ``Opake.init_database``
+   methods, & made the ``salt`` default argument parameter in 
+   ``Opake.aclient_database``, ``Opake.client_database``, ``Opake.adb_login`` &
+   ``Opake.db_login`` into a keyword only argument so any extra user defined
+   ``credentials`` are able to be passed without specifying a salt.
+-  The decorators for the ``Comprende.arelay`` & ``Comprende.relay`` methods 
+   were changed from ``@asyncio_contextmanager.async_contextmanager`` to
+   ``@comprehension()`` to stop that package from raising exceptions when
+   we retrieve return values from async generators.
+
+
+
+
 Changes for version 0.10.1 
 ========================== 
 
