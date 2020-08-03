@@ -29,12 +29,14 @@ A module used to aggregate commonly used constants & arbitrary utilities.
 """
 
 
+import re
 import sys
 import copy
 import types
 import asyncio
 from os import linesep
 from .__datasets import *
+from . import DEBUG_MODE
 
 
 async def aimport_namespace(
@@ -104,6 +106,29 @@ def make_module(name=None, *, mapping=None, deepcopy=False):
     return Namespace(module.__dict__)
 
 
+async def aredact_keys(string, *, rule=r"[0-9a-fA-F]{64,}"):
+    """
+    Takes a ``string`` & redacts any key material  in it if they match
+    the regex ``rule``, then returns the redacted string.
+    """
+    key_finder = re.compile(rule)
+    for key in key_finder.finditer(string):
+        await asyncio.sleep(0)
+        string = string.replace(key.group(0), "<omitted-key>")
+    return string
+
+
+def redact_keys(string, *, rule=r"[0-9a-fA-F]{64,}"):
+    """
+    Takes a ``string`` & redacts any key material  in it if they match
+    the regex ``rule``, then returns the redacted string.
+    """
+    key_finder = re.compile(rule)
+    for key in key_finder.finditer(string):
+        string = string.replace(key.group(0), "<omitted-key>")
+    return string
+
+
 class Namespace:
     """
     A simple wrapper for turning mappings into Namespace objects that
@@ -148,7 +173,7 @@ class Namespace:
         """
         return len(self.__dict__)
 
-    def __str__(self, *, tab=4 * " "):
+    def __str__(self, *, debugging=DEBUG_MODE, tab=4 * " "):
         """
         Pretty displays the Namespace's mapping.
         """
@@ -156,7 +181,7 @@ class Namespace:
         result += f"({linesep}" + "    mapping={"
         for variable, value in self:
             result += f"{linesep + 2 * tab}{variable}:\t{repr(value)},"
-        return result + f"{linesep}" + "    }" + f"{linesep})"
+        return redact_keys(result + f"{linesep}" + "    }" + f"{linesep})")
 
     def __repr__(self):
         """
@@ -316,6 +341,8 @@ __extras = {
     "import_namespace": import_namespace,
     "amake_module": amake_module,
     "make_module": make_module,
+    "aredact_keys": aredact_keys,
+    "redact_keys": redact_keys,
     "bits": bits,
     "power10": power10,
     "primes": primes,
