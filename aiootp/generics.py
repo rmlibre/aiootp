@@ -86,12 +86,12 @@ from collections.abc import Iterable
 from collections.abc import Iterator
 from collections.abc import AsyncIterable
 from collections.abc import AsyncIterator
-from aiocontext import async_contextmanager
 from inspect import getsource
 from inspect import isawaitable as is_awaitable
 from inspect import iscoroutinefunction as is_async_function
 from inspect import isasyncgenfunction as is_async_gen_function
 from inspect import isgeneratorfunction as is_generator_function
+from .__aiocontext import async_contextmanager
 from .commons import *
 from .asynchs import *
 from .asynchs import time
@@ -724,7 +724,6 @@ class Comprende:
     }
 
     ASYNC_GEN_DONE = "async generator raised StopAsyncIteration"
-    ASYNC_GEN_THROWN = "async generator didn't stop after throw()"
 
     def __init__(self, func=None, *a, **kw):
         """
@@ -769,11 +768,6 @@ class Comprende:
             if issubclass(got.__class__, UserWarning):
                 if any(got.args):
                     self._thrown.append(got.args[0])
-                [
-                    self._return.append(await child.aresult(exit=True))
-                    for child in self.args
-                    if issubclass(child.__class__, self.__class__)
-                ]
                 await gen.athrow(got)
 
     def __set_async(self):
@@ -785,18 +779,11 @@ class Comprende:
         async def _acomprehension(gen=None):
             catch_UserWarning = self.__aexamine_sent_exceptions(gen)
             await catch_UserWarning.asend(None)
-            try:
-                async with self.acatch():
-                    got = None
-                    while True:
-                        got = yield await gen.asend(got)
-                        await catch_UserWarning.asend(got)
-            except RuntimeError as done:
-                if not (
-                    self.ASYNC_GEN_DONE in done.args
-                    or self.ASYNC_GEN_THROWN in done.args
-                ):
-                    raise done
+            async with self.acatch():
+                got = None
+                while True:
+                    got = yield await gen.asend(got)
+                    await catch_UserWarning.asend(got)
 
         self._async = True
         self.__call__ = self._acall
@@ -812,11 +799,6 @@ class Comprende:
             if issubclass(got.__class__, UserWarning):
                 if any(got.args):
                     self._thrown.append(got.args[0])
-                [
-                    self._return.append(child.result(exit=True))
-                    for child in self.args
-                    if issubclass(child.__class__, self.__class__)
-                ]
                 gen.throw(got)
 
     def __set_sync(self):
@@ -854,6 +836,9 @@ class Comprende:
         except UserWarning as done:
             if done.args:
                 self._return.append(done.args[0])
+        except RuntimeError as done:
+            if self.ASYNC_GEN_DONE not in done.args:
+                raise done
         except StopAsyncIteration:
             pass
 
@@ -878,7 +863,7 @@ class Comprende:
             if getattr(done, "value", None) != None:
                 self._return.append(done.value)
 
-    @comprehension()
+    @async_contextmanager
     async def arelay(self, result=None, source=None):
         """
         This is a lower level context manager for users who've created
@@ -889,13 +874,13 @@ class Comprende:
         """
         try:
             source = source if source else self
-            yield self
+            yield source
         except UserWarning:
             if result != None:
                 raise UserWarning(result)
             raise UserWarning(await source.aresult(exit=True))
 
-    @comprehension()
+    @contextmanager
     def relay(self, result=None, source=None):
         """
         This is a lower level context manager for users who've created
@@ -906,7 +891,7 @@ class Comprende:
         """
         try:
             source = source if source else self
-            yield self
+            yield source
         except (StopIteration, UserWarning):
             if result != None:
                 raise UserWarning(result)
@@ -1042,10 +1027,7 @@ class Comprende:
         """
         if exit and silent:
             async with aignore(
-                TypeError,
-                GeneratorExit,
-                StopAsyncIteration,
-                display=not silent,
+                TypeError, StopAsyncIteration, display=not silent,
             ):
                 await self.gen.asend(UserWarning())
         elif exit:
@@ -2743,10 +2725,9 @@ class Comprende:
         tab = f"{linesep + 4 * ' '}"
         _repr = f"{cls}({tab}func={func},{tab}*{a},{tab}**{kw},{linesep})"
         if not debugging:
-            key_finder = re.compile(r"[0-9a-fA-F]{64,}")
-            for key in key_finder.finditer(_repr):
-                _repr = _repr.replace(key.group(0), "<omitted-key>")
-        return _repr
+            return commons.redact_keys(_repr)
+        else:
+            return _repr
 
     def _set_index(self, index, spanner=builtins.range, _max=bits[256]):
         """
