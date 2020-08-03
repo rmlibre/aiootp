@@ -17,6 +17,68 @@
 =============
 
 
+Changes for version 0.12.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  The OPAKE protocol was renamed to ROPAKE, an acronym for Ratcheting 
+   Opaque Password Authenticated Key Exchange. This change was necessary 
+   since OPAKE is already a name for an existing PAKE protocol. This change 
+   also means the ``Opake`` class name was changed to ``Ropake``. 
+-  The ``Ropake`` class' registration algorithm was slightly modified to 
+   use the generated Curve25519 ``shared_key`` an extra time in the key 
+   derivation process. This shouldn't break any currently authenticated 
+   sessions. 
+-  The ``asyncio_contextmanager`` package is no longer a listed dependency 
+   in ``setup.py``. The main file from that package was copied over into the 
+   ``/aiootp`` directory in order to remove the piece of code that caused 
+   warnings to crop up when return values were retrieved from async 
+   generators. This change will put an end to this whack-a-mole process of 
+   trying to stop the warnings with try blocks scattered about the codebase. 
+-  Added ``asave_tag``, ``save_tag``, ``asave_file`` & ``save_file`` methods 
+   to the database classes so that specific entries can be saved to disk 
+   without having to save the entire database which is much more costly. The 
+   manifest file isn't saved to disk when these methods are used, so if a 
+   a tag file isn't already saved in the database, then the saved files will 
+   not be present in the manifest or in the cache upon subsequent loads of 
+   the database. The saved file will still however be saved on the 
+   filesystem, though unbeknownst to the database instance.
+-  The ``Namespace`` class now redacts all obvious key material in instance 
+   repr's, which is any 64+ hex character string, or any number with 64+ 
+   decimal digits. 
+-  Removed the experimental recursive value retrieval within ``Comprende``'s 
+   ``__aexamine_send_exceptions`` & ``__examine_send_exceptions`` methods. 
+   This change leads to more reliable & faster code, in exchange for an 
+   unnecessary feature being removed. 
+-  Bug fix of the ``auuids`` & ``uuids`` methods by editing the code in 
+   the ``asyncio_contextmanager`` dependency & using the patched package 
+   instead of the ``comprehension`` decorator for the ``arelay`` & ``relay`` 
+   methods of ``Comprende``. Their internal algorithms was also updated to 
+   be simpler, but are incompatible with the outputs of past versions of 
+   these methods. 
+
+
+Minor Changes 
+------------- 
+
+-  Various refactorings & documentation additions / modifications throughout 
+   the library. 
+-  Various small bug fixes.
+-  The shared keys derived from the ``Ropake`` protocol are now returned in 
+   a ``Namespace`` object instead of a raw dictionary, which allows the 
+   values to be retrieved by dotted &/or bracketed lookup. 
+-  The ``atest_hmac`` & ``test_hmac`` algorithms / methods were made more 
+   efficient & were refactored. Now they call ``atime_safe_equality`` &
+   ``time_safe_equality`` internally, which are new methods that can apply
+   the non-constant time but randomized timing comparisons on any pairs of
+   values.
+
+
+
+
 Changes for version 0.11.0 
 ========================== 
 

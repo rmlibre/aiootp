@@ -66,7 +66,7 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
 setup(
     name="aiootp",
     license="AGPLv3",
-    version="0.11.0",
+    version="0.12.0",
     description=description,
     long_description=long_description,
     url="https://github.com/rmlibre/aiootp",
@@ -158,7 +158,6 @@ setup(
         "async_lru",
         "aioitertools",
         "cryptography",
-        "asyncio_contextmanager",
     ],
     tests_require=["pytest"],
     packages=find_packages(),

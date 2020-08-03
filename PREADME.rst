@@ -330,13 +330,15 @@ What other tools are available to users?:
     assert decrypted == binary_data
     
     
-    # Oblivious password authenticated key exchange with online services ->
+    # Ratcheting Opaque Password Authenticated Key Exchange (ROPAKE) with 
+
+    # online services -> 
     
     uuid = aiootp.sha_256("service-url.com", "username")
     
-    db = aiootp.Opake.client_database(uuid, password, *any_other_credentials)
+    db = aiootp.Ropake.client_database(uuid, password, *any_other_credentials)
     
-    client = aiootp.Opake.client_registration(db)
+    client = aiootp.Ropake.client_registration(db)
     
     client_hello = client()
     
@@ -355,7 +357,7 @@ What other tools are available to users?:
 
     # active adversary in the middle, & the user can authenticate & login ->
     
-    client = aiootp.Opake.client(db)
+    client = aiootp.Ropake.client(db)
     
     client_hello = client()
     

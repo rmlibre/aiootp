@@ -25,7 +25,7 @@ from .generics import Comprende, comprehension
 from .generics import convert_static_method_to_member
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
-from .ciphers import Opake
+from .ciphers import Ropake
 from .ciphers import validator
 from .ciphers import salt, asalt
 from .ciphers import OneTimePad
@@ -283,6 +283,8 @@ def insert_stateful_key_generator_objects():
         self.atest_hmac = self.akeyring.atest_hmac
         self.passcrypt = self.keyring.passcrypt
         self.apasscrypt = self.akeyring.apasscrypt
+        self.time_safe_equality = self.keyring.time_safe_equality
+        self.atime_safe_equality = self.akeyring.atime_safe_equality
         for method in self.instance_methods:
             convert_static_method_to_member(
                 self, method.__name__, method, key=self.key,
@@ -294,18 +296,20 @@ def insert_stateful_key_generator_objects():
     validator.ahmac = pad.ahmac
     validator.test_hmac = pad.test_hmac
     validator.atest_hmac = pad.atest_hmac
+    validator.time_safe_equality = pad.time_safe_equality
+    validator.atime_safe_equality = pad.atime_safe_equality
 
 
-def initialize_default_opake_class_database():
+def initialize_default_ropake_class_database():
     """
-    Establishes a default encrypted database for the Opake class with a
+    Establishes a default encrypted database for the Ropake class with a
     key derived from the name of the ``aiootp.paths.SecurePath()``
     directory. If it doesn't already exist, it is created, & a
     cryptographic salt is stored within the default database for clients
     to be able to secure the password hashes which then open the user
     databases that are specific to each account.
     """
-    Opake(key=None)
+    Ropake(key=None)
 
 
 insert_debuggers()
@@ -316,5 +320,5 @@ insert_bytes_cipher_methods()
 insert_stream_cipher_methods()
 insert_hashmap_cipher_methods()
 insert_stateful_key_generator_objects()
-initialize_default_opake_class_database()
+initialize_default_ropake_class_database()
 
