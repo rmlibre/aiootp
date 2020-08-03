@@ -33,7 +33,7 @@ __all__ = [
     "bytes_encrypt",
     "OneTimePad",
     "Passcrypt",
-    "Opake",
+    "Ropake",
     "AsyncDatabase",
     "Database",
 ]
@@ -51,24 +51,21 @@ import aiofiles
 import builtins
 from functools import wraps
 from hashlib import sha3_512
-from aiocontext import async_contextmanager
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from .__aiocontext import async_contextmanager
 from .paths import *
 from .paths import Path
 from .asynchs import *
 from .asynchs import Processes
 from .commons import *
 from .commons import NONE
-from .randoms import salt
-from .randoms import asalt
-from .randoms import csprng
-from .randoms import acsprng
-from .randoms import make_uuid
-from .randoms import amake_uuid
+from .randoms import salt, asalt
+from .randoms import csprng, acsprng
+from .randoms import make_uuid, amake_uuid
 from .generics import astr
 from .generics import aiter
 from .generics import anext
@@ -2241,25 +2238,18 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Tests if ``hmac`` of ``*data`` is valid using database keys.
         Instead of using a constant time character by character check on
-        the hmac, the hmac itself is hmac'd with a random salt & is
-        checked against the hmac & salt of the correct hmac. This
-        non-constant time check on the hmac of the supplied hmac doesn't
-        reveal meaningful information about the true hmac if the
-        attacker does not have access to the secret key. Nor does it
-        gain information about the hmac it supplied since it is salted.
-        This scheme is easier to implement correctly & is easier to
-        guarantee the infeasibility of a timing attack, since "constant
-        time" operations are truly dependant on architectures, languages
-        & resource allocation for those operations.
+        the hmac, the hmac itself is hashed with a random salt & is
+        checked against the salted hash of the correct hmac. This
+        non-constant-time check on the hash of the supplied hmac doesn't
+        reveal meaningful information about either hmac since the
+        attacker doesn't have access to the secret key or the salt. This
+        scheme is easier to implement correctly & is easier to prove
+        guarantees of the infeasibility of timing attacks.
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
-        salt = await acsprng()
         true_hmac = await self.ahmac(*data)
-        if (
-            await self.ahmac(hmac, salt)
-            == await self.ahmac(true_hmac, salt)
-        ):
+        if await validator.atime_safe_equality(hmac, true_hmac):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
@@ -2332,7 +2322,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             A programmable async coroutine which creates unique user IDs
             that are specific to a particular category.
             """
-            name = await (await self.anamestream(category)).anext()
+            name = await self.afilename(category)
             uuids = await amake_uuid(size, salt=name).aprime()
             salt = salt if salt else csprng()[:64]
             async with uuids.arelay(salt) as ids:
@@ -2666,12 +2656,28 @@ class AsyncDatabase(metaclass=AsyncInit):
         Writes the database's user-defined tags to disk.
         """
         maintenance_files = self.maintenance_files
-        database = dict(self.cache.namespace).items()
-        async for filename, plaintext in aunpack(database):
+        for filename in self.cache.namespace:
             if filename in maintenance_files:
                 continue
-            ciphertext = await self.aencrypt(filename, plaintext)
-            await self.asave_ciphertext(filename, ciphertext)
+            await self.asave_file(filename, admin=True)
+
+    async def asave_tag(self, tag=None, *, admin=False):
+        """
+        Writes the cached value for a user-specified ``tag`` to the user
+        filesystem.
+        """
+        filename = await self.afilename(tag)
+        await self.asave_file(filename, admin=admin)
+
+    async def asave_file(self, filename=None, *, admin=False):
+        """
+        Writes the cached value for a user-specified ``filename`` to the
+        user filesystem.
+        """
+        if not admin and filename in self.maintenance_files:
+            raise PermissionError("Cannot edit maintenance files.")
+        ciphertext = await self.aencrypt(filename, self.cache[filename])
+        await self.asave_ciphertext(filename, ciphertext)
 
     async def asave(self):
         """
@@ -3145,22 +3151,18 @@ class Database:
         """
         Tests if ``hmac`` of ``*data`` is valid using database keys.
         Instead of using a constant time character by character check on
-        the hmac, the hmac itself is hmac'd with a random salt & is
-        checked against the hmac & salt of the correct hmac. This
-        non-constant time check on the hmac of the supplied hmac doesn't
-        reveal meaningful information about the true hmac if the
-        attacker does not have access to the secret key. Nor does it
-        gain information about the hmac it supplied since it is salted.
-        This scheme is easier to implement correctly & is easier to
-        guarantee the infeasibility of a timing attack, since "constant
-        time" operations are truly dependant on architectures, languages
-        & resource allocation for those operations.
+        the hmac, the hmac itself is hashed with a random salt & is
+        checked against the salted hash of the correct hmac. This
+        non-constant-time check on the hash of the supplied hmac doesn't
+        reveal meaningful information about either hmac since the
+        attacker doesn't have access to the secret key or the salt. This
+        scheme is easier to implement correctly & is easier to prove
+        guarantees of the infeasibility of timing attacks.
         """
         if not hmac:
             raise ValueError("`hmac` keyword argument was not given.")
-        salt = csprng()
         true_hmac = self.hmac(*data)
-        if self.hmac(hmac, salt) == self.hmac(true_hmac, salt):
+        if validator.time_safe_equality(hmac, true_hmac):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
@@ -3230,7 +3232,7 @@ class Database:
             A programmable coroutine which creates unique user IDs
             that are specific to a particular category.
             """
-            name = self.namestream(category).next()
+            name = self.filename(category)
             uuids = make_uuid(size, salt=name).prime()
             salt = salt if salt else csprng()[:64]
             with uuids.relay(salt) as ids:
@@ -3560,12 +3562,28 @@ class Database:
         Writes the database's user-defined tags to disk.
         """
         maintenance_files = self.maintenance_files
-        database = dict(self.cache.namespace).items()
-        for filename, plaintext in database:
+        for filename in self.cache.namespace:
             if filename in maintenance_files:
                 continue
-            ciphertext = self.encrypt(filename, plaintext)
-            self.save_ciphertext(filename, ciphertext)
+            self.save_file(filename, admin=True)
+
+    def save_tag(self, tag=None, *, admin=False):
+        """
+        Writes the cached value for a user-specified ``tag`` to the user
+        filesystem.
+        """
+        filename = self.filename(tag)
+        self.save_file(filename, admin=admin)
+
+    def save_file(self, filename=None, *, admin=False):
+        """
+        Writes the cached value for a user-specified ``filename`` to the
+        user filesystem.
+        """
+        if not admin and filename in self.maintenance_files:
+            raise PermissionError("Cannot edit maintenance files.")
+        ciphertext = self.encrypt(filename, self.cache[filename])
+        self.save_ciphertext(filename, ciphertext)
 
     def save(self):
         """
@@ -3636,8 +3654,10 @@ class Database:
     __len__ = lambda self: len(self.manifest.namespace)
 
 
-class Opake():
+class Ropake():
     """
+    Ratcheting Opaque Password Authenticated Key Exchange
+
     An implementation of a password-authenticated key exchange protocol
     for servers to securely authenticate users & users to authenticate
     servers. User passwords aren't disclosed to the servers. They are
@@ -3652,26 +3672,26 @@ class Opake():
     Usage Examples:
 
     import aiootp
-    from aiootp import Opake
+    from aiootp import Ropake
 
     new_account = True
     # The arguments must contain at least one unique element for each
     # service the client wants to authenticate with, such as ->
     uuid = aiootp.sha_256("server_url", "username")
-    db = Opake.client_database(uuid, "password")
+    db = Ropake.client_database(uuid, "password")
     if new_account:
-        client = Opake.client_registration(db)
+        client = Ropake.client_registration(db)
     else:
-        client = Opake.client(db)
+        client = Ropake.client(db)
     client_hello = client()
     internet.send(client_hello)
 
     server_db = aiootp.Database("some_cryptographic_key")
     client_hello = internet.receive()
-    if Opake.is_registering(client_hello):
-        server = Opake.server_registration(client_hello, server_db)
+    if Ropake.is_registering(client_hello):
+        server = Ropake.server_registration(client_hello, server_db)
     else:
-        server = Opake.server(client_hello, server_db)
+        server = Ropake.server(client_hello, server_db)
     server_hello = server()
     internet.send(server_hello)
     try:
@@ -3681,15 +3701,15 @@ class Opake():
         # The user's KEY_ID for storing account data in the server
         # database does not need to be remain secret to ensure the
         # security of the encryption keys.
-        key_id = shared_keys[Opake.KEY_ID]
+        key_id = shared_keys[Ropake.KEY_ID]
         # The key used during the user's next login authentication
-        server_db[key_id][Opake.KEY] == shared_keys[Opake.KEY]
+        server_db[key_id][Ropake.KEY] == shared_keys[Ropake.KEY]
         # The key used to encrypt communication for the current session
-        server_db[key_id][Opake.SESSION_KEY] == shared_keys[Opake.SESSION_KEY]
+        server_db[key_id][Ropake.SESSION_KEY] == shared_keys[Ropake.SESSION_KEY]
         # A user is authenticated if they can decrypt messages encrypted
         # with the session key & again proves themselves on the next
         # authentication attempt by encrypting the hello message with
-        # the Opake.KEY & successfully reproducing the keyed password
+        # the Ropake.KEY & successfully reproducing the keyed password
         # from a stored secret 512-bit salt.
 
     server_hello = internet.receive()
@@ -3730,11 +3750,11 @@ class Opake():
 
     _keyed_password_tutorial = f"""\
     ``database`` needs a {commons.KEYED_PASSWORD} entry.
-    H = lambda x: int(Opake.id(x), 16)
-    db = Opake.client_database(username, password, secret_salt)
-    db["salt"] = salt = Opake.salt()
+    H = lambda x: int(Ropake.id(x), 16)
+    db = Ropake.client_database(username, password, secret_salt)
+    db["salt"] = salt = Ropake.salt()
     db["keyed_password"] = H((db.root_key, salt)) ^ H(salt)
-    db["next_salt"] = next_salt = Opake.salt()
+    db["next_salt"] = next_salt = Ropake.salt()
     db["next_keyed_password"] = H((db.root_key, next_salt)) ^ H(next_salt)
     # client sends keyed_password to server during registration & sends
     # H(salt) to the server during authentication, as well as the next
@@ -3753,7 +3773,7 @@ class Opake():
         highly recommended to create a user-defined key for the class
         instead, potentially with a password & using the class's
         ``db_login`` method like such ->
-        Opake(key=Opake.db_login("username", "password", "salt"))
+        Ropake(key=Ropake.db_login("username", "password", salt="salt"))
 
         This should be thought of as a class method as it will impact
         the entire class and all instances of the class.
@@ -3765,9 +3785,10 @@ class Opake():
         default_db = db["default"]
         if not default_db or not isinstance(default_db, dict):
             db["default"] = {cls.SALT: salt()}
+            db.save()
         elif not cls.SALT in default_db or not default_db[cls.SALT]:
             db["default"][cls.SALT] = salt()
-        db.save()
+            db.save()
 
     @classmethod
     def is_registering(cls, client_hello=None):
@@ -4001,6 +4022,9 @@ class Opake():
         """
         Derives the shared key resulting from a diffie-hellman key
         exchange with the specified ``secret``, ``pub`` & ``mod`` kwargs.
+        This non-elliptic curve diffie-hellman method has been
+        deprecated for use within the protocol because it isn't
+        constant-time nor time-efficient.
         """
         secret = secret if isinstance(secret, int) else int(secret, 16)
         return await cls.aexchange(pub, secret, mod)
@@ -4329,7 +4353,7 @@ class Opake():
     async def ainit_protocol(cls):
         """
         Instatiates a ``Namespace`` object with the generic values used
-        to execute the ``Opake`` registration & authentication protocols
+        to execute the ``Ropake`` registration & authentication protocols
         for both the server & client, then returns it.
         """
         values = Namespace()
@@ -4343,7 +4367,7 @@ class Opake():
     def init_protocol(cls):
         """
         Instatiates a ``Namespace`` object with the generic values used
-        to execute the ``Opake`` registration & authentication protocols
+        to execute the ``Ropake`` registration & authentication protocols
         for both the server & client, then returns it.
         """
         values = Namespace()
@@ -4421,7 +4445,7 @@ class Opake():
     ):
         """
         Mixes in random session salts to the shared key generation
-        results of the Opake protocol & returns the mutated results.
+        results of the Ropake protocol & returns the mutated results.
         """
         salt = results.session_salt = await asha_512(
             results.session_key, client_session_salt, server_session_salt
@@ -4437,7 +4461,7 @@ class Opake():
     ):
         """
         Mixes in random session salts to the shared key generation
-        results of the Opake protocol & returns the mutated results.
+        results of the Ropake protocol & returns the mutated results.
         """
         salt = results.session_salt = sha_512(
             results.session_key, client_session_salt, server_session_salt
@@ -4473,8 +4497,8 @@ class Opake():
         # The arguments must contain at least one unique element for
         # each service the client wants to authenticate with, such as ->
         uuid = await aiootp.asha_256("server_url", "username")
-        db = await Opake.aclient_database(uuid, "password")
-        client = Opake.aclient_registration(db)
+        db = await Ropake.aclient_database(uuid, "password")
+        client = Ropake.aclient_registration(db)
         client_hello = await client()
         internet.send(client_hello)
         server_hello = internet.receive()
@@ -4496,7 +4520,7 @@ class Opake():
             secret=values.ecdhe_key, pub=response[cls.PUB]
         )
         results = await cls.afinalize(
-            shared_key, values.salt, response[cls.SALT]
+            values.salt, response[cls.SALT], shared_key
         )
         await cls.aintegrate_salts(
             results, values.session_salt, response[cls.SESSION_SALT]
@@ -4504,11 +4528,11 @@ class Opake():
         db[cls.KEY] = results.key
         await db.asave()
         raise UserWarning(
-            {
-                cls.KEY: results.key,
-                cls.KEY_ID: results.key_id,
-                cls.SESSION_KEY: results.session_key,
-            }
+            Namespace(
+                key=results.key,
+                key_id=results.key_id,
+                session_key=results.session_key,
+            )
         )
 
     @classmethod
@@ -4537,8 +4561,8 @@ class Opake():
         # The arguments must contain at least one unique element for
         # each service the client wants to authenticate with, such as ->
         uuid = aiootp.sha_256("server_url", "username")
-        db = Opake.client_database(uuid, "password")
-        client = Opake.client_registration(db)
+        db = Ropake.client_database(uuid, "password")
+        client = Ropake.client_registration(db)
         client_hello = client()
         internet.send(client_hello)
         server_hello = internet.receive()
@@ -4560,18 +4584,18 @@ class Opake():
             secret=values.ecdhe_key, pub=response[cls.PUB]
         )
         results = cls.finalize(
-            shared_key, values.salt, response[cls.SALT]
+            values.salt, response[cls.SALT], shared_key
         )
         cls.integrate_salts(
             results, values.session_salt, response[cls.SESSION_SALT]
         )
         db[cls.KEY] = results.key
         db.save()
-        return {
-            cls.KEY: results.key,
-            cls.KEY_ID: results.key_id,
-            cls.SESSION_KEY: results.session_key,
-        }
+        return Namespace(
+            key=results.key,
+            key_id=results.key_id,
+            session_key=results.session_key,
+        )
 
     @classmethod
     @comprehension()
@@ -4595,7 +4619,7 @@ class Opake():
 
         server_db = await AsyncDatabase("server_database_key")
         client_hello = internet.receive()
-        server = Opake.aserver_registration(client_hello, server_db)
+        server = Ropake.aserver_registration(client_hello, server_db)
         server_hello = await server()
         internet.send(server_hello)
         try:
@@ -4609,7 +4633,7 @@ class Opake():
             secret=values.ecdhe_key, pub=client.pub
         )
         results = await cls.afinalize(
-            shared_key, client.salt, values.salt
+            client.salt, values.salt, shared_key
         )
         await cls.aintegrate_salts(
             results, client.session_salt, values.session_salt
@@ -4623,11 +4647,11 @@ class Opake():
             cls.SESSION_SALT: values.session_salt,
         }
         raise UserWarning(
-            {
-                cls.KEY: results.key,
-                cls.KEY_ID: results.key_id,
-                cls.SESSION_KEY: results.session_key,
-            }
+            Namespace(
+                key=results.key,
+                key_id=results.key_id,
+                session_key=results.session_key,
+            )
         )
 
     @classmethod
@@ -4652,7 +4676,7 @@ class Opake():
 
         server_db = Database("server_database_key")
         client_hello = internet.receive()
-        server = Opake.server_registration(client_hello, server_db)
+        server = Ropake.server_registration(client_hello, server_db)
         server_hello = server()
         internet.send(server_hello)
         try:
@@ -4666,7 +4690,7 @@ class Opake():
             secret=values.ecdhe_key, pub=client.pub
         )
         results = cls.finalize(
-            shared_key, client.salt, values.salt
+            client.salt, values.salt, shared_key
         )
         cls.integrate_salts(
             results, client.session_salt, values.session_salt
@@ -4679,11 +4703,11 @@ class Opake():
             cls.SALT: values.salt,
             cls.SESSION_SALT: values.session_salt,
         }
-        return {
-            cls.KEY: results.key,
-            cls.KEY_ID: results.key_id,
-            cls.SESSION_KEY: results.session_key,
-        }
+        return Namespace(
+            key=results.key,
+            key_id=results.key_id,
+            session_key=results.session_key,
+        )
 
     @classmethod
     @comprehension()
@@ -4704,8 +4728,8 @@ class Opake():
         # The arguments must contain at least one unique element for
         # each service the client wants to authenticate with, such as ->
         uuid = await aiootp.asha_256("server_url", "username")
-        db = await Opake.aclient_database(uuid, "password")
-        client = Opake.aclient(db)
+        db = await Ropake.aclient_database(uuid, "password")
+        client = Ropake.aclient(db)
         client_hello = await client()
         internet.send(client_hello)
         server_hello = internet.receive()
@@ -4748,11 +4772,11 @@ class Opake():
         db[cls.KEY] = results.key
         await db.asave()
         raise UserWarning(
-            {
-                cls.KEY: results.key,
-                cls.KEY_ID: results.key_id,
-                cls.SESSION_KEY: results.session_key,
-            }
+            Namespace(
+                key=results.key,
+                key_id=results.key_id,
+                session_key=results.session_key,
+            )
         )
 
     @classmethod
@@ -4774,8 +4798,8 @@ class Opake():
         # The arguments must contain at least one unique element for
         # each service the client wants to authenticate with, such as ->
         uuid = aiootp.sha_256("server_url", "username")
-        db = Opake.client_database(uuid, "password")
-        client = Opake.client(db)
+        db = Ropake.client_database(uuid, "password")
+        client = Ropake.client(db)
         client_hello = client()
         internet.send(client_hello)
         server_hello = internet.receive()
@@ -4817,11 +4841,11 @@ class Opake():
         )
         db[cls.KEY] = results.key
         db.save()
-        return {
-            cls.KEY: results.key,
-            cls.KEY_ID: results.key_id,
-            cls.SESSION_KEY: results.session_key,
-        }
+        return Namespace(
+            key=results.key,
+            key_id=results.key_id,
+            session_key=results.session_key,
+        )
 
     @classmethod
     @comprehension()
@@ -4845,7 +4869,7 @@ class Opake():
 
         server_db = await AsyncDatabase("server_database_key")
         client_hello = internet.receive()
-        server = Opake.aserver(client_hello, server_db)
+        server = Ropake.aserver(client_hello, server_db)
         server_hello = await server()
         internet.send(server_hello)
         try:
@@ -4882,11 +4906,11 @@ class Opake():
             session_salt=values.session_salt,
         )
         raise UserWarning(
-            {
-                cls.KEY: results.key,
-                cls.KEY_ID: results.key_id,
-                cls.SESSION_KEY: results.session_key,
-            }
+            Namespace(
+                key=results.key,
+                key_id=results.key_id,
+                session_key=results.session_key,
+            )
         )
 
     @classmethod
@@ -4911,7 +4935,7 @@ class Opake():
 
         server_db = Database("server_database_key")
         client_hello = internet.receive()
-        server = Opake.server(client_hello, server_db)
+        server = Ropake.server(client_hello, server_db)
         server_hello = server()
         internet.send(server_hello)
         try:
@@ -4947,11 +4971,11 @@ class Opake():
             pub=bytes.hex(values.pub),
             session_salt=values.session_salt,
         )
-        return {
-            cls.KEY: results.key,
-            cls.KEY_ID: results.key_id,
-            cls.SESSION_KEY: results.session_key,
-        }
+        return Namespace(
+            key=results.key,
+            key_id=results.key_id,
+            session_key=results.session_key,
+        )
 
 
 validator = Namespace()
@@ -4962,7 +4986,7 @@ __extras = {
     "Database": Database,
     "Passcrypt": Passcrypt,
     "OneTimePad": OneTimePad,
-    "Opake": Opake,
+    "Ropake": Ropake,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
