@@ -23,6 +23,8 @@ from .randoms import salt
 from .randoms import asalt
 from .randoms import csprng
 from .randoms import acsprng
+from .randoms import token_bytes
+from .randoms import atoken_bytes
 from .ciphers import keys
 from .ciphers import akeys
 from .ciphers import subkeys
@@ -38,6 +40,8 @@ from .ciphers import akeypair_ratchets
 from .generics import azip
 from .generics import is_iterable
 from .generics import comprehension
+from .generics import sha_256
+from .generics import asha_256
 from .generics import sha_256_hmac
 from .generics import asha_256_hmac
 from .generics import convert_static_method_to_member
@@ -79,7 +83,7 @@ async def atable_key_gen(key=None, table=ASCII_TABLE):
     >>> Hx`4^ej;u&/]qOF21Ea2~(6f"smp'DvMk[(wy'lME%CpCo|1ZWt> &tu=Mw_
     """
     if key == None:
-        key = await acsprng(await acsprng())
+        key = await acsprng()
     if not is_iterable(table):
         raise TypeError("table is not iterable")
     elif isinstance(table, dict):
@@ -127,7 +131,7 @@ def table_key_gen(key=None, table=ASCII_TABLE):
     >>> Hx`4^ej;u&/]qOF21Ea2~(6f"smp'DvMk[(wy'lME%CpCo|1ZWt> &tu=Mw_
     """
     if key == None:
-        key = csprng(csprng())
+        key = csprng()
     if not is_iterable(table):
         raise TypeError("table is not iterable")
     elif isinstance(table, dict):
@@ -371,34 +375,52 @@ class AsyncKeys:
         self, data=None, hmac=None, *, key=None, hasher=asha_256_hmac
     ):
         """
-        Tests if ``hmac`` of ``data`` is valid using ``key`` or the
-        instance's ``self.key`` if it's not supplied. Instead of using a
-        constant time character by character check on the hmac, the hmac
-        itself is hmac'd with a random salt & is checked against the
-        hmac & salt of the correct hmac. This non-constant time check on
-        the hmac of the supplied hmac doesn't reveal meaningful
-        information about the true hmac if the attacker does not have
-        access to the secret key. Nor does it gain information about the
-        hmac it supplied since it is salted. This scheme is easier to
-        implement correctly & is easier to guarantee the infeasibility
-        of a timing attack, since "constant time" operations are truly
-        dependant on architectures, languages & resource allocation for
-        those operations. An async ``hasher`` function can also be
-        supplied to use that algorithm instead of the default
-        ``asha_256_hmac``.
+        Tests if the given ``hmac`` of some ``data`` is valid with a
+        non-constant time comparison on the hash of each the supplied &
+        derived HMACs, appended with a salt prior to hashing. The
+        algorithm prepends the instance's ``self.key`` if ``key`` is not
+        supplied to further make the tested outputs undeterminable to an
+        attacker. The random salt & key allow the hashes to be compared
+        normally in non-constant time, without revealing meaningful
+        information, since an attacker wouldn't have access to either.
+        This scheme is easier to implement correctly & is easier to
+        prove guarantees of the infeasibility of timing attacks. Any
+        async ``hasher`` function can be specified as the HMAC function,
+        which is by default ``asha_256_hmac``.
         """
         if not hmac:
-            raise ValueError("`hmac` keyword argument was not given.")
-        salt = await acsprng(hmac)
+            raise ValueError("``hmac`` argument was not given.")
         key = key if key else self.key
         true_hmac = await self.ahmac(data=data, key=key, hasher=hasher)
-        if (
-            await self.ahmac((hmac, salt), key=key)
-            == await self.ahmac((true_hmac, salt), key=key)
-        ):
+        if await self.atime_safe_equality(hmac, true_hmac, key=key):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
+
+    async def atime_safe_equality(
+        self, value_0=None, value_1=None, *, key=None
+    ):
+        """
+        Tests if ``value_0`` is equal to ``value_1`` with a non-constant
+        time comparison on the hash of each value appended with a salt
+        prior to hashing. The algorithm prepends the instance's
+        ``self.key`` if ``key`` is not supplied to further make the
+        tested outputs undeterminable to an attacker. The random salt
+        & key allow the hashes to be compared normally in non-constant
+        time, without revealing meaningful information, since an
+        attacker wouldn't have access to either. This scheme is easier
+        to implement correctly & is easier to prove guarantees of the
+        infeasibility of timing attacks.
+        """
+        salt = await atoken_bytes(64)
+        key = key if key else self.key
+        if (
+            await asha_256(key, value_0, salt)
+            == await asha_256(key, value_1, salt)
+        ):
+            return True
+        else:
+            return False
 
     async def areset(self, key=None):
         """
@@ -508,34 +530,47 @@ class Keys:
         self, data=None, hmac=None, *, key=None, hasher=sha_256_hmac
     ):
         """
-        Tests if ``hmac`` of ``data`` is valid using ``key`` or the
-        instance's ``self.key`` if it's not supplied. Instead of using a
-        constant time character by character check on the hmac, the hmac
-        itself is hmac'd with a random salt & is checked against the
-        hmac & salt of the correct hmac. This non-constant time check on
-        the hmac of the supplied hmac doesn't reveal meaningful
-        information about the true hmac if the attacker does not have
-        access to the secret key. Nor does it gain information about the
-        hmac it supplied since it is salted. This scheme is easier to
-        implement correctly & is easier to guarantee the infeasibility
-        of a timing attack, since "constant time" operations are truly
-        dependant on architectures, languages & resource allocation for
-        those operations.  A sync ``hasher`` function can also be
-        supplied to use that algorithm instead of the default
-        ``sha_256_hmac``.
+        Tests if the given ``hmac`` of some ``data`` is valid with a
+        non-constant time comparison on the hash of each the supplied &
+        derived HMACs, appended with a salt prior to hashing. The
+        algorithm prepends the instance's ``self.key`` if ``key`` is not
+        supplied to further make the tested outputs undeterminable to an
+        attacker. The random salt & key allow the hashes to be compared
+        normally in non-constant time, without revealing meaningful
+        information, since an attacker wouldn't have access to either.
+        This scheme is easier to implement correctly & is easier to
+        prove guarantees of the infeasibility of timing attacks. Any
+        sync ``hasher`` function can be specified as the HMAC function,
+        which is by default ``sha_256_hmac``
         """
         if not hmac:
-            raise ValueError("`hmac` keyword argument was not given.")
-        salt = csprng(hmac)
+            raise ValueError("``hmac`` argument was not given.")
         key = key if key else self.key
         true_hmac = self.hmac(data=data, key=key, hasher=hasher)
-        if (
-            self.hmac((hmac, salt), key=key)
-            == self.hmac((true_hmac, salt), key=key)
-        ):
+        if self.time_safe_equality(hmac, true_hmac, key=key):
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
+
+    def time_safe_equality(self, value_0=None, value_1=None, *, key=None):
+        """
+        Tests if ``value_0`` is equal to ``value_1`` with a non-constant
+        time comparison on the hash of each value appended with a salt
+        prior to hashing. The algorithm prepends the instance's
+        ``self.key`` if ``key`` is not supplied to further make the
+        tested outputs undeterminable to an attacker. The random salt
+        & key allow the hashes to be compared normally in non-constant
+        time, without revealing meaningful information, since an
+        attacker wouldn't have access to either. This scheme is easier
+        to implement correctly & is easier to prove guarantees of the
+        infeasibility of timing attacks.
+        """
+        salt = token_bytes(64)
+        key = key if key else self.key
+        if sha_256(key, value_0, salt) == sha_256(key, value_1, salt):
+            return True
+        else:
+            return False
 
     def reset(self, key=None):
         """
