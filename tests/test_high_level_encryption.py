@@ -16,14 +16,11 @@ __all__ = [
     "test_map_functions",
     "test_json_functions",
     "test_bytes_functions",
-    "test_generator_functions",
+    #"test_generator_functions",
     "__all__",
 ]
 
 
-key = csprng()
-salt = csprng()
-pid = sha_256(key, salt)
 plaintext_bytes = 100 * randoms.urandom(128)
 plaintext_string = 1280 * "testing..."
 plaintext_types = {
@@ -35,9 +32,9 @@ plaintext_types = {
 
 
 def test_map_functions():
-    names = subkeys(key, salt, pid).resize(64)
-    keystream = subkeys(key, salt)
-    datastream = data(plaintext_string)
+    names = keys(key, salt, pid).resize(64)
+    keystream = keys(key, salt)
+    datastream = data(plaintext_string.encode())
     with datastream.map_encrypt(names, keystream) as encrypting:
         ciphertext = encrypting.dict()
     with pick(names, ciphertext).map_decrypt(keystream) as decrypting:
@@ -47,9 +44,9 @@ def test_map_functions():
 
 
 async def async_map_functions():
-    names = asubkeys(key, salt, pid).aresize(64)
-    keystream = asubkeys(key, salt)
-    datastream = adata(plaintext_string)
+    names = akeys(key, salt, pid).aresize(64)
+    keystream = akeys(key, salt)
+    datastream = adata(plaintext_string.encode())
     async with datastream.amap_encrypt(names, keystream) as encrypting:
         ciphertext = await encrypting.adict()
     async with apick(names, ciphertext).amap_decrypt(keystream) as decrypting:
@@ -77,15 +74,15 @@ def test_json_functions():
 
 def test_bytes_functions():
     ciphertext_of_bytes = bytes_encrypt(plaintext_bytes, key, salt)
-    ciphertext_of_string = bytes_encrypt(plaintext_string, key, salt)
+    ciphertext_of_string = bytes_encrypt(plaintext_string.encode(), key, salt)
     assert ciphertext_of_bytes == run(abytes_encrypt(plaintext_bytes, key, salt))
-    assert ciphertext_of_string == run(abytes_encrypt(plaintext_string, key, salt))
+    assert ciphertext_of_string == run(abytes_encrypt(plaintext_string.encode(), key, salt))
 
     assert ciphertext_of_bytes != bytes_encrypt(plaintext_bytes, key)
-    assert ciphertext_of_string != run(abytes_encrypt(plaintext_string, key))
+    assert ciphertext_of_string != run(abytes_encrypt(plaintext_string.encode(), key))
 
     assert ciphertext_of_bytes != bytes_encrypt(plaintext_bytes, key, salt, pid)
-    assert ciphertext_of_string != run(abytes_encrypt(plaintext_string, key, salt, pid))
+    assert ciphertext_of_string != run(abytes_encrypt(plaintext_string.encode(), key, salt, pid))
 
     plaintext_of_bytes = bytes_decrypt(ciphertext_of_bytes, key)
     plaintext_of_string = bytes_decrypt(ciphertext_of_string, key)

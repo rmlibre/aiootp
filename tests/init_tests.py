@@ -23,6 +23,11 @@ import aiootp
 from aiootp import *
 
 
+key = csprng()
+salt = csprng()
+pid = sha_256(key, salt)
+
+
 __all__ = [
     "sys",
     "json",
@@ -30,6 +35,9 @@ __all__ = [
     "Path",
     "PACKAGE_PATH",
     "aiootp",
-    *aiootp.__all__
+    *aiootp.__all__,
+    "key",
+    "salt",
+    "pid",
 ]
 
