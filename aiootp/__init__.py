@@ -9,7 +9,7 @@
 #
 
 
-__version__ = "0.12.0"
+__version__ = "0.13.0"
 
 
 __license__ = "AGPLv3"
@@ -20,7 +20,30 @@ aiootp - an asynchronous one-time-pad based crypto and anonymity library.
 """
 
 
-DEBUG_MODE = False
+class DebugControl:
+    """
+    Enabling debugging reveals omitted values in object ``repr``s &
+    turns on asyncio's debugging.
+    """
+
+    _DEBUG_MODE = False
+    _switches = []
+
+    @classmethod
+    def is_debugging(cls):
+        return cls._DEBUG_MODE
+
+    @classmethod
+    def enable_debugging(cls):
+        cls._DEBUG_MODE = True
+        for toggle in cls._switches:
+            toggle()
+
+    @classmethod
+    def disable_debugging(cls):
+        cls._DEBUG_MODE = False
+        for toggle in cls._switches:
+            toggle()
 
 
 from .paths import *
@@ -46,5 +69,6 @@ __all__ = [
 ]
 
 
+del __aiocontext
 del __ui_coordination
 

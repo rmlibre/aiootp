@@ -9,7 +9,7 @@
 #
 
 
-__all__ = ["debuggers"]
+__all__ = ["debuggers", "DebugControl"]
 
 
 __doc__ = """
@@ -22,6 +22,7 @@ import datetime
 from time import time
 from functools import wraps
 from inspect import isasyncgenfunction
+from . import DebugControl
 from .commons import Namespace
 
 
@@ -398,15 +399,16 @@ class AsyncGenDebugTools(AsyncDebugTools):
         """
         Captures the runtime of an async generator iteration.
         """
-        self.time_before = time()
         try:
+            self.time_before = time()
             self.return_value = await self.generator.asend(self.return_value)
         except TypeError as error:
             if self._async_non_none_error in error.args:
                 self.return_value = await self.generator.asend(None)
             else:
                 raise error
-        self.time_after = time()
+        finally:
+            self.time_after = time()
 
     @staticmethod
     async def aprint_trace_call():
@@ -458,15 +460,16 @@ class GenDebugTools(DebugTools):
         """
         Captures the runtime of a generator iteration.
         """
-        self.time_before = time()
         try:
+            self.time_before = time()
             self.return_value = self.generator.send(self.return_value)
         except TypeError as error:
             if self._sync_non_none_error in error.args:
                 self.return_value = self.generator.send(None)
             else:
                 raise error
-        self.time_after = time()
+        finally:
+            self.time_after = time()
 
     @staticmethod
     def print_trace_call():
@@ -619,6 +622,7 @@ for name, method in  sync_timers.items():
 __extras = {
     "AsyncDebugGenTools": AsyncGenDebugTools,
     "AsyncDebugTools": AsyncDebugTools,
+    "DebugControl": DebugControl,
     "DebugGenTools": GenDebugTools,
     "DebugTools": DebugTools,
     "__doc__": __doc__,

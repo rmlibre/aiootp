@@ -40,6 +40,7 @@ from multiprocessing import Process, Manager
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
 from inspect import iscoroutinefunction as is_async_function
+from . import DebugControl
 from .commons import Namespace
 
 
@@ -48,8 +49,10 @@ process_pool = ProcessPoolExecutor()
 default_loop = asyncio.get_event_loop()
 
 
-# # Optionally, set asyncio's debug mode on
-# loop().set_debug(True)
+# Optionally, set asyncio's debug mode on / off
+DebugControl._switches.append(
+    lambda: loop().set_debug(DebugControl.is_debugging())
+)
 
 
 def loop(*a, _default=asyncio.get_event_loop, **kw):
@@ -116,7 +119,6 @@ def wrap_in_executor(function):
 
     https://github.com/Tinche/aiofiles/blob/master/aiofiles/os.py
 
-
     The license for their code is Apache License 2.0, available here:
 
     http://www.apache.org/licenses/LICENSE-2.0
@@ -139,7 +141,6 @@ def make_os_async(namespace=None):
 
     https://github.com/Tinche/aiofiles/blob/master/aiofiles/os.py
 
-
     Whose license is Apache License 2.0, available here:
 
     http://www.apache.org/licenses/LICENSE-2.0
@@ -147,7 +148,15 @@ def make_os_async(namespace=None):
     if namespace == None:
         namespace = Namespace()
     attrs = [
-        "sendfile", "stat", "rename", "remove", "mkdir", "makedirs", "rmdir"
+        "chmod",
+        "chown",
+        "sendfile",
+        "stat",
+        "rename",
+        "remove",
+        "mkdir",
+        "makedirs",
+        "rmdir",
     ]
     for attr in attrs:
         if hasattr(os, attr):
@@ -179,7 +188,7 @@ class Processes:
     """
     _type = Process
     _pool = process_pool
-    _state_machine = Manager()
+    _state_machine = Manager
 
     @staticmethod
     def _return_state(runner, func=None, state=None, *args):
@@ -203,7 +212,7 @@ class Processes:
 
         if is_async_function(func):
             runner = cls._run_async_func
-            state = cls._state_machine.list()
+            state = cls._state_machine().list()
             future = cls.submit(
                 cls._return_state, runner, func, state, *args
             )
@@ -248,7 +257,7 @@ class Processes:
         cpu-bound computations can better coexist with asynchronous
         or multithreaded code.
         """
-        state = cls._state_machine.list()
+        state = cls._state_machine().list()
         process = cls._type(
             target=cls._run_async_func,
             args=(func, *args),
@@ -275,7 +284,7 @@ class Processes:
         Runs a sync function in another process so heavy cpu-bound
         computations can better coexist with multithreaded code.
         """
-        state = cls._state_machine.list()
+        state = cls._state_machine().list()
         process = cls._type(
             target=cls._run_func,
             args=(func, *args),
@@ -292,7 +301,7 @@ class Processes:
 class Threads(Processes):
     _type = Thread
     _pool = thread_pool
-    _state_machine = Manager()
+    _state_machine = Manager
 
 
 __extras = {
