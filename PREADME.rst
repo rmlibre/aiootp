@@ -867,133 +867,53 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
     
     @aiootp.comprehension()
     
-    # ``datastreams`` are typically just a single iterable of integers that
+    # ``data`` is an iterable of 256 byte integers that are either plaintext
     
-    # are either plaintext or ciphertext. ``key`` is by default the ``keys``
+    # or ciphertext. ``key`` is by default the ``keys`` generator. ->
     
-    # generator. ``buffer_size`` is by default ``10**20``, which represents 
-    
-    # how many (20) of the most significant decimal digits in each integer 
-    
-    # key produced will be excluded from use for xoring. This is necessary 
-    
-    # because the first digits in a ``int(key, 16)`` converted key are less 
-    
-    # random than the least significant digits. 20 decimal digits is roughly 
-    
-    # 64-bits ->
-    
-    def xor(*datastreams, key=None, buffer_size=aiootp.power10[20], convert=True):
-    
-        # ``convert`` is an optional flag to allow users to pass a preconverted
+    def xor(data=None, *, key=None):
         
-        # interable of integer key material ->
+        keystream = key.send
         
-        if convert:
+        # We use the first output of the keystream as a seed of entropy
         
-            entropy = key.int(16)
+        # for all key chunks pulled from the generator ->
+        
+        seed = keystream(None)
+        
+        for chunk in data:
             
-        else:
+            # We contantenate two 128 byte key chunks together ->
             
-            entropy = key
+            key_chunk = int(await keystream(seed) + await keystream(seed), 16)
             
-        # If more than one iterable of plaintext or ciphertext integers are 
-        
-        # passed, then they're processed one at a time here. Reversing the 
-        
-        # procedure when more than one data stream is used is not supported ->
-        
-        for items in zip(*datastreams):
-        
-            # Initialize the result. Anything xor'd by 0 returns itself ->
-        
-            result = 0
+            # Then xor the 256 byte key chunk with the 256 byte data chunk ->
             
-            for item in items:
+            result = chunk ^ key_chunk
             
-                # For each element of each plaintext or ciphertext iterable,
+            if result.bit_length() > 2048:
                 
-                # a seed is cached to increase efficiency when growing the key ->
-            
-                seed = entropy() * entropy()
+                # If the result is for some reason larger than 256 bytes,
                 
-                # Each time ``entropy`` is called, it pulls 2 sha3_512 hashes
+                # we abort the procedure, & warn the user ->
                 
-                # from the forward + semi-future secure key stream whose 
+                raise ValueError("Data MUST NOT exceed 256 bytes.")
                 
-                # concatenated digests are integer converted & multiplied with
-                
-                # another pair of hashes from the stream. This creates keys of 
-                
-                # sizes that are multiples of 2048-bits. The new key is then 
-                
-                # xor'd with the 2048-bit seed to prevent any cryptanalysis 
-                
-                # involving factoring the multiplication ->
-                
-                current_key = seed ^ (entropy() * entropy())
-                
-                # The resulting key is then xor'd with the plaintext or 
-                
-                # ciphertext element ->
-                
-                tested = item ^ current_key
-                
-                # And the size of the item is increased by the buffer to account
-                
-                # for the less random most significant bits ->
-                
-                item_size = item * buffer_size
-                
-                # Next, the key is grown to be larger than the plaintext element
-                
-                # or, if the reverse operation is being done on ciphertext, then
-                
-                # the growth is stopped if a plaintext is revealed, since the
-                
-                # plaintext is always smaller than the key. Multiplying ``tested``
-                
-                # by 100 gets rid of rounding errors, as sometimes xor'ing two
-                
-                # integers can result in a number that's larger than both of them
-                
-                # by one significant digit.
-                
-                while tested * 100 > current_key and item_size > current_key:
-                
-                    # If the key needs to grow again, then the current key is
-                    
-                    # multiplied by another 2048-bit compund key & the result 
-                    
-                    # is xor'd with the seed to eliminate the potential of
-                    
-                    # factoring the result ->
-                    
-                    current_key = seed ^ (current_key * entropy() * entropy())
-                    
-                    # We then reset ``tested`` to test until plaintext is revealed
-                    
-                    # or, an appropriate ciphertext is made ->
-                    
-                    tested = item ^ current_key
-                    
-                # If the procedure succeeds in either case, the result is stored
-                
-                # or, yielded when there are no more elements in the zipped
-                
-                # datastream iteration ->
-                
-                result ^= tested
-                
+           # Then we yield the result ->
+           
             yield result
             
     # This is a very space-efficient algorithm for a one-time-pad that adapts
     
-    # dynamically to increased plaintext or ciphertext sizes. Both because 
+    # dynamically to increased plaintext & ciphertext sizes. Both because 
     
     # it's built on generators, & because an infinite stream of key material
     
     # can efficiently be produced from a finite-sized key & an ephemeral salt.
+    
+    # This version of the algorithm is much simpler & much more efficient 
+    
+    # than that from previous versions.
     
     
     #

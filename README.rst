@@ -867,133 +867,53 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
     
     @aiootp.comprehension()
     
-    # ``datastreams`` are typically just a single iterable of integers that
+    # ``data`` is an iterable of 256 byte integers that are either plaintext
     
-    # are either plaintext or ciphertext. ``key`` is by default the ``keys``
+    # or ciphertext. ``key`` is by default the ``keys`` generator. ->
     
-    # generator. ``buffer_size`` is by default ``10**20``, which represents 
-    
-    # how many (20) of the most significant decimal digits in each integer 
-    
-    # key produced will be excluded from use for xoring. This is necessary 
-    
-    # because the first digits in a ``int(key, 16)`` converted key are less 
-    
-    # random than the least significant digits. 20 decimal digits is roughly 
-    
-    # 64-bits ->
-    
-    def xor(*datastreams, key=None, buffer_size=aiootp.power10[20], convert=True):
-    
-        # ``convert`` is an optional flag to allow users to pass a preconverted
+    def xor(data=None, *, key=None):
         
-        # interable of integer key material ->
+        keystream = key.send
         
-        if convert:
+        # We use the first output of the keystream as a seed of entropy
         
-            entropy = key.int(16)
+        # for all key chunks pulled from the generator ->
+        
+        seed = keystream(None)
+        
+        for chunk in data:
             
-        else:
+            # We contantenate two 128 byte key chunks together ->
             
-            entropy = key
+            key_chunk = int(await keystream(seed) + await keystream(seed), 16)
             
-        # If more than one iterable of plaintext or ciphertext integers are 
-        
-        # passed, then they're processed one at a time here. Reversing the 
-        
-        # procedure when more than one data stream is used is not supported ->
-        
-        for items in zip(*datastreams):
-        
-            # Initialize the result. Anything xor'd by 0 returns itself ->
-        
-            result = 0
+            # Then xor the 256 byte key chunk with the 256 byte data chunk ->
             
-            for item in items:
+            result = chunk ^ key_chunk
             
-                # For each element of each plaintext or ciphertext iterable,
+            if result.bit_length() > 2048:
                 
-                # a seed is cached to increase efficiency when growing the key ->
-            
-                seed = entropy() * entropy()
+                # If the result is for some reason larger than 256 bytes,
                 
-                # Each time ``entropy`` is called, it pulls 2 sha3_512 hashes
+                # we abort the procedure, & warn the user ->
                 
-                # from the forward + semi-future secure key stream whose 
+                raise ValueError("Data MUST NOT exceed 256 bytes.")
                 
-                # concatenated digests are integer converted & multiplied with
-                
-                # another pair of hashes from the stream. This creates keys of 
-                
-                # sizes that are multiples of 2048-bits. The new key is then 
-                
-                # xor'd with the 2048-bit seed to prevent any cryptanalysis 
-                
-                # involving factoring the multiplication ->
-                
-                current_key = seed ^ (entropy() * entropy())
-                
-                # The resulting key is then xor'd with the plaintext or 
-                
-                # ciphertext element ->
-                
-                tested = item ^ current_key
-                
-                # And the size of the item is increased by the buffer to account
-                
-                # for the less random most significant bits ->
-                
-                item_size = item * buffer_size
-                
-                # Next, the key is grown to be larger than the plaintext element
-                
-                # or, if the reverse operation is being done on ciphertext, then
-                
-                # the growth is stopped if a plaintext is revealed, since the
-                
-                # plaintext is always smaller than the key. Multiplying ``tested``
-                
-                # by 100 gets rid of rounding errors, as sometimes xor'ing two
-                
-                # integers can result in a number that's larger than both of them
-                
-                # by one significant digit.
-                
-                while tested * 100 > current_key and item_size > current_key:
-                
-                    # If the key needs to grow again, then the current key is
-                    
-                    # multiplied by another 2048-bit compund key & the result 
-                    
-                    # is xor'd with the seed to eliminate the potential of
-                    
-                    # factoring the result ->
-                    
-                    current_key = seed ^ (current_key * entropy() * entropy())
-                    
-                    # We then reset ``tested`` to test until plaintext is revealed
-                    
-                    # or, an appropriate ciphertext is made ->
-                    
-                    tested = item ^ current_key
-                    
-                # If the procedure succeeds in either case, the result is stored
-                
-                # or, yielded when there are no more elements in the zipped
-                
-                # datastream iteration ->
-                
-                result ^= tested
-                
+           # Then we yield the result ->
+           
             yield result
             
     # This is a very space-efficient algorithm for a one-time-pad that adapts
     
-    # dynamically to increased plaintext or ciphertext sizes. Both because 
+    # dynamically to increased plaintext & ciphertext sizes. Both because 
     
     # it's built on generators, & because an infinite stream of key material
     
     # can efficiently be produced from a finite-sized key & an ephemeral salt.
+    
+    # This version of the algorithm is much simpler & much more efficient 
+    
+    # than that from previous versions.
     
     
     #
@@ -1113,6 +1033,115 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 =============
 
 
+Changes for version 0.13.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security Patch: ``xor`` & ``axor`` functions that define the 
+   one-time-pad cipher had a vulnerability fixed that can leak <1-bit of
+   plaintext. The issue was in the way keys were built, where the
+   multiplicative products of two key segments were xor'd together. This
+   lead to keys being slightly more likely to be positive integers, 
+   meaning the final bit had a greater than 1/2 probability of being a 
+   ``1``. The fix is accompanied with an overhaul of the one-time-pad 
+   cipher which is more efficient, faster, & designed with a better 
+   understanding of the way bytes are processed & represented. The key
+   chunks now do not, & must not, surpass 256 bytes & neither should 
+   any chunk of plaintext output. Making each chunk deterministically 
+   256 bytes allows for reversibly formatting ciphertext to & from 
+   bytes-like strings. These changes are backwards incompatible with 
+   prior versions of this package & are strongly recommended.
+-  Added ``bytes_xor`` & ``abytes_xor`` functions which take in key 
+   generators which produce key segments of type bytes instead of hex 
+   strings.
+-  ``AsyncDatabase`` & ``Database`` now save files in bytes format,
+   making them much more efficient on disk space. They use the new
+   ``BytesIO`` class in the ``generics`` module to transparently convert
+   to & from json & bytes. This change is also not backwards compatible.
+-  Removed ``acipher``, ``cipher``, ``adecipher``, ``decipher``,
+   ``aorganize_encryption_streams``, ``organize_encryption_streams``,
+   ``aorganize_decryption_streams``, ``organize_decryption_streams``,
+   ``aencrypt``, ``encrypt``, ``adecrypt``, ``decrypt``, ``asubkeys`` &
+   ``subkeys`` generators from the ``ciphers`` module & package to slim 
+   down the code, remove repetition & focus on the cipher tools that 
+   include hmac authentication.
+-  Removed deprecated diffie-hellman methods in ``Ropake`` class. 
+-  Removed the static ``power10`` dictionary from the package.
+-  The default secret salt for the ``Ropake`` class is now derived from the 
+   contents of a file that's in the databases directory which chmod'd to 
+   0o000 unless needed. 
+-  Made ``aclient_message_key``, ``client_message_key``, ``aserver_message_key``, 
+   & ``server_message_key`` ``Ropake`` class methods to help distinguish 
+   client-to-server & server-to-client message keys which prevents replay 
+   attacks on the one-message ROPAKE protocol. 
+-  Added protocol coroutines to the ``Ropake`` class which allow for easily
+   engaging in 2DH & 3DH elliptic curve exchanges for servers & clients.
+-  Efficiency improvements to the ``aseeder`` & ``seeder`` generator functions
+   in the ``randoms`` module. This affects the ``acsprng`` & ``csprng`` objects
+   & all the areas in the library that utilize those objects.
+-  Changed the repr behavior of ``Comprende`` instances to redact all args &
+   kwargs by default to protect cryptographic material from unintentionally
+   being displayed on user systems. The repr can display full contents by 
+   calling the ``enable_debugging`` method of the ``DebugControl`` class.
+-  All generator functions decorated with ``comprehension`` are now given
+   a ``root`` attribute. This allows direct access to the function without
+   needing to instantiate or run it as a ``Comprende`` object. This saves 
+   a good deal of cpu & time in the overhead that would otherwise be 
+   incurred by the class. This is specifically more helpful in tight &/or
+   lower-level looping.
+
+
+Minor Changes 
+------------- 
+
+-  Various refactorings across the library. 
+-  Fixed various typos, bugs & inaccurate docstrings throughout the library.
+-  Add ``chown`` & ``chmod`` functions to the ``asynchs.aos`` module. 
+-  Now makes new ``multiprocessing.Manager`` objects in the ``asynchs.Processes`` 
+   & ``asynchs.Threads`` classes to avoid errors that occur when using a stale 
+   object whose socket connections are closed. 
+-  Changed ``Ropake`` class' ``adb_login`` & ``db_login`` methods to 
+   ``adatabase_login_key`` & ``database_login_key``. Also, fix a crash bug in 
+   those methods. 
+-  Changed ``Ropake`` class' ``aec25519_pub``, ``ec25519_pub``, ``aec25519_priv`` 
+   & ``ec25519_priv`` methods to ``aec25519_public_bytes``, ``ec25519_public_bytes``, 
+   ``aec25519_private_bytes`` & ``ec25519_private_bytes``. 
+-  Added low-level private methods to ``Ropake`` class which do derivation 
+   & querying of the default class key & salt. 
+-  Behavior changes to the ``ainverse_int`` & ``inverse_int`` functions in the 
+   ``generics`` module to allow handling bases represented in ``str`` or ``bytes`` 
+   type strings. 
+-  Behavior & name changes to the ``abinary_tree`` & ``binary_tree`` functions in the 
+   ``generics`` module to ``abuild_tree`` & ``build_tree``. They now allow making 
+   uniform trees of any width & depth, limited only by the memory in a 
+   user's machine. 
+-  Provided new ``acsprbg`` & ``csprbg`` objects to the library that return 512-bits 
+   of cryptographically secure pseudo-random ``bytes`` type strings. They are 
+   made by the new ``abytes_seeder`` & ``bytes_seeder`` generators. 
+-  The ``csprng``, ``acsprng``, ``csprbg`` & ``acsprbg`` objects were 
+   wrapped in functions that automatically restart the generators if they're
+   stalled / interrupted during a call. This keeps the package from melting
+   down if it can no longer call the CSPRNGs for new entropy.
+-  Cleaned up & simplified ``table_key`` functions in the ``keygens`` module. 
+-  Changed the output of ``asafe_symm_keypair`` & ``safe_symm_keypair`` functions 
+   to contain bytes values not their hex-only representation. Also removed 
+   these functions from the main imports of the package since they are slow 
+   & their main contribution is calling ``arandom_number_generator`` & 
+   ``random_number_generator`` to utilize a large entropy pool when starting
+   CSPRNGs.
+-  Added new values to the ``bits`` dictionary.
+-  Added ``apad_bytes``, ``pad_bytes``, ``adepad_bytes`` & ``depad_bytes``
+   functions which use ``shake_256`` to pad/depad plaintext bytes to & from
+   multiples of 256 bytes. They take in a key to create the padding. 
+   This method is intended to also aid in protecting against padding
+   oracle attacks.
+
+
+
+
 Changes for version 0.12.0 
 ========================== 
 
@@ -1138,7 +1167,7 @@ Major Changes
    to the database classes so that specific entries can be saved to disk 
    without having to save the entire database which is much more costly. The 
    manifest file isn't saved to disk when these methods are used, so if a 
-   a tag file isn't already saved in the database, then the saved files will 
+   tag file isn't already saved in the database, then the saved files will 
    not be present in the manifest or in the cache upon subsequent loads of 
    the database. The saved file will still however be saved on the 
    filesystem, though unbeknownst to the database instance.
@@ -1146,7 +1175,7 @@ Major Changes
    repr's, which is any 64+ hex character string, or any number with 64+ 
    decimal digits. 
 -  Removed the experimental recursive value retrieval within ``Comprende``'s 
-   ``__aexamine_send_exceptions`` & ``__examine_send_exceptions`` methods. 
+   ``__aexamine_sent_exceptions`` & ``__examine_sent_exceptions`` methods. 
    This change leads to more reliable & faster code, in exchange for an 
    unnecessary feature being removed. 
 -  Bug fix of the ``auuids`` & ``uuids`` methods by editing the code in 
