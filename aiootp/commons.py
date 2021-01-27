@@ -13,7 +13,6 @@ __all__ = [
     "commons",
     "bits",
     "primes",
-    "power10",
     "Namespace",
     "WORD_LIST",
     "ASCII_TABLE",
@@ -36,7 +35,7 @@ import types
 import asyncio
 from os import linesep
 from .__datasets import *
-from . import DEBUG_MODE
+from . import DebugControl
 
 
 async def aimport_namespace(
@@ -114,7 +113,7 @@ async def aredact_keys(string, *, rule=r"[0-9a-fA-F]{64,}"):
     key_finder = re.compile(rule)
     for key in key_finder.finditer(string):
         await asyncio.sleep(0)
-        string = string.replace(key.group(0), "<omitted-key>")
+        string = string.replace(key.group(0), OMITTED)
     return string
 
 
@@ -125,7 +124,7 @@ def redact_keys(string, *, rule=r"[0-9a-fA-F]{64,}"):
     """
     key_finder = re.compile(rule)
     for key in key_finder.finditer(string):
-        string = string.replace(key.group(0), "<omitted-key>")
+        string = string.replace(key.group(0), OMITTED)
     return string
 
 
@@ -173,15 +172,22 @@ class Namespace:
         """
         return len(self.__dict__)
 
-    def __str__(self, *, debugging=DEBUG_MODE, tab=4 * " "):
+    def __str__(self, *, tab=4 * " "):
         """
         Pretty displays the Namespace's mapping.
         """
         result = self.__class__.__qualname__
         result += f"({linesep}" + "    mapping={"
-        for variable, value in self:
-            result += f"{linesep + 2 * tab}{variable}:\t{repr(value)},"
-        return redact_keys(result + f"{linesep}" + "    }" + f"{linesep})")
+        ending = f"{linesep}" + "    }" + f"{linesep})"
+        spacer = f"{linesep + 2 * tab}"
+        if DebugControl.is_debugging():
+            for variable, value in self:
+                result += spacer + f"{variable}:\t{repr(value)},"
+        else:
+            for variable, value in self:
+                omitted_value = f"{OMITTED} of {type(value)}"
+                result += spacer + f"{variable}:\t{omitted_value},"
+        return result + ending
 
     def __repr__(self):
         """
@@ -281,8 +287,10 @@ __extras = {
     "KEY": "key",
     "KEY_ID": "key_id",
     "KEYED_PASSWORD": "keyed_password",
+    "LIST_ENCODING": "listed_ciphertext",
     "LISTENING": "listening",
     "MAINTAINING": "maintaining",
+    "MAP_ENCODING": "mapped_ciphertext",
     "MESSAGE_ID": "message_id",
     "MESSAGES": "message_archive",
     "METADATA": "metadata",
@@ -294,6 +302,7 @@ __extras = {
     "NUM": NUM,
     "OLD_KEY": "last_shared_key",
     "OLD_VERIFID": "last_verification_code",
+    "OMITTED": "<omitted-data>",
     "ONION": "onion",
     "ONION_CHAR_TABLE": ONION_CHAR_TABLE,
     "PASSWORD": "password",
@@ -344,7 +353,6 @@ __extras = {
     "aredact_keys": aredact_keys,
     "redact_keys": redact_keys,
     "bits": bits,
-    "power10": power10,
     "primes": primes,
 }
 

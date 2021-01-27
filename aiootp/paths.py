@@ -19,7 +19,10 @@ potentially helpful directories.
 
 
 import os
+import aiofiles
 from pathlib import Path
+from .asynchs import aos
+from .asynchs import switch
 from .commons import Namespace
 
 
@@ -63,19 +66,71 @@ def DatabasePath(dir_function=RootPath):
     return dir_function() / "databases"
 
 
-def SecurePath(dir_function=DatabasePath):
+async def amake_hash_file(path):
+    from .ciphers import asalt
+
+    key = await asalt()
+    filename = key[:64]
+    secret = key[64:]
+    filepath = path / filename
+    async with aiofiles.open(filepath, "w") as new_file:
+        await new_file.write(secret)
+    await aos.chmod(filepath, 0o000)
+
+
+def make_hash_file(path):
     from .ciphers import salt
 
-    secured_directory = dir_function() / "secure"
-    if not secured_directory.exists():
-        secured_directory.mkdir()
-        (secured_directory / salt()[:64]).mkdir()
-    for path in secured_directory.iterdir():
-        if len(path.stem) == 64:
-            return path.absolute()
-    path = secured_directory / salt()[:64]
-    path.mkdir()
-    return path.absolute()
+    key = salt()
+    filename = key[:64]
+    secret = key[64:]
+    filepath = path / filename
+    with open(filepath, "w") as new_file:
+        new_file.write(secret)
+    os.chmod(filepath, 0o000)
+
+
+async def afind_hash_file(path):
+    for subpath in path.iterdir():
+        if subpath.is_file() and len(subpath.stem) == 64:
+            return subpath.absolute()
+        await switch()
+
+
+def find_hash_file(path):
+    for subpath in path.iterdir():
+        if subpath.is_file() and len(subpath.stem) == 64:
+            return subpath.absolute()
+
+
+async def aread_hash_file(filepath):
+    try:
+        await aos.chmod(filepath, 0o700)
+        async with aiofiles.open(filepath, "r") as hash_file:
+            return await hash_file.read()
+    finally:
+        await aos.chmod(filepath, 0o000)
+
+
+def read_hash_file(filepath):
+    try:
+        os.chmod(filepath, 0o700)
+        with open(filepath, "r") as hash_file:
+            return hash_file.read()
+    finally:
+        os.chmod(filepath, 0o000)
+
+
+def SecurePath(dir_function=DatabasePath):
+    path = dir_function() / "secure"
+    if not path.exists():
+        path.mkdir()
+    filepath = find_hash_file(path)
+    if not filepath:
+        make_hash_file(path)
+        return find_hash_file(path)
+    else:
+        return filepath
 
 
 __extras = {
@@ -89,6 +144,12 @@ __extras = {
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
+    "_afind_hash_file": afind_hash_file,
+    "_find_hash_file": find_hash_file,
+    "_amake_hash_file": amake_hash_file,
+    "_make_hash_file": make_hash_file,
+    "_aread_hash_file": aread_hash_file,
+    "_read_hash_file": read_hash_file,
 }
 
 

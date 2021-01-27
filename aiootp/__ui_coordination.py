@@ -60,7 +60,7 @@ def debugger(self, *args, **kwargs):
 
 
 @comprehension()
-async def axor(self, key=None, convert=True):
+async def abytes_xor(self, key=None):
     """
     Applies an xor to each result of any underlying async ``Comprende``
     generator. ``key`` is an async ``Comprende`` key generator. And,
@@ -69,12 +69,12 @@ async def axor(self, key=None, convert=True):
     results produced from ``self``. The underlying ``self`` async
     generator needs to produce integers to be xor'd on each iteration.
     """
-    async for result in OneTimePad.axor(self, key=key, convert=convert):
+    async for result in OneTimePad.abytes_xor.root(self, key=key):
         yield result
 
 
 @comprehension()
-def xor(self, key=None, convert=True):
+def bytes_xor(self, key=None):
     """
     Applies an xor to each result of any underlying sync ``Comprende``
     generator. ``key`` is a sync ``Comprende`` key generator. And,
@@ -83,7 +83,35 @@ def xor(self, key=None, convert=True):
     results produced from ``self``. The underlying ``self`` sync
     generator needs to produce integers to be xor'd on each iteration.
     """
-    for result in OneTimePad.xor(self, key=key, convert=convert):
+    for result in OneTimePad.bytes_xor.root(self, key=key):
+        yield result
+
+
+@comprehension()
+async def axor(self, key=None):
+    """
+    Applies an xor to each result of any underlying async ``Comprende``
+    generator. ``key`` is an async ``Comprende`` key generator. And,
+    ``convert`` if truthy, will automatically convert the stream of key
+    material from ``key`` into an integer so it can be used to xor the
+    results produced from ``self``. The underlying ``self`` async
+    generator needs to produce integers to be xor'd on each iteration.
+    """
+    async for result in OneTimePad.axor.root(self, key=key):
+        yield result
+
+
+@comprehension()
+def xor(self, key=None):
+    """
+    Applies an xor to each result of any underlying sync ``Comprende``
+    generator. ``key`` is a sync ``Comprende`` key generator. And,
+    ``convert`` if truthy, will automatically convert the stream of key
+    material from ``key`` into an integer so it can be used to xor the
+    results produced from ``self``. The underlying ``self`` sync
+    generator needs to produce integers to be xor'd on each iteration.
+    """
+    for result in OneTimePad.xor.root(self, key=key):
         yield result
 
 
@@ -187,7 +215,7 @@ def insert_xor_methods():
     """
     Copies the addons over into the ``Comprende`` class.
     """
-    addons = {xor, axor}
+    addons = {xor, axor, bytes_xor, abytes_xor}
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
         Comprende.lazy_generators.add(addon.__name__)

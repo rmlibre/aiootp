@@ -15,14 +15,16 @@ __all__ = [
     "random_256",
     "arandom_512",
     "random_512",
-    "asafe_symm_keypair",
-    "safe_symm_keypair",
     "amake_uuid",
     "make_uuid",
     "aseeder",
     "seeder",
+    "abytes_seeder",
+    "bytes_seeder",
     "acsprng",
     "csprng",
+    "acsprbg",
+    "csprbg",
     "asalt",
     "salt",
 ]
@@ -50,6 +52,7 @@ from sympy import nextprime as next_prime
 from sympy import randprime as random_prime
 from .commons import *
 from .asynchs import *
+from .asynchs import time
 from .asynchs import sleep
 from .asynchs import asleep
 from .generics import aint
@@ -63,6 +66,8 @@ from .generics import asha_256
 from .generics import asha_512
 from .generics import generics
 from .generics import Enumerate
+from .generics import hash_bytes
+from .generics import ahash_bytes
 from .generics import Comprende
 from .generics import comprehension
 from .generics import bytes_to_int
@@ -177,7 +182,7 @@ async def aprime_table(
                 await raise_if_insufficient_unique_primes()
                 prime = await acreate_prime(bits=prime_group)
             table[prime_group].append(prime)
-    return dict(table)
+    return table
 
 
 def prime_table(low=None, high=None, step=1, depth=10, depth_error=25):
@@ -519,7 +524,9 @@ def _salt(*, _entropy=_initial_entropy):
     return _salt_multiply(_entropy)
 
 
-async def arandom_256(entropy=sha_512(_salt()), runs=26, refresh=False):
+async def arandom_256(
+    entropy=bytes.fromhex(sha_512(_salt())), runs=26, refresh=False
+):
     """
     Returns a 256-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -536,7 +543,9 @@ async def arandom_256(entropy=sha_512(_salt()), runs=26, refresh=False):
     )
 
 
-def random_256(entropy=sha_512(_salt()), runs=26, refresh=False):
+def random_256(
+    entropy=bytes.fromhex(sha_512(_salt())), runs=26, refresh=False
+):
     """
     Returns a 256-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -553,7 +562,9 @@ def random_256(entropy=sha_512(_salt()), runs=26, refresh=False):
     )
 
 
-async def arandom_512(entropy=sha_512(_salt()), runs=26, refresh=False):
+async def arandom_512(
+    entropy=bytes.fromhex(sha_512(_salt())), runs=26, refresh=False
+):
     """
     Returns a 512-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -566,11 +577,13 @@ async def arandom_512(entropy=sha_512(_salt()), runs=26, refresh=False):
         await arandom_number_generator(
             entropy=entropy, runs=runs, refresh=refresh
         ),
-        await atoken_bytes(64),
+        await atoken_bytes(32),
     )
 
 
-def random_512(entropy=sha_512(_salt()), runs=26, refresh=False):
+def random_512(
+    entropy=bytes.fromhex(sha_512(_salt())), runs=26, refresh=False
+):
     """
     Returns a 512-bit hash produced by ``random_number_generator``.
     Users can pass ``entropy`` into the function. ``runs`` determines
@@ -583,12 +596,12 @@ def random_512(entropy=sha_512(_salt()), runs=26, refresh=False):
         random_number_generator(
             entropy=entropy, runs=runs, refresh=refresh
         ),
-        token_bytes(64),
+        token_bytes(32),
     )
 
 
 async def arandom_number_generator(
-    entropy=sha_512(_salt()),
+    entropy=bytes.fromhex(sha_512(_salt())),
     runs=26,
     refresh=False,
     *,
@@ -596,46 +609,50 @@ async def arandom_number_generator(
 ):
     """
     We propose several methods for producing cryptographically secure
-    pseudo-random numbers, and implement them in this function.
+    pseudo-random numbers, and implement them in this function. This
+    function is implemented to securely produce entropy under threat
+    models that don't include attackers that can maliciously analyze
+    users' machines' memory. Such a capability represents a serious
+    threat to the unpredictability of the CSPRNG, as it suggests the
+    ability to read any arbitrary secrets stored by the machine.
 
-    1. Greatly increase the space an attacker must search by using
-    pseudo-random seeds that are very large numbers (> 256-bits and
-    < 2048-bits) as the range arguments for random.randrange.
+    0. Use many component PRNGs with differing designs & sources to
+    spread the risk of any particularly weak ones & benefit from the
+    most reliable ones by securely mixing the entropy bits they may
+    produce together.
 
-    2. Recursively use cryptographic hashing on the results of our
-    pseudo-random number generators to unlink their mathematical
-    associations from their seeds.
+    1. Make the search space for an attacker to guess the inputs to any
+    of the component PRNGs intractibly large. We can do this by using
+    pseudo-random seeds that are very large numbers (anywhere from
+    256-bits to 4600-bits).
 
-    3. Frustrate attempts to learn the internal state of the PRNGs by
-    making separate seeds at each import-time & function call, as well
-    as, incorporating forward-secure key ratcheting algorithms within
-    several of this package's pseudo-random number generators. They work
-    together, with proper coordination, to produce randomness in a way
-    that alone they wouldn't. Using a combination of PRNGs also spreads
-    out the impact of an attacker predicting CSPRNG output by requiring
-    all of the PRNGs be broken at import time, or for the user machine's
-    memory to be maliciously analyzed, to predict outputs from the
-    CSPRNGs.
+    2. Make new seeds after &/or before each use, import-time &/or
+    function call.
 
-    4. Use three randrange function abstractions where for each function
-    call: one produces 2 new small pseudo-random seeds from a pair of
-    smaller seeds (256-bits - 512-bits); the second produces 2 new
-    large pseudo-random seeds from the pair of larger seeds (1536-bits -
-    2048-bits); the third to produce a large pseudo-random number from
-    ``random.randrange`` with the lower bound being the two small seeds
-    multiplied together and salted, and the upper bound being the two
-    large seeds being multiplied together and salted.
+    3. Use cryptographic hashing on the inputs & outputs of component
+    PRNGs to unlink internal states from their outputs.
 
-    5. Further frustrate an attacker by necessitating that they perform
+    4. Incorporate forward-secure key ratcheting algorithms at key
+    points along the PRNGs' communications routes with themselves & the
+    user. They work together, with proper coordination, to produce
+    randomness in a way that alone they wouldn't.
+
+    5. Use the powerful sha3_256 or sha3_512 hashing algorithms for all
+    hashing.
+
+    6. Further frustrate an attacker by necessitating that they perform
     an order prediction attack on the results of the CSPRNG's component
     PRNGs. We do this by using asynchrony entirely throughout the CSPRNG
     with random sleeps, and using a non-commutative, salted, modular
-    multiplication to combine internal states before hashing.
+    multiplication to combine internal states into a single element in
+    its ratcheting internal state.
 
-    6. Use the powerful sha3_512 hashing algorithm for all hashing.
+    7. Allow the user to securely mix any extra entropy they have access
+    to into the CSPRNG's state machine. This mitigates some impacts of
+    the malicious analysis of memory by an adversary.
 
-    7. Iterate and interleave all these methods enough times such that,
-    we assume each time the CSPRNG produces a 512-bit internal state,
+    8. Iterate and interleave all these methods enough times such that,
+    if we assume each time the CSPRNG produces a 512-bit internal state,
     that only 1-bit of entropy is produced. Then, by initializing up to
     a cache of 256 ratcheting states then the ``random_number_generator``
     algorithm here would have at least 256-bits of entropy.
@@ -643,9 +660,14 @@ async def arandom_number_generator(
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     Our implementation analysis is NOT rigorous or conclusive, though
     soley based on the constraints stated above, our assumptions of
-    randomness should be a reasonable estimate.
+    randomness should be reasonable estimates within the threat model
+    where an attacker cannot arbitrarily analyze users' machines'
+    memory.
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     """
+    if not issubclass(entropy.__class__, bytes):
+        entropy = str(entropy).encode()
+
     if refresh or not _completed:
 
         async def start_generator(runs, tasks=deque()):
@@ -657,9 +679,9 @@ async def arandom_number_generator(
             await gather(*tasks, return_exceptions=True)
 
         async def hash_cache():
-            seed = await atoken_bytes(64)
+            seed = await atoken_bytes(32)
             await arandom_sleep(0.003)
-            _completed.appendleft(await asha_512(_completed, entropy, seed))
+            _completed.appendleft(hash_bytes(*_completed, entropy, seed))
 
         async def modular_multiplication():
             seed = await _asalt()
@@ -667,14 +689,19 @@ async def arandom_number_generator(
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
-            _completed.appendleft(await asha_512(result, seed))
+            _completed.appendleft(
+                await ahash_bytes(
+                    int.to_bytes(result, 512, "big"),
+                    int.to_bytes(seed, 256, "big"),
+                )
+            )
 
         async def create_unique_multiple(seed):
             return await big_multiply(
                 seed,
                 await aunique_integer(),
-                await atoken_number(64),
-                await atoken_number(64),
+                await atoken_number(32),
+                await atoken_number(32),
             )
 
         async def big_modulation(*args):
@@ -690,16 +717,16 @@ async def arandom_number_generator(
         await agenerate_unique_range_bounds()
     else:
         _completed.appendleft(
-            await asha_512_hmac(
-                (_completed, await atoken_bytes(64)), entropy
-            )
+            await ahash_bytes(*_completed, await atoken_bytes(32), entropy)
         )
 
-    return await asha_512_hmac((_completed, sha_512(_salt())), entropy)
+    return await ahash_bytes(
+        *_completed, int.to_bytes(await _asalt(), 256, "big"), entropy
+    )
 
 
 def random_number_generator(
-    entropy=sha_512(_salt()),
+    entropy=bytes.fromhex(sha_512(_salt())),
     runs=26,
     refresh=False,
     *,
@@ -707,46 +734,50 @@ def random_number_generator(
 ):
     """
     We propose several methods for producing cryptographically secure
-    pseudo-random numbers, and implement them in this function.
+    pseudo-random numbers, and implement them in this function. This
+    function is implemented to securely produce entropy under threat
+    models that don't include attackers that can maliciously analyze
+    users' machines' memory. Such a capability represents a serious
+    threat to the unpredictability of the CSPRNG, as it suggests the
+    ability to read any arbitrary secrets stored by the machine.
 
-    1. Greatly increase the space an attacker must search by using
-    pseudo-random seeds that are very large numbers (> 256-bits and
-    < 2048-bits) as the range arguments for random.randrange.
+    0. Use many component PRNGs with differing designs & sources to
+    spread the risk of any particularly weak ones & benefit from the
+    most reliable ones by securely mixing the entropy bits they may
+    produce together.
 
-    2. Recursively use cryptographic hashing on the results of our
-    pseudo-random number generators to unlink their mathematical
-    associations from their seeds.
+    1. Make the search space for an attacker to guess the inputs to any
+    of the component PRNGs intractibly large. We can do this by using
+    pseudo-random seeds that are very large numbers (anywhere from
+    256-bits to 4600-bits).
 
-    3. Frustrate attempts to learn the internal state of the PRNGs by
-    making separate seeds at each import-time & function call, as well
-    as, incorporating forward-secure key ratcheting algorithms within
-    several of this package's pseudo-random number generators. They work
-    together, with proper coordination, to produce randomness in a way
-    that alone they wouldn't. Using a combination of PRNGs also spreads
-    out the impact of an attacker predicting CSPRNG output by requiring
-    all of the PRNGs be broken at import time, or for the user machine's
-    memory to be maliciously analyzed, to predict outputs from the
-    CSPRNGs.
+    2. Make new seeds after &/or before each use, import-time &/or
+    function call.
 
-    4. Use three randrange function abstractions where for each function
-    call: one produces 2 new small pseudo-random seeds from a pair of
-    smaller seeds (256-bits - 512-bits); the second produces 2 new
-    large pseudo-random seeds from the pair of larger seeds (1536-bits -
-    2048-bits); the third to produce a large pseudo-random number from
-    ``random.randrange`` with the lower bound being the two small seeds
-    multiplied together and salted, and the upper bound being the two
-    large seeds being multiplied together and salted.
+    3. Use cryptographic hashing on the inputs & outputs of component
+    PRNGs to unlink internal states from their outputs.
 
-    5. Further frustrate an attacker by necessitating that they perform
+    4. Incorporate forward-secure key ratcheting algorithms at key
+    points along the PRNGs' communications routes with themselves & the
+    user. They work together, with proper coordination, to produce
+    randomness in a way that alone they wouldn't.
+
+    5. Use the powerful sha3_256 or sha3_512 hashing algorithms for all
+    hashing.
+
+    6. Further frustrate an attacker by necessitating that they perform
     an order prediction attack on the results of the CSPRNG's component
     PRNGs. We do this by using asynchrony entirely throughout the CSPRNG
     with random sleeps, and using a non-commutative, salted, modular
-    multiplication to combine internal states before hashing.
+    multiplication to combine internal states into a single element in
+    its ratcheting internal state.
 
-    6. Use the powerful sha3_512 hashing algorithm for all hashing.
+    7. Allow the user to securely mix any extra entropy they have access
+    to into the CSPRNG's state machine. This mitigates some impacts of
+    the malicious analysis of memory by an adversary.
 
-    7. Iterate and interleave all these methods enough times such that,
-    we assume each time the CSPRNG produces a 512-bit internal state,
+    8. Iterate and interleave all these methods enough times such that,
+    if we assume each time the CSPRNG produces a 512-bit internal state,
     that only 1-bit of entropy is produced. Then, by initializing up to
     a cache of 256 ratcheting states then the ``random_number_generator``
     algorithm here would have at least 256-bits of entropy.
@@ -754,9 +785,14 @@ def random_number_generator(
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     Our implementation analysis is NOT rigorous or conclusive, though
     soley based on the constraints stated above, our assumptions of
-    randomness should be a reasonable estimate.
+    randomness should be reasonable estimates within the threat model
+    where an attacker cannot arbitrarily analyze users' machines'
+    memory.
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     """
+    if not issubclass(entropy.__class__, bytes):
+        entropy = str(entropy).encode()
+
     if refresh or not _completed:
 
         async def start_generator(runs, tasks=deque()):
@@ -768,9 +804,9 @@ def random_number_generator(
             await gather(*tasks, return_exceptions=True)
 
         async def hash_cache():
-            seed = await atoken_bytes(64)
+            seed = await atoken_bytes(32)
             await arandom_sleep(0.003)
-            _completed.appendleft(await asha_512(_completed, entropy, seed))
+            _completed.appendleft(hash_bytes(*_completed, entropy, seed))
 
         async def modular_multiplication():
             seed = await _asalt()
@@ -778,14 +814,19 @@ def random_number_generator(
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
-            _completed.appendleft(await asha_512(result, seed))
+            _completed.appendleft(
+                await ahash_bytes(
+                    int.to_bytes(result, 512, "big"),
+                    int.to_bytes(seed, 256, "big"),
+                )
+            )
 
         async def create_unique_multiple(seed):
             return await big_multiply(
                 seed,
                 await aunique_integer(),
-                await atoken_number(64),
-                await atoken_number(64),
+                await atoken_number(32),
+                await atoken_number(32),
             )
 
         async def big_modulation(*args):
@@ -801,10 +842,12 @@ def random_number_generator(
         generate_unique_range_bounds()
     else:
         _completed.appendleft(
-            sha_512_hmac((_completed, token_bytes(64)), entropy)
+            hash_bytes(*_completed, token_bytes(32), entropy)
         )
 
-    return sha_512_hmac((_completed, sha_512(_salt())), entropy)
+    return hash_bytes(
+        *_completed, int.to_bytes(_salt(), 256, "big"), entropy
+    )
 
 
 async def aunique_integer():
@@ -846,7 +889,7 @@ async def aunique_big_int():
     numbers = await gather(
         aunique_lower_bound(), aunique_upper_bound(), return_exceptions=True
     )
-    return await arandom_range(*numbers) ^ await atoken_number(64)
+    return await arandom_range(*numbers) ^ await atoken_number(32)
 
 
 def unique_big_int():
@@ -856,7 +899,7 @@ def unique_big_int():
     """
     return (
         random_range(unique_lower_bound(), unique_upper_bound())
-        ^ token_number(64)
+        ^ token_number(32)
     )
 
 
@@ -1051,13 +1094,15 @@ async def asafe_symm_keypair(
     global global_seed_key
 
     await agenerate_unique_range_bounds()
-    seed_key = sha_512(
-        entropy,
-        global_seed,
-        global_seed_key,
-        await arandom_512(refresh=refresh, runs=runs),
-    ).encode()
-    seed = (await asha_512_hmac(global_seed, key=seed_key)).encode()
+    seed_key = bytes.fromhex(
+        sha_512(
+            entropy,
+            global_seed,
+            global_seed_key,
+            await arandom_512(refresh=refresh, runs=runs),
+        )
+    )
+    seed = bytes.fromhex(await asha_512_hmac(global_seed, key=seed_key))
     global_seed_key = sha_512_hmac(global_seed_key, key=seed_key)
     global_seed = sha_512_hmac(global_seed, key=seed)
     await agenerate_unique_range_bounds()
@@ -1074,13 +1119,15 @@ def safe_symm_keypair(entropy=sha_512(_salt()), refresh=False, runs=26):
     global global_seed_key
 
     generate_unique_range_bounds()
-    seed_key = sha_512(
-        entropy,
-        global_seed,
-        global_seed_key,
-        random_512(refresh=refresh, runs=runs),
-    ).encode()
-    seed = sha_512_hmac(global_seed, key=seed_key).encode()
+    seed_key = bytes.fromhex(
+        sha_512(
+            entropy,
+            global_seed,
+            global_seed_key,
+            random_512(refresh=refresh, runs=runs),
+        )
+    )
+    seed = bytes.fromhex(sha_512_hmac(global_seed, key=seed_key))
     global_seed_key = sha_512_hmac(global_seed_key, key=seed_key)
     global_seed = sha_512_hmac(global_seed, key=seed)
     generate_unique_range_bounds()
@@ -1091,38 +1138,39 @@ def safe_symm_keypair(entropy=sha_512(_salt()), refresh=False, runs=26):
 async def aseeder(entropy=sha_512(_salt()), refresh=False, runs=26):
     """
     A fast random number generator that supports adding entropy during
-    async iteration. It's based on the randomness produced from combining
-    a key ratchet algorithm, os psuedo randomness, and this module's
+    iteration. It's based on the randomness produced from combining a
+    key ratchet algorithm, os psuedo randomness, and this module's
     cryptographically secure pseudo-random number generator (csprng).
 
     Usage examples:
 
     # In async for loops ->
     async for seed in aseeder():
-        # do something with ``seed``, a random hash
+        # do something with ``seed``, a random 512-bit hash
 
-    # By calling anext ->
-    from aiootp import anext
-
-    csprng = aseeder()
-    seed = await anext(csprng)
+    # By awaiting next ->
+    acsprng = aseeder()
+    seed = await next(acsprng)
 
     # By sending in entropy ->
-    entropy = "any object whose str() representation has randomness"
-    csprng = aseeder(entropy)  # entropy can be added here
-    await csprng(None)
-    seed = await csprng(entropy)  # &/or entropy can be added here
+    entropy = "any object as a source of randomness"
+    acsprng = aseeder(entropy)  # entropy can be added here
+    await acsprng(None)
+    seed = await acsprng(entropy)  # &/or entropy can be added here
     """
     seed, seed_key = await asafe_symm_keypair(entropy, refresh, runs)
-    kdf = sha3_512(seed + seed_key)
+    ratchet = sha3_256(seed_key + seed)
+    output = sha3_512(ratchet.digest() + seed_key + seed)
+    rotation_key = bytes.fromhex(await asha_256(seed, seed_key, entropy))
     while True:
-        entropy = (await astr(entropy)).encode()
-        kdf.update(seed + seed_key + entropy + token_bytes(64))
-        seed_key = kdf.digest()
-        kdf.update(seed + seed_key + entropy)
-        seed = kdf.digest()
-        kdf.update(seed + seed_key + entropy)
-        entropy = yield kdf.hexdigest()
+        if not entropy:
+            entropy = rotation_key
+        elif not issubclass(entropy.__class__, bytes):
+            entropy = str(entropy).encode()
+
+        ratchet.update(token_bytes(32))
+        output.update(entropy + ratchet.digest())
+        entropy = yield output.hexdigest()
 
 
 @comprehension()
@@ -1137,28 +1185,109 @@ def seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
 
     # In for loops ->
     for seed in seeder():
-        # do something with ``seed``, a random hash
+        # do something with ``seed``, a random 512-bit hash
 
     # By calling next ->
     csprng = seeder()
     seed = next(csprng)
 
     # By sending in entropy ->
-    entropy = "any object whose str() representation has randomness"
+    entropy = "any object as a source of randomness"
     csprng = seeder(entropy)  # entropy can be added here
     csprng(None)
     seed = csprng(entropy)  # &/or entropy can be added here
     """
     seed, seed_key = safe_symm_keypair(entropy, refresh, runs)
-    kdf = sha3_512(seed + seed_key)
+    ratchet = sha3_256(seed_key + seed)
+    output = sha3_512(ratchet.digest() + seed_key + seed)
+    rotation_key = bytes.fromhex(sha_256(seed, seed_key, entropy))
     while True:
-        entropy = str(entropy).encode()
-        kdf.update(seed + seed_key + entropy + token_bytes(64))
-        seed_key = kdf.digest()
-        kdf.update(seed + seed_key + entropy)
-        seed = kdf.digest()
-        kdf.update(seed + seed_key + entropy)
-        entropy = yield kdf.hexdigest()
+        if not entropy:
+            entropy = rotation_key
+        elif not issubclass(entropy.__class__, bytes):
+            entropy = str(entropy).encode()
+
+        ratchet.update(token_bytes(32))
+        output.update(entropy + ratchet.digest())
+        entropy = yield output.hexdigest()
+
+
+@comprehension()
+async def abytes_seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
+    """
+    A fast random number generator that supports adding entropy during
+    iteration. It's based on the randomness produced from combining a
+    key ratchet algorithm, os psuedo randomness, and this module's
+    cryptographically secure pseudo-random number generator (csprng).
+
+    Usage examples:
+
+    # In async for loops ->
+    async for seed in abytes_seeder():
+        # do something with ``seed``, 64 random bytes
+
+    # By awaiting next ->
+    acsprng = abytes_seeder()
+    seed = await next(acsprng)
+
+    # By sending in entropy ->
+    entropy = "any object as a source of randomness"
+    acsprng = abytes_seeder(entropy)  # entropy can be added here
+    await acsprng(None)
+    seed = await acsprng(entropy)  # &/or entropy can be added here
+    """
+    seed, seed_key = await asafe_symm_keypair(entropy, refresh, runs)
+    ratchet = sha3_256(seed_key + seed)
+    output = sha3_512(ratchet.digest() + seed_key + seed)
+    rotation_key = bytes.fromhex(await asha_256(seed, seed_key, entropy))
+    while True:
+        if not entropy:
+            entropy = rotation_key
+        elif not issubclass(entropy.__class__, bytes):
+            entropy = str(entropy).encode()
+
+        ratchet.update(token_bytes(32))
+        output.update(entropy + ratchet.digest())
+        entropy = yield output.digest()
+
+
+@comprehension()
+def bytes_seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
+    """
+    A fast random number generator that supports adding entropy during
+    iteration. It's based on the randomness produced from combining a
+    key ratchet algorithm, os psuedo randomness, and this module's
+    cryptographically secure pseudo-random number generator (csprng).
+
+    Usage examples:
+
+    # In for loops ->
+    for seed in bytes_seeder():
+        # do something with ``seed``, 64 random bytes
+
+    # By calling next ->
+    csprng = bytes_seeder()
+    seed = next(csprng)
+
+    # By sending in entropy ->
+    entropy = "any object as a source of randomness"
+    csprng = bytes_seeder(entropy)  # entropy can be added here
+    csprng(None)
+    seed = csprng(entropy)  # &/or entropy can be added here
+    """
+    seed, seed_key = safe_symm_keypair(entropy, refresh, runs)
+    ratchet = sha3_256(seed_key + seed)
+    output = sha3_512(ratchet.digest() + seed_key + seed)
+    rotation_key = bytes.fromhex(sha_256(seed, seed_key, entropy))
+    while True:
+        if not entropy:
+            entropy = rotation_key
+        elif not issubclass(entropy.__class__, bytes):
+            entropy = str(entropy).encode()
+
+        ratchet.update(token_bytes(32))
+        output.update(entropy + ratchet.digest())
+        entropy = yield output.digest()
 
 
 @comprehension()
@@ -1417,7 +1546,7 @@ async def amake_uuid(size=16, salt=None):
     """
     stamp = None
     salt = salt if salt else await acsprng()
-    async with Comprende().arelay(salt):
+    async with Comprende.aclass_relay(salt):
         while True:
             uuid = ""
             while len(uuid) < size:
@@ -1433,7 +1562,7 @@ def make_uuid(size=16, salt=None):
     """
     stamp = None
     salt = salt if salt else csprng()
-    with Comprende().relay(salt):
+    with Comprende.class_relay(salt):
         while True:
             uuid = ""
             while len(uuid) < size:
@@ -1441,20 +1570,92 @@ def make_uuid(size=16, salt=None):
             stamp = yield uuid[:size]
 
 
-async def asalt(entropy=sha_512(_salt())):
+async def asalt(entropy=bytes.fromhex(sha_512(_salt()))):
     """
     Returns a cryptographically secure pseudo-random hex number
     that also seeds new entropy into the acsprng generator.
     """
-    return  await acsprng(str(entropy).encode())
+    if not issubclass(entropy.__class__, bytes):
+        entropy = str(entropy).encode()
+    return  await acsprng(entropy)
 
 
-def salt(entropy=sha_512(_salt())):
+def salt(entropy=bytes.fromhex(sha_512(_salt()))):
     """
     Returns a cryptographically secure pseudo-random hex number
     that also seeds new entropy into the csprng generator.
     """
-    return csprng(str(entropy).encode())
+    if not issubclass(entropy.__class__, bytes):
+        entropy = str(entropy).encode()
+    return csprng(entropy)
+
+
+async def acsprng(entropy=bytes.fromhex(sha_512(_salt()))):
+    """
+    Takes in an arbitrary ``entropy`` value from the user to seed then
+    return a 512-bit cryptographically secure pseudo-random hex number.
+    This function also restarts the package's CSPRNG if it stalls, which,
+    for example, can happen when CTRL-Cing in the middle of the
+    generator's runtime. This makes sure the whole package doesn't come
+    crashing down for users when the generator is halted unexpectedly.
+    """
+    global _acsprng
+    try:
+        return await _acsprng(entropy)
+    except StopAsyncIteration:
+        _acsprng = aseeder(entropy).asend
+        return await _acsprng()
+
+
+def csprng(entropy=bytes.fromhex(sha_512(_salt()))):
+    """
+    Takes in an arbitrary ``entropy`` value from the user to seed then
+    return a 512-bit cryptographically secure pseudo-random hex number.
+    This function also restarts the package's CSPRNG if it stalls, which,
+    for example, can happen when CTRL-Cing in the middle of the
+    generator's runtime. This makes sure the whole package doesn't come
+    crashing down for users when the generator is halted unexpectedly.
+    """
+    global _csprng
+    try:
+        return _csprng(entropy)
+    except StopIteration:
+        _csprng = seeder(entropy).send
+        return _csprng()
+
+
+async def acsprbg(entropy=bytes.fromhex(sha_512(_salt()))):
+    """
+    Takes in an arbitrary ``entropy`` value from the user to seed then
+    return a 512-bit cryptographically secure pseudo-random bytes value.
+    This function also restarts the package's CSPRNG if it stalls, which,
+    for example, can happen when CTRL-Cing in the middle of the
+    generator's runtime. This makes sure the whole package doesn't come
+    crashing down for users when the generator is halted unexpectedly.
+    """
+    global _acsprbg
+    try:
+        return await _acsprbg(entropy)
+    except StopAsyncIteration:
+        _acsprbg = abytes_seeder(entropy).asend
+        return await _acsprbg()
+
+
+def csprbg(entropy=bytes.fromhex(sha_512(_salt()))):
+    """
+    Takes in an arbitrary ``entropy`` value from the user to seed then
+    return a 512-bit cryptographically secure pseudo-random bytes value.
+    This function also restarts the package's CSPRNG if it stalls, which,
+    for example, can happen when CTRL-Cing in the middle of the
+    generator's runtime. This makes sure the whole package doesn't come
+    crashing down for users when the generator is halted unexpectedly.
+    """
+    global _csprbg
+    try:
+        return _csprbg(entropy)
+    except StopIteration:
+        _csprbg = bytes_seeder(entropy).send
+        return _csprbg()
 
 
 try:
@@ -1462,10 +1663,12 @@ try:
     # random number generators.
     global_seed_key = random_512(entropy=sha_512(_salt()))
     global_seed = random_512(entropy=global_seed_key)
-    csprng = seeder(global_seed).send
-    acsprng = aseeder(csprng()).asend
-    global_seed_key = run(acsprng())
-    global_seed = salt() + run(asalt())
+    _csprng = seeder(global_seed).send
+    _acsprng = aseeder(_csprng()).asend
+    _csprbg = bytes_seeder(run(_acsprng())).send
+    _acsprbg = abytes_seeder(_csprbg()).asend
+    global_seed_key = run(_acsprbg())
+    global_seed = salt(run(_acsprbg())) + run(asalt(_csprbg()))
 except RuntimeError as error:
     problem = f"{__package__}'s random seed initialization failed, "
     location = f"likely because {__name__} "
@@ -1479,8 +1682,10 @@ __extras = {
     "__main_exports__": __all__,
     "__package__": "aiootp",
     "abytes_digits": abytes_digits,
+    "abytes_seeder": abytes_seeder,
     "achoice": achoice,
     "acreate_prime": acreate_prime,
+    "acsprbg": acsprbg,
     "acsprng": acsprng,
     "adigits": adigits,
     "agenerate_big_range_bounds": agenerate_big_range_bounds,
@@ -1519,8 +1724,10 @@ __extras = {
     "aurandom_hash": aurandom_hash,
     "aurandom_number": aurandom_number,
     "bytes_digits": bytes_digits,
+    "bytes_seeder": bytes_seeder,
     "choice": choice,
     "create_prime": create_prime,
+    "csprbg": csprbg,
     "csprng": csprng,
     "digits": digits,
     "generate_big_range_bounds": generate_big_range_bounds,

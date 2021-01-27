@@ -11,6 +11,7 @@
 
 __all__ = [
     "generics",
+    "BytesIO",
     "Comprende",
     "comprehension",
     "azip",
@@ -65,6 +66,7 @@ import re
 import json
 import heapq
 import random
+import aiofiles
 import binascii
 import pybase64
 import builtins
@@ -81,6 +83,7 @@ from sympy import isprime as is_prime
 from contextlib import contextmanager
 from hashlib import sha3_256
 from hashlib import sha3_512
+from hashlib import shake_256
 from collections import deque
 from collections.abc import Iterable
 from collections.abc import Iterator
@@ -95,7 +98,7 @@ from .__aiocontext import async_contextmanager
 from .commons import *
 from .asynchs import *
 from .asynchs import time
-from . import DEBUG_MODE
+from . import DebugControl
 
 
 aiter = aioitertools.iter
@@ -397,6 +400,214 @@ def is_generator(obj):
     return isinstance(obj, GeneratorType)
 
 
+class BytesIO:
+    """
+    A utility class for converting json/dict ciphertext to & from bytes
+    objects. Also, provides an interface for transparently writing
+    ciphertext as bytes files & reading bytes ciphertext files as json
+    dictionaries.
+    """
+
+    MAP_ENCODING = commons.MAP_ENCODING
+    LIST_ENCODING = commons.LIST_ENCODING
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def _pop(cls, name, obj):
+        """
+        An exception-free pop from a dictionary.
+        """
+        if obj.get(name):
+            return obj.pop(name)
+
+    @classmethod
+    def _load_json(cls, obj):
+        """
+        Loads a string as json or copies makes a copy of an existing
+        dictionary depending on the type of ``obj``.
+        """
+        if not issubclass(obj.__class__, dict):
+            return json.loads(obj)
+        return dict(obj)
+
+    @classmethod
+    def _make_stack(cls):
+        """
+        Creates an empty template namespace to hold processed values to
+        & from bytes ciphertext.
+        """
+        return Namespace(
+            copy=None,
+            result=None,
+            hmac=None,
+            salt=None,
+            ciphertext=None,
+        )
+
+    @classmethod
+    def _process_json(cls, data):
+        """
+        Takes in json ``data`` for initial processing. Returns a
+        namespace populated with the discovered values.
+        """
+        obj = cls._make_stack()
+        obj.result = b""
+        obj.copy = cls._load_json(data)
+        obj.hmac = cls._pop("hmac", obj.copy)
+        obj.salt = cls._pop("salt", obj.copy)
+        obj.ciphertext = cls._pop("ciphertext", obj.copy)
+        return obj
+
+    @classmethod
+    async def ajson_to_bytes(cls, data):
+        """
+        Converts json ``data`` of either mapped database ciphertext or
+        listed ciphertext into a bytes object.
+        """
+        data = cls._process_json(data)
+        data.result = bytes.fromhex(data.hmac)
+        data.result += bytes.fromhex(data.salt) if data.salt else b""
+        if data.ciphertext:
+            for chunk in data.ciphertext:
+                await switch()
+                data.result += int.to_bytes(chunk, 256, "big")
+        else:
+            for name, chunk in data.copy.items():
+                await switch()
+                data.result += (
+                    bytes.fromhex(name) + int.to_bytes(chunk, 256, "big")
+                )
+        return data.result
+
+    @classmethod
+    def json_to_bytes(cls, data):
+        """
+        Converts json ``data`` of either mapped database ciphertext or
+        listed ciphertext into a bytes object.
+        """
+        data = cls._process_json(data)
+        data.result = bytes.fromhex(data.hmac)
+        data.result += bytes.fromhex(data.salt) if data.salt else b""
+        if data.ciphertext:
+            data.result += b"".join(
+                int.to_bytes(chunk, 256, "big")
+                for chunk in data.ciphertext
+            )
+        else:
+            data.result += b"".join(
+                bytes.fromhex(name) + int.to_bytes(chunk, 256, "big")
+                for name, chunk in data.copy.items()
+            )
+        return data.result
+
+    @classmethod
+    def _process_bytes(cls, data, encoding=LIST_ENCODING):
+        """
+        Takes in bytes ``data`` for initial processing. Database
+        ciphertext uses ``MAP_ENCODING``, whereas json/bytes encrypt
+        functions use ``LIST_ENCODING``. Returns a namespace populated
+        with the discovered ciphertext values.
+        """
+        mapping = encoding == cls.MAP_ENCODING
+        obj = cls._make_stack()
+        obj.result = {}
+        obj.copy = data
+        obj.hmac = bytes.hex(data[:32])
+        obj.salt = bytes.hex(data[32:64]) if mapping else None
+        obj.ciphertext = data[64:] if mapping else data[32:]
+        return obj
+
+    @classmethod
+    async def abytes_to_json(cls, data, encoding=LIST_ENCODING):
+        """
+        Converts bytes ``data`` of either mapped database ciphertext or
+        listed ciphertext back into a json dictionary. Database
+        ciphertext uses ``MAP_ENCODING``, whereas json/bytes encrypt
+        functions use ``LIST_ENCODING``.
+        """
+        streamer = adata
+        obj = cls._process_bytes(data, encoding=encoding)
+        if encoding == cls.MAP_ENCODING:
+            obj.result = {
+                bytes.hex(chunk[:32]):
+                int.from_bytes(chunk[32:], "big")
+                async for chunk in streamer(obj.ciphertext, size=288)
+            }
+            obj.result["salt"] = obj.salt
+        else:
+            obj.result["ciphertext"] = [
+                int.from_bytes(chunk, "big")
+                async for chunk in streamer(obj.ciphertext)
+            ]
+        obj.result["hmac"] = obj.hmac
+        return obj.result
+
+    @classmethod
+    def bytes_to_json(cls, data, encoding=LIST_ENCODING):
+        """
+        Converts bytes ``data`` of either mapped database ciphertext or
+        listed ciphertext back into a json dictionary. Database
+        ciphertext uses ``MAP_ENCODING``, whereas json/bytes encrypt
+        functions use ``LIST_ENCODING``.
+        """
+        streamer = globals()["data"]
+        obj = cls._process_bytes(data, encoding=encoding)
+        if encoding == cls.MAP_ENCODING:
+            obj.result = {
+                bytes.hex(chunk[:32]):
+                int.from_bytes(chunk[32:], "big")
+                for chunk in streamer(obj.ciphertext, size=288)
+            }
+            obj.result["salt"] = obj.salt
+        else:
+            obj.result["ciphertext"] = [
+                int.from_bytes(chunk, "big")
+                for chunk in streamer(obj.ciphertext)
+            ]
+        obj.result["hmac"] = obj.hmac
+        return obj.result
+
+    @classmethod
+    async def aread(cls, path, encoding=LIST_ENCODING):
+        """
+        Reads the bytes file at ``path`` under a certain ``encoding``.
+        Database ciphertext uses ``MAP_ENCODING``, whereas json/bytes
+        encrypt functions use ``LIST_ENCODING``.
+        """
+        async with aiofiles.open(path, "rb") as f:
+            return await cls.abytes_to_json(
+                await f.read(), encoding=encoding
+            )
+
+    @classmethod
+    def read(cls, path, encoding=LIST_ENCODING):
+        """
+        Reads the bytes file at ``path`` under a certain ``encoding``.
+        Database ciphertext uses ``MAP_ENCODING``, whereas json/bytes
+        encrypt functions use ``LIST_ENCODING``.
+        """
+        with open(path, "rb") as f:
+            return cls.bytes_to_json(f.read(), encoding=encoding)
+
+    @classmethod
+    async def awrite(cls, path, ciphertext):
+        """
+        Writes json ``ciphertext`` to a bytes file at ``path``.
+        """
+        async with aiofiles.open(path, "wb+") as f:
+            await f.write(await cls.ajson_to_bytes(ciphertext))
+
+    @classmethod
+    def write(cls, path, ciphertext):
+        """
+        Writes json ``ciphertext`` to a bytes file at ``path``.
+        """
+        with open(path, "wb+") as f:
+            f.write(cls.json_to_bytes(ciphertext))
+
+
 async def acustomize_parameters(
     a=(), kw=(), indexes=(), args=(), kwargs=()
 ):
@@ -405,11 +616,12 @@ async def acustomize_parameters(
     if ``indexes`` is specified, and ``kwargs``.
     """
     if args and indexes:
-        async with aunpack(a) as base_args:
-            a = await base_args.alist()
-        async for index in aunpack(indexes):
+        a = list(a)
+        for index in indexes:
+            await switch()
             a[index] = args[index]
-    async for kwarg in aunpack(kwargs):
+    for kwarg in kwargs:
+        await switch()
         kw[kwarg] = kwargs[kwarg]
     return a, kw
 
@@ -437,6 +649,8 @@ def comprehension(*args, indexes=(), catcher=None, **kwargs):
     functions in different contexts to alter behavior.
     """
     def func_catch(func):
+        func.root = func
+
         @wraps(func)
         def gen_wrapper(*a, **kw):
             nonlocal catcher
@@ -863,6 +1077,23 @@ class Comprende:
             if getattr(done, "value", None) != None:
                 self._return.append(done.value)
 
+    @classmethod
+    @async_contextmanager
+    async def aclass_relay(cls, result=None, source=None):
+        """
+        This is a lower level context manager for users who've created
+        async generators that need to propagate results up to calling
+        code. Code in this context manager's block will return ``result``
+        or the return value of a ``source`` Comprende async generator
+        up to its caller in a UserWarning exception.
+        """
+        try:
+            yield source
+        except UserWarning:
+            if result != None:
+                raise UserWarning(result)
+            raise UserWarning(await source.aresult(exit=True))
+
     @async_contextmanager
     async def arelay(self, result=None, source=None):
         """
@@ -879,6 +1110,23 @@ class Comprende:
             if result != None:
                 raise UserWarning(result)
             raise UserWarning(await source.aresult(exit=True))
+
+    @classmethod
+    @contextmanager
+    def class_relay(cls, result=None, source=None):
+        """
+        This is a lower level context manager for users who've created
+        sync generators that need to propagate results up to calling
+        code. Code in this context manager's block will relay a ``result``
+        or the return value of a ``source`` Comprende sync generator
+        up to its caller in a UserWarning exception.
+        """
+        try:
+            yield source
+        except (StopIteration, UserWarning):
+            if result != None:
+                raise UserWarning(result)
+            raise UserWarning(source.result(exit=True))
 
     @contextmanager
     def relay(self, result=None, source=None):
@@ -954,6 +1202,13 @@ class Comprende:
         return self.gen.ag_await
 
     @property
+    def gi_yieldfrom(self):
+        """
+        Copies the interface for generators.
+        """
+        return self.gen.gi_yieldfrom
+
+    @property
     def ag_code(self):
         """
         Copies the interface for async generators.
@@ -994,13 +1249,6 @@ class Comprende:
         Copies the interface for generators.
         """
         return self.gen.gi_running
-
-    @property
-    def gi_yieldfrom(self):
-        """
-        Copies the interface for generators.
-        """
-        return self.gen.gi_yieldfrom
 
     async def aclose(self, *a, **kw):
         """
@@ -1220,7 +1468,7 @@ class Comprende:
     def runsum(self):
         """
         Returns an empty string if the instance generator has not cached
-        any results. Returns the generator's 32-byte hex string id if it
+        any results. Returns the generator's 32-char hex string id if it
         has.
         """
         return self._runsum[:32]
@@ -2713,7 +2961,7 @@ class Comprende:
         else:
             return self.reversed()
 
-    def __repr__(self, debugging=DEBUG_MODE):
+    def __repr__(self, *, debugging=None):
         """
         Displays the string which, if ``exec``'d, would yield a new
         equivalent object.
@@ -2723,10 +2971,14 @@ class Comprende:
         func = self.func.__qualname__
         cls = self.__class__.__qualname__
         tab = f"{linesep + 4 * ' '}"
-        _repr = f"{cls}({tab}func={func},{tab}*{a},{tab}**{kw},{linesep})"
+        _repr = f"{cls}({tab}func={func},{tab}"
+        if debugging == None:
+            debugging = DebugControl.is_debugging()
         if not debugging:
-            return commons.redact_keys(_repr)
+            _repr += f"args={len(a)},{tab}kwargs={len(kw)},{linesep})"
+            return _repr
         else:
+            _repr += f"*{a},{tab}**{kw},{linesep})"
             return _repr
 
     def _set_index(self, index, spanner=builtins.range, _max=bits[256]):
@@ -2894,7 +3146,7 @@ async def aunpack(iterable=None):
     at a time.
     """
     if iterable == None:
-        iterable = acount()
+        iterable = acount.root()
     if is_async_iterable(iterable):
         async for item in iterable:
             yield item
@@ -2910,7 +3162,7 @@ def unpack(iterable=None):
     Runs through an iterable & yields elements one at a time.
     """
     if iterable == None:
-        iterable = count()
+        iterable = count.root()
     for result in iterable:
         yield result
 
@@ -2944,7 +3196,7 @@ def birth(base="", *, stop=True):
 
 
 @comprehension()
-async def adata(sequence="", size=246, *, stop="__length_end__"):
+async def adata(sequence="", size=256, *, stop="__length_end__"):
     """
     Runs through a sequence & yields ``size`` sized chunks of the
     sequence one chunk at a time.
@@ -2958,7 +3210,7 @@ async def adata(sequence="", size=246, *, stop="__length_end__"):
 
 
 @comprehension()
-def data(sequence="", size=246, *, stop="__length_end__"):
+def data(sequence="", size=256, *, stop="__length_end__"):
     """
     Runs through a sequence & yields ``size`` sized chunks of the
     sequence one chunk at a time.
@@ -2970,7 +3222,27 @@ def data(sequence="", size=246, *, stop="__length_end__"):
 
 
 @comprehension()
-async def ajson_encode(raw_data=None, size=246):
+async def aascii_to_bytes_data(sequence="", size=256, **kw):
+    """
+    Converts an ascii ``sequence`` to bytes before running through it &
+    yielding ``size`` sized chunks of the sequence one chunk at a time.
+    """
+    async for chunk in adata.root(sequence.encode(), size=size, **kw):
+        yield chunk
+
+
+@comprehension()
+def ascii_to_bytes_data(sequence="", size=256, **kw):
+    """
+    Converts an ascii ``sequence`` to bytes before running through it &
+    yielding ``size`` sized chunks of the sequence one chunk at a time.
+    """
+    for chunk in data.root(sequence.encode(), size=size, **kw):
+        yield chunk
+
+
+@comprehension()
+async def ajson_encode(raw_data=None, size=256):
     """
     Turns the ``json.dumps`` function into an async generator yielding
     ``size`` length chunks of string data per iteration.
@@ -2980,12 +3252,32 @@ async def ajson_encode(raw_data=None, size=246):
 
 
 @comprehension()
-def json_encode(raw_data=None, size=246):
+def json_encode(raw_data=None, size=256):
     """
     Turns the ``json.dumps`` function into a generator yielding ``size``
     length chunks of string data per iteration.
     """
     for result in data(json.dumps(raw_data), size=size):
+        yield result
+
+
+@comprehension()
+async def ajson_to_bytes_encode(raw_data=None, size=256):
+    """
+    Turns the ``json.dumps`` function into an async generator yielding
+    ``size`` length chunks of bytes data per iteration.
+    """
+    async for result in adata(json.dumps(raw_data).encode(), size=size):
+        yield result
+
+
+@comprehension()
+def json_to_bytes_encode(raw_data=None, size=256):
+    """
+    Turns the ``json.dumps`` function into a generator yielding ``size``
+    length chunks of bytes data per iteration.
+    """
+    for result in data(json.dumps(raw_data).encode(), size=size):
         yield result
 
 
@@ -3005,6 +3297,24 @@ def json_decode(json_data=None):
     back in one iteration.
     """
     yield json.loads(json_data)
+
+
+@comprehension()
+async def ajson_from_bytes_decode(json_data=None):
+    """
+    Turns the ``json.loads`` function into an async generator yielding
+    the data back in one iteration.
+    """
+    yield json.loads(json_data.decode())
+
+
+@comprehension()
+def json_from_bytes_decode(json_data=None):
+    """
+    Turns the ``json.loads`` function into a generator yielding the data
+    back in one iteration.
+    """
+    yield json.loads(json_data.decode())
 
 
 @comprehension()
@@ -3286,6 +3596,66 @@ async def aappend(container=None, item=None):
     container.append(item)
 
 
+async def apad_bytes(data, *, salted_key=None, buffer=256):
+    """
+    Appends padding bytes to ``data`` that are the ``shake_256`` output
+    of an object fed a ``salted_key`` to aid in CCA security.
+    """
+    remainder = len(data) % buffer
+    padding_size = buffer - remainder
+    padding = shake_256(salted_key).digest(padding_size + buffer)
+    if not remainder:
+        return data
+    elif padding_size < 32:
+        return data + padding
+    else:
+        return data + padding[:padding_size]
+
+
+def pad_bytes(data, *, salted_key=None, buffer=256):
+    """
+    Appends padding bytes to ``data`` that are the ``shake_256`` output
+    of an object fed a ``salted_key`` to aid in CCA security.
+    """
+    remainder = len(data) % buffer
+    padding_size = buffer - remainder
+    padding = shake_256(salted_key).digest(padding_size + buffer)
+    if not remainder:
+        return data
+    elif padding_size < 32:
+        return data + padding
+    else:
+        return data + padding[:padding_size]
+
+
+async def adepad_bytes(data, *, salted_key=None):
+    """
+    Removes the padding bytes from the end of the bytes ``data`` that
+    are built from the ``shake_256`` output of an object fed a
+    ``salted_key``.
+    """
+    padding = shake_256(salted_key).digest(32)
+    padding_index = data.find(padding)
+    if padding_index == -1:
+        return data
+    else:
+        return data[:padding_index]
+
+
+def depad_bytes(data, *, salted_key=None):
+    """
+    Removes the padding bytes from the end of the bytes ``data`` that
+    are built from the ``shake_256`` output of an object fed a
+    ``salted_key``.
+    """
+    padding = shake_256(salted_key).digest(32)
+    padding_index = data.find(padding)
+    if padding_index == -1:
+        return data
+    else:
+        return data[:padding_index]
+
+
 async def ato_b64(binary=None, encoding="utf-8"):
     """
     A version of ``pybase64.standard_b64encode``.
@@ -3322,6 +3692,22 @@ def from_b64(base_64=None, encoding="utf-8"):
     if type(base_64) != bytes:
         base_64 = base_64.encode(encoding)
     return pybase64.standard_b64decode(base_64)
+
+
+async def ahash_bytes(*collection, hasher=sha3_512, on=b""):
+    """
+    Joins all bytes objects in ``collection`` ``on`` a value & returns
+    the digest after passing all the joined bytes into the ``hasher``.
+    """
+    return hasher(on.join(collection)).digest()
+
+
+def hash_bytes(*collection, hasher=sha3_512, on=b""):
+    """
+    Joins all bytes objects in ``collection`` ``on`` a value & returns
+    the digest after passing all the joined bytes into the ``hasher``.
+    """
+    return hasher(on.join(collection)).digest()
 
 
 async def asha_256(*args, sha256=sha3_256):
@@ -3636,14 +4022,15 @@ async def ainverse_int(number, base, table=ASCII_ALPHANUMERIC):
     Convert an ``number`` back into a string in numerical ``base``.
     """
     digits = []
-    num = abs(number)
     base_table = table[:base]
-    while num:
-        await aappend(digits, base_table[num % base])
-        num //= base
-    digits.append("-") if number < 0 else 0
-    digits.reverse()
-    return "".join(digits)
+    while number:
+        await aappend(digits, base_table[number % base])
+        number //= base
+    if digits:
+        digits.reverse()
+        return digits[0].__class__().join(digits)
+    else:
+        return table[0]
 
 
 def inverse_int(number, base, table=ASCII_ALPHANUMERIC):
@@ -3651,14 +4038,15 @@ def inverse_int(number, base, table=ASCII_ALPHANUMERIC):
     Convert an ``number`` back into a string in numerical ``base``.
     """
     digits = []
-    num = abs(number)
     base_table = table[:base]
-    while num:
-        digits.append(base_table[num % base])
-        num //= base
-    digits.append("-") if number < 0 else 0
-    digits.reverse()
-    return "".join(digits)
+    while number:
+        digits.append(base_table[number % base])
+        number //= base
+    if digits:
+        digits.reverse()
+        return digits[0].__class__().join(digits)
+    else:
+        return table[0]
 
 
 async def abytes_to_int(data, byte_order="big"):
@@ -3719,46 +4107,51 @@ def bytes_to_hex(data):
     return bytes.hex(data)
 
 
-async def abinary_tree(depth=4, leaf={}, current=0):
+async def abuild_tree(depth=4, width=2, leaf=None):
     """
-    Recursively builds a binary tree ``depth`` branches deep & places
-    the placeholder value ``leaf`` at each endpoint of the tree.  The
-    kwarg ``current`` is only to be used internally by the function to
-    keep track of which recursion is being run.
+    Recursively builds a tree ``depth`` branches deep with ``width``
+    branches per level, & places the placeholder value ``leaf`` at each
+    endpoint of the tree.
     """
-    if 0 < current < depth:
-        upcoming = current + 1
+    if depth < 0:
+        raise ValueError("The ``depth`` argument cannot be < 0")
+    elif width <= 0:
+        raise ValueError("The ``width`` argument cannot be <= 0")
+    elif depth > 0:
+        next_depth = depth - 1
         return {
-            current: await abinary_tree(depth, leaf, upcoming),
-            upcoming: await abinary_tree(depth, leaf, upcoming),
+            branch: await abuild_tree(next_depth, width, leaf)
+            for branch
+            in range(width)
         }
-    elif current == 0:
-        return {0: await abinary_tree(depth, leaf, 1)}
     else:
         return leaf
 
 
-def binary_tree(depth=4, leaf={}, current=0):
+def build_tree(depth=4, width=2, leaf=None):
     """
-    Recursively builds a binary tree ``depth`` branches deep & places
-    the placeholder value ``leaf`` at each endpoint of the tree.  The
-    kwarg ``current`` is only to be used internally by the function to
-    keep track of which recursion is being run.
+    Recursively builds a tree ``depth`` branches deep with ``width``
+    branches per level, & places the placeholder value ``leaf`` at each
+    endpoint of the tree.
     """
-    if 0 < current < depth:
-        upcoming = current + 1
+    if depth < 0:
+        raise ValueError("The ``depth`` argument cannot be < 0")
+    elif width <= 0:
+        raise ValueError("The ``width`` argument cannot be <= 0")
+    elif depth > 0:
+        next_depth = depth - 1
         return {
-            current: binary_tree(depth, leaf, upcoming),
-            upcoming: binary_tree(depth, leaf, upcoming),
+            branch: build_tree(next_depth, width, leaf)
+            for branch
+            in range(width)
         }
-    elif current == 0:
-        return {0: binary_tree(depth, leaf, 1)}
     else:
         return leaf
 
 
 __extras = {
     "AsyncInit": AsyncInit,
+    "BytesIO": BytesIO,
     "Comprende": Comprende,
     "Enumerate": Enumerate,
     "__doc__": __doc__,
@@ -3766,9 +4159,10 @@ __extras = {
     "__package__": "aiootp",
     "aabs": aabs,
     "aappend": aappend,
+    "aascii_to_bytes_data": aascii_to_bytes_data,
     "aascii_to_int": aascii_to_int,
     "abase_to_decimal": abase_to_decimal,
-    "abinary_tree": abinary_tree,
+    "abuild_tree": abuild_tree,
     "abirth": abirth,
     "abytes_to_hex": abytes_to_hex,
     "abytes_to_int": abytes_to_int,
@@ -3777,7 +4171,9 @@ __extras = {
     "acustomize_parameters": acustomize_parameters,
     "acycle": acycle,
     "adata": adata,
+    "adepad_bytes": adepad_bytes,
     "afrom_b64": afrom_b64,
+    "ahash_bytes": ahash_bytes,
     "ahex_to_bytes": ahex_to_bytes,
     "aignore": aignore,
     "aint": aint,
@@ -3786,7 +4182,9 @@ __extras = {
     "ainverse_int": ainverse_int,
     "aiter": _aiter,
     "ajson_decode": ajson_decode,
+    "ajson_from_bytes_decode": ajson_from_bytes_decode,
     "ajson_encode": ajson_encode,
+    "ajson_to_bytes_encode": ajson_to_bytes_encode,
     "anc_256": anc_256,
     "anc_256_hmac": anc_256_hmac,
     "anc_512": anc_512,
@@ -3797,10 +4195,12 @@ __extras = {
     "anc_2048_hmac": anc_2048_hmac,
     "anext": anext,
     "aorder": aorder,
+    "apad_bytes": apad_bytes,
     "apick": apick,
     "apop": apop,
     "apopleft": apopleft,
     "arange": arange,
+    "ascii_to_bytes_data": ascii_to_bytes_data,
     "ascii_to_int": ascii_to_int,
     "aseedrange": aseedrange,
     "asha_256": asha_256,
@@ -3813,7 +4213,7 @@ __extras = {
     "aunpack": aunpack,
     "azip": azip,
     "base_to_decimal": base_to_decimal,
-    "binary_tree": binary_tree,
+    "build_tree": build_tree,
     "birth": birth,
     "bytes_to_hex": bytes_to_hex,
     "bytes_to_int": bytes_to_int,
@@ -3824,8 +4224,10 @@ __extras = {
     "customize_parameters": customize_parameters,
     "cycle": cycle,
     "data": data,
+    "depad_bytes": depad_bytes,
     "display_exception_info": display_exception_info,
     "from_b64": from_b64,
+    "hash_bytes": hash_bytes,
     "hex_to_bytes": hex_to_bytes,
     "ignore": ignore,
     "int_to_ascii": int_to_ascii,
@@ -3845,7 +4247,9 @@ __extras = {
     "is_prime": is_prime,
     "iter": _iter,
     "json_decode": json_decode,
+    "json_from_bytes_decode": json_from_bytes_decode,
     "json_encode": json_encode,
+    "json_to_bytes_encode": json_to_bytes_encode,
     "nc_256": nc_256,
     "nc_256_hmac": nc_256_hmac,
     "nc_512": nc_512,
@@ -3855,6 +4259,7 @@ __extras = {
     "nc_2048": nc_2048,
     "nc_2048_hmac": nc_2048_hmac,
     "order": order,
+    "pad_bytes": pad_bytes,
     "pick": pick,
     "pop": pop,
     "popleft": popleft,
