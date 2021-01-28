@@ -37,6 +37,10 @@ __all__ = [
     "json_decode",
     "ajson_encode",
     "json_encode",
+    "apad_bytes",
+    "pad_bytes",
+    "adepad_bytes",
+    "depad_bytes",
     "asha_256",
     "sha_256",
     "asha_256_hmac",
@@ -400,6 +404,66 @@ def is_generator(obj):
     return isinstance(obj, GeneratorType)
 
 
+async def apad_bytes(data, *, salted_key=None, buffer=256):
+    """
+    Appends padding bytes to ``data`` that are the ``shake_256`` output
+    of an object fed a ``salted_key`` to aid in CCA security.
+    """
+    remainder = len(data) % buffer
+    padding_size = buffer - remainder
+    padding = shake_256(salted_key).digest(2 * buffer)
+    if not remainder:
+        return data
+    elif padding_size >= 32:
+        return data + padding[:padding_size]
+    else:
+        return data + padding[:padding_size + buffer]
+
+
+def pad_bytes(data, *, salted_key=None, buffer=256):
+    """
+    Appends padding bytes to ``data`` that are the ``shake_256`` output
+    of an object fed a ``salted_key`` to aid in CCA security.
+    """
+    remainder = len(data) % buffer
+    padding_size = buffer - remainder
+    padding = shake_256(salted_key).digest(2 * buffer)
+    if not remainder:
+        return data
+    elif padding_size >= 32:
+        return data + padding[:padding_size]
+    else:
+        return data + padding[:padding_size + buffer]
+
+
+async def adepad_bytes(data, *, salted_key=None):
+    """
+    Removes the padding bytes from the end of the bytes ``data`` that
+    are built from the ``shake_256`` output of an object fed a
+    ``salted_key``.
+    """
+    padding = shake_256(salted_key).digest(32)
+    padding_index = data.find(padding)
+    if padding_index == -1:
+        return data
+    else:
+        return data[:padding_index]
+
+
+def depad_bytes(data, *, salted_key=None):
+    """
+    Removes the padding bytes from the end of the bytes ``data`` that
+    are built from the ``shake_256`` output of an object fed a
+    ``salted_key``.
+    """
+    padding = shake_256(salted_key).digest(32)
+    padding_index = data.find(padding)
+    if padding_index == -1:
+        return data
+    else:
+        return data[:padding_index]
+
+
 class BytesIO:
     """
     A utility class for converting json/dict ciphertext to & from bytes
@@ -410,6 +474,10 @@ class BytesIO:
 
     MAP_ENCODING = commons.MAP_ENCODING
     LIST_ENCODING = commons.LIST_ENCODING
+    pad_bytes = staticmethod(pad_bytes)
+    apad_bytes = staticmethod(apad_bytes)
+    depad_bytes = staticmethod(depad_bytes)
+    adepad_bytes = staticmethod(adepad_bytes)
 
     def __init__(self):
         pass
@@ -467,8 +535,7 @@ class BytesIO:
         listed ciphertext into a bytes object.
         """
         data = cls._process_json(data)
-        data.result = bytes.fromhex(data.hmac)
-        data.result += bytes.fromhex(data.salt) if data.salt else b""
+        data.result = bytes.fromhex(data.hmac + data.salt)
         if data.ciphertext:
             for chunk in data.ciphertext:
                 await switch()
@@ -488,8 +555,7 @@ class BytesIO:
         listed ciphertext into a bytes object.
         """
         data = cls._process_json(data)
-        data.result = bytes.fromhex(data.hmac)
-        data.result += bytes.fromhex(data.salt) if data.salt else b""
+        data.result = bytes.fromhex(data.hmac + data.salt)
         if data.ciphertext:
             data.result += b"".join(
                 int.to_bytes(chunk, 256, "big")
@@ -505,76 +571,76 @@ class BytesIO:
     @classmethod
     def _process_bytes(cls, data, encoding=LIST_ENCODING):
         """
-        Takes in bytes ``data`` for initial processing. Database
-        ciphertext uses ``MAP_ENCODING``, whereas json/bytes encrypt
-        functions use ``LIST_ENCODING``. Returns a namespace populated
-        with the discovered ciphertext values.
+        Takes in bytes ``data`` for initial processing. Returns a
+        namespace populated with the discovered ciphertext values.
+        ``LIST_ENCODING`` is the default encoding for all ciphertext.
+        Databases used to use ``MAP_ENCODING`` but that has changed.
         """
         mapping = encoding == cls.MAP_ENCODING
         obj = cls._make_stack()
         obj.result = {}
         obj.copy = data
         obj.hmac = bytes.hex(data[:32])
-        obj.salt = bytes.hex(data[32:64]) if mapping else None
-        obj.ciphertext = data[64:] if mapping else data[32:]
+        obj.salt = bytes.hex(data[32:64])
+        obj.ciphertext = data[64:]
         return obj
 
     @classmethod
     async def abytes_to_json(cls, data, encoding=LIST_ENCODING):
         """
         Converts bytes ``data`` of either mapped database ciphertext or
-        listed ciphertext back into a json dictionary. Database
-        ciphertext uses ``MAP_ENCODING``, whereas json/bytes encrypt
-        functions use ``LIST_ENCODING``.
+        listed ciphertext back into a json dictionary. ``LIST_ENCODING``
+        is the default encoding for all ciphertext. Databases used to
+        use ``MAP_ENCODING`` but that has changed.
         """
         streamer = adata
         obj = cls._process_bytes(data, encoding=encoding)
-        if encoding == cls.MAP_ENCODING:
+        if encoding == cls.LIST_ENCODING:
+            obj.result["ciphertext"] = [
+                int.from_bytes(chunk, "big")
+                async for chunk in streamer(obj.ciphertext)
+            ]
+        else:
             obj.result = {
                 bytes.hex(chunk[:32]):
                 int.from_bytes(chunk[32:], "big")
                 async for chunk in streamer(obj.ciphertext, size=288)
             }
-            obj.result["salt"] = obj.salt
-        else:
-            obj.result["ciphertext"] = [
-                int.from_bytes(chunk, "big")
-                async for chunk in streamer(obj.ciphertext)
-            ]
         obj.result["hmac"] = obj.hmac
+        obj.result["salt"] = obj.salt
         return obj.result
 
     @classmethod
     def bytes_to_json(cls, data, encoding=LIST_ENCODING):
         """
         Converts bytes ``data`` of either mapped database ciphertext or
-        listed ciphertext back into a json dictionary. Database
-        ciphertext uses ``MAP_ENCODING``, whereas json/bytes encrypt
-        functions use ``LIST_ENCODING``.
+        listed ciphertext back into a json dictionary. ``LIST_ENCODING``
+        is the default encoding for all ciphertext. Databases used to
+        use ``MAP_ENCODING`` but that has changed.
         """
         streamer = globals()["data"]
         obj = cls._process_bytes(data, encoding=encoding)
-        if encoding == cls.MAP_ENCODING:
+        if encoding == cls.LIST_ENCODING:
+            obj.result["ciphertext"] = [
+                int.from_bytes(chunk, "big")
+                for chunk in streamer(obj.ciphertext)
+            ]
+        else:
             obj.result = {
                 bytes.hex(chunk[:32]):
                 int.from_bytes(chunk[32:], "big")
                 for chunk in streamer(obj.ciphertext, size=288)
             }
-            obj.result["salt"] = obj.salt
-        else:
-            obj.result["ciphertext"] = [
-                int.from_bytes(chunk, "big")
-                for chunk in streamer(obj.ciphertext)
-            ]
         obj.result["hmac"] = obj.hmac
+        obj.result["salt"] = obj.salt
         return obj.result
 
     @classmethod
     async def aread(cls, path, encoding=LIST_ENCODING):
         """
         Reads the bytes file at ``path`` under a certain ``encoding``.
-        Database ciphertext uses ``MAP_ENCODING``, whereas json/bytes
-        encrypt functions use ``LIST_ENCODING``.
+        ``LIST_ENCODING`` is the default encoding for all ciphertext.
+        Databases used to use ``MAP_ENCODING`` but that has changed.
         """
         async with aiofiles.open(path, "rb") as f:
             return await cls.abytes_to_json(
@@ -585,8 +651,8 @@ class BytesIO:
     def read(cls, path, encoding=LIST_ENCODING):
         """
         Reads the bytes file at ``path`` under a certain ``encoding``.
-        Database ciphertext uses ``MAP_ENCODING``, whereas json/bytes
-        encrypt functions use ``LIST_ENCODING``.
+        ``LIST_ENCODING`` is the default encoding for all ciphertext.
+        Databases used to use ``MAP_ENCODING`` but that has changed.
         """
         with open(path, "rb") as f:
             return cls.bytes_to_json(f.read(), encoding=encoding)
@@ -3594,66 +3660,6 @@ async def aappend(container=None, item=None):
     Creates an asynchronous version of the container.append method.
     """
     container.append(item)
-
-
-async def apad_bytes(data, *, salted_key=None, buffer=256):
-    """
-    Appends padding bytes to ``data`` that are the ``shake_256`` output
-    of an object fed a ``salted_key`` to aid in CCA security.
-    """
-    remainder = len(data) % buffer
-    padding_size = buffer - remainder
-    padding = shake_256(salted_key).digest(padding_size + buffer)
-    if not remainder:
-        return data
-    elif padding_size < 32:
-        return data + padding
-    else:
-        return data + padding[:padding_size]
-
-
-def pad_bytes(data, *, salted_key=None, buffer=256):
-    """
-    Appends padding bytes to ``data`` that are the ``shake_256`` output
-    of an object fed a ``salted_key`` to aid in CCA security.
-    """
-    remainder = len(data) % buffer
-    padding_size = buffer - remainder
-    padding = shake_256(salted_key).digest(padding_size + buffer)
-    if not remainder:
-        return data
-    elif padding_size < 32:
-        return data + padding
-    else:
-        return data + padding[:padding_size]
-
-
-async def adepad_bytes(data, *, salted_key=None):
-    """
-    Removes the padding bytes from the end of the bytes ``data`` that
-    are built from the ``shake_256`` output of an object fed a
-    ``salted_key``.
-    """
-    padding = shake_256(salted_key).digest(32)
-    padding_index = data.find(padding)
-    if padding_index == -1:
-        return data
-    else:
-        return data[:padding_index]
-
-
-def depad_bytes(data, *, salted_key=None):
-    """
-    Removes the padding bytes from the end of the bytes ``data`` that
-    are built from the ``shake_256`` output of an object fed a
-    ``salted_key``.
-    """
-    padding = shake_256(salted_key).digest(32)
-    padding_index = data.find(padding)
-    if padding_index == -1:
-        return data
-    else:
-        return data[:padding_index]
 
 
 async def ato_b64(binary=None, encoding="utf-8"):
