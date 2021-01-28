@@ -17,6 +17,58 @@
 =============
 
 
+Changes for version 0.14.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security patch: The ``apad_bytes``, ``pad_bytes``, ``adepad_bytes`` &
+   ``depad_bytes`` functions were changed internally to execute in a
+   more constant time. The variations were small for 256-byte buffers
+   (the default), but can grow very wide with larger buffers. The salt
+   in the package's encryption utilities is now used to derive the 
+   plaintext's padding, making each padding unique. 
+-  Unified the types of encodings the library's encryption functions
+   utilize for producing ciphertext. This includes databases. They now
+   all use the ``LIST_ENCODING``. This greatly increases the efficiency
+   of the databases' encryption/decryption, save/load times. And this
+   encoding is more space efficient. This change is backwards
+   incompatible.
+-  The ``LIST_ENCODING`` specification was also changed to produce
+   smaller ciphertexts. The salt is no longer encrypted & included as
+   the first 256 byte chunk of ciphertext. It is now packaged along with
+   ciphertext in the clear & is restricted to being a 256-bit hex
+   string.
+-  The interfaces for the ``Database`` & ``AsyncDatabase`` were cleaned
+   up. Many attributes & functions that were not intended as the public
+   interface of the classes were made "private". Also, the no longer
+   used utilities for encrypting & decrypting under the MAP_ENCODING
+   were removed.
+-  Updated the ``abytes_xor``, ``bytes_xor``, ``axor`` & ``xor`` generators 
+   to shrink the size of the ``seed`` that's fed into the ``keystream``. This
+   allows the one-time-pad cipher to be more cpu efficient.
+
+
+Minor Changes 
+------------- 
+
+-  Fixed various typos, docstrings & tutorials.
+-  Various refactorings throughout.
+-  The ``akeypair`` & ``keypair`` functions now produce a ``Namespace``
+   populated with a 512-bit hex key & a 256-bit hex salt to be more
+   consistent with their intended use-case with the one-time-pad cipher.
+-  Removed ``aencode_salt``, ``encode_salt``, ``adecode_salt`` & 
+   ``decode_salt`` functions since they are no longer used in conjunction
+   with LIST_ENCODING ciphertexts.
+-  Updated tests to recognize these changes.
+-  Gave the ``OneTimePad`` class access to a ``BytesIO`` object under a
+   new ``io`` attribute.
+
+
+
+
 Changes for version 0.13.0 
 ========================== 
 
@@ -30,7 +82,7 @@ Major Changes
    multiplicative products of two key segments were xor'd together. This
    lead to keys being slightly more likely to be positive integers, 
    meaning the final bit had a greater than 1/2 probability of being a 
-   ``1``. The fix is accompanied with an overhaul of the one-time-pad 
+   ``0``. The fix is accompanied with an overhaul of the one-time-pad 
    cipher which is more efficient, faster, & designed with a better 
    understanding of the way bytes are processed & represented. The key
    chunks now do not, & must not, surpass 256 bytes & neither should 
@@ -55,7 +107,7 @@ Major Changes
 -  Removed deprecated diffie-hellman methods in ``Ropake`` class. 
 -  Removed the static ``power10`` dictionary from the package.
 -  The default secret salt for the ``Ropake`` class is now derived from the 
-   contents of a file that's in the databases directory which chmod'd to 
+   contents of a file that's in the databases directory which is chmod'd to 
    0o000 unless needed. 
 -  Made ``aclient_message_key``, ``client_message_key``, ``aserver_message_key``, 
    & ``server_message_key`` ``Ropake`` class methods to help distinguish 

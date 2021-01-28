@@ -240,42 +240,6 @@ Users can create and modify transparently encrypted databases:
  >>>True
     
     
-    # Databases, and the rest of the package, use special generators to 
-    
-    # process data. Here's a sneak peak at the low-level magic that enables 
-    
-    # easy processing of data streams ->
-    
-    import json
-    
-    datastream = aiootp.ajson_encode(clients)  # <- yields ``clients`` jsonified
-    
-    # Makes a hashmap of chunks of ciphertext ~256 bytes each ->
-    
-    async with db.aencrypt_stream(data_name, datastream) as encrypting:
-        
-        encrypted_hashmap = await encrypting.adict()
-        
-        # Returns the automatically generated random salt ->
-        
-        salt = await encrypting.aresult()
-        
-    
-    # Users will need to correctly order the hashmap of ciphertext for
-    
-    # decryption ->
-    
-    stream = await db.aciphertext_stream(data_name, encrypted_hashmap, salt)
-    
-    # Then decryption of the stream is available ->
-    
-    async with db.adecrypt_stream(data_name, stream, salt) as decrypting:
-    
-        decrypted = json.loads(await decrypting.ajoin())
-        
-    assert decrypted == clients
-    
-    
     #
 
 
@@ -406,12 +370,12 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     from aiootp import json_encode   # <- A simple generator
     
-    from aiootp.ciphers import cipher, decipher    # <- Also simple generators
+    from aiootp.ciphers import xor    # <- Also a simple generator
     
     
     # Yields plaintext json string in chunks ->
     
-    plaintext_generator = json_encode(plaintext)
+    plaintext_generator = json_encode(plaintext).ascii_to_int()
     
     
     # An endless stream of forward + semi-future secure hashes ->
@@ -421,30 +385,32 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # xor's the plaintext chunks with key chunks ->
     
-    with aiootp.cipher(plaintext_generator, keystream) as encrypting:
-    
+    with aiootp.xor(plaintext_generator, keystream) as encrypting:
+        
         # ``list`` returns all generator results in a list
-    
+        
         ciphertext = encrypting.list()
         
     # Get the auto generated random salt back. It's needed for decryption ->
     
-    ciphertext_seed_entropy = keystream.result(exit=True)
+    salt = keystream.result(exit=True)
     
     
     # This example was a low-level look at the encryption algorithm. And it 
-
+    
     # was seven lines of code. The Comprende class makes working with 
-
+    
     # generators a breeze, & working with generators makes solving problems 
-
-    # in bite-sized chunks a breeze. Here's the two-liner that also takes 
-
-    # care of managing the random salt ->
     
-    ciphertext = aiootp.json_encode(plaintext).encrypt(key).list()
+    # in bite-sized chunks a breeze. ->
     
-    plaintext_json = aiootp.unpack(ciphertext).decrypt(key).join()
+    ciphertext = aiootp.json_encode(plaintext).encrypt(key, salt).list()
+    
+    # We didn't pad the plaintext bytes, so we have to remove the null 
+    
+    # bytes ->
+    
+    plaintext_json = aiootp.unpack(ciphertext).decrypt(key, salt).join().replace("\x00", "")
     
     
     # We just used the ``list`` & ``join`` end-points to get the full series 
@@ -809,21 +775,27 @@ Generators under-pin most procedures in the library, let's take a look ->
             
     # There's a prepackaged ``Comprende`` generator function that does
     
-    # encryption / decryption of key ordered hash maps. First let's make an
+    # encryption / decryption of key ordered hash maps. It needs bytes
     
-    # actual encryption key stream that's different from ``names`` ->
+    # data to work on though. First let's make an actual encryption key
+    
+    # stream that's different from ``names`` ->
     
     key_stream = aiootp.akeys(key, salt, pid=aiootp.sha_256(key, salt))
     
     
     # And example plaintext ->
     
-    plaintext = 100 * "Some kinda message..."
+    plaintext = 100 * b"Some kinda message..."
     
     
     # And let's make sure to clean up after ourselves with a context manager ->
     
-    data_stream = aiootp.adata(plaintext)
+    pad_key = bytes.fromhex(sha_256(key, salt))
+    
+    padded_data = aiootp.pad_bytes(plaintext, salted_key=pad_key)
+    
+    data_stream = aiootp.adata(padded_data)
     
     async with data_stream.amap_encrypt(names, key_stream) as encrypting:
     
@@ -842,9 +814,9 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     async with ciphertext_stream.amap_decrypt(key_stream) as decrypting:
     
-        decrypted = await decrypting.ajoin()
+        decrypted = await decrypting.ajoin(b"")
         
-    assert decrypted == plaintext
+    assert plaintext == aiootp.depad_bytes(decrypted, salted_key=pad_key)
     
     
     # This is really neat, & makes sharding encrypted data incredibly easy.
@@ -879,7 +851,7 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
         
         # for all key chunks pulled from the generator ->
         
-        seed = keystream(None)
+        seed = aiootp.sha_256(keystream(None))
         
         for chunk in data:
             
@@ -1033,6 +1005,58 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 =============
 
 
+Changes for version 0.14.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security patch: The ``apad_bytes``, ``pad_bytes``, ``adepad_bytes`` &
+   ``depad_bytes`` functions were changed internally to execute in a
+   more constant time. The variations were small for 256-byte buffers
+   (the default), but can grow very wide with larger buffers. The salt
+   in the package's encryption utilities is now used to derive the 
+   plaintext's padding, making each padding unique. 
+-  Unified the types of encodings the library's encryption functions
+   utilize for producing ciphertext. This includes databases. They now
+   all use the ``LIST_ENCODING``. This greatly increases the efficiency
+   of the databases' encryption/decryption, save/load times. And this
+   encoding is more space efficient. This change is backwards
+   incompatible.
+-  The ``LIST_ENCODING`` specification was also changed to produce
+   smaller ciphertexts. The salt is no longer encrypted & included as
+   the first 256 byte chunk of ciphertext. It is now packaged along with
+   ciphertext in the clear & is restricted to being a 256-bit hex
+   string.
+-  The interfaces for the ``Database`` & ``AsyncDatabase`` were cleaned
+   up. Many attributes & functions that were not intended as the public
+   interface of the classes were made "private". Also, the no longer
+   used utilities for encrypting & decrypting under the MAP_ENCODING
+   were removed.
+-  Updated the ``abytes_xor``, ``bytes_xor``, ``axor`` & ``xor`` generators 
+   to shrink the size of the ``seed`` that's fed into the ``keystream``. This
+   allows the one-time-pad cipher to be more cpu efficient.
+
+
+Minor Changes 
+------------- 
+
+-  Fixed various typos, docstrings & tutorials.
+-  Various refactorings throughout.
+-  The ``akeypair`` & ``keypair`` functions now produce a ``Namespace``
+   populated with a 512-bit hex key & a 256-bit hex salt to be more
+   consistent with their intended use-case with the one-time-pad cipher.
+-  Removed ``aencode_salt``, ``encode_salt``, ``adecode_salt`` & 
+   ``decode_salt`` functions since they are no longer used in conjunction
+   with LIST_ENCODING ciphertexts.
+-  Updated tests to recognize these changes.
+-  Gave the ``OneTimePad`` class access to a ``BytesIO`` object under a
+   new ``io`` attribute.
+
+
+
+
 Changes for version 0.13.0 
 ========================== 
 
@@ -1046,7 +1070,7 @@ Major Changes
    multiplicative products of two key segments were xor'd together. This
    lead to keys being slightly more likely to be positive integers, 
    meaning the final bit had a greater than 1/2 probability of being a 
-   ``1``. The fix is accompanied with an overhaul of the one-time-pad 
+   ``0``. The fix is accompanied with an overhaul of the one-time-pad 
    cipher which is more efficient, faster, & designed with a better 
    understanding of the way bytes are processed & represented. The key
    chunks now do not, & must not, surpass 256 bytes & neither should 
@@ -1071,7 +1095,7 @@ Major Changes
 -  Removed deprecated diffie-hellman methods in ``Ropake`` class. 
 -  Removed the static ``power10`` dictionary from the package.
 -  The default secret salt for the ``Ropake`` class is now derived from the 
-   contents of a file that's in the databases directory which chmod'd to 
+   contents of a file that's in the databases directory which is chmod'd to 
    0o000 unless needed. 
 -  Made ``aclient_message_key``, ``client_message_key``, ``aserver_message_key``, 
    & ``server_message_key`` ``Ropake`` class methods to help distinguish 

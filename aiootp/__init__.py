@@ -9,7 +9,7 @@
 #
 
 
-__version__ = "0.13.0"
+__version__ = "0.14.0"
 
 
 __license__ = "AGPLv3"
@@ -26,8 +26,8 @@ class DebugControl:
     turns on asyncio's debugging.
     """
 
-    _DEBUG_MODE = False
     _switches = []
+    _DEBUG_MODE = False
 
     @classmethod
     def is_debugging(cls):
@@ -69,6 +69,7 @@ __all__ = [
 ]
 
 
+del __datasets
 del __aiocontext
 del __ui_coordination
 

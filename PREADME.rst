@@ -240,42 +240,6 @@ Users can create and modify transparently encrypted databases:
  >>>True
     
     
-    # Databases, and the rest of the package, use special generators to 
-    
-    # process data. Here's a sneak peak at the low-level magic that enables 
-    
-    # easy processing of data streams ->
-    
-    import json
-    
-    datastream = aiootp.ajson_encode(clients)  # <- yields ``clients`` jsonified
-    
-    # Makes a hashmap of chunks of ciphertext ~256 bytes each ->
-    
-    async with db.aencrypt_stream(data_name, datastream) as encrypting:
-        
-        encrypted_hashmap = await encrypting.adict()
-        
-        # Returns the automatically generated random salt ->
-        
-        salt = await encrypting.aresult()
-        
-    
-    # Users will need to correctly order the hashmap of ciphertext for
-    
-    # decryption ->
-    
-    stream = await db.aciphertext_stream(data_name, encrypted_hashmap, salt)
-    
-    # Then decryption of the stream is available ->
-    
-    async with db.adecrypt_stream(data_name, stream, salt) as decrypting:
-    
-        decrypted = json.loads(await decrypting.ajoin())
-        
-    assert decrypted == clients
-    
-    
     #
 
 
@@ -406,12 +370,12 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     from aiootp import json_encode   # <- A simple generator
     
-    from aiootp.ciphers import cipher, decipher    # <- Also simple generators
+    from aiootp.ciphers import xor    # <- Also a simple generator
     
     
     # Yields plaintext json string in chunks ->
     
-    plaintext_generator = json_encode(plaintext)
+    plaintext_generator = json_encode(plaintext).ascii_to_int()
     
     
     # An endless stream of forward + semi-future secure hashes ->
@@ -421,30 +385,32 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # xor's the plaintext chunks with key chunks ->
     
-    with aiootp.cipher(plaintext_generator, keystream) as encrypting:
-    
+    with aiootp.xor(plaintext_generator, keystream) as encrypting:
+        
         # ``list`` returns all generator results in a list
-    
+        
         ciphertext = encrypting.list()
         
     # Get the auto generated random salt back. It's needed for decryption ->
     
-    ciphertext_seed_entropy = keystream.result(exit=True)
+    salt = keystream.result(exit=True)
     
     
     # This example was a low-level look at the encryption algorithm. And it 
-
+    
     # was seven lines of code. The Comprende class makes working with 
-
+    
     # generators a breeze, & working with generators makes solving problems 
-
-    # in bite-sized chunks a breeze. Here's the two-liner that also takes 
-
-    # care of managing the random salt ->
     
-    ciphertext = aiootp.json_encode(plaintext).encrypt(key).list()
+    # in bite-sized chunks a breeze. ->
     
-    plaintext_json = aiootp.unpack(ciphertext).decrypt(key).join()
+    ciphertext = aiootp.json_encode(plaintext).encrypt(key, salt).list()
+    
+    # We didn't pad the plaintext bytes, so we have to remove the null 
+    
+    # bytes ->
+    
+    plaintext_json = aiootp.unpack(ciphertext).decrypt(key, salt).join().replace("\x00", "")
     
     
     # We just used the ``list`` & ``join`` end-points to get the full series 
@@ -809,21 +775,27 @@ Generators under-pin most procedures in the library, let's take a look ->
             
     # There's a prepackaged ``Comprende`` generator function that does
     
-    # encryption / decryption of key ordered hash maps. First let's make an
+    # encryption / decryption of key ordered hash maps. It needs bytes
     
-    # actual encryption key stream that's different from ``names`` ->
+    # data to work on though. First let's make an actual encryption key
+    
+    # stream that's different from ``names`` ->
     
     key_stream = aiootp.akeys(key, salt, pid=aiootp.sha_256(key, salt))
     
     
     # And example plaintext ->
     
-    plaintext = 100 * "Some kinda message..."
+    plaintext = 100 * b"Some kinda message..."
     
     
     # And let's make sure to clean up after ourselves with a context manager ->
     
-    data_stream = aiootp.adata(plaintext)
+    pad_key = bytes.fromhex(sha_256(key, salt))
+    
+    padded_data = aiootp.pad_bytes(plaintext, salted_key=pad_key)
+    
+    data_stream = aiootp.adata(padded_data)
     
     async with data_stream.amap_encrypt(names, key_stream) as encrypting:
     
@@ -842,9 +814,9 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     async with ciphertext_stream.amap_decrypt(key_stream) as decrypting:
     
-        decrypted = await decrypting.ajoin()
+        decrypted = await decrypting.ajoin(b"")
         
-    assert decrypted == plaintext
+    assert plaintext == aiootp.depad_bytes(decrypted, salted_key=pad_key)
     
     
     # This is really neat, & makes sharding encrypted data incredibly easy.
@@ -879,7 +851,7 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
         
         # for all key chunks pulled from the generator ->
         
-        seed = keystream(None)
+        seed = aiootp.sha_256(keystream(None))
         
         for chunk in data:
             
