@@ -19,6 +19,7 @@ __all__ = [
     "NONE",
     "WORD_LIST",
     "ASCII_TABLE",
+    "ASCII_TABLE_128",
     "BYTES_TABLE",
     "BASE_64_TABLE",
     "ONION_CHAR_TABLE",
@@ -31,6 +32,13 @@ __all__ = [
 ASCII_TABLE = """ !"#$%&'()*+,-./0123456789:;<=>?@"""
 ASCII_TABLE += "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`"
 ASCII_TABLE += "abcdefghijklmnopqrstuvwxyz{|}~"
+
+
+ASCII_TABLE_128 = """\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b"""
+ASCII_TABLE_128 += """\x0c\r\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17"""
+ASCII_TABLE_128 += """\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f !"#$%&\'()*+,"""
+ASCII_TABLE_128 += """-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ"""
+ASCII_TABLE_128 += """[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f"""
 
 
 ASCII_ALPHANUMERIC = "0123456789abcdefghijklmnopqrstuvwxyz"
@@ -4336,7 +4344,7 @@ primes = {
 NUM = primes[512][0]
 
 
-NONE = hashlib.sha3_512(f"__NONE__{NUM}".encode("utf-8")).hexdigest()
+NONE = hashlib.sha3_512(f"__NONE__{NUM}".encode()).hexdigest()
 
 
 DH_GENERATOR_4096_BIT_GROUP_16 = 2

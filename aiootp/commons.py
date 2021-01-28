@@ -18,6 +18,7 @@ __all__ = [
     "ASCII_TABLE",
     "BYTES_TABLE",
     "BASE_64_TABLE",
+    "ASCII_TABLE_128",
     "ONION_CHAR_TABLE",
     "ASCII_ALPHANUMERIC",
 ]
@@ -33,6 +34,7 @@ import sys
 import copy
 import types
 import asyncio
+from hashlib import sha3_256
 from os import linesep
 from .__datasets import *
 from . import DebugControl
@@ -263,6 +265,7 @@ __extras = {
     "AGE": "age_of_connection",
     "ASCII_ALPHANUMERIC": ASCII_ALPHANUMERIC,
     "ASCII_TABLE": ASCII_TABLE,
+    "ASCII_TABLE_128": ASCII_TABLE_128,
     "BASE_64_TABLE": BASE_64_TABLE,
     "BYTES_TABLE": BYTES_TABLE,
     "CHANNEL": "channel",
@@ -290,10 +293,12 @@ __extras = {
     "LIST_ENCODING": "listed_ciphertext",
     "LISTENING": "listening",
     "MAINTAINING": "maintaining",
+    "MANIFEST": sha3_256(f"__manifest__{NONE}".encode()).hexdigest(),
     "MAP_ENCODING": "mapped_ciphertext",
     "MESSAGE_ID": "message_id",
     "MESSAGES": "message_archive",
     "METADATA": "metadata",
+    "METATAG": sha3_256(f"__metatags__{NONE}".encode()).hexdigest(),
     "Namespace": Namespace,
     "NEW_CONTACT": "new_contact",
     "NEXT_KEYED_PASSWORD": "next_keyed_password",
