@@ -383,40 +383,4 @@ Description
  >>>True
 
 
-    # Databases, and the rest of the package, use special generators to
-
-    # process data. Here's a sneak peak at the low-level magic that enables
-
-    # easy processing of data streams ->
-
-    import json
-
-    datastream = aiootp.ajson_encode(clients)  # <- yields ``clients`` jsonified
-
-    # Makes a hashmap of chunks of ciphertext ~256 bytes each ->
-
-    async with db.aencrypt_stream(data_name, datastream) as encrypting:
-
-        encrypted_hashmap = await encrypting.adict()
-
-        # Returns the automatically generated random salt ->
-
-        salt = await encrypting.aresult()
-
-
-    # Users will need to correctly order the hashmap of ciphertext for
-
-    # decryption ->
-
-    stream = await db.aciphertext_stream(data_name, encrypted_hashmap, salt)
-
-    # Then decryption of the stream is available ->
-
-    async with db.adecrypt_stream(data_name, stream, salt) as decrypting:
-
-        decrypted = json.loads(await decrypting.ajoin())
-
-    assert decrypted == clients
-
-
     #
