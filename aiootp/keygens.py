@@ -251,18 +251,22 @@ def mnemonic(key, salt=None, words=WORD_LIST):
 
 async def akeypair(entropy=csprbg()):
     """
-    Returns a pair of symmetric 512-bit hexidecimal keys from our fast
-    cryptographically secure pseudo-random number generator.
+    Returns a pair of symmetric hexidecimal keys from our fast
+    cryptographically secure pseudo-random number generator. One is a
+    512-bit encryption key, the other is a 256-bit salt.
     """
-    return await acsprng(entropy), await acsprng(entropy)
+    return commons.Namespace(
+        key=await acsprng(entropy), salt=await asalt(entropy)
+    )
 
 
 def keypair(entropy=csprbg()):
     """
-    Returns a pair of symmetric 512-bit hexidecimal keys from our fast
-    cryptographically secure pseudo-random number generator.
+    Returns a pair of symmetric hexidecimal keys from our fast
+    cryptographically secure pseudo-random number generator. One is a
+    512-bit encryption key, the other is a 256-bit salt.
     """
-    return csprng(entropy), csprng(entropy)
+    return commons.Namespace(key=csprng(entropy), salt=salt(entropy))
 
 
 class AsyncKeys:
@@ -279,7 +283,7 @@ class AsyncKeys:
         akeys, abytes_keys, amnemonic, atable_key, atable_key_gen
     }
 
-    aseed = staticmethod(asalt)
+    asalt = staticmethod(asalt)
     akeys = staticmethod(akeys)
     akeypair = staticmethod(akeypair)
     amnemonic = staticmethod(amnemonic)
@@ -440,7 +444,7 @@ class Keys:
         keys, bytes_keys, mnemonic, table_key, table_key_gen
     }
 
-    seed = staticmethod(salt)
+    salt = staticmethod(salt)
     keys = staticmethod(keys)
     keypair = staticmethod(keypair)
     mnemonic = staticmethod(mnemonic)
@@ -553,7 +557,7 @@ class Keys:
         Replaces the stored instance key used to create deterministic
         streams of key material &, create & validate HMAC codes.
         """
-        self._key = key if key else salt()
+        self._key = key if key else csprng()
         for method in self.instance_methods:
             convert_static_method_to_member(
                 self, method.__name__, method, key=self.key,
@@ -581,7 +585,7 @@ async def ainsert_keyrings(self, key=None):
     or instance dictionaries to give those objects access to stateful
     & ephemeral key material generators.
     """
-    key = key if key else await asalt()
+    key = key if key else await acsprng()
     self.keyring = Keys(key=key)
     self.akeyring = AsyncKeys(key=key)
 
@@ -592,7 +596,7 @@ def insert_keyrings(self, key=None):
     or instance dictionaries to give those objects access to stateful
     & ephemeral key material generators.
     """
-    key = key if key else salt()
+    key = key if key else csprng()
     self.keyring = Keys(key=key)
     self.akeyring = AsyncKeys(key=key)
 

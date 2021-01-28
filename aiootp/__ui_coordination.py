@@ -25,14 +25,16 @@ from .generics import Comprende, comprehension
 from .generics import convert_static_method_to_member
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
+from .ciphers import csprng
 from .ciphers import Ropake
 from .ciphers import validator
-from .ciphers import salt, asalt
-from .ciphers import OneTimePad
 from .ciphers import Passcrypt
+from .ciphers import OneTimePad
+from .ciphers import salt, asalt
 from .ciphers import passcrypt as _passcrypt
 from .ciphers import apasscrypt as _apasscrypt
 from .keygens import insert_keyrings
+
 
 
 @comprehension()
@@ -319,7 +321,7 @@ def insert_stateful_key_generator_objects():
             )
 
     OneTimePad.__init__ = __init__
-    pad = OneTimePad(salt())
+    pad = OneTimePad(csprng())
     validator.hmac = pad.hmac
     validator.ahmac = pad.ahmac
     validator.test_hmac = pad.test_hmac

@@ -1572,22 +1572,22 @@ def make_uuid(size=16, salt=None):
 
 async def asalt(entropy=bytes.fromhex(sha_512(_salt()))):
     """
-    Returns a cryptographically secure pseudo-random hex number
+    Returns a cryptographically secure pseudo-random 256-bit hex number
     that also seeds new entropy into the acsprng generator.
     """
     if not issubclass(entropy.__class__, bytes):
         entropy = str(entropy).encode()
-    return  await acsprng(entropy)
+    return  await asha_256(await acsprng(entropy))
 
 
 def salt(entropy=bytes.fromhex(sha_512(_salt()))):
     """
-    Returns a cryptographically secure pseudo-random hex number
+    Returns a cryptographically secure pseudo-random 256-bit hex number
     that also seeds new entropy into the csprng generator.
     """
     if not issubclass(entropy.__class__, bytes):
         entropy = str(entropy).encode()
-    return csprng(entropy)
+    return sha_256(csprng(entropy))
 
 
 async def acsprng(entropy=bytes.fromhex(sha_512(_salt()))):
@@ -1603,7 +1603,7 @@ async def acsprng(entropy=bytes.fromhex(sha_512(_salt()))):
     try:
         return await _acsprng(entropy)
     except StopAsyncIteration:
-        _acsprng = aseeder(entropy).asend
+        _acsprng = aseeder.root(entropy).asend
         return await _acsprng()
 
 
@@ -1620,7 +1620,7 @@ def csprng(entropy=bytes.fromhex(sha_512(_salt()))):
     try:
         return _csprng(entropy)
     except StopIteration:
-        _csprng = seeder(entropy).send
+        _csprng = seeder.root(entropy).send
         return _csprng()
 
 
@@ -1637,7 +1637,7 @@ async def acsprbg(entropy=bytes.fromhex(sha_512(_salt()))):
     try:
         return await _acsprbg(entropy)
     except StopAsyncIteration:
-        _acsprbg = abytes_seeder(entropy).asend
+        _acsprbg = abytes_seeder.root(entropy).asend
         return await _acsprbg()
 
 
@@ -1654,7 +1654,7 @@ def csprbg(entropy=bytes.fromhex(sha_512(_salt()))):
     try:
         return _csprbg(entropy)
     except StopIteration:
-        _csprbg = bytes_seeder(entropy).send
+        _csprbg = bytes_seeder.root(entropy).send
         return _csprbg()
 
 
@@ -1663,12 +1663,12 @@ try:
     # random number generators.
     global_seed_key = random_512(entropy=sha_512(_salt()))
     global_seed = random_512(entropy=global_seed_key)
-    _csprng = seeder(global_seed).send
-    _acsprng = aseeder(_csprng()).asend
-    _csprbg = bytes_seeder(run(_acsprng())).send
-    _acsprbg = abytes_seeder(_csprbg()).asend
-    global_seed_key = run(_acsprbg())
-    global_seed = salt(run(_acsprbg())) + run(asalt(_csprbg()))
+    _csprng = seeder.root(global_seed).send
+    _acsprng = aseeder.root(_csprng(None)).asend
+    _csprbg = bytes_seeder.root(run(_acsprng(None))).send
+    _acsprbg = abytes_seeder.root(_csprbg(None)).asend
+    global_seed_key = run(_acsprbg(None))
+    global_seed = salt(run(_acsprbg(None))) + run(asalt(_csprbg(None)))
 except RuntimeError as error:
     problem = f"{__package__}'s random seed initialization failed, "
     location = f"likely because {__name__} "
