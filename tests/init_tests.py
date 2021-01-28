@@ -24,7 +24,7 @@ from aiootp import *
 
 
 key = csprng()
-salt = csprng()
+salt = csprng()[:64]
 pid = sha_256(key, salt)
 
 

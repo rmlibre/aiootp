@@ -71,27 +71,27 @@ def async_database():
 def test_Database_instance(database):
     db = Database(key=key, password_depth=depth)
 
-    assert db.root_key == database.root_key
-    assert db.root_hash == database.root_hash
+    assert db._root_key == database._root_key
+    assert db._root_hash == database._root_hash
     assert db._Database__root_salt() == database._Database__root_salt()
-    assert db.root_seed == database.root_seed
-    assert db.root_filename == database.root_filename
+    assert db._root_seed == database._root_seed
+    assert db._root_filename == database._root_filename
     assert db.hmac(tag) == database.hmac(tag)
     assert db.filename(tag) == database.filename(tag)
-    assert db.metatag_key(tag) == database.metatag_key(tag)
+    assert db._metatag_key(tag) == database._metatag_key(tag)
 
 
 def test_AsyncDatabase_instance(database):
     db = run(AsyncDatabase(key=key, password_depth=depth))
 
-    assert db.root_key == database.root_key
-    assert db.root_hash == database.root_hash
+    assert db._root_key == database._root_key
+    assert db._root_hash == database._root_hash
     assert run(db._AsyncDatabase__aroot_salt()) == database._Database__root_salt()
-    assert db.root_seed == database.root_seed
-    assert db.root_filename == database.root_filename
+    assert db._root_seed == database._root_seed
+    assert db._root_filename == database._root_filename
     assert run(db.ahmac(tag)) == database.hmac(tag)
     assert run(db.afilename(tag)) == database.filename(tag)
-    assert run(db.ametatag_key(tag)) == database.metatag_key(tag)
+    assert run(db._ametatag_key(tag)) == database._metatag_key(tag)
 
 
 def test_Database_cipher(database):
@@ -102,7 +102,7 @@ def test_Database_cipher(database):
 
     db[tag] = test_data
     db.save()
-    encrypted_file = db.query_ciphertext(filename)
+    encrypted_file = db._query_ciphertext(filename)
 
     assert encrypted_file != encrypted_data
     assert encrypted_file["salt"] != encrypted_data["salt"]
@@ -118,7 +118,7 @@ def test_AsyncDatabase_cipher(database, async_database):
 
     db[tag] = test_data
     run(db.asave())
-    encrypted_file = run(db.aquery_ciphertext(filename))
+    encrypted_file = run(db._aquery_ciphertext(filename))
 
     assert encrypted_file != encrypted_data
     assert encrypted_file["salt"] != encrypted_data["salt"]
@@ -168,8 +168,8 @@ def test_tags_metatags():
     afilename = run(achild.afilename(atag))
     databases_save_metatag_files(database, async_database, filename, afilename)
 
-    metatag_key = database.metatag_key(metatag)
-    ametatag_key = run(async_database.ametatag_key(ametatag))
+    metatag_key = database._metatag_key(metatag)
+    ametatag_key = run(async_database._ametatag_key(ametatag))
     db = Database(metatag_key, metatag=True)
     adb = run(AsyncDatabase(ametatag_key, metatag=True))
     assert db[tag] == adb[atag]
