@@ -17,6 +17,73 @@
 =============
 
 
+Changes for version 0.15.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security Patch: The previous update left the default salt stored by
+   the ``Ropake`` class on the user filesystem as an empty string  for
+   new files that were created since the ``asalt`` & ``salt`` functions
+   were switched to producing 256-bit values instead of 512-bits. This
+   bug has now been fixed.
+-  An 8 byte timestamp is now prepended to each plaintext during the
+   padding step. The decryption functions now take a ``ttl`` kwarg which
+   will measure & enforce a time-to-live for ciphertexts under threat of
+   ``TimeoutError``.
+-  Added new profile feature to the database classes. This standardizes
+   & simplifies the process for users to open databases using only 
+   low-entropy "profile" information such as ``username``, ``password``,
+   ``*credentials`` & an optional ``salt`` a user may have access to. 
+   The new ``agenerate_profile_tokens``, ``generate_profile_tokens``, 
+   ``agenerate_profile``, ``generate_profile``, ``aprofile_exists``, 
+   ``profile_exists``, ``aload_profile``, ``load_profile``, ``adelete_profile``
+   & ``delete_profile`` functions are the public part of this new feature.
+-  Some more database class attributes have been turned private to clean
+   up the api.
+-  Fixed typo in ``__exit__`` method of ``Database`` class which referenced 
+   a method which had its name refactored, leading to a crash.
+-  Shifted the values in the ``primes`` dictionary such that the key for
+   each element in the dictionary is the exclusive maximum of each prime
+   in that element. Ex: primes[512][-1].to_bytes(64, "big") is now valid.
+   Whereas before, primes[512] was filled with primes that were 64 bytes
+   and 1 bit long, making them 65 byte primes. This changes some of the
+   values of constants in the package & therefore some values derived 
+   from those constants.
+-  Slimmed down the number of elements in the ``primes`` & ``bits`` 
+   dictionaries, reducing the size of the package a great deal. ``primes``
+   now contains two primes in each element, the first is the minimum 
+   prime of that bit length, the latter the maximum.
+-  Added ``URLSAFE_TABLE`` to the package.
+
+
+Minor Changes 
+------------- 
+
+-  Added ``this_second`` function to ``asynchs`` module for integer time.
+-  Added ``apadding_key``, ``padding_key``, ``aplaintext_stream`` & 
+   ``plaintext_stream`` functions to the ``ciphers`` module.
+-  Added ``apadding_key``, ``padding_key`` to the ``keygens`` module &
+   ``AsyncKeys`` & ``Keys`` classes.
+-  Added ``axi_mix``, ``xi_mix``, ``acheck_timestamp``, ``check_timestamp``,
+   to the ``generics`` module.
+-  Added ``acsprbg``, ``csprbg``, ``asalt``, ``salt``, ``apadding_key``, 
+   ``padding_key``, ``aplaintext_stream`` & ``plaintext_stream`` functions
+   to OneTimePad class as ``staticmethod``s.
+-  Added ``acheck_timestamp`` & ``check_timestamp`` functions to the 
+   ``BytesIO`` class.
+-  Added ``adeniable_filename`` & ``deniable_filename`` to the ``paths`` 
+   module. 
+-  Removed check for falsey data in encryption functions. Empty data is 
+   & should be treated as valid plaintext.
+-  Various refactorings, docstring fixes & efficiency improvements.
+-  Added some new tests for database profiles.
+
+
+
+
 Changes for version 0.14.0 
 ========================== 
 
@@ -54,7 +121,8 @@ Major Changes
 Minor Changes 
 ------------- 
 
--  Fixed various typos, docstrings & tutorials.
+-  Fixed various typos, docstrings & tutorials that have no kept up
+   with the pace of changes.
 -  Various refactorings throughout.
 -  The ``akeypair`` & ``keypair`` functions now produce a ``Namespace``
    populated with a 512-bit hex key & a 256-bit hex salt to be more
