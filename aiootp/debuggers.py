@@ -416,7 +416,7 @@ class AsyncGenDebugTools(AsyncDebugTools):
         Displays the name of the function which has called the wrapped
         async function in user code by inspecting the stack.
         """
-        calling_function = inspect.stack()[7][3], inspect.stack()[2][3]
+        calling_function = inspect.stack()[5][3], inspect.stack()[2][3]
         print(f"Calling Function: {calling_function}\n\n")
 
 
@@ -498,16 +498,12 @@ def agen_timer(decorated_func):
         # will now be gathered and printed to the screen.
         pass
     """
-    from .generics import comprehension
-
     debugger = AsyncGenDebugTools()
 
     def wrapped_generator_func(*a, **kw):
         debugger.timed_func = decorated_func
         debugger.generator = decorated_func(*a, **kw)
-        return wraps(decorated_func)(
-            comprehension()(debugger._agen_wrapper(*a, **kw))
-        )()
+        return wraps(decorated_func)(debugger._agen_wrapper(*a, **kw))()
 
     return wrapped_generator_func
 
@@ -557,16 +553,12 @@ def gen_timer(decorated_func):
         # be gathered and printed to the screen.
         pass
     """
-    from .generics import comprehension
-
     debugger = GenDebugTools()
 
     def wrapped_generator_func(*a, **kw):
         debugger.timed_func = decorated_func
         debugger.generator = decorated_func(*a, **kw)
-        return wraps(decorated_func)(
-            debugger._gen_wrapper(*a, **kw)
-        )()
+        return wraps(decorated_func)(debugger._gen_wrapper(*a, **kw))()
 
     return wrapped_generator_func
 
