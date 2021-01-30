@@ -33,6 +33,7 @@ __all__ = [
     "pop",
     "apopleft",
     "popleft",
+    "json",
     "ajson_decode",
     "json_decode",
     "ajson_encode",
@@ -102,6 +103,7 @@ from .__aiocontext import async_contextmanager
 from .commons import *
 from .asynchs import *
 from .asynchs import time
+from .asynchs import this_second
 from . import DebugControl
 
 
@@ -404,20 +406,87 @@ def is_generator(obj):
     return isinstance(obj, GeneratorType)
 
 
+async def abytes_to_urlsafe(byte_string, *, table=URL_SAFE_TABLE):
+    """
+    Turns a ``bytes_string`` into a url safe string derived from the
+    given ``table``.
+    """
+    binary = int.from_bytes(byte_string, "big")
+    return await ainverse_int(binary, len(table), table)
+
+
+def bytes_to_urlsafe(byte_string, *, table=URL_SAFE_TABLE):
+    """
+    Turns a ``bytes_string`` into a url safe string derived from the
+    given ``table``.
+    """
+    binary = int.from_bytes(byte_string, "big")
+    return inverse_int(binary, len(table), table)
+
+
+async def aurlsafe_to_bytes(token, *, table=URL_SAFE_TABLE):
+    """
+    Turns a url safe token into a bytes type string.
+    """
+    binary = await abase_to_decimal(token, len(table), table)
+    return binary.to_bytes((binary.bit_length() + 7) // 8, "big")
+
+
+def urlsafe_to_bytes(token, *, table=URL_SAFE_TABLE):
+    """
+    Turns a url safe token into a bytes type string.
+    """
+    binary = base_to_decimal(token, len(table), table)
+    return binary.to_bytes((binary.bit_length() + 7) // 8, "big")
+
+
+async def acheck_timestamp(timestamp, ttl):
+    """
+    Raises ``ValueError`` if ``timestamp`` is more than ``ttl`` seconds
+    from the current time.
+    """
+    is_invalid_timestamp_length = len(timestamp) != 8
+    timespan = this_second() - int.from_bytes(timestamp, "big") - ttl
+    timestamp_is_expired = timespan > 0
+    if is_invalid_timestamp_length:
+        raise ValueError("Invalid timestamp format, must be 8 bytes long.")
+    elif not ttl:
+        return
+    elif timestamp_is_expired:
+        raise TimeoutError(f"Timestamp expired by <{timespan}> seconds.")
+
+
+def check_timestamp(timestamp, ttl):
+    """
+    Raises ``ValueError`` if ``timestamp`` is more than ``ttl`` seconds
+    from the current time.
+    """
+    is_invalid_timestamp_length = len(timestamp) != 8
+    timespan = this_second() - int.from_bytes(timestamp, "big") - ttl
+    timestamp_is_expired = timespan > 0
+    if is_invalid_timestamp_length:
+        raise ValueError("Invalid timestamp format, must be 8 bytes long.")
+    elif not ttl:
+        return
+    elif timestamp_is_expired:
+        raise TimeoutError(f"Timestamp expired by <{timespan}> seconds.")
+
+
 async def apad_bytes(data, *, salted_key=None, buffer=256):
     """
     Appends padding bytes to ``data`` that are the ``shake_256`` output
     of an object fed a ``salted_key`` to aid in CCA security.
     """
-    remainder = len(data) % buffer
+    remainder = (len(data) + 8) % buffer
     padding_size = buffer - remainder
     padding = shake_256(salted_key).digest(2 * buffer)
-    if not remainder:
-        return data
+    timestamp = this_second().to_bytes(8, "big")
+    if data and not remainder:
+        return timestamp + data
     elif padding_size >= 32:
-        return data + padding[:padding_size]
+        return timestamp + data + padding[:padding_size]
     else:
-        return data + padding[:padding_size + buffer]
+        return timestamp + data + padding[:padding_size + buffer]
 
 
 def pad_bytes(data, *, salted_key=None, buffer=256):
@@ -425,43 +494,46 @@ def pad_bytes(data, *, salted_key=None, buffer=256):
     Appends padding bytes to ``data`` that are the ``shake_256`` output
     of an object fed a ``salted_key`` to aid in CCA security.
     """
-    remainder = len(data) % buffer
+    remainder = (len(data) + 8) % buffer
     padding_size = buffer - remainder
     padding = shake_256(salted_key).digest(2 * buffer)
-    if not remainder:
-        return data
+    timestamp = this_second().to_bytes(8, "big")
+    if data and not remainder:
+        return timestamp + data
     elif padding_size >= 32:
-        return data + padding[:padding_size]
+        return timestamp + data + padding[:padding_size]
     else:
-        return data + padding[:padding_size + buffer]
+        return timestamp + data + padding[:padding_size + buffer]
 
 
-async def adepad_bytes(data, *, salted_key=None):
+async def adepad_bytes(data, *, salted_key=None, ttl=0):
     """
     Removes the padding bytes from the end of the bytes ``data`` that
     are built from the ``shake_256`` output of an object fed a
     ``salted_key``.
     """
+    await acheck_timestamp(data[:8], ttl)
     padding = shake_256(salted_key).digest(32)
     padding_index = data.find(padding)
     if padding_index == -1:
-        return data
+        return data[8:]
     else:
-        return data[:padding_index]
+        return data[8:padding_index]
 
 
-def depad_bytes(data, *, salted_key=None):
+def depad_bytes(data, *, salted_key=None, ttl=0):
     """
     Removes the padding bytes from the end of the bytes ``data`` that
     are built from the ``shake_256`` output of an object fed a
     ``salted_key``.
     """
+    check_timestamp(data[:8], ttl)
     padding = shake_256(salted_key).digest(32)
     padding_index = data.find(padding)
     if padding_index == -1:
-        return data
+        return data[8:]
     else:
-        return data[:padding_index]
+        return data[8:padding_index]
 
 
 class BytesIO:
@@ -469,15 +541,25 @@ class BytesIO:
     A utility class for converting json/dict ciphertext to & from bytes
     objects. Also, provides an interface for transparently writing
     ciphertext as bytes files & reading bytes ciphertext files as json
-    dictionaries.
+    dictionaries. This class also has access to the plaintext padding
+    algorithm used by the package.
     """
 
+    HMAC_BYTES = commons.HMAC_BYTES
+    SALT_BYTES = commons.SALT_BYTES
     MAP_ENCODING = commons.MAP_ENCODING
     LIST_ENCODING = commons.LIST_ENCODING
     pad_bytes = staticmethod(pad_bytes)
     apad_bytes = staticmethod(apad_bytes)
     depad_bytes = staticmethod(depad_bytes)
     adepad_bytes = staticmethod(adepad_bytes)
+    check_timestamp = staticmethod(check_timestamp)
+    acheck_timestamp = staticmethod(acheck_timestamp)
+    urlsafe_to_bytes = staticmethod(urlsafe_to_bytes)
+    aurlsafe_to_bytes = staticmethod(aurlsafe_to_bytes)
+    bytes_to_urlsafe = staticmethod(bytes_to_urlsafe)
+    abytes_to_urlsafe = staticmethod(abytes_to_urlsafe)
+
 
     def __init__(self):
         pass
@@ -529,43 +611,45 @@ class BytesIO:
         return obj
 
     @classmethod
+    def _validate_ciphertext_length(cls, ciphertext):
+        """
+        Measures the length of a blob of bytes ciphertext that has its
+        salt & hmac attached. If it doesn't conform to the standard then
+        raises ValueError. If the ``ciphertext`` that's passed isn't of
+        bytes type then ``TypeErrpr`` is raised.
+        """
+        if not issubclass(ciphertext.__class__, bytes):
+            raise TypeError("Ciphertext is not in bytes format.")
+        elif (len(ciphertext) - cls.HMAC_BYTES - cls.SALT_BYTES) % 256:
+            raise ValueError("The length of ciphertext is invalid.")
+
+    @classmethod
     async def ajson_to_bytes(cls, data):
         """
-        Converts json ``data`` of either mapped database ciphertext or
-        listed ciphertext into a bytes object.
+        Converts json ``data`` of either mapped or listed ciphertext
+        into a bytes object.
         """
         data = cls._process_json(data)
         data.result = bytes.fromhex(data.hmac + data.salt)
-        if data.ciphertext:
-            for chunk in data.ciphertext:
-                await switch()
-                data.result += int.to_bytes(chunk, 256, "big")
-        else:
-            for name, chunk in data.copy.items():
-                await switch()
-                data.result += (
-                    bytes.fromhex(name) + int.to_bytes(chunk, 256, "big")
-                )
+        for chunk in data.ciphertext:
+            await switch()
+            data.result += chunk.to_bytes(256, "big")
+        cls._validate_ciphertext_length(data.result)
         return data.result
 
     @classmethod
     def json_to_bytes(cls, data):
         """
-        Converts json ``data`` of either mapped database ciphertext or
-        listed ciphertext into a bytes object.
+        Converts json ``data`` of either mapped or listed ciphertext
+        into a bytes object.
         """
         data = cls._process_json(data)
         data.result = bytes.fromhex(data.hmac + data.salt)
-        if data.ciphertext:
-            data.result += b"".join(
-                int.to_bytes(chunk, 256, "big")
-                for chunk in data.ciphertext
-            )
-        else:
-            data.result += b"".join(
-                bytes.fromhex(name) + int.to_bytes(chunk, 256, "big")
-                for name, chunk in data.copy.items()
-            )
+        data.result += b"".join(
+            chunk.to_bytes(256, "big")
+            for chunk in data.ciphertext
+        )
+        cls._validate_ciphertext_length(data.result)
         return data.result
 
     @classmethod
@@ -574,38 +658,32 @@ class BytesIO:
         Takes in bytes ``data`` for initial processing. Returns a
         namespace populated with the discovered ciphertext values.
         ``LIST_ENCODING`` is the default encoding for all ciphertext.
-        Databases used to use ``MAP_ENCODING`` but that has changed.
+        Databases used to use the ``MAP_ENCODING``, but they now also
+        output listed ciphertext.
         """
-        mapping = encoding == cls.MAP_ENCODING
+        cls._validate_ciphertext_length(data)
         obj = cls._make_stack()
         obj.result = {}
         obj.copy = data
-        obj.hmac = bytes.hex(data[:32])
-        obj.salt = bytes.hex(data[32:64])
+        obj.hmac = data[:32].hex()
+        obj.salt = data[32:64].hex()
         obj.ciphertext = data[64:]
         return obj
 
     @classmethod
     async def abytes_to_json(cls, data, encoding=LIST_ENCODING):
         """
-        Converts bytes ``data`` of either mapped database ciphertext or
-        listed ciphertext back into a json dictionary. ``LIST_ENCODING``
-        is the default encoding for all ciphertext. Databases used to
-        use ``MAP_ENCODING`` but that has changed.
+        Converts bytes ``data`` of either mapped or listed ciphertext
+        back into a json dictionary. ``LIST_ENCODING`` is the default
+        encoding for all ciphertext. Databases used to use the
+        ``MAP_ENCODING``, but they now also output listed ciphertext.
         """
         streamer = adata
         obj = cls._process_bytes(data, encoding=encoding)
-        if encoding == cls.LIST_ENCODING:
-            obj.result["ciphertext"] = [
-                int.from_bytes(chunk, "big")
-                async for chunk in streamer(obj.ciphertext)
-            ]
-        else:
-            obj.result = {
-                bytes.hex(chunk[:32]):
-                int.from_bytes(chunk[32:], "big")
-                async for chunk in streamer(obj.ciphertext, size=288)
-            }
+        obj.result["ciphertext"] = [
+            int.from_bytes(chunk, "big")
+            async for chunk in streamer(obj.ciphertext)
+        ]
         obj.result["hmac"] = obj.hmac
         obj.result["salt"] = obj.salt
         return obj.result
@@ -613,24 +691,17 @@ class BytesIO:
     @classmethod
     def bytes_to_json(cls, data, encoding=LIST_ENCODING):
         """
-        Converts bytes ``data`` of either mapped database ciphertext or
-        listed ciphertext back into a json dictionary. ``LIST_ENCODING``
-        is the default encoding for all ciphertext. Databases used to
-        use ``MAP_ENCODING`` but that has changed.
+        Converts bytes ``data`` of either mapped or listed ciphertext
+        back into a json dictionary. ``LIST_ENCODING`` is the default
+        encoding for all ciphertext. Databases used to use the
+        ``MAP_ENCODING``, but they now also output listed ciphertext.
         """
         streamer = globals()["data"]
         obj = cls._process_bytes(data, encoding=encoding)
-        if encoding == cls.LIST_ENCODING:
-            obj.result["ciphertext"] = [
-                int.from_bytes(chunk, "big")
-                for chunk in streamer(obj.ciphertext)
-            ]
-        else:
-            obj.result = {
-                bytes.hex(chunk[:32]):
-                int.from_bytes(chunk[32:], "big")
-                for chunk in streamer(obj.ciphertext, size=288)
-            }
+        obj.result["ciphertext"] = [
+            int.from_bytes(chunk, "big")
+            for chunk in streamer(obj.ciphertext)
+        ]
         obj.result["hmac"] = obj.hmac
         obj.result["salt"] = obj.salt
         return obj.result
@@ -640,7 +711,8 @@ class BytesIO:
         """
         Reads the bytes file at ``path`` under a certain ``encoding``.
         ``LIST_ENCODING`` is the default encoding for all ciphertext.
-        Databases used to use ``MAP_ENCODING`` but that has changed.
+        Databases used to use the ``MAP_ENCODING``, but they now also
+        output listed ciphertext.
         """
         async with aiofiles.open(path, "rb") as f:
             return await cls.abytes_to_json(
@@ -652,7 +724,8 @@ class BytesIO:
         """
         Reads the bytes file at ``path`` under a certain ``encoding``.
         ``LIST_ENCODING`` is the default encoding for all ciphertext.
-        Databases used to use ``MAP_ENCODING`` but that has changed.
+        Databases used to use the ``MAP_ENCODING``, but they now also
+        output listed ciphertext.
         """
         with open(path, "rb") as f:
             return cls.bytes_to_json(f.read(), encoding=encoding)
@@ -769,29 +842,6 @@ class Comprende:
     # after the context closes ->
     assert example.__class__.__name__ == "Comprende"
 
-    # Let's look at another example ->
-    def gen(iterations=10):
-        for loop in range(iterations):
-            yield loop
-
-    for result in Comprende(gen, iterations=25).sha_256():
-        # This will hash each output of a generator and yield the hash.
-
-    ciphertext = []
-    key = aiootp.csprng()
-    for result in Comprende(gen, iterations=25).str().encrypt(key):
-        # This will stringify each output of a generator, then encrypt
-        # each result, and yield the ciphertext.
-        ciphertext.append(result)
-
-    for result in aiootp.unpack(ciphertext).decrypt(key):
-        # This will yield the original results in plaintext, but all the
-        # numbers will be concatenated together. To separate each number
-        # then ``size=None`` should be passed into ``encrypt`` to tell
-        # the algorithm not to resize the inputs to the most efficient
-        # buffer size, which is 246.
-        print(result)
-
 
     Async Usage Example:
 
@@ -819,35 +869,6 @@ class Comprende:
     # The result returned from the generator is now available ->
     product_of_x_y_z = await example.aresult()
     assert product_of_x_y_z == 6
-
-    # The ``example`` variable is actually the Comprende object, which
-    # redirects values to the wrapped generator's ``asend()`` method
-    # using the instance's ``__call__()`` method. It's still available
-    # after the context closes ->
-    assert example.__class__.__name__ == "Comprende"
-
-    # Let's look at another example ->
-    async def gen(iterations=10):
-        for loop in range(iterations):
-            yield loop
-
-    async for result in Comprende(gen, iterations=25).asha_256():
-        # This will hash each output of a generator and yield the hash.
-
-    ciphertext = []
-    key = await aiootp.acsprng()
-    async for result in Comprende(gen, iterations=25).astr().aencrypt(key):
-        # This will stringify each output of a generator, then encrypt
-        # each result, and yield the ciphertext.
-        ciphertext.append(result)
-
-    async for result in aiootp.aunpack(ciphertext).adecrypt(key):
-        # This will yield the original results in plaintext, but all the
-        # numbers will be concatenated together. To separate each number
-        # then ``size=None`` should be passed into ``aencrypt`` to tell
-        # the algorithm not to resize the inputs to the most efficient
-        # buffer size, which is 246.
-        print(result)
 
 
     Comprende has many more useful features to play around with! Have
@@ -1950,7 +1971,7 @@ class Comprende:
             for result in results:
                 yield result
 
-    async def aresize(self, size=128, *, of=None):
+    async def aresize(self, size=256, *, of=None):
         """
         Buffers the output from the underlying Comprende async generator
         to yield the results in chunks of length ``size``.
@@ -1984,7 +2005,7 @@ class Comprende:
             if result:
                 yield result
 
-    def resize(self, size=128, *, of=None):
+    def resize(self, size=256, *, of=None):
         """
         Buffers the output from the underlying Comprende sync generator
         to yield the results in chunks of length ``size``.
@@ -2446,7 +2467,7 @@ class Comprende:
             for result in self:
                 yield int.from_bytes(result, byte_order)
 
-    async def aint_to_bytes(self, size=128, byte_order="big", *, of=None):
+    async def aint_to_bytes(self, size=256, byte_order="big", *, of=None):
         """
         Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende async
@@ -2459,7 +2480,7 @@ class Comprende:
             async for result in self:
                 yield int.to_bytes(result, size, byte_order)
 
-    def int_to_bytes(self, size=128, byte_order="big", *, of=None):
+    def int_to_bytes(self, size=256, byte_order="big", *, of=None):
         """
         Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende sync
@@ -2506,10 +2527,10 @@ class Comprende:
         """
         if of != None:
             async for prev, result in azip(self, of):
-                yield prev, bytes.hex(result)
+                yield prev, result.hex()
         else:
             async for result in self:
-                yield bytes.hex(result)
+                yield result.hex()
 
     def bytes_to_hex(self, *, of=None):
         """
@@ -2519,10 +2540,10 @@ class Comprende:
         """
         if of != None:
             for prev, result in zip(self, of):
-                yield prev, bytes.hex(result)
+                yield prev, result.hex()
         else:
             for result in self:
-                yield bytes.hex(result)
+                yield result.hex()
 
     async def ato_base(self, base=95, table=ASCII_TABLE, *, of=None):
         """
@@ -3270,7 +3291,7 @@ async def adata(sequence="", size=256, *, stop="__length_end__"):
     if stop == "__length_end__":
         stop = len(sequence) + size
     async for last, end in azip(
-        arange(0, stop, size), arange(size, stop, size)
+        arange.root(0, stop, size), arange.root(size, stop, size)
     ):
         yield sequence[last:end]
 
@@ -3565,7 +3586,7 @@ def timeout(iterable, delay=None):
 
 
 @comprehension()
-async def await_on(queue, delay=0.01, timeout=bits[128]):
+async def await_on(queue, delay=0.01, timeout=bits[64]):
     """
     An async generator that waits on entries to populate a queue &
     yields the queue when an entry exists in the queue.
@@ -3580,7 +3601,7 @@ async def await_on(queue, delay=0.01, timeout=bits[128]):
 
 
 @comprehension()
-def wait_on(queue, delay=0.01, timeout=bits[128]):
+def wait_on(queue, delay=0.01, timeout=bits[64]):
     """
     A generator that waits on entries to populate a queue & yields the
     queue when an entry exists in the queue.
@@ -3698,6 +3719,28 @@ def from_b64(base_64=None, encoding="utf-8"):
     if type(base_64) != bytes:
         base_64 = base_64.encode(encoding)
     return pybase64.standard_b64decode(base_64)
+
+
+async def axi_mix(bytes_hash, size=8):
+    """
+    Xors subsequent ``size`` length segments of ``bytes_hash`` with each
+    other to condense the bytes hash down to a ``size`` bytes.
+    """
+    result = 0
+    async for chunk in adata.root(bytes_hash, size=size):
+        result ^= int.from_bytes(chunk, "big")
+    return result.to_bytes(size, "big")
+
+
+def xi_mix(bytes_hash, size=8):
+    """
+    Xors subsequent ``size`` length segments of ``bytes_hash`` with each
+    other to condense the bytes hash down to ``size`` bytes.
+    """
+    result = 0
+    for chunk in data.root(bytes_hash, size=size):
+        result ^= int.from_bytes(chunk, "big")
+    return result.to_bytes(size, "big")
 
 
 async def ahash_bytes(*collection, hasher=sha3_512, on=b""):
@@ -4069,14 +4112,14 @@ def bytes_to_int(data, byte_order="big"):
     return int.from_bytes(data, byte_order)
 
 
-async def aint_to_bytes(data, size=128, byte_order="big"):
+async def aint_to_bytes(data, size=256, byte_order="big"):
     """
     Returns the bytes object representation of an integer.
     """
     return int.to_bytes(data, size, byte_order)
 
 
-def int_to_bytes(data, size=128, byte_order="big"):
+def int_to_bytes(data, size=256, byte_order="big"):
     """
     Returns the bytes object representation of an integer.
     """
@@ -4103,14 +4146,14 @@ async def abytes_to_hex(data):
     """
     Applies ``bytes.hex(data)`` to ``data`` & returns the hex result.
     """
-    return bytes.hex(data)
+    return data.hex()
 
 
 def bytes_to_hex(data):
     """
     Applies ``bytes.hex(data)`` to ``data`` & returns the hex result.
     """
-    return bytes.hex(data)
+    return data.hex()
 
 
 async def abuild_tree(depth=4, width=2, leaf=None):
@@ -4172,6 +4215,7 @@ __extras = {
     "abirth": abirth,
     "abytes_to_hex": abytes_to_hex,
     "abytes_to_int": abytes_to_int,
+    "abytes_to_urlsafe": abytes_to_urlsafe,
     "acompact": acompact,
     "acount": acount,
     "acustomize_parameters": acustomize_parameters,
@@ -4217,12 +4261,15 @@ __extras = {
     "astr": astr,
     "ato_b64": ato_b64,
     "aunpack": aunpack,
+    "aurlsafe_to_bytes": aurlsafe_to_bytes,
+    "axi_mix": axi_mix,
     "azip": azip,
     "base_to_decimal": base_to_decimal,
     "build_tree": build_tree,
     "birth": birth,
     "bytes_to_hex": bytes_to_hex,
     "bytes_to_int": bytes_to_int,
+    "bytes_to_urlsafe": bytes_to_urlsafe,
     "compact": compact,
     "comprehension": comprehension,
     "convert_static_method_to_member": convert_static_method_to_member,
@@ -4282,6 +4329,8 @@ __extras = {
     "src": src,
     "to_b64": to_b64,
     "unpack": unpack,
+    "xi_mix": xi_mix,
+    "urlsafe_to_bytes": urlsafe_to_bytes,
     "zip": _zip,
 }
 
