@@ -452,13 +452,13 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             
             # in bite-sized chunks a breeze. ->
             
-            ciphertext = aiootp.json_encode(plaintext).encrypt(key, salt).list()
+            ciphertext = aiootp.json_encode(plaintext).encrypt(key, salt=salt).list()
             
             # We didn't pad the plaintext bytes, so we have to remove the null 
             
             # bytes ->
             
-            plaintext_json = aiootp.unpack(ciphertext).decrypt(key, salt).join().replace("\x00", "")
+            plaintext_json = aiootp.unpack(ciphertext).decrypt(key, salt=salt).join().replace("\x00", "")
             
             
             # We just used the ``list`` & ``join`` end-points to get the full series 
@@ -792,7 +792,7 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             
             salt = await aiootp.acsprng()
             
-            names = aiootp.akeys(key, salt)
+            names = aiootp.akeys(key, salt=salt)
             
             
             # Resize each output of ``names`` to 32 characters, tag each output with
@@ -806,7 +806,7 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             
             # Retrieving items in the correct order requires knowing both ``key`` & ``salt``
             
-            async for index, name in aiootp.akeys(key, salt).aresize(32).atag():
+            async for index, name in aiootp.akeys(key, salt=salt).aresize(32).atag():
             
                 try:
                 
@@ -829,7 +829,7 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             
             # stream that's different from ``names`` ->
             
-            key_stream = aiootp.akeys(key, salt, pid=aiootp.sha_256(key, salt))
+            key_stream = aiootp.akeys(key, salt=salt, pid=aiootp.sha_256(key, salt))
             
             
             # And example plaintext ->
@@ -839,7 +839,7 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             
             # And let's make sure to clean up after ourselves with a context manager ->
             
-            pad_key = aiootp.Keys.padding_key(key, salt)
+            pad_key = aiootp.Keys.padding_key(key, salt=salt)
             
             padded_data = aiootp.pad_bytes(plaintext, salted_key=pad_key)
             
@@ -860,7 +860,7 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
             
             ciphertext_stream = aiootp.apick(names, ciphertext_hashmap)
             
-            async with ciphertext_stream.amap_decrypt(key_stream) as decrypting:
+            async with ciphertext_stream.amap_decrypt(await key_stream.areset()) as decrypting:
             
                 decrypted = await decrypting.ajoin(b"")
                 
@@ -1093,6 +1093,7 @@ Description: aiootp - Asynchronous one-time-pad based crypto and anonymity libra
            now contains two primes in each element, the first is the minimum 
            prime of that bit length, the latter the maximum.
         -  Added ``URLSAFE_TABLE`` to the package.
+        -  Made ``salt`` & ``pid`` & ``ttl`` keyword only arguments in key
         
         
         Minor Changes 

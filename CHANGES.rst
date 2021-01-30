@@ -57,6 +57,7 @@ Major Changes
    now contains two primes in each element, the first is the minimum 
    prime of that bit length, the latter the maximum.
 -  Added ``URLSAFE_TABLE`` to the package.
+-  Made ``salt`` & ``pid`` & ``ttl`` keyword only arguments in key
 
 
 Minor Changes 
