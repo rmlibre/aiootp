@@ -44,6 +44,9 @@ from . import DebugControl
 from .commons import Namespace
 
 
+this_second = lambda: int(time())
+
+
 thread_pool = ThreadPoolExecutor()
 process_pool = ProcessPoolExecutor()
 default_loop = asyncio.get_event_loop()
@@ -323,6 +326,7 @@ __extras = {
     "gather": gather,
     "new_task": new_task,
     "new_future": new_future,
+    "this_second": this_second,
     "thread_pool": thread_pool,
     "process_pool": process_pool,
     "default_loop": default_loop,
