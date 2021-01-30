@@ -334,10 +334,11 @@ def initialize_default_ropake_class_database():
     """
     Establishes a default encrypted database for the Ropake class with a
     key derived from the name of the ``aiootp.paths.SecurePath()``
-    directory. If it doesn't already exist, it is created, & a
-    cryptographic salt is stored within the default database for clients
-    to be able to secure the password hashes which then open the user
-    databases that are specific to each account.
+    directory & a static salt saved on the user filesystem. If it
+    doesn't already exist, it is created, & a cryptographic salt is
+    stored within the default database for clients to be able to secure
+    the password hashes which then open the user databases that are
+    specific to each account.
     """
     Ropake(key=None)
 
