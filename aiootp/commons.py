@@ -14,10 +14,12 @@ __all__ = [
     "bits",
     "primes",
     "Namespace",
+    "PrimeGroups",
     "WORD_LIST",
     "ASCII_TABLE",
     "BYTES_TABLE",
     "BASE_64_TABLE",
+    "URL_SAFE_TABLE",
     "ASCII_TABLE_128",
     "ONION_CHAR_TABLE",
     "ASCII_ALPHANUMERIC",
@@ -45,7 +47,7 @@ async def aimport_namespace(
 ):
     """
     Takes a ``dictionary``, such as ``globals()``, and copies the
-    key-value pairs from the ``mapping`` kwarg into ``dictionary``.
+    key-value pairs from the ``mapping`` kwarg into it.
     """
     if deepcopy == True:
         dictionary.update(copy.deepcopy(mapping))
@@ -57,7 +59,7 @@ async def aimport_namespace(
 def import_namespace(dictionary=None, *, mapping=None, deepcopy=False):
     """
     Takes a ``dictionary``, such as ``globals()``, and copies the
-    key-value pairs from the ``mapping`` kwarg into ``dictionary``.
+    key-value pairs from the ``mapping`` kwarg into it.
     """
     if deepcopy == True:
         dictionary.update(copy.deepcopy(mapping))
@@ -275,13 +277,12 @@ __extras = {
     "CLIENT": "client",
     "CORRUPT": "corrupt_connection",
     "DECRYPT": "decrypt",
-    "DH_PRIME_4096_BIT_GROUP_16": DH_PRIME_4096_BIT_GROUP_16,
-    "DH_GENERATOR_4096_BIT_GROUP_16": DH_GENERATOR_4096_BIT_GROUP_16,
     "DIRECTORY": "directory",
     "ENCRYPT": "encrypt",
     "FAILED": "failed",
     "GUEST": "guest",
     "HMAC": "hmac",
+    "HMAC_BYTES": 32,
     "HTTP": "http",
     "HTTPS": "https",
     "ID": "contact_identifier",
@@ -299,10 +300,10 @@ __extras = {
     "MESSAGES": "message_archive",
     "METADATA": "metadata",
     "METATAG": sha3_256(f"__metatags__{NONE}".encode()).hexdigest(),
-    "Namespace": Namespace,
     "NEW_CONTACT": "new_contact",
     "NEXT_KEYED_PASSWORD": "next_keyed_password",
     "NEXT_SALT": "next_salt",
+    "NO_PROFILE_OR_CORRUPT": "Profile doesn't exist or is corrupt.",
     "NONE": NONE,
     "NUM": NUM,
     "OLD_KEY": "last_shared_key",
@@ -321,6 +322,7 @@ __extras = {
     "REGISTRATION": "registration",
     "RETRY": "retry",
     "SALT": "salt",
+    "SALT_BYTES": 32,
     "SECRET": "secret",
     "SEED": "seed",
     "SENDER": "sender",
@@ -340,12 +342,15 @@ __extras = {
     "TOR_PORT": 9050,
     "UNSENT_MESSAGES": "unsent_message_archive",
     "URL": "url",
+    "URL_SAFE_TABLE": URL_SAFE_TABLE,
     "USER_MOD": "user_prime_modulus",
     "USER_PUB": "user_public_key_part",
     "USER_SECRET": "user_secret",
     "VERIFICATION": "verification",
     "VERIFID": "verification_code",
     "WORD_LIST": WORD_LIST,
+    "Namespace": Namespace,
+    "PrimeGroups": PrimeGroups,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
