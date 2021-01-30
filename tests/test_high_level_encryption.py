@@ -32,8 +32,8 @@ plaintext_types = {
 
 
 def test_map_functions():
-    names = keys(key, salt, pid).resize(64)
-    keystream = keys(key, salt)
+    names = keys(key, salt=salt, pid=pid).resize(64)
+    keystream = keys(key, salt=salt)
     datastream = data(plaintext_string.encode())
     with datastream.map_encrypt(names, keystream) as encrypting:
         ciphertext = encrypting.dict()
@@ -44,8 +44,8 @@ def test_map_functions():
 
 
 async def async_map_functions():
-    names = akeys(key, salt, pid).aresize(64)
-    keystream = akeys(key, salt)
+    names = akeys(key, salt=salt, pid=pid).aresize(64)
+    keystream = akeys(key, salt=salt)
     datastream = adata(plaintext_string.encode())
     async with datastream.amap_encrypt(names, keystream) as encrypting:
         ciphertext = await encrypting.adict()
@@ -55,16 +55,16 @@ async def async_map_functions():
 
 
 def test_json_functions():
-    ciphertext_of_dict = json_encrypt(plaintext_types, key, salt)
-    ciphertext_of_string = json_encrypt(plaintext_string, key, salt)
-    assert ciphertext_of_dict == run(ajson_encrypt(plaintext_types, key, salt))
-    assert ciphertext_of_string == run(ajson_encrypt(plaintext_string, key, salt))
+    ciphertext_of_dict = json_encrypt(plaintext_types, key, salt=salt)
+    ciphertext_of_string = json_encrypt(plaintext_string, key, salt=salt)
+    assert ciphertext_of_dict == run(ajson_encrypt(plaintext_types, key, salt=salt))
+    assert ciphertext_of_string == run(ajson_encrypt(plaintext_string, key, salt=salt))
 
     assert ciphertext_of_dict != json_encrypt(plaintext_types, key)
     assert ciphertext_of_string != run(ajson_encrypt(plaintext_string, key))
 
-    assert ciphertext_of_dict != json_encrypt(plaintext_types, key, salt, pid)
-    assert ciphertext_of_string != run(ajson_encrypt(plaintext_string, key, salt, pid))
+    assert ciphertext_of_dict != json_encrypt(plaintext_types, key, salt=salt, pid=pid)
+    assert ciphertext_of_string != run(ajson_encrypt(plaintext_string, key, salt=salt, pid=pid))
 
     plaintext_of_dict = json_decrypt(json.dumps(ciphertext_of_dict), key)
     plaintext_of_string = json_decrypt(json.dumps(ciphertext_of_string), key)
@@ -73,16 +73,16 @@ def test_json_functions():
 
 
 def test_bytes_functions():
-    ciphertext_of_bytes = bytes_encrypt(plaintext_bytes, key, salt)
-    ciphertext_of_string = bytes_encrypt(plaintext_string.encode(), key, salt)
-    assert ciphertext_of_bytes == run(abytes_encrypt(plaintext_bytes, key, salt))
-    assert ciphertext_of_string == run(abytes_encrypt(plaintext_string.encode(), key, salt))
+    ciphertext_of_bytes = bytes_encrypt(plaintext_bytes, key, salt=salt)
+    ciphertext_of_string = bytes_encrypt(plaintext_string.encode(), key, salt=salt)
+    assert ciphertext_of_bytes == run(abytes_encrypt(plaintext_bytes, key, salt=salt))
+    assert ciphertext_of_string == run(abytes_encrypt(plaintext_string.encode(), key, salt=salt))
 
     assert ciphertext_of_bytes != bytes_encrypt(plaintext_bytes, key)
     assert ciphertext_of_string != run(abytes_encrypt(plaintext_string.encode(), key))
 
-    assert ciphertext_of_bytes != bytes_encrypt(plaintext_bytes, key, salt, pid)
-    assert ciphertext_of_string != run(abytes_encrypt(plaintext_string.encode(), key, salt, pid))
+    assert ciphertext_of_bytes != bytes_encrypt(plaintext_bytes, key, salt=salt, pid=pid)
+    assert ciphertext_of_string != run(abytes_encrypt(plaintext_string.encode(), key, salt=salt, pid=pid))
 
     plaintext_of_bytes = bytes_decrypt(ciphertext_of_bytes, key)
     plaintext_of_string = bytes_decrypt(ciphertext_of_string, key)

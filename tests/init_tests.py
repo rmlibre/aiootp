@@ -26,6 +26,11 @@ from aiootp import *
 key = csprng()
 salt = csprng()[:64]
 pid = sha_256(key, salt)
+username = "test suite"
+password = "terrible low entropy password"
+PROFILE = dict(username=username, password=password, salt=salt)
+LOW_PASSCRYPT_SETTINGS = dict(kb=256, cpu=2, hardness=256)
+PROFILE_AND_SETTINGS = {**PROFILE, **LOW_PASSCRYPT_SETTINGS}
 
 
 __all__ = [
@@ -39,5 +44,10 @@ __all__ = [
     "key",
     "salt",
     "pid",
+    "username",
+    "password",
+    "PROFILE",
+    "LOW_PASSCRYPT_SETTINGS",
+    "PROFILE_AND_SETTINGS",
 ]
 

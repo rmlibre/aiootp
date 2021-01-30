@@ -20,6 +20,7 @@ __all__ = [
     "test_AsyncDatabase_instance",
     "test_Database_cipher",
     "test_AsyncDatabase_cipher",
+    "test_user_profiles",
     "__all__",
 ]
 
@@ -140,8 +141,10 @@ def metatag_isnt_ametatag_but_equal(child, achild, db, adb):
 def databases_save_metatag_files(db, adb, filename, afilename):
     assert not (db.directory / filename).exists()
     assert not (adb.directory / afilename).exists()
-    db.save()
-    run(adb.asave())
+    with db:
+        pass
+    run(adb.__aenter__())
+    run(adb.__aexit__())
     assert (db.directory / filename).exists()
     assert (adb.directory / afilename).exists()
     assert db.clients[tag] == adb.aclients[atag]
@@ -178,3 +181,41 @@ def test_tags_metatags():
 
     database.delete_database()
     run(async_database.adelete_database())
+
+
+async def async_user_profiles(async_database):
+    adb = async_database
+    tokens = await adb.agenerate_profile_tokens(**PROFILE_AND_SETTINGS)
+    user = await adb.agenerate_profile(tokens)
+
+    async with user:
+        user[atag] = atest_data
+
+    user_copy = await adb.aload_profile(tokens)
+    assert user[atag] == user_copy[atag]
+    assert user[atag] is not user_copy[atag]
+
+    await adb.adelete_profile(tokens)
+    return user_copy
+
+
+def user_profiles(database):
+    db = database
+    tokens = db.generate_profile_tokens(**PROFILE_AND_SETTINGS)
+    user = db.generate_profile(tokens)
+
+    with user:
+        user[tag] = test_data
+
+    user_copy = db.load_profile(tokens)
+    assert user[tag] == user_copy[tag]
+    assert user[tag] is not user_copy[tag]
+
+    db.delete_profile(tokens)
+    return user_copy
+
+
+def test_user_profiles(database, async_database):
+    profile = user_profiles(database)
+    aprofile = run(async_user_profiles(async_database))
+

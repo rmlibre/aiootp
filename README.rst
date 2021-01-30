@@ -59,53 +59,61 @@ Users can create and modify transparently encrypted databases:
     key = await aiootp.acsprng()
     
     
-    # Create a database object ->
+    # Create a database object with it ->
     
     db = await aiootp.AsyncDatabase(key)
     
     
-    # Store protected data by a ``tag`` ->
+    # Users can also use passwords to open a database, if necessary.
     
-    tag = "private_account"
+    # Although it's not recommended, here's how to do it ->
     
-    salt = await db.asalt()
+    tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
+        "my username",
+        "my password",
+        *[any, b"collection", 0x0f, "credentials"],
+        salt="anything with randomness a user can remember",
+    )
     
-    # This is a tunably memory & cpu hard function to protect passwords ->
-    
-    password = await db.apasscrypt("password012345", salt)
-    
-    db[tag] = {password: "secured data"}
-    
-    
-    # Add to existing stored data ->
-    
-    db[tag].update({"salt": salt})
+    db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
     
     
-    # Read from the database with ``aquery`` ->
+    # Data within databases are organized by ``tag``s ->
     
-    (await db.aquery(tag))[password]
+    async with db:    #  <---Context saves data to disk when closed
     
- >>>'secured data'
-    
-    
-    # Or use bracketed lookup (it's an async-safe operation) ->
-    
-    salt = db[tag]["salt"]
-    
-    wrong_password = await db.apasscrypt("wrong password attempt", salt)
-    
-    db[tag][wrong_password]
-    
- >>>KeyError: 
+        db["tag"] = {"data": "can be any json serializable object"}
+        
+        db["bitcoin"] = "0bb6eee10d2f8f45f8a"
+        
+        db["lawyer"] = {"#": "555-555-1000", "$": 13000.50}
+        
+        db["safehouses"] = ["Dublin Forgery", "NY Insurrection"]
     
     
-    # Or, pop the value out of the database ->
+    # Access to data is open to the user, so care must be taken
     
-    account_data = await db.apop(tag)
+    # not to let external api calls touch the database without
+    
+    # accounting for how that can go wrong.
     
     
-    # Any type & amount of data can be verified with an hmac ->
+    # Sensitive tags can be hashed into uuids of arbitrary size ->
+
+    clients = await db.ametatag("clients")
+    
+    email_uuids = await clients.auuids("emails", size=64)
+    
+    for email_address in ["brittany@email.com", "john.doe@email.net"]:
+    
+        hashed_tag = await email_uuids(email_address)
+        
+        clients[hashed_tag] = "client account data"
+    
+    db["clients salt"] = await email_uuids.aresult(exit=True)
+    
+    
+    # Data of any type can be verified using an hmac ->
     
     hmac = await db.ahmac({"id": 1234, "payload": "message"})
     
@@ -139,9 +147,13 @@ Users can create and modify transparently encrypted databases:
     assert isinstance(molly, aiootp.AsyncDatabase)
     
     
-    # Write database changes to disk with transparent encryption ->
+    # If the user no longer wants a piece of data, pop it out ->
     
-    await db.asave()
+    await molly.apop("hobbies")
+    
+    "hobbies" in molly
+    
+ >>> False
     
     
     # Delete a child database from the filesystem ->
@@ -153,32 +165,9 @@ Users can create and modify transparently encrypted databases:
  >>>AttributeError: 'AsyncDatabase' object has no attribute 'child'
     
     
-    # If tags are also sensitive, they can be safely hashed ->
+    # Write database changes to disk with transparent encryption ->
     
-    clients = await db.ametatag("clients")
-    
-    email_uuids = await clients.auuids("emails", size=32)
-    
-    for email_address in ["brittany@email.com", "john.doe@email.net"]:
-    
-        hashed_tag = await email_uuids(email_address)
-        
-        clients[hashed_tag] = "client account data"
-    
-    clients["salt"] = await email_uuids.aresult(exit=True)
-    
-    
-    # Automate the write to disk logic with a context manager ->
-    
-    async with (await aiootp.AsyncDatabase(key)) as db:
-    
-        db["tag"] = {"data": "can be any json serializable object"}
-        
-        db["bitcoin"] = "0bb6eee10d2f8f45f8a"
-        
-        db["lawyer"] = {"#": "555-555-1000", "$": 13000.50}
-        
-        db["safehouses"] = ["Dublin Forgery", "NY Insurrection"]
+    await db.asave()
     
     
     # Make mirrors of databases ->
@@ -240,6 +229,17 @@ Users can create and modify transparently encrypted databases:
  >>>True
     
     
+    # Encrypted messages have timestamps that can be used to enforce 
+    
+    # limits on how old messages can be (in seconds) before they are 
+    
+    # rejected ->
+    
+    decrypted = await db.adecrypt(data_name, encrypted, ttl=25)
+    
+ >>> TimeoutError: Timestamp expired by <10> seconds.
+    
+    
     #
 
 
@@ -260,16 +260,16 @@ What other tools are available to users?:
     
     key = aiootp.csprng()
     
-    assert aiootp.Database(key).root_filename == (await aiootp.AsyncDatabase(key)).root_filename
+    assert aiootp.Database(key)._root_filename == (await aiootp.AsyncDatabase(key))._root_filename
     
     
     # Precomputed & organized values that can aid users, like:
     
     # A dictionary of prime numbers grouped by their bit-size ->
     
-    aiootp.primes[512][0]    # <- The first prime greater than 512-bits
+    aiootp.primes[513][0]    # <- The first 65 byte prime
     
-    aiootp.primes[2048][-1]    # <- The last prime less than 2049-bits
+    aiootp.primes[2048][-1]    # <- The last 256 byte prime
     
     
     # Symmetric one-time-pad encryption of json data ->
@@ -285,7 +285,7 @@ What other tools are available to users?:
     
     # Symmetric one-time-pad encryption of binary data ->
     
-    binary_data = aiootp.randoms.urandom(256)
+    binary_data = b"This bytes string is also valid plaintext."
     
     encrypted = aiootp.bytes_encrypt(binary_data, key=key)
     
@@ -294,8 +294,30 @@ What other tools are available to users?:
     assert decrypted == binary_data
     
     
+    # The OneTimePad class carries the key so users don't have to pass
+    
+    # it around every where ->
+    
+    pad = aiootp.OneTimePad(key)
+    
+    encrypted = pad.bytes_encrypt(binary_data)
+    
+    decrypted = pad.bytes_decrypt(encrypted)
+    
+    
+    # The class also has access to an efficient encoder for saving
+    
+    # ciphertext to files on disk as bytes ->
+    
+    path = aiootp.DatabasePath() / "testing_ciphertext"
+    
+    pad.io.write(path, encrypted)
+    
+    assert encrypted == pad.io.read(path)
+    
+    
     # Ratcheting Opaque Password Authenticated Key Exchange (ROPAKE) with 
-
+    
     # online services -> 
     
     uuid = aiootp.sha_256("service-url.com", "username")
@@ -368,32 +390,48 @@ Generators under-pin most procedures in the library, let's take a look ->
 
     #
     
-    from aiootp import json_encode   # <- A simple generator
     
-    from aiootp.ciphers import xor    # <- Also a simple generator
-    
-    
-    # Yields plaintext json string in chunks ->
-    
-    plaintext_generator = json_encode(plaintext).ascii_to_int()
+    from aiootp import OneTimePad, json
     
     
-    # An endless stream of forward + semi-future secure hashes ->
+    pad = OneTimePad()   # <---Auto-generates an encryption key
     
-    keystream = aiootp.keys(key)
+    salt = pad.salt()    # <---A new salt MUST be used every encryption!
+    
+    plaintext_bytes = json.dumps({"message": "secretsssss"}).encode()
+    
+    
+    # Yields padded plaintext in chunks of 256 bytes ->
+    
+    plaintext_stream = pad.plaintext_stream(plaintext_bytes, salt=salt)
+    
+    
+    # An endless stream of forward + semi-future secure hex keys ->
+    
+    keystream = pad.keys(salt=salt)
     
     
     # xor's the plaintext chunks with key chunks ->
     
-    with aiootp.xor(plaintext_generator, keystream) as encrypting:
+    with pad.xor(plaintext_stream.bytes_to_int(), key=keystream) as encrypting:
         
         # ``list`` returns all generator results in a list
         
         ciphertext = encrypting.list()
         
-    # Get the auto generated random salt back. It's needed for decryption ->
     
-    salt = keystream.result(exit=True)
+    with pad.xor(ciphertext, key=keystream.reset()).int_to_bytes() as decrypting:
+        
+        decrypted = pad.io.depad_bytes(
+        
+            decrypting.join(b""), salted_key=pad.padding_key(salt=salt)
+            
+        )
+        
+    
+    plaintext_bytes == decrypted
+    
+ >>> True
     
     
     # This example was a low-level look at the encryption algorithm. And it 
@@ -404,13 +442,13 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # in bite-sized chunks a breeze. ->
     
-    ciphertext = aiootp.json_encode(plaintext).encrypt(key, salt).list()
+    ciphertext = aiootp.json_encode(plaintext).encrypt(key, salt=salt).list()
     
     # We didn't pad the plaintext bytes, so we have to remove the null 
     
     # bytes ->
     
-    plaintext_json = aiootp.unpack(ciphertext).decrypt(key, salt).join().replace("\x00", "")
+    plaintext_json = aiootp.unpack(ciphertext).decrypt(key, salt=salt).join().replace("\x00", "")
     
     
     # We just used the ``list`` & ``join`` end-points to get the full series 
@@ -744,7 +782,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     salt = await aiootp.acsprng()
     
-    names = aiootp.akeys(key, salt)
+    names = aiootp.akeys(key, salt=salt)
     
     
     # Resize each output of ``names`` to 32 characters, tag each output with
@@ -758,7 +796,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # Retrieving items in the correct order requires knowing both ``key`` & ``salt``
     
-    async for index, name in aiootp.akeys(key, salt).aresize(32).atag():
+    async for index, name in aiootp.akeys(key, salt=salt).aresize(32).atag():
     
         try:
         
@@ -781,7 +819,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # stream that's different from ``names`` ->
     
-    key_stream = aiootp.akeys(key, salt, pid=aiootp.sha_256(key, salt))
+    key_stream = aiootp.akeys(key, salt=salt, pid=aiootp.sha_256(key, salt))
     
     
     # And example plaintext ->
@@ -791,7 +829,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # And let's make sure to clean up after ourselves with a context manager ->
     
-    pad_key = bytes.fromhex(sha_256(key, salt))
+    pad_key = aiootp.Keys.padding_key(key, salt=salt)
     
     padded_data = aiootp.pad_bytes(plaintext, salted_key=pad_key)
     
@@ -812,7 +850,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     ciphertext_stream = aiootp.apick(names, ciphertext_hashmap)
     
-    async with ciphertext_stream.amap_decrypt(key_stream) as decrypting:
+    async with ciphertext_stream.amap_decrypt(await key_stream.areset()) as decrypting:
     
         decrypted = await decrypting.ajoin(b"")
         
@@ -1005,6 +1043,74 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 =============
 
 
+Changes for version 0.15.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security Patch: The previous update left the default salt stored by
+   the ``Ropake`` class on the user filesystem as an empty string  for
+   new files that were created since the ``asalt`` & ``salt`` functions
+   were switched to producing 256-bit values instead of 512-bits. This
+   bug has now been fixed.
+-  An 8 byte timestamp is now prepended to each plaintext during the
+   padding step. The decryption functions now take a ``ttl`` kwarg which
+   will measure & enforce a time-to-live for ciphertexts under threat of
+   ``TimeoutError``.
+-  Added new profile feature to the database classes. This standardizes
+   & simplifies the process for users to open databases using only 
+   low-entropy "profile" information such as ``username``, ``password``,
+   ``*credentials`` & an optional ``salt`` a user may have access to. 
+   The new ``agenerate_profile_tokens``, ``generate_profile_tokens``, 
+   ``agenerate_profile``, ``generate_profile``, ``aprofile_exists``, 
+   ``profile_exists``, ``aload_profile``, ``load_profile``, ``adelete_profile``
+   & ``delete_profile`` functions are the public part of this new feature.
+-  Some more database class attributes have been turned private to clean
+   up the api.
+-  Fixed typo in ``__exit__`` method of ``Database`` class which referenced 
+   a method which had its name refactored, leading to a crash.
+-  Shifted the values in the ``primes`` dictionary such that the key for
+   each element in the dictionary is the exclusive maximum of each prime
+   in that element. Ex: primes[512][-1].to_bytes(64, "big") is now valid.
+   Whereas before, primes[512] was filled with primes that were 64 bytes
+   and 1 bit long, making them 65 byte primes. This changes some of the
+   values of constants in the package & therefore some values derived 
+   from those constants.
+-  Slimmed down the number of elements in the ``primes`` & ``bits`` 
+   dictionaries, reducing the size of the package a great deal. ``primes``
+   now contains two primes in each element, the first is the minimum 
+   prime of that bit length, the latter the maximum.
+-  Added ``URLSAFE_TABLE`` to the package.
+-  Made ``salt`` & ``pid`` & ``ttl`` keyword only arguments in key
+
+
+Minor Changes 
+------------- 
+
+-  Added ``this_second`` function to ``asynchs`` module for integer time.
+-  Added ``apadding_key``, ``padding_key``, ``aplaintext_stream`` & 
+   ``plaintext_stream`` functions to the ``ciphers`` module.
+-  Added ``apadding_key``, ``padding_key`` to the ``keygens`` module &
+   ``AsyncKeys`` & ``Keys`` classes.
+-  Added ``axi_mix``, ``xi_mix``, ``acheck_timestamp``, ``check_timestamp``,
+   to the ``generics`` module.
+-  Added ``acsprbg``, ``csprbg``, ``asalt``, ``salt``, ``apadding_key``, 
+   ``padding_key``, ``aplaintext_stream`` & ``plaintext_stream`` functions
+   to OneTimePad class as ``staticmethod``s.
+-  Added ``acheck_timestamp`` & ``check_timestamp`` functions to the 
+   ``BytesIO`` class.
+-  Added ``adeniable_filename`` & ``deniable_filename`` to the ``paths`` 
+   module. 
+-  Removed check for falsey data in encryption functions. Empty data is 
+   & should be treated as valid plaintext.
+-  Various refactorings, docstring fixes & efficiency improvements.
+-  Added some new tests for database profiles.
+
+
+
+
 Changes for version 0.14.0 
 ========================== 
 
@@ -1042,7 +1148,8 @@ Major Changes
 Minor Changes 
 ------------- 
 
--  Fixed various typos, docstrings & tutorials.
+-  Fixed various typos, docstrings & tutorials that have no kept up
+   with the pace of changes.
 -  Various refactorings throughout.
 -  The ``akeypair`` & ``keypair`` functions now produce a ``Namespace``
    populated with a 512-bit hex key & a 256-bit hex salt to be more
