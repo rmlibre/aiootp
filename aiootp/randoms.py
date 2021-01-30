@@ -82,7 +82,7 @@ async def acreate_prime(bits=2048):
     Asynchronous wrapper around a ``sympy.randprime`` abstraction which
     locates primes based on a user-defined amount of ``bits``.
     """
-    return random_prime(2 ** bits, 2 ** (bits + 1))
+    return random_prime(2 ** (bits - 1), 2 ** bits)
 
 
 def create_prime(bits=2048):
@@ -90,7 +90,7 @@ def create_prime(bits=2048):
     Synchronous wrapper around a ``sympy.randprime`` abstraction which
     locates primes based on a user-defined amount of ``bits``.
     """
-    return random_prime(2 ** bits, 2 ** (bits + 1))
+    return random_prime(2 ** (bits - 1), 2 ** bits)
 
 
 async def arandom_prime(low=None, high=None, **kw):
@@ -407,7 +407,7 @@ async def atoken_bits(size):
 
 
 @comprehension()
-async def asalted_multiply(mod=primes[258][-1], offset=None):
+async def asalted_multiply(mod=primes[257][-1], offset=None):
     """
     Allows for non-commutative multiplication. This assists pseudo-
     random number generators in turning combinations of low entropy
@@ -446,7 +446,7 @@ async def asalted_multiply(mod=primes[258][-1], offset=None):
 
 
 @comprehension()
-def salted_multiply(mod=primes[258][-1], offset=None):
+def salted_multiply(mod=primes[257][-1], offset=None):
     """
     Allows for non-commutative multiplication. This assists pseudo-
     random number generators in turning combinations of low entropy
@@ -489,7 +489,7 @@ try:
     uniform = random.uniform
     random_range = random.randrange
 
-    mod = primes[512][0]
+    mod = primes[512][-1]
 
     _asalt_multiply = run(asalted_multiply(mod).aprime())
     _salt_multiply = salted_multiply(mod).prime()
@@ -691,8 +691,8 @@ async def arandom_number_generator(
             result = await big_modulation(seed, *multiples)
             _completed.appendleft(
                 await ahash_bytes(
-                    int.to_bytes(result, 512, "big"),
-                    int.to_bytes(seed, 256, "big"),
+                    result.to_bytes(512, "big"),
+                    seed.to_bytes(256, "big"),
                 )
             )
 
@@ -721,7 +721,7 @@ async def arandom_number_generator(
         )
 
     return await ahash_bytes(
-        *_completed, int.to_bytes(await _asalt(), 256, "big"), entropy
+        *_completed, (await _asalt()).to_bytes(256, "big"), entropy
     )
 
 
@@ -816,8 +816,8 @@ def random_number_generator(
             result = await big_modulation(seed, *multiples)
             _completed.appendleft(
                 await ahash_bytes(
-                    int.to_bytes(result, 512, "big"),
-                    int.to_bytes(seed, 256, "big"),
+                    result.to_bytes(512, "big"),
+                    seed.to_bytes(256, "big"),
                 )
             )
 
@@ -846,7 +846,7 @@ def random_number_generator(
         )
 
     return hash_bytes(
-        *_completed, int.to_bytes(_salt(), 256, "big"), entropy
+        *_completed, _salt().to_bytes(256, "big"), entropy
     )
 
 
@@ -1502,34 +1502,33 @@ async def aleaf(
     mod=bits[256],
     left=frozenset("02468ace"),
     right=frozenset("13579bdf"),
-    total=primes[256][0],
+    total=primes[256][-1],
 ):
     """
     Returns a unique name of type ``int`` based on the permutations of
     ``stamp``'s elements' membership in ``left`` and ``right``.
     """
-    prime = primes[16][0]
-    async for num, turn in aleaf_walk(stamp, left, right):
+    prime_multiple = primes[16][-1]
+    async for step, turn in aleaf_walk(stamp, left, right):
         if turn:
-            total += num
+            total += step
         else:
-            total *= prime
+            total *= prime_multiple
     return total % mod
 
 
 def leaf(
     stamp="",
-    max_binary_choices=bits[256],
+    mod=bits[256],
     left=frozenset("02468ace"),
     right=frozenset("13579bdf"),
-    prime_strength_bits=primes[256][0],
+    total=primes[256][-1],
 ):
     """
     Returns a unique name of type ``int`` based on the permutations of
     ``stamp``'s elements' membership in ``left`` and ``right``.
     """
-    total = prime_strength_bits
-    prime_multiple = primes[16][0]
+    prime_multiple = primes[16][-1]
     for step, turn in leaf_walk(stamp, left, right):
         if turn:
             total += step
