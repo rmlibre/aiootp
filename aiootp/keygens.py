@@ -36,6 +36,8 @@ from .randoms import token_bytes
 from .randoms import atoken_bytes
 from .ciphers import keys
 from .ciphers import akeys
+from .ciphers import padding_key
+from .ciphers import apadding_key
 from .ciphers import Passcrypt
 from .ciphers import passcrypt
 from .ciphers import apasscrypt
@@ -88,7 +90,8 @@ async def atable_key_gen(key=None, table=ASCII_TABLE):
     if not key:
         key = await acsprng()
     size = len(table[:])
-    async for key_portion in akeys(key, key).aint(16).ato_base(size, table):
+    keystream = akeys(key, salt=key).aint(16).ato_base(size, table)
+    async for key_portion in keystream:
         yield key_portion
 
 
@@ -124,7 +127,8 @@ def table_key_gen(key=None, table=ASCII_TABLE):
     if not key:
         key = csprng()
     size = len(table[:])
-    for key_portion in keys(key, key).int(16).to_base(size, table):
+    keystream = keys(key, salt=key).int(16).to_base(size, table)
+    for key_portion in keystream:
         yield key_portion
 
 
@@ -219,7 +223,7 @@ async def amnemonic(key, salt=None, words=WORD_LIST):
     length = len(words)
     salt = salt if salt else await acsprng()
     key = await apasscrypt(key, salt)
-    entropy = abytes_keys(key, salt, key)
+    entropy = abytes_keys(key, salt=salt, pid=key)
     async with entropy.abytes_to_int().arelay(salt) as indexes:
         while True:
             if translate:
@@ -241,7 +245,7 @@ def mnemonic(key, salt=None, words=WORD_LIST):
     length = len(words)
     salt = salt if salt else csprng()
     key = passcrypt(key, salt)
-    entropy = bytes_keys(key, salt, key)
+    entropy = bytes_keys(key, salt=salt, pid=key)
     with entropy.bytes_to_int().relay(salt) as indexes:
         while True:
             if translate:
@@ -287,6 +291,7 @@ class AsyncKeys:
     akeys = staticmethod(akeys)
     akeypair = staticmethod(akeypair)
     amnemonic = staticmethod(amnemonic)
+    apadding_key = staticmethod(apadding_key)
     apasscrypt = staticmethod(apasscrypt)
     abytes_keys = staticmethod(abytes_keys)
     atable_key = staticmethod(atable_key)
@@ -342,7 +347,7 @@ class AsyncKeys:
         return self._key
 
     async def ahmac(
-        self, data=None, *, key=None, hasher=asha_256_hmac
+        self, data, *, key=None, hasher=asha_256_hmac
     ):
         """
         Creates an HMAC code of ``data`` using ``key``  or the
@@ -352,7 +357,7 @@ class AsyncKeys:
         return await hasher(data, key=key if key else self.key)
 
     async def atest_hmac(
-        self, data=None, hmac=None, *, key=None, hasher=asha_256_hmac
+        self, data, *, hmac=None, key=None, hasher=asha_256_hmac
     ):
         """
         Tests if the given ``hmac`` of some ``data`` is valid with a
@@ -448,6 +453,7 @@ class Keys:
     keys = staticmethod(keys)
     keypair = staticmethod(keypair)
     mnemonic = staticmethod(mnemonic)
+    padding_key = staticmethod(padding_key)
     passcrypt = staticmethod(passcrypt)
     bytes_keys = staticmethod(bytes_keys)
     table_key = staticmethod(table_key)
@@ -498,7 +504,7 @@ class Keys:
         """
         return self._key
 
-    def hmac(self, data=None, *, key=None, hasher=sha_256_hmac):
+    def hmac(self, data, *, key=None, hasher=sha_256_hmac):
         """
         Creates an HMAC code of ``data`` using ``key``  or the
         instance's ``self.key`` if it's not supplied & the hashing
@@ -507,7 +513,7 @@ class Keys:
         return hasher(data, key=key if key else self.key)
 
     def test_hmac(
-        self, data=None, hmac=None, *, key=None, hasher=sha_256_hmac
+        self, data, *, hmac=None, key=None, hasher=sha_256_hmac
     ):
         """
         Tests if the given ``hmac`` of some ``data`` is valid with a
@@ -617,6 +623,8 @@ __extras = {
     "akeypair_ratchets": akeypair_ratchets,
     "keypair_ratchets": keypair_ratchets,
     "amnemonic": amnemonic,
+    "apadding_key": apadding_key,
+    "padding_key": padding_key,
     "atable_key": atable_key,
     "table_key": table_key,
     "atable_key_gen": atable_key_gen,
