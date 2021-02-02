@@ -2,9 +2,9 @@
 # and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -21,6 +21,7 @@ __all__ = [
     "ASCII_TABLE",
     "ASCII_TABLE_128",
     "BYTES_TABLE",
+    "BASE_36_TABLE",
     "BASE_64_TABLE",
     "URL_SAFE_TABLE",
     "ONION_CHAR_TABLE",
@@ -43,6 +44,9 @@ ASCII_TABLE_128 += """[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f"""
 
 ASCII_ALPHANUMERIC = "0123456789abcdefghijklmnopqrstuvwxyz"
 ASCII_ALPHANUMERIC += "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+BASE_36_TABLE = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 
 BASE_64_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
