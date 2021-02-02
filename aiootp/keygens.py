@@ -2,9 +2,9 @@
 # and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -27,37 +27,32 @@ A collection of highlevel tools for creating & managing symmetric keys.
 
 from .asynchs import *
 from .commons import *
-from .randoms import salt
-from .randoms import asalt
-from .randoms import csprbg
-from .randoms import csprng
-from .randoms import acsprng
-from .randoms import token_bytes
-from .randoms import atoken_bytes
-from .ciphers import keys
-from .ciphers import akeys
-from .ciphers import padding_key
-from .ciphers import apadding_key
+from .randoms import salt, asalt
+from .randoms import csprbg, acsprbg
+from .randoms import csprng, acsprng
+from .randoms import random_256, arandom_256
+from .randoms import random_512, arandom_512
+from .randoms import token_bytes, atoken_bytes
+from .ciphers import Ropake
+from .ciphers import X25519
+from .ciphers import Ed25519
 from .ciphers import Passcrypt
-from .ciphers import passcrypt
-from .ciphers import apasscrypt
-from .ciphers import bytes_keys
-from .ciphers import abytes_keys
 from .ciphers import OneTimePad
-from .ciphers import keypair_ratchets
-from .ciphers import akeypair_ratchets
+from .ciphers import keys, akeys
+from .ciphers import passcrypt, apasscrypt
+from .ciphers import bytes_keys, abytes_keys
+from .ciphers import padding_key, apadding_key
+from .ciphers import keypair_ratchets, akeypair_ratchets
 from .generics import azip
 from .generics import is_iterable
 from .generics import comprehension
-from .generics import sha_256
-from .generics import asha_256
-from .generics import sha_256_hmac
-from .generics import asha_256_hmac
+from .generics import sha_256, asha_256
+from .generics import sha_256_hmac, asha_256_hmac
 from .generics import convert_static_method_to_member
 
 
 @comprehension()
-async def atable_key_gen(key=None, table=ASCII_TABLE):
+async def atable_keystream(key=None, table=ASCII_TABLE):
     """
     This table based key generator function converts any key string
     containing an arbitrary set of characters, into another key string
@@ -81,7 +76,7 @@ async def atable_key_gen(key=None, table=ASCII_TABLE):
 
     # To produce a 60 byte key of characters from the default table
     key = "hotdiggitydog_thischowisyummy"
-    async with atable_key_gen(key=key) as generator:
+    async with atable_keystream(key=key) as generator:
         new_key = await generator()
         assert new_key != await generator()
     print(new_key)
@@ -96,7 +91,7 @@ async def atable_key_gen(key=None, table=ASCII_TABLE):
 
 
 @comprehension()
-def table_key_gen(key=None, table=ASCII_TABLE):
+def table_keystream(key=None, table=ASCII_TABLE):
     """
     This table based key generator function converts any key string
     containing an arbitrary set of characters, into another key string
@@ -118,7 +113,7 @@ def table_key_gen(key=None, table=ASCII_TABLE):
 
     Usage Example:
     key = "hotdiggitydog_thischowisyummy"
-    with table_key_gen(key=key) as generator:
+    with table_keystream(key=key) as generator:
         new_key = generator()
         assert new_key != generator()
     print(new_key)
@@ -164,7 +159,7 @@ async def atable_key(key=None, table=ASCII_TABLE, size=64):
     print(new_key)
     >>> #mE)bOQD@lY%]Qwpb9Zi^32]jteVg
     """
-    async with atable_key_gen(key=key, table=table) as generator:
+    async with atable_keystream(key=key, table=table) as generator:
         new_key = await generator()
         while len(new_key) < size:
             new_key += await generator()
@@ -202,7 +197,7 @@ def table_key(key=None, table=ASCII_TABLE, size=64):
     print(new_key)
     >>> #mE)bOQD@lY%]Qwpb9Zi^32]jteVg
     """
-    with table_key_gen(key=key, table=table) as generator:
+    with table_keystream(key=key, table=table) as generator:
         new_key = generator()
         while len(new_key) < size:
             new_key += generator()
@@ -284,7 +279,7 @@ class AsyncKeys:
     """
 
     instance_methods = {
-        akeys, abytes_keys, amnemonic, atable_key, atable_key_gen
+        akeys, abytes_keys, amnemonic, atable_key, atable_keystream
     }
 
     asalt = staticmethod(asalt)
@@ -295,7 +290,7 @@ class AsyncKeys:
     apasscrypt = staticmethod(apasscrypt)
     abytes_keys = staticmethod(abytes_keys)
     atable_key = staticmethod(atable_key)
-    atable_key_gen = staticmethod(atable_key_gen)
+    atable_keystream = staticmethod(atable_keystream)
     akeypair_ratchets = staticmethod(akeypair_ratchets)
 
     def __init__(self, key=None):
@@ -305,11 +300,7 @@ class AsyncKeys:
         ``key`` argument is not passed then a new 512-bit random key is
         created.
         """
-        self._key = key if key else salt()
-        for method in self.instance_methods:
-            convert_static_method_to_member(
-                self, method.__name__, method, key=self.key,
-            )
+        self._reset(key=key)
         self.apasscrypt = self._apasscrypt
 
     def __getitem__(self, pid=""):
@@ -407,6 +398,17 @@ class AsyncKeys:
         else:
             return False
 
+    def _reset(self, key=None):
+        """
+        Replaces the stored instance key used to create deterministic
+        streams of key material &, create & validate HMAC codes.
+        """
+        self._key = key if key else csprng()
+        for method in self.instance_methods:
+            convert_static_method_to_member(
+                self, method.__name__, method, key=self.key,
+            )
+
     async def areset(self, key=None):
         """
         Replaces the stored instance key used to create deterministic
@@ -446,7 +448,7 @@ class Keys:
     """
 
     instance_methods = {
-        keys, bytes_keys, mnemonic, table_key, table_key_gen
+        keys, bytes_keys, mnemonic, table_key, table_keystream
     }
 
     salt = staticmethod(salt)
@@ -457,7 +459,7 @@ class Keys:
     passcrypt = staticmethod(passcrypt)
     bytes_keys = staticmethod(bytes_keys)
     table_key = staticmethod(table_key)
-    table_key_gen = staticmethod(table_key_gen)
+    table_keystream = staticmethod(table_keystream)
     keypair_ratchets = staticmethod(keypair_ratchets)
 
     def __init__(self, key=None):
@@ -610,25 +612,40 @@ def insert_keyrings(self, key=None):
 __extras = {
     "AsyncKeys": AsyncKeys,
     "Keys": Keys,
+    "X25519": X25519,
+    "Ed25519": Ed25519,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
-    "ainsert_keyrings": ainsert_keyrings,
-    "insert_keyrings": insert_keyrings,
+    "_ainsert_keyrings": ainsert_keyrings,
+    "_insert_keyrings": insert_keyrings,
+    "asalt": asalt,
+    "salt": salt,
+    "acsprng": acsprng,
+    "csprng": csprng,
+    "acsprbg": acsprbg,
+    "csprbg": csprbg,
     "akeys": akeys,
     "keys": keys,
+    "abytes_keys": abytes_keys,
+    "bytes_keys": bytes_keys,
+    "amnemonic": amnemonic,
     "mnemonic": mnemonic,
     "akeypair": akeypair,
     "keypair": keypair,
     "akeypair_ratchets": akeypair_ratchets,
     "keypair_ratchets": keypair_ratchets,
-    "amnemonic": amnemonic,
     "apadding_key": apadding_key,
     "padding_key": padding_key,
+    "protocols": X25519.protocols,
     "atable_key": atable_key,
     "table_key": table_key,
-    "atable_key_gen": atable_key_gen,
-    "table_key_gen": table_key_gen,
+    "atable_keystream": atable_keystream,
+    "table_keystream": table_keystream,
+    "arandom_256": arandom_256,
+    "random_256": random_256,
+    "arandom_512": arandom_512,
+    "random_512": random_512,
 }
 
 
