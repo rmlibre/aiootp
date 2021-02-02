@@ -2,9 +2,9 @@
 # and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -18,6 +18,7 @@ __all__ = [
     "WORD_LIST",
     "ASCII_TABLE",
     "BYTES_TABLE",
+    "BASE_36_TABLE",
     "BASE_64_TABLE",
     "URL_SAFE_TABLE",
     "ASCII_TABLE_128",
@@ -36,8 +37,8 @@ import sys
 import copy
 import types
 import asyncio
-from hashlib import sha3_256
 from os import linesep
+from hashlib import sha3_256
 from .__datasets import *
 from . import DebugControl
 
@@ -132,7 +133,7 @@ def redact_keys(string, *, rule=r"[0-9a-fA-F]{64,}"):
     return string
 
 
-class Namespace:
+class Namespace():
     """
     A simple wrapper for turning mappings into Namespace objects that
     allow dotted lookup and assignment on those mappings. Also, provides
@@ -147,14 +148,12 @@ class Namespace:
     aimport_namespace = staticmethod(aimport_namespace)
     import_namespace = staticmethod(import_namespace)
 
-    def __init__(self, mapping=None, **kwargs):
+    def __init__(self, mapping={}, **kwargs):
         """
         Maps the user-defined mapping & kwargs to the Namespace's
         instance dictionary.
         """
-        self.__dict__.update(
-            {**mapping, **kwargs} if mapping else {**kwargs}
-        )
+        self.__dict__.update({**mapping, **kwargs})
 
     @property
     def __all__(self):
@@ -258,6 +257,9 @@ class Namespace:
         """
         return self.__dict__
 
+    def keys(self):
+        return dir(self)
+
 
 __extras = {
     # A domain-specific namespace for networking & communications
@@ -268,12 +270,14 @@ __extras = {
     "ASCII_ALPHANUMERIC": ASCII_ALPHANUMERIC,
     "ASCII_TABLE": ASCII_TABLE,
     "ASCII_TABLE_128": ASCII_TABLE_128,
+    "BASE_36_TABLE": BASE_36_TABLE,
     "BASE_64_TABLE": BASE_64_TABLE,
     "BYTES_TABLE": BYTES_TABLE,
     "CHANNEL": "channel",
     "CHANNELS": "channels",
     "CIPHERED_SALT": "ciphered_salt",
     "CIPHERTEXT": "ciphertext",
+    "CIPHERTEXT_IS_NOT_BYTES": "Ciphertext is not in bytes format.",
     "CLIENT": "client",
     "CORRUPT": "corrupt_connection",
     "DECRYPT": "decrypt",
@@ -287,6 +291,7 @@ __extras = {
     "HTTPS": "https",
     "ID": "contact_identifier",
     "INACTIVE": "terminated_connection",
+    "INVALID_CIPHERTEXT_LENGTH": "The length of ciphertext is invalid.",
     "KEEP_ALIVE": "keep_alive",
     "KEY": "key",
     "KEY_ID": "key_id",
@@ -339,6 +344,7 @@ __extras = {
     "STATUS": "status",
     "SUCCESS": "success",
     "TB_PORT": 9150,
+    "ROPAKE_TIMEOUT": 0,
     "TOR_PORT": 9050,
     "UNSENT_MESSAGES": "unsent_message_archive",
     "URL": "url",
