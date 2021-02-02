@@ -2,9 +2,9 @@
 # and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -27,6 +27,7 @@ from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
 from .ciphers import csprng
 from .ciphers import Ropake
+from .ciphers import X25519
 from .ciphers import validator
 from .ciphers import Passcrypt
 from .ciphers import OneTimePad
@@ -343,6 +344,14 @@ def initialize_default_ropake_class_database():
     Ropake(key=None)
 
 
+def add_protocols_to_collections():
+    """
+    Adds the assorted protocols defined throughout the library to the
+    relevant list for ease of discovery, consumption & contextualization.
+    """
+    X25519.protocols.Ropake = Ropake
+
+
 insert_debuggers()
 insert_xor_methods()
 insert_passcrypt_methods()
@@ -352,4 +361,5 @@ insert_stream_cipher_methods()
 insert_hashmap_cipher_methods()
 insert_stateful_key_generator_objects()
 initialize_default_ropake_class_database()
+add_protocols_to_collections()
 
