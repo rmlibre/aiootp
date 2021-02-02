@@ -2,9 +2,9 @@
 # and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -13,6 +13,7 @@ __all__ = [
     "generics",
     "BytesIO",
     "Comprende",
+    "Hasher",
     "comprehension",
     "azip",
     "anext",
@@ -50,14 +51,6 @@ __all__ = [
     "sha_512",
     "asha_512_hmac",
     "sha_512_hmac",
-    "anc_256",
-    "nc_256",
-    "anc_256_hmac",
-    "nc_256_hmac",
-    "anc_512",
-    "nc_512",
-    "anc_512_hmac",
-    "nc_512_hmac",
 ]
 
 
@@ -545,10 +538,17 @@ class BytesIO:
     algorithm used by the package.
     """
 
+    HMAC = commons.HMAC
+    SALT = commons.SALT
+    PLAINTEXT = commons.PLAINTEXT
+    CIPHERTEXT = commons.CIPHERTEXT
     HMAC_BYTES = commons.HMAC_BYTES
     SALT_BYTES = commons.SALT_BYTES
     MAP_ENCODING = commons.MAP_ENCODING
     LIST_ENCODING = commons.LIST_ENCODING
+    BASE_36_TABLE = commons.BASE_36_TABLE
+    URL_SAFE_TABLE = commons.URL_SAFE_TABLE
+    ASCII_TABLE_128 = commons.ASCII_TABLE_128
     pad_bytes = staticmethod(pad_bytes)
     apad_bytes = staticmethod(apad_bytes)
     depad_bytes = staticmethod(depad_bytes)
@@ -559,7 +559,6 @@ class BytesIO:
     aurlsafe_to_bytes = staticmethod(aurlsafe_to_bytes)
     bytes_to_urlsafe = staticmethod(bytes_to_urlsafe)
     abytes_to_urlsafe = staticmethod(abytes_to_urlsafe)
-
 
     def __init__(self):
         pass
@@ -605,9 +604,9 @@ class BytesIO:
         obj = cls._make_stack()
         obj.result = b""
         obj.copy = cls._load_json(data)
-        obj.hmac = cls._pop("hmac", obj.copy)
-        obj.salt = cls._pop("salt", obj.copy)
-        obj.ciphertext = cls._pop("ciphertext", obj.copy)
+        obj.hmac = cls._pop(cls.HMAC, obj.copy)
+        obj.salt = cls._pop(cls.SALT, obj.copy)
+        obj.ciphertext = cls._pop(cls.CIPHERTEXT, obj.copy)
         return obj
 
     @classmethod
@@ -619,15 +618,14 @@ class BytesIO:
         bytes type then ``TypeErrpr`` is raised.
         """
         if not issubclass(ciphertext.__class__, bytes):
-            raise TypeError("Ciphertext is not in bytes format.")
+            raise TypeError(commons.CIPHERTEXT_IS_NOT_BYTES)
         elif (len(ciphertext) - cls.HMAC_BYTES - cls.SALT_BYTES) % 256:
-            raise ValueError("The length of ciphertext is invalid.")
+            raise ValueError(commons.INVALID_CIPHERTEXT_LENGTH)
 
     @classmethod
     async def ajson_to_bytes(cls, data):
         """
-        Converts json ``data`` of either mapped or listed ciphertext
-        into a bytes object.
+        Converts json ``data`` of listed ciphertext into a bytes object.
         """
         data = cls._process_json(data)
         data.result = bytes.fromhex(data.hmac + data.salt)
@@ -640,8 +638,7 @@ class BytesIO:
     @classmethod
     def json_to_bytes(cls, data):
         """
-        Converts json ``data`` of either mapped or listed ciphertext
-        into a bytes object.
+        Converts json ``data`` of listed ciphertext into a bytes object.
         """
         data = cls._process_json(data)
         data.result = bytes.fromhex(data.hmac + data.salt)
@@ -673,10 +670,10 @@ class BytesIO:
     @classmethod
     async def abytes_to_json(cls, data, encoding=LIST_ENCODING):
         """
-        Converts bytes ``data`` of either mapped or listed ciphertext
-        back into a json dictionary. ``LIST_ENCODING`` is the default
-        encoding for all ciphertext. Databases used to use the
-        ``MAP_ENCODING``, but they now also output listed ciphertext.
+        Converts bytes ``data`` of listed ciphertext back into a json
+        dictionary. ``LIST_ENCODING`` is the default encoding for all
+        ciphertext. Databases used to use the ``MAP_ENCODING``, but they
+        now also output listed ciphertext.
         """
         streamer = adata
         obj = cls._process_bytes(data, encoding=encoding)
@@ -691,10 +688,10 @@ class BytesIO:
     @classmethod
     def bytes_to_json(cls, data, encoding=LIST_ENCODING):
         """
-        Converts bytes ``data`` of either mapped or listed ciphertext
-        back into a json dictionary. ``LIST_ENCODING`` is the default
-        encoding for all ciphertext. Databases used to use the
-        ``MAP_ENCODING``, but they now also output listed ciphertext.
+        Converts bytes ``data`` of listed ciphertext back into a json
+        dictionary. ``LIST_ENCODING`` is the default encoding for all
+        ciphertext. Databases used to use the ``MAP_ENCODING``, but they
+        now also output listed ciphertext.
         """
         streamer = globals()["data"]
         obj = cls._process_bytes(data, encoding=encoding)
@@ -705,6 +702,38 @@ class BytesIO:
         obj.result["hmac"] = obj.hmac
         obj.result["salt"] = obj.salt
         return obj.result
+
+    @classmethod
+    async def ajson_to_ascii(cls, data, *, table=ASCII_TABLE_128):
+        """
+        Converts json ciphertext into a compacted ascii format.
+        """
+        bytes_data = await cls.ajson_to_bytes(data)
+        return await cls.abytes_to_urlsafe(bytes_data, table=table)
+
+    @classmethod
+    def json_to_ascii(cls, data, *, table=ASCII_TABLE_128):
+        """
+        Converts json ciphertext into a compacted ascii format.
+        """
+        bytes_data = cls.json_to_bytes(data)
+        return cls.bytes_to_urlsafe(bytes_data, table=table)
+
+    @classmethod
+    async def aascii_to_json(cls, data, *, table=ASCII_TABLE_128):
+        """
+        Converts compact ascii formated ciphertext back into json.
+        """
+        bytes_data = await cls.aurlsafe_to_bytes(data, table=table)
+        return await cls.abytes_to_json(bytes_data)
+
+    @classmethod
+    def ascii_to_json(cls, data, *, table=ASCII_TABLE_128):
+        """
+        Converts compact ascii formated ciphertext back into json.
+        """
+        bytes_data = cls.urlsafe_to_bytes(data, table=table)
+        return cls.bytes_to_json(bytes_data)
 
     @classmethod
     async def aread(cls, path, encoding=LIST_ENCODING):
@@ -825,11 +854,13 @@ class Comprende:
     # Easily drive the generator forward.
     with Comprende(gen, x=1, y=2) as example:
         z = 3
-        # This will send in ``None``
+
+        # Calling the object will send ``None`` into the coroutine ->
         sum_of_x_y = example()
         assert sum_of_x_y == 3
 
-        # This will cause the generator to reach the return and exit ->
+        # Passing ``z`` will send it into the coroutine, cause it to
+        # reach the return statement & exit the context manager ->
         example(z)
 
     # The result returned from the generator is now available ->
@@ -841,6 +872,31 @@ class Comprende:
     # using the instance's ``__call__()`` method.  It's still available
     # after the context closes ->
     assert example.__class__.__name__ == "Comprende"
+
+    # Here's another example ->
+    @aiootp.comprehension()
+    def one_byte_numbers():
+        for number in range(256):
+            yield number
+
+    # Chained ``Comprende`` generators are excellent inline data
+    # processors ->
+    base64_data = [
+        b64_byte
+        for b64_byte
+        in one_byte_numbers().int_to_bytes(1).to_base64()
+    ]
+    # This converted each number to bytes then base64 encoded them.
+
+    # We can wrap other iterables to add functionality to them ->
+    @aiootp.comprehension()
+    def unpack(iterable):
+        for item in iterable:
+            yield item
+
+    # This example just hashes each output then yields them
+    for hex_hash in unpack(base64_data).sha_256():
+        print(hex_hash)
 
 
     Async Usage Example:
@@ -858,22 +914,62 @@ class Comprende:
     # Easily drive the generator forward.
     async with Comprende(gen, x=1, y=2) as example:
         z = 3
-        # This will send in ``None``
+
+        # Awaiting the object's call will send ``None`` into the
+        # coroutine ->
         sum_of_x_y = await example()
         assert sum_of_x_y == 3
 
-        # This will cause the generator to reach the return & exit the
-        # context manager ->
-        await example(z)
+        # Passing ``z`` will send it into the coroutine, cause it to
+        # the raise statement & exit the context manager ->
+        await example(az)
 
     # The result returned from the generator is now available ->
     product_of_x_y_z = await example.aresult()
     assert product_of_x_y_z == 6
 
+    # Let's see some other ways async generators mirror synchronous
+    # ones ->
+    @aiootp.comprehension()
+    async def one_byte_numbers():
+        for number in range(256):
+            yield number
+
+    # This is asynchronous data processing ->
+    base64_data = [
+        b64_byte
+        async for b64_byte
+        in one_byte_numbers().aint_to_bytes(1).ato_base64()
+    ]
+
+    # We can wrap other iterables to add asynchronous functionality to
+    # them ->
+    @aiootp.comprehension()
+    async def unpack(iterable):
+        for item in iterable:
+            yield item
+
+    # Want only the first twenty results? ->
+    async for hex_hash in unpack(base64_data).asha_256()[:20]:
+        # Then you can slice the generator.
+        print(hex_hash)
+
+    # Users can slice generators to receive more complex output rules,
+    # like: Getting every second result starting from the third result
+    # to the 50th ->
+    async for result in unpack(base64_data)[3:50:2]:
+        print(result)
+
+    # Although, negative slice numbers are not supported.
+
+    # ``Comprende`` generators have loads of tooling for users to explore.
+    # Play around with it and take a look at the other chainable generator
+    # methods in ``aiootp.Comprende.lazy_generators``.
 
     Comprende has many more useful features to play around with! Have
     fun with it!
     """
+
     decorator = comprehension
 
     _cached = {}
@@ -3819,192 +3915,38 @@ def sha_512_hmac(data, key=None):
     return sha_512(sha_512(data, key), key)
 
 
-async def anc_256(*data):
+class Hasher:
     """
-    A "no collision" 512-bit hash which concatenates the output of two
-    ``hashlib.sha3_256`` functions with one receiving the input ``data``,
-    & the other receiving the input ``data`` twice. This means a
-    collision would have to match the output of two separate hashes &
-    the hash size is doubled. This theoretically increases the strength
-    of collision resistance from 128-bits for a 256-bit hash, to
-    256-bits for the newly created 512-bit joint hash.
+    A class that creates instances to mimmic & add functionality to the
+    hashing object passed in during initialization.
     """
-    return await asha_256(*data, *data) + await asha_256(*data)
+    xi_mix = xi_mix
+    axi_mix = axi_mix
 
+    def __init__(self, data=b"", *, obj=sha3_512):
+        """
+        Copies over the object dictionary of the ``obj`` hashing object.
+        """
+        self._obj = obj(data)
+        for method in dir(obj):
+            if not method.startswith("_"):
+                setattr(self, method, getattr(self._obj, method))
 
-def nc_256(*data):
-    """
-    A "no collision" 512-bit hash which concatenates the output of two
-    ``hashlib.sha3_256`` functions with one receiving the input ``data``,
-    & the other receiving the input ``data`` twice. This means a
-    collision would have to match the output of two separate hashes &
-    the hash size is doubled. This theoretically increases the strength
-    of collision resistance from 128-bits for a 256-bit hash, to
-    256-bits for the newly created 512-bit joint hash.
-    """
-    return sha_256(*data, *data) + sha_256(*data)
+    def mutlihash(self, *data):
+        """
+        Receives any number of arguments of bytes type ``data`` &
+        updates the instance with them all sequentially.
+        """
+        self.update(b"".join(data))
 
-
-async def anc_256_hmac(data, key=None):
-    """
-    An HMAC version of the no collision 256-bit hash.
-    """
-    return await anc_256(await anc_256(data, key), key)
-
-
-def nc_256_hmac(data, key=None):
-    """
-    An HMAC version of the no collision 256-bit hash.
-    """
-    return nc_256(nc_256(data, key), key)
-
-
-async def anc_512(*data):
-    """
-    A "no collision" 1024-bit hash which concatenates the output of two
-    ``hashlib.sha3_512`` functions with one receiving the input ``data``,
-    & the other receiving the input ``data`` twice. This means a
-    collision would have to match the output of two separate hashes &
-    the hash size is doubled. This theoretically increases the strength
-    of collision resistance from 256-bits for a 512-bit hash, to
-    512-bits for the newly created 1024-bit joint hash.
-    """
-    return await asha_512(*data, *data) + await asha_512(*data)
-
-
-def nc_512(*data):
-    """
-    A "no collision" 1024-bit hash which concatenates the output of two
-    ``hashlib.sha3_512`` functions with one receiving the input ``data``,
-    & the other receiving the input ``data`` twice. This means a
-    collision would have to match the output of two separate hashes &
-    the hash size is doubled. This theoretically increases the strength
-    of collision resistance from 256-bits for a 512-bit hash, to
-    512-bits for the newly created 1024-bit joint hash.
-    """
-    return sha_512(*data, *data) + sha_512(*data)
-
-
-async def anc_512_hmac(data, key=None):
-    """
-    An HMAC version of the no collision 512-bit hash.
-    """
-    return await anc_512(await anc_512(data, key), key)
-
-
-def nc_512_hmac(data, key=None):
-    """
-    An HMAC version of the no collision 512-bit hash.
-    """
-    return nc_512(nc_512(data, key), key)
-
-
-async def anc_1024(*data):
-    """
-    A "no collision" 1024-bit hash which concatenates the output of two
-    ``nc_512`` functions with one receiving the input ``data``, & the
-    other receiving the input ``data`` twice. This means a collision
-    would have to match the output of two separate hashes & the hash
-    size is doubled. This theoretically increases the strength of
-    collision resistance from 512-bits for a 1024-bit hash, to 1024-bits
-    for the newly created 2048-bit joint hash.
-    """
-    return (
-        await asha_512(*data, *data, *data, *data)
-        + await asha_512(*data, *data, *data)
-        + await asha_512(*data, *data)
-        + await asha_512(*data)
-    )
-
-
-def nc_1024(*data):
-    """
-    A "no collision" 1024-bit hash which concatenates the output of two
-    ``nc_512`` functions with one receiving the input ``data``, & the
-    other receiving the input ``data`` twice. This means a collision
-    would have to match the output of two separate hashes & the hash
-    size is doubled. This theoretically increases the strength of
-    collision resistance from 512-bits for a 1024-bit hash, to 1024-bits
-    for the newly created 2048-bit joint hash.
-    """
-    return (
-        sha_512(*data, *data, *data, *data)
-        + sha_512(*data, *data, *data)
-        + sha_512(*data, *data)
-        + sha_512(*data)
-    )
-
-
-async def anc_1024_hmac(data, key=None):
-    """
-    An HMAC version of the no collision 1024-bit hash.
-    """
-    return await anc_1024(await anc_1024(data, key), key)
-
-
-def nc_1024_hmac(data, key=None):
-    """
-    An HMAC version of the no collision 1024-bit hash.
-    """
-    return nc_1024(nc_1024(data, key), key)
-
-
-async def anc_2048(*data):
-    """
-    A "no collision" 2048-bit hash which concatenates the output of two
-    ``nc_1024`` functions with one receiving the input ``data``, & the
-    other receiving the input ``data`` twice. This means a collision
-    would have to match the output of two separate hashes & the hash
-    size is doubled. This theoretically increases the strength of
-    collision resistance from 1024-bits for a 2048-bit hash, to
-    2048-bits for the newly created 4096-bit joint hash.
-    """
-    return (
-        sha_512(*data, *data, *data, *data, *data, *data, *data, *data)
-        + await asha_512(*data, *data, *data, *data, *data, *data, *data)
-        + await asha_512(*data, *data, *data, *data, *data, *data)
-        + await asha_512(*data, *data, *data, *data, *data)
-        + await asha_512(*data, *data, *data, *data)
-        + await asha_512(*data, *data, *data)
-        + await asha_512(*data, *data)
-        + await asha_512(*data)
-    )
-
-
-def nc_2048(*data):
-    """
-    A "no collision" 1024-bit hash which concatenates the output of two
-    ``nc_512`` functions with one receiving the input ``data``, & the
-    other receiving the input ``data`` twice. This means a collision
-    would have to match the output of two separate hashes & the hash
-    size is doubled. This theoretically increases the strength of
-    collision resistance from 512-bits for a 1024-bit hash, to 1024-bits
-    for the newly created 2048-bit joint hash.
-    """
-    return (
-        sha_512(*data, *data, *data, *data, *data, *data, *data, *data)
-        + sha_512(*data, *data, *data, *data, *data, *data, *data)
-        + sha_512(*data, *data, *data, *data, *data, *data)
-        + sha_512(*data, *data, *data, *data, *data)
-        + sha_512(*data, *data, *data, *data)
-        + sha_512(*data, *data, *data)
-        + sha_512(*data, *data)
-        + sha_512(*data)
-    )
-
-
-async def anc_2048_hmac(data, key=None):
-    """
-    An HMAC version of the no collision 2048-bit hash.
-    """
-    return await anc_2048(await anc_2048(data, key), key)
-
-
-def nc_2048_hmac(data, key=None):
-    """
-    An HMAC version of the no collision 2048-bit hash.
-    """
-    return nc_2048(nc_2048(data, key), key)
+    async def amutlihash(self, *data):
+        """
+        Receives any number of arguments of bytes type ``data`` &
+        updates the instance with them all sequentially.
+        """
+        for item in data:
+            await switch()
+            self.update(item)
 
 
 async def aint_to_ascii(data):
@@ -4203,6 +4145,7 @@ __extras = {
     "BytesIO": BytesIO,
     "Comprende": Comprende,
     "Enumerate": Enumerate,
+    "Hasher": Hasher,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
@@ -4235,14 +4178,6 @@ __extras = {
     "ajson_from_bytes_decode": ajson_from_bytes_decode,
     "ajson_encode": ajson_encode,
     "ajson_to_bytes_encode": ajson_to_bytes_encode,
-    "anc_256": anc_256,
-    "anc_256_hmac": anc_256_hmac,
-    "anc_512": anc_512,
-    "anc_512_hmac": anc_512_hmac,
-    "anc_1024": anc_1024,
-    "anc_1024_hmac": anc_1024_hmac,
-    "anc_2048": anc_2048,
-    "anc_2048_hmac": anc_2048_hmac,
     "anext": anext,
     "aorder": aorder,
     "apad_bytes": apad_bytes,
@@ -4303,14 +4238,6 @@ __extras = {
     "json_from_bytes_decode": json_from_bytes_decode,
     "json_encode": json_encode,
     "json_to_bytes_encode": json_to_bytes_encode,
-    "nc_256": nc_256,
-    "nc_256_hmac": nc_256_hmac,
-    "nc_512": nc_512,
-    "nc_512_hmac": nc_512_hmac,
-    "nc_1024": nc_1024,
-    "nc_1024_hmac": nc_1024_hmac,
-    "nc_2048": nc_2048,
-    "nc_2048_hmac": nc_2048_hmac,
     "order": order,
     "pad_bytes": pad_bytes,
     "pick": pick,
