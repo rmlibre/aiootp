@@ -67,12 +67,13 @@ Users can create and modify transparently encrypted databases:
     # Users can also use passwords to open a database, if necessary.
     
     # Although it's not recommended, here's how to do it ->
-    
+
     tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
-        "my username",
-        "my password",
-        *[any, b"collection", 0x0f, "credentials"],
-        salt="anything with randomness a user can remember",
+        "server_url",     # An unlimited number of arguments can be passed
+        "email_address",  # here as additional, optional credentials.
+        username="username",
+        password="password",
+        salt="optional_salt_keyword_argument",
     )
     
     db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
@@ -260,7 +261,11 @@ What other tools are available to users?:
     
     key = aiootp.csprng()
     
-    assert aiootp.Database(key)._root_filename == (await aiootp.AsyncDatabase(key))._root_filename
+    db = aiootp.Database(key)
+    
+    async_db = await aiootp.AsyncDatabase(key)
+    
+    assert db._root_filename == async_db._root_filename
     
     
     # Precomputed & organized values that can aid users, like:
@@ -320,9 +325,7 @@ What other tools are available to users?:
     
     # online services -> 
     
-    uuid = aiootp.sha_256("service-url.com", "username")
-    
-    db = aiootp.Ropake.client_database(uuid, password, *any_other_credentials)
+    db = aiootp.Database(pad.key)
     
     client = aiootp.Ropake.client_registration(db)
     
@@ -540,29 +543,44 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     @aiootp.comprehension() 
     
-    def squares(numbers=20):
+    def one_byte_numbers():
     
-        for number in range(numbers):
+        for number in range(256):
         
-            yield number ** 2
-    
-    
-    for hashed_square in squares().sha_256():
-    
-        # This is an example chained generator that hashes then yields each output.
-        
-        print(hashed_square)
+            yield number
     
     
     # Chained ``Comprende`` generators are excellent inline data processors ->
     
-    base64_data = []
+    base64_data = [
     
-    for result in squares().str().to_base64():
-    
-        # This will stringify each output of the generator, then base64 encode them ->
+        b64_byte
         
-        base64_data.append(result)
+        for b64_byte
+        
+        in one_byte_numbers().int_to_bytes(1).to_base64()
+        
+    ]
+    
+    # This converted each number to bytes then base64 encoded them.
+
+
+    # We can wrap other iterables to add functionality to them ->
+
+    @aiootp.comprehension()
+    
+    def unpack(iterable):
+    
+        for item in iterable:
+    
+            yield item
+
+
+    # This example just hashes each output then yields them
+
+    for hex_hash in unpack(base64_data).sha_256():
+        
+        print(hex_hash)
 
 
     # Async ``Comprende`` coroutines have almost exactly the same interface as
@@ -620,44 +638,60 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # Let's see some other ways async generators mirror synchronous ones ->
     
+    @aiootp.comprehension() 
+    
+    async def one_byte_numbers():
+    
+        for number in range(256):
+        
+            yield number
+    
+    
+    # This is asynchronous data processing ->
+    
+    base64_data = [
+    
+        b64_byte
+        
+        async for b64_byte
+        
+        in one_byte_numbers().aint_to_bytes(1).ato_base64()
+        
+    ]
+    
+    # This converted each number to bytes then base64 encoded them.
+
+
+    # We can wrap other iterables to add asynchronous functionality to them ->
+
     @aiootp.comprehension()
     
-    async def squares():
+    async def unpack(iterable):
     
-        number = 0
-        
-        while True:
-        
-            yield number ** 2
-            
-            number += 1
+        for item in iterable:
     
-    
-    # This is a chained async generator that salts then hashes then yields
-
-    # each output ->
-    
-    salt = await aiootp.acsprng()
-    
-    hashed_squares = squares().asha_512(salt)
+            yield item
 
 
     # Want only the first twenty results? ->
-    
-    async for hashed_square in hashed_squares[:20]:
+
+    async for hex_hash in unpack(base64_data).asha_256()[:20]:
     
         # Then you can slice the generator.
         
-        print(hashed_square)
+        print(hex_hash)
         
         
     # Users can slice generators to receive more complex output rules, like:
     
     # Getting every second result starting from the third result to the 50th ->
     
-    async for result in hashed_squares[3:50:2]:
+    async for result in unpack(base64_data)[3:50:2]:
     
         print(result)
+
+
+    # Although, negative slice numbers are not supported.
     
     
     # ``Comprende`` generators have loads of tooling for users to explore. 
@@ -780,16 +814,16 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     ordered_entries = {}
     
-    salt = await aiootp.acsprng()
+    salt = await aiootp.asalt()
     
     names = aiootp.akeys(key, salt=salt)
     
     
     # Resize each output of ``names`` to 32 characters, tag each output with
     
-    # an incrementing number, & stop the stream after 0.1 seconds ->
+    # an incrementing number, & stop the stream after 0.01 seconds ->
     
-    async for index, name in names.aresize(32).atag().atimeout(0.1):
+    async for index, name in names.aresize(32).atag().atimeout(0.01):
     
         ordered_entries[name] = f"{index} data organized by the stream of hashes"
     
@@ -1024,6 +1058,10 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 
 
+
+
+
+
 ``Known Issues``
 =================
 
@@ -1041,6 +1079,69 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 ``Changelog``
 =============
+
+
+Changes for version 0.16.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  All ``Database`` & ``AsyncDatabase`` filenames have been converted to
+   base36 to aid in making the manifest files & the databases as a whole 
+   more space efficient. These changes are not backwards compatible.
+-  More work was done to clean up the databases & make them more 
+   efficient, as well as equalize the sizes of the database files to
+   mitigate leaking metadata about what they might contain. 
+-  Added new ``X25519`` & ``Ed25519`` classes that greatly simplify the
+   usage of the cryptography module's 25519 based tools. They also help
+   organize the codebase into better, where ``Ropake`` was holding onto
+   all of the asymmetric tooling even though those tools were not part
+   of the Ropake protocol.
+-  New base & helper ``Asymmetric25519`` & ``BaseEllipticCurve`` classes 
+   were added as well to facilitate the reorganization.
+-  Many methods in ``Ropake`` were turned private to simplify & clean up 
+   the interface so its intended use as a protocol is more clear for users.
+-  Added the time-to-live functionality to ``Ropake`` decryption functions.
+   The ``TIMEOUT`` attribute on the class can also be changed to import 
+   a global time-to-live for all ``Ropake`` ciphertexts.
+-  Removed all ``nc_`` hash functions from the package/generics.py module.
+-  The ``Namespace`` class now has a ``keys`` method so that namespaces
+   can be unpacked using star-star syntax.
+-  Because of the ongoing failures of gnupg, we are moving away from 
+   signing out packages with gnupg. Our new Ed25519 keys will be from
+   the cryptography package, & we will sign those with out gnupg as a
+   secondary form of attestation. Our package signing will be automated
+   in the setup.py & the methods used will be transparent in the code.
+   The new signatures for each package version will be placed in a file
+   ``SIGNATURES.txt``.
+
+
+Minor Changes 
+------------- 
+
+-  Many fixes & additions to docstrings & tutorials.
+-  Massive refactorings, cleanups & typo fixes across the library, 
+   especially in the database classes, ``Ropake`` & the ``ciphers`` module.
+-  Added comprehensive functional tests for the Ropake class.
+-  Added ``BASE_36_TABLE`` to the ``commons`` module.
+-  Fixed metadata issues in setup.py that cause upload issures to pypi.
+-  The ``generate_profile``, ``load_profile``, ``agenerate_profile`` &
+   ``aload_profile`` database methods now accept arbitrary keyword arguments 
+   that get passed into the database's __init__ constructor.
+-  ``username`` & ``password`` are now required keyword-only arguments
+   to the ``agenerate_profile_tokens`` & ``generate_profile_tokens`` 
+   classmethods.
+-  The ``aload`` & ``load`` database methods now take a ``manifest`` kwarg
+   that when toggled ``True`` will also refresh the manifest file held in
+   memory from disk.
+-  Now when a database object is ordered to delete itself, the entirety 
+   of the instance's caches & attribute values are cleared & deleted.
+-  Filled out the references to strong key generators & protocols in the
+   ``keygens`` module.
+
+
 
 
 Changes for version 0.15.0 
@@ -1083,7 +1184,9 @@ Major Changes
    now contains two primes in each element, the first is the minimum 
    prime of that bit length, the latter the maximum.
 -  Added ``URLSAFE_TABLE`` to the package.
--  Made ``salt`` & ``pid`` & ``ttl`` keyword only arguments in key
+-  Made ``salt`` & ``pid`` & ``ttl`` keyword only arguments in key 
+   generators & encryption / decryption functions, further tighening up
+   the api.
 
 
 Minor Changes 
@@ -1098,7 +1201,7 @@ Minor Changes
    to the ``generics`` module.
 -  Added ``acsprbg``, ``csprbg``, ``asalt``, ``salt``, ``apadding_key``, 
    ``padding_key``, ``aplaintext_stream`` & ``plaintext_stream`` functions
-   to OneTimePad class as ``staticmethod``s.
+   to OneTimePad class as ``staticmethod`` & instance methods.
 -  Added ``acheck_timestamp`` & ``check_timestamp`` functions to the 
    ``BytesIO`` class.
 -  Added ``adeniable_filename`` & ``deniable_filename`` to the ``paths`` 

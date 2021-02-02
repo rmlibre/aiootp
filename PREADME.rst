@@ -67,12 +67,13 @@ Users can create and modify transparently encrypted databases:
     # Users can also use passwords to open a database, if necessary.
     
     # Although it's not recommended, here's how to do it ->
-    
+
     tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
-        "my username",
-        "my password",
-        *[any, b"collection", 0x0f, "credentials"],
-        salt="anything with randomness a user can remember",
+        "server_url",     # An unlimited number of arguments can be passed
+        "email_address",  # here as additional, optional credentials.
+        username="username",
+        password="password",
+        salt="optional_salt_keyword_argument",
     )
     
     db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
@@ -260,7 +261,11 @@ What other tools are available to users?:
     
     key = aiootp.csprng()
     
-    assert aiootp.Database(key)._root_filename == (await aiootp.AsyncDatabase(key))._root_filename
+    db = aiootp.Database(key)
+    
+    async_db = await aiootp.AsyncDatabase(key)
+    
+    assert db._root_filename == async_db._root_filename
     
     
     # Precomputed & organized values that can aid users, like:
@@ -320,9 +325,7 @@ What other tools are available to users?:
     
     # online services -> 
     
-    uuid = aiootp.sha_256("service-url.com", "username")
-    
-    db = aiootp.Ropake.client_database(uuid, password, *any_other_credentials)
+    db = aiootp.Database(pad.key)
     
     client = aiootp.Ropake.client_registration(db)
     
@@ -540,29 +543,44 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     @aiootp.comprehension() 
     
-    def squares(numbers=20):
+    def one_byte_numbers():
     
-        for number in range(numbers):
+        for number in range(256):
         
-            yield number ** 2
-    
-    
-    for hashed_square in squares().sha_256():
-    
-        # This is an example chained generator that hashes then yields each output.
-        
-        print(hashed_square)
+            yield number
     
     
     # Chained ``Comprende`` generators are excellent inline data processors ->
     
-    base64_data = []
+    base64_data = [
     
-    for result in squares().str().to_base64():
-    
-        # This will stringify each output of the generator, then base64 encode them ->
+        b64_byte
         
-        base64_data.append(result)
+        for b64_byte
+        
+        in one_byte_numbers().int_to_bytes(1).to_base64()
+        
+    ]
+    
+    # This converted each number to bytes then base64 encoded them.
+
+
+    # We can wrap other iterables to add functionality to them ->
+
+    @aiootp.comprehension()
+    
+    def unpack(iterable):
+    
+        for item in iterable:
+    
+            yield item
+
+
+    # This example just hashes each output then yields them
+
+    for hex_hash in unpack(base64_data).sha_256():
+        
+        print(hex_hash)
 
 
     # Async ``Comprende`` coroutines have almost exactly the same interface as
@@ -620,44 +638,60 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # Let's see some other ways async generators mirror synchronous ones ->
     
+    @aiootp.comprehension() 
+    
+    async def one_byte_numbers():
+    
+        for number in range(256):
+        
+            yield number
+    
+    
+    # This is asynchronous data processing ->
+    
+    base64_data = [
+    
+        b64_byte
+        
+        async for b64_byte
+        
+        in one_byte_numbers().aint_to_bytes(1).ato_base64()
+        
+    ]
+    
+    # This converted each number to bytes then base64 encoded them.
+
+
+    # We can wrap other iterables to add asynchronous functionality to them ->
+
     @aiootp.comprehension()
     
-    async def squares():
+    async def unpack(iterable):
     
-        number = 0
-        
-        while True:
-        
-            yield number ** 2
-            
-            number += 1
+        for item in iterable:
     
-    
-    # This is a chained async generator that salts then hashes then yields
-
-    # each output ->
-    
-    salt = await aiootp.acsprng()
-    
-    hashed_squares = squares().asha_512(salt)
+            yield item
 
 
     # Want only the first twenty results? ->
-    
-    async for hashed_square in hashed_squares[:20]:
+
+    async for hex_hash in unpack(base64_data).asha_256()[:20]:
     
         # Then you can slice the generator.
         
-        print(hashed_square)
+        print(hex_hash)
         
         
     # Users can slice generators to receive more complex output rules, like:
     
     # Getting every second result starting from the third result to the 50th ->
     
-    async for result in hashed_squares[3:50:2]:
+    async for result in unpack(base64_data)[3:50:2]:
     
         print(result)
+
+
+    # Although, negative slice numbers are not supported.
     
     
     # ``Comprende`` generators have loads of tooling for users to explore. 
@@ -780,16 +814,16 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     ordered_entries = {}
     
-    salt = await aiootp.acsprng()
+    salt = await aiootp.asalt()
     
     names = aiootp.akeys(key, salt=salt)
     
     
     # Resize each output of ``names`` to 32 characters, tag each output with
     
-    # an incrementing number, & stop the stream after 0.1 seconds ->
+    # an incrementing number, & stop the stream after 0.01 seconds ->
     
-    async for index, name in names.aresize(32).atag().atimeout(0.1):
+    async for index, name in names.aresize(32).atag().atimeout(0.01):
     
         ordered_entries[name] = f"{index} data organized by the stream of hashes"
     
@@ -1021,3 +1055,6 @@ A: The idea is to create an intuitive, pythonic interface to a transparently enc
 **Q: Why are the modules transformed into ``Namespace`` objects?**
 
 A: We overwrite our modules in this package to have a more fine-grained control over what part of the package's internal state is exposed to users and applications. The goal is make it more difficult for users to inadvertently jeopardize their security tools, and minimize the attack surface available to adversaries. The ``aiootp.Namespace`` class also makes it easier to coordinate and decide the library's UI/UX across the package.
+
+
+

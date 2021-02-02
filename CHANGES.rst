@@ -17,6 +17,69 @@
 =============
 
 
+Changes for version 0.16.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  All ``Database`` & ``AsyncDatabase`` filenames have been converted to
+   base36 to aid in making the manifest files & the databases as a whole 
+   more space efficient. These changes are not backwards compatible.
+-  More work was done to clean up the databases & make them more 
+   efficient, as well as equalize the sizes of the database files to
+   mitigate leaking metadata about what they might contain. 
+-  Added new ``X25519`` & ``Ed25519`` classes that greatly simplify the
+   usage of the cryptography module's 25519 based tools. They also help
+   organize the codebase into better, where ``Ropake`` was holding onto
+   all of the asymmetric tooling even though those tools were not part
+   of the Ropake protocol.
+-  New base & helper ``Asymmetric25519`` & ``BaseEllipticCurve`` classes 
+   were added as well to facilitate the reorganization.
+-  Many methods in ``Ropake`` were turned private to simplify & clean up 
+   the interface so its intended use as a protocol is more clear for users.
+-  Added the time-to-live functionality to ``Ropake`` decryption functions.
+   The ``TIMEOUT`` attribute on the class can also be changed to import 
+   a global time-to-live for all ``Ropake`` ciphertexts.
+-  Removed all ``nc_`` hash functions from the package/generics.py module.
+-  The ``Namespace`` class now has a ``keys`` method so that namespaces
+   can be unpacked using star-star syntax.
+-  Because of the ongoing failures of gnupg, we are moving away from 
+   signing out packages with gnupg. Our new Ed25519 keys will be from
+   the cryptography package, & we will sign those with out gnupg as a
+   secondary form of attestation. Our package signing will be automated
+   in the setup.py & the methods used will be transparent in the code.
+   The new signatures for each package version will be placed in a file
+   ``SIGNATURES.txt``.
+
+
+Minor Changes 
+------------- 
+
+-  Many fixes & additions to docstrings & tutorials.
+-  Massive refactorings, cleanups & typo fixes across the library, 
+   especially in the database classes, ``Ropake`` & the ``ciphers`` module.
+-  Added comprehensive functional tests for the Ropake class.
+-  Added ``BASE_36_TABLE`` to the ``commons`` module.
+-  Fixed metadata issues in setup.py that cause upload issures to pypi.
+-  The ``generate_profile``, ``load_profile``, ``agenerate_profile`` &
+   ``aload_profile`` database methods now accept arbitrary keyword arguments 
+   that get passed into the database's __init__ constructor.
+-  ``username`` & ``password`` are now required keyword-only arguments
+   to the ``agenerate_profile_tokens`` & ``generate_profile_tokens`` 
+   classmethods.
+-  The ``aload`` & ``load`` database methods now take a ``manifest`` kwarg
+   that when toggled ``True`` will also refresh the manifest file held in
+   memory from disk.
+-  Now when a database object is ordered to delete itself, the entirety 
+   of the instance's caches & attribute values are cleared & deleted.
+-  Filled out the references to strong key generators & protocols in the
+   ``keygens`` module.
+
+
+
+
 Changes for version 0.15.0 
 ========================== 
 
@@ -57,7 +120,9 @@ Major Changes
    now contains two primes in each element, the first is the minimum 
    prime of that bit length, the latter the maximum.
 -  Added ``URLSAFE_TABLE`` to the package.
--  Made ``salt`` & ``pid`` & ``ttl`` keyword only arguments in key
+-  Made ``salt`` & ``pid`` & ``ttl`` keyword only arguments in key 
+   generators & encryption / decryption functions, further tighening up
+   the api.
 
 
 Minor Changes 
@@ -72,7 +137,7 @@ Minor Changes
    to the ``generics`` module.
 -  Added ``acsprbg``, ``csprbg``, ``asalt``, ``salt``, ``apadding_key``, 
    ``padding_key``, ``aplaintext_stream`` & ``plaintext_stream`` functions
-   to OneTimePad class as ``staticmethod``s.
+   to OneTimePad class as ``staticmethod`` & instance methods.
 -  Added ``acheck_timestamp`` & ``check_timestamp`` functions to the 
    ``BytesIO`` class.
 -  Added ``adeniable_filename`` & ``deniable_filename`` to the ``paths`` 
