@@ -5,11 +5,10 @@ LICENSE
 MANIFEST.in
 PREADME.rst
 README.rst
+SIGNATURES.txt
 setup.cfg
 setup.py
-sha256_ROOT_CHECKSUM.sig
 sha256_ROOT_CHECKSUM.txt
-sha512_ROOT_CHECKSUM.sig
 sha512_ROOT_CHECKSUM.txt
 aiootp/__aiocontext.py
 aiootp/__datasets.py
@@ -42,9 +41,12 @@ licenses/cryptography_LICENSES/LICENSE.APACHE
 licenses/cryptography_LICENSES/LICENSE.BSD
 licenses/cryptography_LICENSES/LICENSE.PSF
 licenses/cryptography_LICENSES/LICENSE.txt
+tests/init_tests.py
 tests/test_Comprende.py
 tests/test_Database_AsyncDatabase.py
+tests/test_Ropake.py
 tests/test_aiootp.py
 tests/test_ciphers.py
 tests/test_generics.py
 tests/test_high_level_encryption.py
+tests/test_passcrypt_apasscrypt.py

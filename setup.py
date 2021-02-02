@@ -2,9 +2,9 @@
 # and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -12,9 +12,12 @@
 import json
 from os import linesep
 from pathlib import Path
+from getpass import getpass
 from hashlib import sha256, sha512
 from collections import defaultdict
 from setuptools import setup, find_packages
+
+from aiootp import Ed25519, Database, passcrypt
 
 
 description = """
@@ -40,7 +43,7 @@ with open("MANIFEST.in", "r") as manifest:
 
 checksums = defaultdict(dict)
 for line in filename_sheet:
-    if "CHECKSUM" in line or not line.startswith("include"):
+    if "CHECKSUM" in line or "SIGNATURES" in line or not line.startswith("include"):
         continue
 
     name = line.split(" ")[-1]
@@ -55,20 +58,58 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
     checksums_txt.write(package_checksums)
 
     with open("sha512_ROOT_CHECKSUM.txt", "w+") as root_hash_512:
-        sha512sum = sha512(package_checksums.encode()).hexdigest()
-        root_hash_512.write(sha512sum)
+        sha512sum = sha512(package_checksums.encode()).digest()
+        root_hash_512.write(sha512sum.hex())
 
     with open("sha256_ROOT_CHECKSUM.txt", "w+") as root_hash_256:
-        sha256sum = sha256(package_checksums.encode()).hexdigest()
-        root_hash_256.write(sha256sum)
+        sha256sum = sha256(package_checksums.encode()).digest()
+        root_hash_256.write(sha256sum.hex())
+
+    if getpass("Sign Package ? y/N\n").lower().startswith("y"):
+
+        db = Database(
+            passcrypt(getpass("Database key ?\n"), getpass("Salt ?\n")),
+            directory=getpass("Identity Key Directory ?\n"),
+        )
+
+        presigned_keys = db["ephemerals"]
+        if presigned_keys:
+            ephemeral_hex = presigned_keys.pop()
+            signed_ephemeral_key = db[ephemeral_hex]
+            ephemeral_key = Ed25519().import_secret_key(ephemeral_hex)
+            identity_key = Ed25519().import_public_key(db["identity_key_public"])
+            assert signed_ephemeral_key
+            assert ephemeral_hex not in db["ephemerals"]
+        else:
+            ephemeral_key = Ed25519().generate()
+            identity_key = Ed25519().import_secret_key(db["identity_key_secret"])
+            signed_ephemeral_key = identity_key.sign(ephemeral_key.public_bytes)
+
+        db["ephemeral"] = ephemeral_key.secret_bytes.hex()
+        proof = dict(
+            identity_key=identity_key.public_bytes.hex(),
+            pgp_signed_identity_key=db["pgp_attestation"],
+            checksums_txt_sha256=sha256sum.hex(),
+            checksums_txt_sha512=sha512sum.hex(),
+            signed_sha256sum=ephemeral_key.sign(sha256sum).hex(),
+            signed_sha512sum=ephemeral_key.sign(sha512sum).hex(),
+            ephemeral_key=ephemeral_key.public_bytes.hex(),
+            signed_ephemeral_key=signed_ephemeral_key.hex(),
+        )
+        db["proof"] = proof
+        db.save()
+
+        with open("SIGNATURES.txt", "w+") as attestation:
+            attestation.write(json.dumps(proof))
 
 
 setup(
     name="aiootp",
     license="AGPLv3",
-    version="0.15.0",
+    version="0.16.0",
     description=description,
     long_description=long_description,
+    long_description_content_type="text/x-rst",
     url="https://github.com/rmlibre/aiootp",
     author="Gonzo Investigatory Journalism Agency, LLC",
     author_email="gonzo.development@protonmail.ch",
