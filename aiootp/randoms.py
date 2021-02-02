@@ -2,9 +2,9 @@
 # and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -58,8 +58,6 @@ from .asynchs import asleep
 from .generics import aint
 from .generics import astr
 from .generics import arange
-from .generics import nc_512
-from .generics import anc_512
 from .generics import sha_256
 from .generics import sha_512
 from .generics import asha_256
@@ -605,7 +603,7 @@ async def arandom_number_generator(
     runs=26,
     refresh=False,
     *,
-    _completed=deque([], maxlen=256),
+    _cache=deque([], maxlen=256),
 ):
     """
     We propose several methods for producing cryptographically secure
@@ -668,7 +666,7 @@ async def arandom_number_generator(
     if not issubclass(entropy.__class__, bytes):
         entropy = str(entropy).encode()
 
-    if refresh or not _completed:
+    if refresh or not _cache:
 
         async def start_generator(runs, tasks=deque()):
             for _ in range(runs):
@@ -681,7 +679,7 @@ async def arandom_number_generator(
         async def hash_cache():
             seed = await atoken_bytes(32)
             await arandom_sleep(0.003)
-            _completed.appendleft(hash_bytes(*_completed, entropy, seed))
+            _cache.appendleft(hash_bytes(*_cache, entropy, seed))
 
         async def modular_multiplication():
             seed = await _asalt()
@@ -689,7 +687,7 @@ async def arandom_number_generator(
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
-            _completed.appendleft(
+            _cache.appendleft(
                 await ahash_bytes(
                     result.to_bytes(512, "big"),
                     seed.to_bytes(256, "big"),
@@ -716,12 +714,12 @@ async def arandom_number_generator(
         await start_generator(runs)
         await agenerate_unique_range_bounds()
     else:
-        _completed.appendleft(
-            await ahash_bytes(*_completed, await atoken_bytes(32), entropy)
+        _cache.appendleft(
+            await ahash_bytes(*_cache, await atoken_bytes(32), entropy)
         )
 
     return await ahash_bytes(
-        *_completed, (await _asalt()).to_bytes(256, "big"), entropy
+        *_cache, (await _asalt()).to_bytes(256, "big"), entropy
     )
 
 
@@ -730,7 +728,7 @@ def random_number_generator(
     runs=26,
     refresh=False,
     *,
-    _completed=deque([], maxlen=256),
+    _cache=deque([], maxlen=256),
 ):
     """
     We propose several methods for producing cryptographically secure
@@ -793,7 +791,7 @@ def random_number_generator(
     if not issubclass(entropy.__class__, bytes):
         entropy = str(entropy).encode()
 
-    if refresh or not _completed:
+    if refresh or not _cache:
 
         async def start_generator(runs, tasks=deque()):
             for _ in range(runs):
@@ -806,7 +804,7 @@ def random_number_generator(
         async def hash_cache():
             seed = await atoken_bytes(32)
             await arandom_sleep(0.003)
-            _completed.appendleft(hash_bytes(*_completed, entropy, seed))
+            _cache.appendleft(hash_bytes(*_cache, entropy, seed))
 
         async def modular_multiplication():
             seed = await _asalt()
@@ -814,7 +812,7 @@ def random_number_generator(
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
-            _completed.appendleft(
+            _cache.appendleft(
                 await ahash_bytes(
                     result.to_bytes(512, "big"),
                     seed.to_bytes(256, "big"),
@@ -841,12 +839,12 @@ def random_number_generator(
         run(start_generator(runs))    # <- RuntimeError in event loops
         generate_unique_range_bounds()
     else:
-        _completed.appendleft(
-            hash_bytes(*_completed, token_bytes(32), entropy)
+        _cache.appendleft(
+            hash_bytes(*_cache, token_bytes(32), entropy)
         )
 
     return hash_bytes(
-        *_completed, _salt().to_bytes(256, "big"), entropy
+        *_cache, _salt().to_bytes(256, "big"), entropy
     )
 
 
@@ -1298,7 +1296,7 @@ async def anon_0_digits(key=None, stream_key=""):
     key = key if key else await acsprng()
     seed = await asha_512(key)
     while True:
-        stream_key = await aint(await anc_512(seed, key, stream_key), 16)
+        stream_key = await aint(await asha_512(seed, key, stream_key), 16)
         for char in (await astr(stream_key)).replace("0", "")[8:]:
             yield await aint(char)
 
@@ -1311,7 +1309,7 @@ def non_0_digits(key=None, stream_key=""):
     key = key if key else csprng()
     seed = sha_512(key)
     while True:
-        stream_key = int(nc_512(seed, key, stream_key), 16)
+        stream_key = int(sha_512(seed, key, stream_key), 16)
         for char in str(stream_key).replace("0", "")[8:]:
             yield int(char)
 
@@ -1325,7 +1323,7 @@ async def abytes_digits(key=None, stream_key=""):
     seed = await asha_512(key)
     from_hex = bytes.fromhex
     while True:
-        stream_key = from_hex(await anc_512(seed, key, stream_key))
+        stream_key = from_hex(await asha_512(seed, key, stream_key))
         for char in stream_key[4:]:
             yield char
 
@@ -1339,7 +1337,7 @@ def bytes_digits(key=None, stream_key=""):
     seed = sha_512(key)
     from_hex = bytes.fromhex
     while True:
-        stream_key = from_hex(nc_512(seed, key, stream_key))
+        stream_key = from_hex(sha_512(seed, key, stream_key))
         for char in stream_key[4:]:
             yield char
 
@@ -1352,7 +1350,7 @@ async def adigits(key=None, stream_key=""):
     key = key if key else await acsprng()
     seed = await asha_512(key)
     while True:
-        stream_key = await aint(await anc_512(seed, key, stream_key), 16)
+        stream_key = await aint(await asha_512(seed, key, stream_key), 16)
         for char in (await astr(stream_key))[8:]:
             yield await aint(char)
 
@@ -1365,7 +1363,7 @@ def digits(key=None, stream_key=""):
     key = key if key else csprng()
     seed = sha_512(key)
     while True:
-        stream_key = int(nc_512(seed, key, stream_key), 16)
+        stream_key = int(sha_512(seed, key, stream_key), 16)
         for char in str(stream_key)[8:]:
             yield int(char)
 
@@ -1574,8 +1572,6 @@ async def asalt(entropy=bytes.fromhex(sha_512(_salt()))):
     Returns a cryptographically secure pseudo-random 256-bit hex number
     that also seeds new entropy into the acsprng generator.
     """
-    if not issubclass(entropy.__class__, bytes):
-        entropy = str(entropy).encode()
     return  await asha_256(await acsprng(entropy))
 
 
@@ -1584,8 +1580,6 @@ def salt(entropy=bytes.fromhex(sha_512(_salt()))):
     Returns a cryptographically secure pseudo-random 256-bit hex number
     that also seeds new entropy into the csprng generator.
     """
-    if not issubclass(entropy.__class__, bytes):
-        entropy = str(entropy).encode()
     return sha_256(csprng(entropy))
 
 
@@ -1603,7 +1597,7 @@ async def acsprng(entropy=bytes.fromhex(sha_512(_salt()))):
         return await _acsprng(entropy)
     except StopAsyncIteration:
         _acsprng = aseeder.root(entropy).asend
-        return await _acsprng()
+        return await _acsprng(None)
 
 
 def csprng(entropy=bytes.fromhex(sha_512(_salt()))):
@@ -1620,7 +1614,7 @@ def csprng(entropy=bytes.fromhex(sha_512(_salt()))):
         return _csprng(entropy)
     except StopIteration:
         _csprng = seeder.root(entropy).send
-        return _csprng()
+        return _csprng(None)
 
 
 async def acsprbg(entropy=bytes.fromhex(sha_512(_salt()))):
@@ -1637,7 +1631,7 @@ async def acsprbg(entropy=bytes.fromhex(sha_512(_salt()))):
         return await _acsprbg(entropy)
     except StopAsyncIteration:
         _acsprbg = abytes_seeder.root(entropy).asend
-        return await _acsprbg()
+        return await _acsprbg(None)
 
 
 def csprbg(entropy=bytes.fromhex(sha_512(_salt()))):
@@ -1654,7 +1648,7 @@ def csprbg(entropy=bytes.fromhex(sha_512(_salt()))):
         return _csprbg(entropy)
     except StopIteration:
         _csprbg = bytes_seeder.root(entropy).send
-        return _csprbg()
+        return _csprbg(None)
 
 
 try:
