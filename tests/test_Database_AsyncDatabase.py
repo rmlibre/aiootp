@@ -2,9 +2,9 @@
 # networking over tor v3 onion services.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#          © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -29,8 +29,6 @@ tag = "testing"
 atag = "a" + tag
 metatag = "clients"
 ametatag = "a" + metatag
-depth = 100
-key = csprng()
 test_data = {
     "floats": 10000.243,
     "dicts": {"testing": {}},
@@ -43,30 +41,6 @@ atest_data = {
     "lists": list(range(100)),
     "strings": 100 * "testing...",
 }
-
-
-@pytest.fixture(scope="module")
-def database():
-    print("setup".center(15, "-"))
-
-    db = Database(key=key, password_depth=depth)
-    db.save()
-    yield db
-
-    print("teardown".center(18, "-"))
-    db.delete_database()
-
-
-@pytest.fixture(scope="module")
-def async_database():
-    print("setup".center(15, "-"))
-
-    db = run(AsyncDatabase(key=key, password_depth=depth))
-    yield db
-
-    print("teardown".center(18, "-"))
-    run(db.asave())
-    run(db.adelete_database())
 
 
 def test_Database_instance(database):

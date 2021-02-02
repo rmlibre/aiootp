@@ -2,9 +2,9 @@
 # networking over tor v3 onion services.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#          © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -26,6 +26,11 @@ for variable in __all__:
 
 
 from test_passcrypt_apasscrypt import *
+for variable in __all__:
+    __exports.add(variable)
+
+
+from test_Ropake import *
 for variable in __all__:
     __exports.add(variable)
 
