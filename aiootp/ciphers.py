@@ -2,9 +2,9 @@
 # and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2020 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2020 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -32,6 +32,8 @@ __all__ = [
     "Ropake",
     "AsyncDatabase",
     "Database",
+    "Ed25519",
+    "X25519",
 ]
 
 
@@ -45,6 +47,7 @@ import math
 import json
 import asyncio
 import builtins
+import cryptography
 from functools import wraps
 from hashlib import sha3_512
 from cryptography.hazmat.primitives import serialization
@@ -82,8 +85,6 @@ from .generics import order, aorder
 from .generics import birth, abirth
 from .generics import unpack, aunpack
 from .generics import ignore, aignore
-from .generics import nc_512, anc_512
-from .generics import nc_2048, anc_2048
 from .generics import sha_256, asha_256
 from .generics import sha_512, asha_512
 from .generics import wait_on, await_on
@@ -91,15 +92,12 @@ from .generics import is_async_function
 from .generics import lru_cache, alru_cache
 from .generics import Comprende, comprehension
 from .generics import json_encode, ajson_encode
-from .generics import nc_512_hmac, anc_512_hmac
 from .generics import sha_256_hmac, asha_256_hmac
 from .generics import sha_512_hmac, asha_512_hmac
 from .generics import json_to_bytes_encode
 from .generics import ajson_to_bytes_encode
 from .generics import pad_bytes, apad_bytes
 from .generics import depad_bytes, adepad_bytes
-from .generics import ascii_to_bytes_data as a2b_data
-from .generics import aascii_to_bytes_data as aa2b_data
 
 
 @comprehension()
@@ -526,6 +524,8 @@ async def ajson_decrypt(data=None, key=None, *, pid=0, ttl=0):
                 can be used for any arbitrary categorization of streams
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
+    ``ttl``:    An amount of seconds that dictate the allowable age of
+                the decrypted message.
     """
     if type(data) != dict:
         data = json.loads(data)
@@ -550,6 +550,8 @@ def json_decrypt(data=None, key=None, *, pid=0, ttl=0):
                 can be used for any arbitrary categorization of streams
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
+    ``ttl``:    An amount of seconds that dictate the allowable age of
+                the decrypted message.
     """
     if type(data) != dict:
         data = json.loads(data)
@@ -635,6 +637,8 @@ async def abytes_decrypt(data=None, key=None, *, pid=0, ttl=0):
                 can be used for any arbitrary categorization of streams
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
+    ``ttl``:    An amount of seconds that dictate the allowable age of
+                the decrypted message.
     """
     hmac = data["hmac"]
     salt = data["salt"]
@@ -665,6 +669,8 @@ def bytes_decrypt(data=None, key=None, *, pid=0, ttl=0):
                 can be used for any arbitrary categorization of streams
                 as long as the encryption & decryption processes for a
                 given stream use the same ``pid`` value.
+    ``ttl``:    An amount of seconds that dictate the allowable age of
+                the decrypted message.
     """
     hmac = data["hmac"]
     salt = data["salt"]
@@ -714,6 +720,10 @@ class Passcrypt:
 
     @staticmethod
     def _check_inputs(password: any, salt: any):
+        """
+        Makes sure ``password`` & ``salt`` are truthy. Throws ValueError
+        if not.
+        """
         if not password:
             raise ValueError("No ``password`` was specified.")
         elif not salt:
@@ -1482,10 +1492,30 @@ class AsyncDatabase(metaclass=AsyncInit):
     io = BytesIO()
     directory = DatabasePath()
     asalt = staticmethod(asalt)
+    _SALT = commons.SALT
     _METATAG = commons.METATAG
     _MANIFEST = commons.MANIFEST
     _ENCODING = io.LIST_ENCODING
+    _BASE_36_TABLE = commons.BASE_36_TABLE
     _NO_PROFILE_OR_CORRUPT = commons.NO_PROFILE_OR_CORRUPT
+
+    @classmethod
+    def _hash_to_base36(cls, hex_string):
+        """
+        Returns the received ``hex_hash`` in base36 encoding.
+        """
+        return cls.io.bytes_to_urlsafe(
+            bytes.fromhex(hex_string), table=cls._BASE_36_TABLE,
+        )
+
+    @classmethod
+    async def _ahash_to_base36(cls, hex_string):
+        """
+        Returns the received ``hex_hash`` in base36 encoding.
+        """
+        return await cls.io.abytes_to_urlsafe(
+            bytes.fromhex(hex_string), table=cls._BASE_36_TABLE,
+        )
 
     @classmethod
     async def aprofile_exists(cls, tokens):
@@ -1493,16 +1523,16 @@ class AsyncDatabase(metaclass=AsyncInit):
         Tests if a profile that ``tokens`` would open has saved a salt
         file on the user filesystem. Retruens false if not.
         """
-        filename = await paths._adeniable_filename(tokens._bytes_key)
+        filename = await paths.adeniable_filename(tokens._bytes_key)
         path = (DatabasePath() / "secure") / filename
         return path.exists()
 
     @classmethod
     async def agenerate_profile_tokens(
         cls,
+        *credentials,
         username,
         password,
-        *credentials,
         salt=None,
         kb=32768,
         cpu=3,
@@ -1546,7 +1576,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         return tokens._login_key
 
     @classmethod
-    async def agenerate_profile(cls, tokens):
+    async def agenerate_profile(cls, tokens, **kw):
         """
         Creates & loads a profile database for a user from the ``tokens``
         passed in.
@@ -1560,7 +1590,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         return tokens.profile
 
     @classmethod
-    async def aload_profile(cls, tokens):
+    async def aload_profile(cls, tokens, **kw):
         """
         Loads a profile database for a user from the ``tokens`` passed
         in. Throws ``LookupError`` if the profile has not yet been
@@ -1568,7 +1598,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         if not await cls.aprofile_exists(tokens):
             raise LookupError(cls._NO_PROFILE_OR_CORRUPT)
-        return await cls.agenerate_profile(tokens)
+        return await cls.agenerate_profile(tokens, **kw)
 
     @classmethod
     async def adelete_profile(cls, tokens):
@@ -1579,7 +1609,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         try:
             await tokens.profile.adelete_database()
         except AttributeError:
-            await cls.aload_profile(tokens)
+            await cls.aload_profile(tokens, preload=False)
             await tokens.profile.adelete_database()
         tokens._salt_path.unlink()
 
@@ -1626,27 +1656,26 @@ class AsyncDatabase(metaclass=AsyncInit):
         self._cache = Namespace()
         self._manifest = Namespace()
         self.directory = Path(directory)
+        self._is_metatag = True if metatag else False
         self._root_key, self._root_hash, self._root_filename = (
             await self._ainitialize_keys(key, password_depth)
         )
-        if metatag:
-            self._is_metatag = True
-        else:
-            self._is_metatag = False
         await self._aload_manifest()
         await self._ainitialize_metatags()
         if preload:
             await self.aload(silent=silent)
 
-    @staticmethod
-    async def _ainitialize_keys(key=None, password_depth=0):
+    @classmethod
+    async def _ainitialize_keys(cls, key=None, password_depth=0):
         """
         Derives the database's cryptographic root key material and the
         filename of the manifest ledger.
         """
         root_key = await akeys(key, salt=key, pid=key)[password_depth]()
         root_hash = await asha_512_hmac(root_key, key=root_key)
-        root_filename = await asha_256_hmac(root_hash, key=root_hash)
+        root_filename = await cls._ahash_to_base36(
+            await asha_256_hmac(root_hash, key=root_hash)
+        )
         return root_key, root_hash, root_filename
 
     @property
@@ -1674,8 +1703,32 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         database = dict(self._manifest.namespace)
         for filename in self._maintenance_files:
-            del database[filename]
+            database.pop(filename) if filename in database else 0
         return list(database.values())
+
+    @property
+    def metatags(self):
+        """
+        Returns the list of metatags that a database contains.
+        """
+        return self._manifest.namespace.get(self._metatags_filename)
+
+    @property
+    def _root_salt_filename(self):
+        """
+        Returns the filename of the database's root salt.
+        """
+        key = (self._root_hash, self._root_key)
+        return self._hash_to_base36(sha_256_hmac(self._SALT, key=key))
+
+    @property
+    def _root_salt_path(self):
+        """
+        Returns the path of the database's root salt file if the
+        instance is not a metatag.
+        """
+        if not self._is_metatag:
+            return self.directory / self._root_salt_filename
 
     async def _aroot_encryption_key(self, filename, salt):
         """
@@ -1697,13 +1750,50 @@ class AsyncDatabase(metaclass=AsyncInit):
         key = await self._aroot_encryption_key(self._MANIFEST, salt)
         return await ajson_decrypt(ciphertext, key=key)
 
+    async def _aload_root_salt(self):
+        """
+        Pulls the root salt from the filesystem for a database instance,
+        or retrieves it from the manifest file if the database is a
+        metatag. Returns the result.
+        """
+        if self._is_metatag:
+            return self._manifest[self._root_filename]
+        else:
+            encrypted_root_salt = await self.io.aread(
+                path=self._root_salt_path,
+                encoding=self._ENCODING,
+            )
+            key = await self._aroot_encryption_key(self._SALT, salt=None)
+            return await ajson_decrypt(encrypted_root_salt, key=key)
+
+    async def _agenerate_root_salt(self):
+        """
+        Returns a 32 byte hex salt for a metatag database, or a 64 byte
+        hex salt otherwise.
+        """
+        if self._is_metatag:
+            return await asalt()
+        else:
+            return await acsprng()
+
+    async def _ainstall_root_salt(self, salt=None):
+        """
+        Gives the manifest knowledge of the database's root ``salt``.
+        This salt is the source of entropy for the database that is not
+        derived from the user's key that opens the database. This salt
+        is saved in the manifest if the database is a metatag, or the
+        salt is saved in its own file if the database is a main parent
+        database.
+        """
+        if self._is_metatag:
+            self._manifest[self._root_filename] = salt
+        else:
+            self._manifest[self._root_filename] = 0
+
     async def _acreate_salting_function(self, salt=None):
         """
         Creates and returns an async function for the instance to
-        retrieve a cryptographic ``salt`` key. If the instance is a
-        metatag child database, then the returned key is assumed to not
-        have been stored encrypted. Otherwise, the ``salt`` is assumed
-        to be encrypted, and is decrypted within the created function.
+        retrieve a cryptographic ``salt`` key.
         """
         instance_hash = sha_256_hmac(
             (hash(self), salt), key=self._root_hash
@@ -1715,31 +1805,17 @@ class AsyncDatabase(metaclass=AsyncInit):
             Keeps the ``root_salt`` tucked away until queried, where
             then it's cached for efficiency.
             """
-            if self._is_metatag:
-                return salt
-            else:
-                return await ajson_decrypt(salt, self._root_key)
+            return salt
 
         return __aroot_salt
 
-    async def _ainstall_root_salt(
-        self, root_salt=None, *, auto_encrypt=True
-    ):
+    async def _agenerate_root_seed(self):
         """
-        Resets & inserts the database's root entropy source in the
-        manifest ledger & the instance's caches of keys. Tags & metatags
-        not loaded into the cache will be unretrievable without the
-        root_salt that is replaced in this function.
+        Returns a key that is derived from the database's main key &
+        the root salt's entropy.
         """
-        salt = (
-            root_salt
-            if self._is_metatag or not auto_encrypt
-            else await ajson_encrypt(root_salt, self._root_key)
-        )
-        self._manifest[self._root_filename] = salt
-        self.__aroot_salt = await self._acreate_salting_function(salt)
-        self._root_seed = await asha_512_hmac(
-            await self.__aroot_salt(), self._root_key
+        return await asha_512_hmac(
+            await self.__aroot_salt(), key=self._root_key
         )
 
     async def _aload_manifest(self):
@@ -1749,44 +1825,24 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         if self._root_path.exists():
             self._manifest = Namespace(await self._aopen_manifest())
-            root_salt = self._manifest[self._root_filename]
+            root_salt = await self._aload_root_salt()
         else:
             self._manifest = Namespace()
             self._root_session_salt = await asalt()
-            if self._is_metatag:
-                root_salt = await asalt()
-            else:
-                root_salt = await ajson_encrypt(csprng(), self._root_key)
+            root_salt = await self._agenerate_root_salt()
+            await self._ainstall_root_salt(root_salt)
 
-        await self._ainstall_root_salt(root_salt, auto_encrypt=False)
+        self.__aroot_salt = await self._acreate_salting_function(root_salt)
+        self._root_seed = await self._agenerate_root_seed()
 
-    async def _asave_manifest(self, ciphertext=None):
+    async def _ainitialize_metatags(self):
         """
-        Writes the manifest ledger to disk. It contains all database
-        filenames & special cryptographic values for initializing the
-        database's key derivation functions.
+        Initializes the values that organize database metatags, which
+        are children databases contained within their parent.
         """
-        if not ciphertext:
-            raise PermissionError("Invalid write attempted.")
-        await self.io.awrite(path=self._root_path, ciphertext=ciphertext)
-
-    async def _aencrypt_manifest(self, salt):
-        """
-        Takes a ``salt`` & returns the database's manifest encrypted.
-        """
-        manifest = self._manifest.namespace
-        key = await self._aroot_encryption_key(self._MANIFEST, salt)
-        return await ajson_encrypt(manifest, key=key, salt=salt)
-
-    async def _aclose_manifest(self):
-        """
-        Prepares for & writes the manifest ledger to disk. The manifest
-        contains all database filenames & special cryptographic values
-        for initializing the database's key derivation functions.
-        """
-        salt = self._root_session_salt = await asalt()
-        manifest = await self._aencrypt_manifest(salt)
-        await self._asave_manifest(manifest)
+        self._metatags_filename = await self.afilename(self._METATAG)
+        if self.metatags == None:
+            self._manifest[self._metatags_filename] = []
 
     async def aload_metatags(self, *, preload=True, silent=False):
         """
@@ -1795,13 +1851,11 @@ class AsyncDatabase(metaclass=AsyncInit):
         metatag references are populated in the database's instance
         dictionary, but their internal values are not loaded.
         """
-        await gather(
-            *[
-                self.ametatag(metatag, preload=preload, silent=silent)
-                for metatag in set(self.metatags)
-            ],
-            return_exceptions=True,
+        queue = (
+            self.ametatag(metatag, preload=preload, silent=silent)
+            for metatag in set(self.metatags)
         )
+        await gather(*queue, return_exceptions=True)
 
     async def aload_tags(self, silent=False):
         """
@@ -1809,17 +1863,15 @@ class AsyncDatabase(metaclass=AsyncInit):
         cache.
         """
         database = dict(self._manifest.namespace)
-        for maintenance_file in self._maintenance_files:
-            del database[maintenance_file]
-        await gather(
-            *[
-                self.aquery(tag, silent=silent)
-                for filename, tag in database.items()
-            ],
-            return_exceptions=True,
+        for filename in self._maintenance_files:
+            database.pop(filename) if filename in database else 0
+        queue = (
+            self.aquery(tag, silent=silent)
+            for filename, tag in database.items()
         )
+        await gather(*queue, return_exceptions=True)
 
-    async def aload(self, *, metatags=True, silent=False):
+    async def aload(self, *, metatags=True, silent=False, manifest=False):
         """
         Loads all the database object's values from the filesystem into
         the database cache. This brings the database values into the
@@ -1827,6 +1879,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         lookup of metatags. Otherwise, values would have to be queried
         using the awaitable ``aquery`` & ``ametatag`` methods.
         """
+        if manifest:
+            await self._aload_manifest()
         await gather(
             self.aload_metatags(preload=metatags, silent=silent),
             self.aload_tags(silent=silent),
@@ -1834,13 +1888,23 @@ class AsyncDatabase(metaclass=AsyncInit):
         )
         return self
 
+    def _filename(self, tag=None):
+        """
+        Derives the filename hash given a user-defined ``tag``.
+        """
+        hashed_tag = sha_256_hmac(
+            (tag, self._root_seed), key=self._root_hash
+        )
+        return self._hash_to_base36(hashed_tag)
+
     async def afilename(self, tag=None):
         """
         Derives the filename hash given a user-defined ``tag``.
         """
-        return await asha_256_hmac(
+        hashed_tag = await asha_256_hmac(
             (tag, self._root_seed), key=self._root_hash
         )
+        return await self._ahash_to_base36(hashed_tag)
 
     async def ahmac(self, *data):
         """
@@ -1967,6 +2031,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         ``filename``    This is the hashed tag that labels a piece of
             data in the database.
         ``ciphertext``  This is a dictionary of ciphertext.
+        ``ttl``:        An amount of seconds that dictate the allowable
+            age of the decrypted message.
         """
         salt = ciphertext["salt"]
         key = await self._aencryption_key(filename, salt)
@@ -1980,6 +2046,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         ``filename``    This is the hashed tag that labels a piece of
             data in the database.
         ``ciphertext``  This is a dictionary of ciphertext.
+        ``ttl``:        An amount of seconds that dictate the allowable
+            age of the decrypted message.
         """
         salt = ciphertext["salt"]
         key = await self._aencryption_key(filename, salt)
@@ -2013,6 +2081,14 @@ class AsyncDatabase(metaclass=AsyncInit):
         key = await self._aencryption_key(filename, salt)
         return await ajson_encrypt(plaintext, key=key, salt=salt)
 
+    async def _asave_ciphertext(self, filename=None, ciphertext=None):
+        """
+        Saves the encrypted value ``ciphertext`` in the database file
+        called ``filename``.
+        """
+        path = self.directory / filename
+        await self.io.awrite(path=path, ciphertext=ciphertext)
+
     async def aset(self, tag=None, data=None):
         """
         Allows users to add the value ``data`` under the name ``tag``
@@ -2021,6 +2097,18 @@ class AsyncDatabase(metaclass=AsyncInit):
         filename = await self.afilename(tag)
         self._cache[filename] = data
         self._manifest[filename] = tag
+
+    async def _aquery_ciphertext(self, filename=None, silent=False):
+        """
+        Retrieves the value stored in the database file that's called
+        ``filename``.
+        """
+        try:
+            path = self.directory / filename
+            return await self.io.aread(path=path, encoding=self._ENCODING)
+        except FileNotFoundError as corrupt_database:
+            if not silent:
+                raise corrupt_database
 
     async def aquery(self, tag=None, silent=False):
         """
@@ -2040,12 +2128,23 @@ class AsyncDatabase(metaclass=AsyncInit):
             self._cache[filename] = result
             return result
 
-    async def apop(self, tag=None):
+    async def _adelete_file(self, filename=None):
+        """
+        Deletes a file in the database directory by ``filename``.
+        """
+        try:
+            await asynchs.aos.remove(self.directory / filename)
+        except FileNotFoundError:
+            pass
+
+    async def apop(self, tag=None, *, admin=False):
         """
         Returns a value from the database by it's ``tag`` & deletes the
         associated file in the database directory.
         """
         filename = await self.afilename(tag)
+        if filename in self._maintenance_files and not admin:
+            raise PermissionError("Cannot delete maintenance files.")
         try:
             value = await self.aquery(tag)
         except FileNotFoundError:
@@ -2060,22 +2159,6 @@ class AsyncDatabase(metaclass=AsyncInit):
             pass
         await self._adelete_file(filename)
         return value
-
-    async def _ainitialize_metatags(self):
-        """
-        Initializes the values that organize database metatags, which
-        are children databases contained within their parent.
-        """
-        self._metatags_filename = await self.afilename(self._METATAG)
-        if self.metatags == None:
-            self._manifest[self._metatags_filename] = []
-
-    @property
-    def metatags(self):
-        """
-        Returns the list of metatags that a database contains.
-        """
-        return self._manifest.namespace.get(self._metatags_filename)
 
     async def _ametatag_key(self, tag=None):
         """
@@ -2131,6 +2214,89 @@ class AsyncDatabase(metaclass=AsyncInit):
         self.__dict__.pop(tag)
         self.metatags.remove(tag)
 
+    async def _anullify(self):
+        """
+        Clears the database's memory caches & instance variables of all
+        values so a deleted database no longer makes changes to the
+        filesystem.
+        """
+        self._manifest.namespace.clear()
+        self._cache.namespace.clear()
+        self.__dict__.clear()
+
+    async def adelete_database(self):
+        """
+        Completely clears all of the entries in database instance & its
+        associated files.
+        """
+        for metatag in self.metatags:
+            await (await self.ametatag(metatag)).adelete_database()
+        for filename in self._manifest.namespace:
+            await self._adelete_file(filename)
+        await self._adelete_file(self._root_salt_filename)
+        await self._anullify()
+
+    async def _aencrypt_manifest(self, salt):
+        """
+        Takes a ``salt`` & returns the database's manifest encrypted.
+        """
+        manifest = self._manifest.namespace
+        key = await self._aroot_encryption_key(self._MANIFEST, salt)
+        return await ajson_encrypt(manifest, key=key, salt=salt)
+
+    async def _asave_manifest(self, ciphertext=None):
+        """
+        Writes the manifest ledger to disk. It contains all database
+        filenames & special cryptographic values for initializing the
+        database's key derivation functions.
+        """
+        if not ciphertext:
+            raise PermissionError("Invalid write attempted.")
+        await self.io.awrite(path=self._root_path, ciphertext=ciphertext)
+
+    async def _asave_root_salt(self, salt):
+        """
+        Writes a non-metatag database instance's root salt to disk as a
+        separate file.
+        """
+        key = await self._aroot_encryption_key(self._SALT, salt=None)
+        await self.io.awrite(
+            path=self._root_salt_path,
+            ciphertext=await ajson_encrypt(salt, key=key),
+        )
+
+    async def _aclose_manifest(self):
+        """
+        Prepares for & writes the manifest ledger to disk. The manifest
+        contains all database filenames & other metadata used to
+        organize databases.
+        """
+        if not self._is_metatag:
+            await self._asave_root_salt(await self.__aroot_salt())
+        salt = self._root_session_salt = await asalt()
+        manifest = await self._aencrypt_manifest(salt)
+        await self._asave_manifest(manifest)
+
+    async def _asave_file(self, filename=None, *, admin=False):
+        """
+        Writes the cached value for a user-specified ``filename`` to the
+        user filesystem.
+        """
+        if not admin and filename in self._maintenance_files:
+            raise PermissionError("Cannot edit maintenance files.")
+        ciphertext = await self.aencrypt(filename, self._cache[filename])
+        await self._asave_ciphertext(filename, ciphertext)
+
+    async def _asave_tags(self):
+        """
+        Writes the database's user-defined tags to disk.
+        """
+        maintenance_files = self._maintenance_files
+        for filename in self._cache.namespace:
+            if filename in maintenance_files:
+                continue
+            await self._asave_file(filename, admin=True)
+
     async def _asave_metatags(self):
         """
         Writes the database's child databases to disk.
@@ -2145,74 +2311,16 @@ class AsyncDatabase(metaclass=AsyncInit):
         filesystem.
         """
         filename = await self.afilename(tag)
-        await self._asave_file(filename, admin=admin)
-
-    async def _asave_tags(self):
-        """
-        Writes the database's user-defined tags to disk.
-        """
-        maintenance_files = self._maintenance_files
-        for filename in self._cache.namespace:
-            if filename in maintenance_files:
-                continue
-            await self._asave_file(filename, admin=True)
-
-    async def _adelete_file(self, filename=None):
-        """
-        Deletes a file in the database directory by ``filename``.
-        """
         try:
-            await asynchs.aos.remove(self.directory / filename)
-        except FileNotFoundError:
-            pass
-
-    async def _asave_file(self, filename=None, *, admin=False):
-        """
-        Writes the cached value for a user-specified ``filename`` to the
-        user filesystem.
-        """
-        if not admin and filename in self._maintenance_files:
-            raise PermissionError("Cannot edit maintenance files.")
-        ciphertext = await self.aencrypt(filename, self._cache[filename])
-        await self._asave_ciphertext(filename, ciphertext)
-
-    async def _aquery_ciphertext(self, filename=None, silent=False):
-        """
-        Retrieves the value stored in the database file that's called
-        ``filename``.
-        """
-        try:
-            path = self.directory / filename
-            return await self.io.aread(path=path, encoding=self._ENCODING)
-        except FileNotFoundError as corrupt_database:
-            if not silent:
-                raise corrupt_database
-
-    async def _asave_ciphertext(self, filename=None, ciphertext=None):
-        """
-        Saves the encrypted value ``ciphertext`` in the database file
-        called ``filename``.
-        """
-        path = self.directory / filename
-        await self.io.awrite(path=path, ciphertext=ciphertext)
-
-    async def adelete_database(self):
-        """
-        Completely clears all of the entries in database instance & its
-        associated files.
-        """
-        for metatag in self.metatags:
-            await (await self.ametatag(metatag)).adelete_database()
-        for filename in self._manifest.namespace:
-            await self._adelete_file(filename)
-        self._cache.namespace.clear()
-        self._manifest.namespace.clear()
+            await self._asave_file(filename, admin=admin)
+        except:
+            raise FileNotFoundError("That tag file doesn't exist.")
 
     async def asave(self):
         """
-        Writes the database's values to disk.
+        Writes the database's values to disk with transparent encryption.
         """
-        if self._root_filename not in self._manifest:
+        if self._is_metatag and self._root_filename not in self._manifest:
             raise PermissionError("The database keys have been deleted.")
         await self._aclose_manifest()
         await gather(
@@ -2266,7 +2374,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Checks the cache & manifest for the filename associated with the
         user-defined ``tag``.
         """
-        filename = sha_256_hmac((tag, self._root_seed), self._root_hash)
+        filename = self._filename(tag)
         return filename in self._manifest or filename in self._cache
 
     async def __aenter__(self):
@@ -2300,7 +2408,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Allows users to add the value ``data`` under the name ``tag``
         into the database.
         """
-        filename = sha_256_hmac((tag, self._root_seed), self._root_hash)
+        filename = self._filename(tag)
         self._cache[filename] = data
         self._manifest[filename] = tag
 
@@ -2309,7 +2417,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Allows users to retrieve the value stored under the name ``tag``
         from the database.
         """
-        filename = sha_256_hmac((tag, self._root_seed), self._root_hash)
+        filename = self._filename(tag)
         if filename in self._cache:
             return self._cache[filename]
 
@@ -2318,7 +2426,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Allows users to delete the value stored under the name ``tag``
         from the database.
         """
-        filename = sha_256_hmac((tag, self._root_seed), self._root_hash)
+        filename = self._filename(tag)
         try:
             del self._manifest[filename]
         except KeyError:
@@ -2378,10 +2486,21 @@ class Database:
     io = BytesIO()
     directory = DatabasePath()
     salt = staticmethod(salt)
+    _SALT = commons.SALT
     _METATAG = commons.METATAG
     _MANIFEST = commons.MANIFEST
     _ENCODING = io.LIST_ENCODING
+    _BASE_36_TABLE = commons.BASE_36_TABLE
     _NO_PROFILE_OR_CORRUPT = commons.NO_PROFILE_OR_CORRUPT
+
+    @classmethod
+    def _hash_to_base36(cls, hex_string):
+        """
+        Returns the received ``hex_hash`` in base36 encoding.
+        """
+        return cls.io.bytes_to_urlsafe(
+            bytes.fromhex(hex_string), table=cls._BASE_36_TABLE,
+        )
 
     @classmethod
     def profile_exists(cls, tokens):
@@ -2389,16 +2508,16 @@ class Database:
         Tests if a profile that ``tokens`` would open has saved a salt
         file on the user filesystem. Retruens false if not.
         """
-        filename = paths._deniable_filename(tokens._bytes_key)
+        filename = paths.deniable_filename(tokens._bytes_key)
         path = (DatabasePath() / "secure") / filename
         return path.exists()
 
     @classmethod
     def generate_profile_tokens(
         cls,
+        *credentials,
         username,
         password,
-        *credentials,
         salt=None,
         kb=32768,
         cpu=3,
@@ -2438,19 +2557,21 @@ class Database:
         return tokens._login_key
 
     @classmethod
-    def generate_profile(cls, tokens):
+    def generate_profile(cls, tokens, **kw):
         """
         Creates & loads a profile database for a user from the ``tokens``
         passed in.
         """
         cls._generate_profile_salt(tokens)
         cls._generate_profile_login_key(tokens)
-        tokens.profile = cls(key=tokens._login_key, password_depth=10000)
+        tokens.profile = cls(
+            key=tokens._login_key, password_depth=10000, **kw
+        )
         tokens.profile.save()
         return tokens.profile
 
     @classmethod
-    def load_profile(cls, tokens):
+    def load_profile(cls, tokens, **kw):
         """
         Loads a profile database for a user from the ``tokens`` passed
         in. Throws ``LookupError`` if the profile has not yet been
@@ -2458,7 +2579,7 @@ class Database:
         """
         if not cls.profile_exists(tokens):
             raise LookupError(cls._NO_PROFILE_OR_CORRUPT)
-        return cls.generate_profile(tokens)
+        return cls.generate_profile(tokens, **kw)
 
     @classmethod
     def delete_profile(cls, tokens):
@@ -2469,7 +2590,7 @@ class Database:
         try:
             tokens.profile.delete_database()
         except AttributeError:
-            cls.load_profile(tokens)
+            cls.load_profile(tokens, preload=False)
             tokens.profile.delete_database()
         tokens._salt_path.unlink()
 
@@ -2516,27 +2637,26 @@ class Database:
         self._cache = Namespace()
         self._manifest = Namespace()
         self.directory = Path(directory)
+        self._is_metatag = True if metatag else False
         self._root_key, self._root_hash, self._root_filename = (
             self._initialize_keys(key, password_depth)
         )
-        if metatag:
-            self._is_metatag = True
-        else:
-            self._is_metatag = False
         self._load_manifest()
         self._initialize_metatags()
         if preload:
             self.load(silent=silent)
 
-    @staticmethod
-    def _initialize_keys(key=None, password_depth=0):
+    @classmethod
+    def _initialize_keys(cls, key=None, password_depth=0):
         """
         Derives the database's cryptographic root key material and the
         filename of the manifest ledger.
         """
         root_key = keys(key, salt=key, pid=key)[password_depth]()
         root_hash = sha_512_hmac(root_key, key=root_key)
-        root_filename = sha_256_hmac(root_hash, key=root_hash)
+        root_filename = cls._hash_to_base36(
+            sha_256_hmac(root_hash, key=root_hash)
+        )
         return root_key, root_hash, root_filename
 
     @property
@@ -2564,8 +2684,32 @@ class Database:
         """
         database = dict(self._manifest.namespace)
         for filename in self._maintenance_files:
-            del database[filename]
+            database.pop(filename) if filename in database else 0
         return list(database.values())
+
+    @property
+    def metatags(self):
+        """
+        Returns the list of metatags that a database contains.
+        """
+        return self._manifest.namespace.get(self._metatags_filename)
+
+    @property
+    def _root_salt_filename(self):
+        """
+        Returns the filename of the database's root salt.
+        """
+        key = (self._root_hash, self._root_key)
+        return self._hash_to_base36(sha_256_hmac(self._SALT, key=key))
+
+    @property
+    def _root_salt_path(self):
+        """
+        Returns the path of the database's root salt file if the
+        instance is not a metatag.
+        """
+        if not self._is_metatag:
+            return self.directory / self._root_salt_filename
 
     def _root_encryption_key(self, filename, salt):
         """
@@ -2587,13 +2731,50 @@ class Database:
         key = self._root_encryption_key(self._MANIFEST, salt)
         return json_decrypt(ciphertext, key=key)
 
+    def _load_root_salt(self):
+        """
+        Pulls the root salt from the filesystem for a database instance,
+        or retrieves it from the manifest file if the database is a
+        metatag. Returns the result.
+        """
+        if self._is_metatag:
+            return self._manifest[self._root_filename]
+        else:
+            encrypted_root_salt = self.io.read(
+                path=self._root_salt_path,
+                encoding=self._ENCODING,
+            )
+            key = self._root_encryption_key(self._SALT, salt=None)
+            return json_decrypt(encrypted_root_salt, key=key)
+
+    def _generate_root_salt(self):
+        """
+        Returns a 32 byte hex salt for a metatag database, or a 64 byte
+        hex salt otherwise.
+        """
+        if self._is_metatag:
+            return salt()
+        else:
+            return  csprng()
+
+    def _install_root_salt(self, salt=None):
+        """
+        Gives the manifest knowledge of the database's root ``salt``.
+        This salt is the source of entropy for the database that is not
+        derived from the user's key that opens the database. This salt
+        is saved in the manifest if the database is a metatag, or the
+        salt is saved in its own file if the database is a main parent
+        database.
+        """
+        if self._is_metatag:
+            self._manifest[self._root_filename] = salt
+        else:
+            self._manifest[self._root_filename] = 0
+
     def _create_salting_function(self, salt=None):
         """
-        Creates and returns a function for the instance to retrieve a
-        cryptographic ``salt`` key. If the instance is a metatag child
-        database, then the returned key is assumed to not have been
-        stored encrypted. Otherwise, the ``salt`` is assumed to be
-        encrypted, and is decrypted within the created function.
+        Creates and returns an async function for the instance to
+        retrieve a cryptographic ``salt`` key.
         """
         instance_hash = sha_256_hmac(
             (hash(self), salt), key=self._root_hash
@@ -2605,28 +2786,16 @@ class Database:
             Keeps the ``root_salt`` tucked away until queried, where
             then it's cached for efficiency.
             """
-            if self._is_metatag:
-                return salt
-            else:
-                return json_decrypt(salt, self._root_key)
+            return salt
 
         return __root_salt
 
-    def _install_root_salt(self, root_salt=None, *, auto_encrypt=True):
+    def _generate_root_seed(self):
         """
-        Inserts the database's root entropy source in the manifest
-        ledger & the instance's caches of keys. Tags & metatags not
-        loaded into the cache will be unretrievable without the
-        root_salt that is replaced in this function.
+        Returns a key that is derived from the database's main key &
+        the root salt's entropy.
         """
-        salt = (
-            root_salt
-            if self._is_metatag or not auto_encrypt
-            else json_encrypt(root_salt, self._root_key)
-        )
-        self._manifest[self._root_filename] = salt
-        self.__root_salt = self._create_salting_function(salt)
-        self._root_seed = sha_512_hmac(self.__root_salt(), self._root_key)
+        return sha_512_hmac(self.__root_salt(), key=self._root_key)
 
     def _load_manifest(self):
         """
@@ -2635,44 +2804,24 @@ class Database:
         """
         if self._root_path.exists():
             self._manifest = Namespace(self._open_manifest())
-            root_salt = self._manifest[self._root_filename]
+            root_salt = self._load_root_salt()
         else:
             self._manifest = Namespace()
             self._root_session_salt = salt()
-            if self._is_metatag:
-                root_salt = salt()
-            else:
-                root_salt = json_encrypt(csprng(), self._root_key)
+            root_salt = self._generate_root_salt()
+            self._install_root_salt(root_salt)
 
-        self._install_root_salt(root_salt, auto_encrypt=False)
+        self.__root_salt = self._create_salting_function(root_salt)
+        self._root_seed = self._generate_root_seed()
 
-    def _save_manifest(self, ciphertext=None):
+    def _initialize_metatags(self):
         """
-        Writes the manifest ledger to disk. It contains all database
-        filenames & special cryptographic values for initializing the
-        database's key derivation functions.
+        Initializes the values that organize database metatags, which
+        are children databases contained within their parent.
         """
-        if not ciphertext:
-            raise PermissionError("Invalid write attempted.")
-        self.io.write(path=self._root_path, ciphertext=ciphertext)
-
-    def _encrypt_manifest(self, salt):
-        """
-        Takes a ``salt`` & returns the database's manifest encrypted.
-        """
-        manifest = self._manifest.namespace
-        key = self._root_encryption_key(self._MANIFEST, salt)
-        return json_encrypt(manifest, key=key, salt=salt)
-
-    def _close_manifest(self):
-        """
-        Prepares for & writes the manifest ledger to disk. The manifest
-        contains all database filenames & special cryptographic values
-        for initializing the database's key derivation functions.
-        """
-        salt = self._root_session_salt = csprng()[:64]
-        manifest = self._encrypt_manifest(salt)
-        self._save_manifest(manifest)
+        self._metatags_filename = self.filename(self._METATAG)
+        if self.metatags == None:
+            self._manifest[self._metatags_filename] = []
 
     def load_metatags(self, *, preload=True, silent=False):
         """
@@ -2690,18 +2839,20 @@ class Database:
         cache.
         """
         database = dict(self._manifest.namespace)
-        for maintenance_file in self._maintenance_files:
-            del database[maintenance_file]
+        for filename in self._maintenance_files:
+            database.pop(filename) if filename in database else 0
         for filename, tag in database.items():
             self.query(tag, silent=silent)
 
-    def load(self, *, metatags=True, silent=False):
+    def load(self, *, metatags=True, silent=False, manifest=False):
         """
         Loads all the database object's values from the filesystem into
         the database cache. This brings the database values into the
         cache, enables up-to-date bracket lookup of tag values & dotted
         lookup of metatags.
         """
+        if manifest:
+            self._load_manifest()
         self.load_metatags(preload=metatags, silent=silent)
         self.load_tags(silent=silent)
         return self
@@ -2710,7 +2861,10 @@ class Database:
         """
         Derives the filename hash given a user-defined ``tag``.
         """
-        return sha_256_hmac((tag, self._root_seed), key=self._root_hash)
+        hashed_tag = sha_256_hmac(
+            (tag, self._root_seed), key=self._root_hash
+        )
+        return self._hash_to_base36(hashed_tag)
 
     def hmac(self, *data):
         """
@@ -2876,6 +3030,14 @@ class Database:
         key = self._encryption_key(filename, salt)
         return json_encrypt(plaintext, key=key, salt=salt)
 
+    def _save_ciphertext(self, filename=None, ciphertext=None):
+        """
+        Saves the encrypted value ``ciphertext`` in the database file
+        called ``filename``.
+        """
+        path = self.directory / filename
+        self.io.write(path=path, ciphertext=ciphertext)
+
     def set(self, tag=None, data=None):
         """
         Allows users to add the value ``data`` under the name ``tag``
@@ -2884,6 +3046,18 @@ class Database:
         filename = self.filename(tag)
         self._cache[filename] = data
         self._manifest[filename] = tag
+
+    def _query_ciphertext(self, filename=None, silent=False):
+        """
+        Retrieves the value stored in the database file that's called
+        ``filename``.
+        """
+        try:
+            path = self.directory / filename
+            return self.io.read(path=path, encoding=self._ENCODING)
+        except FileNotFoundError as corrupt_database:
+            if not silent:
+                raise corrupt_database
 
     def query(self, tag=None, silent=False):
         """
@@ -2901,12 +3075,23 @@ class Database:
             self._cache[filename] = result
             return result
 
-    def pop(self, tag=None):
+    def _delete_file(self, filename=None):
+        """
+        Deletes a file in the database directory by ``filename``.
+        """
+        try:
+            (self.directory / filename).unlink()
+        except FileNotFoundError:
+            pass
+
+    def pop(self, tag=None, *, admin=False):
         """
         Returns a value from the database by it's ``tag`` & deletes the
         associated file in the database directory.
         """
         filename = self.filename(tag)
+        if filename in self._maintenance_files and not admin:
+            raise PermissionError("Cannot delete maintenance files.")
         try:
             value = self.query(tag)
         except FileNotFoundError:
@@ -2921,22 +3106,6 @@ class Database:
             pass
         self._delete_file(filename)
         return value
-
-    def _initialize_metatags(self):
-        """
-        Initializes the values that organize database metatags, which
-        are children databases contained within their parent.
-        """
-        self._metatags_filename = self.filename(self._METATAG)
-        if self.metatags == None:
-            self._manifest[self._metatags_filename] = []
-
-    @property
-    def metatags(self):
-        """
-        Returns the list of metatags that a database contains.
-        """
-        return self._manifest.namespace.get(self._metatags_filename)
 
     def _metatag_key(self, tag=None):
         """
@@ -2992,6 +3161,69 @@ class Database:
         self.__dict__.pop(tag)
         self.metatags.remove(tag)
 
+    def _nullify(self):
+        """
+        Clears the database's memory caches & instance variables of all
+        values so a deleted database no longer makes changes to the
+        filesystem.
+        """
+        self._manifest.namespace.clear()
+        self._cache.namespace.clear()
+        self.__dict__.clear()
+
+    def delete_database(self):
+        """
+        Completely clears all of the entries in database instance & its
+        associated files.
+        """
+        for metatag in self.metatags:
+            self.metatag(metatag).delete_database()
+        for filename in self._manifest.namespace:
+            self._delete_file(filename)
+        self._delete_file(self._root_salt_filename)
+        self._nullify()
+
+    def _encrypt_manifest(self, salt):
+        """
+        Takes a ``salt`` & returns the database's manifest encrypted.
+        """
+        manifest = self._manifest.namespace
+        key = self._root_encryption_key(self._MANIFEST, salt)
+        return json_encrypt(manifest, key=key, salt=salt)
+
+    def _save_manifest(self, ciphertext=None):
+        """
+        Writes the manifest ledger to disk. It contains all database
+        filenames & special cryptographic values for initializing the
+        database's key derivation functions.
+        """
+        if not ciphertext:
+            raise PermissionError("Invalid write attempted.")
+        self.io.write(path=self._root_path, ciphertext=ciphertext)
+
+    def _save_root_salt(self, salt):
+        """
+        Writes a non-metatag database instance's root salt to disk as a
+        separate file.
+        """
+        key = self._root_encryption_key(self._SALT, salt=None)
+        self.io.write(
+            path=self._root_salt_path,
+            ciphertext=json_encrypt(salt, key=key),
+        )
+
+    def _close_manifest(self):
+        """
+        Prepares for & writes the manifest ledger to disk. The manifest
+        contains all database filenames & other metadata used to
+        organize databases.
+        """
+        if not self._is_metatag:
+            self._save_root_salt(self.__root_salt())
+        salt = self._root_session_salt = csprng()[:64]
+        manifest = self._encrypt_manifest(salt)
+        self._save_manifest(manifest)
+
     def _save_metatags(self):
         """
         Writes the database's child databases to disk.
@@ -2999,33 +3231,6 @@ class Database:
         for metatag in set(self.metatags):
             if self.__dict__.get(metatag):
                 self.__dict__[metatag].save()
-
-    def save_tag(self, tag=None, *, admin=False):
-        """
-        Writes the cached value for a user-specified ``tag`` to the user
-        filesystem.
-        """
-        filename = self.filename(tag)
-        self._save_file(filename, admin=admin)
-
-    def _save_tags(self):
-        """
-        Writes the database's user-defined tags to disk.
-        """
-        maintenance_files = self._maintenance_files
-        for filename in self._cache.namespace:
-            if filename in maintenance_files:
-                continue
-            self._save_file(filename, admin=True)
-
-    def _delete_file(self, filename=None):
-        """
-        Deletes a file in the database directory by ``filename``.
-        """
-        try:
-            (self.directory / filename).unlink()
-        except FileNotFoundError:
-            pass
 
     def _save_file(self, filename=None, *, admin=False):
         """
@@ -3037,43 +3242,32 @@ class Database:
         ciphertext = self.encrypt(filename, self._cache[filename])
         self._save_ciphertext(filename, ciphertext)
 
-    def _query_ciphertext(self, filename=None, silent=False):
+    def _save_tags(self):
         """
-        Retrieves the value stored in the database file that's called
-        ``filename``.
+        Writes the database's user-defined tags to disk.
         """
+        maintenance_files = self._maintenance_files
+        for filename in self._cache.namespace:
+            if filename in maintenance_files:
+                continue
+            self._save_file(filename, admin=True)
+
+    def save_tag(self, tag=None, *, admin=False):
+        """
+        Writes the cached value for a user-specified ``tag`` to the user
+        filesystem.
+        """
+        filename = self.filename(tag)
         try:
-            path = self.directory / filename
-            return self.io.read(path=path, encoding=self._ENCODING)
-        except FileNotFoundError as corrupt_database:
-            if not silent:
-                raise corrupt_database
-
-    def _save_ciphertext(self, filename=None, ciphertext=None):
-        """
-        Saves the encrypted value ``ciphertext`` in the database file
-        called ``filename``.
-        """
-        path = self.directory / filename
-        self.io.write(path=path, ciphertext=ciphertext)
-
-    def delete_database(self):
-        """
-        Completely clears all of the entries in database instance & its
-        associated files.
-        """
-        for metatag in self.metatags:
-            self.metatag(metatag).delete_database()
-        for filename in self._manifest.namespace:
-            self._delete_file(filename)
-        self._cache.namespace.clear()
-        self._manifest.namespace.clear()
+            self._save_file(filename, admin=admin)
+        except:
+            raise FileNotFoundError("That tag file doesn't exist.")
 
     def save(self):
         """
-        Writes the database's values to disk.
+        Writes the database's values to disk with transparent encryption.
         """
-        if self._root_filename not in self._manifest:
+        if self._is_metatag and self._root_filename not in self._manifest:
             raise PermissionError("The database keys have been deleted.")
         self._close_manifest()
         self._save_metatags()
@@ -3164,7 +3358,759 @@ class Database:
     __len__ = lambda self: len(self._manifest.namespace)
 
 
-class Ropake():
+class Asymmetric25519:
+    """
+    Contains a collection of class methods & values that simplify the
+    usage of the cryptography library, as well as pointers to values in
+    the cryptography library.
+    """
+
+    cryptography = cryptography
+    serialization = serialization
+    exceptions = cryptography.exceptions
+    X25519PublicKey = X25519PublicKey
+    X25519PrivateKey = X25519PrivateKey
+    Ed25519PublicKey = Ed25519PublicKey
+    Ed25519PrivateKey = Ed25519PrivateKey
+    _PUBLIC_BYTES_ENUM = {
+        "encoding": serialization.Encoding.Raw,
+        "format": serialization.PublicFormat.Raw,
+    }
+    _PRIVATE_BYTES_ENUM = {
+        "encoding": serialization.Encoding.Raw,
+        "format": serialization.PrivateFormat.Raw,
+        "encryption_algorithm": serialization.NoEncryption(),
+    }
+
+    @staticmethod
+    async def aed25519_key():
+        """
+        Returns an ``Ed25519PrivateKey`` from the cryptography package
+        used to make elliptic curve signatures of data.
+        """
+        return Ed25519PrivateKey.generate()
+
+    @staticmethod
+    def ed25519_key():
+        """
+        Returns an ``Ed25519PrivateKey`` from the cryptography package
+        used to make elliptic curve signatures of data.
+        """
+        return Ed25519PrivateKey.generate()
+
+    @staticmethod
+    async def ax25519_key():
+        """
+        Returns a ``X25519PrivateKey`` from the cryptography package for
+        use in an elliptic curve diffie-hellman exchange.
+        """
+        return X25519PrivateKey.generate()
+
+    @staticmethod
+    def x25519_key():
+        """
+        Returns a ``X25519PrivateKey`` from the cryptography package for
+        use in an elliptic curve diffie-hellman exchange.
+        """
+        return X25519PrivateKey.generate()
+
+    @classmethod
+    async def apublic_bytes(cls, secret_key, *, hex=False):
+        """
+        Returns the public key bytes of either an ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` from the cryptography package for an
+        elliptic curve diffie-hellman exchange or signature verification
+        key. If ``hex`` is truthy, then a hex string of the public key
+        is returned instead of bytes.
+        """
+        if hasattr(secret_key, "public_key"):
+            public_key = secret_key.public_key()
+        else:
+            public_key = secret_key
+
+        public_bytes = public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
+        if hex:
+            return public_bytes.hex()
+        else:
+            return public_bytes
+
+    @classmethod
+    def public_bytes(cls, secret_key, *, hex=False):
+        """
+        Returns the public key bytes of either an ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` from the cryptography package for an
+        elliptic curve diffie-hellman exchange or signature verification
+        key. If ``hex`` is truthy, then a hex string of the public key
+        is returned instead of bytes.
+        """
+        if hasattr(secret_key, "public_key"):
+            public_key = secret_key.public_key()
+        else:
+            public_key = secret_key
+
+        public_bytes = public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
+        if hex:
+            return public_bytes.hex()
+        else:
+            return public_bytes
+
+    @classmethod
+    async def asecret_bytes(cls, secret_key, *, hex=False):
+        """
+        Returns the secret key bytes of either an ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` from the cryptography package for an
+        elliptic curve diffie-hellman exchange or signature creation
+        key. If ``hex`` is truthy, then a hex string of the secret key
+        is returned instead of bytes.
+        """
+        secret_bytes = secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
+        if hex:
+            return secret_bytes.hex()
+        else:
+            return secret_bytes
+
+    @classmethod
+    def secret_bytes(cls, secret_key, *, hex=False):
+        """
+        Returns the secret key bytes of either an ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` from the cryptography package for an
+        elliptic curve diffie-hellman exchange or signature creation
+        key. If ``hex`` is truthy, then a hex string of the secret key
+        is returned instead of bytes.
+        """
+        secret_bytes = secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
+        if hex:
+            return secret_bytes.hex()
+        else:
+            return secret_bytes
+
+    @staticmethod
+    async def aexchange(secret_key: X25519PrivateKey, public_key: bytes):
+        """
+        Returns the shared key bytes derived from an elliptic curve key
+        exchange with the user's ``secret_key`` key, & their communicating
+        peer's ``public_key`` public key's bytes or hex value.
+        """
+        if not isinstance(public_key, bytes):
+            public_key = bytes.fromhex(public_key)
+        return secret_key.exchange(
+            X25519PublicKey.from_public_bytes(public_key)
+        )
+
+    @staticmethod
+    def exchange(secret_key: X25519PrivateKey, public_key: bytes):
+        """
+        Returns the shared key bytes derived from an elliptic curve key
+        exchange with the user's ``secret_key`` key, & their communicating
+        peer's ``public_key`` public key's bytes or hex value.
+        """
+        if not isinstance(public_key, bytes):
+            public_key = bytes.fromhex(public_key)
+        return secret_key.exchange(
+            X25519PublicKey.from_public_bytes(public_key)
+        )
+
+    @classmethod
+    @comprehension()
+    async def adh2_client(cls):
+        """
+        Generates an ephemeral ``X25519`` secret key which is used to
+        start a 2DH deniable client key exchange. This key is yielded as
+        public key bytes. Then the server's two public keys should be
+        sent into this coroutine when they're received. Finally, causing
+        this coroutine to reach the raise will let the primed, ``sha3_512``,
+        kdf object be accessed by the ``aresult`` method.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        async with X25519.protocols.adh2_client() as client:
+            client_hello = await client()
+            internet.send(client_hello)
+            response = internet.receive()
+            await client(response)
+
+        shared_key_kdf = await client.aresult()
+        """
+        secret_key_d = await X25519().agenerate()
+        public_key_d = secret_key_d.public_bytes
+        public_key_a, public_key_c = yield public_key_d
+        shared_key_ad = await secret_key_d.aexchange(public_key_a)
+        shared_key_cd = await secret_key_d.aexchange(public_key_c)
+        raise UserWarning(sha3_512(shared_key_ad + shared_key_cd))
+
+    @classmethod
+    @comprehension()
+    def dh2_client(cls):
+        """
+        Generates an ephemeral ``X25519`` secret key which is used to
+        start a 2DH deniable client key exchange. This key is yielded as
+        public key bytes. Then the server's two public keys should be
+        sent into this coroutine when they're received. Finally, causing
+        this coroutine to reach the raise will let the primed, ``sha3_512``,
+        kdf object be accessed by the ``aresult`` method.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        with X25519.protocols.dh2_client() as client:
+            client_hello = client()
+            internet.send(client_hello)
+            response = internet.receive()
+            client(response)
+
+        shared_key_kdf = client.result()
+        """
+        secret_key_d = X25519().generate()
+        public_key_d = secret_key_d.public_bytes
+        public_key_a, public_key_c = yield public_key_d
+        shared_key_ad = secret_key_d.exchange(public_key_a)
+        shared_key_cd = secret_key_d.exchange(public_key_c)
+        return sha3_512(shared_key_ad + shared_key_cd)
+
+    @classmethod
+    @comprehension()
+    async def adh2_server(cls, secret_key_a, public_key_d: bytes):
+        """
+        Takes in the user's ``X25519`` secret key & a peer's public key
+        bytes to enact a 2DH deniable key exchange.  This yields the
+        user's two public keys as bytes, one from the secret key which
+        was passed in as an argument, one which is ephemeral. Causing
+        this coroutine to reach the raise will let the primed,
+        ``sha3_512``, kdf object be accessed by the ``aresult`` method.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        skA = server_secret_key = await X25519().agenerate()
+        pkD = client_public_key = internet.receive()
+
+        async with X25519.protocols.adh2_server(skA, pkD) as server:
+            internet.send(await server())
+            await server()
+
+        shared_key_kdf = await server.aresult()
+        """
+        secret_key_c = await X25519().agenerate()
+        yield secret_key_a.public_bytes, secret_key_c.public_bytes
+        shared_key_ad = await secret_key_a.aexchange(public_key_d)
+        shared_key_cd = await secret_key_c.aexchange(public_key_d)
+        raise UserWarning(sha3_512(shared_key_ad + shared_key_cd))
+
+    @classmethod
+    @comprehension()
+    def dh2_server(cls, secret_key_a, public_key_d: bytes):
+        """
+        Takes in the user's ``X25519`` & a peer's public key
+        bytes to enact a 2DH deniable key exchange.  This yields the
+        user's two public keys as bytes, one from the secret key which
+        was passed in as an argument, one which is ephemeral. Causing
+        this coroutine to reach the raise will let the primed,
+        ``sha3_512``, kdf object be accessed by the ``result`` method.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        skA = server_secret_key = X25519().generate()
+        pkD = client_public_key = internet.receive()
+
+        with X25519.protocols.dh2_server(skA, pkD) as server:
+            internet.send(server())
+            server()
+
+        shared_key_kdf = server.result()
+        """
+        secret_key_c = X25519().generate()
+        yield secret_key_a.public_bytes, secret_key_c.public_bytes
+        shared_key_ad = secret_key_a.exchange(public_key_d)
+        shared_key_cd = secret_key_c.exchange(public_key_d)
+        return sha3_512(shared_key_ad + shared_key_cd)
+
+    @classmethod
+    @comprehension()
+    async def adh3_client(cls, secret_key_b):
+        """
+        Takes in the user's ``X25519`` secret key & two of a peer's
+        public keys bytes to enact a 3DH deniable key exchange. This
+        yields the user's two public keys as bytes, one from the secret
+        key which was passed in as an argument, one which is ephemeral.
+        Causing this coroutine to reach the raise will let the primed,
+        ``sha3_512``, kdf object be accessed by the ``result`` method.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        skB = client_secret_key = await X25519().agenerate()
+
+        async with X25519.protocols.adh3_client(skB) as client:
+            client_hello = await client()
+            internet.send(client_hello)
+            response = internet.receive()
+            await client(response)
+
+        shared_key_kdf = await client.aresult()
+        """
+        secret_key_d = await X25519().agenerate()
+        public_key_a, public_key_c = yield (
+            secret_key_b.public_bytes, secret_key_d.public_bytes
+        )
+        shared_key_ad = await secret_key_d.aexchange(public_key_a)
+        shared_key_bc = await secret_key_b.aexchange(public_key_c)
+        shared_key_cd = await secret_key_d.aexchange(public_key_c)
+        raise UserWarning(
+            sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
+        )
+
+    @classmethod
+    @comprehension()
+    def dh3_client(cls, secret_key_b):
+        """
+        Takes in the user's ``X25519`` secret key & two of a peer's
+        public keys bytes to enact a 3DH deniable key exchange. This
+        yields the user's two public keys as bytes, one from the secret
+        key which was passed in as an argument, one which is ephemeral.
+        Causing this coroutine to reach the return will let the primed,
+        ``sha3_512``, kdf object be accessed by the ``result`` method.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        skB = client_secret_key = X25519().generate()
+
+        with X25519.protocols.dh3_client(skB) as client:
+            client_hello = client()
+            internet.send(client_hello)
+            response = internet.receive()
+            client(response)
+
+        shared_key_kdf = client.result()
+        """
+        secret_key_d = X25519().generate()
+        public_key_a, public_key_c = yield (
+            secret_key_b.public_bytes, secret_key_d.public_bytes
+        )
+        shared_key_ad = secret_key_d.exchange(public_key_a)
+        shared_key_bc = secret_key_b.exchange(public_key_c)
+        shared_key_cd = secret_key_d.exchange(public_key_c)
+        return sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
+
+    @classmethod
+    @comprehension()
+    async def adh3_server(
+        cls, secret_key_a, public_key_b: bytes, public_key_d: bytes
+    ):
+        """
+        Takes in the user's ``X25519`` secret key & two of a peer's
+        public keys bytes to enact a 3DH deniable key exchange. This
+        yields the user's two public keys as bytes, one from the secret
+        key which was passed in as an argument, one which is ephemeral.
+        Causing this coroutine to reach the raise will let the primed,
+        ``sha3_512``, kdf object be accessed by the ``aresult`` method.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        skA = server_secret_key = await X25519().agenerate()
+        pkB, pkD = client_public_keys = internet.receive()
+
+        async with X25519.protocols.adh3_server(skA, pkB, pkD) as server:
+            internet.send(await server())
+            await server()
+
+        shared_key_kdf = await server.aresult()
+        """
+        secret_key_c = await X25519().agenerate()
+        yield secret_key_a.public_bytes, secret_key_c.public_bytes
+        shared_key_ad = await secret_key_a.aexchange(public_key_d)
+        shared_key_bc = await secret_key_c.aexchange(public_key_b)
+        shared_key_cd = await secret_key_c.aexchange(public_key_d)
+        raise UserWarning(
+            sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
+        )
+
+    @classmethod
+    @comprehension()
+    def dh3_server(
+        cls, secret_key_a, public_key_b: bytes, public_key_d: bytes
+    ):
+        """
+        Takes in the user's ``X25519`` secret key & two of a peer's
+        public keys bytes to enact a 3DH deniable key exchange. This
+        yields the user's two public keys as bytes, one from the secret
+        key which was passed in as an argument, one which is ephemeral.
+        Causing this coroutine to reach the return will let the primed,
+        ``sha3_512``, kdf object be accessed by the ``result`` method.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        skA = server_secret_key = X25519().generate()
+        pkB, pkD = client_public_keys = internet.receive()
+
+        with X25519.protocols.dh3_server(skA, pkB, pkD) as server:
+            internet.send(server())
+            server()
+
+        shared_key_kdf = server.result()
+        """
+        secret_key_c = X25519().generate()
+        yield secret_key_a.public_bytes, secret_key_c.public_bytes
+        shared_key_ad = secret_key_a.exchange(public_key_d)
+        shared_key_bc = secret_key_c.exchange(public_key_b)
+        shared_key_cd = secret_key_c.exchange(public_key_d)
+        return sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
+
+
+class BaseEllipticCurve:
+    """
+    Collects the shared functionality between the ``X25519`` & ``Ed25519``
+    classes.
+    """
+
+    PublicKey = None
+    SecretKey = None
+    _asymmetric = Asymmetric25519
+    _exceptions = _asymmetric.exceptions
+
+    @classmethod
+    def _preprocess_key(cls, key_material):
+        """
+        Converts to bytes if ``key_material`` is hex, otherwise returns
+        it unaltered only if is truthy.
+        """
+        if not key_material:
+            raise ValueError("No key material or object given.")
+        elif issubclass(key_material.__class__, str):
+            key_material = bytes.fromhex(key_material)
+            return key_material
+        else:
+            return key_material
+
+    @classmethod
+    def _process_public_key(cls, public_key):
+        """
+        Accepts a ``public_key`` in either hex, bytes, ``X25519PublicKey``,
+        ``X25519PrivateKey``, ``Ed25519PublicKey`` or ``Ed25519PrivateKey``
+        format. Returns an instantiaed public key associated with the
+        subclass inhereting this method.
+        """
+        public_key = cls._preprocess_key(public_key)
+        if issubclass(public_key.__class__, bytes):
+            return cls.PublicKey.from_public_bytes(public_key)
+        else:
+            public_key = cls._asymmetric.public_bytes(public_key)
+            return cls.PublicKey.from_public_bytes(public_key)
+
+    @classmethod
+    def _process_secret_key(cls, secret_key):
+        """
+        Accepts a ``secret_key`` in either hex, bytes, ``X25519PrivateKey``
+        or ``Ed25519PrivateKey`` format. Returns an instantiaed secret
+        key associated with the subclass inhereting this method.
+        """
+        secret_key = cls._preprocess_key(secret_key)
+        if issubclass(secret_key.__class__, bytes):
+            return cls.SecretKey.from_private_bytes(secret_key)
+        else:
+            secret_key = cls._asymmetric.public_bytes(secret_key)
+            return cls.SecretKey.from_private_bytes(secret_key)
+
+    def __init__(self):
+        """
+        Create a instance specific object of the ``Asymmetric25519``
+        class.
+        """
+        self._asymmetric = self._asymmetric()
+
+    async def aimport_public_key(self, public_key):
+        """
+        Populates an instance from the received ``public_key`` that is
+        of either hex, bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
+        ``Ed25519PublicKey`` or ``Ed25519PrivateKey`` type.
+        """
+        self._public_key = self._process_public_key(public_key)
+        return self
+
+    def import_public_key(self, public_key):
+        """
+        Populates an instance from the received ``public_key`` that is
+        of either hex, bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
+        ``Ed25519PublicKey`` or ``Ed25519PrivateKey`` type.
+        """
+        self._public_key = self._process_public_key(public_key)
+        return self
+
+    async def aimport_secret_key(self, secret_key):
+        """
+        Populates an instance from the received ``secret_key`` that is
+        of either hex, bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
+        type.
+        """
+        self._secret_key = self._process_secret_key(secret_key)
+        self._public_key = self.PublicKey.from_public_bytes(
+            await self._asymmetric.apublic_bytes(self._secret_key)
+        )
+        return self
+
+    def import_secret_key(self, secret_key):
+        """
+        Populates an instance from the received ``secret_key`` that is
+        of either hex, bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
+        type.
+        """
+        self._secret_key = self._process_secret_key(secret_key)
+        self._public_key = self.PublicKey.from_public_bytes(
+            self._asymmetric.public_bytes(self._secret_key)
+        )
+        return self
+
+    @property
+    def secret_key(self):
+        """
+        Returns the instantiated & populated SecretKey of the associated
+        sublass inhereting this method.
+        """
+        return self._secret_key
+
+    @property
+    def public_key(self):
+        """
+        Returns the instantiated & populated PublicKey of the associated
+        sublass inhereting this method.
+        """
+        return self._public_key
+
+    @property
+    def secret_bytes(self):
+        """
+        Returns the secret bytes of the instance's instantiated &
+        populated SecretKey of the associated sublass inhereting this
+        method.
+        """
+        return self._asymmetric.secret_bytes(self._secret_key)
+
+    @property
+    def public_bytes(self):
+        """
+        Returns the public bytes of the instance's instantiated &
+        populated PublicKey of the associated sublass inhereting this
+        method.
+        """
+        return self._asymmetric.public_bytes(self._public_key)
+
+
+class Ed25519(BaseEllipticCurve):
+    """
+    This class is used to create stateful objects that simplify usage of
+    the cryptography library's ed25519 protocol.
+
+    Usage Example:
+
+    from aiootp import Ed25519
+
+    # In a land, long ago ->
+    user_alice = Ed25519().generate()
+    internet.send(user_alice.public_bytes.hex())
+
+    # Alice wants to sign a document so that Bob can prove she wrote it.
+    # So, Alice sends her public key bytes of the key she wants to
+    # associate with her identity, the document & the signature ->
+    document = b"DesignDocument.cad"
+    signed_document = user_alice.sign(document)
+    internet.send(
+        {
+            "document": document,
+            "signature": signed_document,
+            "public_key": user_alice.public_bytes.hex(),
+        }
+    )
+
+    # In a land far away ->
+    alices_message = internet.receive()
+
+    # Bob sees the message from Alice! Bob already knows Alice's public
+    # key & she has reason believe it is genuinely hers. She'll then
+    # verify the signed document ->
+    assert alices_message["public_key"] == alices_public_key
+    alice_verifier = Ed25519().import_public_key(alices_public_key)
+    alice_verifier.verify(
+        alices_message["signature"], alices_message["document"]
+    )
+    internet.send(b"Beautiful work, Alice! Thanks ^u^")
+
+    # The verification didn't throw an exception! So, Bob knows the file
+    # was signed by Alice.
+    """
+
+    PublicKey = BaseEllipticCurve._asymmetric.Ed25519PublicKey
+    SecretKey = BaseEllipticCurve._asymmetric.Ed25519PrivateKey
+    InvalidSignature = BaseEllipticCurve._exceptions.InvalidSignature
+
+    async def agenerate(self):
+        """
+        Generates a new secret key used for signing bytes data &
+        populates the instance with it & its associated public key. This
+        method returns the instance for convenience in instantiating a
+        stateful object with await Ed25519().agenerate().
+        """
+        key = await self._asymmetric.aed25519_key()
+        await self.aimport_secret_key(key)
+        return self
+
+    def generate(self):
+        """
+        Generates a new secret key used for signing bytes data &
+        populates the instance with it & its associated public key. This
+        method returns the instance for convenience in instantiating a
+        stateful object with Ed25519().generate().
+        """
+        key = self._asymmetric.ed25519_key()
+        self.import_secret_key(key)
+        return self
+
+    async def asign(self, data):
+        """
+        Signs some bytes ``data`` with the instance's secret key.
+        """
+        return self.secret_key.sign(data)
+
+    def sign(self, data):
+        """
+        Signs some bytes ``data`` with the instance's secret key.
+        """
+        return self.secret_key.sign(data)
+
+    async def averify(self, signature, data, *, public_key=None):
+        """
+        Receives a ``signature`` to verify data with the instance's
+        public key. If the ``public_key`` keyword-only argument is
+        used, then that key is used instead of the instance key to run
+        the verification.
+        """
+        if public_key:
+            public_key = self._process_public_key(public_key)
+        else:
+            public_key = self.public_key
+        public_key.verify(signature, data)
+
+    def verify(self, signature, data, *, public_key=None):
+        """
+        Receives a ``signature`` to verify data with the instance's
+        public key. If the ``public_key`` keyword-only argument is
+        used, then that key is used instead of the instance key to run
+        the verification.
+        """
+        if public_key:
+            public_key = self._process_public_key(public_key)
+        else:
+            public_key = self.public_key
+        public_key.verify(signature, data)
+
+
+class X25519(BaseEllipticCurve):
+    """
+    This class is used to create stateful objects that simplify usage of
+    the cryptography library's x25519 protocol.
+
+    Usage Example:
+
+    user_alice = X25519().generate()
+    # Alice wants to create a shared key with Bob. So, Alice sends the
+    # public key bytes of her new key to bob ->
+    internet.send(user_alice.public_bytes.hex())
+
+    # In a land far away ->
+    alices_message = internet.receive()
+
+    # Bob sees the message from Alice! So she creates a key to accept
+    # the exchange & sends the result back to Alice ->
+    user_bob = await X25519().agenerate()
+    shared_key = user_bob.exchange(alices_message)
+    internet.send(user_bob.public_bytes.hex())
+
+    # When Alice receives Bob's public key & finishes the exchange, they
+    # will have a shared symmetric key to encrypt messages to one
+    # another.
+    bobs_response = internet.receive()
+    shared_key = user_alice.exchange(bobs_response)
+
+    This protocol is not secure against active adversaries that can
+    manipulate the information while its in transit between Alice &
+    Bob. Each public key should only be used once.
+    """
+
+    PublicKey = BaseEllipticCurve._asymmetric.X25519PublicKey
+    SecretKey = BaseEllipticCurve._asymmetric.X25519PrivateKey
+    protocols = Namespace(
+        adh2_client=Asymmetric25519.adh2_client,
+        dh2_client=Asymmetric25519.dh2_client,
+        adh2_server=Asymmetric25519.adh2_server,
+        dh2_server=Asymmetric25519.dh2_server,
+        adh3_client=Asymmetric25519.adh3_client,
+        dh3_client=Asymmetric25519.dh3_client,
+        adh3_server=Asymmetric25519.adh3_server,
+        dh3_server=Asymmetric25519.dh3_server,
+    )
+
+    async def agenerate(self):
+        """
+        Generates a new secret key used for a single elliptic curve
+        diffie-hellman exchange, or as an argument to one of the 3dh or
+        2dh generators in X25519.protocols. This populates the instance
+        with the secret key & its associated public key. This method
+        returns the instance for convenience in instantiating a stateful
+        object with await X25519().agenerate().
+        """
+        key = await self._asymmetric.ax25519_key()
+        await self.aimport_secret_key(key)
+        return self
+
+    def generate(self):
+        """
+        Generates a new secret key used for a single elliptic curve
+        diffie-hellman exchange, or as an argument to one of the 3dh or
+        2dh generators in X25519.protocols. This populates the instance
+        with the secret key & its associated public key. This method
+        returns the instance for convenience in instantiating a stateful
+        object with await X25519().generate().
+        """
+        key = self._asymmetric.x25519_key()
+        self.import_secret_key(key)
+        return self
+
+    async def aexchange(self, public_key):
+        """
+        Takes in a public key from a communicating party & uses the
+        instance's secret key to do an elliptic curve diffie-hellman
+        exchange & returns the results secret shared bytes.
+        """
+        public_key = self._process_public_key(public_key)
+        return await self._asymmetric.aexchange(
+            self._secret_key,
+            await self._asymmetric.apublic_bytes(public_key),
+        )
+
+    def exchange(self, public_key):
+        """
+        Takes in a public key from a communicating party & uses the
+        instance's secret key to do an elliptic curve diffie-hellman
+        exchange & returns the results secret shared bytes.
+        """
+        public_key = self._process_public_key(public_key)
+        return self._asymmetric.exchange(
+            self._secret_key, self._asymmetric.public_bytes(public_key),
+        )
+
+
+class Ropake:
     """
     Ratcheting Opaque Password Authenticated Key Exchange
 
@@ -3186,9 +4132,18 @@ class Ropake():
 
     new_account = True
     # The arguments must contain at least one unique element for each
-    # service the client wants to authenticate with, such as ->
-    uuid = aiootp.sha_256("server_url", "username")
-    db = Ropake.client_database(uuid, "password")
+    # service the client wants to authenticate with. Using unique
+    # cryptographically secure keys would be better, but this is a good
+    # alternative ->
+    tokens = aiootp.Database.generate_profile_tokens(
+        server_url,     # An unlimited number of arguments can be passed
+        email_address,  # here as additional, optional credentials.
+        username=username,
+        password=password,
+        salt=optional_salt_keyword_argument,
+    )
+    db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
+
     if new_account:
         client = Ropake.client_registration(db)
     else:
@@ -3239,6 +4194,7 @@ class Ropake():
     NEXT_SALT = commons.NEXT_SALT
     CIPHERTEXT = commons.CIPHERTEXT
     SHARED_KEY = commons.SHARED_KEY
+    TIMEOUT = commons.ROPAKE_TIMEOUT
     SESSION_KEY = commons.SESSION_KEY
     SESSION_SALT = commons.SESSION_SALT
     REGISTRATION = commons.REGISTRATION
@@ -3247,27 +4203,30 @@ class Ropake():
     PASSWORD_SALT = commons.PASSWORD_SALT
     KEYED_PASSWORD = commons.KEYED_PASSWORD
     NEXT_KEYED_PASSWORD = commons.NEXT_KEYED_PASSWORD
-    X25519PublicKey = X25519PublicKey
-    X25519PrivateKey = X25519PrivateKey
-    Ed25519PublicKey = Ed25519PublicKey
-    Ed25519PrivateKey = Ed25519PrivateKey
-    PrimeGroups = commons.PrimeGroups
+    X25519 = X25519
+    Ed25519 = Ed25519
     salt = staticmethod(csprng)
     asalt = staticmethod(acsprng)
     directory = DatabasePath()
-    default_directory = DatabasePath()
+    _default_directory = DatabasePath()
 
     _KEYED_PASSWORD_TUTORIAL = f"""\
     ``database`` needs a {commons.KEYED_PASSWORD} entry.
-    H = lambda x: int(Ropake.id(x), 16)
-    db = Ropake.client_database(username, password, salt=secret_salt)
+    tokens = Database.generate_profile_tokens(
+        server_url,     # An unlimited number of arguments can be passed
+        email_address,  # here as additional, optional credentials.
+        username=username,
+        password=password,
+        salt=optional_salt_value,
+    )
+    db = Database.generate_profile(tokens)
     db["salt"] = salt = Ropake.salt()
-    db["keyed_password"] = H((db._root_key, salt)) ^ H(salt)
+    db["keyed_password"] = Ropake._make_commit(db._root_key, salt)
     db["next_salt"] = next_salt = Ropake.salt()
-    db["next_keyed_password"] = H((db._root_key, next_salt)) ^ H(next_salt)
+    db["next_keyed_password"] = Ropake._make_commit(db._root_key, next_salt)
     # client sends keyed_password to server during registration & sends
-    # H(salt) to the server during authentication, as well as the next
-    # keyed_password to be used during the next authentication.
+    # Ropake._id(salt) to the server during authentication, as well as
+    # the next keyed_password to be used during the next authentication.
     """
     _PUBLIC_BYTES_ENUM = {
         "encoding": serialization.Encoding.Raw,
@@ -3279,23 +4238,27 @@ class Ropake():
         "encryption_algorithm": serialization.NoEncryption(),
     }
 
-    def __init__(self, key: any, directory=default_directory):
+    def __init__(self, key: any, *, directory=_default_directory):
         """
         An optional initializer which instructs the class to use either
         a default key to open a default database for clients to store
-        cryptographic material. Or, it can receive a key from a user to
-        instruct the class to create / open a custom database for
-        better security of cryptographic material stored on the user's
-        filesystem. The default key is not secure if an adversary can
-        read arbitrary directory names on the user's filesystem. It is
-        highly recommended to create a user-defined key for the class
-        instead, potentially with a password & using the class's
-        ``database_login_key`` method like such ->
-        Ropake(
-            key=Ropake.database_login_key(
-                "username", "password", salt="salt"
-            )
+        cryptographic material for salting passwords. Or, it can receive
+        a key from a user to instruct the class to create / open a
+        custom database for better security of cryptographic material
+        stored. The default key is not secure if an adversary can read
+        arbitrary files on the user's filesystem. Therefore, it's highly
+        recommended to create a user-defined key for the class instead
+        with a CSPRNG. Or, if a user only has access to a low entropy
+        password, then databases contain strong kdf for this purpose ->
+
+        tokens = aiootp.Database.generate_profile_tokens(
+            server_url,     # An unlimited number of arguments can be passed
+            email_address,  # here as additional, optional credentials.
+            username=username,
+            password=password,
+            salt=optional_salt_keyword_argument,
         )
+        db = Database.generate_profile(tokens)
 
         This should be thought of as a class method as it will impact
         the entire class and all instances of the class.
@@ -3400,129 +4363,7 @@ class Ropake():
             return False
 
     @staticmethod
-    async def aed25519_key():
-        """
-        Returns an ``Ed25519PrivateKey`` from the cryptography package
-        used to make elliptic curve signatures of data.
-        """
-        return Ed25519PrivateKey.generate()
-
-    @staticmethod
-    def ed25519_key():
-        """
-        Returns an ``Ed25519PrivateKey`` from the cryptography package
-        used to make elliptic curve signatures of data.
-        """
-        return Ed25519PrivateKey.generate()
-
-    @staticmethod
-    async def ax25519_key():
-        """
-        Returns a ``X25519PrivateKey`` from the cryptography package for
-        use in an elliptic curve diffie-hellman exchange.
-        """
-        return X25519PrivateKey.generate()
-
-    @staticmethod
-    def x25519_key():
-        """
-        Returns a ``X25519PrivateKey`` from the cryptography package for
-        use in an elliptic curve diffie-hellman exchange.
-        """
-        return X25519PrivateKey.generate()
-
-    @classmethod
-    async def aec25519_public_bytes(cls, secret, *, hex=False):
-        """
-        Returns the public key bytes of either an ``X25519PrivateKey``
-        or ``Ed25519PrivateKey`` from the cryptography package for an
-        elliptic curve diffie-hellman exchange or signature verification
-        key. If ``hex`` is truthy, then a hex string of the public key
-        is returned instead of bytes.
-        """
-        if hasattr(secret, "public_key"):
-            public_key = secret.public_key()
-        else:
-            public_key = secret
-
-        public_bytes = public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
-        if hex:
-            return public_bytes.hex()
-        else:
-            return public_bytes
-
-    @classmethod
-    def ec25519_public_bytes(cls, secret, *, hex=False):
-        """
-        Returns the public key bytes of either an ``X25519PrivateKey``
-        or ``Ed25519PrivateKey`` from the cryptography package for an
-        elliptic curve diffie-hellman exchange or signature verification
-        key. If ``hex`` is truthy, then a hex string of the public key
-        is returned instead of bytes.
-        """
-        if hasattr(secret, "public_key"):
-            public_key = secret.public_key()
-        else:
-            public_key = secret
-
-        public_bytes = public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
-        if hex:
-            return public_bytes.hex()
-        else:
-            return public_bytes
-
-    @classmethod
-    async def aec25519_private_bytes(cls, secret, *, hex=False):
-        """
-        Returns the private key bytes of either an ``X25519PrivateKey``
-        or ``Ed25519PrivateKey`` from the cryptography package for an
-        elliptic curve diffie-hellman exchange or signature creation
-        key. If ``hex`` is truthy, then a hex string of the private key
-        is returned instead of bytes.
-        """
-        private_bytes = secret.private_bytes(**cls._PRIVATE_BYTES_ENUM)
-        if hex:
-            return private_bytes.hex()
-        else:
-            return private_bytes
-
-    @classmethod
-    def ec25519_private_bytes(cls, secret, *, hex=False):
-        """
-        Returns the private key bytes of either an ``X25519PrivateKey``
-        or ``Ed25519PrivateKey`` from the cryptography package for an
-        elliptic curve diffie-hellman exchange or signature creation
-        key. If ``hex`` is truthy, then a hex string of the private key
-        is returned instead of bytes.
-        """
-        private_bytes = secret.private_bytes(**cls._PRIVATE_BYTES_ENUM)
-        if hex:
-            return private_bytes.hex()
-        else:
-            return private_bytes
-
-    @staticmethod
-    async def ax25519_exchange(secret: X25519PrivateKey, pub: bytes):
-        """
-        Returns the shared key bytes derived from an elliptic curve key
-        exchange with the user's ``secret`` key, & their communicating
-        peer's ``pub`` public key's bytes or hex value.
-        """
-        pub = pub if isinstance(pub, bytes) else bytes.fromhex(pub)
-        return secret.exchange(X25519PublicKey.from_public_bytes(pub))
-
-    @staticmethod
-    def x25519_exchange(secret: X25519PrivateKey, pub: bytes):
-        """
-        Returns the shared key bytes derived from an elliptic curve key
-        exchange with the user's ``secret`` key, & their communicating
-        peer's ``pub`` public key's bytes or hex value.
-        """
-        pub = pub if isinstance(pub, bytes) else bytes.fromhex(pub)
-        return secret.exchange(X25519PublicKey.from_public_bytes(pub))
-
-    @staticmethod
-    async def aid(key=None):
+    async def _aid(key=None):
         """
         Returns a deterministic hmac of any arbitrary key material. This
         is typically used to identify a particular connection between a
@@ -3533,7 +4374,7 @@ class Ropake():
         return await asha_512_hmac(key, key=key)
 
     @staticmethod
-    def id(key=None):
+    def _id(key=None):
         """
         Returns a deterministic hmac of any arbitrary key material. This
         is typically used to identify a particular connection between a
@@ -3544,7 +4385,7 @@ class Ropake():
         return sha_512_hmac(key, key=key)
 
     @staticmethod
-    async def aclient_message_key(key, *, label="client_hello"):
+    async def _aclient_message_key(key, *, label="client_hello"):
         """
         Hashes a ROPAKE protocol authentication ``key`` with a ``label``
         converting it into a one-time client_hello message key. This
@@ -3563,7 +4404,7 @@ class Ropake():
             )
 
     @staticmethod
-    def client_message_key(key, *, label="client_hello"):
+    def _client_message_key(key, *, label="client_hello"):
         """
         Hashes a ROPAKE protocol authentication ``key`` with a ``label``
         converting it into a one-time client_hello message key. This
@@ -3582,7 +4423,7 @@ class Ropake():
             )
 
     @staticmethod
-    async def aserver_message_key(key, *, label="server_hello"):
+    async def _aserver_message_key(key, *, label="server_hello"):
         """
         Hashes a ROPAKE protocol authentication ``key`` with a ``label``
         converting it into a one-time server_hello message key. This
@@ -3601,7 +4442,7 @@ class Ropake():
             )
 
     @staticmethod
-    def server_message_key(key, *, label="server_hello"):
+    def _server_message_key(key, *, label="server_hello"):
         """
         Hashes a ROPAKE protocol authentication ``key`` with a ``label``
         converting it into a one-time server_hello message key. This
@@ -3620,7 +4461,7 @@ class Ropake():
             )
 
     @classmethod
-    async def aencrypt(cls, *, key_id=None, message_key=None, **plaintext):
+    async def _aencrypt(cls, *, key_id=None, message_key=None, **plaintext):
         """
         A flexible one-time pad encryption method which turns the
         keyword arguments passed as ``**plaintext`` into a dictionary
@@ -3638,7 +4479,7 @@ class Ropake():
             return message
 
     @classmethod
-    def encrypt(cls, *, key_id=None, message_key=None, **plaintext):
+    def _encrypt(cls, *, key_id=None, message_key=None, **plaintext):
         """
         A flexible one-time pad encryption method which turns the
         keyword arguments passed as ``**plaintext`` into a dictionary
@@ -3656,153 +4497,55 @@ class Ropake():
             return message
 
     @classmethod
-    async def adecrypt(cls, *, message_key=None, ciphertext=None):
+    async def _adecrypt(cls, *, message_key=None, ciphertext=None, ttl=0):
         """
         Decrypts a one-time pad ``ciphertext`` of json data with the
         ``message_key`` & returns the plaintext as well as the key_id
         in a dictionary if it was attached to the ciphertext.
+        ``ttl`` determines the amount of seconds that the decrypted
+        message is allowed to be aged.
         """
         if ciphertext.get(cls.KEY_ID):
             key_id = ciphertext.pop(cls.KEY_ID)
-            message = await ajson_decrypt(ciphertext, key=message_key)
+            message = await ajson_decrypt(
+                data=ciphertext,
+                key=message_key,
+                ttl=ttl if ttl else cls.TIMEOUT,
+            )
             return {cls.KEY_ID: key_id, **message}
         else:
-            return await ajson_decrypt(ciphertext, key=message_key)
+            return await ajson_decrypt(
+                data=ciphertext,
+                key=message_key,
+                ttl=ttl if ttl else cls.TIMEOUT,
+            )
 
     @classmethod
-    def decrypt(cls, *, message_key=None, ciphertext=None):
+    def _decrypt(cls, *, message_key=None, ciphertext=None, ttl=0):
         """
         Decrypts a one-time pad ``ciphertext`` of json data with the
         ``message_key`` & returns the plaintext as well as the key_id
         in a dictionary if it was attached to the ciphertext.
+        ``ttl`` determines the amount of seconds that the decrypted
+        message is allowed to be aged.
         """
         if ciphertext.get(cls.KEY_ID):
             key_id = ciphertext.pop(cls.KEY_ID)
-            message = json_decrypt(ciphertext, key=message_key)
+            message = json_decrypt(
+                data=ciphertext,
+                key=message_key,
+                ttl=ttl if ttl else cls.TIMEOUT,
+            )
             return {cls.KEY_ID: key_id, **message}
         else:
-            return json_decrypt(ciphertext, key=message_key)
+            return json_decrypt(
+                data=ciphertext,
+                key=message_key,
+                ttl=ttl if ttl else cls.TIMEOUT,
+            )
 
     @classmethod
-    async def adatabase_login_key(
-        cls,
-        uuid: any,
-        password: any,
-        *credentials,
-        salt=None,
-        kb=1024,
-        cpu=3,
-        hardness=1024,
-    ):
-        """
-        Processes user defined credentials with a tunably memory & cpu
-        hard hash function & returns a cryptohraphic key used to open a
-        database. If no salt is specified then the default class salt,
-        which is stored encrypted on the user filesystem, is used
-        instead.
-        """
-        if not all([uuid, password]):
-            raise ValueError("Must supply a uuid & password.")
-        salt = salt if salt else await cls._adefault_class_salt()
-        login = await anc_512(uuid, password, salt, *credentials)
-        return await apasscrypt(
-            login, salt, kb=kb, cpu=cpu, hardness=hardness
-        )
-
-    @classmethod
-    def database_login_key(
-        cls,
-        uuid: any,
-        password: any,
-        *credentials,
-        salt=None,
-        kb=1024,
-        cpu=3,
-        hardness=1024,
-    ):
-        """
-        Processes user defined credentials with a tunably memory & cpu
-        hard hash function & returns a cryptohraphic key used to open a
-        database. If no salt is specified then the default class salt,
-        which is stored encrypted on the user filesystem, is used
-        instead.
-        """
-        if not all([uuid, password]):
-            raise ValueError("Must supply a uuid & password.")
-        salt = salt if salt else cls._default_class_salt()
-        login = nc_512(uuid, password, salt, *credentials)
-        return passcrypt(login, salt, kb=kb, cpu=cpu, hardness=hardness)
-
-    @classmethod
-    async def aclient_database(
-        cls,
-        uuid: any,
-        password: any,
-        *credentials,
-        salt=None,
-        kb=1024,
-        cpu=3,
-        hardness=1024,
-        directory=None,
-    ):
-        """
-        A unique database is opened for each permutation of arguments &
-        keyword arguments to this method. If no salt is specified then
-        the default class salt, which is stored encrypted on the user
-        filesystem, is used instead. An asynchronous ``AsyncDatabase``
-        object is returned which only works with asynchronous ``aclient``
-        & ``aclient_registration`` methods.
-        """
-        db_key = await cls.adatabase_login_key(
-            uuid,
-            password,
-            *credentials,
-            salt=salt,
-            kb=kb,
-            cpu=cpu,
-            hardness=hardness,
-        )
-        directory = directory if directory else cls.directory
-        return await AsyncDatabase(
-            key=db_key, password_depth=8192, directory=directory
-        )
-
-    @classmethod
-    def client_database(
-        cls,
-        uuid: any,
-        password: any,
-        *credentials,
-        salt=None,
-        kb=1024,
-        cpu=3,
-        hardness=1024,
-        directory=None,
-    ):
-        """
-        A unique database is opened for each permutation of arguments &
-        keyword arguments to this method. If no salt is specified then
-        the default class salt, which is stored encrypted on the user
-        filesystem, is used instead. A synchronous ``Database`` object
-        is returned which only works with synchronous ``client`` &
-        ``client_registration`` methods.
-        """
-        db_key = cls.database_login_key(
-            uuid,
-            password,
-            *credentials,
-            salt=salt,
-            kb=kb,
-            cpu=cpu,
-            hardness=hardness,
-        )
-        directory = directory if directory else cls.directory
-        return Database(
-            key=db_key, password_depth=8192, directory=directory
-        )
-
-    @classmethod
-    async def amake_commit(cls, password_hash, salt):
+    async def _amake_commit(cls, password_hash, salt):
         """
         Takes in a hashed password string & a secret salt then returns
         a number which functions as a commit message between the client
@@ -3814,12 +4557,12 @@ class Ropake():
         about the password hash (if the secret salt is >= 256 bits).
         """
         return (
-            int(await cls.aid((password_hash, salt)), 16)
-            ^ int(await cls.aid(salt), 16)
+            int(await cls._aid((password_hash, salt)), 16)
+            ^ int(await cls._aid(salt), 16)
         )
 
     @classmethod
-    def make_commit(cls, password_hash, salt):
+    def _make_commit(cls, password_hash, salt):
         """
         Takes in a hashed password string & a secret salt then returns
         a number which functions as a commit message between the client
@@ -3831,11 +4574,11 @@ class Ropake():
         about the password hash (if the secret salt is >= 256 bits).
         """
         return (
-            int(cls.id((password_hash, salt)), 16) ^ int(cls.id(salt), 16)
+            int(cls._id((password_hash, salt)), 16) ^ int(cls._id(salt), 16)
         )
 
     @classmethod
-    async def apopulate_database(cls, database: AsyncDatabase):
+    async def _apopulate_database(cls, database: AsyncDatabase):
         """
         Inserts session values into a client database for their use in
         the registration & authentication processes.
@@ -3844,20 +4587,20 @@ class Ropake():
         if not db[cls.KEY]:
             password_salt = db[cls.SALT] = await cls.asalt()
             db[cls.KEYED_PASSWORD] = (
-                await cls.amake_commit(db._root_key, password_salt)
+                await cls._amake_commit(db._root_key, password_salt)
             )
         else:
             password_salt = db[cls.SALT]
             db[cls.KEYED_PASSWORD] = (
-                await cls.amake_commit(db._root_key, password_salt)
+                await cls._amake_commit(db._root_key, password_salt)
             )
             password_salt = db[cls.NEXT_SALT] = await cls.asalt()
             db[cls.NEXT_KEYED_PASSWORD] = (
-                await cls.amake_commit(db._root_key, password_salt)
+                await cls._amake_commit(db._root_key, password_salt)
             )
 
     @classmethod
-    def populate_database(cls, database: Database):
+    def _populate_database(cls, database: Database):
         """
         Inserts session values into a client database for their use in
         the registration & authentication processes.
@@ -3866,20 +4609,20 @@ class Ropake():
         if not db[cls.KEY]:
             password_salt = db[cls.SALT] = cls.salt()
             db[cls.KEYED_PASSWORD] = (
-                cls.make_commit(db._root_key, password_salt)
+                cls._make_commit(db._root_key, password_salt)
             )
         else:
             password_salt = db[cls.SALT]
             db[cls.KEYED_PASSWORD] = (
-                cls.make_commit(db._root_key, password_salt)
+                cls._make_commit(db._root_key, password_salt)
             )
             password_salt = db[cls.NEXT_SALT] = cls.salt()
             db[cls.NEXT_KEYED_PASSWORD] = (
-                cls.make_commit(db._root_key, password_salt)
+                cls._make_commit(db._root_key, password_salt)
             )
 
     @classmethod
-    async def ainit_protocol(cls):
+    async def _ainit_protocol(cls):
         """
         Instatiates a ``Namespace`` object with the generic values used
         to execute the ``Ropake`` registration & authentication protocols
@@ -3888,12 +4631,12 @@ class Ropake():
         values = Namespace()
         values.salt = await cls.asalt()
         values.session_salt = await cls.asalt()
-        values.ecdhe_key = await cls.ax25519_key()
-        values.pub = await cls.aec25519_public_bytes(values.ecdhe_key)
+        values.ecdhe_key = await X25519().agenerate()
+        values.pub = values.ecdhe_key.public_bytes
         return values
 
     @classmethod
-    def init_protocol(cls):
+    def _init_protocol(cls):
         """
         Instatiates a ``Namespace`` object with the generic values used
         to execute the ``Ropake`` registration & authentication protocols
@@ -3902,40 +4645,40 @@ class Ropake():
         values = Namespace()
         values.salt = cls.salt()
         values.session_salt = cls.salt()
-        values.ecdhe_key = cls.x25519_key()
-        values.pub = cls.ec25519_public_bytes(values.ecdhe_key)
+        values.ecdhe_key = X25519().generate()
+        values.pub = values.ecdhe_key.public_bytes
         return values
 
     @classmethod
-    async def aunpack_client_hello(cls, client_hello: dict, key=None):
+    async def _aunpack_client_hello(cls, client_hello: dict, key=None):
         """
         Allows a server to quickly decrypt or unpack the client's hello
         data into a ``Namespace`` object for efficient & more readable
         processing of the data for authentication & registration.
         """
         if key:
-            client_hello = await cls.adecrypt(
+            client_hello = await cls._adecrypt(
                 ciphertext=client_hello,
-                message_key=await cls.aclient_message_key(key),
+                message_key=await cls._aclient_message_key(key),
             )
         return Namespace(client_hello)
 
     @classmethod
-    def unpack_client_hello(cls, client_hello: dict, key=None):
+    def _unpack_client_hello(cls, client_hello: dict, key=None):
         """
         Allows a server to quickly decrypt or unpack the client's hello
         data into a ``Namespace`` object for efficient & more readable
         processing of the data for authentication & registration.
         """
         if key:
-            client_hello = cls.decrypt(
+            client_hello = cls._decrypt(
                 ciphertext=client_hello,
-                message_key=cls.client_message_key(key),
+                message_key=cls._client_message_key(key),
             )
         return Namespace(client_hello)
 
     @classmethod
-    async def afinalize(cls, key: any, shared_key: any, shared_secret: any):
+    async def _afinalize(cls, key: any, shared_key: any, shared_secret: any):
         """
         Combines the current sessions' derived keys, with the keys
         derived during the last session & the current session encryption
@@ -3953,7 +4696,7 @@ class Ropake():
         )
 
     @classmethod
-    def finalize(cls, key: any, shared_key: any, shared_secret: any):
+    def _finalize(cls, key: any, shared_key: any, shared_secret: any):
         """
         Combines the current sessions' derived keys, with the keys
         derived during the last session & the current session encryption
@@ -3971,7 +4714,7 @@ class Ropake():
         )
 
     @classmethod
-    async def aintegrate_salts(
+    async def _aintegrate_salts(
         cls, results: Namespace, client_session_salt, server_session_salt
     ):
         """
@@ -3983,11 +4726,11 @@ class Ropake():
         )
         results.key = await asha_512(salt, results.key)
         results.session_key = await asha_512(salt, results.session_key)
-        results.key_id = await cls.aid(results.key)
+        results.key_id = await cls._aid(results.key)
         return results
 
     @classmethod
-    def integrate_salts(
+    def _integrate_salts(
         cls, results: Namespace, client_session_salt, server_session_salt
     ):
         """
@@ -3999,7 +4742,7 @@ class Ropake():
         )
         results.key = sha_512(salt, results.key)
         results.session_key = sha_512(salt, results.session_key)
-        results.key_id = cls.id(results.key)
+        results.key_id = cls._id(results.key)
         return results
 
     @classmethod
@@ -4026,10 +4769,18 @@ class Ropake():
         Usage Example:
 
         # The arguments must contain at least one unique element for
-        # each service the client wants to authenticate with, such as ->
+        # each service the client wants to authenticate with. Using
+        # unique cryptographically secure keys would be better, but this
+        # is a good alternative ->
 
-        uuid = await aiootp.asha_256("server_url", "username")
-        db = await Ropake.aclient_database(uuid, "password")
+        tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
+            server_url,     # An unlimited number of arguments can be passed
+            email_address,  # here as additional, optional credentials.
+            username=username,
+            password=password,
+            salt=optional_salt_keyword_argument,
+        )
+        db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
 
         async with Ropake.aclient_registration(db) as client:
             client_hello = await client()
@@ -4040,21 +4791,19 @@ class Ropake():
         shared_keys = await client.aresult()
         """
         db = database
-        await cls.apopulate_database(db)
-        values = await cls.ainit_protocol()
+        await cls._apopulate_database(db)
+        values = await cls._ainit_protocol()
         response = yield {
             cls.PUB: values.pub.hex(),
             cls.SALT: values.salt,
             cls.SESSION_SALT: values.session_salt,
             cls.KEYED_PASSWORD: await db.apop(cls.KEYED_PASSWORD),
         }
-        shared_key = await cls.ax25519_exchange(
-            secret=values.ecdhe_key, pub=response[cls.PUB]
-        )
-        results = await cls.afinalize(
+        shared_key = await values.ecdhe_key.aexchange(response[cls.PUB])
+        results = await cls._afinalize(
             values.salt, response[cls.SALT], shared_key
         )
-        await cls.aintegrate_salts(
+        await cls._aintegrate_salts(
             results, values.session_salt, response[cls.SESSION_SALT]
         )
         db[cls.KEY] = results.key
@@ -4091,10 +4840,18 @@ class Ropake():
         Usage Example:
 
         # The arguments must contain at least one unique element for
-        # each service the client wants to authenticate with, such as ->
+        # each service the client wants to authenticate with. Using
+        # unique cryptographically secure keys would be better, but this
+        # is a good alternative ->
 
-        uuid = aiootp.sha_256("server_url", "username")
-        db = Ropake.client_database(uuid, "password")
+        tokens = aiootp.Database.generate_profile_tokens(
+            server_url,     # An unlimited number of arguments can be passed
+            email_address,  # here as additional, optional credentials.
+            username=username,
+            password=password,
+            salt=optional_salt_keyword_argument,
+        )
+        db = aiootp.Database.generate_profile(tokens)
 
         with Ropake.client_registration(db) as client:
             client_hello = client()
@@ -4105,21 +4862,19 @@ class Ropake():
         shared_keys = client.result()
         """
         db = database
-        cls.populate_database(db)
-        values = cls.init_protocol()
+        cls._populate_database(db)
+        values = cls._init_protocol()
         response = yield {
             cls.PUB: values.pub.hex(),
             cls.SALT: values.salt,
             cls.SESSION_SALT: values.session_salt,
             cls.KEYED_PASSWORD: db.pop(cls.KEYED_PASSWORD),
         }
-        shared_key = cls.x25519_exchange(
-            secret=values.ecdhe_key, pub=response[cls.PUB]
-        )
-        results = cls.finalize(
+        shared_key = values.ecdhe_key.exchange(response[cls.PUB])
+        results = cls._finalize(
             values.salt, response[cls.SALT], shared_key
         )
-        cls.integrate_salts(
+        cls._integrate_salts(
             results, values.session_salt, response[cls.SESSION_SALT]
         )
         db[cls.KEY] = results.key
@@ -4160,15 +4915,13 @@ class Ropake():
 
         shared_keys = await server.aresult()
         """
-        values = await cls.ainit_protocol()
-        client = await cls.aunpack_client_hello(client_hello)
-        shared_key = await cls.ax25519_exchange(
-            secret=values.ecdhe_key, pub=client.pub
-        )
-        results = await cls.afinalize(
+        values = await cls._ainit_protocol()
+        client = await cls._aunpack_client_hello(client_hello)
+        shared_key = await values.ecdhe_key.aexchange(client.pub)
+        results = await cls._afinalize(
             client.salt, values.salt, shared_key
         )
-        await cls.aintegrate_salts(
+        await cls._aintegrate_salts(
             results, client.session_salt, values.session_salt
         )
         database[results.key_id] = {
@@ -4218,15 +4971,13 @@ class Ropake():
 
         shared_keys = server.result()
         """
-        values = cls.init_protocol()
-        client = cls.unpack_client_hello(client_hello)
-        shared_key = cls.x25519_exchange(
-            secret=values.ecdhe_key, pub=client.pub
-        )
-        results = cls.finalize(
+        values = cls._init_protocol()
+        client = cls._unpack_client_hello(client_hello)
+        shared_key = values.ecdhe_key.exchange(client.pub)
+        results = cls._finalize(
             client.salt, values.salt, shared_key
         )
-        cls.integrate_salts(
+        cls._integrate_salts(
             results, client.session_salt, values.session_salt
         )
         database[results.key_id] = {
@@ -4267,10 +5018,18 @@ class Ropake():
         Usage Example:
 
         # The arguments must contain at least one unique element for
-        # each service the client wants to authenticate with, such as ->
+        # each service the client wants to authenticate with. Using
+        # unique cryptographically secure keys would be better, but this
+        # is a good alternative ->
 
-        uuid = await aiootp.asha_256("server_url", "username")
-        db = await Ropake.aclient_database(uuid, "password")
+        tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
+            server_url,     # An unlimited number of arguments can be passed
+            email_address,  # here as additional, optional credentials.
+            username=username,
+            password=password,
+            salt=optional_salt_keyword_argument,
+        )
+        db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
 
         async with Ropake.aclient(db) as client:
             client_hello = await client()
@@ -4281,14 +5040,14 @@ class Ropake():
         shared_keys = await client.aresult()
         """
         db = database
-        await cls.apopulate_database(db)
+        await cls._apopulate_database(db)
         key = db[cls.KEY]
-        key_id = await cls.aid(key)
-        values = await cls.ainit_protocol()
-        password_salt = await cls.aid(db[cls.SALT])
-        encrypted_response = yield await cls.aencrypt(
+        key_id = await cls._aid(key)
+        values = await cls._ainit_protocol()
+        password_salt = await cls._aid(db[cls.SALT])
+        encrypted_response = yield await cls._aencrypt(
             key_id=key_id,
-            message_key=await cls.aclient_message_key(key),
+            message_key=await cls._aclient_message_key(key),
             salt=values.salt,
             pub=values.pub.hex(),
             password_salt=password_salt,
@@ -4296,11 +5055,9 @@ class Ropake():
             keyed_password=await db.apop(cls.NEXT_KEYED_PASSWORD),
         )
         response = await ajson_decrypt(
-            encrypted_response, key=await cls.aserver_message_key(key),
+            encrypted_response, key=await cls._aserver_message_key(key),
         )
-        shared_key = await cls.ax25519_exchange(
-            secret=values.ecdhe_key, pub=response[cls.PUB]
-        )
+        shared_key = await values.ecdhe_key.aexchange(response[cls.PUB])
         shared_secret = await asha_512(
             key,
             shared_key,
@@ -4309,8 +5066,8 @@ class Ropake():
             await db.apop(cls.KEYED_PASSWORD) ^ int(password_salt, 16),
         )
         db[cls.SALT] = await db.apop(cls.NEXT_SALT)
-        results = await cls.afinalize(key, shared_key, shared_secret)
-        await cls.aintegrate_salts(
+        results = await cls._afinalize(key, shared_key, shared_secret)
+        await cls._aintegrate_salts(
             results, values.session_salt, response[cls.SESSION_SALT]
         )
         db[cls.KEY] = results.key
@@ -4347,10 +5104,18 @@ class Ropake():
         Usage Example:
 
         # The arguments must contain at least one unique element for
-        # each service the client wants to authenticate with, such as ->
+        # each service the client wants to authenticate with. Using
+        # unique cryptographically secure keys would be better, but this
+        # is a good alternative ->
 
-        uuid = aiootp.sha_256("server_url", "username")
-        db = Ropake.client_database(uuid, "password")
+        tokens = aiootp.Database.generate_profile_tokens(
+            server_url,     # An unlimited number of arguments can be passed
+            email_address,  # here as additional, optional credentials.
+            username=username,
+            password=password,
+            salt=optional_salt_keyword_argument,
+        )
+        db = aiootp.Database.generate_profile(tokens)
 
         with Ropake.client(db) as client:
             client_hello = client()
@@ -4361,14 +5126,14 @@ class Ropake():
         shared_keys = client.result()
         """
         db = database
-        cls.populate_database(db)
+        cls._populate_database(db)
         key = db[cls.KEY]
-        key_id = cls.id(key)
-        values = cls.init_protocol()
-        password_salt = cls.id(db[cls.SALT])
-        encrypted_response = yield cls.encrypt(
+        key_id = cls._id(key)
+        values = cls._init_protocol()
+        password_salt = cls._id(db[cls.SALT])
+        encrypted_response = yield cls._encrypt(
             key_id=key_id,
-            message_key=cls.client_message_key(key),
+            message_key=cls._client_message_key(key),
             salt=values.salt,
             pub=values.pub.hex(),
             password_salt=password_salt,
@@ -4376,11 +5141,9 @@ class Ropake():
             keyed_password=db.pop(cls.NEXT_KEYED_PASSWORD),
         )
         response = json_decrypt(
-            encrypted_response, key=cls.server_message_key(key),
+            encrypted_response, key=cls._server_message_key(key),
         )
-        shared_key = cls.x25519_exchange(
-            secret=values.ecdhe_key, pub=response[cls.PUB]
-        )
+        shared_key = values.ecdhe_key.exchange(response[cls.PUB])
         shared_secret = sha_512(
             key,
             shared_key,
@@ -4389,8 +5152,8 @@ class Ropake():
             db.pop(cls.KEYED_PASSWORD) ^ int(password_salt, 16),
         )
         db[cls.SALT] = db.pop(cls.NEXT_SALT)
-        results = cls.finalize(key, shared_key, shared_secret)
-        cls.integrate_salts(
+        results = cls._finalize(key, shared_key, shared_secret)
+        cls._integrate_salts(
             results, values.session_salt, response[cls.SESSION_SALT]
         )
         db[cls.KEY] = results.key
@@ -4433,11 +5196,9 @@ class Ropake():
         shared_keys = await server.aresult()
         """
         key = database[client_hello[cls.KEY_ID]][cls.KEY]
-        values = await cls.ainit_protocol()
-        client = await cls.aunpack_client_hello(client_hello, key=key)
-        shared_key = await cls.ax25519_exchange(
-            secret=values.ecdhe_key, pub=client.pub
-        )
+        values = await cls._ainit_protocol()
+        client = await cls._aunpack_client_hello(client_hello, key=key)
+        shared_key = await values.ecdhe_key.aexchange(client.pub)
         keyed_password = database[client.key_id][cls.KEYED_PASSWORD]
         shared_secret = await asha_512(
             key,
@@ -4446,16 +5207,16 @@ class Ropake():
             values.salt,
             keyed_password ^ int(client.password_salt, 16),
         )
-        results = await cls.afinalize(key, shared_key, shared_secret)
-        await cls.aintegrate_salts(
+        results = await cls._afinalize(key, shared_key, shared_secret)
+        await cls._aintegrate_salts(
             results, client.session_salt, values.session_salt
         )
         database[results.key_id] = {
             cls.KEY: results.key, cls.KEYED_PASSWORD: client.keyed_password
         }
         del database[client.key_id]
-        yield await cls.aencrypt(
-            message_key=await cls.aserver_message_key(key),
+        yield await cls._aencrypt(
+            message_key=await cls._aserver_message_key(key),
             salt=values.salt,
             pub=values.pub.hex(),
             session_salt=values.session_salt,
@@ -4500,11 +5261,9 @@ class Ropake():
         shared_keys = server.result()
         """
         key = database[client_hello[cls.KEY_ID]][cls.KEY]
-        values = cls.init_protocol()
-        client = cls.unpack_client_hello(client_hello, key=key)
-        shared_key = cls.x25519_exchange(
-            secret=values.ecdhe_key, pub=client.pub
-        )
+        values = cls._init_protocol()
+        client = cls._unpack_client_hello(client_hello, key=key)
+        shared_key = values.ecdhe_key.exchange(client.pub)
         keyed_password = database[client.key_id][cls.KEYED_PASSWORD]
         shared_secret = sha_512(
             key,
@@ -4513,16 +5272,16 @@ class Ropake():
             values.salt,
             keyed_password ^ int(client.password_salt, 16),
         )
-        results = cls.finalize(key, shared_key, shared_secret)
-        cls.integrate_salts(
+        results = cls._finalize(key, shared_key, shared_secret)
+        cls._integrate_salts(
             results, client.session_salt, values.session_salt
         )
         database[results.key_id] = {
             cls.KEY: results.key, cls.KEYED_PASSWORD: client.keyed_password
         }
         del database[client.key_id]
-        yield cls.encrypt(
-            message_key=cls.server_message_key(key),
+        yield cls._encrypt(
+            message_key=cls._server_message_key(key),
             salt=values.salt,
             pub=values.pub.hex(),
             session_salt=values.session_salt,
@@ -4533,295 +5292,15 @@ class Ropake():
             session_key=results.session_key,
         )
 
-    @classmethod
-    @comprehension()
-    async def ax25519_2dh_client(cls):
-        """
-        Takes in an ``X25519PrivateKey`` if passed, or generates one, to
-        start a 2DH deniable client key exchange. This key is yielded as
-        public key bytes. Then the server's two public keys should to be
-        sent into this coroutine when they're received. Finally, causing
-        this coroutine to reach the raise will let the primed, ``sha3_512``,
-        kdf object be accessed by the ``aresult`` method.
-
-        Usage Example:
-
-        async with Ropake.ax25519_2dh_client() as client:
-            client_hello = await client()
-            internet.send(client_hello)
-            response = internet.receive()
-            await client(response)
-
-        shared_key_kdf = await client.aresult()
-        """
-        private_key_d = await cls.ax25519_key()
-        public_key_d = await cls.aec25519_public_bytes(private_key_d)
-        public_key_a, public_key_c = yield public_key_d
-        shared_key_ad = await cls.ax25519_exchange(
-            private_key_d, public_key_a
-        )
-        shared_key_cd = await cls.ax25519_exchange(
-            private_key_d, public_key_c
-        )
-        raise UserWarning(sha3_512(shared_key_ad + shared_key_cd))
-
-    @classmethod
-    @comprehension()
-    def x25519_2dh_client(cls):
-        """
-        Takes in an ``X25519PrivateKey`` if passed, or generates one, to
-        start a 2DH deniable client key exchange. This key is yielded as
-        public key bytes. Then the server's two public keys should to be
-        sent into this coroutine when they're received. Finally, causing
-        this coroutine to reach the raise will let the primed, ``sha3_512``,
-        kdf object be accessed by the ``aresult`` method.
-
-        Usage Example:
-
-        with Ropake.x25519_2dh_client() as client:
-            client_hello = client()
-            internet.send(client_hello)
-            response = internet.receive()
-            client(response)
-
-        shared_key_kdf = client.result()
-        """
-        private_key_d = cls.x25519_key()
-        public_key_d = cls.ec25519_public_bytes(private_key_d)
-        public_key_a, public_key_c = yield public_key_d
-        shared_key_ad = cls.x25519_exchange(private_key_d, public_key_a)
-        shared_key_cd = cls.x25519_exchange(private_key_d, public_key_c)
-        return sha3_512(shared_key_ad + shared_key_cd)
-
-    @classmethod
-    @comprehension()
-    async def ax25519_2dh_server(
-        cls,
-        private_key_a: X25519PrivateKey,
-        public_key_d: bytes,
-    ):
-        """
-        Takes in the user's ``X25519PrivateKey`` & a peer's public key
-        bytes to enact a 2DH deniable key exchange.  This yields the
-        user's two public keys as bytes, one from the private key which
-        was passed in as an argument, one which is ephemeral. Causing
-        this coroutine to reach the raise will let the primed,
-        ``sha3_512``, kdf object be accessed by the ``aresult`` method.
-
-        Usage Example:
-
-        skA = server_private_key = await Ropake.ax25519_key()
-        pkD = client_public_key = internet.receive()
-
-        async with Ropake.ax25519_3dh_server(skA, pkD) as server:
-            internet.send(await server())
-            await server()
-
-        shared_key_kdf = await server.aresult()
-        """
-        private_key_c = await cls.ax25519_key()
-        public_key_a = await cls.aec25519_public_bytes(private_key_a)
-        public_key_c = await cls.aec25519_public_bytes(private_key_c)
-        yield public_key_a, public_key_c
-        shared_key_ad = await cls.ax25519_exchange(
-            private_key_a, public_key_d
-        )
-        shared_key_cd = await cls.ax25519_exchange(
-            private_key_c, public_key_d
-        )
-        raise UserWarning(sha3_512(shared_key_ad + shared_key_cd))
-
-    @classmethod
-    @comprehension()
-    def x25519_2dh_server(
-        cls,
-        private_key_a: X25519PrivateKey,
-        public_key_d: bytes,
-    ):
-        """
-        Takes in the user's ``X25519PrivateKey`` & a peer's public key
-        bytes to enact a 2DH deniable key exchange.  This yields the
-        user's two public keys as bytes, one from the private key which
-        was passed in as an argument, one which is ephemeral. Causing
-        this coroutine to reach the raise will let the primed,
-        ``sha3_512``, kdf object be accessed by the ``result`` method.
-
-        Usage Example:
-
-        skA = server_private_key = Ropake.x25519_key()
-        pkD = client_public_key = internet.receive()
-
-        with Ropake.x25519_3dh_server(skA, pkD) as server:
-            internet.send(server())
-            server()
-
-        shared_key_kdf = server.result()
-        """
-        private_key_c = cls.x25519_key()
-        public_key_a = cls.ec25519_public_bytes(private_key_a)
-        public_key_c = cls.ec25519_public_bytes(private_key_c)
-        yield public_key_a, public_key_c
-        shared_key_ad = cls.x25519_exchange(private_key_a, public_key_d)
-        shared_key_cd = cls.x25519_exchange(private_key_c, public_key_d)
-        return sha3_512(shared_key_ad + shared_key_cd)
-
-    @classmethod
-    @comprehension()
-    async def ax25519_3dh_client(cls, private_key_b: X25519PrivateKey):
-        """
-        Takes in the user's ``X25519PrivateKey`` & two of a peer's
-        public keys bytes to enact a 3DH deniable key exchange. This
-        yields the user's two public keys as bytes, one from the private
-        key which was passed in as an argument, one which is ephemeral.
-        Causing this coroutine to reach the raise will let the primed,
-        ``sha3_512``, kdf object be accessed by the ``result`` method.
-
-        Usage Example:
-
-        skB = client_private_key = await Ropake.ax25519_key()
-
-        async with Ropake.ax25519_3dh_client(skB) as client:
-            client_hello = await client()
-            internet.send(client_hello)
-            response = internet.receive()
-            await client(response)
-
-        shared_key_kdf = await client.aresult()
-        """
-        private_key_d = await cls.ax25519_key()
-        public_key_b = await cls.aec25519_public_bytes(private_key_b)
-        public_key_d = await cls.aec25519_public_bytes(private_key_d)
-        public_key_a, public_key_c = yield public_key_b, public_key_d
-        shared_key_ad = await cls.ax25519_exchange(
-            private_key_d, public_key_a
-        )
-        shared_key_bc = await cls.ax25519_exchange(
-            private_key_b, public_key_c
-        )
-        shared_key_cd = await cls.ax25519_exchange(
-            private_key_d, public_key_c
-        )
-        raise UserWarning(
-            sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
-        )
-
-    @classmethod
-    @comprehension()
-    def x25519_3dh_client(cls, private_key_b: X25519PrivateKey):
-        """
-        Takes in the user's ``X25519PrivateKey`` & two of a peer's
-        public keys bytes to enact a 3DH deniable key exchange. This
-        yields the user's two public keys as bytes, one from the private
-        key which was passed in as an argument, one which is ephemeral.
-        Causing this coroutine to reach the return will let the primed,
-        ``sha3_512``, kdf object be accessed by the ``result`` method.
-
-        Usage Example:
-
-        skB = client_private_key = Ropake.x25519_key()
-
-        with Ropake.x25519_3dh_client(skB) as client:
-            client_hello = client()
-            internet.send(client_hello)
-            response = internet.receive()
-            client(response)
-
-        shared_key_kdf = client.result()
-        """
-        private_key_d = cls.x25519_key()
-        public_key_b = cls.ec25519_public_bytes(private_key_b)
-        public_key_d = cls.ec25519_public_bytes(private_key_d)
-        public_key_a, public_key_c = yield public_key_b, public_key_d
-        shared_key_ad = cls.x25519_exchange(private_key_d, public_key_a)
-        shared_key_bc = cls.x25519_exchange(private_key_b, public_key_c)
-        shared_key_cd = cls.x25519_exchange(private_key_d, public_key_c)
-        return sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
-
-    @classmethod
-    @comprehension()
-    async def ax25519_3dh_server(
-        cls,
-        private_key_a: X25519PrivateKey,
-        public_key_b: bytes,
-        public_key_d: bytes,
-    ):
-        """
-        Takes in the user's ``X25519PrivateKey`` & two of a peer's
-        public keys bytes to enact a 3DH deniable key exchange. This
-        yields the user's two public keys as bytes, one from the private
-        key which was passed in as an argument, one which is ephemeral.
-        Causing this coroutine to reach the raise will let the primed,
-        ``sha3_512``, kdf object be accessed by the ``aresult`` method.
-
-        Usage Example:
-
-        skA = server_private_key = await Ropake.ax25519_key()
-        pkB, pkD = client_public_keys = internet.receive()
-
-        async with Ropake.ax25519_3dh_server(skA, pkB, pkD) as server:
-            internet.send(await server())
-            await server()
-
-        shared_key_kdf = await server.aresult()
-        """
-        private_key_c = await cls.ax25519_key()
-        public_key_a = await cls.aec25519_public_bytes(private_key_a)
-        public_key_c = await cls.aec25519_public_bytes(private_key_c)
-        yield public_key_a, public_key_c
-        shared_key_ad = await cls.ax25519_exchange(
-            private_key_a, public_key_d
-        )
-        shared_key_bc = await cls.ax25519_exchange(
-            private_key_c, public_key_b
-        )
-        shared_key_cd = await cls.ax25519_exchange(
-            private_key_c, public_key_d
-        )
-        raise UserWarning(
-            sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
-        )
-
-    @classmethod
-    @comprehension()
-    def x25519_3dh_server(
-        cls,
-        private_key_a: X25519PrivateKey,
-        public_key_b: bytes,
-        public_key_d: bytes,
-    ):
-        """
-        Takes in the user's ``X25519PrivateKey`` & two of a peer's
-        public keys bytes to enact a 3DH deniable key exchange. This
-        yields the user's two public keys as bytes, one from the private
-        key which was passed in as an argument, one which is ephemeral.
-        Causing this coroutine to reach the return will let the primed,
-        ``sha3_512``, kdf object be accessed by the ``result`` method.
-
-        Usage Example:
-
-        skA = server_private_key = Ropake.x25519_key()
-        pkB, pkD = client_public_keys = internet.receive()
-
-        with Ropake.x25519_3dh_server(skA, pkB, pkD) as server:
-            internet.send(server())
-            server()
-
-        shared_key_kdf = server.result()
-        """
-        private_key_c = cls.x25519_key()
-        public_key_a = cls.ec25519_public_bytes(private_key_a)
-        public_key_c = cls.ec25519_public_bytes(private_key_c)
-        yield public_key_a, public_key_c
-        shared_key_ad = cls.x25519_exchange(private_key_a, public_key_d)
-        shared_key_bc = cls.x25519_exchange(private_key_c, public_key_b)
-        shared_key_cd = cls.x25519_exchange(private_key_c, public_key_d)
-        return sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
-
 
 validator = Namespace()
 
 
 __extras = {
+    "Asymmetric25519": Asymmetric25519,
+    "BaseEllipticCurve": BaseEllipticCurve,
+    "Ed25519": Ed25519,
+    "X25519": X25519,
     "AsyncDatabase": AsyncDatabase,
     "Database": Database,
     "Passcrypt": Passcrypt,
