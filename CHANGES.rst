@@ -17,6 +17,66 @@
 =============
 
 
+Changes for version 0.17.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security Patch: The HMAC verifiers on ciphertexts did not include 
+   the ``salt`` or ``pid`` values when deriving the HMAC. This 
+   associated data can therefore be changed to cause a party to
+   decrypt a past ciphertext with a salt or pid of an attacker's
+   choosing. This is a critical vulnerability & it is highly recommended
+   all users update. The fix is to hash the ciphertext, ``salt`` 
+   & ``pid`` together & sending that hash into the validator to have
+   the HMAC created / tested. This change will cause all prior 
+   ciphertexts to be marked invalid by the validator.
+-  Refactored the names of the Comprende cipher methods to better 
+   communicate their intended use as lower level tools that cannot be
+   used on their own to obtain authenticated, CCA or CPA secure 
+   encryption.
+-  Added more comprehensive tests for ``X25519`` & ``Ed25519`` classes,
+   as well as the protocols that utilize the ``X25519`` ecdh exchange.
+   Fixed some bugs in the process.
+-  ``X25519`` instances that contain a secret key now have access to
+   protocol methods which automatically pass their key in as a keyword
+   argument. This simplifies their usage further.
+-  Incorporated the new ``Hasher`` class into the package's random
+   number generator to improve its entropy production.
+
+
+Minor Changes 
+------------- 
+
+-  Various fixes to typos, docstrings & tutorials.
+-  New tutorials & docs added.
+-  Changed the default table in ``ByteIO`` 's ``json_to_ascii``, ``ajson_to_ascii``,
+   ``ascii_to_json`` & ``aascii_to_json`` to the ``URL_SAFE_TABLE`` to 
+   facilitate the creation of urlsafe_tokens.
+-  Removed all code in the ``Ropake`` class that was used to create a default
+   database to store a default salt for users. All of that functionality 
+   is expected to be handled by the database classes' token & profile 
+   creation tools.
+-  Fixed bug in package signing script that called hex from a string.
+-  Updated the package signing script to include these metadata in the
+   signatures of the ephemeral keys: name of the package, version, the 
+   date in seconds.
+-  Added metadata to the ``setup.cfg`` file.
+-  Make passcrypt objects available from the ``keygens`` module.
+-  Add more consistent ability within ``Ropake`` class to specify a
+   time-to-live for protocol messages.
+-  Added check to make sure instances of ``X25519`` & ``Ed25519`` are
+   not trying to import a new secret key once they already have one. 
+   This won't be allowed in favor of creating a new object for a new
+   secret key.
+-  Fixed bug in database classes' bytes ciphers which called themselves
+   recursively instead of calling the global functions of the same name.
+
+
+
+
 Changes for version 0.16.0 
 ========================== 
 
@@ -32,7 +92,7 @@ Major Changes
    mitigate leaking metadata about what they might contain. 
 -  Added new ``X25519`` & ``Ed25519`` classes that greatly simplify the
    usage of the cryptography module's 25519 based tools. They also help
-   organize the codebase into better, where ``Ropake`` was holding onto
+   organize the codebase better -- where ``Ropake`` was holding onto
    all of the asymmetric tooling even though those tools were not part
    of the Ropake protocol.
 -  New base & helper ``Asymmetric25519`` & ``BaseEllipticCurve`` classes 
@@ -46,12 +106,12 @@ Major Changes
 -  The ``Namespace`` class now has a ``keys`` method so that namespaces
    can be unpacked using star-star syntax.
 -  Because of the ongoing failures of gnupg, we are moving away from 
-   signing out packages with gnupg. Our new Ed25519 keys will be from
-   the cryptography package, & we will sign those with out gnupg as a
+   signing our packages with gnupg. Our new Ed25519 keys will be from
+   the cryptography package, & we'll sign those with our gnupg key as a
    secondary form of attestation. Our package signing will be automated
-   in the setup.py & the methods used will be transparent in the code.
-   The new signatures for each package version will be placed in a file
-   ``SIGNATURES.txt``.
+   in the setup.py file & the methods we use will be transparent in the 
+   code. The new signatures for each package version will be placed in 
+   the file ``SIGNATURES.txt``.
 
 
 Minor Changes 
@@ -62,7 +122,7 @@ Minor Changes
    especially in the database classes, ``Ropake`` & the ``ciphers`` module.
 -  Added comprehensive functional tests for the Ropake class.
 -  Added ``BASE_36_TABLE`` to the ``commons`` module.
--  Fixed metadata issues in setup.py that cause upload issures to pypi.
+-  Fixed metadata issues in setup.py that caused upload issues to pypi.
 -  The ``generate_profile``, ``load_profile``, ``agenerate_profile`` &
    ``aload_profile`` database methods now accept arbitrary keyword arguments 
    that get passed into the database's __init__ constructor.
@@ -70,8 +130,8 @@ Minor Changes
    to the ``agenerate_profile_tokens`` & ``generate_profile_tokens`` 
    classmethods.
 -  The ``aload`` & ``load`` database methods now take a ``manifest`` kwarg
-   that when toggled ``True`` will also refresh the manifest file held in
-   memory from disk.
+   that when toggled ``True`` will also refresh the manifest file from 
+   disk.
 -  Now when a database object is ordered to delete itself, the entirety 
    of the instance's caches & attribute values are cleared & deleted.
 -  Filled out the references to strong key generators & protocols in the

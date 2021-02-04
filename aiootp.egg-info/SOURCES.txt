@@ -45,8 +45,10 @@ tests/init_tests.py
 tests/test_Comprende.py
 tests/test_Database_AsyncDatabase.py
 tests/test_Ropake.py
+tests/test_X25519_Ed25519.py
 tests/test_aiootp.py
 tests/test_ciphers.py
 tests/test_generics.py
 tests/test_high_level_encryption.py
+tests/test_misc_in_ciphers.py
 tests/test_passcrypt_apasscrypt.py

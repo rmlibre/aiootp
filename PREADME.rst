@@ -277,6 +277,94 @@ What other tools are available to users?:
     aiootp.primes[2048][-1]    # <- The last 256 byte prime
     
     
+    # Elliptic curve 25519 diffie-hellman exchange protocols ->
+    
+    ecdhe_key = aiootp.X25519().generate()
+    
+    with ecdhe_key.dh3_client() as exchange:
+    
+        response = internet.post(exchange())
+        
+        exchange(response)
+        
+    clients_kdf = exchange.result()
+
+
+    # This is how a peer can accept the exchange ->
+
+    ecdhe_key = aiootp.X25519().generate()
+    
+    pkB, pkD = client_public_keys = internet.receive()
+    
+    server = ecdhe_key.dh3_server(public_key_b=pkB, public_key_d=pkD)
+    
+    with server as exchange:
+    
+        internet.post(exchange.exhaust())
+        
+    servers_kdf = exchange.result()
+    
+
+    # Success! Now both the client & server peers share an identical
+    
+    # sha3_512 hashing object to create shared keys with ->
+
+    assert clients_kdf.digest() == servers_kdf.digest()
+    
+    
+    # Edwards curve 25519 signing & verification ->
+    
+    # In a land, long ago ->
+    
+    user_alice = Ed25519().generate()
+    
+    internet.send(user_alice.public_bytes.hex())
+    
+
+    # Alice wants to sign a document so that Bob can prove she wrote it.
+    
+    # So, Alice sends her public key bytes of the key she wants to
+    
+    # associate with her identity, the document & the signature ->
+    
+    document = b"DesignDocument.cad"
+    
+    signed_document = user_alice.sign(document)
+
+    message = {
+        "document": document,
+        "signature": signed_document,
+        "public_key": user_alice.public_bytes.hex(),
+    }
+
+    internet.send(message)
+    
+
+    # In a land far away ->
+    
+    alices_message = internet.receive()
+
+    # Bob sees the message from Alice! Bob already knows Alice's public
+    
+    # key & she has reason believe it is genuinely hers. She'll then
+    
+    # verify the signed document ->
+    
+    assert alices_message["public_key"] == alices_public_key
+    
+    alice_verifier = Ed25519().import_public_key(alices_public_key)
+    
+    alice_verifier.verify(
+        alices_message["signature"], alices_message["document"]
+    )
+    
+    internet.send(b"Beautiful work, Alice! Thanks ^u^")
+
+    # The verification didn't throw an exception! So, Bob knows the file
+    
+    # was signed by Alice.
+    
+    
     # Symmetric one-time-pad encryption of json data ->
     
     plaintext = {"account": 3311149, "titles": ["queen b"]}
@@ -310,15 +398,29 @@ What other tools are available to users?:
     decrypted = pad.bytes_decrypt(encrypted)
     
     
-    # The class also has access to an efficient encoder for saving
+    # The class also has access to an encoder for transforming 
     
-    # ciphertext to files on disk as bytes ->
+    # ciphertext to & from its default dictionary format ->
+    
+    bytes_ciphertext = pad.io.json_to_bytes(encrypted)
+    
+    dict_ciphertext = pad.io.bytes_to_json(urlsafe_ciphertext)
+    
+    
+    # As well tools for saving ciphertext to files on disk as bytes ->
     
     path = aiootp.DatabasePath() / "testing_ciphertext"
     
     pad.io.write(path, encrypted)
     
     assert encrypted == pad.io.read(path)
+    
+    
+    # Or ciphertext can be encoded to & from a urlsafe string ->
+    
+    urlsafe_ciphertext = pad.io.json_to_ascii(encrypted)
+    
+    dict_ciphertext = pad.io.ascii_to_json(urlsafe_ciphertext)
     
     
     # Ratcheting Opaque Password Authenticated Key Exchange (ROPAKE) with 
@@ -445,22 +547,22 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # in bite-sized chunks a breeze. ->
     
-    ciphertext = aiootp.json_encode(plaintext).encrypt(key, salt=salt).list()
+    padded_plaintext = pad.plaintext_stream(plaintext_bytes, salt=salt).list()
     
-    # We didn't pad the plaintext bytes, so we have to remove the null 
+    assert isinstance(padded_plaintext, list)
     
-    # bytes ->
+    for block in padded_plaintext:
     
-    plaintext_json = aiootp.unpack(ciphertext).decrypt(key, salt=salt).join().replace("\x00", "")
+        assert len(block) == 256
     
     
-    # We just used the ``list`` & ``join`` end-points to get the full series 
+    # We just used the ``list`` end-point to get the full series 
 
-    # of results from the underlying generators. These results are lru-cached 
+    # of results from the underlying generator. These results are lru-cached 
 
     # to facilitate their efficient reuse for alternate computations. The 
 
-    # ``Comprende`` context manager clears the opened instance's cache on exit, 
+    # ``Comprende`` context managers clear the opened instance's cache on exit, 
 
     # this clears every instance's cache ->
 
@@ -730,8 +832,8 @@ Generators under-pin most procedures in the library, let's take a look ->
         "aint_to_bytes",
         "ajson_dumps",
         "ajson_loads",
-        "amap_decrypt",
-        "amap_encrypt",
+        "amap_decipher",
+        "amap_encipher",
         "apasscrypt",
         "arandom_sleep",
         "areplace",
@@ -779,8 +881,8 @@ Generators under-pin most procedures in the library, let's take a look ->
         "int_to_bytes",
         "json_dumps",
         "json_loads",
-        "map_decrypt",
-        "map_encrypt",
+        "map_decipher",
+        "map_encipher",
         "passcrypt",
         "random_sleep",
         "replace",
@@ -869,9 +971,9 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     data_stream = aiootp.adata(padded_data)
     
-    async with data_stream.amap_encrypt(names, key_stream) as encrypting:
+    async with data_stream.amap_encipher(names, key_stream) as encrypting:
     
-        # ``adata`` takes a sequence, & ``amap_encrypt`` takes two iterables,
+        # ``adata`` takes a sequence, & ``amap_encipher`` takes two iterables,
         
         # a stream of names for the hash map, & the stream of key material.
         
@@ -884,7 +986,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     ciphertext_stream = aiootp.apick(names, ciphertext_hashmap)
     
-    async with ciphertext_stream.amap_decrypt(await key_stream.areset()) as decrypting:
+    async with ciphertext_stream.amap_decipher(await key_stream.areset()) as decrypting:
     
         decrypted = await decrypting.ajoin(b"")
         
@@ -1032,17 +1134,17 @@ A: It's a provably unbreakable cipher. It's typically thought to be too cumberso
 A: The infinite stream of key material produced by that generator has amazing properties. Under the hood it's a ``hashlib.sha3_512`` key ratchet algorithm. It's internal state consists of a seed hash, & three ``hashlib.sha3_512`` objects primed iteratively with the one prior and the seed hash. The first object is updated with the seed, its prior output, and the entropy that may be sent into the generator as a coroutine. This first object is then used to update the last two objects before yielding the last two's concatenated results. The seed is the hash of a primer seed, which itself is the hash of the input key material, a random salt, and a user-defined ID value which can safely distinguish streams with the same key material. This algorithm is forward secure because compromising a future key will not compromise past keys since these hashes are irreversibly constructed. It's also semi-future secure since having a past key doesn't allow you to compute future keys without also compromising the seed hash, and the first ratcheting ``hashlib`` object. Since those two states are never disclosed or used for encryption, the key material produced is future secure with respect to itself only. Full future-security would allow for the same property even if the seed & ratchet object's state were compromised. This feature can, however, be added to the algorithm since the generator itself can receive entropy externally from a user at any arbitrary point in its execution, say, after computing a shared diffie-hellman exchange key.
 
 
-**Q: How fast is this implementation of the one-time pad cipher?**
+**Q: How fast is this implementation of the one-time pad cipher?** 
 
 A: Well, because it relies on ``hashlib.sha3_512`` hashing to build key material streams, it's rather efficient, encrypting & decrypting about 8 MB/s on a ~1.5 GHz core.
 
 
-**Q: Why make a new cipher when AES is strong enough?**
+**Q: Why make a new cipher when AES is strong enough?** 
 
 A: Although primatives like AES are strong enough for now, there's no guarantee that future hardware or algorithms won't be developed that break them. In fact, AES's theoretical bit-strength has dropped over the years because of hardware and algorithmic developments. It's still considered a secure cipher, but the **one-time pad** isn't considered theoretically "strong enough", instead it's mathematically proven to be unbreakable. Such a cryptographic guarantee is too profound not to develop further into an efficient, accessible standard.
 
 
-**Q: What size keys does this one-time pad cipher use?**
+**Q: What size keys does this one-time pad cipher use?** 
 
 A: It's been designed to work with 512-bit hexidecimal keys. 
 
