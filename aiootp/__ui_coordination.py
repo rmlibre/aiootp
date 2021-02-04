@@ -251,10 +251,10 @@ def insert_bytes_cipher_methods():
     Copies the addons over into the ``Comprende`` class.
     """
     addons = {
-        OneTimePad._bytes_encrypt,
-        OneTimePad._bytes_decrypt,
-        OneTimePad._abytes_encrypt,
-        OneTimePad._abytes_decrypt,
+        OneTimePad._bytes_encipher,
+        OneTimePad._bytes_decipher,
+        OneTimePad._abytes_encipher,
+        OneTimePad._abytes_decipher,
     }
     for addon in addons:
         name = addon.__name__[1:]
@@ -267,13 +267,13 @@ def insert_stream_cipher_methods():
     Copies the addons over into the ``Comprende`` class.
     """
     addons = {
-        OneTimePad._otp_encrypt,
-        OneTimePad._otp_decrypt,
-        OneTimePad._aotp_encrypt,
-        OneTimePad._aotp_decrypt,
+        OneTimePad._ascii_encipher,
+        OneTimePad._ascii_decipher,
+        OneTimePad._aascii_encipher,
+        OneTimePad._aascii_decipher,
     }
     for addon in addons:
-        name = addon.__name__.replace("_otp_", "").replace("_aotp_", "a")
+        name = addon.__name__[1:]
         setattr(Comprende, name, addon)
         Comprende.lazy_generators.add(name)
 
@@ -283,10 +283,10 @@ def insert_hashmap_cipher_methods():
     Copies the addons over into the ``Comprende`` class.
     """
     addons = {
-        OneTimePad._map_encrypt,
-        OneTimePad._map_decrypt,
-        OneTimePad._amap_encrypt,
-        OneTimePad._amap_decrypt,
+        OneTimePad._map_encipher,
+        OneTimePad._map_decipher,
+        OneTimePad._amap_encipher,
+        OneTimePad._amap_decipher,
     }
     for addon in addons:
         setattr(Comprende, addon.__name__[1:], addon)
@@ -331,19 +331,6 @@ def insert_stateful_key_generator_objects():
     validator.atime_safe_equality = pad.atime_safe_equality
 
 
-def initialize_default_ropake_class_database():
-    """
-    Establishes a default encrypted database for the Ropake class with a
-    key derived from the name of the ``aiootp.paths.SecurePath()``
-    directory & a static salt saved on the user filesystem. If it
-    doesn't already exist, it is created, & a cryptographic salt is
-    stored within the default database for clients to be able to secure
-    the password hashes which then open the user databases that are
-    specific to each account.
-    """
-    Ropake(key=None)
-
-
 def add_protocols_to_collections():
     """
     Adds the assorted protocols defined throughout the library to the
@@ -360,6 +347,5 @@ insert_bytes_cipher_methods()
 insert_stream_cipher_methods()
 insert_hashmap_cipher_methods()
 insert_stateful_key_generator_objects()
-initialize_default_ropake_class_database()
 add_protocols_to_collections()
 
