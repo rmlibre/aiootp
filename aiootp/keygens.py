@@ -323,10 +323,11 @@ class AsyncKeys:
         salt = await keystream.aresult(exit=True)
 
         derived_keystream = keyring.akeys(salt=salt, pid="conversation")
-        deciphering = aiootp.aunpack(ciphered).axor(derived_keystream)
+        deciphering = aiootp.aunpack(ciphered).axor(key=derived_keystream)
 
         async with deciphering.aint_to_ascii() as plaintext:
-            assert "Hey, when's the party?" == await plaintext.ajoin()
+            deciphered = (await plaintext.ajoin()).replace("\x00", "")
+            assert deciphered == "Hey, when's the party?"
         """
         return akeys(key=self.key, pid=pid)
 
@@ -346,6 +347,31 @@ class AsyncKeys:
         function ``hasher``.
         """
         return await hasher(data, key=key if key else self.key)
+
+    async def atime_safe_equality(
+        self, value_0=None, value_1=None, *, key=None
+    ):
+        """
+        Tests if ``value_0`` is equal to ``value_1`` with a non-constant
+        time comparison on the hash of each value appended with a salt
+        prior to hashing. The algorithm prepends the instance's
+        ``self.key`` if ``key`` is not supplied to further make the
+        tested outputs undeterminable to an attacker. The random salt
+        & key allow the hashes to be compared normally in non-constant
+        time, without revealing meaningful information, since an
+        attacker wouldn't have access to either. This scheme is easier
+        to implement correctly & is easier to prove guarantees of the
+        infeasibility of timing attacks.
+        """
+        salt = await atoken_bytes(32)
+        key = key if key else self.key
+        if (
+            await asha_256(key, value_0, salt)
+            == await asha_256(key, value_1, salt)
+        ):
+            return True
+        else:
+            return False
 
     async def atest_hmac(
         self, data, *, hmac=None, key=None, hasher=asha_256_hmac
@@ -372,31 +398,6 @@ class AsyncKeys:
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
-
-    async def atime_safe_equality(
-        self, value_0=None, value_1=None, *, key=None
-    ):
-        """
-        Tests if ``value_0`` is equal to ``value_1`` with a non-constant
-        time comparison on the hash of each value appended with a salt
-        prior to hashing. The algorithm prepends the instance's
-        ``self.key`` if ``key`` is not supplied to further make the
-        tested outputs undeterminable to an attacker. The random salt
-        & key allow the hashes to be compared normally in non-constant
-        time, without revealing meaningful information, since an
-        attacker wouldn't have access to either. This scheme is easier
-        to implement correctly & is easier to prove guarantees of the
-        infeasibility of timing attacks.
-        """
-        salt = await atoken_bytes(32)
-        key = key if key else self.key
-        if (
-            await asha_256(key, value_0, salt)
-            == await asha_256(key, value_1, salt)
-        ):
-            return True
-        else:
-            return False
 
     def _reset(self, key=None):
         """
@@ -492,10 +493,11 @@ class Keys:
         salt = keystream.result(exit=True)
 
         derived_keystream = keyring.keys(salt=salt, pid="conversation")
-        deciphering = aiootp.unpack(ciphered).xor(derived_keystream)
+        deciphering = aiootp.unpack(ciphered).xor(key=derived_keystream)
 
         with deciphering.int_to_ascii() as plaintext:
-            assert "Hey, when's the party?" == plaintext.join()
+            deciphered = plaintext.join().replace("\x00", "")
+            assert deciphered == "Hey, when's the party?"
         """
         return keys(key=self.key, pid=pid)
 
@@ -513,6 +515,26 @@ class Keys:
         function ``hasher``.
         """
         return hasher(data, key=key if key else self.key)
+
+    def time_safe_equality(self, value_0=None, value_1=None, *, key=None):
+        """
+        Tests if ``value_0`` is equal to ``value_1`` with a non-constant
+        time comparison on the hash of each value appended with a salt
+        prior to hashing. The algorithm prepends the instance's
+        ``self.key`` if ``key`` is not supplied to further make the
+        tested outputs undeterminable to an attacker. The random salt
+        & key allow the hashes to be compared normally in non-constant
+        time, without revealing meaningful information, since an
+        attacker wouldn't have access to either. This scheme is easier
+        to implement correctly & is easier to prove guarantees of the
+        infeasibility of timing attacks.
+        """
+        salt = token_bytes(32)
+        key = key if key else self.key
+        if sha_256(key, value_0, salt) == sha_256(key, value_1, salt):
+            return True
+        else:
+            return False
 
     def test_hmac(
         self, data, *, hmac=None, key=None, hasher=sha_256_hmac
@@ -539,26 +561,6 @@ class Keys:
             return True
         else:
             raise ValueError("HMAC of ``data`` isn't valid.")
-
-    def time_safe_equality(self, value_0=None, value_1=None, *, key=None):
-        """
-        Tests if ``value_0`` is equal to ``value_1`` with a non-constant
-        time comparison on the hash of each value appended with a salt
-        prior to hashing. The algorithm prepends the instance's
-        ``self.key`` if ``key`` is not supplied to further make the
-        tested outputs undeterminable to an attacker. The random salt
-        & key allow the hashes to be compared normally in non-constant
-        time, without revealing meaningful information, since an
-        attacker wouldn't have access to either. This scheme is easier
-        to implement correctly & is easier to prove guarantees of the
-        infeasibility of timing attacks.
-        """
-        salt = token_bytes(32)
-        key = key if key else self.key
-        if sha_256(key, value_0, salt) == sha_256(key, value_1, salt):
-            return True
-        else:
-            return False
 
     def reset(self, key=None):
         """
@@ -614,6 +616,7 @@ __extras = {
     "Keys": Keys,
     "X25519": X25519,
     "Ed25519": Ed25519,
+    "Passcrypt": Passcrypt,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
@@ -631,6 +634,8 @@ __extras = {
     "bytes_keys": bytes_keys,
     "amnemonic": amnemonic,
     "mnemonic": mnemonic,
+    "apasscrypt": apasscrypt,
+    "passcrypt": passcrypt,
     "akeypair": akeypair,
     "keypair": keypair,
     "akeypair_ratchets": akeypair_ratchets,
