@@ -26,12 +26,49 @@ from aiootp import *
 key = csprng()
 salt = csprng()[:64]
 pid = sha_256(key, salt)
+pad = OneTimePad(key)
+
+passcrypt_passwords = []
+apasscrypt_passwords = []
+
+password_0 = csprng()
+password_1 = randoms.urandom(256)
+password_2 = dict(some_data=list(password_1))
+passwords = [password_0, password_1, password_2]
+
+salt_0 = csprng()
+salt_1 = randoms.urandom(256)
+salt_2 = dict(some_data=list(password_1))
+salts = [salt_0, salt_1, salt_2]
+
+passcrypt_settings = dict(kb=256, cpu=2, hardness=256)
+
+tag = "testing"
+atag = "a" + tag
+metatag = "clients"
+ametatag = "a" + metatag
+
 depth = 100
 username = "test suite"
 password = "terrible low entropy password"
 PROFILE = dict(username=username, password=password, salt=salt)
 LOW_PASSCRYPT_SETTINGS = dict(kb=256, cpu=2, hardness=256)
 PROFILE_AND_SETTINGS = {**PROFILE, **LOW_PASSCRYPT_SETTINGS}
+
+plaintext_bytes = 100 * randoms.urandom(128)
+plaintext_string = 1280 * "testing..."
+test_data = {
+    "floats": 10000.243,
+    "dicts": {"testing": {}},
+    "lists": list(range(100)),
+    "strings": 100 * "testing...",
+}
+atest_data = {
+    "floats": 10000.243,
+    "dicts": {"testing": {}},
+    "lists": list(range(100)),
+    "strings": 100 * "testing...",
+}
 
 
 @pytest.fixture(scope="session")
@@ -54,7 +91,8 @@ def async_database():
     yield db
 
     print("teardown".center(18, "-"))
-    run(db.asave())
+
+    run(db.aload(manifest=True, silent=True))
     run(db.adelete_database())
 
 
@@ -69,13 +107,27 @@ __all__ = [
     "key",
     "salt",
     "pid",
+    "pad",
+    "passcrypt_passwords",
+    "apasscrypt_passwords",
+    "passwords",
+    "salts",
+    "passcrypt_settings",
+    "tag",
+    "atag",
+    "metatag",
+    "ametatag",
     "depth",
     "username",
     "password",
-    "database",
-    "async_database",
     "PROFILE",
     "LOW_PASSCRYPT_SETTINGS",
     "PROFILE_AND_SETTINGS",
+    "plaintext_bytes",
+    "plaintext_string",
+    "test_data",
+    "atest_data",
+    "database",
+    "async_database",
 ]
 

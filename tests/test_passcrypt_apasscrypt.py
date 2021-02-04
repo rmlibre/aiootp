@@ -22,30 +22,11 @@ __all__ = [
 ]
 
 
-password_0 = csprng()
-password_1 = randoms.urandom(256)
-password_2 = dict(some_data=list(password_1))
-passwords = [password_0, password_1, password_2]
-
-
-salt_0 = csprng()
-salt_1 = randoms.urandom(256)
-salt_2 = dict(some_data=list(password_1))
-salts = [salt_0, salt_1, salt_2]
-
-
-settings = dict(kb=256, cpu=2, hardness=256)
-
-
-passcrypt_passwords = []
-apasscrypt_passwords = []
-
-
 def test_passcrypt():
     for password in passwords:
         for salt in salts:
             passcrypt_passwords.append(
-                passcrypt(password, salt, **settings)
+                passcrypt(password, salt, **passcrypt_settings)
             )
 
 
@@ -53,7 +34,7 @@ def test_apasscrypt():
     for password in passwords:
         for salt in salts:
             apasscrypt_passwords.append(
-                run(apasscrypt(password, salt, **settings))
+                run(apasscrypt(password, salt, **passcrypt_settings))
             )
 
 
@@ -62,7 +43,7 @@ def test_passcrypts_equality():
 
 
 async def async_generator_run():
-    async for _ in adata(100*"testing...").apasscrypt(salt_0, **settings)[0]:
+    async for _ in adata(plaintext_bytes).apasscrypt(salts[0], **passcrypt_settings)[0]:
         pass
 
 
@@ -71,5 +52,6 @@ def test_apasscrypt_generators():
 
 
 def test_passcrypt_generators():
-    for _ in data(100*"testing...").passcrypt(salt_0, **settings)[0]:
+    for _ in data(plaintext_string).passcrypt(salts[0], **passcrypt_settings)[0]:
         pass
+

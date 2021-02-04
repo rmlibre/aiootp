@@ -18,16 +18,6 @@ __all__ = [
 ]
 
 
-# plaintext_bytes = 100 * b"testing..." + randoms.urandom(128)
-plaintext_string = 1280 * "testing..."
-plaintext_types = {
-    "floats": 10000.243,
-    "dicts": {"testing": None},
-    "lists": list(range(100)),
-    "strings": 100 * "testing...",
-}
-
-
 async def async_registration(async_database):
     db = async_database
     await db.ametatag("client")

@@ -25,24 +25,6 @@ __all__ = [
 ]
 
 
-tag = "testing"
-atag = "a" + tag
-metatag = "clients"
-ametatag = "a" + metatag
-test_data = {
-    "floats": 10000.243,
-    "dicts": {"testing": {}},
-    "lists": list(range(100)),
-    "strings": 100 * "testing...",
-}
-atest_data = {
-    "floats": 10000.243,
-    "dicts": {"testing": {}},
-    "lists": list(range(100)),
-    "strings": 100 * "testing...",
-}
-
-
 def test_Database_instance(database):
     db = Database(key=key, password_depth=depth)
 

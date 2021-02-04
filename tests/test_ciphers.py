@@ -15,6 +15,11 @@ from init_tests import *
 __exports = set()
 
 
+from test_misc_in_ciphers import *
+for variable in __all__:
+    __exports.add(variable)
+
+
 from test_Database_AsyncDatabase import *
 for variable in __all__:
     __exports.add(variable)
@@ -35,6 +40,10 @@ for variable in __all__:
     __exports.add(variable)
 
 
-__all__ = list(__exports)
+from test_X25519_Ed25519 import *
+for variable in __all__:
+    __exports.add(variable)
 
+
+__all__ = list(__exports)
 
