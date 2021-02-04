@@ -58,6 +58,7 @@ from .asynchs import asleep
 from .generics import aint
 from .generics import astr
 from .generics import arange
+from .generics import Hasher
 from .generics import sha_256
 from .generics import sha_512
 from .generics import asha_256
@@ -495,6 +496,7 @@ try:
     _initial_entropy = deque(
         [token_number(128), token_number(128)], maxlen=2
     )
+    _entropy = Hasher(token_bytes(256))
     del mod
 except RuntimeError as error:
     problem = f"{__package__}'s random seed initialization failed, "
@@ -679,7 +681,7 @@ async def arandom_number_generator(
         async def hash_cache():
             seed = await atoken_bytes(32)
             await arandom_sleep(0.003)
-            _cache.appendleft(hash_bytes(*_cache, entropy, seed))
+            _cache.appendleft(await _entropy.ahash(*_cache, entropy, seed))
 
         async def modular_multiplication():
             seed = await _asalt()
@@ -687,11 +689,8 @@ async def arandom_number_generator(
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
-            _cache.appendleft(
-                await ahash_bytes(
-                    result.to_bytes(512, "big"),
-                    seed.to_bytes(256, "big"),
-                )
+            await _entropy.ahash(
+                result.to_bytes(512, "big"), seed.to_bytes(256, "big")
             )
 
         async def create_unique_multiple(seed):
@@ -715,10 +714,10 @@ async def arandom_number_generator(
         await agenerate_unique_range_bounds()
     else:
         _cache.appendleft(
-            await ahash_bytes(*_cache, await atoken_bytes(32), entropy)
+            await _entropy.ahash(await atoken_bytes(32), entropy)
         )
 
-    return await ahash_bytes(
+    return await _entropy.ahash(
         *_cache, (await _asalt()).to_bytes(256, "big"), entropy
     )
 
@@ -804,7 +803,7 @@ def random_number_generator(
         async def hash_cache():
             seed = await atoken_bytes(32)
             await arandom_sleep(0.003)
-            _cache.appendleft(hash_bytes(*_cache, entropy, seed))
+            _cache.appendleft(await _entropy.ahash(*_cache, entropy, seed))
 
         async def modular_multiplication():
             seed = await _asalt()
@@ -812,11 +811,8 @@ def random_number_generator(
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
-            _cache.appendleft(
-                await ahash_bytes(
-                    result.to_bytes(512, "big"),
-                    seed.to_bytes(256, "big"),
-                )
+            await _entropy.ahash(
+                result.to_bytes(512, "big"), seed.to_bytes(256, "big")
             )
 
         async def create_unique_multiple(seed):
@@ -839,13 +835,9 @@ def random_number_generator(
         run(start_generator(runs))    # <- RuntimeError in event loops
         generate_unique_range_bounds()
     else:
-        _cache.appendleft(
-            hash_bytes(*_cache, token_bytes(32), entropy)
-        )
+        _cache.appendleft(_entropy.hash(token_bytes(32), entropy))
 
-    return hash_bytes(
-        *_cache, _salt().to_bytes(256, "big"), entropy
-    )
+    return _entropy.hash(*_cache, _salt().to_bytes(256, "big"), entropy)
 
 
 async def aunique_integer():
