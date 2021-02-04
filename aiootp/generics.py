@@ -650,7 +650,7 @@ class BytesIO:
         return data.result
 
     @classmethod
-    def _process_bytes(cls, data, encoding=LIST_ENCODING):
+    def _process_bytes(cls, data, *, encoding=LIST_ENCODING):
         """
         Takes in bytes ``data`` for initial processing. Returns a
         namespace populated with the discovered ciphertext values.
@@ -662,13 +662,13 @@ class BytesIO:
         obj = cls._make_stack()
         obj.result = {}
         obj.copy = data
-        obj.hmac = data[:32].hex()
-        obj.salt = data[32:64].hex()
+        obj.hmac = data[:32]
+        obj.salt = data[32:64]
         obj.ciphertext = data[64:]
         return obj
 
     @classmethod
-    async def abytes_to_json(cls, data, encoding=LIST_ENCODING):
+    async def abytes_to_json(cls, data, *, encoding=LIST_ENCODING):
         """
         Converts bytes ``data`` of listed ciphertext back into a json
         dictionary. ``LIST_ENCODING`` is the default encoding for all
@@ -681,12 +681,12 @@ class BytesIO:
             int.from_bytes(chunk, "big")
             async for chunk in streamer(obj.ciphertext)
         ]
-        obj.result["hmac"] = obj.hmac
-        obj.result["salt"] = obj.salt
+        obj.result["hmac"] = obj.hmac.hex()
+        obj.result["salt"] = obj.salt.hex()
         return obj.result
 
     @classmethod
-    def bytes_to_json(cls, data, encoding=LIST_ENCODING):
+    def bytes_to_json(cls, data, *, encoding=LIST_ENCODING):
         """
         Converts bytes ``data`` of listed ciphertext back into a json
         dictionary. ``LIST_ENCODING`` is the default encoding for all
@@ -699,44 +699,48 @@ class BytesIO:
             int.from_bytes(chunk, "big")
             for chunk in streamer(obj.ciphertext)
         ]
-        obj.result["hmac"] = obj.hmac
-        obj.result["salt"] = obj.salt
+        obj.result["hmac"] = obj.hmac.hex()
+        obj.result["salt"] = obj.salt.hex()
         return obj.result
 
     @classmethod
-    async def ajson_to_ascii(cls, data, *, table=ASCII_TABLE_128):
+    async def ajson_to_ascii(cls, data, *, table=URL_SAFE_TABLE):
         """
-        Converts json ciphertext into a compacted ascii format.
+        Converts json ciphertext into ascii consisting of characters
+        found inside the ``table`` keyword argument.
         """
         bytes_data = await cls.ajson_to_bytes(data)
         return await cls.abytes_to_urlsafe(bytes_data, table=table)
 
     @classmethod
-    def json_to_ascii(cls, data, *, table=ASCII_TABLE_128):
+    def json_to_ascii(cls, data, *, table=URL_SAFE_TABLE):
         """
-        Converts json ciphertext into a compacted ascii format.
+        Converts json ciphertext into ascii consisting of characters
+        found inside the ``table`` keyword argument.
         """
         bytes_data = cls.json_to_bytes(data)
         return cls.bytes_to_urlsafe(bytes_data, table=table)
 
     @classmethod
-    async def aascii_to_json(cls, data, *, table=ASCII_TABLE_128):
+    async def aascii_to_json(cls, data, *, table=URL_SAFE_TABLE):
         """
-        Converts compact ascii formated ciphertext back into json.
+        Converts ascii formated ciphertext, consisting of characters
+        from the ``table`` keyword argument, back into json.
         """
         bytes_data = await cls.aurlsafe_to_bytes(data, table=table)
         return await cls.abytes_to_json(bytes_data)
 
     @classmethod
-    def ascii_to_json(cls, data, *, table=ASCII_TABLE_128):
+    def ascii_to_json(cls, data, *, table=URL_SAFE_TABLE):
         """
-        Converts compact ascii formated ciphertext back into json.
+        Converts ascii formated ciphertext, consisting of characters
+        from the ``table`` keyword argument, back into json.
         """
         bytes_data = cls.urlsafe_to_bytes(data, table=table)
         return cls.bytes_to_json(bytes_data)
 
     @classmethod
-    async def aread(cls, path, encoding=LIST_ENCODING):
+    async def aread(cls, path, *, encoding=LIST_ENCODING):
         """
         Reads the bytes file at ``path`` under a certain ``encoding``.
         ``LIST_ENCODING`` is the default encoding for all ciphertext.
@@ -749,7 +753,7 @@ class BytesIO:
             )
 
     @classmethod
-    def read(cls, path, encoding=LIST_ENCODING):
+    def read(cls, path, *, encoding=LIST_ENCODING):
         """
         Reads the bytes file at ``path`` under a certain ``encoding``.
         ``LIST_ENCODING`` is the default encoding for all ciphertext.
@@ -3639,6 +3643,7 @@ async def apick(names=None, mapping=None):
     """
     Does a bracketed lookup on ``mapping`` for each name in ``names``.
     """
+    names = names if is_async_iterable(names) else aunpack(names)
     async for name in names:
         try:
             yield mapping[name]
@@ -3932,21 +3937,22 @@ class Hasher:
             if not method.startswith("_"):
                 setattr(self, method, getattr(self._obj, method))
 
-    def mutlihash(self, *data):
+    async def ahash(self, *data):
         """
         Receives any number of arguments of bytes type ``data`` &
         updates the instance with them all sequentially.
         """
         self.update(b"".join(data))
+        await switch()
+        return self.digest()
 
-    async def amutlihash(self, *data):
+    def hash(self, *data):
         """
         Receives any number of arguments of bytes type ``data`` &
         updates the instance with them all sequentially.
         """
-        for item in data:
-            await switch()
-            self.update(item)
+        self.update(b"".join(data))
+        return self.digest()
 
 
 async def aint_to_ascii(data):
