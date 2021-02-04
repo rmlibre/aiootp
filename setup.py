@@ -17,12 +17,14 @@ from hashlib import sha256, sha512
 from collections import defaultdict
 from setuptools import setup, find_packages
 
-from aiootp import Ed25519, Database, passcrypt
+from aiootp import Ed25519, Database, passcrypt, asynchs
 
 
 description = """
 aiootp - an asynchronous one-time-pad based crypto and anonymity library.
-""".replace("\n", "")
+""".replace(
+    "\n", ""
+)
 
 
 with open("PREADME.rst", "r") as preadme:
@@ -43,7 +45,11 @@ with open("MANIFEST.in", "r") as manifest:
 
 checksums = defaultdict(dict)
 for line in filename_sheet:
-    if "CHECKSUM" in line or "SIGNATURES" in line or not line.startswith("include"):
+    if (
+        "CHECKSUM" in line
+        or "SIGNATURES" in line
+        or not line.startswith("include")
+    ):
         continue
 
     name = line.split(" ")[-1]
@@ -72,29 +78,40 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
             directory=getpass("Identity Key Directory ?\n"),
         )
 
-        presigned_keys = db["ephemerals"]
+        name = b"aiootp"
+        version = b"0.17.0"
+        date = asynchs.this_second().to_bytes(8, "big")
+        presigned_keys = db["presigned_ephemeral_keys"]
         if presigned_keys:
+            version = db["version"].encode()
+            date = db["date"].to_bytes(8, "big")
             ephemeral_hex = presigned_keys.pop()
-            signed_ephemeral_key = db[ephemeral_hex]
+            signed_ephemeral_key = db[identity_hex]
             ephemeral_key = Ed25519().import_secret_key(ephemeral_hex)
-            identity_key = Ed25519().import_public_key(db["identity_key_public"])
+            identity_hex = db["identity_key_public"]
+            identity_key = Ed25519().import_public_key(identity_hex)
             assert signed_ephemeral_key
-            assert ephemeral_hex not in db["ephemerals"]
+            assert ephemeral_hex not in db["presigned_ephemeral_keys"]
         else:
             ephemeral_key = Ed25519().generate()
-            identity_key = Ed25519().import_secret_key(db["identity_key_secret"])
-            signed_ephemeral_key = identity_key.sign(ephemeral_key.public_bytes)
+            identity_hex = db["identity_key_secret"]
+            identity_key = Ed25519().import_secret_key(identity_hex)
+            scope = [name, version, date, ephemeral_key.public_bytes]
+            signed_ephemeral_key = identity_key.sign(b"||".join(scope)).hex()
 
-        db["ephemeral"] = ephemeral_key.secret_bytes.hex()
+        db["ephemeral_key"] = ephemeral_key.secret_bytes.hex()
         proof = dict(
             identity_key=identity_key.public_bytes.hex(),
             pgp_signed_identity_key=db["pgp_attestation"],
+            name=name.decode(),
+            date=int.from_bytes(date, "big"),
+            version=version.decode(),
+            ephemeral_key=ephemeral_key.public_bytes.hex(),
+            signed_ephemeral_key=signed_ephemeral_key,
             checksums_txt_sha256=sha256sum.hex(),
             checksums_txt_sha512=sha512sum.hex(),
             signed_sha256sum=ephemeral_key.sign(sha256sum).hex(),
             signed_sha512sum=ephemeral_key.sign(sha512sum).hex(),
-            ephemeral_key=ephemeral_key.public_bytes.hex(),
-            signed_ephemeral_key=signed_ephemeral_key.hex(),
         )
         db["proof"] = proof
         db.save()
@@ -106,7 +123,7 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
 setup(
     name="aiootp",
     license="AGPLv3",
-    version="0.16.0",
+    version=version.decode(),
     description=description,
     long_description=long_description,
     long_description_content_type="text/x-rst",
@@ -115,6 +132,18 @@ setup(
     author_email="gonzo.development@protonmail.ch",
     maintainer="Gonzo Investigatory Journalism Agency, LLC",
     maintainer_email="gonzo.development@protonmail.ch",
+    packages=find_packages(),
+    include_package_data=True,
+    python_requires=">=3.6",
+    tests_require=["pytest"],
+    install_requires=[
+        "sympy",
+        "aiofiles",
+        "pybase64",
+        "async_lru",
+        "aioitertools",
+        "cryptography",
+    ],
     classifiers=[
         "Framework :: AsyncIO",
         "Natural Language :: English",
@@ -191,16 +220,4 @@ setup(
             "comprehension",
         ]
     ),
-    include_package_data=True,
-    install_requires=[
-        "sympy",
-        "aiofiles",
-        "pybase64",
-        "async_lru",
-        "aioitertools",
-        "cryptography",
-    ],
-    tests_require=["pytest"],
-    packages=find_packages(),
 ) if __name__ == "__main__" else 0
-
