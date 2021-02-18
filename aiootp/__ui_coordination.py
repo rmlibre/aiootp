@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous one-time-pad based crypto
-# and anonymity library.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -21,6 +21,7 @@ package.
 
 from .debuggers import gen_timer, agen_timer
 from .generics import azip
+from .generics import sha_512, asha_512
 from .generics import Comprende, comprehension
 from .generics import convert_static_method_to_member
 from .randoms import random_sleep as _random_sleep
@@ -31,9 +32,10 @@ from .ciphers import X25519
 from .ciphers import validator
 from .ciphers import Passcrypt
 from .ciphers import OneTimePad
-from .ciphers import salt, asalt
 from .ciphers import passcrypt as _passcrypt
 from .ciphers import apasscrypt as _apasscrypt
+from .ciphers import generate_salt, agenerate_salt
+from .keygens import Keys, AsyncKeys
 from .keygens import insert_keyrings
 
 
@@ -63,93 +65,87 @@ def debugger(self, *args, **kwargs):
 
 
 @comprehension()
-async def abytes_xor(self, key=None):
+async def abytes_xor(self, *, key, validator):
     """
-    Applies an xor to each result of any underlying async ``Comprende``
-    generator. ``key`` is an async ``Comprende`` key generator. And,
-    ``convert`` if truthy, will automatically convert the stream of key
-    material from ``key`` into an integer so it can be used to xor the
-    results produced from ``self``. The underlying ``self`` async
-    generator needs to produce integers to be xor'd on each iteration.
+    Applies an xor to each result of any underlying async `Comprende`
+    generator. ``key`` is an async `Comprende` `abytes_keys` generator.
+    The underlying ``self`` async generator needs to produce 256-byte
+    integers to be xor'd on each iteration.
     """
-    async for result in OneTimePad.abytes_xor.root(self, key=key):
+    xoring = OneTimePad.abytes_xor.root(self, key=key, validator=validator)
+    async for result in xoring:
         yield result
 
 
 @comprehension()
-def bytes_xor(self, key=None):
+def bytes_xor(self, *, key, validator):
     """
-    Applies an xor to each result of any underlying sync ``Comprende``
-    generator. ``key`` is a sync ``Comprende`` key generator. And,
-    ``convert`` if truthy, will automatically convert the stream of key
-    material from ``key`` into an integer so it can be used to xor the
-    results produced from ``self``. The underlying ``self`` sync
-    generator needs to produce integers to be xor'd on each iteration.
+    Applies an xor to each result of any underlying sync `Comprende`
+    generator. ``key`` is a sync `Comprende` `bytes_keys` generator. The
+    underlying ``self`` sync generator needs to produce 256-byte
+    integers to be xor'd on each iteration.
     """
-    for result in OneTimePad.bytes_xor.root(self, key=key):
+    xoring = OneTimePad.bytes_xor.root(self, key=key, validator=validator)
+    for result in xoring:
         yield result
 
 
 @comprehension()
-async def axor(self, key=None):
+async def axor(self, *, key, validator):
     """
-    Applies an xor to each result of any underlying async ``Comprende``
-    generator. ``key`` is an async ``Comprende`` key generator. And,
-    ``convert`` if truthy, will automatically convert the stream of key
-    material from ``key`` into an integer so it can be used to xor the
-    results produced from ``self``. The underlying ``self`` async
-    generator needs to produce integers to be xor'd on each iteration.
+    Applies an xor to each result of any underlying async `Comprende`
+    generator. ``key`` is an async `Comprende` keystream generator. The
+    underlying ``self`` async generator needs to produce 256-byte
+    integers to be xor'd on each iteration.
     """
-    async for result in OneTimePad.axor.root(self, key=key):
+    xoring = OneTimePad.axor.root(self, key=key, validator=validator)
+    async for result in xoring:
         yield result
 
 
 @comprehension()
-def xor(self, key=None):
+def xor(self, *, key, validator):
     """
-    Applies an xor to each result of any underlying sync ``Comprende``
-    generator. ``key`` is a sync ``Comprende`` key generator. And,
-    ``convert`` if truthy, will automatically convert the stream of key
-    material from ``key`` into an integer so it can be used to xor the
-    results produced from ``self``. The underlying ``self`` sync
-    generator needs to produce integers to be xor'd on each iteration.
+    Applies an xor to each result of any underlying sync `Comprende`
+    generator. ``key`` is a sync `Comprende` keystream generator. The
+    underlying ``self`` sync generator needs to produce 256-byte
+    integers to be xor'd on each iteration.
     """
-    for result in OneTimePad.xor.root(self, key=key):
+    xoring = OneTimePad.xor.root(self, key=key, validator=validator)
+    for result in xoring:
         yield result
 
 
 @comprehension()
-async def apasscrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
+async def apasscrypt(self, *, kb=1024, cpu=3, hardness=1024):
     """
-    Applies the ``apasscrypt`` algorithm to each value that's yielded
-    from the underlying Comprende sync generator before yielding the
-    result.
+    Applies the `passcrypt` algorithm on a pseudo-randomly generated
+    salt & each value that's yielded from the underlying `Comprende`
+    async generator. Each iteration a new salt is produced & is yield
+    along with the result of the `passcrypt` operation.
     """
-    Passcrypt._check_inputs(any, salt)
-    settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-    if of != None:
-        async for prev, result in azip(self, of):
-            yield prev, await _apasscrypt(result, salt, **settings)
-    else:
-        async for result in self:
-            yield await _apasscrypt(result, salt, **settings)
+    async for password in self:
+        salt = await agenerate_salt()
+        result = await _apasscrypt(
+            password, salt, kb=kb, cpu=cpu, hardness=hardness
+        )
+        yield salt, result
 
 
 @comprehension()
-def passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024, of=None):
+def passcrypt(self, *, kb=1024, cpu=3, hardness=1024):
     """
-    Applies the ``passcrypt`` algorithm to each value that's yielded
-    from the underlying Comprende sync generator before yielding the
-    result.
+    Applies the `passcrypt` algorithm on a pseudo-randomly generated
+    salt & each value that's yielded from the underlying `Comprende`
+    sync generator. Each iteration a new salt is produced & is yield
+    along with the result of the `passcrypt` operation.
     """
-    Passcrypt._check_inputs(any, salt)
-    settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-    if of != None:
-        for prev, result in zip(self, of):
-            yield prev, _passcrypt(result, salt, **settings)
-    else:
-        for result in self:
-            yield _passcrypt(result, salt, **settings)
+    for password in self:
+        salt = generate_salt()
+        result = _passcrypt(
+            password, salt, kb=kb, cpu=cpu, hardness=hardness
+        )
+        yield salt, result
 
 
 @comprehension()
@@ -159,11 +155,12 @@ async def asum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
     that's yielded from the underlying Comprende async generator with
     the previously processed result before yielding the current result.
     """
-    Passcrypt._check_inputs(any, salt)
-    settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-    summary = await _apasscrypt(salt, salt, **settings)
-    async for result in self:
-        summary = await _apasscrypt(result, summary, **settings)
+    summary = await asha_512(salt, kb, cpu, hardness)
+    async for password in self:
+        pre_key = await asha_512(summary, salt, password)
+        summary = await _apasscrypt(
+            pre_key, summary, kb=kb, cpu=cpu, hardness=hardness
+        )
         yield summary
 
 
@@ -174,11 +171,12 @@ def sum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
     that's yielded from the underlying Comprende sync generator with
     the previously processed result before yielding the current result.
     """
-    Passcrypt._check_inputs(any, salt)
-    settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-    summary = _passcrypt(salt, salt, **settings)
-    for result in self:
-        summary = _passcrypt(result, summary, **settings)
+    summary = sha_512(salt, kb, cpu, hardness)
+    for password in self:
+        pre_key = sha_512(summary, salt, password)
+        summary = _passcrypt(
+            pre_key, summary, kb=kb, cpu=cpu, hardness=hardness
+        )
         yield summary
 
 
@@ -228,8 +226,8 @@ def insert_passcrypt_methods():
     """
     Copies the addons over into the ``Comprende`` class.
     """
-    _passcrypt.salt = salt
-    _apasscrypt.asalt = asalt
+    _passcrypt.generate_salt = generate_salt
+    _apasscrypt.agenerate_salt = agenerate_salt
     addons = {passcrypt, apasscrypt, sum_passcrypt, asum_passcrypt}
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
@@ -322,6 +320,8 @@ def insert_stateful_key_generator_objects():
             )
 
     OneTimePad.__init__ = __init__
+    OneTimePad.Keys = Keys
+    OneTimePad.AsyncKeys = AsyncKeys
     pad = OneTimePad(csprng())
     validator.hmac = pad.hmac
     validator.ahmac = pad.ahmac
