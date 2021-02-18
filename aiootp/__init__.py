@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous one-time-pad based crypto
-# and anonymity library.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -9,14 +9,15 @@
 #
 
 
-__version__ = "0.17.0"
+__version__ = "0.18.0"
 
 
 __license__ = "AGPLv3"
 
 
 __doc__ = """
-aiootp - an asynchronous one-time-pad based crypto and anonymity library.
+aiootp - an asynchronous pseudo-one-time-pad based crypto and anonymity \
+library.
 """
 
 
@@ -25,7 +26,6 @@ class DebugControl:
     Enabling debugging reveals omitted values in object ``repr``s &
     turns on asyncio's debugging.
     """
-
     _switches = []
     _DEBUG_MODE = False
 

@@ -1,8 +1,12 @@
 recursive-include licenses *
+recursive-exclude aiootp/tor/ *
+recursive-exclude aiootp/databases/ *
 include LICENSE
 include setup.py
 include setup.cfg
 include .gitignore
+include FAQ.rst
+include logo.png
 include README.rst
 include PREADME.rst
 include CHANGES.rst

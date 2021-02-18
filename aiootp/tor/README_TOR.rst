@@ -1,4 +1,4 @@
-This file is part of aiootp, an asynchronous one-time-pad based crypto and anonymity library.
+This file is part of aiootp, an asynchronous pseudo-one-time-pad based crypto and anonymity library.
 
 Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 
@@ -16,3 +16,4 @@ Description
 ===========
 
 - This file is placed in the default directory for optional tor plugins.
+

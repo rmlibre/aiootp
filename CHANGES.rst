@@ -4,6 +4,12 @@
 -  The test suite for this software is under construction, & what tests
    have been published are currently inadequate to the needs of
    cryptography software.
+-  None of the hash functions in the public facing part of the library
+   are to spec. This is because all inputs to the hash functions from
+   the generics.py module are put into a tuple & stringified before
+   hashing for user-friendliness, speed, readibility & the power of 
+   being to hash any python object that has a repr. This behaviour is 
+   purposeful, but can still be an issue.
 -  This package is currently in beta testing. Contributions are welcome.
    Send us a message if you spot a bug or security vulnerability:
    
@@ -15,6 +21,122 @@
 
 ``Changelog``
 =============
+
+
+Changes for version 0.18.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security Patch: Rewrote the HMAC-like creation & authentication 
+   process for all of the package's ciphers. Now, the ``*_encipher``
+   & ``*_decipher`` ``Comprende`` generators must be passed a validator
+   object to hash the ciphertext as it's being created / decrypted.
+   The ``StreamHMAC`` class was created for this purpose. It's initalized
+   with the user's long-term key, the ephemeral salt & the pid value.
+   The pid value can now effectively be used to validate additional data.
+   These changes force the package's cipher to be used as an AEAD cipher.
+-  Security Patch: The package's ``*_hmac`` hash functions & the ``Comprende``
+   class' hash generators were rewritten to prepend salts & keys to data
+   prior to hashing instead of appending. This is better for several 
+   important reasons, such as: reducing the amortizability of costs in
+   trying to brute-force hashes, & more closely following the reasoning
+   behind the HMAC spec even though sha3 has a different security profile. 
+-  Algorithm Patch: The ``akeys``, ``keys``, ``abytes_keys``, & ``bytes_keys``
+   algorithms have been patched to differentiate each iteration's two
+   sha3_512 hashes from one another in perpetuity. They contained a design
+   flaw which would, if both sha3_512 objects landed upon the same 
+   1600-bit internal state, then they would produce the same keystreams 
+   from then on. This change in backwards incompatible. This flaw is 
+   infeasible to exploit in practice, but since the package's hashes & 
+   ciphertext validations were already channging this release, there was 
+   no reason to not fix this flaw so that it's self-healing if they ever 
+   do land on the same internal states.
+-  The ``Passcrypt`` class & its algorithm were made more efficient to
+   better equalize the cost for users & adversaries & simplifies the
+   algorithm. Any inefficiencies in an implementation would likely cause
+   the adversary to be able to construct optimized implementations to 
+   put users at an even greater disadvantage at protecting their inputs
+   to the passcrypt algorithm. It used the ``sum_sha_256`` hash function 
+   internally, & since it was also changing in a non-backwards 
+   compatible way with this update, it was the best time to clean up
+   the implementation.
+-  Updated the package's description & its docstrings that refer to 
+   the package's cipher as an implementation of the one-time-pad. It's 
+   not accurate since the package uses pseudo-random hash functions to 
+   produce key material. Instead, the package's goal is to create a 
+   pseudo-one-time-pad that's indistinguishable from a one-time-pad.
+   The ``OneTimePad`` class will keep its name for succinctness. 
+-  New ``amake_token``, ``make_token``, ``aread_token`` & ``read_token``
+   class & instance methods added to the ``OneTimePad`` class. These
+   tokens are urlsafe base64 encoded, are encrypted, authenticated &
+   contain timestamps that can enforce a time-to-live for each token.
+-  Non-backwards compatible changes to the database classes' filenames,
+   encryption keys & HMACs. The ``*_hmac`` hash functions that the 
+   databases rely on were changing with this update, so additionally the 
+   filenames table used to encode the filenames was switched from the 
+   ``BASE_36_TABLE`` to the ``BASE_38_TABLE``. Both tables are safe for 
+   uri's across all platforms, but the new table can encode information 
+   slightly more efficiently.
+-  Major refactorings & signature changes across the package to make
+   passing keys & salts to ``*_hmac`` functions & the ``Comprende`` 
+   class' hash generators explicit.
+-  Removed the ``of`` keyword argument from all of the ``Comprende`` 
+   class' generators. It was overly complicating the code, & was not
+   entirely clear or useful for settings outside of the ``tags`` & 
+   ``atags`` generators.
+-  Removed ``pybase64`` from the package & its dependencies list. The
+   built-in python ``base64`` module works just fine.
+-  Sorted the ``WORDS_LIST``, ``ASCII_ALPHANUMERIC``, & ``BASE_64_TABLE``
+   datasets.
+-  The ``salt`` & ``asalt`` functions have been renamed to ``generate_salt``
+   & ``agenerate_salt`` for clarity's sake, & to reduce naming 
+   collisions.
+-  Added another redundancy to the ``arandom_number_generator`` &
+   ``random_number_generator`` functions. Now the async tasks it prepares
+   into a list are pseudo-randomly shuffled before being passed into 
+   ``asyncio.gather``.
+
+
+Minor Changes 
+------------- 
+
+-  Added a logo image to the package.
+-  Separated the FAQ section from ``PREADME.rst``.
+-  The ``primes`` & ``bits`` datasets are now represented in hex in the
+   source code.
+-  Added a ``BASE_38_TABLE`` dataset to the package.
+-  The database classes now fill an ephemeral dictionary of filenames
+   that couldn't be used to successfully load a tag file, available from 
+   within the ``_corrupted_files`` attribute.
+-  The ``Comprende`` class' ``acache_check`` & ``cache_check`` context
+   manager methods are now called ``aauto_cache`` & ``auto_cache``.
+-  Added new ``bytes_count`` & ``abytes_count`` generators to ``generics.py``
+   module which increment each iteration & yield the results as bytes.
+-  Removed the ``akeypair`` & ``keypair`` functions from the package. 
+   Their successors are the ``asingle_use_key`` & ``single_use_key`` methods
+   in the ``AsyncKeys`` & ``Keys`` classes. The attempt is to clarify &
+   put constraints on the interface for creating a bundle of key 
+   material that has a single-use-only salt attached, as well as the pid 
+   value. 
+-  Moved ciphertext encoding functions into the ``BytesIO`` class from
+   the global ``generics.py`` module.
+-  Split ``PrimeGroups`` into two classes, one higher-level class by the
+   same name & a ``BasePrimeGroups`` class. The former also has some
+   added functionality for masking the order of bytes in a sequence 
+   using an modular exponentiation.
+-  The ``Hasher`` class now has functionality added to mask the order
+   of a bytes sequence with a modular multiplication.
+-  Fixed the name of the project in the attribution lines in several 
+   source files.
+-  Reconciled tests with the major changes in this release.
+-  The old identity key for the package that was signed by the gnupg 
+   identity key was shredded & replaced with a new signed key.
+-  Several bug fixes to the ``setup.py`` automated code signing.
+
+
 
 
 Changes for version 0.17.0 

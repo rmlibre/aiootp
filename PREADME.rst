@@ -1,16 +1,24 @@
-aiootp - Asynchronous one-time-pad based crypto and anonymity library.
-======================================================================
+.. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
+    :target: https://github.com/rmlibre/aiootp/blob/master/logo.png
+    :alt: logo for python package named aiootp
+
+
+
+
+aiootp - Asynchronous pseudo-one-time-pad based crypto and anonymity library.
+=============================================================================
 
 ``aiootp`` is an asynchronous library providing access to cryptographic 
 primatives and abstractions, transparently encrypted / decrypted file 
 I/O and databases, as well as powerful, pythonic utilities that 
 simplify data processing & cryptographic procedures in python code. 
-This library's cipher is an implementation of the **one-time pad**. 
-The aim is to create a simple, standard, efficient implementation of 
-this unbreakable cipher, to give users and applications access to 
-user-friendly cryptographic tools, and to increase the overall 
-security, privacy, and anonymity on the web, and in the digital world. 
-Users will find ``aiootp`` to be easy to write, easy to read, and fun. 
+This library's cipher is an implementation of the **pseudo-one-time-pad**. 
+The aim is to create a simple, standard, efficient implementation that's 
+indistinguishable from the unbreakable one-time-pad cipher; to give 
+users and applications access to user-friendly cryptographic tools; 
+and, to increase the overall security, privacy, and anonymity on the web, 
+and in the digital world. Users will find ``aiootp`` to be easy to write, 
+easy to read, and fun. 
 
 
 
@@ -45,7 +53,7 @@ Some Examples
 
 Users can create and modify transparently encrypted databases:
 
-.. code:: python
+.. code-block:: python
 
     #
 
@@ -248,7 +256,7 @@ Users can create and modify transparently encrypted databases:
 
 What other tools are available to users?:
 
-.. code:: python
+.. code-block:: python
 
     #
     
@@ -323,7 +331,7 @@ What other tools are available to users?:
 
     # Alice wants to sign a document so that Bob can prove she wrote it.
     
-    # So, Alice sends her public key bytes of the key she wants to
+    # So, Alice sends the public key bytes of the key she wants to
     
     # associate with her identity, the document & the signature ->
     
@@ -346,9 +354,9 @@ What other tools are available to users?:
 
     # Bob sees the message from Alice! Bob already knows Alice's public
     
-    # key & she has reason believe it is genuinely hers. She'll then
+    # key & she has reason believe it is genuinely hers. So, she'll
     
-    # verify the signed document ->
+    # import Alice's known public key to verify the signed document ->
     
     assert alices_message["public_key"] == alices_public_key
     
@@ -365,7 +373,7 @@ What other tools are available to users?:
     # was signed by Alice.
     
     
-    # Symmetric one-time-pad encryption of json data ->
+    # Symmetric pseudo-one-time-pad encryption of json data ->
     
     plaintext = {"account": 3311149, "titles": ["queen b"]}
     
@@ -376,7 +384,7 @@ What other tools are available to users?:
     assert decrypted == plaintext
     
     
-    # Symmetric one-time-pad encryption of binary data ->
+    # Symmetric pseudo-one-time-pad encryption of binary data ->
     
     binary_data = b"This bytes string is also valid plaintext."
     
@@ -404,10 +412,10 @@ What other tools are available to users?:
     
     bytes_ciphertext = pad.io.json_to_bytes(encrypted)
     
-    dict_ciphertext = pad.io.bytes_to_json(urlsafe_ciphertext)
+    dict_ciphertext = pad.io.bytes_to_json(bytes_ciphertext)
     
     
-    # As well tools for saving ciphertext to files on disk as bytes ->
+    # As well as tools for saving ciphertext to files on disk as bytes ->
     
     path = aiootp.DatabasePath() / "testing_ciphertext"
     
@@ -418,9 +426,16 @@ What other tools are available to users?:
     
     # Or ciphertext can be encoded to & from a urlsafe string ->
     
-    urlsafe_ciphertext = pad.io.json_to_ascii(encrypted)
+    urlsafe_ciphertext = pad.io.bytes_to_urlsafe(bytes_ciphertext)
     
-    dict_ciphertext = pad.io.ascii_to_json(urlsafe_ciphertext)
+    bytes_ciphertext = pad.io.urlsafe_to_bytes(urlsafe_ciphertext)
+
+
+    # These urlsafe tokens have their own convenience functions ->
+    
+    token = pad.make_token(b"binary data")
+    
+    assert b"binary data" == pad.read_token(token)
     
     
     # Ratcheting Opaque Password Authenticated Key Exchange (ROPAKE) with 
@@ -429,38 +444,26 @@ What other tools are available to users?:
     
     db = aiootp.Database(pad.key)
     
-    client = aiootp.Ropake.client_registration(db)
+    with aiootp.Ropake.client_registration(db) as registration:
     
-    client_hello = client()
+        server_response = internet.post("service-url.com", json=registration())
     
-    server_response = internet.post("service-url.com", json=client_hello)
+        registration(server_response)
     
-    try:
-    
-        client(server_response)
-        
-    except StopIteration:
-    
-        shared_keys = client.result()
+    shared_keys = registration.result()
         
         
     # The client is securely registered with the service if there was no 
 
-    # active adversary in the middle, & the user can authenticate & login ->
+    # active adversary in the middle. The user can now authenticate & login ->
     
-    client = aiootp.Ropake.client(db)
+    with aiootp.Ropake.client(db) as authentication:
     
-    client_hello = client()
+        server_response = internet.post("service-url.com", authentication())
     
-    server_response = internet.post("service-url.com", client_hello)
+        authentication(server_response)
     
-    try:
-    
-        client(server_response)
-        
-    except StopIteration:
-    
-        shared_keys = client.result()
+    shared_keys = authentication.result()
         
         
     # Upon the first uncompromised registration or authentication, then 
@@ -481,17 +484,17 @@ What other tools are available to users?:
 
     # provides privacy, & added authentication, & the KDF which combines all 
 
-    # these keys ensures forward security.
+    # these keys to ensure forward security. 
     
     
-    #
+    # 
 
 
 
 
 Generators under-pin most procedures in the library, let's take a look ->
 
-.. code:: python
+.. code-block:: python
 
     #
     
@@ -501,7 +504,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     pad = OneTimePad()   # <---Auto-generates an encryption key
     
-    salt = pad.salt()    # <---A new salt MUST be used every encryption!
+    salt = pad.generate_salt()    # <---A NEW salt MUST be used every encryption!
     
     plaintext_bytes = json.dumps({"message": "secretsssss"}).encode()
     
@@ -510,28 +513,54 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     plaintext_stream = pad.plaintext_stream(plaintext_bytes, salt=salt)
     
+    datastream = plaintext_stream.bytes_to_int()
+    
     
     # An endless stream of forward + semi-future secure hex keys ->
     
     keystream = pad.keys(salt=salt)
     
     
+    # This is used to authenticate the ciphertext & additional data ->
+    
+    hmac = pad.StreamHMAC(salt=salt).for_encryption()
+    
+    
     # xor's the plaintext chunks with key chunks ->
     
-    with pad.xor(plaintext_stream.bytes_to_int(), key=keystream) as encrypting:
+    with pad.xor(datastream, key=keystream, validator=hmac) as encrypting:
         
         # ``list`` returns all generator results in a list
         
         ciphertext = encrypting.list()
         
+        ciphertext_authentication = hmac.finalize()
+        
+        
+    # When receiving ciphertext, first validate the hmac of the ciphertext ->
     
-    with pad.xor(ciphertext, key=keystream.reset()).int_to_bytes() as decrypting:
+    hmac = pad.StreamHMAC(salt=salt)
+    
+    with hmac.manual_check(ciphertext) as inspection:
+    
+        inspection.verify(ciphertext_authentication)
         
-        decrypted = pad.io.depad_bytes(
         
-            decrypting.join(b""), salted_key=pad.padding_key(salt=salt)
-            
-        )
+    # If no ValueError was raised, the authentication has passed! 
+    
+    # Continue with decrypting ->
+        
+    keystream.reset()
+    
+    decipher = pad.xor(ciphertext, key=keystream, validator=hmac)
+    
+    with decipher.int_to_bytes() as decrypting:
+    
+        padding_key = pad.padding_key(salt=salt)
+        
+        padded_data = decrypting.join(b"")
+        
+        decrypted = pad.io.depad_bytes(padded_data, salted_key=padding_key)
         
     
     plaintext_bytes == decrypted
@@ -541,7 +570,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # This example was a low-level look at the encryption algorithm. And it 
     
-    # was seven lines of code. The Comprende class makes working with 
+    # was a few lines of code. The Comprende class makes working with 
     
     # generators a breeze, & working with generators makes solving problems 
     
@@ -955,7 +984,9 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # stream that's different from ``names`` ->
     
-    key_stream = aiootp.akeys(key, salt=salt, pid=aiootp.sha_256(key, salt))
+    pid = aiootp.sha_256(key, salt, "any additional data")
+    
+    key_stream = aiootp.akeys(key, salt=salt, pid=pid)
     
     
     # And example plaintext ->
@@ -963,21 +994,31 @@ Generators under-pin most procedures in the library, let's take a look ->
     plaintext = 100 * b"Some kinda message..."
     
     
-    # And let's make sure to clean up after ourselves with a context manager ->
+    # We'll have to safely pad the plaintext to a multiple of 256 bytes ->
     
-    pad_key = aiootp.Keys.padding_key(key, salt=salt)
+    padding_key = aiootp.padding_key(key, salt=salt, pid=pid)
     
-    padded_data = aiootp.pad_bytes(plaintext, salted_key=pad_key)
+    padded_data = aiootp.pad_bytes(plaintext, salted_key=padding_key)
+    
+    
+    # We can now stream the data & ciphertext authentication process ->
     
     data_stream = aiootp.adata(padded_data)
     
-    async with data_stream.amap_encipher(names, key_stream) as encrypting:
+    hmac = aiootp.StreamHMAC(key, salt=salt, pid=pid).for_encryption()
+    
+    
+    # And let's make sure to clean up after ourselves with a context manager ->
+    
+    async with data_stream.amap_encipher(names, key_stream, validator=hmac) as encrypting:
     
         # ``adata`` takes a sequence, & ``amap_encipher`` takes two iterables,
         
         # a stream of names for the hash map, & the stream of key material.
         
         ciphertext_hashmap = await encrypting.adict()
+        
+        ciphertext_authentication = await hmac.afinalize()
         
         
     # Now we'll pick the chunks out in the order produced by ``names`` to 
@@ -986,14 +1027,37 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     ciphertext_stream = aiootp.apick(names, ciphertext_hashmap)
     
-    async with ciphertext_stream.amap_decipher(await key_stream.areset()) as decrypting:
+    
+    # The decrypting party will likely have to instantiate their own 
+    
+    # keystream object, but we'll just reset ours for convenience ->
+    
+    await key_stream.areset()
+    
+    
+    # Next we'll authenticate & decrypt the ciphertext hashmap in the 
+    
+    # correct order ->
+    
+    hmac = aiootp.StreamHMAC(key, salt=salt, pid=pid).for_decryption()
+    
+    async with ciphertext_stream.amap_decipher(key_stream, validator=hmac) as decrypting:
     
         decrypted = await decrypting.ajoin(b"")
         
-    assert plaintext == aiootp.depad_bytes(decrypted, salted_key=pad_key)
+        await hmac.afinalize()
+        
+        await hmac.atest_hmac(ciphertext_authentication)
+        
+        
+    # We can now remove any padding from the data to reveal the plaintext ->
+        
+    assert plaintext == aiootp.depad_bytes(decrypted, salted_key=padding_key)
     
     
-    # This is really neat, & makes sharding encrypted data incredibly easy.
+    # This is neat, & makes sharding & authenticating encrypted data 
+    
+    # incredibly easy.
     
     
     #
@@ -1001,9 +1065,9 @@ Generators under-pin most procedures in the library, let's take a look ->
 
 
 
-Let's take a deep dive into the low-level xor procedure used to implement the one-time-pad:
+Let's take a deep dive into the low-level xor procedure used to implement the pseudo-one-time-pad:
 
-.. code:: python
+.. code-block:: python
 
     #
     
@@ -1015,15 +1079,17 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
     
     # ``data`` is an iterable of 256 byte integers that are either plaintext
     
-    # or ciphertext. ``key`` is by default the ``keys`` generator. ->
+    # or ciphertext. ``key`` should be an instance of the ``keys`` generator. 
     
-    def xor(data=None, *, key=None):
+    # And, ``validator`` should be an instance of the ``StreamHMAC`` class. ->
+    
+    def xor(data, *, key, validator):
         
         keystream = key.send
         
         # We use the first output of the keystream as a seed of entropy
         
-        # for all key chunks pulled from the generator ->
+        # for all future key chunks pulled from the generator ->
         
         seed = aiootp.sha_256(keystream(None))
         
@@ -1033,9 +1099,11 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
             
             key_chunk = int(await keystream(seed) + await keystream(seed), 16)
             
-            # Then xor the 256 byte key chunk with the 256 byte data chunk ->
+            # Then xor the 256 byte key chunk with the 256 byte data chunk 
             
-            result = chunk ^ key_chunk
+            # and use the validator to update the HMAC with the ciphertext ->
+            
+            result = validator.validated_xor(chunk, key_chunk)
             
             if result.bit_length() > 2048:
                 
@@ -1049,9 +1117,9 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
            
             yield result
             
-    # This is a very space-efficient algorithm for a one-time-pad that adapts
+    # This is a very space-efficient algorithm for a pseudo-one-time-pad that 
     
-    # dynamically to increased plaintext & ciphertext sizes. Both because 
+    # adapts dynamically to increased plaintext & ciphertext sizes. Both because 
     
     # it's built on generators, & because an infinite stream of key material
     
@@ -1069,7 +1137,7 @@ Let's take a deep dive into the low-level xor procedure used to implement the on
 
 Here's a quick overview of this package's modules:
 
-.. code:: python
+.. code-block:: python
 
     #
     
@@ -1091,7 +1159,7 @@ Here's a quick overview of this package's modules:
     aiootp.randoms
     
     
-    # The higher-level abstractions used to implement the one-time pad ->
+    # The higher-level abstractions used to implement the pseudo-one-time pad ->
     
     aiootp.ciphers
     
@@ -1118,45 +1186,6 @@ Here's a quick overview of this package's modules:
     
     #
 
-
-
-
-FAQ
----
-
-**Q: What is the one-time-pad?**
-
-A: It's a provably unbreakable cipher. It's typically thought to be too cumbersome a cipher because it has strict requirements. Key size is one requirement, since keys must be at least as large as the plaintext in order to ensure this unbreakability. We've simplified this requirement by using a forward secret and semi-future secret key ratchet algorithm, with ephemeral salts for each stream, allowing users to securely produce endless streams of key material as needed from a single finite size 512-bit long-term key. This algorithmic approach lends itself to great optimizations, since hash processing hardware/sorftware is continually pushed to the edges of efficiency.
-
-
-**Q: What do you mean the ``aiootp.keys`` generator produces forward & semi-future secure key material?**
-
-A: The infinite stream of key material produced by that generator has amazing properties. Under the hood it's a ``hashlib.sha3_512`` key ratchet algorithm. It's internal state consists of a seed hash, & three ``hashlib.sha3_512`` objects primed iteratively with the one prior and the seed hash. The first object is updated with the seed, its prior output, and the entropy that may be sent into the generator as a coroutine. This first object is then used to update the last two objects before yielding the last two's concatenated results. The seed is the hash of a primer seed, which itself is the hash of the input key material, a random salt, and a user-defined ID value which can safely distinguish streams with the same key material. This algorithm is forward secure because compromising a future key will not compromise past keys since these hashes are irreversibly constructed. It's also semi-future secure since having a past key doesn't allow you to compute future keys without also compromising the seed hash, and the first ratcheting ``hashlib`` object. Since those two states are never disclosed or used for encryption, the key material produced is future secure with respect to itself only. Full future-security would allow for the same property even if the seed & ratchet object's state were compromised. This feature can, however, be added to the algorithm since the generator itself can receive entropy externally from a user at any arbitrary point in its execution, say, after computing a shared diffie-hellman exchange key.
-
-
-**Q: How fast is this implementation of the one-time pad cipher?** 
-
-A: Well, because it relies on ``hashlib.sha3_512`` hashing to build key material streams, it's rather efficient, encrypting & decrypting about 8 MB/s on a ~1.5 GHz core.
-
-
-**Q: Why make a new cipher when AES is strong enough?** 
-
-A: Although primatives like AES are strong enough for now, there's no guarantee that future hardware or algorithms won't be developed that break them. In fact, AES's theoretical bit-strength has dropped over the years because of hardware and algorithmic developments. It's still considered a secure cipher, but the **one-time pad** isn't considered theoretically "strong enough", instead it's mathematically proven to be unbreakable. Such a cryptographic guarantee is too profound not to develop further into an efficient, accessible standard.
-
-
-**Q: What size keys does this one-time pad cipher use?** 
-
-A: It's been designed to work with 512-bit hexidecimal keys. 
-
-
-**Q: What's up with the ``AsyncDatabase`` / ``Database``?**
-
-A: The idea is to create an intuitive, pythonic interface to a transparently encrypted and decrypted persistence tool that also cryptographically obscures metadata. It's designed to work with json serializable data, which gives it native support for some basic python datatypes. It needs improvement with regard to disk memory efficiency. So, it's still a work in progress, albeit a very nifty one.
-
-
-**Q: Why are the modules transformed into ``Namespace`` objects?**
-
-A: We overwrite our modules in this package to have a more fine-grained control over what part of the package's internal state is exposed to users and applications. The goal is make it more difficult for users to inadvertently jeopardize their security tools, and minimize the attack surface available to adversaries. The ``aiootp.Namespace`` class also makes it easier to coordinate and decide the library's UI/UX across the package.
 
 
 

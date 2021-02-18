@@ -1,11 +1,13 @@
 .gitignore
 CHANGES.rst
 CHECKSUMS.txt
+FAQ.rst
 LICENSE
 MANIFEST.in
 PREADME.rst
 README.rst
 SIGNATURES.txt
+logo.png
 setup.cfg
 setup.py
 sha256_ROOT_CHECKSUM.txt
@@ -34,7 +36,6 @@ licenses/aioitertools_LICENSE.txt
 licenses/async_lru_LICENSE.txt
 licenses/asyncio_contextmanager_LICENSE.txt
 licenses/cpython_LICENSE.txt
-licenses/pybase64_LICENSE.txt
 licenses/pytest_LICENSE.txt
 licenses/sympy_LICENSE.txt
 licenses/cryptography_LICENSES/LICENSE.APACHE

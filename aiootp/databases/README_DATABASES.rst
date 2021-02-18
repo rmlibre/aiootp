@@ -1,4 +1,4 @@
-This file is part of aiootp, an asynchronous one-time-pad based crypto and anonymity library.
+This file is part of aiootp, an asynchronous pseudo-one-time-pad based crypto and anonymity library.
 
 Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 
@@ -119,7 +119,7 @@ Description
 
  >>> True
 
-    assert isinstance(molly, aiootp.AsyncDatabase)
+    assert isinstance(molly, aiootp.Database)
 
 
     # If the user no longer wants a piece of data, pop it out ->
@@ -137,7 +137,7 @@ Description
 
     db.child["hobbies"]
 
- >>> AttributeError: 'AsyncDatabase' object has no attribute 'child'
+ >>> AttributeError: 'Database' object has no attribute 'child'
 
 
     # Write database changes to disk with transparent encryption ->
