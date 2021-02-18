@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous one-time-pad based crypto
-# and anonymity library.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -21,14 +21,17 @@ from aiootp import Ed25519, Database, passcrypt, asynchs
 
 
 description = """
-aiootp - an asynchronous one-time-pad based crypto and anonymity library.
-""".replace(
-    "\n", ""
-)
+aiootp - an asynchronous pseudo-one-time-pad based crypto and anonymity \
+library.
+""".replace("\n", "")
 
 
 with open("PREADME.rst", "r") as preadme:
     long_description = preadme.read()
+
+
+with open("FAQ.rst", "r") as faq:
+    long_description += faq.read()
 
 
 with open("CHANGES.rst", "r") as changelog:
@@ -46,7 +49,8 @@ with open("MANIFEST.in", "r") as manifest:
 checksums = defaultdict(dict)
 for line in filename_sheet:
     if (
-        "CHECKSUM" in line
+        ".png" in line
+        or  "CHECKSUM" in line
         or "SIGNATURES" in line
         or not line.startswith("include")
     ):
@@ -71,35 +75,35 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
         sha256sum = sha256(package_checksums.encode()).digest()
         root_hash_256.write(sha256sum.hex())
 
+    name = b"aiootp"
+    version = b"0.18.0"
+    date = asynchs.this_second().to_bytes(8, "big")
     if getpass("Sign Package ? y/N\n").lower().startswith("y"):
 
         db = Database(
             passcrypt(getpass("Database key ?\n"), getpass("Salt ?\n")),
             directory=getpass("Identity Key Directory ?\n"),
         )
-
-        name = b"aiootp"
-        version = b"0.17.0"
-        date = asynchs.this_second().to_bytes(8, "big")
         presigned_keys = db["presigned_ephemeral_keys"]
         if presigned_keys:
             version = db["version"].encode()
             date = db["date"].to_bytes(8, "big")
-            ephemeral_hex = presigned_keys.pop()
-            signed_ephemeral_key = db[identity_hex]
-            ephemeral_key = Ed25519().import_secret_key(ephemeral_hex)
             identity_hex = db["identity_key_public"]
             identity_key = Ed25519().import_public_key(identity_hex)
+            ephemeral_hex = presigned_keys.pop()
+            signed_ephemeral_key = db[sha_256(ephemeral_hex)]
+            ephemeral_key = Ed25519().import_secret_key(ephemeral_hex)
+            del db["ephemeral_key_secret"]
             assert signed_ephemeral_key
             assert ephemeral_hex not in db["presigned_ephemeral_keys"]
         else:
-            ephemeral_key = Ed25519().generate()
             identity_hex = db["identity_key_secret"]
             identity_key = Ed25519().import_secret_key(identity_hex)
+            ephemeral_key = Ed25519().generate()
             scope = [name, version, date, ephemeral_key.public_bytes]
             signed_ephemeral_key = identity_key.sign(b"||".join(scope)).hex()
+            db["ephemeral_key_secret"] = ephemeral_key.secret_bytes.hex()
 
-        db["ephemeral_key"] = ephemeral_key.secret_bytes.hex()
         proof = dict(
             identity_key=identity_key.public_bytes.hex(),
             pgp_signed_identity_key=db["pgp_attestation"],
@@ -113,6 +117,7 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
             signed_sha256sum=ephemeral_key.sign(sha256sum).hex(),
             signed_sha512sum=ephemeral_key.sign(sha512sum).hex(),
         )
+        db["ephemeral_key_public"] = ephemeral_key.public_bytes.hex()
         db["proof"] = proof
         db.save()
 
@@ -121,13 +126,13 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
 
 
 setup(
-    name="aiootp",
+    name=name.decode(),
     license="AGPLv3",
     version=version.decode(),
     description=description,
     long_description=long_description,
     long_description_content_type="text/x-rst",
-    url="https://github.com/rmlibre/aiootp",
+    url="https://twitter.com/aiootp",
     author="Gonzo Investigatory Journalism Agency, LLC",
     author_email="gonzo.development@protonmail.ch",
     maintainer="Gonzo Investigatory Journalism Agency, LLC",
@@ -139,7 +144,6 @@ setup(
     install_requires=[
         "sympy",
         "aiofiles",
-        "pybase64",
         "async_lru",
         "aioitertools",
         "cryptography",
@@ -218,6 +222,8 @@ setup(
             "coroutine",
             "coroutines",
             "comprehension",
+            "authenticated",
         ]
     ),
 ) if __name__ == "__main__" else 0
+
