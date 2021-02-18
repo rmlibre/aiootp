@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous one-time-pad based crypto
-# and anonymity library.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -61,12 +61,13 @@ the codebase.
 
 
 import re
+import math
 import json
 import heapq
+import base64
 import random
 import aiofiles
 import binascii
-import pybase64
 import builtins
 import aioitertools
 from os import linesep
@@ -94,6 +95,7 @@ from inspect import isasyncgenfunction as is_async_gen_function
 from inspect import isgeneratorfunction as is_generator_function
 from .__aiocontext import async_contextmanager
 from .commons import *
+from .commons import BasePrimeGroups
 from .asynchs import *
 from .asynchs import time
 from .asynchs import this_second
@@ -129,6 +131,7 @@ class AsyncInit(type):
     A metaclass that allows classes to use asynchronous ``__init__``
     methods. Inspired by David Beazley.
     """
+
     async def __call__(cls, *args, **kwargs):
         self = cls.__new__(cls, *args, **kwargs)
         await self.__init__(*args, **kwargs)
@@ -139,6 +142,7 @@ class Enumerate:
     """
     An ``enumerate`` variant that supports sync & async generators.
     """
+
     __slots__ = ["gen", "start"]
 
     def __init__(self, gen, start=0):
@@ -179,6 +183,7 @@ def convert_static_method_to_member(
     member function with the option to insert custom parameters to the
     function.
     """
+
     @wraps(static_method)
     def wrapped_static_method(*a, **kw):
         """
@@ -186,7 +191,7 @@ def convert_static_method_to_member(
         being turned into a member function of an object.
         """
         new_args = list(args)
-        new_args[:len(a)] = a[:]
+        new_args[: len(a)] = a[:]
         new_kwargs = {**kwargs, **kw}
         return static_method(*new_args, **new_kwargs)
 
@@ -399,40 +404,6 @@ def is_generator(obj):
     return isinstance(obj, GeneratorType)
 
 
-async def abytes_to_urlsafe(byte_string, *, table=URL_SAFE_TABLE):
-    """
-    Turns a ``bytes_string`` into a url safe string derived from the
-    given ``table``.
-    """
-    binary = int.from_bytes(byte_string, "big")
-    return await ainverse_int(binary, len(table), table)
-
-
-def bytes_to_urlsafe(byte_string, *, table=URL_SAFE_TABLE):
-    """
-    Turns a ``bytes_string`` into a url safe string derived from the
-    given ``table``.
-    """
-    binary = int.from_bytes(byte_string, "big")
-    return inverse_int(binary, len(table), table)
-
-
-async def aurlsafe_to_bytes(token, *, table=URL_SAFE_TABLE):
-    """
-    Turns a url safe token into a bytes type string.
-    """
-    binary = await abase_to_decimal(token, len(table), table)
-    return binary.to_bytes((binary.bit_length() + 7) // 8, "big")
-
-
-def urlsafe_to_bytes(token, *, table=URL_SAFE_TABLE):
-    """
-    Turns a url safe token into a bytes type string.
-    """
-    binary = base_to_decimal(token, len(table), table)
-    return binary.to_bytes((binary.bit_length() + 7) // 8, "big")
-
-
 async def acheck_timestamp(timestamp, ttl):
     """
     Raises ``ValueError`` if ``timestamp`` is more than ``ttl`` seconds
@@ -465,45 +436,69 @@ def check_timestamp(timestamp, ttl):
         raise TimeoutError(f"Timestamp expired by <{timespan}> seconds.")
 
 
-async def apad_bytes(data, *, salted_key=None, buffer=256):
+async def amake_timestamp(width=8, byteorder="big"):
     """
-    Appends padding bytes to ``data`` that are the ``shake_256`` output
-    of an object fed a ``salted_key`` to aid in CCA security.
+    Returns a ``width`` length byte sequence representation of the
+    current time in seconds.
     """
-    remainder = (len(data) + 8) % buffer
+    return this_second().to_bytes(width, byteorder)
+
+
+def make_timestamp(width=8, byteorder="big"):
+    """
+    Returns a ``width`` length byte sequence representation of the
+    current time in seconds.
+    """
+    return this_second().to_bytes(width, byteorder)
+
+
+async def apad_bytes(data, *, salted_key, buffer=256):
+    """
+    Prepends an eight byte timestamp to ``data`` to allow a time-to-live
+    feature to exist for all ciphertexts, aiding against replay attacks
+    & reuse of stale authorization tokens. Appends padding bytes to
+    ``data`` that are the ``shake_256`` output of an object fed a
+    ``salted_key`` to aid in CCA security.
+    """
+    timestamp_length = 8
+    remainder = (len(data) + timestamp_length) % buffer
     padding_size = buffer - remainder
     padding = shake_256(salted_key).digest(2 * buffer)
-    timestamp = this_second().to_bytes(8, "big")
+    timestamp = make_timestamp()
     if data and not remainder:
         return timestamp + data
     elif padding_size >= 32:
         return timestamp + data + padding[:padding_size]
     else:
-        return timestamp + data + padding[:padding_size + buffer]
+        return timestamp + data + padding[: padding_size + buffer]
 
 
-def pad_bytes(data, *, salted_key=None, buffer=256):
+def pad_bytes(data, *, salted_key, buffer=256):
     """
-    Appends padding bytes to ``data`` that are the ``shake_256`` output
-    of an object fed a ``salted_key`` to aid in CCA security.
+    Prepends an eight byte timestamp to ``data`` to allow a time-to-live
+    feature to exist for all ciphertexts, aiding against replay attacks
+    & reuse of stale authorization tokens. Appends padding bytes to
+    ``data`` that are the ``shake_256`` output of an object fed a
+    ``salted_key`` to aid in CCA security.
     """
-    remainder = (len(data) + 8) % buffer
+    timestamp_length = 8
+    remainder = (len(data) + timestamp_length) % buffer
     padding_size = buffer - remainder
     padding = shake_256(salted_key).digest(2 * buffer)
-    timestamp = this_second().to_bytes(8, "big")
+    timestamp = make_timestamp()
     if data and not remainder:
         return timestamp + data
     elif padding_size >= 32:
         return timestamp + data + padding[:padding_size]
     else:
-        return timestamp + data + padding[:padding_size + buffer]
+        return timestamp + data + padding[: padding_size + buffer]
 
 
-async def adepad_bytes(data, *, salted_key=None, ttl=0):
+async def adepad_bytes(data, *, salted_key, ttl=0):
     """
-    Removes the padding bytes from the end of the bytes ``data`` that
-    are built from the ``shake_256`` output of an object fed a
-    ``salted_key``.
+    Removes from ``data`` the prepended eight byte timestamp & appended
+    padding bytes that are built from the ``shake_256`` output of an
+    object fed a ``salted_key``.
     """
     await acheck_timestamp(data[:8], ttl)
     padding = shake_256(salted_key).digest(32)
@@ -514,11 +509,11 @@ async def adepad_bytes(data, *, salted_key=None, ttl=0):
         return data[8:padding_index]
 
 
-def depad_bytes(data, *, salted_key=None, ttl=0):
+def depad_bytes(data, *, salted_key, ttl=0):
     """
-    Removes the padding bytes from the end of the bytes ``data`` that
-    are built from the ``shake_256`` output of an object fed a
-    ``salted_key``.
+    Removes from ``data`` the prepended eight byte timestamp & appended
+    padding bytes that are built from the ``shake_256`` output of an
+    object fed a ``salted_key``.
     """
     check_timestamp(data[:8], ttl)
     padding = shake_256(salted_key).digest(32)
@@ -538,6 +533,7 @@ class BytesIO:
     algorithm used by the package.
     """
 
+    EQUAL_SIGN = b"%3D"
     HMAC = commons.HMAC
     SALT = commons.SALT
     PLAINTEXT = commons.PLAINTEXT
@@ -555,10 +551,8 @@ class BytesIO:
     adepad_bytes = staticmethod(adepad_bytes)
     check_timestamp = staticmethod(check_timestamp)
     acheck_timestamp = staticmethod(acheck_timestamp)
-    urlsafe_to_bytes = staticmethod(urlsafe_to_bytes)
-    aurlsafe_to_bytes = staticmethod(aurlsafe_to_bytes)
-    bytes_to_urlsafe = staticmethod(bytes_to_urlsafe)
-    abytes_to_urlsafe = staticmethod(abytes_to_urlsafe)
+    amake_timestamp = staticmethod(amake_timestamp)
+    make_timestamp = staticmethod(make_timestamp)
 
     def __init__(self):
         pass
@@ -588,11 +582,7 @@ class BytesIO:
         & from bytes ciphertext.
         """
         return Namespace(
-            copy=None,
-            result=None,
-            hmac=None,
-            salt=None,
-            ciphertext=None,
+            copy=None, result=None, hmac=None, salt=None, ciphertext=None
         )
 
     @classmethod
@@ -643,8 +633,7 @@ class BytesIO:
         data = cls._process_json(data)
         data.result = bytes.fromhex(data.hmac + data.salt)
         data.result += b"".join(
-            chunk.to_bytes(256, "big")
-            for chunk in data.ciphertext
+            chunk.to_bytes(256, "big") for chunk in data.ciphertext
         )
         cls._validate_ciphertext_length(data.result)
         return data.result
@@ -675,7 +664,7 @@ class BytesIO:
         ciphertext. Databases used to use the ``MAP_ENCODING``, but they
         now also output listed ciphertext.
         """
-        streamer = adata
+        streamer = adata.root
         obj = cls._process_bytes(data, encoding=encoding)
         obj.result["ciphertext"] = [
             int.from_bytes(chunk, "big")
@@ -693,7 +682,7 @@ class BytesIO:
         ciphertext. Databases used to use the ``MAP_ENCODING``, but they
         now also output listed ciphertext.
         """
-        streamer = globals()["data"]
+        streamer = generics.data.root
         obj = cls._process_bytes(data, encoding=encoding)
         obj.result["ciphertext"] = [
             int.from_bytes(chunk, "big")
@@ -704,13 +693,47 @@ class BytesIO:
         return obj.result
 
     @classmethod
+    async def abytes_to_urlsafe(cls, byte_string):
+        """
+        Turns a ``bytes_string`` into a url safe string derived from the
+        given ``table``.
+        """
+        urlsafe_token = base64.urlsafe_b64encode(byte_string)
+        return urlsafe_token.replace(b"=", cls.EQUAL_SIGN)
+
+    @classmethod
+    def bytes_to_urlsafe(cls, byte_string):
+        """
+        Turns a ``bytes_string`` into a url safe string derived from the
+        given ``table``.
+        """
+        urlsafe_token = base64.urlsafe_b64encode(byte_string)
+        return urlsafe_token.replace(b"=", cls.EQUAL_SIGN)
+
+    @classmethod
+    async def aurlsafe_to_bytes(cls, token):
+        """
+        Turns a url safe token into a bytes type string.
+        """
+        decoded_token = token.replace(cls.EQUAL_SIGN, b"=")
+        return base64.urlsafe_b64decode(decoded_token)
+
+    @classmethod
+    def urlsafe_to_bytes(cls, token):
+        """
+        Turns a url safe token into a bytes type string.
+        """
+        decoded_token = token.replace(cls.EQUAL_SIGN, b"=")
+        return base64.urlsafe_b64decode(decoded_token)
+
+    @classmethod
     async def ajson_to_ascii(cls, data, *, table=URL_SAFE_TABLE):
         """
         Converts json ciphertext into ascii consisting of characters
         found inside the ``table`` keyword argument.
         """
-        bytes_data = await cls.ajson_to_bytes(data)
-        return await cls.abytes_to_urlsafe(bytes_data, table=table)
+        int_data = int.from_bytes(await cls.ajson_to_bytes(data), "big")
+        return await ainverse_int(int_data, len(table), table)
 
     @classmethod
     def json_to_ascii(cls, data, *, table=URL_SAFE_TABLE):
@@ -718,8 +741,8 @@ class BytesIO:
         Converts json ciphertext into ascii consisting of characters
         found inside the ``table`` keyword argument.
         """
-        bytes_data = cls.json_to_bytes(data)
-        return cls.bytes_to_urlsafe(bytes_data, table=table)
+        int_data = int.from_bytes(cls.json_to_bytes(data), "big")
+        return inverse_int(int_data, len(table), table)
 
     @classmethod
     async def aascii_to_json(cls, data, *, table=URL_SAFE_TABLE):
@@ -727,8 +750,9 @@ class BytesIO:
         Converts ascii formated ciphertext, consisting of characters
         from the ``table`` keyword argument, back into json.
         """
-        bytes_data = await cls.aurlsafe_to_bytes(data, table=table)
-        return await cls.abytes_to_json(bytes_data)
+        int_data = await abase_to_decimal(data, len(table), table=table)
+        length = math.ceil(int_data.bit_length() / 8)
+        return await cls.abytes_to_json(int_data.to_bytes(length, "big"))
 
     @classmethod
     def ascii_to_json(cls, data, *, table=URL_SAFE_TABLE):
@@ -736,8 +760,9 @@ class BytesIO:
         Converts ascii formated ciphertext, consisting of characters
         from the ``table`` keyword argument, back into json.
         """
-        bytes_data = cls.urlsafe_to_bytes(data, table=table)
-        return cls.bytes_to_json(bytes_data)
+        int_data = base_to_decimal(data, base=len(table), table=table)
+        length = math.ceil(int_data.bit_length() / 8)
+        return cls.bytes_to_json(int_data.to_bytes(length, "big"))
 
     @classmethod
     async def aread(cls, path, *, encoding=LIST_ENCODING):
@@ -820,6 +845,7 @@ def comprehension(*args, indexes=(), catcher=None, **kwargs):
     functions. This is helpful for being able to dynamically wrap
     functions in different contexts to alter behavior.
     """
+
     def func_catch(func):
         func.root = func
 
@@ -1075,7 +1101,12 @@ class Comprende:
     }
 
     eager_generators = {
-        "aheappop", "heappop", "areversed", "reversed", "asort", "sort"
+        "aheappop",
+        "heappop",
+        "areversed",
+        "reversed",
+        "asort",
+        "sort",
     }
 
     _generators = {"__aiter__", "__iter__"}
@@ -1116,8 +1147,8 @@ class Comprende:
         "catch",
         "arelay",
         "relay",
-        "acache_check",
-        "cache_check",
+        "aauto_cache",
+        "auto_cache",
         "aclear_class",
         "clear_class",
         "runsum",
@@ -1176,6 +1207,7 @@ class Comprende:
         Does the wrapping of user async generators to allow catching
         return values.
         """
+
         @wraps(self.func)
         async def _acomprehension(gen=None):
             catch_UserWarning = self.__aexamine_sent_exceptions(gen)
@@ -1207,6 +1239,7 @@ class Comprende:
         Does the wrapping of user generators to allow catching return
         values.
         """
+
         @wraps(self.func)
         def _comprehension(gen=None):
             catch_UserWarning = self.__examine_sent_exceptions(gen)
@@ -1462,7 +1495,7 @@ class Comprende:
         """
         if exit and silent:
             async with aignore(
-                TypeError, StopAsyncIteration, display=not silent,
+                TypeError, StopAsyncIteration, display=not silent
             ):
                 await self.gen.asend(UserWarning())
         elif exit:
@@ -1560,7 +1593,7 @@ class Comprende:
             if cls == True:
                 for instance in dict(self.__class__._cached).values():
                     await instance.aclear()
-            elif self.precomputed != False:
+            elif self.precomputed:
                 del self.__class__._cached[self.runsum]
                 async for cache in self._acache_has():
                     cache.cache_clear()
@@ -1576,7 +1609,7 @@ class Comprende:
             if cls == True:
                 for instance in dict(self.__class__._cached).values():
                     instance.clear()
-            elif self.precomputed != False:
+            elif self.precomputed:
                 del self.__class__._cached[self.runsum]
                 for cache in self._cache_has():
                     cache.cache_clear()
@@ -1610,6 +1643,7 @@ class Comprende:
         called async methods or generators which do eager computation of
         an async generator's entire result set.
         """
+
         @alru_cache(maxsize=2)
         async def _acache_yield(runsum=None):
             return [result async for result in self]
@@ -1624,6 +1658,7 @@ class Comprende:
         called sync methods or generators which do eager computation of
         a generator's entire result set.
         """
+
         @lru_cache(maxsize=2)
         def _cache_yield(runsum=None):
             return [result for result in self]
@@ -1672,7 +1707,7 @@ class Comprende:
             return False
 
     @async_contextmanager
-    async def acache_check(self):
+    async def aauto_cache(self):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``list``, then ``alru_cache``'s the result
@@ -1688,7 +1723,7 @@ class Comprende:
             self.__class__._cached[self.runsum] = self
 
     @contextmanager
-    def cache_check(self):
+    def auto_cache(self):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``list``, then ``lru_cache``'s the result
@@ -1703,22 +1738,38 @@ class Comprende:
         finally:
             self.__class__._cached[self.runsum] = self
 
-    async def alist(self, mutable=False):
+    async def alist(self, *, mutable=False):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``list``, then ``alru_cache``'s the result
         & returns it.
+
+        The `results` list here is a direct mutable representation of
+        the generator's internal state. Meaning, upon further loops over
+        the generator, it will read & yield values directly from this
+        list. For this reason, the list is copied before being returned.
+        If a user wants to utilize this behaviour, then that will have
+        to be specified manually by setting the ``mutable`` boolean
+        keyword argument be set to `True`.
         """
-        async with self.acache_check() as results:
+        async with self.aauto_cache() as results:
             return results if mutable else list(results)
 
-    def list(self, mutable=False):
+    def list(self, *, mutable=False):
         """
         Exhausts the underlying Comprende sync generator & joins the
         results together in a ``list``, then ``lru_cache``'s the result
         & returns it.
+
+        The `results` list here is a direct mutable representation of
+        the generator's internal state. Meaning, upon further loops over
+        the generator, it will read & yield values directly from this
+        list. For this reason, the list is copied before being returned.
+        If a user wants to utilize this behaviour, then that will have
+        to be specified manually by setting the ``mutable`` boolean
+        keyword argument be set to `True`.
         """
-        with self.cache_check() as results:
+        with self.auto_cache() as results:
             return results if mutable else list(results)
 
     async def adeque(self):
@@ -1727,7 +1778,7 @@ class Comprende:
         results together in a ``collections.deque``, then ``alru_cache``'s
         the result & returns it.
         """
-        async with self.acache_check() as results:
+        async with self.aauto_cache() as results:
             return deque(results)
 
     def deque(self):
@@ -1736,7 +1787,7 @@ class Comprende:
         results together in a ``collections.deque``, then ``lru_cache``'s
         the result & returns it.
         """
-        with self.cache_check() as results:
+        with self.auto_cache() as results:
             return deque(results)
 
     async def aset(self):
@@ -1745,7 +1796,7 @@ class Comprende:
         results together in a ``set``, then ``alru_cache``'s the result
         & returns it.
         """
-        async with self.acache_check() as results:
+        async with self.aauto_cache() as results:
             return set(results)
 
     def set(self):
@@ -1754,7 +1805,7 @@ class Comprende:
         results together in a ``set``, then ``lru_cache``'s the result
         & returns it.
         """
-        with self.cache_check() as results:
+        with self.auto_cache() as results:
             return set(results)
 
     async def adict(self):
@@ -1763,7 +1814,7 @@ class Comprende:
         results together in a ``dict``, then ``alru_cache``'s the result
         & returns it.
         """
-        async with self.acache_check() as results:
+        async with self.aauto_cache() as results:
             return dict(results)
 
     def dict(self):
@@ -1772,7 +1823,7 @@ class Comprende:
         results together in a ``dict``, then ``lru_cache``'s the result
         & returns it.
         """
-        with self.cache_check() as results:
+        with self.auto_cache() as results:
             return dict(results)
 
     async def ajoin(self, on=""):
@@ -1781,7 +1832,7 @@ class Comprende:
         results together ``on`` the string that's passed, then
         ``alru_cache``'s the result & returns it.
         """
-        async with self.acache_check() as results:
+        async with self.aauto_cache() as results:
             return on.join(results)
 
     def join(self, on=""):
@@ -1790,7 +1841,7 @@ class Comprende:
         results together ``on`` the string that's passed, then
         ``lru_cache``'s the result & returns it.
         """
-        with self.cache_check() as results:
+        with self.auto_cache() as results:
             return on.join(results)
 
     async def aexhaust(self):
@@ -1801,7 +1852,7 @@ class Comprende:
         """
         async for result in self:
             pass
-        if result:
+        if "result" in vars():
             return result
 
     def exhaust(self):
@@ -1812,7 +1863,7 @@ class Comprende:
         """
         for result in self:
             pass
-        if result:
+        if "result" in vars():
             return result
 
     async def atimeout(self, delay=5):
@@ -1873,7 +1924,7 @@ class Comprende:
         """
         asend = self.gen.asend
         yield await asend(None)
-        async for food in aunpack(iterable):
+        async for food in aunpack.root(iterable):
             yield await asend(food)
 
     def feed(self, iterable=None):
@@ -1911,233 +1962,149 @@ class Comprende:
             food = send(food)
             yield food
 
-    async def atag(self, of=None):
+    async def atag(self, tags=None):
         """
         By default behaves like ``enumerate`` for each value yielded
         from the underlying Comprende async generator. Optionally,
-        ``of`` can be passed a sync or async iterable & prepends those
+        ``tags`` can be passed a sync or async iterable & prepends those
         values to the generator's results.
         """
-        if of != None:
-            async for name, item in azip(of, self):
+        if tags:
+            async for name, item in azip(tags, self):
                 yield name, item
         else:
             async for name, item in Enumerate(self):
                 yield name, item
 
-    def tag(self, of=None):
+    def tag(self, tags=None):
         """
         By default behaves like ``enumerate`` for each value yielded
-        from the underlying Comprende sync generator. Optionally, ``of``
-        can be passed an iterable & prepends those values to the
-        generator's results.
+        from the underlying Comprende sync generator. Optionally,
+        ``tags`` can be passed an iterable & prepends those values to
+        the generator's results.
         """
-        if of != None:
-            for name, item in zip(of, self):
+        if tags:
+            for name, item in zip(tags, self):
                 yield name, item
         else:
             for name, item in enumerate(self):
                 yield name, item
 
-    async def aheappop(self, span=None, *, of=None):
+    async def aheappop(self, span=None):
         """
         Exhausts the underlying Comprende async generator upto ``span``
         number of iterations, then yields the results in sorted order
         based on the ``heapq.heappop`` function.
         """
-        if of != None:
-            target = aunpack(of)[:span] if span else aunpack(of)
-            async with target as accumulator:
-                results = await accumulator.alist()
-            heapq.heapify(results)
-            async for result in self:
-                try:
-                    yield result, heapq.heappop(results)
-                except IndexError:
-                    break
-        else:
-            target = self[:span] if span else self
-            async with target as accumulator:
-                results = await accumulator.alist()
-            heapq.heapify(results)
-            while True:
-                try:
-                    yield heapq.heappop(results)
-                except IndexError:
-                    break
+        target = self[:span] if span else self
+        async with target as accumulator:
+            results = await accumulator.alist(mutable=True)
+        heapq.heapify(results)
+        while True:
+            try:
+                yield heapq.heappop(results)
+            except IndexError:
+                break
 
-    def heappop(self, span=None, *, of=None):
+    def heappop(self, span=None):
         """
         Exhausts the underlying Comprende sync generator upto ``span``
         number of iterations, then yields the results in sorted order
         based on the ``heapq.heappop`` function.
         """
-        if of != None:
-            target = unpack(of)[:span] if span else unpack(of)
-            with target as accumulator:
-                results = accumulator.list()
-            heapq.heapify(results)
-            for result in self:
-                try:
-                    yield result, heapq.heappop(results)
-                except IndexError:
-                    break
-        else:
-            target = self[:span] if span else self
-            with target as accumulator:
-                results = accumulator.list()
-            heapq.heapify(results)
-            while True:
-                try:
-                    yield heapq.heappop(results)
-                except IndexError:
-                    break
+        target = self[:span] if span else self
+        with target as accumulator:
+            results = accumulator.list(mutable=True)
+        heapq.heapify(results)
+        while True:
+            try:
+                yield heapq.heappop(results)
+            except IndexError:
+                break
 
-    async def areversed(self, span=None, *, of=None):
+    async def areversed(self, span=None):
         """
         Exhausts the underlying Comprende async generator upto ``span``
         number of iterations, then yields the results in reversed order.
         """
-        if of != None:
-            target = aunpack(of)[:span] if span else aunpack(of)
-            async with target as accumulator:
-                results = await accumulator.adeque()
-            async for prev, result in azip(self, reversed(results)):
-                yield prev, result
-        else:
-            target = self[:span] if span else self
-            async with target as accumulator:
-                results = await accumulator.adeque()
-            for result in reversed(results):
-                await switch()
-                yield result
+        target = self[:span] if span else self
+        async with target as accumulator:
+            results = await accumulator.alist(mutable=True)
+        for result in reversed(results):
+            await switch()
+            yield result
 
-    def reversed(self, span=None, *, of=None):
+    def reversed(self, span=None):
         """
         Exhausts the underlying Comprende sync generator upto ``span``
         number of iterations, then yields the results in reversed order.
         """
-        if of != None:
-            target = unpack(of)[:span] if span else unpack(of)
-            with target as accumulator:
-                results = accumulator.deque()
-            for prev, result in zip(self, reversed(results)):
-                yield prev, result
-        else:
-            target = self[:span] if span else self
-            with target as accumulator:
-                results = accumulator.deque()
-            for result in reversed(results):
-                yield result
+        target = self[:span] if span else self
+        with target as accumulator:
+            results = accumulator.list(mutable=True)
+        for result in reversed(results):
+            yield result
 
-    async def asort(self, key=None, span=None, *, of=None):
+    async def asort(self, *, key=None, span=None):
         """
         Exhausts the underlying Comprende async generator upto ``span``
         number of iterations, then yields the results in sorted order.
         """
-        if of != None:
-            target = aunpack(of)[:span] if span else aunpack(of)
-            async with target as accumulator:
-                results = await accumulator.alist(mutable=True)
-            results.sort(key=key)
-            async for prev, result in azip(self, results):
-                yield prev, result
-        else:
-            target = self[:span] if span else self
-            async with target as accumulator:
-                results = await accumulator.alist(mutable=True)
-            results.sort(key=key)
-            for result in results:
-                await switch()
-                yield result
+        target = self[:span] if span else self
+        async with target as accumulator:
+            results = await accumulator.alist(mutable=True)
+        results.sort(key=key)
+        for result in results:
+            await switch()
+            yield result
 
-    def sort(self, key=None, span=None, *, of=None):
+    def sort(self, *, key=None, span=None):
         """
         Exhausts the underlying Comprende sync generator upto ``span``
         number of iterations, then yields the results in sorted order.
         """
-        if of != None:
-            target = unpack(of)[:span] if span else unpack(of)
-            with target as accumulator:
-                results = accumulator.list(mutable=True)
-            results.sort(key=key)
-            for prev, result in zip(self, results):
-                yield prev, result
-        else:
-            target = self[:span] if span else self
-            with target as accumulator:
-                results = accumulator.list(mutable=True)
-            results.sort(key=key)
-            for result in results:
-                yield result
+        target = self[:span] if span else self
+        with target as accumulator:
+            results = accumulator.list(mutable=True)
+        results.sort(key=key)
+        for result in results:
+            yield result
 
-    async def aresize(self, size=256, *, of=None):
+    async def aresize(self, size=256):
         """
         Buffers the output from the underlying Comprende async generator
         to yield the results in chunks of length ``size``.
         """
         next_self = self.anext
-        if of != None:
-            next_source = aiter(of).__anext__
-            result = await next_source()
-            while True:
-                while len(result) >= size:
-                    cache = result[size:]
-                    yield await next_self(), result[:size]
-                    result = cache
-                try:
-                    result += await next_source()
-                except StopAsyncIteration:
-                    break
-            if result:
-                yield await next_self(), result
-        else:
-            result = await next_self()
-            while True:
-                while len(result) >= size:
-                    cache = result[size:]
-                    yield result[:size]
-                    result = cache
-                try:
-                    result += await next_self()
-                except StopAsyncIteration:
-                    break
-            if result:
-                yield result
+        result = await next_self()
+        while True:
+            while len(result) >= size:
+                yield result[:size]
+                result = result[size:]
+            try:
+                result += await next_self()
+            except StopAsyncIteration:
+                break
+        if result:
+            yield result
 
-    def resize(self, size=256, *, of=None):
+    def resize(self, size=256):
         """
         Buffers the output from the underlying Comprende sync generator
         to yield the results in chunks of length ``size``.
         """
         next_self = self.next
-        if of != None:
-            next_source = iter(of).__next__
-            result = next_source()
-            while True:
-                while len(result) >= size:
-                    cache = result[size:]
-                    yield next_self(), result[:size]
-                    result = cache
-                try:
-                    result += next_source()
-                except StopIteration:
-                    break
-            if result:
-                yield next_self(), result
-        else:
-            result = next_self()
-            while True:
-                while len(result) >= size:
-                    cache = result[size:]
-                    yield result[:size]
-                    result = cache
-                try:
-                    result += next_self()
-                except StopIteration:
-                    break
-            if result:
-                yield result
+        result = next_self()
+        while True:
+            while len(result) >= size:
+                yield result[:size]
+                result = result[size:]
+            try:
+                result += next_self()
+            except StopIteration:
+                break
+        if result:
+            yield result
 
     async def adelimit(self, delimiter=" "):
         """
@@ -2167,8 +2134,8 @@ class Comprende:
             result = (cache + result).lstrip(delimiter)
             while delimiter in result:
                 index = result.find(delimiter)
-                yield result[: index]
-                result = result[index :].lstrip(delimiter)
+                yield result[:index]
+                result = result[index:].lstrip(delimiter)
             cache = result
         if cache:
             yield cache
@@ -2185,209 +2152,141 @@ class Comprende:
             result = (cache + result).lstrip(delimiter)
             while delimiter in result:
                 index = result.find(delimiter)
-                yield result[: index]
-                result = result[index :].lstrip(delimiter)
+                yield result[:index]
+                result = result[index:].lstrip(delimiter)
             cache = result
         if cache:
             yield cache
 
-    async def ato_base64(self, *, of=None):
+    async def ato_base64(self):
         """
-        Applies ``pybase64.standard_b64encode`` conversion to each value
+        Applies ``base64.standard_b64encode`` conversion to each value
         that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, to_b64(result)
-        else:
-            async for result in self:
-                yield to_b64(result)
+        async for result in self:
+            yield to_b64(result)
 
-    def to_base64(self, *, of=None):
+    def to_base64(self):
         """
-        Applies ``pybase64.standard_b64encode`` conversion to each value
+        Applies ``base64.standard_b64encode`` conversion to each value
         that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, to_b64(result)
-        else:
-            for result in self:
-                yield to_b64(result)
+        for result in self:
+            yield to_b64(result)
 
-    async def afrom_base64(self, *, of=None):
+    async def afrom_base64(self):
         """
-        Applies ``pybase64.standard_b64decode`` conversion to each value
+        Applies ``base64.standard_b64decode`` conversion to each value
         that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, from_b64(result)
-        else:
-            async for result in self:
-                yield from_b64(result)
+        async for result in self:
+            yield from_b64(result)
 
-    def from_base64(self, *, of=None):
+    def from_base64(self):
         """
-        Applies ``pybase64.standard_b64decode`` conversion to each value
+        Applies ``base64.standard_b64decode`` conversion to each value
         that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, from_b64(result)
-        else:
-            for result in self:
-                yield from_b64(result)
+        for result in self:
+            yield from_b64(result)
 
-    async def aint_to_ascii(self, *, of=None):
+    async def aint_to_ascii(self):
         """
         Applies a ``binascii`` int-to-ascii conversion to each value
         that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result.to_bytes(
-                    (result.bit_length() + 7) // 8, "big"
-                ).decode()
-        else:
-            async for result in self:
-                yield result.to_bytes(
-                    (result.bit_length() + 7) // 8, "big"
-                ).decode()
+        async for result in self:
+            yield result.to_bytes(
+                math.ceil(result.bit_length() / 8), "big"
+            ).decode()
 
-    def int_to_ascii(self, *, of=None):
+    def int_to_ascii(self):
         """
         Applies a ``binascii`` int-to-ascii conversion to each value
         that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
-        if of != None:
-            for prev, result in azip(self, of):
-                yield prev, result.to_bytes(
-                    (result.bit_length() + 7) // 8, "big"
-                ).decode()
-        else:
-            for result in self:
-                yield result.to_bytes(
-                    (result.bit_length() + 7) // 8, "big"
-                ).decode()
+        for result in self:
+            yield result.to_bytes(
+                math.ceil(result.bit_length() / 8), "big"
+            ).decode()
 
-    async def aascii_to_int(self, *, of=None):
+    async def aascii_to_int(self):
         """
         Applies a ``binascii`` ascii-to-int conversion to each value
         that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, int.from_bytes(result.encode(), "big")
-        else:
-            async for result in self:
-                yield int.from_bytes(result.encode(), "big")
+        async for result in self:
+            yield int.from_bytes(result.encode(), "big")
 
-    def ascii_to_int(self, *, of=None):
+    def ascii_to_int(self):
         """
         Applies a ``binascii`` ascii-to-int conversion to each value
         that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, int.from_bytes(result.encode(), "big")
-        else:
-            for result in self:
-                yield int.from_bytes(result.encode(), "big")
+        for result in self:
+            yield int.from_bytes(result.encode(), "big")
 
-    async def asha_512(self, salt=None, *, of=None):
+    async def asha_512(self, *, salt=None):
         """
         Applies ``hashlib.sha3_512()`` to each value that's yielded
         from the underlying Comprende async generator before yielding
         the result.
         """
         if salt:
-            if of != None:
-                async for prev, result in azip(self, of):
-                    yield prev, await asha_512(result, salt)
-            else:
-                async for result in self:
-                    yield await asha_512(result, salt)
+            async for result in self:
+                yield await asha_512(salt, result)
         else:
-            if of != None:
-                async for prev, result in azip(self, of):
-                    yield prev, await asha_512(result)
-            else:
-                async for result in self:
-                    yield await asha_512(result)
+            async for result in self:
+                yield await asha_512(result)
 
-    def sha_512(self, salt=None, *, of=None):
+    def sha_512(self, *, salt=None):
         """
         Applies ``hashlib.sha3_512()`` to each value that's yielded
         from the underlying Comprende sync generator before yielding
         the result.
         """
         if salt:
-            if of != None:
-                for prev, result in zip(self, of):
-                    yield prev, sha_512(result, salt)
-            else:
-                for result in self:
-                    yield sha_512(result, salt)
+            for result in self:
+                yield sha_512(salt, result)
         else:
-            if of != None:
-                for prev, result in zip(self, of):
-                    yield prev, sha_512(result)
-            else:
-                for result in self:
-                    yield sha_512(result)
+            for result in self:
+                yield sha_512(result)
 
-    async def asha_512_hmac(self, key=None, salt=None, *, of=None):
+    async def asha_512_hmac(self, *, key, salt=None):
         """
         Applies a ``hashlib.sha3_512()`` based hmac algorithm to each
         value that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
         if salt:
-            if of != None:
-                async for prev, result in azip(self, of):
-                    yield prev, await asha_512_hmac((result, salt), key=key)
-            else:
-                async for result in self:
-                    yield await asha_512_hmac((result, salt), key=key)
+            async for result in self:
+                yield await asha_512_hmac((salt, result), key=key)
         else:
-            if of != None:
-                async for prev, result in azip(self, of):
-                    yield prev, await asha_512_hmac(result, key=key)
-            else:
-                async for result in self:
-                    yield await asha_512_hmac(result, key=key)
+            async for result in self:
+                yield await asha_512_hmac(result, key=key)
 
-    def sha_512_hmac(self, key=None, salt=None, *, of=None):
+    def sha_512_hmac(self, *, key, salt=None):
         """
         Applies a ``hashlib.sha3_512()`` based hmac algorithm to each
         value that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
         if salt:
-            if of != None:
-                for prev, result in zip(self, of):
-                    yield prev, sha_512_hmac((result, salt), key=key)
-            else:
-                for result in self:
-                    yield sha_512_hmac((result, salt), key=key)
+            for result in self:
+                yield sha_512_hmac((salt, result), key=key)
         else:
-            if of != None:
-                for prev, result in zip(self, of):
-                    yield prev, sha_512_hmac(result, key=key)
-            else:
-                for result in self:
-                    yield sha_512_hmac(result, key=key)
+            for result in self:
+                yield sha_512_hmac(result, key=key)
 
-    async def asum_sha_512(self, salt=None):
+    async def asum_sha_512(self, *, salt=None):
         """
         Cumulatively applies a ``hashlib.sha3_512()`` to each value
         that's yielded from the underlying Comprende async generator
@@ -2395,10 +2294,10 @@ class Comprende:
         """
         summary = await asha_512(salt)
         async for result in self:
-            summary = await asha_512(result, summary)
+            summary = await asha_512(summary, result)
             yield summary
 
-    def sum_sha_512(self, salt=None):
+    def sum_sha_512(self, *, salt=None):
         """
         Cumulatively applies a ``hashlib.sha3_512()`` to each value
         that's yielded from the underlying Comprende sync generator with
@@ -2406,94 +2305,62 @@ class Comprende:
         """
         summary = sha_512(salt)
         for result in self:
-            summary = sha_512(result, summary)
+            summary = sha_512(summary, result)
             yield summary
 
-    async def asha_256(self, salt=None, *, of=None):
+    async def asha_256(self, *, salt=None):
         """
         Applies ``hashlib.sha3_256()`` to each value that's yielded
         from the underlying Comprende async generator before yielding
         the result.
         """
         if salt:
-            if of != None:
-                async for prev, result in azip(self, of):
-                    yield prev, await asha_256(result, salt)
-            else:
-                async for result in self:
-                    yield await asha_256(result, salt)
+            async for result in self:
+                yield await asha_256(salt, result)
         else:
-            if of != None:
-                async for prev, result in azip(self, of):
-                    yield prev, await asha_256(result)
-            else:
-                async for result in self:
-                    yield await asha_256(result)
+            async for result in self:
+                yield await asha_256(result)
 
-    def sha_256(self, salt=None, *, of=None):
+    def sha_256(self, *, salt=None):
         """
         Applies ``hashlib.sha3_256()`` to each value that's yielded
         from the underlying Comprende sync generator before yielding the
         result.
         """
         if salt:
-            if of != None:
-                for prev, result in zip(self, of):
-                    yield prev, sha_256(result, salt)
-            else:
-                for result in self:
-                    yield sha_256(result, salt)
+            for result in self:
+                yield sha_256(salt, result)
         else:
-            if of != None:
-                for prev, result in zip(self, of):
-                    yield prev, sha_256(result)
-            else:
-                for result in self:
-                    yield sha_256(result)
+            for result in self:
+                yield sha_256(result)
 
-    async def asha_256_hmac(self, key=None, salt=None, *, of=None):
+    async def asha_256_hmac(self, *, key, salt=None):
         """
         Applies a ``hashlib.sha3_256()`` based hmac algorithm to each
         value that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
         if salt:
-            if of != None:
-                async for prev, result in azip(self, of):
-                    yield prev, await asha_256_hmac((result, salt), key=key)
-            else:
-                async for result in self:
-                    yield await asha_256_hmac((result, salt), key=key)
+            async for result in self:
+                yield await asha_256_hmac((salt, result), key=key)
         else:
-            if of != None:
-                async for prev, result in azip(self, of):
-                    yield prev, await asha_256_hmac(result, key=key)
-            else:
-                async for result in self:
-                    yield await asha_256_hmac(result, key=key)
+            async for result in self:
+                yield await asha_256_hmac(result, key=key)
 
-    def sha_256_hmac(self, key=None, salt=None, *, of=None):
+    def sha_256_hmac(self, *, key, salt=None):
         """
         Applies a ``hashlib.sha3_256()`` based hmac algorithm to each
         value that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
         if salt:
-            if of != None:
-                for prev, result in zip(self, of):
-                    yield prev, sha_256_hmac((result, salt), key=key)
-            else:
-                for result in self:
-                    yield sha_256_hmac((result, salt), key=key)
+            for result in self:
+                yield sha_256_hmac((salt, result), key=key)
         else:
-            if of != None:
-                for prev, result in zip(self, of):
-                    yield prev, sha_256_hmac(result, key=key)
-            else:
-                for result in self:
-                    yield sha_256_hmac(result, key=key)
+            for result in self:
+                yield sha_256_hmac(result, key=key)
 
-    async def asum_sha_256(self, salt=None):
+    async def asum_sha_256(self, *, salt=None):
         """
         Cumulatively applies a ``hashlib.sha3_256()`` to each value
         that's yielded from the underlying Comprende async generator
@@ -2501,10 +2368,10 @@ class Comprende:
         """
         summary = await asha_256(salt)
         async for result in self:
-            summary = await asha_256(result, summary)
+            summary = await asha_256(summary, result)
             yield summary
 
-    def sum_sha_256(self, salt=None):
+    def sum_sha_256(self, *, salt=None):
         """
         Cumulatively applies a ``hashlib.sha3_256()`` to each value
         that's yielded from the underlying Comprende sync generator with
@@ -2512,463 +2379,323 @@ class Comprende:
         """
         summary = sha_256(salt)
         for result in self:
-            summary = sha_256(result, summary)
+            summary = sha_256(summary, result)
             yield summary
 
-    async def aint(self, *a, of=None, **kw):
+    async def aint(self, *a, **kw):
         """
         Applies ``builtins.int(*a)`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, int(result, *a, **kw)
-        else:
-            async for result in self:
-                yield int(result, *a, **kw)
+        async for result in self:
+            yield int(result, *a, **kw)
 
-    def int(self, *a, of=None, **kw):
+    def int(self, *a, **kw):
         """
         Applies ``builtins.int(*a)`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, builtins.int(result, *a, **kw)
-        else:
-            for result in self:
-                yield builtins.int(result, *a, **kw)
+        for result in self:
+            yield builtins.int(result, *a, **kw)
 
-    async def abytes_to_int(self, byte_order="big", *, of=None):
+    async def abytes_to_int(self, byte_order="big"):
         """
         Applies ``int.from_bytes(result, byte_order)`` to each value
         that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, int.from_bytes(result, byte_order)
-        else:
-            async for result in self:
-                yield int.from_bytes(result, byte_order)
+        async for result in self:
+            yield int.from_bytes(result, byte_order)
 
-    def bytes_to_int(self, byte_order="big", *, of=None):
+    def bytes_to_int(self, byte_order="big"):
         """
         Applies ``int.from_bytes(result, byte_order)`` to each value
         that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, int.from_bytes(result, byte_order)
-        else:
-            for result in self:
-                yield int.from_bytes(result, byte_order)
+        for result in self:
+            yield int.from_bytes(result, byte_order)
 
-    async def aint_to_bytes(self, size=256, byte_order="big", *, of=None):
+    async def aint_to_bytes(self, size=256, byte_order="big"):
         """
         Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende async
         generator before yielding the result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, int.to_bytes(result, size, byte_order)
-        else:
-            async for result in self:
-                yield int.to_bytes(result, size, byte_order)
+        async for result in self:
+            yield result.to_bytes(size, byte_order)
 
-    def int_to_bytes(self, size=256, byte_order="big", *, of=None):
+    def int_to_bytes(self, size=256, byte_order="big"):
         """
         Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende sync
         generator before yielding the result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, int.to_bytes(result, size, byte_order)
-        else:
-            for result in self:
-                yield int.to_bytes(result, size, byte_order)
+        for result in self:
+            yield result.to_bytes(size, byte_order)
 
-    async def ahex_to_bytes(self, *, of=None):
+    async def ahex_to_bytes(self):
         """
         Applies ``bytes.fromhex(result)`` to each value that's yielded
         from the underlying Comprende async generator before yielding
         the result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, bytes.fromhex(result)
-        else:
-            async for result in self:
-                yield bytes.fromhex(result)
+        async for result in self:
+            yield bytes.fromhex(result)
 
-    def hex_to_bytes(self, *, of=None):
+    def hex_to_bytes(self):
         """
         Applies ``bytes.fromhex(result)`` to each value that's yielded
         from the underlying Comprende sync generator before yielding
         the result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, bytes.fromhex(result)
-        else:
-            for result in self:
-                yield bytes.fromhex(result)
+        for result in self:
+            yield bytes.fromhex(result)
 
-    async def abytes_to_hex(self, *, of=None):
+    async def abytes_to_hex(self):
         """
         Applies ``bytes.hex(result)`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result.hex()
-        else:
-            async for result in self:
-                yield result.hex()
+        async for result in self:
+            yield result.hex()
 
-    def bytes_to_hex(self, *, of=None):
+    def bytes_to_hex(self):
         """
         Applies ``bytes.hex(result)`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, result.hex()
-        else:
-            for result in self:
-                yield result.hex()
+        for result in self:
+            yield result.hex()
 
-    async def ato_base(self, base=95, table=ASCII_TABLE, *, of=None):
+    async def ato_base(self, base=95, table=ASCII_TABLE):
         """
         Converts each integer value that's yielded from the underlying
         Comprende async generator to a string in ``base`` before yielding
         the result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, await ainverse_int(result, base, table)
-        else:
-            async for result in self:
-                yield await ainverse_int(result, base, table)
+        async for result in self:
+            yield await ainverse_int(result, base, table)
 
-    def to_base(self, base=95, table=ASCII_TABLE, *, of=None):
+    def to_base(self, base=95, table=ASCII_TABLE):
         """
         Converts each integer value that's yielded from the underlying
         Comprende sync generator to a string in ``base`` before yielding
         the result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, inverse_int(result, base, table)
-        else:
-            for result in self:
-                yield inverse_int(result, base, table)
+        for result in self:
+            yield inverse_int(result, base, table)
 
-    async def afrom_base(self, base=95, table=ASCII_TABLE, *, of=None):
+    async def afrom_base(self, base=95, table=ASCII_TABLE):
         """
         Convert string results of generator results in numerical ``base``
         into decimal.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, await abase_to_decimal(result, base, table)
-        else:
-            async for result in self:
-                yield await abase_to_decimal(result, base, table)
+        async for result in self:
+            yield await abase_to_decimal(result, base, table)
 
-    def from_base(self, base=95, table=ASCII_TABLE, *, of=None):
+    def from_base(self, base=95, table=ASCII_TABLE):
         """
         Convert ``string`` in numerical ``base`` into decimal.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, base_to_decimal(result, base, table)
-        else:
-            for result in self:
-                yield base_to_decimal(result, base, table)
+        for result in self:
+            yield base_to_decimal(result, base, table)
 
-    async def azfill(self, *a, of=None, **kw):
+    async def azfill(self, *a, **kw):
         """
         Applies ``builtins.zfill(*a)`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result.zfill(*a, **kw)
-        else:
-            async for result in self:
-                yield result.zfill(*a, **kw)
+        async for result in self:
+            yield result.zfill(*a, **kw)
 
-    def zfill(self, *a, of=None, **kw):
+    def zfill(self, *a, **kw):
         """
         Applies ``builtins.zfill(*a)`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, result.zfill(*a, **kw)
-        else:
-            for result in self:
-                yield result.zfill(*a, **kw)
+        for result in self:
+            yield result.zfill(*a, **kw)
 
-    async def aslice(self, *a, of=None):
+    async def aslice(self, *a):
         """
         Applies ``builtins.slice(*a)`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
         selected = slice(*a)
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result[selected]
-        else:
-            async for result in self:
-                yield result[selected]
+        async for result in self:
+            yield result[selected]
 
-    def slice(self, *a, of=None):
+    def slice(self, *a):
         """
         Applies ``builtins.slice(*a)`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
         selected = slice(*a)
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, result[selected]
-        else:
-            for result in self:
-                yield result[selected]
+        for result in self:
+            yield result[selected]
 
-    async def aindex(self, selected=None, *, of=None):
+    async def aindex(self, selected=None):
         """
         Yields the ``selected`` index of each result produced by the
         underlying Comprende async generator.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result[selected]
-        else:
-            async for result in self:
-                yield result[selected]
+        async for result in self:
+            yield result[selected]
 
-    def index(self, selected=None, *, of=None):
+    def index(self, selected=None):
         """
         Yields the ``selected`` index of each result produced by the
         underlying Comprende sync generator.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, result[selected]
-        else:
-            for result in self:
-                yield result[selected]
+        for result in self:
+            yield result[selected]
 
-    async def astr(self, *a, of=None, **kw):
+    async def astr(self, *a, **kw):
         """
         Applies ``builtins.str(*a)`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, str(result, *a, **kw)
-        else:
-            async for result in self:
-                yield str(result, *a, **kw)
+        async for result in self:
+            yield str(result, *a, **kw)
 
-    def str(self, *a, of=None, **kw):
+    def str(self, *a, **kw):
         """
         Applies ``builtins.str()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, builtins.str(result, *a, **kw)
-        else:
-            for result in self:
-                yield builtins.str(result, *a, **kw)
+        for result in self:
+            yield builtins.str(result, *a, **kw)
 
-    async def asplit(self, *a, of=None, **kw):
+    async def asplit(self, *a, **kw):
         """
         Applies ``value.split()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result.split(*a, **kw)
-        else:
-            async for result in self:
-                yield result.split(*a, **kw)
+        async for result in self:
+            yield result.split(*a, **kw)
 
-    def split(self, *a, of=None, **kw):
+    def split(self, *a, **kw):
         """
         Applies ``value.split()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, result.split(*a, **kw)
-        else:
-            for result in self:
-                yield result.split(*a, **kw)
+        for result in self:
+            yield result.split(*a, **kw)
 
-    async def areplace(self, *a, of=None, **kw):
+    async def areplace(self, *a, **kw):
         """
         Applies ``value.replace()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result.replace(*a, **kw)
-        else:
-            async for result in self:
-                yield result.replace(*a, **kw)
+        async for result in self:
+            yield result.replace(*a, **kw)
 
-    def replace(self, *a, of=None, **kw):
+    def replace(self, *a, **kw):
         """
         Applies ``value.replace()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, result.replace(*a, **kw)
-        else:
-            for result in self:
-                yield result.replace(*a, **kw)
+        for result in self:
+            yield result.replace(*a, **kw)
 
-    async def aencode(self, *a, of=None, **kw):
+    async def aencode(self, *a, **kw):
         """
         Applies ``value.encode()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result.encode(*a, **kw)
-        else:
-            async for result in self:
-                yield result.encode(*a, **kw)
+        async for result in self:
+            yield result.encode(*a, **kw)
 
-    def encode(self, *a, of=None, **kw):
+    def encode(self, *a, **kw):
         """
         Applies ``value.encode()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, result.encode(*a, **kw)
-        else:
-            for result in self:
-                yield result.encode(*a, **kw)
+        for result in self:
+            yield result.encode(*a, **kw)
 
-    async def adecode(self, *a, of=None, **kw):
+    async def adecode(self, *a, **kw):
         """
         Applies ``value.decode()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, result.decode(*a, **kw)
-        else:
-            async for result in self:
-                yield result.decode(*a, **kw)
+        async for result in self:
+            yield result.decode(*a, **kw)
 
-    def decode(self, *a, of=None, **kw):
+    def decode(self, *a, **kw):
         """
         Applies ``value.decode()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, result.decode(*a, **kw)
-        else:
-            for result in self:
-                yield result.decode(*a, **kw)
+        for result in self:
+            yield result.decode(*a, **kw)
 
-    async def ajson_loads(self, *a, of=None, **kw):
+    async def ajson_loads(self, *a, **kw):
         """
         Applies ``json.loads()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, json.loads(result, *a, **kw)
-        else:
-            async for result in self:
-                yield json.loads(result, *a, **kw)
+        async for result in self:
+            yield json.loads(result, *a, **kw)
 
-    def json_loads(self, *a, of=None, **kw):
+    def json_loads(self, *a, **kw):
         """
         Applies ``json.loads()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, json.loads(result, *a, **kw)
-        else:
-            for result in self:
-                yield json.loads(result, *a, **kw)
+        for result in self:
+            yield json.loads(result, *a, **kw)
 
-    async def ajson_dumps(self, *a, of=None, **kw):
+    async def ajson_dumps(self, *a, **kw):
         """
         Applies ``json.dumps()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, json.dumps(result, *a, **kw)
-        else:
-            async for result in self:
-                yield json.dumps(result, *a, **kw)
+        async for result in self:
+            yield json.dumps(result, *a, **kw)
 
-    def json_dumps(self, *a, of=None, **kw):
+    def json_dumps(self, *a, **kw):
         """
         Applies ``json.dumps()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, json.dumps(result, *a, **kw)
-        else:
-            for result in self:
-                yield json.dumps(result, *a, **kw)
+        for result in self:
+            yield json.dumps(result, *a, **kw)
 
-    async def ahex(self, prefix=False, *, of=None):
+    async def ahex(self, prefix=False):
         """
         Applies ``builtins.hex()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
         start = 0 if prefix else 2
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, hex(result)[start:]
-        else:
-            async for result in self:
-                yield hex(result)[start:]
+        async for result in self:
+            yield hex(result)[start:]
 
-    def hex(self, prefix=False, *, of=None):
+    def hex(self, prefix=False):
         """
         Applies ``builtins.hex()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
@@ -2976,66 +2703,46 @@ class Comprende:
         """
         _hex = builtins.hex
         start = 0 if prefix else 2
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, _hex(result)[start:]
-        else:
-            for result in self:
-                yield _hex(result)[start:]
+        for result in self:
+            yield _hex(result)[start:]
 
-    async def abytes(self, *a, of=None, **kw):
+    async def abytes(self, *a, **kw):
         """
         Applies ``builtins.bytes()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, bytes(result, *a, **kw)
-        else:
-            async for result in self:
-                yield bytes(result, *a, **kw)
+        async for result in self:
+            yield bytes(result, *a, **kw)
 
-    def bytes(self, *a, of=None, **kw):
+    def bytes(self, *a, **kw):
         """
         Applies ``builtins.bytes()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
         _bytes = builtins.bytes
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, _bytes(result, *a, **kw)
-        else:
-            for result in self:
-                yield _bytes(result, *a, **kw)
+        for result in self:
+            yield _bytes(result, *a, **kw)
 
-    async def abin(self, *a, of=None, **kw):
+    async def abin(self, *a, **kw):
         """
         Applies ``builtins.bin()`` to each value that's yielded from
         the underlying Comprende async generator before yielding the
         result.
         """
-        if of != None:
-            async for prev, result in azip(self, of):
-                yield prev, bin(result, *a, **kw)
-        else:
-            async for result in self:
-                yield bin(result, *a, **kw)
+        async for result in self:
+            yield bin(result, *a, **kw)
 
-    def bin(self, *a, of=None, **kw):
+    def bin(self, *a, **kw):
         """
         Applies ``builtins.bin()`` to each value that's yielded from
         the underlying Comprende sync generator before yielding the
         result.
         """
         _bin = builtins.bin
-        if of != None:
-            for prev, result in zip(self, of):
-                yield prev, _bin(result, *a, **kw)
-        else:
-            for result in self:
-                yield _bin(result, *a, **kw)
+        for result in self:
+            yield _bin(result, *a, **kw)
 
     async def __aenter__(self):
         """
@@ -3082,8 +2789,8 @@ class Comprende:
         has already computed the gererators values.
         """
         await self.areset()
-        if self.precomputed != False:
-            async with self.acache_check() as results:
+        if self.precomputed:
+            async with self.aauto_cache() as results:
                 for result in results:
                     await switch()
                     yield result
@@ -3102,8 +2809,8 @@ class Comprende:
         already computed the gererators values.
         """
         self.reset()
-        if self.precomputed != False:
-            with self.cache_check() as results:
+        if self.precomputed:
+            with self.auto_cache() as results:
                 for result in results:
                     yield result
         else:
@@ -3311,9 +3018,10 @@ async def acount(start=0):
     """
     Unendingly yields incrementing numbers starting from ``start``.
     """
+    index = start
     while True:
-        yield start
-        start += 1
+        yield index
+        index += 1
 
 
 @comprehension()
@@ -3321,9 +3029,32 @@ def count(start=0):
     """
     Unendingly yields incrementing numbers starting from ``start``.
     """
+    index = start
     while True:
-        yield start
-        start += 1
+        yield index
+        index += 1
+
+
+@comprehension()
+async def abytes_count(start=0, *, length=8, byte_order="big"):
+    """
+    Unendingly yields incrementing numbers starting from ``start``.
+    """
+    index = start
+    while True:
+        yield index.to_bytes(length, byte_order)
+        index += 1
+
+
+@comprehension()
+def bytes_count(start=0, *, length=8, byte_order="big"):
+    """
+    Unendingly yields incrementing numbers starting from ``start``.
+    """
+    index = start
+    while True:
+        yield index.to_bytes(length, byte_order)
+        index += 1
 
 
 @comprehension()
@@ -3484,24 +3215,6 @@ def json_decode(json_data=None):
     back in one iteration.
     """
     yield json.loads(json_data)
-
-
-@comprehension()
-async def ajson_from_bytes_decode(json_data=None):
-    """
-    Turns the ``json.loads`` function into an async generator yielding
-    the data back in one iteration.
-    """
-    yield json.loads(json_data.decode())
-
-
-@comprehension()
-def json_from_bytes_decode(json_data=None):
-    """
-    Turns the ``json.loads`` function into a generator yielding the data
-    back in one iteration.
-    """
-    yield json.loads(json_data.decode())
 
 
 @comprehension()
@@ -3786,40 +3499,40 @@ async def aappend(container=None, item=None):
 
 async def ato_b64(binary=None, encoding="utf-8"):
     """
-    A version of ``pybase64.standard_b64encode``.
+    A version of ``base64.standard_b64encode``.
     """
     if type(binary) != bytes:
         binary = bytes(binary, encoding)
         await switch()
-    return pybase64.standard_b64encode(binary)
+    return base64.standard_b64encode(binary)
 
 
 def to_b64(binary=None, encoding="utf-8"):
     """
-    A version of ``pybase64.standard_b64encode``.
+    A version of ``base64.standard_b64encode``.
     """
     if type(binary) != bytes:
         binary = bytes(binary, encoding)
-    return pybase64.standard_b64encode(binary)
+    return base64.standard_b64encode(binary)
 
 
 async def afrom_b64(base_64=None, encoding="utf-8"):
     """
-    A version of ``pybase64.standard_b64decode``.
+    A version of ``base64.standard_b64decode``.
     """
     if type(base_64) != bytes:
         base_64 = base_64.encode(encoding)
         await switch()
-    return pybase64.standard_b64decode(base_64)
+    return base64.standard_b64decode(base_64)
 
 
 def from_b64(base_64=None, encoding="utf-8"):
     """
-    A version of ``pybase64.standard_b64decode``.
+    A version of ``base64.standard_b64decode``.
     """
     if type(base_64) != bytes:
         base_64 = base_64.encode(encoding)
-    return pybase64.standard_b64decode(base_64)
+    return base64.standard_b64decode(base_64)
 
 
 async def axi_mix(bytes_hash, size=8):
@@ -3865,7 +3578,7 @@ async def asha_256(*args, sha256=sha3_256):
     A string-based version of ``hashlib.sha3_256``. Stringifies & places
     all inputs into a tuple before hashing.
     """
-    return sha256((await astr(args)).encode("utf-8")).hexdigest()
+    return sha256((await astr(args)).encode()).hexdigest()
 
 
 def sha_256(*args, sha256=sha3_256):
@@ -3873,21 +3586,21 @@ def sha_256(*args, sha256=sha3_256):
     A string-based version of ``hashlib.sha3_256``. Stringifies & places
     all inputs into a tuple before hashing.
     """
-    return sha256(str(args).encode("utf-8")).hexdigest()
+    return sha256(str(args).encode()).hexdigest()
 
 
-async def asha_256_hmac(data, key=None):
+async def asha_256_hmac(data, *, key):
     """
-    An HMAC version of the ``hashlib.sha3_512`` function.
+    An HMAC-esque version of the ``hashlib.sha3_512`` function.
     """
-    return await asha_256(await asha_256(data, key), key)
+    return await asha_256(key, await asha_256(key, data))
 
 
-def sha_256_hmac(data, key=None):
+def sha_256_hmac(data, *, key):
     """
-    An HMAC version of the ``hashlib.sha3_512`` function.
+    An HMAC-esque version of the ``hashlib.sha3_512`` function.
     """
-    return sha_256(sha_256(data, key), key)
+    return sha_256(key, sha_256(key, data))
 
 
 async def asha_512(*data, sha512=sha3_512):
@@ -3895,7 +3608,7 @@ async def asha_512(*data, sha512=sha3_512):
     A string-based version of ``hashlib.sha3_512``. Stringifies & places
     all inputs into a tuple before hashing.
     """
-    return sha512((await astr(data)).encode("utf-8")).hexdigest()
+    return sha512((await astr(data)).encode()).hexdigest()
 
 
 def sha_512(*args, sha512=sha3_512):
@@ -3903,21 +3616,21 @@ def sha_512(*args, sha512=sha3_512):
     A string-based version of ``hashlib.sha3_512``. Stringifies & places
     all inputs into a tuple before hashing.
     """
-    return sha512(str(args).encode("utf-8")).hexdigest()
+    return sha512(str(args).encode()).hexdigest()
 
 
-async def asha_512_hmac(data, key=None):
+async def asha_512_hmac(data, *, key):
     """
-    An HMAC version of the ``hashlib.sha3_512`` function.
+    An HMAC-esque version of the ``hashlib.sha3_512`` function.
     """
-    return await asha_512(await asha_512(data, key), key)
+    return await asha_512(key, await asha_512(key, data))
 
 
-def sha_512_hmac(data, key=None):
+def sha_512_hmac(data, *, key):
     """
-    An HMAC version of the ``hashlib.sha3_512`` function.
+    An HMAC-esque version of the ``hashlib.sha3_512`` function.
     """
-    return sha_512(sha_512(data, key), key)
+    return sha_512(key, sha_512(key, data))
 
 
 class Hasher:
@@ -3925,6 +3638,7 @@ class Hasher:
     A class that creates instances to mimmic & add functionality to the
     hashing object passed in during initialization.
     """
+
     xi_mix = xi_mix
     axi_mix = axi_mix
 
@@ -3937,36 +3651,79 @@ class Hasher:
             if not method.startswith("_"):
                 setattr(self, method, getattr(self._obj, method))
 
-    async def ahash(self, *data):
+    async def ahash(self, *data, on=b""):
         """
         Receives any number of arguments of bytes type ``data`` &
         updates the instance with them all sequentially.
         """
-        self.update(b"".join(data))
+        self.update(on.join(data))
         await switch()
         return self.digest()
 
-    def hash(self, *data):
+    def hash(self, *data, on=b""):
         """
         Receives any number of arguments of bytes type ``data`` &
         updates the instance with them all sequentially.
         """
-        self.update(b"".join(data))
+        self.update(on.join(data))
         return self.digest()
+
+    async def amask_byte_order(
+        sequence, *, base=primes[256][-1], mod=BasePrimeGroups.MOD_512
+    ):
+        """
+        Uses each byte in a ``sequence`` as multiples along with ``base``
+        & takes that result ``mod`` a number to mask the order of the
+        bytes in the sequence. This final result is returned back to the
+        user as a new bytes sequence. Both ``mod`` & ``base`` should be
+        prime numbers.
+        """
+        if base == mod:
+            raise ValueError("``base`` & ``mod`` must be different!")
+        result = base
+        mask = int.from_bytes(b"\x6a", "big")  # <- 5c xor 36
+        for byte in sequence:
+            result *= byte + mask
+            await switch()
+        masked_value = result % mod
+        return masked_value.to_bytes(
+            math.ceil(masked_value.bit_length() / 8), "big"
+        )
+
+    def mask_byte_order(
+        sequence, *, base=primes[256][-1], mod=BasePrimeGroups.MOD_512
+    ):
+        """
+        Uses each byte in a ``sequence`` as multiples along with ``base``
+        & takes that result ``mod`` a number to mask the order of the
+        bytes in the sequence. This final result is returned back to the
+        user as a new bytes sequence. Both ``mod`` & ``base`` should be
+        prime numbers.
+        """
+        if base == mod:
+            raise ValueError("``base`` & ``mod`` must be different!")
+        result = base
+        mask = int.from_bytes(b"\x6a", "big")  # <- 5c xor 36
+        for byte in sequence:
+            result *= byte + mask
+        masked_value = result % mod
+        return masked_value.to_bytes(
+            math.ceil(masked_value.bit_length() / 8), "big"
+        )
 
 
 async def aint_to_ascii(data):
     """
     Uses ``binascii`` to convert integers into strings.
     """
-    return data.to_bytes((data.bit_length() + 7) // 8, "big").decode()
+    return data.to_bytes(math.ceil(data.bit_length() / 8), "big").decode()
 
 
 def int_to_ascii(data):
     """
     Uses ``binascii`` to convert integers into strings.
     """
-    return data.to_bytes((data.bit_length() + 7) // 8, "big").decode()
+    return data.to_bytes(math.ceil(data.bit_length() / 8), "big").decode()
 
 
 async def aascii_to_int(data):
@@ -4118,8 +3875,7 @@ async def abuild_tree(depth=4, width=2, leaf=None):
         next_depth = depth - 1
         return {
             branch: await abuild_tree(next_depth, width, leaf)
-            for branch
-            in range(width)
+            for branch in range(width)
         }
     else:
         return leaf
@@ -4139,8 +3895,7 @@ def build_tree(depth=4, width=2, leaf=None):
         next_depth = depth - 1
         return {
             branch: build_tree(next_depth, width, leaf)
-            for branch
-            in range(width)
+            for branch in range(width)
         }
     else:
         return leaf
@@ -4162,9 +3917,9 @@ __extras = {
     "abase_to_decimal": abase_to_decimal,
     "abuild_tree": abuild_tree,
     "abirth": abirth,
+    "abytes_count": abytes_count,
     "abytes_to_hex": abytes_to_hex,
     "abytes_to_int": abytes_to_int,
-    "abytes_to_urlsafe": abytes_to_urlsafe,
     "acompact": acompact,
     "acount": acount,
     "acustomize_parameters": acustomize_parameters,
@@ -4181,9 +3936,8 @@ __extras = {
     "ainverse_int": ainverse_int,
     "aiter": _aiter,
     "ajson_decode": ajson_decode,
-    "ajson_from_bytes_decode": ajson_from_bytes_decode,
     "ajson_encode": ajson_encode,
-    "ajson_to_bytes_encode": ajson_to_bytes_encode,
+    "amake_timestamp": amake_timestamp,
     "anext": anext,
     "aorder": aorder,
     "apad_bytes": apad_bytes,
@@ -4202,15 +3956,15 @@ __extras = {
     "astr": astr,
     "ato_b64": ato_b64,
     "aunpack": aunpack,
-    "aurlsafe_to_bytes": aurlsafe_to_bytes,
+    "await_on": await_on,
     "axi_mix": axi_mix,
     "azip": azip,
     "base_to_decimal": base_to_decimal,
     "build_tree": build_tree,
     "birth": birth,
+    "bytes_count": bytes_count,
     "bytes_to_hex": bytes_to_hex,
     "bytes_to_int": bytes_to_int,
-    "bytes_to_urlsafe": bytes_to_urlsafe,
     "compact": compact,
     "comprehension": comprehension,
     "convert_static_method_to_member": convert_static_method_to_member,
@@ -4241,9 +3995,8 @@ __extras = {
     "is_prime": is_prime,
     "iter": _iter,
     "json_decode": json_decode,
-    "json_from_bytes_decode": json_from_bytes_decode,
     "json_encode": json_encode,
-    "json_to_bytes_encode": json_to_bytes_encode,
+    "make_timestamp": make_timestamp,
     "order": order,
     "pad_bytes": pad_bytes,
     "pick": pick,
@@ -4262,11 +4015,10 @@ __extras = {
     "src": src,
     "to_b64": to_b64,
     "unpack": unpack,
+    "wait_on": wait_on,
     "xi_mix": xi_mix,
-    "urlsafe_to_bytes": urlsafe_to_bytes,
     "zip": _zip,
 }
 
 
 generics = Namespace.make_module("generics", mapping=__extras)
-
