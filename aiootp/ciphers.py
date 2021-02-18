@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous one-time-pad based crypto
-# and anonymity library.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -33,6 +33,7 @@ __all__ = [
     "AsyncDatabase",
     "Database",
     "Ed25519",
+    "StreamHMAC",
     "X25519",
 ]
 
@@ -43,12 +44,10 @@ used to create custom security tools & provides a OneTimePad cipher.
 """
 
 
-import math
 import json
-import asyncio
-import builtins
 import cryptography
 from functools import wraps
+from contextlib import contextmanager
 from hashlib import sha3_256, sha3_512
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
@@ -61,56 +60,699 @@ from .paths import Path
 from .asynchs import *
 from .asynchs import Processes
 from .commons import *
-from .commons import NONE
-from .randoms import is_prime
-from .randoms import prev_prime
-from .randoms import next_prime
-from .randoms import salt, asalt
 from .randoms import csprbg, acsprbg
 from .randoms import csprng, acsprng
 from .randoms import make_uuid, amake_uuid
+from .randoms import generate_salt, agenerate_salt
 from .generics import astr
-from .generics import aiter
-from .generics import anext
 from .generics import arange
+from .generics import Hasher
 from .generics import BytesIO
-from .generics import generics
 from .generics import AsyncInit
 from .generics import hash_bytes
 from .generics import _zip, azip
 from .generics import data, adata
-from .generics import pick, apick
 from .generics import cycle, acycle
-from .generics import order, aorder
-from .generics import birth, abirth
 from .generics import unpack, aunpack
 from .generics import ignore, aignore
 from .generics import sha_256, asha_256
 from .generics import sha_512, asha_512
 from .generics import wait_on, await_on
 from .generics import is_async_function
+from .generics import pad_bytes, apad_bytes
 from .generics import lru_cache, alru_cache
 from .generics import Comprende, comprehension
-from .generics import json_encode, ajson_encode
+from .generics import depad_bytes, adepad_bytes
+from .generics import inverse_int, ainverse_int
 from .generics import sha_256_hmac, asha_256_hmac
 from .generics import sha_512_hmac, asha_512_hmac
-from .generics import json_to_bytes_encode
-from .generics import ajson_to_bytes_encode
-from .generics import pad_bytes, apad_bytes
-from .generics import depad_bytes, adepad_bytes
 from .generics import convert_static_method_to_member
 
 
+async def acheck_key_and_salt(key, salt):
+    """
+    Validates the main symmetric user ``key`` & ephemeral ``salt`` for
+    use in the pseudo-one-time-pad cipher.
+    """
+    if not key:
+        raise ValueError("No main symmetric ``key`` was specified.")
+    elif not salt:
+        raise ValueError("No ``salt`` was specified.")
+    elif len(salt) != 64 or not int(salt, 16):
+        raise ValueError("``salt`` must be a 256-bit hex string.")
+
+
+def check_key_and_salt(key, salt):
+    """
+    Validates the main symmetric user ``key`` & ephemeral ``salt`` for
+    use in the pseudo-one-time-pad cipher.
+    """
+    if not key:
+        raise ValueError("No main symmetric ``key`` was specified.")
+    elif not salt:
+        raise ValueError("No ``salt`` was specified.")
+    elif len(salt) != 64 or not int(salt, 16):
+        raise ValueError("``salt`` must be a 256-bit hex string.")
+
+
+class PreemptiveHMACValidation:
+    """
+    Creates a context manager interface to the StreamHMAC algorithm so
+    the user can intercept a received HMAC & ciphertext to validate them
+    before running the stream decryption algorithm.
+
+    Usage Example:
+
+    from aiootp import StreamHMAC, sha_256
+
+    salt = message["salt"]
+    untrusted_hmac = message["hmac"]
+    pid = sha_256("known additional data")
+
+    hmac = StreamHMAC(key, salt=salt, pid=pid)
+    with hmac.preemptive_validation(ciphertext) as inspection:
+        inspection.verify(untrusted_hmac)
+
+    hmac = StreamHMAC(key, salt=salt, pid=pid)
+    async with hmac.apreemptive_validation(ciphertext) as inspection:
+        await inspection.averify(untrusted_hmac)
+    """
+
+    def __init__(self, validator, ciphertext):
+        """
+        Receives a new `StreamHMAC` instance ``validator`` & an iterable
+        of integer ``ciphertext`` for temp storage until validation.
+        """
+        self._validator = validator
+        self._ciphertext = ciphertext
+        self._is_done_computing = False
+        self._has_begun_computing = False
+
+    async def __aenter__(self):
+        """
+        Allows the interface for preemptive StreamHMAC validation to
+        be a more pythonic context manager.
+        """
+        return self
+
+    def __enter__(self):
+        """
+        Allows the interface for preemptive StreamHMAC validation to
+        be a more pythonic context manager.
+        """
+        return self
+
+    async def __aexit__(
+        self, exc_type=None, exc_value=None, traceback=None
+    ):
+        """
+        Allows the interface for preemptive StreamHMAC validation to
+        be a more pythonic context manager.
+        """
+        if exc_type:
+            raise exc_value if exc_value else exc_type
+
+    def __exit__(self, exc_type=None, exc_value=None, traceback=None):
+        """
+        Allows the interface for preemptive StreamHMAC validation to
+        be a more pythonic context manager.
+        """
+        if exc_type:
+            raise exc_value if exc_value else exc_type
+
+    async def acompute_hmac(self):
+        """
+        Feeds the instance's entire iterable of integer ciphertext into
+        the validator & returns the finalized HMAC that authenticates
+        the ciphertext was created by a party with access to the keys
+        & additional data that were passed into the validator.
+        """
+        validator = self._validator
+        self._has_begun_computing = True
+        if validator._finalized or validator._result_is_ready:
+            raise PermissionError(validator._ALREADY_FINALIZED)
+        for chunk in self._ciphertext:
+            await validator.aupdate(chunk.to_bytes(256, "big"))
+        try:
+            return await validator.afinalize()
+        finally:
+            self._is_done_computing = True
+
+    def compute_hmac(self):
+        """
+        Feeds the instance's entire iterable of integer ciphertext into
+        the validator & returns the finalized HMAC that authenticates
+        the ciphertext was created by a party with access to the keys
+        & additional data that were passed into the validator.
+        """
+        validator = self._validator
+        self._has_begun_computing = True
+        if validator._finalized or validator._result_is_ready:
+            raise PermissionError(validator._ALREADY_FINALIZED)
+        for chunk in self._ciphertext:
+            validator.update(chunk.to_bytes(256, "big"))
+        try:
+            return validator.finalize()
+        finally:
+            self._is_done_computing = True
+
+    async def averify(self, untrusted_hmac):
+        """
+        Runs through the ciphertext iterable & uses the validator send
+        by the user to compute a keyed-hash of all its values.
+        """
+        if not self._has_begun_computing:
+            self._has_begun_computing = True  # Ensure async-safe start
+            await self.acompute_hmac()
+        await self._validator.atest_hmac(untrusted_hmac)
+
+    def verify(self, untrusted_hmac):
+        """
+        Runs through the ciphertext iterable & uses the validator send
+        by the user to compute a keyed-hash of all its values.
+        """
+        if not self._has_begun_computing:
+            self._has_begun_computing = True  # Ensure async parity
+            self.compute_hmac()
+        self._validator.test_hmac(untrusted_hmac)
+
+
+class StreamHMAC:
+    """
+    This class is used as an inline validator for ciphertext streams as
+    they are being created & decrypted. Its design was inspired by AES-GCM,
+    but by default it uses a sha3_256 hash function instead of Galois
+    multiplication.
+    """
+    _HMAC = commons.HMAC
+    _PREEMPTIVE = commons.PREEMPTIVE
+    _ENCRYPTION = commons.ENCRYPTION
+    _DECRYPTION = commons.DECRYPTION
+    _INVALID_HMAC = commons.INVALID_HMAC
+    _INVALID_DIGEST = commons.INVALID_DIGEST
+    _EXCEEDED_BLOCKSIZE = commons.EXCEEDED_BLOCKSIZE
+    _VALIDATION_INCOMPLETE = "Can't produce a result before finalization."
+    _ALREADY_FINALIZED = "The validator has already been finalized."
+    _USE_FINAL_RESULT = _ALREADY_FINALIZED + " Use the final result instead."
+    _UNTRUSTED_HMAC_ISNT_BYTES = "``untrusted_hmac`` must be bytes type."
+    _UNTRUSTED_DIGEST_ISNT_BYTES = "``untrusted_digest`` must be bytes."
+    _NO_CIPHER_MODE_DECLARED = "No cipher mode has been declared."
+    _type = sha3_256
+    _PreemptiveHMACValidation = PreemptiveHMACValidation
+
+    @staticmethod
+    def _key_encoder(*keys):
+        """
+        Receives any arbitrary amount of keys, salts or pids of any type,
+        & hashes them together to returm a uniform 512-bit bytes encoded
+        key.
+        """
+        return bytes.fromhex(sha_512(*keys))
+
+    def __init__(self, key, *, salt, pid=0):
+        """
+        Begins a stateful hash object that's used to calculate a keyed-
+        message authentication code referred to as an hmac. The instance
+        derives an encoded key from the hash of the user-defined
+        ``key``, ``salt`` & ``pid`` values described below.
+
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
+        """
+        self._set_counter()
+        self._mode = None
+        self._finalized = False
+        self._result_is_ready = False
+        self._set_encoded_key(key, salt, pid)
+        self._set_mac_object()
+
+    def _set_counter(self):
+        """
+        Initializes the block counter value. Leaves the option open to
+        use custom counter objects that implement `__iadd__` & `to_bytes`
+        methods.
+        """
+        self._block_counter = 0
+
+    def _set_encoded_key(self, key, salt, pid):
+        """
+        Ensure the ``key`` & ``salt`` conform to the specification used
+        this package's cipher methods which produce HMACs.
+        """
+        check_key_and_salt(key, salt)
+        self._encoded_key = self._key_encoder(key, pid, salt, key)
+
+    def _set_mac_object(self):
+        """
+        The keyed-hashing object is created for the duration of the
+        instance's HMAC validation algorithm.
+        """
+        self._mac = Hasher(self._encoded_key, obj=self._type)
+
+    @property
+    def mode(self):
+        """
+        Returns the mode which the instance was instructed to be in by
+        the user.
+        """
+        return self._mode
+
+    def for_encryption(self):
+        """
+        Instructs the HMAC validator instance to prepare itself for
+        validating ciphertext within the `xor` generator as plaintext
+        is being encrypted.
+
+        Usage Example:
+
+        from aiootp import StreamHMAC, data, generate_salt, sha_256
+
+        salt = generate_salt()
+        pid = sha_256("known additional data")
+        hmac = StreamHMAC(key, salt=salt, pid=pid).for_encryption()
+        encipher = data(b"some bytes of plaintext").bytes_encipher
+
+        with encipher(key, salt=salt, pid=pid, validator=hmac) as enciphering:
+            ciphertext = enciphering.list()
+            return {
+                "ciphertext": ciphertext,
+                "hmac": hmac.finalize().hex(),
+                "salt": message_salt,
+            }
+        """
+        if self.mode:
+            raise PermissionError(f"Validator already set for {self.mode}.")
+        elif self._finalized:
+            raise PermissionError(self._ALREADY_FINALIZED)
+        self._mode = self._ENCRYPTION
+        self.validated_xor = self._xor_then_hash
+        self.avalidated_xor = self._axor_then_hash
+        return self
+
+    def for_decryption(self):
+        """
+        Instructs the HMAC validator instance to prepare itself for
+        validating ciphertext within the `xor` generator as it's being
+        decrypted.
+
+        Usage Example:
+
+        from aiootp import StreamHMAC, unpack, sha_256
+
+        salt = message["salt"]
+        pid = sha_256("known additional data")
+        hmac = StreamHMAC(key, salt=salt, pid=pid).for_decryption()
+        decipher = unpack(message["ciphertext"]).bytes_decipher
+
+        with decipher(key, salt=salt, pid=pid, validator=hmac) as deciphering:
+            plaintext = deciphering.join(b"")
+            hmac.finalize()
+            hmac.test_hmac(bytes.fromhex(message["hmac"]))
+        """
+        if self.mode:
+            raise PermissionError(f"Validator already set for {self.mode}.")
+        elif self._finalized:
+            raise PermissionError(self._ALREADY_FINALIZED)
+        self._mode = self._DECRYPTION
+        self.validated_xor = self._hash_then_xor
+        self.avalidated_xor = self._ahash_then_xor
+        return self
+
+    @async_contextmanager
+    async def apreemptive_validation(self, data):
+        """
+        Creates a context manager interface to the StreamHMAC algorithm
+        so the user can intercept a received HMAC & ciphertext to
+        validate them before running the decryption algorithm.
+
+        Usage Example:
+
+        from aiootp import StreamHMAC, sha_256
+
+        salt = message["salt"]
+        ciphertext = message["ciphertext"]
+        pid = sha_256("known additional data")
+        untrusted_hmac = bytes.fromhex(message["hmac"])
+
+        hmac = StreamHMAC(key, salt=salt, pid=pid)
+        async with hmac.apreemptive_validation(ciphertext) as inspection:
+            await inspection.averify(untrusted_hmac)
+        """
+        if self.mode:
+            raise PermissionError(f"Validator already set for {self.mode}.")
+        elif self._finalized:
+            raise PermissionError(self._ALREADY_FINALIZED)
+        self._mode = self._PREEMPTIVE
+        self.validated_xor = self._xor
+        self.avalidated_xor = self._axor
+        validator = self._PreemptiveHMACValidation(self, data)
+        try:
+            yield await validator.__aenter__()
+        finally:
+            await validator.__aexit__()
+
+    @contextmanager
+    def preemptive_validation(self, data):
+        """
+        Creates a context manager interface to the StreamHMAC algorithm
+        so the user can intercept a received HMAC & ciphertext to
+        validate them before running the decryption algorithm.
+
+        Usage Example:
+
+        from aiootp import StreamHMAC, sha_256
+
+        salt = message["salt"]
+        ciphertext = message["ciphertext"]
+        pid = sha_256("known additional data")
+        untrusted_hmac = bytes.fromhex(message["hmac"])
+
+        hmac = StreamHMAC(key, salt=salt, pid=pid)
+        with hmac.preemptive_validation(ciphertext) as inspection:
+            inspection.verify(untrusted_hmac)
+        """
+        if self.mode:
+            raise PermissionError(f"Validator already set for {self.mode}.")
+        elif self._finalized:
+            raise PermissionError(self._ALREADY_FINALIZED)
+        self._mode = self._PREEMPTIVE
+        self.validated_xor = self._xor
+        self.avalidated_xor = self._axor
+        validator = self._PreemptiveHMACValidation(self, data)
+        try:
+            yield validator.__enter__()
+        finally:
+            validator.__exit__()
+
+    async def aupdate(self, ciphertext_chunk):
+        """
+        This method is called automatically when an instance is passed
+        into an encipher or decipher generator as a `validator`. It
+        increments the ciphertext block counter & updates the hashing
+        object with the bytes type ``cipehrtext_chunk``.
+        """
+        self._block_counter += 1
+        self._mac.update(ciphertext_chunk)
+
+    def update(self, ciphertext_chunk):
+        """
+        This method is called automatically when an instance is passed
+        into an encipher or decipher generator as a `validator`. It
+        increments the ciphertext block counter & updates the hashing
+        object with the bytes type ``cipehrtext_chunk``.
+        """
+        self._block_counter += 1
+        self._mac.update(ciphertext_chunk)
+
+    async def _ablock_count(self):
+        """
+        Returns 32-byte representation of the number which counts how
+        ciphertext blocks have been processed already by the StreamHMAC
+        algorithm. This size for the counter leaves open the usage for
+        the counter as a custom counting object that doesn't merely
+        increment by one for each ciphertext block processed.
+        """
+        return self._block_counter.to_bytes(32, "big")
+
+    def _block_count(self):
+        """
+        Returns 32-byte representation of the number which counts how
+        ciphertext blocks have been processed already by the StreamHMAC
+        algorithm. This size for the counter leaves open the usage for
+        the counter as a custom counting object that doesn't merely
+        increment by one for each ciphertext block processed.
+        """
+        return self._block_counter.to_bytes(32, "big")
+
+    async def acurrent_digest(self):
+        """
+        Returns a secure digest that authenticates the ciphertext up to
+        the current point of execution of the StreamHMAC algorithm. It
+        incorporates the number of blocks of ciphertext blocks processed,
+        the encoded key derived from the user's key, salt, & pid, as
+        well as the hashing object's current digest.
+        """
+        if self._result_is_ready:
+            raise PermissionError(self._USE_FINAL_RESULT)
+        auth_key = self._type(self._encoded_key + self._block_count())
+        return self._type(auth_key.digest() + self._mac.digest()).digest()
+
+    def current_digest(self):
+        """
+        Returns a secure digest that authenticates the ciphertext up to
+        the current point of execution of the StreamHMAC algorithm. It
+        incorporates the number of blocks of ciphertext blocks processed,
+        the encoded key derived from the user's key, salt, & pid, as
+        well as the hashing object's current digest.
+        """
+        if self._result_is_ready:
+            raise PermissionError(self._USE_FINAL_RESULT)
+        auth_key = self._type(self._encoded_key + self._block_count())
+        return self._type(auth_key.digest() + self._mac.digest()).digest()
+
+    async def _axor_then_hash(self, data_chunk, key_chunk):
+        """
+        This method is inserted as the instance's `validated_xor` method
+        after the user chooses the encryption mode. The mode is chosen
+        by calling the `for_encryption` method. It receives a plaintext
+        & key chunk, xors them into a 256 byte ciphertext block, then
+        is used to update the instance's validation hash object.
+        """
+        try:
+            ciphertext_chunk = data_chunk ^ key_chunk
+            self.update(ciphertext_chunk.to_bytes(256, "big"))
+            return ciphertext_chunk
+        except OverflowError:
+            raise ValueError(self._EXCEEDED_BLOCKSIZE)
+
+    def _xor_then_hash(self, data_chunk, key_chunk):
+        """
+        This method is inserted as the instance's `validated_xor` method
+        after the user chooses the encryption mode. The mode is chosen
+        by calling the `for_encryption` method. It receives a plaintext
+        & key chunk, xors them into a 256 byte ciphertext block, then
+        is used to update the instance's validation hash object.
+        """
+        try:
+            ciphertext_chunk = data_chunk ^ key_chunk
+            self.update(ciphertext_chunk.to_bytes(256, "big"))
+            return ciphertext_chunk
+        except OverflowError:
+            raise ValueError(self._EXCEEDED_BLOCKSIZE)
+
+    async def _ahash_then_xor(self, ciphertext_chunk, key_chunk):
+        """
+        This method is inserted as the instance's `validated_xor` method
+        after the user chooses the decryption mode. The mode is chosen
+        by calling the `for_decryption` method. It receives a ciphertext
+        & key chunk, uses the ciphertext to update the instance's
+        validation hash object, then returns the 256 byte xor of the
+        chunks.
+        """
+        try:
+            self.update(ciphertext_chunk.to_bytes(256, "big"))
+            return ciphertext_chunk ^ key_chunk
+        except OverflowError:
+            raise ValueError(self._EXCEEDED_BLOCKSIZE)
+
+    def _hash_then_xor(self, ciphertext_chunk, key_chunk):
+        """
+        This method is inserted as the instance's `validated_xor` method
+        after the user chooses the decryption mode. The mode is chosen
+        by calling the `for_decryption` method. It receives a ciphertext
+        & key chunk, uses the ciphertext to update the instance's
+        validation hash object, then returns the 256 byte xor of the
+        chunks.
+        """
+        try:
+            self.update(ciphertext_chunk.to_bytes(256, "big"))
+            return ciphertext_chunk ^ key_chunk
+        except OverflowError:
+            raise ValueError(self._EXCEEDED_BLOCKSIZE)
+
+    async def _axor(self, data_chunk, key_chunk):
+        """
+        This method is inserted as the instance's `validated_xor` method
+        after the user chooses preemptive mode. The mode is chosen by
+        calling `apreemptive_validation` or `preemptive_validation`
+        which are context managers methods. It receives a data chunk &
+        key chunk then returns the 256 byte xor of the chunks. It
+        doesn't matter if the data coming in is ciphertext or plaintext,
+        because the process is the same & the block is supposed to be
+        validated in the context manager's `averify` or `verify` methods.
+        """
+        return data_chunk ^ key_chunk
+
+    def _xor(self, data_chunk, key_chunk):
+        """
+        This method is inserted as the instance's `validated_xor` method
+        after the user chooses preemptive mode. The mode is chosen by
+        calling `apreemptive_validation` or `preemptive_validation`
+        which are context managers methods. It receives a data chunk &
+        key chunk then returns the 256 byte xor of the chunks. It
+        doesn't matter if the data coming in is ciphertext or plaintext,
+        because the process is the same & the block is supposed to be
+        validated in the context manager's `averify` or `verify` methods.
+        """
+        return data_chunk ^ key_chunk
+
+    async def _aset_final_result(self):
+        """
+        Caps off the instance's validation hash object with a secure &
+        keyed current digest, & populates the instance's final result
+        with the keyed hash of the resulting digest. This signals the
+        end of a stream of data that can be validated with the current
+        instance.
+        """
+        final_auth_key = await self.acurrent_digest()
+        self._mac.update(final_auth_key)
+        self._result = self._type(final_auth_key + self._mac.digest())
+
+    def _set_final_result(self):
+        """
+        Caps off the instance's validation hash object with a secure &
+        keyed current digest, & populates the instance's final result
+        with the keyed hash of the resulting digest. This signals the
+        end of a stream of data that can be validated with the current
+        instance.
+        """
+        final_auth_key = self.current_digest()
+        self._mac.update(final_auth_key)
+        self._result = self._type(final_auth_key + self._mac.digest())
+
+    async def afinalize(self):
+        """
+        Caps off the instance's validation hash object with a secure &
+        keyed current digest, then populates & returns the instance's
+        final result which is the keyed hash of the resulting digest.
+        This signals the end of a stream of data that can be validated
+        with the current instance.
+        """
+        if self._finalized:
+            raise PermissionError(self._ALREADY_FINALIZED)
+        self._finalized = True
+        await self._aset_final_result()
+        self._result_is_ready = True
+        del self._mac
+        return self._result.digest()
+
+    def finalize(self):
+        """
+        Caps off the instance's validation hash object with a secure &
+        keyed current digest, then populates & returns the instance's
+        final result which is the keyed hash of the resulting digest.
+        This signals the end of a stream of data that can be validated
+        with the current instance.
+        """
+        if self._finalized:
+            raise PermissionError(self._ALREADY_FINALIZED)
+        self._finalized = True
+        self._set_final_result()
+        self._result_is_ready = True
+        del self._mac
+        return self._result.digest()
+
+    async def aresult(self):
+        """
+        Returns the instance's final result which is the secure HMAC of
+        the ciphertext that was processed through the instance.
+        """
+        if not self._finalized or not self._result_is_ready:
+            raise PermissionError(self._VALIDATION_INCOMPLETE)
+        return self._result.digest()
+
+    def result(self):
+        """
+        Returns the instance's final result which is the secure HMAC of
+        the ciphertext that was processed through the instance.
+        """
+        if not self._finalized or not self._result_is_ready:
+            raise PermissionError(self._VALIDATION_INCOMPLETE)
+        return self._result.digest()
+
+    async def atest_hmac(self, untrusted_hmac):
+        """
+        Does a non-constant-time, but instead a safe randomized-time
+        comparison of a supplied ``untrusted_hmac`` with the instance's
+        final result hmac. Raises `ValueError` if the hmac doesn't match.
+        """
+        if not issubclass(untrusted_hmac.__class__, bytes):
+            raise TypeError(self._UNTRUSTED_HMAC_ISNT_BYTES)
+        hmacs = (untrusted_hmac, await self.aresult())
+        if await validator.atime_safe_equality(*hmacs):
+            return True
+        else:
+            raise ValueError(self._INVALID_HMAC)
+
+    def test_hmac(self, untrusted_hmac):
+        """
+        Does a non-constant-time, but instead a safe randomized-time
+        comparison of a supplied ``untrusted_hmac`` with the instance's
+        final result hmac. Raises `ValueError` if the hmac doesn't match.
+        """
+        if not issubclass(untrusted_hmac.__class__, bytes):
+            raise TypeError(self._UNTRUSTED_HMAC_ISNT_BYTES)
+        hmacs = (untrusted_hmac, self.result())
+        if validator.time_safe_equality(*hmacs):
+            return True
+        else:
+            raise ValueError(self._INVALID_HMAC)
+
+    async def atest_current_digest(self, untrusted_digest):
+        """
+        Does a non-constant-time, but instead a safe randomized-time
+        comparison of a supplied ``untrusted_digest`` with the output
+        of the instance's current digest of an unfinished stream of
+        ciphertext. Raises `ValueError` if the instance's current digest
+        doesn't match.
+        """
+        if not issubclass(untrusted_digest.__class__, bytes):
+            raise TypeError(self._UNTRUSTED_DIGEST_ISNT_BYTES)
+        digests = (untrusted_digest, await self.acurrent_digest())
+        if await validator.atime_safe_equality(*digests):
+            return True
+        else:
+            raise ValueError(self._INVALID_DIGEST)
+
+    def test_current_digest(self, untrusted_digest):
+        """
+        Does a non-constant-time, but instead a safe randomized-time
+        comparison of a supplied ``untrusted_digest`` with the output
+        of the instance's current digest of an unfinished stream of
+        ciphertext. Raises `ValueError` if the instance's current digest
+        doesn't match.
+        """
+        if not issubclass(untrusted_digest.__class__, bytes):
+            raise TypeError(self._UNTRUSTED_DIGEST_ISNT_BYTES)
+        digests = (untrusted_digest, self.current_digest())
+        if validator.time_safe_equality(*digests):
+            return True
+        else:
+            raise ValueError(self._INVALID_DIGEST)
+
+
 @comprehension()
-async def axor(data=None, *, key=None):
+async def axor(data, *, key, validator):
     """
     'The one-time-stream algorithm'
 
     Gathers both an iterable of 256-byte integers of ``data``, & a
-    non-repeating generator of deterministic string ``key`` material,
-    then bitwise xors the streams together producing a one-time pad
-    ciphertext 256 bytes long. The elements produced by the keystream
-    will be concatenated with each other to reach exactly 256
+    non-repeating generator of deterministic hex string ``key`` material,
+    then bitwise xors the streams together producing pseudo-one-time-pad
+    ciphertext chunks 256 bytes long. The elements produced by the
+    keystream will be concatenated with each other to reach exactly 256
     pseudo-random bytes.
 
     Restricting the ciphertext to a distinct size is a measure to
@@ -127,22 +769,22 @@ async def axor(data=None, *, key=None):
     seed = await asha_256(await keystream(None))
     async for chunk in data:
         key_chunk = int(await keystream(seed) + await keystream(seed), 16)
-        result = chunk ^ key_chunk
+        result = await validator.avalidated_xor(chunk, key_chunk)
         if result.bit_length() > 2048:
-            raise ValueError("Data MUST NOT exceed 256 bytes.")
+            raise ValueError(commons.EXCEEDED_BLOCKSIZE)
         yield result
 
 
 @comprehension()
-def xor(data=None, *, key=None):
+def xor(data, *, key, validator):
     """
     'The one-time-stream algorithm'
 
     Gathers both an iterable of 256-byte integers of ``data``, & a
-    non-repeating generator of deterministic string ``key`` material,
-    then bitwise xors the streams together producing a one-time pad
-    ciphertext 256 bytes long. The elements produced by the keystream
-    will be concatenated with each other to reach exactly 256
+    non-repeating generator of deterministic hex string ``key`` material,
+    then bitwise xors the streams together producing pseudo-one-time-pad
+    ciphertext chunks 256 bytes long. The elements produced by the
+    keystream will be concatenated with each other to reach exactly 256
     pseudo-random bytes.
 
     Restricting the ciphertext to a distinct size is a measure to
@@ -155,27 +797,26 @@ def xor(data=None, *, key=None):
     less per iteration or security WILL BE BROKEN by directly leaking
     plaintext.
     """
-
     keystream = key.send
     seed = sha_256(keystream(None))
     for chunk in data:
         key_chunk = int(keystream(seed) + keystream(seed), 16)
-        result = chunk ^ key_chunk
+        result = validator.validated_xor(chunk, key_chunk)
         if result.bit_length() > 2048:
-            raise ValueError("Data MUST NOT exceed 256 bytes.")
+            raise ValueError(commons.EXCEEDED_BLOCKSIZE)
         yield result
 
 
 @comprehension()
-async def abytes_xor(data=None, *, key=None):
+async def abytes_xor(data, *, key, validator):
     """
     'The one-time-stream algorithm'
 
     Gathers both an iterable of 256-byte integers of ``data``, & a
     non-repeating generator of deterministic bytes ``key`` material,
-    then bitwise xors the streams together producing a one-time pad
-    ciphertext 256 bytes long. The elements produced by the keystream
-    will be concatenated with each other to reach exactly 256
+    then bitwise xors the streams together producing pseudo-one-time-pad
+    ciphertext chunks 256 bytes long. The elements produced by the
+    keystream will be concatenated with each other to reach exactly 256
     pseudo-random bytes.
 
     Restricting the ciphertext to a distinct size is a measure to
@@ -195,22 +836,22 @@ async def abytes_xor(data=None, *, key=None):
         key_chunk = as_int(
             await keystream(seed) + await keystream(seed), "big"
         )
-        result = chunk ^ key_chunk
+        result = await validator.avalidated_xor(chunk, key_chunk)
         if result.bit_length() > 2048:
-            raise ValueError("Data MUST NOT exceed 256 bytes.")
+            raise ValueError(commons.EXCEEDED_BLOCKSIZE)
         yield result
 
 
 @comprehension()
-def bytes_xor(data=None, *, key=None):
+def bytes_xor(data, *, key, validator):
     """
     'The one-time-stream algorithm'
 
     Gathers both an iterable of 256-byte integers of ``data``, & a
     non-repeating generator of deterministic bytes ``key`` material,
-    then bitwise xors the streams together producing a one-time pad
-    ciphertext 256 bytes long. The elements produced by the keystream
-    will be concatenated with each other to reach exactly 256
+    then bitwise xors the streams together producing pseudo-one-time-pad
+    ciphertext chunks 256 bytes long. The elements produced by the
+    keystream will be concatenated with each other to reach exactly 256
     pseudo-random bytes.
 
     Restricting the ciphertext to a distinct size is a measure to
@@ -228,9 +869,9 @@ def bytes_xor(data=None, *, key=None):
     seed = sha_256(keystream(None).hex())
     for chunk in data:
         key_chunk = as_int(keystream(seed) + keystream(seed), "big")
-        result = chunk ^ key_chunk
+        result = validator.validated_xor(chunk, key_chunk)
         if result.bit_length() > 2048:
-            raise ValueError("Data MUST NOT exceed 256 bytes.")
+            raise ValueError(commons.EXCEEDED_BLOCKSIZE)
         yield result
 
 
@@ -278,17 +919,19 @@ async def akeys(key=csprng(), *, salt=None, pid=0):
     random 256-bit hex value), and the user-defined ``pid`` can be used
     to safely parallelize key streams with the same ``key`` & ``salt``
     by specifying a unique ``pid`` to each process, thread or the like,
-    which will result in a unique key stream for each.
+    which will result in a unique key stream for each. Since this value
+    is now verified during message authentication, it can also be used
+    to verify arbitrary additional data.
     """
     if not key:
         raise ValueError("No main symmetric ``key`` was specified.")
-    salt = salt if salt else (await acsprng())[:64]
+    salt = salt if salt else await agenerate_salt()
     seed, kdf_0, kdf_1, kdf_2 = await akeypair_ratchets(key, salt, pid)
     async with Comprende.aclass_relay(salt):
         while True:
             ratchet = kdf_0.digest()
             kdf_1.update(ratchet)
-            kdf_2.update(ratchet)
+            kdf_2.update(b"\x5c\x36" + ratchet)  # <- Differentiates keystreams
             entropy = yield kdf_1.hexdigest() + kdf_2.hexdigest()
             kdf_0.update(str(entropy).encode() + ratchet + seed)
 
@@ -307,17 +950,19 @@ def keys(key=csprng(), *, salt=None, pid=0):
     random 256-bit hex value), and the user-defined ``pid`` can be used
     to safely parallelize key streams with the same ``key`` & ``salt``
     by specifying a unique ``pid`` to each process, thread or the like,
-    which will result in a unique key stream for each.
+    which will result in a unique key stream for each. Since this value
+    is now verified during message authentication, it can also be used
+    to verify arbitrary additional data.
     """
     if not key:
         raise ValueError("No main symmetric ``key`` was specified.")
-    salt = salt if salt else csprng()[:64]
+    salt = salt if salt else generate_salt()
     seed, kdf_0, kdf_1, kdf_2 = keypair_ratchets(key, salt, pid)
     with Comprende.class_relay(salt):
         while True:
             ratchet = kdf_0.digest()
             kdf_1.update(ratchet)
-            kdf_2.update(ratchet)
+            kdf_2.update(b"\x5c\x36" + ratchet)  # <- Differentiates keystreams
             entropy = yield kdf_1.hexdigest() + kdf_2.hexdigest()
             kdf_0.update(str(entropy).encode() + ratchet + seed)
 
@@ -337,17 +982,18 @@ async def abytes_keys(key=csprng(), *, salt=None, pid=0):
     ``pid`` can be used to safely parallelize key streams with the same
     ``key`` & ``salt`` by specifying a unique ``pid`` to each process,
     thread or the like, which will result in a unique key stream for
-    each.
+    each. Since this value is now verified during message authentication,
+    it can also be used to verify arbitrary additional data.
     """
     if not key:
         raise ValueError("No main symmetric ``key`` was specified.")
-    salt = salt if salt else (await acsprng())[:64]
+    salt = salt if salt else await agenerate_salt()
     seed, kdf_0, kdf_1, kdf_2 = await akeypair_ratchets(key, salt, pid)
     async with Comprende.aclass_relay(salt):
         while True:
             ratchet = kdf_0.digest()
             kdf_1.update(ratchet)
-            kdf_2.update(ratchet)
+            kdf_2.update(b"\x5c\x36" + ratchet)  # <- Differentiates keystreams
             entropy = yield kdf_1.digest() + kdf_2.digest()
             kdf_0.update(str(entropy).encode() + ratchet + seed)
 
@@ -367,48 +1013,23 @@ def bytes_keys(key=csprng(), *, salt=None, pid=0):
     ``pid`` can be used to safely parallelize key streams with the same
     ``key`` & ``salt`` by specifying a unique ``pid`` to each process,
     thread or the like, which will result in a unique key stream for
-    each.
+    each. Since this value is now verified during message authentication,
+    it can also be used to verify arbitrary additional data.
     """
     if not key:
         raise ValueError("No main symmetric ``key`` was specified.")
-    salt = salt if salt else csprng()[:64]
+    salt = salt if salt else generate_salt()
     seed, kdf_0, kdf_1, kdf_2 = keypair_ratchets(key, salt, pid)
     with Comprende.class_relay(salt):
         while True:
             ratchet = kdf_0.digest()
             kdf_1.update(ratchet)
-            kdf_2.update(ratchet)
+            kdf_2.update(b"\x5c\x36" + ratchet)  # <- Differentiates keystreams
             entropy = yield kdf_1.digest() + kdf_2.digest()
             kdf_0.update(str(entropy).encode() + ratchet + seed)
 
 
-async def acheck_key_and_salt(key, salt):
-    """
-    Validates the main symmetric user ``key`` & ephemeral ``salt`` for
-    use in the one-time-pad cipher.
-    """
-    if not key:
-        raise ValueError("No main symmetric ``key`` was specified.")
-    elif not salt:
-        raise ValueError("No ``salt`` was specified.")
-    elif len(salt) != 64 or not int(salt, 16):
-        raise ValueError("``salt`` must be a 256-bit hex string.")
-
-
-def check_key_and_salt(key, salt):
-    """
-    Validates the main symmetric user ``key`` & ephemeral ``salt`` for
-    use in the one-time-pad cipher.
-    """
-    if not key:
-        raise ValueError("No main symmetric ``key`` was specified.")
-    elif not salt:
-        raise ValueError("No ``salt`` was specified.")
-    elif len(salt) != 64 or not int(salt, 16):
-        raise ValueError("``salt`` must be a 256-bit hex string.")
-
-
-async def apadding_key(key=None, *, salt=None, pid=0):
+async def apadding_key(key, *, salt, pid=0):
     """
     Returns the salted & hashed key used for building the pseudo-random
     bytes that pad plaintext messages.
@@ -417,7 +1038,7 @@ async def apadding_key(key=None, *, salt=None, pid=0):
     return bytes.fromhex(await asha_512(pid, salt, key))
 
 
-def padding_key(key=None, *, salt=None, pid=0):
+def padding_key(key, *, salt, pid=0):
     """
     Returns the salted & hashed key used for building the pseudo-random
     bytes that pad plaintext messages.
@@ -427,7 +1048,7 @@ def padding_key(key=None, *, salt=None, pid=0):
 
 
 @comprehension()
-async def aplaintext_stream(data=None, key=None, *, salt=None, pid=0):
+async def aplaintext_stream(data, key, *, salt, pid=0):
     """
     Takes in plaintext bytes ``data``, pads the data to a multiple of
     256 bytes using the ``key``, ``salt`` & ``pid`` material to build
@@ -442,7 +1063,7 @@ async def aplaintext_stream(data=None, key=None, *, salt=None, pid=0):
 
 
 @comprehension()
-def plaintext_stream(data=None, key=None, *, salt=None, pid=0):
+def plaintext_stream(data, key, *, salt, pid=0):
     """
     Takes in plaintext bytes ``data``, pads the data to a multiple of
     256 bytes using the ``key``, ``salt`` & ``pid`` material to build
@@ -456,11 +1077,13 @@ def plaintext_stream(data=None, key=None, *, salt=None, pid=0):
         yield chunk
 
 
-async def ajson_encrypt(data=None, key=csprng(), *, salt=None, pid=0):
+async def ajson_encrypt(data, key=csprng(), *, salt=None, pid=0):
     """
-    Returns a json ready dictionary containing one-time pad ciphertext
-    of any json serializable ``data`` that's created from a key stream
-    derived from permutations of these values:
+    Returns a dictionary containing pseudo-one-time-pad ciphertext of
+    any json serializable ``data``. The dictionary also contains the
+    ephemeral 256-bit salt & a 256-bit HMAC used to verify the integrity
+    & authenticity of the ciphertext & the values used to create it. The
+    key stream is derived from permutations of these values:
 
     ``key``:    An aribrary amount & type of entropic material whose
                 str() representation contains the user's desired entropy
@@ -482,51 +1105,56 @@ async def ajson_encrypt(data=None, key=csprng(), *, salt=None, pid=0):
     )
 
 
-def json_encrypt(data=None, key=csprng(), *, salt=None, pid=0):
+def json_encrypt(data, key=csprng(), *, salt=None, pid=0):
     """
-    Returns a json ready dictionary containing one-time pad ciphertext
-    of any json serializable ``data`` that's created from a key stream
-    derived from permutations of these values:
+    Returns a dictionary containing pseudo-one-time-pad ciphertext of
+    any json serializable ``data``. The dictionary also contains the
+    ephemeral 256-bit salt & a 256-bit HMAC used to verify the integrity
+    & authenticity of the ciphertext & the values used to create it. The
+    key stream is derived from permutations of these values:
 
-    ``key``:    An aribrary amount & type of entropic material whose
-                str() representation contains the user's desired entropy
-                & cryptographic strength. Designed to be used as a
-                longer-term user encryption / decryption key.
-    ``salt``:   A 256-bit hexidecimal string of ephemeral entropic
-                material whose str() representation contains the user's
-                desired entropy & cryptographic strength.
-    ``pid``:    An arbitrary value that can be used to categorize key
-                material streams & safely distinguishes the values they
-                produce. Designed to safely destinguish parallelized key
-                material streams with the same ``key`` & ``salt``. But
-                can be used for any arbitrary categorization of streams
-                as long as the encryption & decryption processes for a
-                given stream use the same ``pid`` value.
+    ``key``: An aribrary amount & type of entropic material whose
+            __repr__ function returns the user's desired entropy &
+            cryptographic strength. Designed to be used as a longer-
+            term user encryption / decryption key.
+    ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+            material whose __repr__ function returns the user's
+            desired entropy & cryptographic strength.
+    ``pid``: An arbitrary value whose __repr__ function returns any
+            value that a user decides to categorize keystreams. It
+            safely differentiates those keystreams & initially was
+            designed to permute parallelized keystreams derived from
+            the same ``key`` & ``salt``. Since this value is now
+            verified during message authentication, it can be used
+            to verify arbitrary additional data.
     """
     return bytes_encrypt(
         json.dumps(data).encode(), key=key, salt=salt, pid=pid,
     )
 
 
-async def ajson_decrypt(data=None, key=None, *, pid=0, ttl=0):
+async def ajson_decrypt(data, key, *, pid=0, ttl=0):
     """
-    Returns the original plaintext from a json / dictionary containing
-    ciphertext ``data`` that's created by xoring it with a key stream
-    derived from a permutation of these values:
+    Returns the plaintext bytes of the pseudo-one-time pad ciphertext
+    ``data``. ``data`` is a dictionary or json object containing an
+    iterable of ciphertext, a 256-bit hex string ephemeral salt, & a
+    256-bit HMAC used to verify the integrity & authenticity of the
+    ciphertext & the values used to create it. The keystream is derived
+    from permutations of these values:
 
-    ``key``:    An aribrary amount & type of entropic material whose
-                str() representation contains the user's desired entropy
-                & cryptographic strength. Designed to be used as a
-                longer-term user encryption / decryption key.
-    ``pid``:    An arbitrary value that can be used to categorize key
-                material streams & safely distinguishes the values they
-                produce. Designed to safely destinguish parallelized key
-                material streams with the same ``key`` & ``salt``. But
-                can be used for any arbitrary categorization of streams
-                as long as the encryption & decryption processes for a
-                given stream use the same ``pid`` value.
-    ``ttl``:    An amount of seconds that dictate the allowable age of
-                the decrypted message.
+    ``key``: An aribrary amount & type of entropic material whose
+            __repr__ function returns the user's desired entropy &
+            cryptographic strength. Designed to be used as a longer-
+            term user encryption / decryption key.
+    ``pid``: An arbitrary value whose __repr__ function returns any
+            value that a user decides to categorize keystreams. It
+            safely differentiates those keystreams & initially was
+            designed to permute parallelized keystreams derived from
+            the same ``key`` & ``salt``. Since this value is now
+            verified during message authentication, it can be used
+            to verify arbitrary additional data.
+    ``ttl``: An amount of seconds that dictate the allowable age of
+            the decrypted message.
     """
     if type(data) != dict:
         data = json.loads(data)
@@ -534,25 +1162,28 @@ async def ajson_decrypt(data=None, key=None, *, pid=0, ttl=0):
     return json.loads(plaintext_bytes.decode())
 
 
-def json_decrypt(data=None, key=None, *, pid=0, ttl=0):
+def json_decrypt(data, key, *, pid=0, ttl=0):
     """
-    Returns the original plaintext from a json / dictionary containing
-    ciphertext ``data`` that's created by xoring it with a key stream
-    derived from a permutation of these values:
+    Returns the plaintext bytes of the pseudo-one-time pad ciphertext
+    ``data``. ``data`` is a dictionary or json object containing an
+    iterable of ciphertext, a 256-bit hex string ephemeral salt, & a
+    256-bit HMAC used to verify the integrity & authenticity of the
+    ciphertext & the values used to create it. The keystream is derived
+    from permutations of these values:
 
-    ``key``:    An aribrary amount & type of entropic material whose
-                str() representation contains the user's desired entropy
-                & cryptographic strength. Designed to be used as a
-                longer-term user encryption / decryption key.
-    ``pid``:    An arbitrary value that can be used to categorize key
-                material streams & safely distinguishes the values they
-                produce. Designed to safely destinguish parallelized key
-                material streams with the same ``key`` & ``salt``. But
-                can be used for any arbitrary categorization of streams
-                as long as the encryption & decryption processes for a
-                given stream use the same ``pid`` value.
-    ``ttl``:    An amount of seconds that dictate the allowable age of
-                the decrypted message.
+    ``key``: An aribrary amount & type of entropic material whose
+            __repr__ function returns the user's desired entropy &
+            cryptographic strength. Designed to be used as a longer-
+            term user encryption / decryption key.
+    ``pid``: An arbitrary value whose __repr__ function returns any
+            value that a user decides to categorize keystreams. It
+            safely differentiates those keystreams & initially was
+            designed to permute parallelized keystreams derived from
+            the same ``key`` & ``salt``. Since this value is now
+            verified during message authentication, it can be used
+            to verify arbitrary additional data.
+    ``ttl``: An amount of seconds that dictate the allowable age of
+            the decrypted message.
     """
     if type(data) != dict:
         data = json.loads(data)
@@ -560,130 +1191,148 @@ def json_decrypt(data=None, key=None, *, pid=0, ttl=0):
     return json.loads(plaintext_bytes.decode())
 
 
-async def abytes_encrypt(data=None, key=csprng(), *, salt=None, pid=0):
+async def abytes_encrypt(data, key=csprng(), *, salt=None, pid=0):
     """
-    Returns a list of the encrypted one-time pad ciphertext of the
-    binary ``data`` with a key stream derived from permutations of these
-    values:
+    Returns a dictionary containing pseudo-one-time-pad ciphertext of
+    any bytes type ``data``. The dictionary also contains the ephemeral
+    256-bit salt & a 256-bit HMAC used to verify the integrity &
+    authenticity of the ciphertext & values used to create it. The key
+    stream is derived from permutations of these values:
 
-    ``key``:    An aribrary amount & type of entropic material whose
-                str() representation contains the user's desired entropy
-                & cryptographic strength. Designed to be used as a
-                longer-term user encryption / decryption key.
-    ``salt``:   A 256-bit hexidecimal string of ephemeral entropic
-                material whose str() representation contains the user's
-                desired entropy & cryptographic strength.
-    ``pid``:    An arbitrary value that can be used to categorize key
-                material streams & safely distinguishes the values they
-                produce. Designed to safely destinguish parallelized key
-                material streams with the same ``key`` & ``salt``. But
-                can be used for any arbitrary categorization of streams
-                as long as the encryption & decryption processes for a
-                given stream use the same ``pid`` value.
+    ``key``: An aribrary amount & type of entropic material whose
+            __repr__ function returns the user's desired entropy &
+            cryptographic strength. Designed to be used as a longer-
+            term user encryption / decryption key.
+    ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+            material whose __repr__ function returns the user's
+            desired entropy & cryptographic strength.
+    ``pid``: An arbitrary value whose __repr__ function returns any
+            value that a user decides to categorize keystreams. It
+            safely differentiates those keystreams & initially was
+            designed to permute parallelized keystreams derived from
+            the same ``key`` & ``salt``. Since this value is now
+            verified during message authentication, it can be used
+            to verify arbitrary additional data.
     """
-    salt = salt if salt else csprng()[:64]
+    salt = salt if salt else generate_salt()
     await acheck_key_and_salt(key, salt)
     plaintext = aplaintext_stream(data, key, salt=salt, pid=pid)
-    encrypting = plaintext.abytes_encipher(key, salt=salt, pid=pid)
-    async with encrypting as ciphertext:
-        result = await ciphertext.alist(True)
-        hmac = await validator.ahmac(sha_512(result, salt, pid), key=key)
-        return {"ciphertext": result, "hmac": hmac, "salt": salt}
+    validator = StreamHMAC(key, salt=salt, pid=pid).for_encryption()
+    encipher = plaintext.abytes_encipher
+    enciphering = encipher(key, salt=salt, pid=pid, validator=validator)
+    async with enciphering:
+        ciphertext = await enciphering.alist(mutable=True)
+        hmac = (await validator.afinalize()).hex()
+        return {"ciphertext": ciphertext, "hmac": hmac, "salt": salt}
 
 
-def bytes_encrypt(data=None, key=csprng(), *, salt=None, pid=0):
+def bytes_encrypt(data, key=csprng(), *, salt=None, pid=0):
     """
-    Returns a list of the encrypted one-time pad ciphertext of the
-    binary ``data`` with a key stream derived from permutations of these
-    values:
+    Returns a dictionary containing pseudo-one-time-pad ciphertext of
+    any bytes type ``data``. The dictionary also contains the ephemeral
+    256-bit salt & a 256-bit HMAC used to verify the integrity &
+    authenticity of the ciphertext & values used to create it. The key
+    stream is derived from permutations of these values:
 
-    ``key``:    An aribrary amount & type of entropic material whose
-                str() representation contains the user's desired entropy
-                & cryptographic strength. Designed to be used as a
-                longer-term user encryption / decryption key.
-    ``salt``:   A 256-bit hexidecimal string of ephemeral entropic
-                material whose str() representation contains the user's
-                desired entropy & cryptographic strength.
-    ``pid``:    An arbitrary value that can be used to categorize key
-                material streams & safely distinguishes the values they
-                produce. Designed to safely destinguish parallelized key
-                material streams with the same ``key`` & ``salt``. But
-                can be used for any arbitrary categorization of streams
-                as long as the encryption & decryption processes for a
-                given stream use the same ``pid`` value.
+    ``key``: An aribrary amount & type of entropic material whose
+            __repr__ function returns the user's desired entropy &
+            cryptographic strength. Designed to be used as a longer-
+            term user encryption / decryption key.
+    ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+            material whose __repr__ function returns the user's
+            desired entropy & cryptographic strength.
+    ``pid``: An arbitrary value whose __repr__ function returns any
+            value that a user decides to categorize keystreams. It
+            safely differentiates those keystreams & initially was
+            designed to permute parallelized keystreams derived from
+            the same ``key`` & ``salt``. Since this value is now
+            verified during message authentication, it can be used
+            to verify arbitrary additional data.
     """
-    salt = salt if salt else csprng()[:64]
+    salt = salt if salt else generate_salt()
     check_key_and_salt(key, salt)
     plaintext = plaintext_stream(data, key, salt=salt, pid=pid)
-    encrypting = plaintext.bytes_encipher(key, salt=salt, pid=pid)
-    with encrypting as ciphertext:
-        result = ciphertext.list(True)
-        hmac = validator.hmac(sha_512(result, salt, pid), key=key)
-        return {"ciphertext": result, "hmac": hmac, "salt": salt}
+    validator = StreamHMAC(key, salt=salt, pid=pid).for_encryption()
+    encipher = plaintext.bytes_encipher
+    enciphering = encipher(key, salt=salt, pid=pid, validator=validator)
+    with enciphering:
+        ciphertext = enciphering.list(mutable=True)
+        hmac = validator.finalize().hex()
+        return {"ciphertext": ciphertext, "hmac": hmac, "salt": salt}
 
 
-async def abytes_decrypt(data=None, key=None, *, pid=0, ttl=0):
+async def abytes_decrypt(data, key, *, pid=0, ttl=0):
     """
-    Returns the plaintext bytes of the one-time pad ciphertext ``data``
-    with a key stream derived from permutations of these values:
+    Returns the plaintext bytes of the pseudo-one-time pad ciphertext
+    ``data``. ``data`` is a dictionary containing an iterable of
+    ciphertext, a 256-bit hex string ephemeral salt, & a 256-bit HMAC
+    used to verify the integrity & authenticity of the ciphertext &
+    values used to create it. The keystream is derived from permutations
+    of these values:
 
-    ``key``:    An aribrary amount & type of entropic material whose
-                str() representation contains the user's desired entropy
-                & cryptographic strength. Designed to be used as a
-                longer-term user encryption / decryption key.
-    ``pid``:    An arbitrary value that can be used to categorize key
-                material streams & safely distinguishes the values they
-                produce. Designed to safely destinguish parallelized key
-                material streams with the same ``key`` & ``salt``. But
-                can be used for any arbitrary categorization of streams
-                as long as the encryption & decryption processes for a
-                given stream use the same ``pid`` value.
-    ``ttl``:    An amount of seconds that dictate the allowable age of
-                the decrypted message.
+    ``key``: An aribrary amount & type of entropic material whose
+            __repr__ function returns the user's desired entropy &
+            cryptographic strength. Designed to be used as a longer-
+            term user encryption / decryption key.
+    ``pid``: An arbitrary value whose __repr__ function returns any
+            value that a user decides to categorize keystreams. It
+            safely differentiates those keystreams & initially was
+            designed to permute parallelized keystreams derived from
+            the same ``key`` & ``salt``. Since this value is now
+            verified during message authentication, it can be used
+            to verify arbitrary additional data.
+    ``ttl``: An amount of seconds that dictate the allowable age of
+            the decrypted message.
     """
-    hmac = data["hmac"]
     salt = data["salt"]
-    data = data["ciphertext"]
-    await validator.atest_hmac(sha_512(data, salt, pid), key=key, hmac=hmac)
-    decryptor = aunpack(data).abytes_decipher(key, salt=salt, pid=pid)
-    async with decryptor as decrypting:
-        return await adepad_bytes(
-            data=await decrypting.ajoin(b""),
-            salted_key=await apadding_key(key, salt=salt, pid=pid),
-            ttl=ttl,
-        )
+    untrusted_hmac = data["hmac"]
+    ciphertext = data["ciphertext"]
+    hmac = StreamHMAC(key, salt=salt, pid=pid)
+    async with hmac.apreemptive_validation(ciphertext) as inspection:
+        await inspection.averify(bytes.fromhex(untrusted_hmac))
+    decipher = aunpack(ciphertext).abytes_decipher
+    deciphering = decipher(key, salt=salt, pid=pid, validator=hmac)
+    async with deciphering:
+        plaintext = await deciphering.ajoin(b"")
+        salted_key = await apadding_key(key, salt=salt, pid=pid)
+        return await adepad_bytes(plaintext, salted_key=salted_key, ttl=ttl)
 
 
-def bytes_decrypt(data=None, key=None, *, pid=0, ttl=0):
+def bytes_decrypt(data, key, *, pid=0, ttl=0):
     """
-    Returns the plaintext bytes of the one-time pad ciphertext ``data``
-    with a key stream derived from permutations of these values:
+    Returns the plaintext bytes of the pseudo-one-time pad ciphertext
+    ``data``. ``data`` is a dictionary containing an iterable of
+    ciphertext, a 256-bit hex string ephemeral salt, & a 256-bit HMAC
+    used to verify the integrity & authenticity of the ciphertext &
+    values used to create it. The keystream is derived from permutations
+    of these values:
 
-    ``key``:    An aribrary amount & type of entropic material whose
-                str() representation contains the user's desired entropy
-                & cryptographic strength. Designed to be used as a
-                longer-term user encryption / decryption key.
-    ``pid``:    An arbitrary value that can be used to categorize key
-                material streams & safely distinguishes the values they
-                produce. Designed to safely destinguish parallelized key
-                material streams with the same ``key`` & ``salt``. But
-                can be used for any arbitrary categorization of streams
-                as long as the encryption & decryption processes for a
-                given stream use the same ``pid`` value.
-    ``ttl``:    An amount of seconds that dictate the allowable age of
-                the decrypted message.
+    ``key``: An aribrary amount & type of entropic material whose
+            __repr__ function returns the user's desired entropy &
+            cryptographic strength. Designed to be used as a longer-
+            term user encryption / decryption key.
+    ``pid``: An arbitrary value whose __repr__ function returns any
+            value that a user decides to categorize keystreams. It
+            safely differentiates those keystreams & initially was
+            designed to permute parallelized keystreams derived from
+            the same ``key`` & ``salt``. Since this value is now
+            verified during message authentication, it can be used
+            to verify arbitrary additional data.
+    ``ttl``: An amount of seconds that dictate the allowable age of
+            the decrypted message.
     """
-    hmac = data["hmac"]
     salt = data["salt"]
-    data = data["ciphertext"]
-    validator.test_hmac(sha_512(data, salt, pid), key=key, hmac=hmac)
-    decryptor = unpack(data).bytes_decipher(key, salt=salt, pid=pid)
-    with decryptor as decrypting:
-        return depad_bytes(
-            data=decrypting.join(b""),
-            salted_key=padding_key(key, salt=salt, pid=pid),
-            ttl=ttl,
-        )
+    untrusted_hmac = data["hmac"]
+    ciphertext = data["ciphertext"]
+    hmac = StreamHMAC(key, salt=salt, pid=pid)
+    with hmac.preemptive_validation(ciphertext) as inspection:
+        inspection.verify(bytes.fromhex(untrusted_hmac))
+    decipher = unpack(data["ciphertext"]).bytes_decipher
+    deciphering = decipher(key, salt=salt, pid=pid, validator=hmac)
+    with deciphering:
+        plaintext = deciphering.join(b"")
+        salted_key = padding_key(key, salt=salt, pid=pid)
+        return depad_bytes(plaintext, salted_key=salted_key, ttl=ttl)
 
 
 class Passcrypt:
@@ -703,8 +1352,8 @@ class Passcrypt:
     element in the cache.
     """
 
-    salt = staticmethod(salt)
-    asalt = staticmethod(asalt)
+    generate_salt = staticmethod(generate_salt)
+    agenerate_salt = staticmethod(agenerate_salt)
 
     def __call__(
         self, password, salt, *, kb=1024, cpu=3, hardness=1024, aio=False
@@ -875,14 +1524,11 @@ class Passcrypt:
         compute, & the number of hashes done is computed dynamically to
         reach the memory overhead considering that two extra hashes are
         added to the memory cache ``cpu`` times for each element in the
-        cache. To fully prove use of memory, a simple rule for users is:
-        if ``kb`` == ``hardness`` then ``cpu`` only needs to be set to 3,
-        since that will cause the final proof to scan over the entire
-        cache when producing the summary.
+        cache.
         """
         cls._check_inputs(password, salt)
         cache_width = cls.cache_width(kb, cpu, hardness)
-        args = sha_512(password, salt, kb, cpu, hardness).encode()
+        args = bytes.fromhex(sha_512(password, salt, kb, cpu, hardness))
         cache_builder = abytes_keys(password, salt=salt, pid=args)
         async with cache_builder[:cache_width] as cache:
             ram = await cache.alist(mutable=True)
@@ -891,9 +1537,7 @@ class Passcrypt:
             for element in ram:
                 prove()
                 await switch()
-            final_proof = azip(ram[:hardness], reversed(ram))
-            async with final_proof.asum_sha_256(proof.digest()) as summary:
-                return await asha_512(await summary.alist(mutable=True))
+            return proof.hexdigest()
 
     @classmethod
     def _passcrypt(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
@@ -909,14 +1553,11 @@ class Passcrypt:
         compute, & the number of hashes done is computed dynamically to
         reach the memory overhead considering that two extra hashes are
         added to the memory cache ``cpu`` times for each element in the
-        cache. To fully prove use of memory, a simple rule for users is:
-        if ``kb`` == ``hardness`` then ``cpu`` only needs to be set to 3,
-        since that will cause the final proof to scan over the entire
-        cache when producing the summary.
+        cache.
         """
         cls._check_inputs(password, salt)
         cache_width = cls.cache_width(kb, cpu, hardness)
-        args = sha_512(password, salt, kb, cpu, hardness).encode()
+        args = bytes.fromhex(sha_512(password, salt, kb, cpu, hardness))
         cache_builder = bytes_keys(password, salt=salt, pid=args)
         with cache_builder[:cache_width] as cache:
             ram = cache.list(mutable=True)
@@ -924,9 +1565,7 @@ class Passcrypt:
             prove = cls._work_memory_prover(proof, ram, cpu)
             for element in ram:
                 prove()
-            final_proof = _zip(ram[:hardness], reversed(ram))
-            with final_proof.sum_sha_256(proof.digest()) as summary:
-                return sha_512(summary.list(mutable=True))
+            return proof.hexdigest()
 
     @classmethod
     async def anew(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
@@ -1008,10 +1647,34 @@ def passcrypt(password, salt, *, kb=1024, cpu=3, hardness=1024):
 class OneTimePad:
     """
     A class composed of the low-level procedures used to implement this
-    package's one-time pad cipher, & the higher level interfaces for
-    utilizing the one-time pad cipher. This cipher implementation is
-    built entirely out of generators & the data processing pipelines
+    package's pseudo-one-time pad cipher, & higher level interfaces for
+    utilizing the pseudo-one-time-pad cipher. This cipher implementation
+    is built entirely out of generators & the data processing pipelines
     that are made simple by this package's ``Comprende`` generators.
+
+    # The OneTimePad class carries the key so users don't have to pass
+    # it around every where ->
+    pad = aiootp.OneTimePad(key)
+    encrypted = pad.bytes_encrypt(b"binary data")
+    decrypted = pad.bytes_decrypt(encrypted)
+
+    # The class also has access to an encoder for transforming
+    # ciphertext to & from its default dictionary format ->
+    bytes_ciphertext = pad.io.json_to_bytes(encrypted)
+    dict_ciphertext = pad.io.bytes_to_json(bytes_ciphertext)
+
+    # As well as tools for saving ciphertext to files on disk as bytes ->
+    path = aiootp.DatabasePath() / "testing_ciphertext"
+    pad.io.write(path, encrypted)
+    assert encrypted == pad.io.read(path)
+
+    # Or ciphertext can be encoded to & from a urlsafe string ->
+    urlsafe_ciphertext = pad.io.bytes_to_urlsafe(bytes_ciphertext)
+    bytes_ciphertext = pad.io.urlsafe_to_bytes(urlsafe_ciphertext)
+
+    # These urlsafe tokens have their own convenience functions ->
+    token = pad.make_token(b"binary data")
+    assert b"binary data" == pad.read_token(token)
     """
 
     io = BytesIO()
@@ -1033,6 +1696,7 @@ class OneTimePad:
         padding_key,
         aplaintext_stream,
         plaintext_stream,
+        StreamHMAC,
         ## Do Not Uncomment:
         ## apasscrypt,  Instance passcrypt methods use the instance key
         ## passcrypt,   to further protect processed passwords.
@@ -1043,6 +1707,7 @@ class OneTimePad:
         ## test_hmac,
     }
 
+    StreamHMAC = staticmethod(StreamHMAC)
     axor = staticmethod(axor)
     xor = staticmethod(xor)
     abytes_xor = staticmethod(abytes_xor)
@@ -1055,8 +1720,8 @@ class OneTimePad:
     plaintext_stream = staticmethod(plaintext_stream)
     apadding_key = staticmethod(apadding_key)
     padding_key = staticmethod(padding_key)
-    asalt = staticmethod(asalt)
-    salt = staticmethod(salt)
+    agenerate_salt = staticmethod(agenerate_salt)
+    generate_salt = staticmethod(generate_salt)
     acsprbg = staticmethod(acsprbg)
     csprbg = staticmethod(csprbg)
     akeys = staticmethod(akeys)
@@ -1081,13 +1746,71 @@ class OneTimePad:
         """
         return self._key
 
+    async def amake_token(self, data, *, key=None, pid=0):
+        """
+        Encrypts ``data`` with the instance key, or with ``key`` if a
+        keyword value is sent by the user, & returns a urlsafe encoded
+        ciphertext token.
+        """
+        key = key if key else self.key
+        if not issubclass(data.__class__, bytes):
+            raise TypeError(commons.PLAINTEXT_ISNT_BYTES)
+        ciphertext = await self.abytes_encrypt(data=data, key=key, pid=pid)
+        bytes_token = await self.io.ajson_to_bytes(ciphertext)
+        return await self.io.abytes_to_urlsafe(bytes_token)
+
+    def make_token(self, data, *, key=None, pid=0):
+        """
+        Encrypts ``data`` with the instance key, or with ``key`` if a
+        keyword value is sent by the user, & returns a urlsafe encoded
+        ciphertext token.
+        """
+        key = key if key else self.key
+        if not issubclass(data.__class__, bytes):
+            raise TypeError(commons.PLAINTEXT_ISNT_BYTES)
+        ciphertext = self.bytes_encrypt(data=data, key=key, pid=pid)
+        bytes_token = self.io.json_to_bytes(ciphertext)
+        return self.io.bytes_to_urlsafe(bytes_token)
+
+    async def aread_token(self, token, *, key=None, pid=0, ttl=0):
+        """
+        Decodes a ciphertext token & returns the decrypted token data.
+        ``ttl`` is the maximum age of a token, in seconds, that will
+        be allowed during the token's validation. The age in measured
+        from a timestamp that is removed from the plaintext token data.
+        """
+        if not issubclass(token.__class__, bytes):
+            token = token.encode()
+        key = key if key else self.key
+        bytes_ciphertext = await self.io.aurlsafe_to_bytes(token)
+        ciphertext = await self.io.abytes_to_json(bytes_ciphertext)
+        return await self.abytes_decrypt(
+            ciphertext, key=key, pid=pid, ttl=ttl
+        )
+
+    def read_token(self, token, *, key=None, pid=0, ttl=0):
+        """
+        Decodes a ciphertext token & returns the decrypted token data.
+        ``ttl`` is the maximum age of a token, in seconds, that will
+        be allowed during the token's validation. The age in measured
+        from a timestamp that is removed from the plaintext token data.
+        """
+        if not issubclass(token.__class__, bytes):
+            token = token.encode()
+        key = key if key else self.key
+        bytes_ciphertext = self.io.urlsafe_to_bytes(token)
+        ciphertext = self.io.bytes_to_json(bytes_ciphertext)
+        return self.bytes_decrypt(
+            ciphertext, key=key, pid=pid, ttl=ttl
+        )
+
     @comprehension()
-    async def _amap_encipher(self, names=None, keystream=None):
+    async def _amap_encipher(self, names, keystream, *, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, async one-time-pad encryption algorithm, while also
-        keeping some encapsulation of code and functionality.
+        a baked-in, async pseudo-one-time-pad encryption algorithm,
+        while also keeping some encapsulation of code and functionality.
 
         When ``names`` is a stream of deterministic key material, this
         algorithm produces a hashmap of ciphertext, such that without
@@ -1108,19 +1831,28 @@ class OneTimePad:
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
         data = self.abytes_to_int()
-        async for name, ciphertext in axor(data, key=keystream).atag(names):
+        ciphering = axor(data, key=keystream, validator=validator)
+        async for name, ciphertext in ciphering.atag(names):
             yield name, ciphertext
 
     @comprehension()
-    def _map_encipher(self, names=None, keystream=None):
+    def _map_encipher(self, names, keystream, *, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, sync one-time-pad encryption algorithm, while also
-        keeping some encapsulation of code and functionality.
+        a baked-in, sync pseudo-one-time-pad encryption algorithm, while
+        also keeping some encapsulation of code and functionality.
 
         When ``names`` is a stream of deterministic key material, this
         algorithm produces a hashmap of ciphertext, such that without
@@ -1141,19 +1873,28 @@ class OneTimePad:
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
         data = self.bytes_to_int()
-        for name, ciphertext in xor(data, key=keystream).tag(names):
+        ciphering = xor(data, key=keystream, validator=validator)
+        for name, ciphertext in ciphering.tag(names):
             yield name, ciphertext
 
     @comprehension()
-    async def _amap_decipher(self, keystream=None):
+    async def _amap_decipher(self, keystream, *, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, async one-time-pad decryption algorithm, while also
-        keeping some encapsulation of code and functionality.
+        a baked-in, async pseudo-one-time-pad decryption algorithm,
+        while also keeping some encapsulation of code and functionality.
 
         ``keystream`` should be an async ``Comprende`` generator which,
         like ``aiootp.akeys``, yields a stream key material from some
@@ -1168,18 +1909,27 @@ class OneTimePad:
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
-        async for plaintext in axor.root(data=self, key=keystream):
+        deciphering = axor.root(self, key=keystream, validator=validator)
+        async for plaintext in deciphering:
             yield plaintext.to_bytes(256, "big")
 
     @comprehension()
-    def _map_decipher(self, keystream=None):
+    def _map_decipher(self, keystream, *, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, sync one-time-pad decryption algorithm, while also
-        keeping some encapsulation of code and functionality.
+        a baked-in, sync pseudo-one-time-pad decryption algorithm, while
+        also keeping some encapsulation of code and functionality.
 
         ``keystream`` should be an sync ``Comprende`` generator which,
         like ``aiootp.keys``, yields a stream key material from some
@@ -1194,36 +1944,51 @@ class OneTimePad:
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
-        for plaintext in xor.root(data=self, key=keystream):
+        deciphering = xor.root(self, key=keystream, validator=validator)
+        for plaintext in deciphering:
             yield plaintext.to_bytes(256, "big")
 
     @comprehension()
-    async def _aascii_encipher(self, key=csprng(), *, salt=None, pid=0):
+    async def _aascii_encipher(
+        self, key=csprng(), *, salt, pid=0, validator
+    ):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, async one-time-pad encryption algorithm, while also
-        keeping some encapsulation of code and functionality.
+        a baked-in, async pseudo-one-time-pad encryption algorithm,
+        while also keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
         instance of ``Comprende``. With that, now all async generators
         that are decorated with ``comprehension`` can encrypt the
         plaintext str type strings it yields.
 
-        The ``key`` keyword is the user's main encryption / decryption
-        key for any particular context.
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
 
-        The ``salt`` keyword should be a random 256-bit hash. It's used
-        as an ephemeral key to initialize a deterministc & unique stream
-        of key material.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
 
-        The ``pid`` keyword argument is any identifier which is unique
-        to a particular pair of ``key`` & ``salt``. This identifier is
-        used to create a deterministic stream of key material which is
-        unlinkable and unique to other ``pid`` streams with the same
-        pair of ``key`` & ``salt``.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
 
         WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
         or less per iteration or security WILL BE BROKEN by directly
@@ -1232,20 +1997,30 @@ class OneTimePad:
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
         data = self.aencode()
-        encrypting = data.abytes_encipher(key=key, salt=salt, pid=pid)
+        encrypting = data.abytes_encipher(
+            key=key, salt=salt, pid=pid, validator=validator
+        )
         async for ciphertext in encrypting:
             yield ciphertext
         raise UserWarning(await encrypting.aresult())
 
     @comprehension()
-    def _ascii_encipher(self, key=csprng(), *, salt=None, pid=0):
+    def _ascii_encipher(self, key=csprng(), *, salt, pid=0, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, one-time-pad encryption algorithm, while also
+        a baked-in, pseudo-one-time-pad encryption algorithm, while also
         keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
@@ -1253,18 +2028,22 @@ class OneTimePad:
         are decorated with ``comprehension`` can encrypt the plaintext
         str type strings it yields.
 
-        The ``key`` keyword is the user's main encryption / decryption
-        key for any particular context.
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
 
-        The ``salt`` keyword should be a random 256-bit hash. It's used
-        as an ephemeral key to initialize a deterministc & unique stream
-        of key material.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
 
-        The ``pid`` keyword argument is any identifier which is unique
-        to a particular pair of ``key`` & ``salt``. This identifier is
-        used to create a deterministic stream of key material which is
-        unlinkable and unique to other ``pid`` streams with the same
-        pair of ``key`` & ``salt``.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
 
         WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
         or less per iteration or security WILL BE BROKEN by directly
@@ -1273,113 +2052,155 @@ class OneTimePad:
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
         data = self.encode()
-        encrypting = data.bytes_encipher(key=key, salt=salt, pid=pid)
+        encrypting = data.bytes_encipher(
+            key=key, salt=salt, pid=pid, validator=validator
+        )
         for ciphertext in encrypting:
             yield ciphertext
         return encrypting.result()
 
     @comprehension()
-    async def _aascii_decipher(self, key=csprng(), *, salt=None, pid=0):
+    async def _aascii_decipher(
+        self, key=csprng(), *, salt, pid=0, validator
+    ):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, async one-time-pad decryption algorithm, while also
-        keeping some encapsulation of code and functionality.
+        a baked-in, async pseudo-one-time-pad decryption algorithm,
+        while also keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
         instance of ``Comprende``. With that, now all async generators
         that are decorated with ``comprehension`` can decrypt valid
-        streams of one-time-pad encrypted ciphertext.
+        streams of pseudo-one-time-pad encrypted ciphertext.
 
-        The ``key`` keyword is the user's main encryption / decryption
-        key. The salt is a random 256-bit hash which is used as an
-        ephemeral key to initialize a deterministc & unique stream of
-        key material.
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
 
-        The ``salt`` keyword should be a random 256-bit hash. It's used
-        as an ephemeral key to initialize a deterministc & unique stream
-        of key material.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
 
-        The ``pid`` keyword argument is any identifier which is unique
-        to a particular pair of ``key`` & ``salt``. This identifier is
-        used to create a deterministic stream of key material which is
-        unlinkable and unique to other ``pid`` streams with the same
-        pair of ``key`` & ``salt``.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
 
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
-        decrypting = self.abytes_decipher(key=key, salt=salt, pid=pid)
+        decrypting = self.abytes_decipher(
+            key=key, salt=salt, pid=pid, validator=validator
+        )
         async for plaintext in decrypting:
             yield plaintext.decode()
 
     @comprehension()
-    def _ascii_decipher(self, key=csprng(), *, salt=None, pid=0):
+    def _ascii_decipher(self, key=csprng(), *, salt, pid=0, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, one-time-pad decryption algorithm, while also
+        a baked-in, pseudo-one-time-pad decryption algorithm, while also
         keeping some encapsulation of code and functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
         instance of ``Comprende``. With that, now all generators that
         are decorated with ``comprehension`` can decrypt valid streams
-        of one-time-pad encrypted ciphertext.
+        of pseudo-one-time-pad encrypted ciphertext.
 
-        The ``key`` keyword is the user's main encryption / decryption
-        key. The salt is a random 256-bit hash which is used as an
-        ephemeral key to initialize a deterministc & unique stream of
-        key material.
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
 
-        The ``salt`` keyword should be a random 256-bit hash. It's used
-        as an ephemeral key to initialize a deterministc & unique stream
-        of key material.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
 
-        The ``pid`` keyword argument is any identifier which is unique
-        to a particular pair of ``key`` & ``salt``. This identifier is
-        used to create a deterministic stream of key material which is
-        unlinkable and unique to other ``pid`` streams with the same
-        pair of ``key`` & ``salt``.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
 
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
-        decrypting = self.bytes_decipher(key=key, salt=salt, pid=pid)
+        decrypting = self.bytes_decipher(
+            key=key, salt=salt, pid=pid, validator=validator
+        )
         for plaintext in decrypting:
             yield plaintext.decode()
 
     @comprehension()
-    async def _abytes_encipher(self, key=csprng(), *, salt=None, pid=0):
+    async def _abytes_encipher(
+        self, key=csprng(), *, salt, pid=0, validator
+    ):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, one-time-pad encryption algorithm for binary data,
-        while also keeping some encapsulation of code and functionality.
+        a baked-in, pseudo-one-time-pad encryption algorithm for binary
+        data, while also keeping encapsulation of code & functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
         instance of ``Comprende``. With that, now all async generators
         that are decorated with ``comprehension`` can encrypt the
         plaintext bytes type strings it yields.
 
-        The ``key`` keyword is the user's main encryption / decryption
-        key for any particular context.
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
 
-        The ``salt`` keyword should be a random 256-bit hash. It's used
-        as an ephemeral key to initialize a deterministc & unique stream
-        of key material.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
 
-        The ``pid`` keyword argument is any identifier which is unique
-        to a particular pair of ``key`` & ``salt``. This identifier is
-        used to create a deterministic stream of key material which is
-        unlinkable and unique to other ``pid`` streams with the same
-        pair of ``key`` & ``salt``.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
 
         WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
         or less per iteration or security WILL BE BROKEN by directly
@@ -1388,39 +2209,53 @@ class OneTimePad:
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
         keystream = abytes_keys.root(key=key, salt=salt, pid=pid)
-        encrypting = abytes_xor.root(self.abytes_to_int(), key=keystream)
+        encrypting = abytes_xor.root(
+            data=self.abytes_to_int(), key=keystream, validator=validator
+        )
         async for result in encrypting:
             yield result
         await keystream.athrow(UserWarning)
 
     @comprehension()
-    def _bytes_encipher(self, key=csprng(), *, salt=None, pid=0):
+    def _bytes_encipher(self, key=csprng(), *, salt=None, pid=0, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, one-time-pad encryption algorithm for binary data,
-        while also keeping some encapsulation of code and functionality.
+        a baked-in, pseudo-one-time-pad encryption algorithm for binary
+        data, while also keeping encapsulation of code & functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
         instance of ``Comprende``. With that, now all generators that
         are decorated with ``comprehension`` can encrypt the plaintext
         bytes type strings it yields.
 
-        The ``key`` keyword is the user's main encryption / decryption
-        key for any particular context.
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
 
-        The ``salt`` keyword should be a random 256-bit hash. It's used
-        as an ephemeral key to initialize a deterministc & unique stream
-        of key material.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
 
-        The ``pid`` keyword argument is any identifier which is unique
-        to a particular pair of ``key`` & ``salt``. This identifier is
-        used to create a deterministic stream of key material which is
-        unlinkable and unique to other ``pid`` streams with the same
-        pair of ``key`` & ``salt``.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
 
         WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
         or less per iteration or security WILL BE BROKEN by directly
@@ -1429,83 +2264,122 @@ class OneTimePad:
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
         keystream = bytes_keys.root(key=key, salt=salt, pid=pid)
-        encrypting = bytes_xor.root(self.bytes_to_int(), key=keystream)
+        encrypting = bytes_xor.root(
+            data=self.bytes_to_int(), key=keystream, validator=validator
+        )
         for result in encrypting:
             yield result
         keystream.throw(UserWarning)
 
     @comprehension()
-    async def _abytes_decipher(self, key=None, *, salt=None, pid=0):
+    async def _abytes_decipher(self, key, *, salt=None, pid=0, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, one-time-pad decryption algorithm for binary data,
-        while also keeping some encapsulation of code and functionality.
+        a baked-in, pseudo-one-time-pad decryption algorithm for binary
+        data, while also keeping encapsulation of code & functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
         instance of ``Comprende``. With that, now all async generators
         that are decorated with ``comprehension`` can decrypt valid
-        streams of one-time-pad encrypted ciphertext of bytes type data.
+        streams of pseudo-one-time-pad encrypted ciphertext of bytes
+        type data.
 
-        The ``key`` keyword is the user's main encryption / decryption
-        key for any particular context.
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
 
-        The ``salt`` keyword should be a random 256-bit hash. It's used
-        as an ephemeral key to initialize a deterministc & unique stream
-        of key material.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
 
-        The ``pid`` keyword argument is any identifier which is unique
-        to a particular pair of ``key`` & ``salt``. This identifier is
-        used to create a deterministic stream of key material which is
-        unlinkable and unique to other ``pid`` streams with the same
-        pair of ``key`` & ``salt``.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
 
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
         keystream = abytes_keys.root(key=key, salt=salt, pid=pid)
-        decrypting = abytes_xor.root(self, key=keystream)
+        decrypting = abytes_xor.root(
+            data=self, key=keystream, validator=validator
+        )
         async for plaintext in decrypting:
             yield plaintext.to_bytes(256, "big")
 
     @comprehension()
-    def _bytes_decipher(self, key=None, *, salt=None, pid=0):
+    def _bytes_decipher(self, key, *, salt=None, pid=0, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
-        a baked-in, one-time-pad decryption algorithm for binary data,
-        while also keeping some encapsulation of code and functionality.
+        a baked-in, pseudo-one-time-pad decryption algorithm for binary
+        data, while also keeping encapsulation of code & functionality.
 
         Once copied, the ``self`` argument becomes a reference to an
         instance of ``Comprende``. With that, now all generators that
         are decorated with ``comprehension`` can decrypt valid streams
-        of one-time-pad encrypted ciphertext of bytes type data.
+        of pseudo-one-time-pad encrypted ciphertext of bytes type data.
 
-        The ``key`` keyword is the user's main encryption / decryption
-        key for any particular context.
+        ``key``: An aribrary amount & type of entropic material whose
+                __repr__ function returns the user's desired entropy &
+                cryptographic strength. Designed to be used as a longer-
+                term user encryption / decryption key.
 
-        The ``salt`` keyword should be a random 256-bit hash. It's used
-        as an ephemeral key to initialize a deterministc & unique stream
-        of key material.
+        ``salt``: A 256-bit hexidecimal string of ephemeral entropic
+                material whose __repr__ function returns the user's
+                desired entropy & cryptographic strength.
 
-        The ``pid`` keyword argument is any identifier which is unique
-        to a particular pair of ``key`` & ``salt``. This identifier is
-        used to create a deterministic stream of key material which is
-        unlinkable and unique to other ``pid`` streams with the same
-        pair of ``key`` & ``salt``.
+        ``pid``: An arbitrary value whose __repr__ function returns any
+                value that a user decides to categorize keystreams. It
+                safely differentiates those keystreams & initially was
+                designed to permute parallelized keystreams derived from
+                the same ``key`` & ``salt``. Since this value is now
+                verified during message authentication, it can be used
+                to verify arbitrary additional data.
 
         WARNING: This generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
         message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means.
+        functionalities which must be obtained through other means. Just
+        passing in a ``validator`` will not authenticate ciphertext
+        itself. The `finalize` or `afinalize` methods must be called on
+        the ``validator`` once all of the cipehrtext has been created /
+        decrypted. Then the final HMAC is available from the `aresult`
+        & `result` methods, & can be tested against untrusted HMACs
+        with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `current_digest` & `acurrent_digest` methods that can
+        be used to authenticate unfinished streams of cipehrtext.
         """
         keystream = bytes_keys.root(key=key, salt=salt, pid=pid)
-        decrypting = bytes_xor.root(self, key=keystream)
+        decrypting = bytes_xor.root(
+            data=self, key=keystream, validator=validator
+        )
         for plaintext in decrypting:
             yield plaintext.to_bytes(256, "big")
 
@@ -1515,7 +2389,7 @@ class AsyncDatabase(metaclass=AsyncInit):
     This class creates databases which enable the disk persistence of
     any json serializable, native python data-types, with fully
     transparent & asynchronous encryption / decryption using the
-    one-time-pad cipher.
+    pseudo-one-time-pad cipher.
 
 
     Usage Examples:
@@ -1552,30 +2426,30 @@ class AsyncDatabase(metaclass=AsyncInit):
 
     io = BytesIO()
     directory = DatabasePath()
-    asalt = staticmethod(asalt)
+    agenerate_salt = staticmethod(agenerate_salt)
     _SALT = commons.SALT
     _METATAG = commons.METATAG
     _MANIFEST = commons.MANIFEST
     _ENCODING = io.LIST_ENCODING
-    _BASE_36_TABLE = commons.BASE_36_TABLE
+    _BASE_38_TABLE = commons.BASE_38_TABLE
     _NO_PROFILE_OR_CORRUPT = commons.NO_PROFILE_OR_CORRUPT
 
     @classmethod
-    def _hash_to_base36(cls, hex_string):
+    def _hash_to_base38(cls, hex_string):
         """
-        Returns the received ``hex_hash`` in base36 encoding.
+        Returns the received ``hex_hash`` in base38 encoding.
         """
-        return cls.io.bytes_to_urlsafe(
-            bytes.fromhex(hex_string), table=cls._BASE_36_TABLE,
+        return inverse_int(
+            int(hex_string, 16), base=38, table=cls._BASE_38_TABLE
         )
 
     @classmethod
-    async def _ahash_to_base36(cls, hex_string):
+    async def _ahash_to_base38(cls, hex_string):
         """
-        Returns the received ``hex_hash`` in base36 encoding.
+        Returns the received ``hex_hash`` in base38 encoding.
         """
-        return await cls.io.abytes_to_urlsafe(
-            bytes.fromhex(hex_string), table=cls._BASE_36_TABLE,
+        return await ainverse_int(
+            int(hex_string, 16), base=38, table=cls._BASE_38_TABLE
         )
 
     @classmethod
@@ -1676,7 +2550,8 @@ class AsyncDatabase(metaclass=AsyncInit):
 
     async def __init__(
         self,
-        key=None,
+        key,
+        *,
         password_depth=0,  # >= 5000 if ``key`` is weak
         preload=True,
         directory=directory,
@@ -1712,8 +2587,13 @@ class AsyncDatabase(metaclass=AsyncInit):
             with the outter layer of file encryption. This makes metatag
             child databases more light-weight organizational additions
             to existing databases.
+
+        ``silent``:     This boolean value tells the class to surpress
+            exceptions when loading files so that errors in the database
+            don't prevent a user from logging in.
         """
         self._silent = silent
+        self._corrupted_files = {}
         self._cache = Namespace()
         self._manifest = Namespace()
         self.directory = Path(directory)
@@ -1734,7 +2614,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         root_key = await akeys(key, salt=key, pid=key)[password_depth]()
         root_hash = await asha_512_hmac(root_key, key=root_key)
-        root_filename = await cls._ahash_to_base36(
+        root_filename = await cls._ahash_to_base38(
             await asha_256_hmac(root_hash, key=root_hash)
         )
         return root_key, root_hash, root_filename
@@ -1780,7 +2660,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Returns the filename of the database's root salt.
         """
         key = (self._root_hash, self._root_key)
-        return self._hash_to_base36(sha_256_hmac(self._SALT, key=key))
+        return self._hash_to_base38(sha_256_hmac(self._SALT, key=key))
 
     @property
     def _root_salt_path(self):
@@ -1833,7 +2713,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         hex salt otherwise.
         """
         if self._is_metatag:
-            return await asalt()
+            return await agenerate_salt()
         else:
             return await acsprng()
 
@@ -1889,7 +2769,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             root_salt = await self._aload_root_salt()
         else:
             self._manifest = Namespace()
-            self._root_session_salt = await asalt()
+            self._root_session_salt = await agenerate_salt()
             root_salt = await self._agenerate_root_salt()
             await self._ainstall_root_salt(root_salt)
 
@@ -1956,7 +2836,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         hashed_tag = sha_256_hmac(
             (tag, self._root_seed), key=self._root_hash
         )
-        return self._hash_to_base36(hashed_tag)
+        return self._hash_to_base38(hashed_tag)
 
     async def afilename(self, tag=None):
         """
@@ -1965,7 +2845,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         hashed_tag = await asha_256_hmac(
             (tag, self._root_seed), key=self._root_hash
         )
-        return await self._ahash_to_base36(hashed_tag)
+        return await self._ahash_to_base38(hashed_tag)
 
     async def ahmac(self, *data):
         """
@@ -2067,7 +2947,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             """
             name = await self.afilename(category)
             uuids = await amake_uuid(size, salt=name).aprime()
-            salt = salt if salt else csprng()[:64]
+            salt = salt if salt else generate_salt()
             async with uuids.arelay(salt) as ids:
                 stamp = None
                 while True:
@@ -2128,7 +3008,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         ``plaintext``   This is any json serializable object that is to
             be encrypted.
         """
-        salt = (await acsprng())[:64]
+        salt = await agenerate_salt()
         key = await self._aencryption_key(filename, salt)
         return await OneTimePad.abytes_encrypt(
             data=plaintext, key=key, salt=salt
@@ -2144,7 +3024,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         ``plaintext``   This is any json serializable object that is to
             be encrypted.
         """
-        salt = (await acsprng())[:64]
+        salt = await agenerate_salt()
         key = await self._aencryption_key(filename, salt)
         return await ajson_encrypt(plaintext, key=key, salt=salt)
 
@@ -2174,6 +3054,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             path = self.directory / filename
             return await self.io.aread(path=path, encoding=self._ENCODING)
         except FileNotFoundError as corrupt_database:
+            self._corrupted_files[filename] = True
             if not silent:
                 raise corrupt_database
 
@@ -2231,7 +3112,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Derives the metatag's database key given a user-defined ``tag``.
         """
-        return await asha_512_hmac((tag, self._root_seed), self._root_hash)
+        return await asha_512_hmac(
+            (tag, self._root_seed), key=self._root_hash
+        )
 
     async def ametatag(self, tag=None, preload=True, silent=False):
         """
@@ -2340,7 +3223,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         if not self._is_metatag:
             await self._asave_root_salt(await self.__aroot_salt())
-        salt = self._root_session_salt = await asalt()
+        salt = self._root_session_salt = await agenerate_salt()
         manifest = await self._aencrypt_manifest(salt)
         await self._asave_manifest(manifest)
 
@@ -2515,7 +3398,7 @@ class Database:
     This class creates databases which enable the disk persistence of
     any json serializable, native python data-types, with fully
     transparent & asynchronous encryption / decryption using the
-    one-time-pad cipher.
+    pseudo-one-time-pad cipher.
 
 
     Usage Examples:
@@ -2552,21 +3435,21 @@ class Database:
 
     io = BytesIO()
     directory = DatabasePath()
-    salt = staticmethod(salt)
+    generate_salt = staticmethod(generate_salt)
     _SALT = commons.SALT
     _METATAG = commons.METATAG
     _MANIFEST = commons.MANIFEST
     _ENCODING = io.LIST_ENCODING
-    _BASE_36_TABLE = commons.BASE_36_TABLE
+    _BASE_38_TABLE = commons.BASE_38_TABLE
     _NO_PROFILE_OR_CORRUPT = commons.NO_PROFILE_OR_CORRUPT
 
     @classmethod
-    def _hash_to_base36(cls, hex_string):
+    def _hash_to_base38(cls, hex_string):
         """
-        Returns the received ``hex_hash`` in base36 encoding.
+        Returns the received ``hex_hash`` in base38 encoding.
         """
-        return cls.io.bytes_to_urlsafe(
-            bytes.fromhex(hex_string), table=cls._BASE_36_TABLE,
+        return inverse_int(
+            int(hex_string, 16), base=38, table=cls._BASE_38_TABLE
         )
 
     @classmethod
@@ -2663,7 +3546,8 @@ class Database:
 
     def __init__(
         self,
-        key=None,
+        key,
+        *,
         password_depth=0,  # >= 5000 if ``key`` is weak
         preload=True,
         directory=directory,
@@ -2699,8 +3583,13 @@ class Database:
             with the outter layer of file encryption. This makes metatag
             child databases more light-weight organizational additions
             to existing databases.
+
+        ``silent``:     This boolean value tells the class to surpress
+            exceptions when loading files so that errors in the database
+            don't prevent a user from logging in.
         """
         self._silent = silent
+        self._corrupted_files = {}
         self._cache = Namespace()
         self._manifest = Namespace()
         self.directory = Path(directory)
@@ -2721,7 +3610,7 @@ class Database:
         """
         root_key = keys(key, salt=key, pid=key)[password_depth]()
         root_hash = sha_512_hmac(root_key, key=root_key)
-        root_filename = cls._hash_to_base36(
+        root_filename = cls._hash_to_base38(
             sha_256_hmac(root_hash, key=root_hash)
         )
         return root_key, root_hash, root_filename
@@ -2767,7 +3656,7 @@ class Database:
         Returns the filename of the database's root salt.
         """
         key = (self._root_hash, self._root_key)
-        return self._hash_to_base36(sha_256_hmac(self._SALT, key=key))
+        return self._hash_to_base38(sha_256_hmac(self._SALT, key=key))
 
     @property
     def _root_salt_path(self):
@@ -2820,7 +3709,7 @@ class Database:
         hex salt otherwise.
         """
         if self._is_metatag:
-            return salt()
+            return generate_salt()
         else:
             return  csprng()
 
@@ -2874,7 +3763,7 @@ class Database:
             root_salt = self._load_root_salt()
         else:
             self._manifest = Namespace()
-            self._root_session_salt = salt()
+            self._root_session_salt = generate_salt()
             root_salt = self._generate_root_salt()
             self._install_root_salt(root_salt)
 
@@ -2931,7 +3820,7 @@ class Database:
         hashed_tag = sha_256_hmac(
             (tag, self._root_seed), key=self._root_hash
         )
-        return self._hash_to_base36(hashed_tag)
+        return self._hash_to_base38(hashed_tag)
 
     def hmac(self, *data):
         """
@@ -3028,7 +3917,7 @@ class Database:
             """
             name = self.filename(category)
             uuids = make_uuid(size, salt=name).prime()
-            salt = salt if salt else csprng()[:64]
+            salt = salt if salt else generate_salt()
             with uuids.relay(salt) as ids:
                 stamp = None
                 while True:
@@ -3081,7 +3970,7 @@ class Database:
         ``plaintext``   This is any json serializable object that is to
             be encrypted.
         """
-        salt = csprng()[:64]
+        salt = generate_salt()
         key = self._encryption_key(filename, salt)
         return OneTimePad.bytes_encrypt(plaintext, key=key, salt=salt)
 
@@ -3095,7 +3984,7 @@ class Database:
         ``plaintext``   This is any json serializable object that is to
             be encrypted.
         """
-        salt = csprng()[:64]
+        salt = generate_salt()
         key = self._encryption_key(filename, salt)
         return json_encrypt(plaintext, key=key, salt=salt)
 
@@ -3125,6 +4014,7 @@ class Database:
             path = self.directory / filename
             return self.io.read(path=path, encoding=self._ENCODING)
         except FileNotFoundError as corrupt_database:
+            self._corrupted_files[filename] = True
             if not silent:
                 raise corrupt_database
 
@@ -3180,7 +4070,7 @@ class Database:
         """
         Derives the metatag's database key given a user-defined ``tag``.
         """
-        return sha_512_hmac((tag, self._root_seed), self._root_hash)
+        return sha_512_hmac((tag, self._root_seed), key=self._root_hash)
 
     def metatag(self, tag=None, preload=True, silent=False):
         """
@@ -3289,7 +4179,7 @@ class Database:
         """
         if not self._is_metatag:
             self._save_root_salt(self.__root_salt())
-        salt = self._root_session_salt = csprng()[:64]
+        salt = self._root_session_salt = generate_salt()
         manifest = self._encrypt_manifest(salt)
         self._save_manifest(manifest)
 
@@ -4241,7 +5131,7 @@ class X25519(BaseEllipticCurve):
         """
         Takes in a public key from a communicating party & uses the
         instance's secret key to do an elliptic curve diffie-hellman
-        exchange & returns the results secret shared bytes.
+        exchange & returns the resulting secret shared bytes.
         """
         public_key = self._process_public_key(public_key)
         return await self._asymmetric.aexchange(
@@ -4253,7 +5143,7 @@ class X25519(BaseEllipticCurve):
         """
         Takes in a public key from a communicating party & uses the
         instance's secret key to do an elliptic curve diffie-hellman
-        exchange & returns the results secret shared bytes.
+        exchange & returns the resulting secret shared bytes.
         """
         public_key = self._process_public_key(public_key)
         return self._asymmetric.exchange(
@@ -4359,10 +5249,8 @@ class Ropake:
     NEXT_KEYED_PASSWORD = commons.NEXT_KEYED_PASSWORD
     X25519 = X25519
     Ed25519 = Ed25519
-    salt = staticmethod(csprng)
-    asalt = staticmethod(acsprng)
-    directory = DatabasePath()
-    _default_directory = DatabasePath()
+    generate_salt = staticmethod(csprng)
+    agenerate_salt = staticmethod(acsprng)
 
     _KEYED_PASSWORD_TUTORIAL = f"""\
     ``database`` needs a {commons.KEYED_PASSWORD} entry.
@@ -4374,9 +5262,9 @@ class Ropake:
         salt=optional_salt_value,
     )
     db = Database.generate_profile(tokens)
-    db[Ropake.PASSWORD_SALT] = salt = Ropake.salt()
+    db[Ropake.PASSWORD_SALT] = salt = Ropake.generate_salt()
     db[Ropake.KEYED_PASSWORD] = Ropake._make_commit(db._root_key, salt)
-    db[Ropake.NEXT_PASSWORD_SALT] = next_salt = Ropake.salt()
+    db[Ropake.NEXT_PASSWORD_SALT] = next_salt = Ropake.generate_salt()
     db[Ropake.NEXT_KEYED_PASSWORD] = Ropake._make_commit(db._root_key, next_salt)
     # client sends keyed_password to server during registration & sends
     # Ropake._id(salt) to the server during authentication, as well as
@@ -4523,7 +5411,7 @@ class Ropake:
     @classmethod
     async def _aencrypt(cls, *, key_id=None, message_key=None, **plaintext):
         """
-        A flexible one-time pad encryption method which turns the
+        A flexible pseudo-one-time-pad encryption method which turns the
         keyword arguments passed as ``**plaintext`` into a dictionary
         which is encrypted as a json object with the ``message_key``
         value. If a ``key_id`` is specified, then a registration has
@@ -4541,7 +5429,7 @@ class Ropake:
     @classmethod
     def _encrypt(cls, *, key_id=None, message_key=None, **plaintext):
         """
-        A flexible one-time pad encryption method which turns the
+        A flexible pseudo-one-time-pad encryption method which turns the
         keyword arguments passed as ``**plaintext`` into a dictionary
         which is encrypted as a json object with the ``message_key``
         value. If a ``key_id`` is specified, then a registration has
@@ -4559,9 +5447,9 @@ class Ropake:
     @classmethod
     async def _adecrypt(cls, *, message_key=None, ciphertext=None, ttl=0):
         """
-        Decrypts a one-time pad ``ciphertext`` of json data with the
-        ``message_key`` & returns the plaintext as well as the key_id
-        in a dictionary if it was attached to the ciphertext.
+        Decrypts a pseudo-one-time-pad ``ciphertext`` of json data with
+        the ``message_key`` & returns the plaintext as well as the
+        key_id in a dictionary if it was attached to the ciphertext.
         ``ttl`` determines the amount of seconds that the decrypted
         message is allowed to be aged.
         """
@@ -4583,9 +5471,9 @@ class Ropake:
     @classmethod
     def _decrypt(cls, *, message_key=None, ciphertext=None, ttl=0):
         """
-        Decrypts a one-time pad ``ciphertext`` of json data with the
-        ``message_key`` & returns the plaintext as well as the key_id
-        in a dictionary if it was attached to the ciphertext.
+        Decrypts a pseudo-one-time-pad ``ciphertext`` of json data with
+        the ``message_key`` & returns the plaintext as well as the
+        key_id in a dictionary if it was attached to the ciphertext.
         ``ttl`` determines the amount of seconds that the decrypted
         message is allowed to be aged.
         """
@@ -4645,7 +5533,7 @@ class Ropake:
         """
         db = database
         if not db[cls.KEY]:
-            password_salt = db[cls.SALT] = await cls.asalt()
+            password_salt = db[cls.SALT] = await cls.agenerate_salt()
             db[cls.KEYED_PASSWORD] = (
                 await cls._amake_commit(db._root_key, password_salt)
             )
@@ -4654,7 +5542,7 @@ class Ropake:
             db[cls.KEYED_PASSWORD] = (
                 await cls._amake_commit(db._root_key, password_salt)
             )
-            password_salt = db[cls.NEXT_PASSWORD_SALT] = await cls.asalt()
+            password_salt = db[cls.NEXT_PASSWORD_SALT] = cls.generate_salt()
             db[cls.NEXT_KEYED_PASSWORD] = (
                 await cls._amake_commit(db._root_key, password_salt)
             )
@@ -4667,7 +5555,7 @@ class Ropake:
         """
         db = database
         if not db[cls.KEY]:
-            password_salt = db[cls.SALT] = cls.salt()
+            password_salt = db[cls.SALT] = cls.generate_salt()
             db[cls.KEYED_PASSWORD] = (
                 cls._make_commit(db._root_key, password_salt)
             )
@@ -4676,7 +5564,7 @@ class Ropake:
             db[cls.KEYED_PASSWORD] = (
                 cls._make_commit(db._root_key, password_salt)
             )
-            password_salt = db[cls.NEXT_PASSWORD_SALT] = cls.salt()
+            password_salt = db[cls.NEXT_PASSWORD_SALT] = cls.generate_salt()
             db[cls.NEXT_KEYED_PASSWORD] = (
                 cls._make_commit(db._root_key, password_salt)
             )
@@ -4689,8 +5577,8 @@ class Ropake:
         for both the server & client, then returns it.
         """
         values = Namespace()
-        values.salt = await cls.asalt()
-        values.session_salt = await cls.asalt()
+        values.salt = await cls.agenerate_salt()
+        values.session_salt = await cls.agenerate_salt()
         values.ecdhe_key = await X25519().agenerate()
         values.pub = values.ecdhe_key.public_bytes
         return values
@@ -4703,8 +5591,8 @@ class Ropake:
         for both the server & client, then returns it.
         """
         values = Namespace()
-        values.salt = cls.salt()
-        values.session_salt = cls.salt()
+        values.salt = cls.generate_salt()
+        values.session_salt = cls.generate_salt()
         values.ecdhe_key = X25519().generate()
         values.pub = values.ecdhe_key.public_bytes
         return values
@@ -5389,7 +6277,7 @@ class Ropake:
         )
 
 
-validator = Namespace()
+validator = Namespace()  #  This is populated in __ui_coordination.py
 
 
 __extras = {
@@ -5402,6 +6290,8 @@ __extras = {
     "Passcrypt": Passcrypt,
     "OneTimePad": OneTimePad,
     "Ropake": Ropake,
+    "PreemptiveHMACValidation": PreemptiveHMACValidation,
+    "StreamHMAC": StreamHMAC,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
