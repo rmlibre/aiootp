@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous one-time-pad based crypto
-# and anonymity library.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -14,11 +14,11 @@ __all__ = [
     "bits",
     "primes",
     "Namespace",
-    "PrimeGroups",
     "WORD_LIST",
     "ASCII_TABLE",
     "BYTES_TABLE",
     "BASE_36_TABLE",
+    "BASE_38_TABLE",
     "BASE_64_TABLE",
     "URL_SAFE_TABLE",
     "ASCII_TABLE_128",
@@ -38,7 +38,7 @@ import copy
 import types
 import asyncio
 from os import linesep
-from hashlib import sha3_256
+from hashlib import sha3_256, sha3_512
 from .__datasets import *
 from . import DebugControl
 
@@ -261,6 +261,9 @@ class Namespace():
         return dir(self)
 
 
+NONE = sha3_512(f"__NONE__{bits[512]}".encode()).hexdigest()
+
+
 __extras = {
     # A domain-specific namespace for networking & communications
     "ACTIVE": "active_connection",
@@ -272,7 +275,9 @@ __extras = {
     "ASCII_TABLE_128": ASCII_TABLE_128,
     "AUTHENTICATION": "authentication",
     "BASE_36_TABLE": BASE_36_TABLE,
+    "BASE_38_TABLE": BASE_38_TABLE,
     "BASE_64_TABLE": BASE_64_TABLE,
+    "BLOCKSIZE": 256,
     "BYTES_TABLE": BYTES_TABLE,
     "CHANNEL": "channel",
     "CHANNELS": "channels",
@@ -282,8 +287,11 @@ __extras = {
     "CLIENT": "client",
     "CORRUPT": "corrupt_connection",
     "DECRYPT": "decrypt",
+    "DECRYPTION": "decryption",
     "DIRECTORY": "directory",
     "ENCRYPT": "encrypt",
+    "ENCRYPTION": "encryption",
+    "EXCEEDED_BLOCKSIZE": "Data MUST NOT exceed 256 bytes.",
     "FAILED": "failed",
     "GUEST": "guest",
     "HMAC": "hmac",
@@ -293,25 +301,29 @@ __extras = {
     "ID": "contact_identifier",
     "INACTIVE": "terminated_connection",
     "INVALID_CIPHERTEXT_LENGTH": "The length of ciphertext is invalid.",
+    "INVALID_DIGEST": "Current digest of the data stream isn't valid.",
+    "INVALID_HMAC": "HMAC of the data stream isn't valid.",
     "KEEP_ALIVE": "keep_alive",
     "KEY": "key",
     "KEY_ID": "key_id",
     "KEYED_PASSWORD": "keyed_password",
     "LIST_ENCODING": "listed_ciphertext",
+    "PLAINTEXT_ISNT_BYTES": "The provided ``data`` must be bytes type.",
     "LISTENING": "listening",
     "MAINTAINING": "maintaining",
     "MANIFEST": sha3_256(f"__manifest__{NONE}".encode()).hexdigest(),
+    "MANUAL": "manual_mode",
     "MAP_ENCODING": "mapped_ciphertext",
     "MESSAGE_ID": "message_id",
     "MESSAGES": "message_archive",
     "METADATA": "metadata",
     "METATAG": sha3_256(f"__metatags__{NONE}".encode()).hexdigest(),
+    "MISSING_HMAC": "The ``hmac`` keyword argument was not given.",
     "NEW_CONTACT": "new_contact",
     "NEXT_KEYED_PASSWORD": "next_keyed_password",
     "NEXT_PASSWORD_SALT": "next_password_salt",
     "NO_PROFILE_OR_CORRUPT": "Profile doesn't exist or is corrupt.",
     "NONE": NONE,
-    "NUM": NUM,
     "OLD_KEY": "last_shared_key",
     "OLD_VERIFID": "last_verification_code",
     "OMITTED": "<omitted-data>",
@@ -323,6 +335,7 @@ __extras = {
     "PLAINTEXT": "plaintext",
     "PUB": "pub",
     "PORT": 8081,
+    "PREEMPTIVE": "preemptive_mode",
     "RACHET": "rachet_shared_key",
     "RECEIVING": "receiving",
     "REGISTRATION": "registration",
@@ -347,6 +360,7 @@ __extras = {
     "TB_PORT": 9150,
     "ROPAKE_TIMEOUT": 0,
     "TOR_PORT": 9050,
+    "UNSAFE_KEY_REUSE": "Providing both a `key` & `salt` risks key reuse.",
     "UNSENT_MESSAGES": "unsent_message_archive",
     "URL": "url",
     "URL_SAFE_TABLE": URL_SAFE_TABLE,
@@ -357,7 +371,7 @@ __extras = {
     "VERIFID": "verification_code",
     "WORD_LIST": WORD_LIST,
     "Namespace": Namespace,
-    "PrimeGroups": PrimeGroups,
+    "BasePrimeGroups": BasePrimeGroups,
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
