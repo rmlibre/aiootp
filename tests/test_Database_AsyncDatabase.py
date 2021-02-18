@@ -1,5 +1,5 @@
-# This file is part of tiny_onion, a small-as-possible solution for p2p
-# networking over tor v3 onion services.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -113,8 +113,8 @@ def databases_share_metatags(db, adb, child, achild):
 
 
 def test_tags_metatags():
-    database = Database(key * 2, depth)
-    async_database = run(AsyncDatabase(key * 2, depth))
+    database = Database(key * 2, password_depth=depth)
+    async_database = run(AsyncDatabase(key * 2, password_depth=depth))
     child = database.metatag(metatag)
     achild = run(async_database.ametatag(ametatag))
     databases_share_metatags(database, async_database, child, achild)

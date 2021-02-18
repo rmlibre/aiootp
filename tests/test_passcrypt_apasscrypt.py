@@ -1,5 +1,5 @@
-# This file is part of tiny_onion, a small-as-possible solution for p2p
-# networking over tor v3 onion services.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -43,7 +43,7 @@ def test_passcrypts_equality():
 
 
 async def async_generator_run():
-    async for _ in adata(plaintext_bytes).apasscrypt(salts[0], **passcrypt_settings)[0]:
+    async for _ in adata(plaintext_bytes).apasscrypt(**passcrypt_settings)[0]:
         pass
 
 
@@ -52,6 +52,6 @@ def test_apasscrypt_generators():
 
 
 def test_passcrypt_generators():
-    for _ in data(plaintext_string).passcrypt(salts[0], **passcrypt_settings)[0]:
+    for _ in data(plaintext_string).passcrypt(**passcrypt_settings)[0]:
         pass
 

@@ -1,5 +1,5 @@
-# This file is part of tiny_onion, a small-as-possible solution for p2p
-# networking over tor v3 onion services.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -24,7 +24,7 @@ from aiootp import *
 
 
 key = csprng()
-salt = csprng()[:64]
+salt = generate_salt()
 pid = sha_256(key, salt)
 pad = OneTimePad(key)
 

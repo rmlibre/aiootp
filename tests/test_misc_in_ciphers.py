@@ -1,5 +1,5 @@
-# This file is part of tiny_onion, a small-as-possible solution for p2p
-# networking over tor v3 onion services.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -27,28 +27,36 @@ invalid_size_datastream = data(plaintext_string, size=257).ascii_to_int()
 
 def test_datastream_limits():
     try:
-        run(pad.axor(ainvalid_size_datastream, key=akeys())[100]())
+        keystream = akeys(key, salt=salt)
+        validator = StreamHMAC(key, salt=salt).for_encryption()
+        run(pad.axor(ainvalid_size_datastream, key=keystream, validator=validator)[100]())
     except ValueError:
         pass
     else:
         raise AssertionError
 
     try:
-        pad.xor(invalid_size_datastream, key=keys())[100]()
+        keystream = keys(key, salt=salt)
+        validator = StreamHMAC(key, salt=salt).for_encryption()
+        pad.xor(invalid_size_datastream, key=keystream, validator=validator)[100]()
     except ValueError:
         pass
     else:
         raise AssertionError
 
     try:
-        run(pad.abytes_xor(ainvalid_size_datastream, key=abytes_keys())[100]())
+        keystream = abytes_keys(key, salt=salt)
+        validator = StreamHMAC(key, salt=salt).for_encryption()
+        run(pad.abytes_xor(ainvalid_size_datastream, key=keystream, validator=validator)[100]())
     except ValueError:
         pass
     else:
         raise AssertionError
 
     try:
-        pad.bytes_xor(invalid_size_datastream, key=bytes_keys())[100]()
+        keystream = bytes_keys(key, salt=salt)
+        validator = StreamHMAC(key, salt=salt).for_encryption()
+        pad.bytes_xor(invalid_size_datastream, key=keystream, validator=validator)[100]()
     except ValueError:
         pass
     else:
@@ -87,14 +95,14 @@ def test_keys_limits():
 
 def test_key_limits():
     try:
-        run(pad.apadding_key(key=None))
+        run(pad.apadding_key(key=None, salt=salt))
     except ValueError:
         pass
     else:
         raise AssertionError
 
     try:
-        pad.padding_key(key=None)
+        pad.padding_key(key=None, salt=salt)
     except ValueError:
         pass
     else:
@@ -119,28 +127,28 @@ def test_key_limits():
     except ValueError:
         pass
     else:
-        raise AssertionError
+        raise AssertionError("Salt isn't a 32 byte hex string")
 
     try:
         pad.padding_key(salt=csprng())
     except ValueError:
         pass
     else:
-        raise AssertionError
+        raise AssertionError("Salt isn't a 32 byte hex string")
 
     try:
         run(pad.apadding_key(salt=csprbg()))
     except ValueError:
         pass
     else:
-        raise AssertionError
+        raise AssertionError("Salt isn't a 32 byte hex string")
 
     try:
         pad.padding_key(salt=csprbg())
     except ValueError:
         pass
     else:
-        raise AssertionError
+        raise AssertionError("Salt isn't a 32 byte hex string")
 
 
 def test_missing_Passcrypt_lines():

@@ -1,5 +1,5 @@
-# This file is part of tiny_onion, a small-as-possible solution for p2p
-# networking over tor v3 onion services.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -30,6 +30,11 @@ for variable in __all__:
     __exports.add(variable)
 
 
+from test_StreamHMAC import *
+for variable in __all__:
+    __exports.add(variable)
+
+
 from test_passcrypt_apasscrypt import *
 for variable in __all__:
     __exports.add(variable)
@@ -46,4 +51,7 @@ for variable in __all__:
 
 
 __all__ = list(__exports)
+
+
+assert len(__all__) == len(__exports), "duplicated tests!!!"
 

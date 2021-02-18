@@ -1,5 +1,5 @@
-# This file is part of tiny_onion, a small-as-possible solution for p2p
-# networking over tor v3 onion services.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -324,19 +324,7 @@ async def Comprende_chainable_methods():
 
     mock_tags = generics.range(5)
     mock_keys = keys(key, salt=salt, pid=pid)
-    async for hex_number, tag in akeys(key, salt=salt, pid=pid).aheappop(of=range(5)):
-        assert tag == mock_tags()
-        assert hex_number == mock_keys()
-
-    mock_tags = generics.range(5)
-    mock_keys = keys(key, salt=salt, pid=pid)
     for tag, hex_number in keys(key, salt=salt, pid=pid).tag().heappop(5):
-        assert tag == mock_tags()
-        assert hex_number == mock_keys()
-
-    mock_tags = generics.range(5)
-    mock_keys = keys(key, salt=salt, pid=pid)
-    for hex_number, tag in keys(key, salt=salt, pid=pid).heappop(of=range(5)):
         assert tag == mock_tags()
         assert hex_number == mock_keys()
 
@@ -345,29 +333,6 @@ async def Comprende_chainable_methods():
     async for tag, item in reversed(generics.arange(5, 10)).atag():
         assert item == reversed_list[tag]
 
-    async for item, tag in generics.arange(5).areversed(of=range(5, 10)):
-        assert tag == reversed_list[item]
-
     for tag, item in reversed(generics.range(5, 10)).tag():
         assert item == reversed_list[tag]
-
-    for item, tag in generics.range(5).reversed(of=range(5, 10)):
-        assert tag == reversed_list[item]
-
-    # Check sort / asort
-    tags = generics.arange(5)
-    labels = akeys(key, salt=salt, pid=pid)
-    mock_tags = generics.arange(5)
-    mock_labels = akeys(key, salt=salt, pid=pid).aheappop(5)
-    async for tag, label in tags.asort(span=5, of=labels):
-        assert tag == await mock_tags()
-        assert label == await mock_labels()
-
-    tags = generics.range(5)
-    labels = keys(key, salt=salt, pid=pid)
-    mock_tags = generics.range(5)
-    mock_labels = keys(key, salt=salt, pid=pid).heappop(5)
-    for tag, label in tags.sort(span=5, of=labels):
-        assert tag == mock_tags()
-        assert label == mock_labels()
 
