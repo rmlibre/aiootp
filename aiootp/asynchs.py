@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous one-time-pad based crypto
-# and anonymity library.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -56,6 +56,13 @@ default_loop = asyncio.get_event_loop()
 DebugControl._switches.append(
     lambda: loop().set_debug(DebugControl.is_debugging())
 )
+
+
+def reset_event_loop():
+    """
+    Sets a new event loops for asyncio.
+    """
+    asyncio.set_event_loop(asyncio.new_event_loop())
 
 
 def loop(*a, _default=asyncio.get_event_loop, **kw):
@@ -138,7 +145,7 @@ def wrap_in_executor(function):
 
 def make_os_async(namespace=None):
     """
-    Wraps file operations from the ``os`` module is a decorator that
+    Wraps file operations from the ``os`` module in a decorator that
     runs those methods in an async executor. This was adapted from the
     ``aiofiles`` package:
 
@@ -330,6 +337,7 @@ __extras = {
     "thread_pool": thread_pool,
     "process_pool": process_pool,
     "default_loop": default_loop,
+    "reset_event_loop": reset_event_loop,
     "wrap_in_executor": wrap_in_executor,
 }
 
