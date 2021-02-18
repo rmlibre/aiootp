@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous one-time-pad based crypto
-# and anonymity library.
+# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
@@ -15,24 +15,23 @@ __all__ = [
     "Keys",
     "amnemonic",
     "mnemonic",
-    "akeypair",
-    "keypair",
 ]
 
 
 __doc__ = """
-A collection of highlevel tools for creating & managing symmetric keys.
+A collection of high-level tools for creating & managing symmetric & \
+25519 elliptic curve asymmetric keys.
 """
 
 
 from .asynchs import *
 from .commons import *
-from .randoms import salt, asalt
 from .randoms import csprbg, acsprbg
 from .randoms import csprng, acsprng
 from .randoms import random_256, arandom_256
 from .randoms import random_512, arandom_512
 from .randoms import token_bytes, atoken_bytes
+from .randoms import generate_salt, agenerate_salt
 from .ciphers import Ropake
 from .ciphers import X25519
 from .ciphers import Ed25519
@@ -43,6 +42,7 @@ from .ciphers import passcrypt, apasscrypt
 from .ciphers import bytes_keys, abytes_keys
 from .ciphers import padding_key, apadding_key
 from .ciphers import keypair_ratchets, akeypair_ratchets
+from .ciphers import check_key_and_salt, acheck_key_and_salt
 from .generics import azip
 from .generics import is_iterable
 from .generics import comprehension
@@ -57,8 +57,8 @@ async def atable_keystream(key=None, table=ASCII_TABLE):
     This table based key generator function converts any key string
     containing an arbitrary set of characters, into another key string
     containing the set of characters provided by the table argument.
-    This is an infinite generator that produces the elements one at a
-    time.
+    This is an infinite generator that produces key material at about
+    128 bytes per iteration.
 
     The ASCII_TABLE that's provided as a default, is a comprehensive set
     of ascii characters that are legible, unique, and have single octet
@@ -74,7 +74,6 @@ async def atable_keystream(key=None, table=ASCII_TABLE):
 
     Usage Examples:
 
-    # To produce a 60 byte key of characters from the default table
     key = "hotdiggitydog_thischowisyummy"
     async with atable_keystream(key=key) as generator:
         new_key = await generator()
@@ -84,7 +83,7 @@ async def atable_keystream(key=None, table=ASCII_TABLE):
     """
     if not key:
         key = await acsprng()
-    size = len(table[:])
+    size = len(table)
     keystream = akeys(key, salt=key).aint(16).ato_base(size, table)
     async for key_portion in keystream:
         yield key_portion
@@ -96,8 +95,8 @@ def table_keystream(key=None, table=ASCII_TABLE):
     This table based key generator function converts any key string
     containing an arbitrary set of characters, into another key string
     containing the set of characters provided by the table argument.
-    This is an infinite generator that produces the elements one at a
-    time.
+    This is an infinite generator that produces key material at about
+    128 bytes per iteration.
 
     The ASCII_TABLE that's provided as a default, is a comprehensive set
     of ascii characters that are legible, unique, and have single octet
@@ -112,6 +111,7 @@ def table_keystream(key=None, table=ASCII_TABLE):
     within the table.
 
     Usage Example:
+
     key = "hotdiggitydog_thischowisyummy"
     with table_keystream(key=key) as generator:
         new_key = generator()
@@ -121,7 +121,7 @@ def table_keystream(key=None, table=ASCII_TABLE):
     """
     if not key:
         key = csprng()
-    size = len(table[:])
+    size = len(table)
     keystream = keys(key, salt=key).int(16).to_base(size, table)
     for key_portion in keystream:
         yield key_portion
@@ -214,16 +214,16 @@ async def amnemonic(key, salt=None, words=WORD_LIST):
     in, but by default are a 2048 word list of unique, all lowercase
     english words.
     """
-    translate = None
+    keystream_shift = None
     length = len(words)
     salt = salt if salt else await acsprng()
     key = await apasscrypt(key, salt)
-    entropy = abytes_keys(key, salt=salt, pid=key)
-    async with entropy.abytes_to_int().arelay(salt) as indexes:
+    keystream = abytes_keys(key, salt=salt, pid=key)
+    async with keystream.abytes_to_int().arelay(salt) as indexes:
         while True:
-            if translate:
-                await entropy.gen.asend(translate)
-            translate = yield words[await indexes() % length]
+            if keystream_shift:
+                await keystream.gen.asend(keystream_shift)
+            keystream_shift = yield words[await indexes() % length]
 
 
 @comprehension()
@@ -236,36 +236,56 @@ def mnemonic(key, salt=None, words=WORD_LIST):
     in, but by default are a 2048 word list of unique, all lowercase
     english words.
     """
-    translate = None
+    keystream_shift = None
     length = len(words)
     salt = salt if salt else csprng()
     key = passcrypt(key, salt)
-    entropy = bytes_keys(key, salt=salt, pid=key)
-    with entropy.bytes_to_int().relay(salt) as indexes:
+    keystream = bytes_keys(key, salt=salt, pid=key)
+    with keystream.bytes_to_int().relay(salt) as indexes:
         while True:
-            if translate:
-                entropy.gen.send(translate)
-            translate = yield words[indexes() % length]
+            if keystream_shift:
+                keystream.gen.send(keystream_shift)
+            keystream_shift = yield words[indexes() % length]
 
 
-async def akeypair(entropy=csprbg()):
+async def asingle_use_key(key=None, *, salt=None, pid=0):
     """
-    Returns a pair of symmetric hexidecimal keys from our fast
-    cryptographically secure pseudo-random number generator. One is a
-    512-bit encryption key, the other is a 256-bit salt.
+    Returns a mapping containing a unique combination of a ``key``,
+    ``salt`` & ``pid`` whose use is limited TO A SINGLE encryption /
+    decryption round. The reuse of the same permutation of ``key``,
+    ``salt`` & ``pid`` for multiple different messages **completely**
+    breaks the security of the encryption algorithm.
+
+    Both new ``key`` & ``salt`` values are returned in the mapping
+    if neither are specified. The returned ``pid`` defaults to ``0``,
+    as it does across the package, but is designed to .
     """
-    return commons.Namespace(
-        key=await acsprng(entropy), salt=await asalt(entropy)
-    )
+    if key and salt:
+        raise PermissionError(commons.UNSAFE_KEY_REUSE)
+    key = key if key else await acsprng()
+    salt = salt if salt else await agenerate_salt()
+    await acheck_key_and_salt(key, salt)
+    return Namespace(key=key, salt=salt, pid=pid)
 
 
-def keypair(entropy=csprbg()):
+def single_use_key(key=None, *, salt=None, pid=0):
     """
-    Returns a pair of symmetric hexidecimal keys from our fast
-    cryptographically secure pseudo-random number generator. One is a
-    512-bit encryption key, the other is a 256-bit salt.
+    Returns a mapping containing a unique combination of a ``key``,
+    ``salt`` & ``pid`` whose use is limited TO A SINGLE encryption /
+    decryption round. The reuse of the same ``salt`` for multiple
+    different messages **completely** breaks the security of the
+    encryption algorithm.
+
+    Both new ``key`` & ``salt`` values are returned in the mapping
+    if neither are specified. The returned ``pid`` defaults to ``0``,
+    as it does across the package.
     """
-    return commons.Namespace(key=csprng(entropy), salt=salt(entropy))
+    if key and salt:
+        raise PermissionError(commons.UNSAFE_KEY_REUSE)
+    key = key if key else csprng()
+    salt = salt if salt else generate_salt()
+    check_key_and_salt(key, salt)
+    return Namespace(key=key, salt=salt, pid=pid)
 
 
 class AsyncKeys:
@@ -279,19 +299,25 @@ class AsyncKeys:
     """
 
     instance_methods = {
-        akeys, abytes_keys, amnemonic, atable_key, atable_keystream
+        akeys,
+        abytes_keys,
+        amnemonic,
+        atable_key,
+        atable_keystream,
+        asingle_use_key,
     }
 
-    asalt = staticmethod(asalt)
     akeys = staticmethod(akeys)
-    akeypair = staticmethod(akeypair)
     amnemonic = staticmethod(amnemonic)
-    apadding_key = staticmethod(apadding_key)
     apasscrypt = staticmethod(apasscrypt)
-    abytes_keys = staticmethod(abytes_keys)
     atable_key = staticmethod(atable_key)
+    abytes_keys = staticmethod(abytes_keys)
+    apadding_key = staticmethod(apadding_key)
+    agenerate_salt = staticmethod(agenerate_salt)
+    asingle_use_key = staticmethod(asingle_use_key)
     atable_keystream = staticmethod(atable_keystream)
     akeypair_ratchets = staticmethod(akeypair_ratchets)
+    _acheck_key_and_salt = staticmethod(acheck_key_and_salt)
 
     def __init__(self, key=None):
         """
@@ -391,13 +417,13 @@ class AsyncKeys:
         which is by default ``asha_256_hmac``.
         """
         if not hmac:
-            raise ValueError("``hmac`` argument was not given.")
+            raise ValueError(commons.MISSING_HMAC)
         key = key if key else self.key
         true_hmac = await self.ahmac(data=data, key=key, hasher=hasher)
         if await self.atime_safe_equality(hmac, true_hmac, key=key):
             return True
         else:
-            raise ValueError("HMAC of ``data`` isn't valid.")
+            raise ValueError(commons.INVALID_HMAC)
 
     def _reset(self, key=None):
         """
@@ -449,19 +475,25 @@ class Keys:
     """
 
     instance_methods = {
-        keys, bytes_keys, mnemonic, table_key, table_keystream
+        keys,
+        bytes_keys,
+        mnemonic,
+        table_key,
+        table_keystream,
+        single_use_key,
     }
 
-    salt = staticmethod(salt)
     keys = staticmethod(keys)
-    keypair = staticmethod(keypair)
     mnemonic = staticmethod(mnemonic)
-    padding_key = staticmethod(padding_key)
     passcrypt = staticmethod(passcrypt)
-    bytes_keys = staticmethod(bytes_keys)
     table_key = staticmethod(table_key)
+    bytes_keys = staticmethod(bytes_keys)
+    padding_key = staticmethod(padding_key)
+    generate_salt = staticmethod(generate_salt)
+    single_use_key = staticmethod(single_use_key)
     table_keystream = staticmethod(table_keystream)
     keypair_ratchets = staticmethod(keypair_ratchets)
+    _check_key_and_salt = staticmethod(check_key_and_salt)
 
     def __init__(self, key=None):
         """
@@ -554,13 +586,13 @@ class Keys:
         which is by default ``sha_256_hmac``.
         """
         if not hmac:
-            raise ValueError("``hmac`` argument was not given.")
+            raise ValueError(commons.MISSING_HMAC)
         key = key if key else self.key
         true_hmac = self.hmac(data=data, key=key, hasher=hasher)
         if self.time_safe_equality(hmac, true_hmac, key=key):
             return True
         else:
-            raise ValueError("HMAC of ``data`` isn't valid.")
+            raise ValueError(commons.INVALID_HMAC)
 
     def reset(self, key=None):
         """
@@ -622,8 +654,8 @@ __extras = {
     "__package__": "aiootp",
     "_ainsert_keyrings": ainsert_keyrings,
     "_insert_keyrings": insert_keyrings,
-    "asalt": asalt,
-    "salt": salt,
+    "agenerate_salt": agenerate_salt,
+    "generate_salt": generate_salt,
     "acsprng": acsprng,
     "csprng": csprng,
     "acsprbg": acsprbg,
@@ -636,8 +668,6 @@ __extras = {
     "mnemonic": mnemonic,
     "apasscrypt": apasscrypt,
     "passcrypt": passcrypt,
-    "akeypair": akeypair,
-    "keypair": keypair,
     "akeypair_ratchets": akeypair_ratchets,
     "keypair_ratchets": keypair_ratchets,
     "apadding_key": apadding_key,
