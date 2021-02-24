@@ -47,19 +47,12 @@ from hashlib import sha3_256
 from hashlib import sha3_512
 from collections import deque
 from collections import defaultdict
-from sympy import isprime as is_prime
-from sympy import prevprime as prev_prime
-from sympy import nextprime as next_prime
-from sympy import randprime as random_prime
 from .commons import *
 from .commons import BasePrimeGroups
 from .asynchs import *
 from .asynchs import time
 from .asynchs import sleep
-from .asynchs import asleep
-from .generics import aint
-from .generics import astr
-from .generics import arange
+from .asynchs import asyncio
 from .generics import Hasher
 from .generics import sha_256
 from .generics import sha_512
@@ -71,12 +64,51 @@ from .generics import hash_bytes
 from .generics import ahash_bytes
 from .generics import Comprende
 from .generics import comprehension
-from .generics import bytes_to_int
-from .generics import abytes_to_int
 from .generics import sha_512_hmac
 from .generics import asha_512_hmac
 from .generics import xi_mix, axi_mix
 from .generics import is_async_iterable
+
+
+def _load_sympy():
+    """
+    Sympy is terribly slow to import. So, we only import the package if
+    its prime number functionalities are desired by the user.
+    """
+    global sympy, _is_prime, _prev_prime, _next_prime, _random_prime
+
+    import sympy
+    from sympy import isprime as _is_prime
+    from sympy import prevprime as _prev_prime
+    from sympy import nextprime as _next_prime
+    from sympy import randprime as _random_prime
+
+
+def is_prime(number):
+    """
+    Pass through function for the ``sympy.is_prime`` function.
+    """
+    if "sympy" not in globals():
+        _load_sympy()
+    return _is_prime(number)
+
+
+def prev_prime(number):
+    """
+    Pass through function for the ``sympy.prev_prime`` function.
+    """
+    if "sympy" not in globals():
+        _load_sympy()
+    return _prev_prime(number)
+
+
+def next_prime(number):
+    """
+    Pass through function for the ``sympy.next_prime`` function.
+    """
+    if "sympy" not in globals():
+        _load_sympy()
+    return _next_prime(number)
 
 
 async def acreate_prime(bits=2048):
@@ -84,6 +116,7 @@ async def acreate_prime(bits=2048):
     Asynchronous wrapper around a ``sympy.randprime`` abstraction which
     locates primes based on a user-defined amount of ``bits``.
     """
+    await asleep(0)
     return random_prime(2 ** (bits - 1), 2 ** bits)
 
 
@@ -95,11 +128,21 @@ def create_prime(bits=2048):
     return random_prime(2 ** (bits - 1), 2 ** bits)
 
 
-async def arandom_prime(low=None, high=None, **kw):
+async def arandom_prime(low, high, **kw):
     """
     Asynchronous wrapper around ``sympy.randprime``.
     """
+    await asleep(0)
     return random_prime(low, high, **kw)
+
+
+def random_prime(low, high, **kw):
+    """
+    Pass through function for the ``sympy.random_prime`` function.
+    """
+    if "sympy" not in globals():
+        _load_sympy()
+    return _random_prime(low, high, **kw)
 
 
 async def aprime_table(
@@ -293,9 +336,10 @@ class PrimeGroups(BasePrimeGroups):
         """
         try:
             total = 1
+            await asleep(0)
             for byte in bytes_hash:
                 total *= byte + 1
-                await switch()
+            await asleep(0)
             return total
         except TypeError:
             raise TypeError("Must use an iterable of integers.")
@@ -334,9 +378,8 @@ class PrimeGroups(BasePrimeGroups):
         if generator >= prime:
             raise ValueError("`generator` must be < `prime`!")
         exponent = await cls._aproduct(bytes_hash)
-        return pow(generator, exponent, prime).to_bytes(
-            math.ceil(prime.bit_length() / 8), "big"
-        )
+        result = pow(generator, exponent, prime)
+        return result.to_bytes(math.ceil(prime.bit_length() / 8), "big")
 
     @classmethod
     def exponential_byte_mask(
@@ -358,15 +401,15 @@ class PrimeGroups(BasePrimeGroups):
         if generator >= prime:
             raise ValueError("`generator` must be < `prime`!")
         exponent = cls._product(bytes_hash)
-        return pow(generator, exponent, prime).to_bytes(
-            math.ceil(prime.bit_length() / 8), "big"
-        )
+        result = pow(generator, exponent, prime)
+        return result.to_bytes(math.ceil(prime.bit_length() / 8), "big")
 
 
 async def auniform(*a, **kw):
     """
     Asynchronous version of the standard library's `random.uniform`.
     """
+    await asleep(0)
     return uniform(*a, **kw)
 
 
@@ -374,6 +417,7 @@ async def achoice(iterable):
     """
     Asynchronous version of the standard library's `secrets.choice`.
     """
+    await asleep(0)
     return choice(iterable)
 
 
@@ -381,6 +425,7 @@ async def arandom_range(*a, **kw):
     """
     Asynchronous version of the standard library's `random.randrange`.
     """
+    await asleep(0)
     return random_range(*a, **kw)
 
 
@@ -391,7 +436,7 @@ async def arandom_range_gen(low=1, high=10):
     ``low`` to ``high``.
     """
     while True:
-        yield random_range(low, high)
+        yield await arandom_range(low, high)
 
 
 @comprehension()
@@ -424,34 +469,35 @@ async def aurandom_hash(size):
     """
     Returns ``size`` bytes of `os.urandom` entropy as a `sha3_512` hash.
     """
-    return sha3_512(await aurandom(size)).hexdigest()
+    return (await _entropy.ahash(await aurandom(size))).hex()
 
 
 def urandom_hash(size):
     """
     Returns ``size`` bytes of `os.urandom` entropy as a `sha3_512` hash.
     """
-    return sha3_512(urandom(size)).hexdigest()
+    return _entropy.hash(urandom(size)).hex()
 
 
 async def aurandom_number(size):
     """
     Returns ``size`` bytes of `os.urandom` entropy as an integer.
     """
-    return await abytes_to_int(await aurandom(size))
+    return int.from_bytes(await aurandom(size), "big")
 
 
 def urandom_number(size):
     """
     Returns ``size`` bytes of `os.urandom` entropy as an integer.
     """
-    return bytes_to_int(urandom(size))
+    return int.from_bytes(urandom(size), "big")
 
 
 async def aurandom(size):
     """
     Returns ``size`` bytes of `os.urandom` entropy.
     """
+    await asleep(0)
     return urandom(size)
 
 
@@ -460,7 +506,7 @@ async def atoken_hash(size):
     Returns ``size`` bytes of `secrets.token_bytes` entropy as a
     `sha3_512` hash.
     """
-    return sha3_512(await atoken_bytes(size)).hexdigest()
+    return (await _entropy.ahash(await atoken_bytes(size))).hex()
 
 
 def token_hash(size):
@@ -468,7 +514,7 @@ def token_hash(size):
     Returns ``size`` bytes of `secrets.token_bytes` entropy as a
     `sha3_512` hash.
     """
-    return sha3_512(token_bytes(size)).hexdigest()
+    return _entropy.hash(token_bytes(size)).hex()
 
 
 async def atoken_number(size):
@@ -476,7 +522,7 @@ async def atoken_number(size):
     Returns ``size`` bytes of `secrets.token_bytes` entropy as an
     integer.
     """
-    return await abytes_to_int(await atoken_bytes(size))
+    return int.from_bytes(await atoken_bytes(size), "big")
 
 
 def token_number(size):
@@ -484,13 +530,14 @@ def token_number(size):
     Returns ``size`` bytes of `secrets.token_bytes` entropy as an
     integer.
     """
-    return bytes_to_int(token_bytes(size))
+    return int.from_bytes(token_bytes(size), "big")
 
 
 async def atoken_bytes(size):
     """
     Returns ``size`` bytes of `secrets.token_bytes` entropy.
     """
+    await asleep(0)
     return token_bytes(size)
 
 
@@ -498,102 +545,80 @@ async def atoken_bits(size):
     """
     Returns ``size`` number of bits from `secrets.randbits`.
     """
+    await asleep(0)
     return token_bits(size)
 
 
-@comprehension()
-async def asalted_multiply(mod=primes[257][-1], offset=None):
+async def _asalt_multiply(*numbers):
     """
     Allows for non-commutative multiplication. This assists pseudo-
     random number generators in turning combinations of low entropy
     number sources into permutations. This greatly increases the amount
     of knowledge an attacker must have to perform pre-image or known-
-    plaintext attacks on the hashes of those permutations.
-
-    ``mod``:    Should be a prime of bit-size matching the key space
-        needs of its use case. Defaults to the last 258-bit prime
-        number.
-    ``offset``: A number which is used to salt the calculations. It
-        should be a pseudo-random number >128-bits larger than ``mod``.
-
-    Usage Example:
-
-    numbers = list(range(10))
-    multiply = await asalted_multiply().aprime()
-    randomized_number = await multiply(numbers)
+    plaintext attacks on the calculations usings the hashes of those
+    permutations.
     """
-    if not offset:
-        offset = token_bits(int(math.log2(mod) + 128))
-    mix = int(sha_512(mod, offset), 16)
-    start = seed = int(sha_256(mix, offset), 16)
-    numbers = (mix * seed * offset,)
-    while True:
-        mix ^= abs(sum((seed, offset, *numbers)))
-        mix %= mod
-        seed ^= mix
-        offset ^= seed
-        (*numbers,) = yield start ^ seed
-        start = abs(start % mod)
-        for number in numbers:
-            mix += offset
-            start *= number ^ mix
-            await switch()
+    global _mix, _mod, _seed, _offset
+
+    _mix ^= abs(sum((_seed, _offset, *numbers)))
+    mix = _mix = _mix % _mod
+    _seed ^= mix
+    start = _seed
+    _offset ^= _seed
+    await asleep(0)
+    for number in numbers:
+        mix += _offset
+        start *= number ^ mix
+    await asleep(0)
+    return start ^ _seed
 
 
-@comprehension()
-def salted_multiply(mod=primes[257][-1], offset=None):
+def _salt_multiply(*numbers):
     """
     Allows for non-commutative multiplication. This assists pseudo-
     random number generators in turning combinations of low entropy
     number sources into permutations. This greatly increases the amount
     of knowledge an attacker must have to perform pre-image or known-
-    plaintext attacks on the hashes of those permutations.
-
-    ``mod``:    Should be a prime of bit-size matching the key space
-        needs of its use case. Defaults to the last 258-bit prime
-        number.
-    ``offset``: A number which is used to salt the calculations. It
-        should be a pseudo-random number >128-bits larger than ``mod``.
-
-    Usage Example:
-
-    numbers = list(range(10))
-    multiply = salted_multiply().prime()
-    randomized_number = multiply(numbers)
+    plaintext attacks on the calculations usings the hashes of those
+    permutations.
     """
-    if not offset:
-        offset = token_bits(int(math.log2(mod) + 128))
-    mix = int(sha_512(mod, offset), 16)
-    start = seed = int(sha_256(mix, offset), 16)
-    numbers = (mix * seed * offset,)
-    while True:
-        mix ^= abs(sum((seed, offset, *numbers)))
-        mix %= mod
-        seed ^= mix
-        offset ^= seed
-        (*numbers,) = yield start ^ seed
-        start = abs(start % mod)
-        for number in numbers:
-            mix += offset
-            start *= number ^ mix
+    global _mix, _mod, _seed, _offset
+
+    _mix ^= abs(sum((_seed, _offset, *numbers)))
+    mix = _mix = _mix % _mod
+    _seed ^= mix
+    start = _seed
+    _offset ^= _seed
+    for number in numbers:
+        mix += _offset
+        start *= number ^ mix
+    return start ^ _seed
 
 
 try:
-    #  initializing weakly entropic coroutines
+    # initialize the global hashing object that collects entropy
+    _entropy = Hasher(token_bytes(256))
+
+    #  avert event loop clashes
+    run = asyncio.new_event_loop().run_until_complete
+
+    #  initializing weakly entropic functions
     random = _random.Random(token_bytes(2500))
     uniform = random.uniform
     random_range = random.randrange
 
-    mod = primes[512][-1]
+    _mod = primes[256][-1]
+    _offset = token_bits(256)
+    _mix = int(sha_256(token_hash(32), _mod, _offset), 16)
+    _seed = int(sha_256(token_hash(32), _mix, _offset), 16)
+    _numbers = (_mix, _seed, _offset)
 
-    _asalt_multiply = run(asalted_multiply(mod).aprime())
-    _salt_multiply = salted_multiply(mod).prime()
+    _ = _salt_multiply(*_numbers)
+    run(_asalt_multiply(_, *_numbers))
 
     _initial_entropy = deque(
         [token_number(128), token_number(128)], maxlen=2
     )
-    _entropy = Hasher(token_bytes(256))
-    del mod
 except RuntimeError as error:
     problem = f"{__package__}'s random seed initialization failed, "
     location = f"likely because {__name__} "
@@ -608,7 +633,7 @@ async def _asalt(*, _entropy=_initial_entropy):
     entropy.
     """
     _entropy.appendleft(int(await asha_512(_entropy, token_bytes(32)), 16))
-    return await _asalt_multiply(_entropy)
+    return await _asalt_multiply(*_entropy)
 
 
 def _salt(*, _entropy=_initial_entropy):
@@ -617,7 +642,7 @@ def _salt(*, _entropy=_initial_entropy):
     entropy.
     """
     _entropy.appendleft(int(sha_512(_entropy, token_bytes(32)), 16))
-    return _salt_multiply(_entropy)
+    return _salt_multiply(*_entropy)
 
 
 async def arandom_256(
@@ -635,7 +660,7 @@ async def arandom_256(
         await arandom_number_generator(
             entropy=entropy, runs=runs, refresh=refresh
         ),
-        await atoken_bytes(32),
+        await atoken_hash(32),
     )
 
 
@@ -654,7 +679,7 @@ def random_256(
         random_number_generator(
             entropy=entropy, runs=runs, refresh=refresh
         ),
-        token_bytes(32),
+        token_hash(32),
     )
 
 
@@ -673,7 +698,7 @@ async def arandom_512(
         await arandom_number_generator(
             entropy=entropy, runs=runs, refresh=refresh
         ),
-        await atoken_bytes(32),
+        await atoken_hash(32),
     )
 
 
@@ -692,7 +717,7 @@ def random_512(
         random_number_generator(
             entropy=entropy, runs=runs, refresh=refresh
         ),
-        token_bytes(32),
+        token_hash(32),
     )
 
 
@@ -768,45 +793,41 @@ async def arandom_number_generator(
 
         async def start_generator(runs, tasks=deque()):
             for _ in range(runs):
-                await switch()
+                await asleep(0)
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
-                    tasks.appendleft(hash_cache())
+                    tasks.appendleft(add_to_cache())
             shuffled_tasks = shuffle.root(
                 tasks, key=entropy, salt=token_bytes(32)
             )
             await gather(*shuffled_tasks, return_exceptions=True)
 
-        async def hash_cache():
+        async def add_to_cache():
             seed = await atoken_bytes(32)
             await arandom_sleep(0.003)
-            _cache.appendleft(await _entropy.ahash(*_cache, entropy, seed))
+            _cache.appendleft(await _entropy.ahash(entropy, seed))
 
         async def modular_multiplication():
-            seed = await _asalt()
+            seed = await _asalt() % await achoice(primes[512])
             await arandom_sleep(0.003)
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
             await _entropy.ahash(
-                result.to_bytes(512, "big"), seed.to_bytes(256, "big")
+                result.to_bytes(64, "big"), seed.to_bytes(64, "big")
             )
 
         async def create_unique_multiple(seed):
-            return await big_multiply(
+            return await _asalt_multiply(
                 seed,
                 await aunique_integer(),
-                await atoken_number(32),
                 await atoken_number(32),
             )
 
         async def big_modulation(*args):
-            return await big_multiply(
-                *args, await aunique_big_int(),
-            ) % await achoice(primes[4096])
-
-        async def big_multiply(*args):
-            return await _asalt_multiply(args)
+            return await _asalt_multiply(
+                *args, await atoken_number(32)
+            ) % await achoice(primes[512])
 
         await agenerate_unique_range_bounds()
         await start_generator(runs)
@@ -816,9 +837,7 @@ async def arandom_number_generator(
             await _entropy.ahash(await atoken_bytes(32), entropy)
         )
 
-    return await _entropy.ahash(
-        *_cache, (await _asalt()).to_bytes(256, "big"), entropy
-    )
+    return await _entropy.ahash(*_cache, token_bytes(32), entropy)
 
 
 def random_number_generator(
@@ -893,45 +912,41 @@ def random_number_generator(
 
         async def start_generator(runs, tasks=deque()):
             for _ in range(runs):
-                await switch()
+                await asleep(0)
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
-                    tasks.appendleft(hash_cache())
+                    tasks.appendleft(add_to_cache())
             shuffled_tasks = shuffle.root(
                 tasks, key=entropy, salt=token_bytes(32)
             )
             await gather(*shuffled_tasks, return_exceptions=True)
 
-        async def hash_cache():
+        async def add_to_cache():
             seed = await atoken_bytes(32)
             await arandom_sleep(0.003)
-            _cache.appendleft(await _entropy.ahash(*_cache, entropy, seed))
+            _cache.appendleft(await _entropy.ahash(entropy, seed))
 
         async def modular_multiplication():
-            seed = await _asalt()
+            seed = await _asalt() % await achoice(primes[512])
             await arandom_sleep(0.003)
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = await gather(*multiples, return_exceptions=True)
             result = await big_modulation(seed, *multiples)
             await _entropy.ahash(
-                result.to_bytes(512, "big"), seed.to_bytes(256, "big")
+                result.to_bytes(64, "big"), seed.to_bytes(64, "big")
             )
 
         async def create_unique_multiple(seed):
-            return await big_multiply(
+            return await _asalt_multiply(
                 seed,
                 await aunique_integer(),
-                await atoken_number(32),
                 await atoken_number(32),
             )
 
         async def big_modulation(*args):
-            return await big_multiply(
-                *args, await aunique_big_int(),
-            ) % await achoice(primes[4096])
-
-        async def big_multiply(*args):
-            return await _asalt_multiply(args)
+            return await _asalt_multiply(
+                *args, await atoken_number(32)
+            ) % await achoice(primes[512])
 
         generate_unique_range_bounds()
         run(start_generator(runs))    # <- RuntimeError in event loops
@@ -939,7 +954,7 @@ def random_number_generator(
     else:
         _cache.appendleft(_entropy.hash(token_bytes(32), entropy))
 
-    return _entropy.hash(*_cache, _salt().to_bytes(256, "big"), entropy)
+    return _entropy.hash(*_cache, token_bytes(32), entropy)
 
 
 async def aunique_integer():
@@ -961,7 +976,8 @@ async def aunique_hash():
     Returns a ``hashlib.sha3_512`` string hash of an integer which is
     greater than a 512-bit number by many orders of magnitude.
     """
-    return sha_512(await aunique_big_int())
+    number = await aunique_big_int()
+    return (await _entropy.ahash(number.to_bytes(576, "big"))).hex()
 
 
 def unique_hash():
@@ -969,7 +985,8 @@ def unique_hash():
     Returns a ``hashlib.sha3_512`` string hash of an integer which is
     greater than a 512-bit number by many orders of magnitude.
     """
-    return sha_512(unique_big_int())
+    number = unique_big_int()
+    return _entropy.hash(number.to_bytes(576, "big")).hex()
 
 
 async def aunique_big_int():
@@ -977,10 +994,9 @@ async def aunique_big_int():
     Uses unique lower & upper bound integers to feed into the standard
     library's ``randrange`` function & returns the result.
     """
-
-    numbers = await gather(
-        aunique_lower_bound(), aunique_upper_bound(), return_exceptions=True
-    )
+    upper_bound = aunique_upper_bound()
+    lower_bound = aunique_lower_bound()
+    numbers = await gather(lower_bound, upper_bound, return_exceptions=True)
     return await arandom_range(*numbers) ^ await atoken_number(32)
 
 
@@ -989,10 +1005,9 @@ def unique_big_int():
     Uses unique lower & upper bound integers to feed into the standard
     library's ``randrange`` function & returns the result.
     """
-    return (
-        random_range(unique_lower_bound(), unique_upper_bound())
-        ^ token_number(32)
-    )
+    upper_bound = unique_upper_bound()
+    lower_bound = unique_lower_bound()
+    return random_range(lower_bound, upper_bound) ^ token_number(32)
 
 
 async def aunique_lower_bound():
@@ -1005,7 +1020,7 @@ async def aunique_lower_bound():
     number_0 = arandom_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
     number_1 = arandom_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
     return await _asalt_multiply(
-        await gather(number_0, number_1, return_exceptions=True)
+        *(await gather(number_0, number_1, return_exceptions=True))
     )
 
 
@@ -1018,7 +1033,7 @@ def unique_lower_bound():
     global SMALL_LOWER_BOUND
     number_0 = random_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
     number_1 = random_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
-    return _salt_multiply([number_0, number_1])
+    return _salt_multiply(number_0, number_1)
 
 
 async def aunique_upper_bound():
@@ -1031,7 +1046,7 @@ async def aunique_upper_bound():
     number_0 = arandom_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
     number_1 = arandom_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
     return await _asalt_multiply(
-        await gather(number_0, number_1, return_exceptions=True)
+        *(await gather(number_0, number_1, return_exceptions=True))
     )
 
 
@@ -1143,10 +1158,10 @@ async def atemplate_unique_number(number):
     cryptographically secure pseudo-random numbers.
     """
     seed = await _asalt()
-    number = await aint(number)  # throw if not a number
+    number = int(number)  # throw if not a number
     while seed < number:
         seed *= await _asalt()
-    return await aint(str(seed)[: len(str(number))])
+    return int(str(seed)[: len(str(number))])
 
 
 def template_unique_number(number):
@@ -1256,6 +1271,7 @@ async def aseeder(entropy=sha_512(_salt()), refresh=False, runs=26):
 
         ratchet.update(token_bytes(32))
         output.update(entropy + ratchet.digest())
+        await asleep(0)
         entropy = yield output.hexdigest()
 
 
@@ -1334,6 +1350,7 @@ async def abytes_seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
 
         ratchet.update(token_bytes(32))
         output.update(entropy + ratchet.digest())
+        await asleep(0)
         entropy = yield output.digest()
 
 
@@ -1384,9 +1401,9 @@ async def anon_0_digits(key=None, stream_key=""):
     key = key if key else await acsprng()
     seed = await asha_512(key)
     while True:
-        stream_key = await aint(await asha_512(seed, key, stream_key), 16)
-        for char in (await astr(stream_key)).replace("0", "")[8:]:
-            yield await aint(char)
+        stream_key = int(await asha_512(seed, key, stream_key), 16)
+        for char in str(stream_key).replace("0", "")[8:]:
+            yield int(char)
 
 
 @comprehension()
@@ -1438,9 +1455,9 @@ async def adigits(key=None, stream_key=""):
     key = key if key else await acsprng()
     seed = await asha_512(key)
     while True:
-        stream_key = await aint(await asha_512(seed, key, stream_key), 16)
-        for char in (await astr(stream_key))[8:]:
-            yield await aint(char)
+        stream_key = int(await asha_512(seed, key, stream_key), 16)
+        for char in str(stream_key)[8:]:
+            yield int(char)
 
 
 @comprehension()
@@ -1517,7 +1534,7 @@ async def aunshuffle(sequence=None, key=None, salt=None):
     for index, placement in enumerate(mappings):
         if placement != counter:
             cache[placement] = sequence[index]
-            await switch()
+            await asleep(0)
         else:
             yield sequence[index]
             counter += 1
@@ -1681,7 +1698,7 @@ async def acsprng(entropy=bytes.fromhex(sha_512(_salt()))):
     global _acsprng
     try:
         return await _acsprng(entropy)
-    except StopAsyncIteration:
+    except (StopAsyncIteration, ValueError):
         _acsprng = aseeder.root(entropy).asend
         return await _acsprng(None)
 
@@ -1698,7 +1715,7 @@ def csprng(entropy=bytes.fromhex(sha_512(_salt()))):
     global _csprng
     try:
         return _csprng(entropy)
-    except StopIteration:
+    except (StopIteration, ValueError):
         _csprng = seeder.root(entropy).send
         return _csprng(None)
 
@@ -1715,7 +1732,7 @@ async def acsprbg(entropy=bytes.fromhex(sha_512(_salt()))):
     global _acsprbg
     try:
         return await _acsprbg(entropy)
-    except StopAsyncIteration:
+    except (StopAsyncIteration, ValueError):
         _acsprbg = abytes_seeder.root(entropy).asend
         return await _acsprbg(None)
 
@@ -1732,7 +1749,7 @@ def csprbg(entropy=bytes.fromhex(sha_512(_salt()))):
     global _csprbg
     try:
         return _csprbg(entropy)
-    except StopIteration:
+    except (StopIteration, ValueError):
         _csprbg = bytes_seeder.root(entropy).send
         return _csprbg(None)
 
@@ -1788,7 +1805,6 @@ __extras = {
     "arandom_range_gen": arandom_range_gen,
     "arandom_sleep": arandom_sleep,
     "asafe_symm_keypair": asafe_symm_keypair,
-    "asalted_multiply": asalted_multiply,
     "aseeder": aseeder,
     "ashuffle": ashuffle,
     "atemplate_unique_number": atemplate_unique_number,
@@ -1834,7 +1850,6 @@ __extras = {
     "random_range_gen": random_range_gen,
     "random_sleep": random_sleep,
     "safe_symm_keypair": safe_symm_keypair,
-    "salted_multiply": salted_multiply,
     "seeder": seeder,
     "shuffle": shuffle,
     "template_unique_number": template_unique_number,
