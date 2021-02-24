@@ -22,7 +22,6 @@ import os
 import aiofiles
 from pathlib import Path
 from .asynchs import aos
-from .asynchs import switch
 from .commons import Namespace
 
 
@@ -110,9 +109,9 @@ async def afind_salt_file(path, *, key=None):
     if key:
         return path / await adeniable_filename(key)
     for subpath in path.iterdir():
+        await asleep(0)
         if subpath.is_file() and len(subpath.stem) == 64:
             return subpath.absolute()
-        await switch()
 
 
 def find_salt_file(path, *, key=None):
