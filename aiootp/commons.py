@@ -301,7 +301,11 @@ __extras = {
     "ID": "contact_identifier",
     "INACTIVE": "terminated_connection",
     "INVALID_CIPHERTEXT_LENGTH": "The length of ciphertext is invalid.",
+    "INVALID_DECRYPTION_VALIDATOR": (
+        "Must set `validator` for decryption or preemptive validation."
+    ),
     "INVALID_DIGEST": "Current digest of the data stream isn't valid.",
+    "INVALID_ENCRYPTION_VALIDATOR": "Must set `validator` for encryption.",
     "INVALID_HMAC": "HMAC of the data stream isn't valid.",
     "KEEP_ALIVE": "keep_alive",
     "KEY": "key",
@@ -337,6 +341,7 @@ __extras = {
     "PORT": 8081,
     "PREEMPTIVE": "preemptive_mode",
     "RACHET": "rachet_shared_key",
+    "UNIFORM_PRIME_512": UNIFORM_PRIME_512,
     "RECEIVING": "receiving",
     "REGISTRATION": "registration",
     "RETRY": "retry",
