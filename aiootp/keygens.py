@@ -62,9 +62,7 @@ async def atable_keystream(key=None, table=ASCII_TABLE):
 
     The ASCII_TABLE that's provided as a default, is a comprehensive set
     of ascii characters that are legible, unique, and have single octet
-    byte representations. This ensures keys can be converted into a
-    cryptographically secure byte stream of numbers from 32 to
-    126.
+    byte representations. It contains 95 unique characters.
 
     This generator function provides either deterministic keys from a
     user key, or generates a random 512-bit hash and derives a random
@@ -100,9 +98,7 @@ def table_keystream(key=None, table=ASCII_TABLE):
 
     The ASCII_TABLE that's provided as a default, is a comprehensive set
     of ascii characters that are legible, unique, and have single octet
-    byte representations. This ensures keys can be converted into a
-    cryptographically secure byte stream of numbers from 32 to
-    126.
+    byte representations. It contains 95 unique characters.
 
     This generator function provides either deterministic keys from a
     user key, or generates a random 512-bit hash and derives a random
@@ -135,8 +131,7 @@ async def atable_key(key=None, table=ASCII_TABLE, size=64):
 
     The ASCII_TABLE that's provided as a default, is a comprehensive set
     of ascii characters that are all legible, with unique, single octet
-    byte representations. This ensures keys can be converted into byte
-    streams of numbers from 32 to 126, with no duplicate values.
+    byte representations. It contains 95 unique characters.
 
     This generator function provides either deterministic keys from a
     user key, or generates a random 512-bit hash and derives a random
@@ -174,8 +169,7 @@ def table_key(key=None, table=ASCII_TABLE, size=64):
 
     The ASCII_TABLE that's provided as a default, is a comprehensive set
     of ascii characters that are all legible, with unique, single octet
-    byte representations. This ensures keys can be converted into byte
-    streams of numbers from 32 to 126, with no duplicate values.
+    byte representations. It contains 95 unique characters.
 
     This generator function provides either deterministic keys from a
     user key, or generates a random 512-bit hash and derives a random
@@ -205,7 +199,7 @@ def table_key(key=None, table=ASCII_TABLE, size=64):
 
 
 @comprehension()
-async def amnemonic(key, salt=None, words=WORD_LIST):
+async def amnemonic(key, *, salt=None, words=WORD_LIST):
     """
     Creates a stream of words for a mnemonic key from a user password
     ``key`` & random salt. If a salt isn't passed, then a random salt is
@@ -227,7 +221,7 @@ async def amnemonic(key, salt=None, words=WORD_LIST):
 
 
 @comprehension()
-def mnemonic(key, salt=None, words=WORD_LIST):
+def mnemonic(key, *, salt=None, words=WORD_LIST):
     """
     Creates a stream of words for a mnemonic key from a user password
     ``key`` & random salt. If a salt isn't passed, then a random salt is
@@ -319,14 +313,14 @@ class AsyncKeys:
     akeypair_ratchets = staticmethod(akeypair_ratchets)
     _acheck_key_and_salt = staticmethod(acheck_key_and_salt)
 
-    def __init__(self, key=None):
+    def __init__(self, key=None, *, automate_key_use=True):
         """
         Stores a key in the instance used to create deterministic
         streams of key material &, create & validate HMAC codes. If a
         ``key`` argument is not passed then a new 512-bit random key is
         created.
         """
-        self._reset(key=key)
+        self._reset(key=key, automate_key_use=automate_key_use)
         self.apasscrypt = self._apasscrypt
 
     def __getitem__(self, pid=""):
@@ -389,7 +383,7 @@ class AsyncKeys:
         to implement correctly & is easier to prove guarantees of the
         infeasibility of timing attacks.
         """
-        salt = await atoken_bytes(32)
+        salt = (await atoken_bytes(32)).hex()
         key = key if key else self.key
         if (
             await asha_256(key, value_0, salt)
@@ -425,28 +419,30 @@ class AsyncKeys:
         else:
             raise ValueError(commons.INVALID_HMAC)
 
-    def _reset(self, key=None):
+    def _reset(self, key=None, *, automate_key_use=True):
         """
         Replaces the stored instance key used to create deterministic
         streams of key material &, create & validate HMAC codes.
         """
         self._key = key if key else csprng()
-        for method in self.instance_methods:
-            convert_static_method_to_member(
-                self, method.__name__, method, key=self.key,
-            )
+        if automate_key_use:
+            for method in self.instance_methods:
+                convert_static_method_to_member(
+                    self, method.__name__, method, key=self.key,
+                )
 
-    async def areset(self, key=None):
+    async def areset(self, key=None, *, automate_key_use=True):
         """
         Replaces the stored instance key used to create deterministic
         streams of key material &, create & validate HMAC codes.
         """
         self._key = key if key else await acsprng()
-        for method in self.instance_methods:
-            convert_static_method_to_member(
-                self, method.__name__, method, key=self.key,
-            )
-            await switch()
+        if automate_key_use:
+            for method in self.instance_methods:
+                convert_static_method_to_member(
+                    self, method.__name__, method, key=self.key
+                )
+                await asleep(0)
 
     async def _apasscrypt(
         self, password, salt, *, kb=1024, cpu=3, hardness=1024
@@ -495,14 +491,14 @@ class Keys:
     keypair_ratchets = staticmethod(keypair_ratchets)
     _check_key_and_salt = staticmethod(check_key_and_salt)
 
-    def __init__(self, key=None):
+    def __init__(self, key=None, *, automate_key_use=True):
         """
         Stores a key in the instance used to create deterministic
         streams of key material &, create & validate HMAC codes. If a
         ``key`` argument is not passed then a new 512-bit random key is
         created.
         """
-        self.reset(key)
+        self.reset(key, automate_key_use=automate_key_use)
         self.passcrypt = self._passcrypt
 
     def __getitem__(self, pid=""):
@@ -561,7 +557,7 @@ class Keys:
         to implement correctly & is easier to prove guarantees of the
         infeasibility of timing attacks.
         """
-        salt = token_bytes(32)
+        salt = token_bytes(32).hex()
         key = key if key else self.key
         if sha_256(key, value_0, salt) == sha_256(key, value_1, salt):
             return True
@@ -594,16 +590,17 @@ class Keys:
         else:
             raise ValueError(commons.INVALID_HMAC)
 
-    def reset(self, key=None):
+    def reset(self, key=None, *, automate_key_use=True):
         """
         Replaces the stored instance key used to create deterministic
         streams of key material &, create & validate HMAC codes.
         """
         self._key = key if key else csprng()
-        for method in self.instance_methods:
-            convert_static_method_to_member(
-                self, method.__name__, method, key=self.key,
-            )
+        if automate_key_use:
+            for method in self.instance_methods:
+                convert_static_method_to_member(
+                    self, method.__name__, method, key=self.key,
+                )
 
     def _passcrypt(
         self, password, salt, *, kb=1024, cpu=3, hardness=1024
@@ -621,26 +618,26 @@ class Keys:
         )
 
 
-async def ainsert_keyrings(self, key=None):
+async def ainsert_keyrings(self, key=None, *, automate_key_use=True):
     """
     A generic __init__ function that can be copied into abitrary class
     or instance dictionaries to give those objects access to stateful
     & ephemeral key material generators.
     """
     key = key if key else await acsprng()
-    self.keyring = Keys(key=key)
-    self.akeyring = AsyncKeys(key=key)
+    self.keyring = Keys(key=key, automate_key_use=automate_key_use)
+    self.akeyring = AsyncKeys(key=key, automate_key_use=automate_key_use)
 
 
-def insert_keyrings(self, key=None):
+def insert_keyrings(self, key=None, *, automate_key_use=True):
     """
     A generic __init__ function that can be copied into abitrary class
     or instance dictionaries to give those objects access to stateful
     & ephemeral key material generators.
     """
     key = key if key else csprng()
-    self.keyring = Keys(key=key)
-    self.akeyring = AsyncKeys(key=key)
+    self.keyring = Keys(key=key, automate_key_use=automate_key_use)
+    self.akeyring = AsyncKeys(key=key, automate_key_use=automate_key_use)
 
 
 __extras = {
