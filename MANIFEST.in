@@ -1,6 +1,6 @@
 recursive-include licenses *
-recursive-exclude aiootp/tor/ *
-recursive-exclude aiootp/databases/ *
+recursive-exclude aiootp/tor *
+recursive-exclude aiootp/databases *
 include LICENSE
 include setup.py
 include setup.cfg
@@ -34,6 +34,7 @@ include tests/test_Ropake.py
 include tests/test_ciphers.py
 include tests/test_generics.py
 include tests/test_Comprende.py
+include tests/test_StreamHMAC.py
 include tests/test_X25519_Ed25519.py
 include tests/test_misc_in_ciphers.py
 include tests/test_passcrypt_apasscrypt.py
