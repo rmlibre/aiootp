@@ -13,9 +13,70 @@ from init_tests import *
 
 
 __all__ = [
+    "test_detection_of_ciphertext_modification",
     "test_incomplete_validation",
     "__all__",
 ]
+
+
+def test_detection_of_ciphertext_modification():
+    HMAC = commons.HMAC
+    SALT = commons.SALT
+    CT = commons.CIPHERTEXT
+    a_hex = lambda: randoms.choice("0123456789abcdef")
+    a_number = lambda: randoms.random_range(1, bits[256])
+
+    aciphertext = run(pad.abytes_encrypt(plaintext_bytes))
+    _act = aciphertext["ciphertext"]
+    _ahmac = aciphertext["hmac"]
+    _asalt = aciphertext["salt"]
+    ciphertext = pad.bytes_encrypt(plaintext_bytes)
+    _ct = ciphertext["ciphertext"]
+    _hmac = ciphertext["hmac"]
+    _salt = ciphertext["salt"]
+
+    amodified_ciphertexts = dict(
+        amodified_ciphertext_0={CT: [], HMAC: _ahmac, SALT: _asalt},
+        amodified_ciphertext_1={CT: [_act[0] ^ a_number(), *_act[1:]], HMAC: _ahmac, SALT: _asalt},
+        amodified_ciphertext_2={CT: [_act[0] ^ 0b1, *_act[1:]], HMAC: _ahmac, SALT: _asalt},
+        amodified_ciphertext_3={CT: [_act[0] + bits[2049], *_act[1:]], HMAC: _ahmac, SALT: _asalt},
+        amodified_ciphertext_4={CT: _act, HMAC: "", SALT: _asalt},
+        amodified_ciphertext_5={CT: _act, HMAC: hex(int(_ahmac, 16) ^ a_number())[2:], SALT: _asalt},
+        amodified_ciphertext_6={CT: _act, HMAC: hex(int(_ahmac, 16) ^ 0b1)[2:], SALT: _asalt},
+        amodified_ciphertext_7={CT: _act, HMAC: _ahmac + a_hex(), SALT: _asalt},
+        amodified_ciphertext_8={CT: _act, HMAC: _ahmac, SALT: ""},
+        amodified_ciphertext_9={CT: _act, HMAC: _ahmac, SALT: hex(int(_asalt, 16) ^ a_number())[2:]},
+        amodified_ciphertext_10={CT: _act, HMAC: _ahmac, SALT: hex(int(_asalt, 16) ^ 0b1)[2:]},
+        amodified_ciphertext_11={CT: _act, HMAC: _ahmac, SALT: _asalt + a_hex()},
+    )
+    modified_ciphertexts = dict(
+        modified_ciphertext_0={CT: [], HMAC: _hmac, SALT: _salt},
+        modified_ciphertext_1={CT: [_ct[0] ^ a_number(), *_ct[1:]], HMAC: _hmac, SALT: _salt},
+        modified_ciphertext_2={CT: [_ct[0] ^ 0b1, *_ct[1:]], HMAC: _hmac, SALT: _salt},
+        modified_ciphertext_3={CT: [_ct[0] + bits[2049], *_ct[1:]], HMAC: _hmac, SALT: _salt},
+        modified_ciphertext_4={CT: _ct, HMAC: "", SALT: _salt},
+        modified_ciphertext_5={CT: _ct, HMAC: hex(int(_hmac, 16) ^ a_number())[2:], SALT: _salt},
+        modified_ciphertext_6={CT: _ct, HMAC: hex(int(_hmac, 16) ^ 0b1)[2:], SALT: _salt},
+        modified_ciphertext_7={CT: _ct, HMAC: _hmac + a_hex(), SALT: _salt},
+        modified_ciphertext_8={CT: _ct, HMAC: _hmac, SALT: ""},
+        modified_ciphertext_9={CT: _ct, HMAC: _hmac, SALT: hex(int(_salt, 16) ^ a_number())[2:]},
+        modified_ciphertext_10={CT: _ct, HMAC: _hmac, SALT: hex(int(_salt, 16) ^ 0b1)[2:]},
+        modified_ciphertext_11={CT: _ct, HMAC: _hmac, SALT: _salt + a_hex()},
+    )
+    for modified_ciphertext in amodified_ciphertexts.values():
+        try:
+            run(pad.abytes_decrypt(modified_ciphertext))
+        except (ValueError, OverflowError):
+            pass
+        else:
+            raise AssertionError("Modification was not detected!")
+    for modified_ciphertext in modified_ciphertexts.values():
+        try:
+            pad.bytes_decrypt(modified_ciphertext)
+        except (ValueError, OverflowError):
+            pass
+        else:
+            raise AssertionError("Modification was not detected!")
 
 
 def test_incomplete_validation():

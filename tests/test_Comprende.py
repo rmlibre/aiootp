@@ -30,7 +30,7 @@ assert TEST_STRING_LENGTH == 11
 async def awith_return_coro(*, got=None):
     for _ in range(TEST_STRING_LENGTH):
         got = yield got
-        await switch()
+        await asleep(0)
     raise UserWarning(got)
 
 
@@ -44,7 +44,7 @@ def with_return_coro(*, got=None):
 @comprehension()
 async def ano_return_coro(*, got=None):
     for _ in range(TEST_STRING_LENGTH):
-        await switch()
+        await asleep(0)
         got = yield got
 
 
@@ -57,7 +57,7 @@ def no_return_coro(*, got=None):
 @comprehension()
 async def awith_return_iterator():
     for char in TEST_STRING:
-        await switch()
+        await asleep(0)
         yield char
     raise UserWarning(char)
 
@@ -72,7 +72,7 @@ def with_return_iterator():
 @comprehension()
 async def ano_return_iterator():
     for char in TEST_STRING:
-        await switch()
+        await asleep(0)
         yield char
 
 
@@ -226,18 +226,18 @@ async def Comprende_chainable_methods():
     # Check timeout / atimeout
     time_limit = 0.01
     time_start = asynchs.time()
-    async for item in generics.arange(100_000_000).atimeout(time_limit):
-        pass
+    async for item in acount().arandom_sleep(0.02).atimeout(time_limit):
+        time_start = asynchs.time()
     time_elapsed = asynchs.time() - time_start
     assert time_elapsed >= time_limit
-    assert time_elapsed < time_limit + 0.001
+    assert time_elapsed < time_limit + 0.02
 
     time_start = asynchs.time()
-    for item in generics.range(100_000_000).timeout(time_limit):
-        pass
+    for item in count().random_sleep(0.02).timeout(time_limit):
+        time_start = asynchs.time()
     time_elapsed = asynchs.time() - time_start
     assert time_elapsed >= time_limit
-    assert time_elapsed < time_limit + 0.001
+    assert time_elapsed < time_limit + 0.02
 
     # Check halt / ahalt
     sentinel = csprng()[:2]

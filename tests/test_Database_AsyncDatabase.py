@@ -30,7 +30,7 @@ def test_Database_instance(database):
 
     assert db._root_key == database._root_key
     assert db._root_hash == database._root_hash
-    assert db._Database__root_salt() == database._Database__root_salt()
+    assert db._Database__root_salt == database._Database__root_salt
     assert db._root_seed == database._root_seed
     assert db._root_filename == database._root_filename
     assert db.hmac(tag) == database.hmac(tag)
@@ -43,7 +43,7 @@ def test_AsyncDatabase_instance(database):
 
     assert db._root_key == database._root_key
     assert db._root_hash == database._root_hash
-    assert run(db._AsyncDatabase__aroot_salt()) == database._Database__root_salt()
+    assert db._AsyncDatabase__root_salt == database._Database__root_salt
     assert db._root_seed == database._root_seed
     assert db._root_filename == database._root_filename
     assert run(db.ahmac(tag)) == database.hmac(tag)
