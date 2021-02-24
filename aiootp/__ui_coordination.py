@@ -157,7 +157,7 @@ async def asum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
     """
     summary = await asha_512(salt, kb, cpu, hardness)
     async for password in self:
-        pre_key = await asha_512(summary, salt, password)
+        pre_key = await asha_512(salt, summary, password)
         summary = await _apasscrypt(
             pre_key, summary, kb=kb, cpu=cpu, hardness=hardness
         )
@@ -173,7 +173,7 @@ def sum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
     """
     summary = sha_512(salt, kb, cpu, hardness)
     for password in self:
-        pre_key = sha_512(summary, salt, password)
+        pre_key = sha_512(salt, summary, password)
         summary = _passcrypt(
             pre_key, summary, kb=kb, cpu=cpu, hardness=hardness
         )
@@ -296,7 +296,7 @@ def insert_stateful_key_generator_objects():
     Copies the addons over into the ``OneTimePad`` class.
     """
 
-    def __init__(self, key=None):
+    def __init__(self, key=None, *, automate_key_use=True):
         """
         Creates an object which manages a main encryption key for use in
         a set of the package's static functions & generators. This
@@ -304,7 +304,7 @@ def insert_stateful_key_generator_objects():
         HMAC creation/validation by automatically passing in the key as
         a keyword argument.
         """
-        insert_keyrings(self, key)
+        insert_keyrings(self, key, automate_key_use=automate_key_use)
         self._key = self.keyring.key
         self.hmac = self.keyring.hmac
         self.ahmac = self.akeyring.ahmac
@@ -314,10 +314,11 @@ def insert_stateful_key_generator_objects():
         self.apasscrypt = self.akeyring.apasscrypt
         self.time_safe_equality = self.keyring.time_safe_equality
         self.atime_safe_equality = self.akeyring.atime_safe_equality
-        for method in self.instance_methods:
-            convert_static_method_to_member(
-                self, method.__name__, method, key=self.key,
-            )
+        if automate_key_use:
+            for method in self.instance_methods:
+                convert_static_method_to_member(
+                    self, method.__name__, method, key=self.key,
+                )
 
     OneTimePad.__init__ = __init__
     OneTimePad.Keys = Keys
