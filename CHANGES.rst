@@ -23,6 +23,107 @@
 =============
 
 
+Changes for version 0.18.1 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security Patch: Deprecated & replaced an internal kdf for saving 
+   database tags due to a vulnerability. If an adversary can get a user 
+   to reveal the value returned by the ``hmac`` method when fed the tag 
+   file's filename & the salt used for that encrypted tag, then they 
+   could deduce the decryption key for the tag. A version check was 
+   added only for backwards compatibility & will be removed on the next 
+   update. All databases should continue functioning as normal, though 
+   all users are advised to **re-save their databases** after upgrading
+   so the new kdf can be used. This will not overwrite the old files,
+   so they'll need to be deleted manually.
+-  Replaced usage of the async ``switch`` coroutine with ``asyncio.sleep``
+   because it was not allowing tasks to switch as it was designed to.
+   Many improvements were made related to this change to make the
+   package behave better in async contexts.
+-  Removed the private method in the database classes which held a 
+   reference to the root salt. It's now held in a private attribute. 
+   This change simplifies the code a bit & allows instances to be 
+   pickleable.
+-  The ``atimeout`` & ``timeout`` chainable ``Comprende`` generator
+   methods can now stop the generators' executions mid-iteration. They
+   run them in separate async tasks or thread pools, respectively, to 
+   acheive this.
+-  The ``await_on`` & ``wait_on`` generators now restart their timeout
+   counters after every successful iteration that detected a new value
+   in their ``queue``. The ``delay`` keyword argument was changed to 
+   ``probe_frequency``, a keyword-only argument.
+-  Removed the package's dependency on the ``aioitertools`` package.
+-  Made the ``sympy`` package an optional import. If any of its
+   functionalities are used by the user, the package is only then
+   imported & this is done automatically.
+-  Various streamlining efforts were made to the imports & entropy
+   initialization to reduce the package's import & startup time.
+
+
+Minor Changes 
+------------- 
+
+-  Fixes of various typos, docstrings & tutorials.
+-  Various cleanups, refactorings & efficiency improvements.
+-  Added new tests for detecting malformed or modified ciphertexts.
+-  Removed extraneous functions in ``generics.py``.
+-  Add a ``UNIFORM_PRIME_512`` value to ``__datasets.py`` for use in the 
+   ``Hasher.mask_byte_order`` & ``Hasher.amask_byte_order`` methods.
+   Those methods were also altered to produce more uniform looking 
+   results. The returned masked values are now also 64 bytes by default.
+-  Added an ``automate_key_use`` keyword-only boolean argument to the init
+   for the ``OneTimePad``, ``Keys`` & ``AsyncKeys`` classes. It can be toggled to
+   stop the classes from overwriting class methods so they 
+   automatically read the instance's key attribute. This optionally 
+   speeds up instantiation by an order of magnitude at the cost of 
+   convenience.
+-  Fixed ``asynchs.Threads`` class' wrongful use of a ``multiprocessing``
+   ``Manager.list`` object instead of a regular list.
+-  Changed the ``_delay`` keyword-only argument in ``Processes`` & ``Threads``
+   classes' methods to ``probe_freqeuncy`` so users can specify how often
+   results will be checked for after firing off a process, thread, or
+   associated pool submission.
+-  Now the ``asubmit`` & ``submit`` methods in ``Processes`` & ``Threads`` 
+   can accept keyword arguments.
+-  Added ``agather`` & ``gather`` methods to the ``Threads`` & ``Processes``
+   classes. They receive any number of functions, & ``args`` &/or ``kwargs`` to
+   pass to those functions when submitting them to their associated 
+   pools.
+-  Changed the ``runsum`` instance IDs from hex strings to bytes & cleaned 
+   up the instance caching & cleaning logic.
+-  Altered & made private the ``asalted_multiply`` & ``salted_multiply``
+   functions in the ``randoms.py`` module.
+-  Started a new event loop specific to the ``randoms.py`` module which
+   should prevent the ``RuntimeError`` when ``random_number_generator``
+   is called from within the user's running event loop.
+-  Added a ``ValueError`` check to the ``(a)cspr(b/n)g`` functions in 
+   ``randoms.py``. This will allow simultaneously running tasks to 
+   request entropy from the function by returning a result from a 
+   newly instantiated generator object. 
+-  Added checks in the ``*_encipher`` & ``*_decipher`` generators to 
+   help assure users correctly declare the mode for their StreamHMAC 
+   validator instances. 
+-  Fixed the ``__len__`` function in the database classes to count the 
+   number of tags in the database & exclude their internal maintenaince 
+   files.
+-  The ``TimeoutError`` raised after decrypting a ciphertext with an 
+   expired timestamp now contains the seconds it has exceeded the ``ttl``
+   in a ``value`` attribute.
+-  The timestamp used to sign the package now displays the day of 
+   signing instead of the second of signing.
+-  The ``(a)sum_sha_*`` & ``(a)sum_passcrypt`` generators were altered to
+   reapply the supplied ``salt`` on every iteration. 
+-  Stabilized the usability of the ``stop`` keyword-only argument in the
+   ``adata`` & ``data`` generators. It now directly decides the total
+   number of elements in a ``sequence`` allowed to be yielded.
+
+
+
+
 Changes for version 0.18.0 
 ========================== 
 

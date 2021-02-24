@@ -9,7 +9,7 @@
 #
 
 
-__version__ = "0.18.0"
+__version__ = "0.18.1"
 
 
 __license__ = "AGPLv3"
@@ -35,6 +35,10 @@ class DebugControl:
 
     @classmethod
     def enable_debugging(cls):
+        """
+        WARNING: This will also reveal potentially sensitive values in
+        object repr's that are omitted by default.
+        """
         cls._DEBUG_MODE = True
         for toggle in cls._switches:
             toggle()

@@ -109,15 +109,15 @@ Users can create and modify transparently encrypted databases:
     
     # Sensitive tags can be hashed into uuids of arbitrary size ->
 
-    clients = await db.ametatag("clients")
+    await db.ametatag("clients")
     
-    email_uuids = await clients.auuids("emails", size=64)
+    email_uuids = await db.clients.auuids("emails", size=64)
     
     for email_address in ["brittany@email.com", "john.doe@email.net"]:
     
         hashed_tag = await email_uuids(email_address)
         
-        clients[hashed_tag] = "client account data"
+        db.clients[hashed_tag] = "client account data"
     
     db["clients salt"] = await email_uuids.aresult(exit=True)
     
@@ -136,7 +136,7 @@ Users can create and modify transparently encrypted databases:
     
     await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac) 
     
- >>>ValueError: "HMAC of ``data`` isn't valid." 
+ >>>ValueError: "HMAC of the data stream isn't valid."
     
     
     # Create child databases accessible from the parent by a ``metatag`` ->
@@ -219,6 +219,49 @@ Users can create and modify transparently encrypted databases:
         print("Saving to disk...")
         
         
+    # As databases grow in the number of tags & metatags & the size of
+    
+    # the data within, it may become desireable to load data from them
+    
+    # as needed, instead of all at once during initialization. This can
+
+    # be done with the ``preload`` boolean keyword argument ->
+    
+    db["tag_test"] = "test value"
+    
+    await db.ametatag("metatag_test")
+    
+    await db.asave()
+    
+    quick_db = await aiootp.AsyncDatabase(key, preload=False)
+    
+    
+    # Although, now to retrieve elements from an async database, the
+    
+    # ``aquery`` method must first be used to load tags into the cache ->
+    
+    quick_db["tag_test"]
+    
+ >>> None
+    
+    loaded_value = await quick_db.aquery("tag_test")
+    
+    assert loaded_value == "test value"
+    
+    assert quick_db["tag_test"] == "test value"
+    
+    
+    # Metatags need to be loaded manually as well ->
+    
+    quick_db.metatag_test
+    
+ >>> AttributeError:
+    
+    await quick_db.ametatag("metatag_test")
+    
+    assert type(quick_db.metatag_test) == aiootp.AsyncDatabase
+    
+    
     # Transparent and automatic encryption makes persisting sensitive 
     
     # information very simple. Though, if users do want to encrypt / 

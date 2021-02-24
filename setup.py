@@ -76,8 +76,8 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
         root_hash_256.write(sha256sum.hex())
 
     name = b"aiootp"
-    version = b"0.18.0"
-    date = asynchs.this_second().to_bytes(8, "big")
+    version = b"0.18.1"
+    date = asynchs.this_day().to_bytes(8, "big")
     if getpass("Sign Package ? y/N\n").lower().startswith("y"):
 
         db = Database(
@@ -145,7 +145,6 @@ setup(
         "sympy",
         "aiofiles",
         "async_lru",
-        "aioitertools",
         "cryptography",
     ],
     classifiers=[
@@ -175,15 +174,17 @@ setup(
     ],
     keywords=" ".join(
         [
+            "stream cipher",
             "encrypt",
             "decrypt",
             "encryption",
             "decryption",
-            "one",
-            "one-time",
+            "db",
+            "indistinguishable",
+            "pseudo one time pad",
             "onetimepad",
-            "onetime pad",
             "one-time-pad",
+            "pseudo-one-time-pad",
             "256",
             "512",
             "xor",
@@ -205,6 +206,8 @@ setup(
             "entropy",
             "asyncio",
             "bitwise",
+            "operations",
+            "information",
             "security",
             "ephemeral",
             "integrity",
@@ -212,6 +215,7 @@ setup(
             "anonymous",
             "anonymity",
             "symmetric",
+            "communications",
             "simple code",
             "cryptography",
             "beta testing",
@@ -223,6 +227,13 @@ setup(
             "coroutines",
             "comprehension",
             "authenticated",
+            "infosec",
+            "opsec",
+            "chosen",
+            "ciphertext",
+            "plaintext",
+            "attack",
+            "secure",
         ]
     ),
 ) if __name__ == "__main__" else 0

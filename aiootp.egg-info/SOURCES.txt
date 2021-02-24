@@ -32,7 +32,6 @@ aiootp.egg-info/top_level.txt
 aiootp/databases/README_DATABASES.rst
 aiootp/tor/README_TOR.rst
 licenses/aiofiles_LICENSE.txt
-licenses/aioitertools_LICENSE.txt
 licenses/async_lru_LICENSE.txt
 licenses/asyncio_contextmanager_LICENSE.txt
 licenses/cpython_LICENSE.txt
@@ -46,6 +45,7 @@ tests/init_tests.py
 tests/test_Comprende.py
 tests/test_Database_AsyncDatabase.py
 tests/test_Ropake.py
+tests/test_StreamHMAC.py
 tests/test_X25519_Ed25519.py
 tests/test_aiootp.py
 tests/test_ciphers.py
