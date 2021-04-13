@@ -2,23 +2,24 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-__version__ = "0.18.1"
+__version__ = "0.19.0"
 
 
 __license__ = "AGPLv3"
 
 
-__doc__ = """
-aiootp - an asynchronous pseudo-one-time-pad based crypto and anonymity \
-library.
-"""
+__doc__ = (
+    "aiootp - an asynchronous pseudo-one-time-pad based crypto and "
+    "anonymity library."
+)
+
 
 
 class DebugControl:
@@ -36,8 +37,9 @@ class DebugControl:
     @classmethod
     def enable_debugging(cls):
         """
-        WARNING: This will also reveal potentially sensitive values in
-        object repr's that are omitted by default.
+        WARNING: This will also reveal potentially sensitive values,
+        such as cryptographic keys, in object repr's that are omitted by
+        default.
         """
         cls._DEBUG_MODE = True
         for toggle in cls._switches:
@@ -70,6 +72,7 @@ __all__ = [
     *randoms.__main_exports__,
     *keygens.__main_exports__,
     *ciphers.__main_exports__,
+    *__ui_coordination.__all__,
 ]
 
 

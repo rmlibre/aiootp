@@ -12,13 +12,13 @@ aiootp - Asynchronous pseudo-one-time-pad based crypto and anonymity library.
 primatives and abstractions, transparently encrypted / decrypted file 
 I/O and databases, as well as powerful, pythonic utilities that 
 simplify data processing & cryptographic procedures in python code. 
-This library's cipher is an implementation of the **pseudo-one-time-pad**. 
-The aim is to create a simple, standard, efficient implementation that's 
-indistinguishable from the unbreakable one-time-pad cipher; to give 
-users and applications access to user-friendly cryptographic tools; 
-and, to increase the overall security, privacy, and anonymity on the web, 
-and in the digital world. Users will find ``aiootp`` to be easy to write, 
-easy to read, and fun. 
+This library's online MRAE / AEAD cipher, called ``Chunky2048``, is an 
+implementation of the **pseudo-one-time-pad**. The aim is to create a simple, 
+standard, efficient implementation that's indistinguishable from the 
+unbreakable one-time-pad cipher; to give users and applications access to 
+user-friendly cryptographic tools; and, to increase the overall security, 
+privacy, and anonymity on the web, and in the digital world. Users will 
+find ``aiootp`` to be easy to write, easy to read, and fun. 
 
 
 
@@ -73,15 +73,17 @@ Users can create and modify transparently encrypted databases:
     
     
     # Users can also use passwords to open a database, if necessary.
-    
-    # Although it's not recommended, here's how to do it ->
+
+    # Although passwords & passphrases are low-entropy, & not recommended,
+
+    # here's how to use them more safely ->
 
     tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
         "server_url",     # An unlimited number of arguments can be passed
         "email_address",  # here as additional, optional credentials.
         username="username",
         password="password",
-        salt="optional_salt_keyword_argument",
+        salt="optional salt keyword argument",
     )
     
     db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
@@ -99,7 +101,16 @@ Users can create and modify transparently encrypted databases:
         
         db["safehouses"] = ["Dublin Forgery", "NY Insurrection"]
     
+
+    # Databases also have access to conversion functions for saving 
+
+    # bytes type data ->
     
+    db["bytes data"] = await db.abase64_encode(b"fash smasher")
+
+    assert b"fash smasher" == await db.abase64_decode(db["bytes data"])
+
+
     # Access to data is open to the user, so care must be taken
     
     # not to let external api calls touch the database without
@@ -128,7 +139,7 @@ Users can create and modify transparently encrypted databases:
     
     await db.atest_hmac({"id": 1234, "payload": "message"}, hmac=hmac)
     
- >>>True
+ >>> True
     
     # Although, datatypes where order of values is not preserved may fail to 
     
@@ -136,7 +147,7 @@ Users can create and modify transparently encrypted databases:
     
     await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac) 
     
- >>>ValueError: "HMAC of the data stream isn't valid."
+ >>> ValueError: "HMAC of the data stream isn't valid."
     
     
     # Create child databases accessible from the parent by a ``metatag`` ->
@@ -151,7 +162,7 @@ Users can create and modify transparently encrypted databases:
     
     molly["hobbies"] is db.child["hobbies"]
     
- >>>True
+ >>> True
     
     assert isinstance(molly, aiootp.AsyncDatabase)
     
@@ -159,6 +170,9 @@ Users can create and modify transparently encrypted databases:
     # If the user no longer wants a piece of data, pop it out ->
     
     await molly.apop("hobbies")
+
+ >>> ["skipping", "punching", "reading"]
+    
     
     "hobbies" in molly
     
@@ -171,7 +185,7 @@ Users can create and modify transparently encrypted databases:
     
     db.child["hobbies"]
     
- >>>AttributeError: 'AsyncDatabase' object has no attribute 'child'
+ >>> AttributeError: 'AsyncDatabase' object has no attribute 'child'
     
     
     # Write database changes to disk with transparent encryption ->
@@ -278,13 +292,13 @@ Users can create and modify transparently encrypted databases:
     
     clients == decrypted
     
- >>>True
+ >>> True
     
     
-    # Encrypted messages have timestamps that can be used to enforce 
-    
-    # limits on how old messages can be (in seconds) before they are 
-    
+    # All encrypted messages have timestamps that can be used to enforce
+
+    # limits on how old messages can be (in seconds) before they are
+
     # rejected ->
     
     decrypted = await db.adecrypt(data_name, encrypted, ttl=25)
@@ -347,7 +361,7 @@ What other tools are available to users?:
     
     pkB, pkD = client_public_keys = internet.receive()
     
-    server = ecdhe_key.dh3_server(public_key_b=pkB, public_key_d=pkD)
+    server = ecdhe_key.dh3_server(peer_identity_key=pkB, peer_ephemeral_key=pkD)
     
     with server as exchange:
     
@@ -438,11 +452,11 @@ What other tools are available to users?:
     assert decrypted == binary_data
     
     
-    # The OneTimePad class carries the key so users don't have to pass
+    # The Chunky2048 class carries the key so users don't have to pass
     
     # it around every where ->
     
-    pad = aiootp.OneTimePad(key)
+    pad = aiootp.Chunky2048(key)
     
     encrypted = pad.bytes_encrypt(binary_data)
     
@@ -542,31 +556,33 @@ Generators under-pin most procedures in the library, let's take a look ->
     #
     
     
-    from aiootp import OneTimePad, json
+    from aiootp import Chunky2048, json
     
     
-    pad = OneTimePad()   # <---Auto-generates an encryption key
+    pad = Chunky2048()   # <---Auto-generates an encryption key
     
     salt = pad.generate_salt()    # <---A NEW salt MUST be used every encryption!
+    
+    pid = aiootp.sha_256("any additional data")   # <---Must be known by the decrypting party
     
     plaintext_bytes = json.dumps({"message": "secretsssss"}).encode()
     
     
     # Yields padded plaintext in chunks of 256 bytes ->
     
-    plaintext_stream = pad.plaintext_stream(plaintext_bytes, salt=salt)
+    plaintext_stream = pad.plaintext_stream(plaintext_bytes, salt=salt, pid=pid)
     
     datastream = plaintext_stream.bytes_to_int()
     
     
     # An endless stream of forward + semi-future secure hex keys ->
     
-    keystream = pad.keys(salt=salt)
+    keystream = pad.keys(salt=salt, pid=pid)
     
     
     # This is used to authenticate the ciphertext & additional data ->
     
-    hmac = pad.StreamHMAC(salt=salt).for_encryption()
+    hmac = pad.StreamHMAC(salt=salt, pid=pid).for_encryption()
     
     
     # xor's the plaintext chunks with key chunks ->
@@ -579,19 +595,15 @@ Generators under-pin most procedures in the library, let's take a look ->
         
         ciphertext_authentication = hmac.finalize()
         
-        
-    # When receiving ciphertext, first validate the hmac of the ciphertext ->
-    
-    hmac = pad.StreamHMAC(salt=salt)
-    
-    with hmac.manual_check(ciphertext) as inspection:
-    
-        inspection.verify(ciphertext_authentication)
+        siv = hmac.siv
         
         
-    # If no ValueError was raised, the authentication has passed! 
+    # When receiving ciphertext, the user must first validate the hmac of 
+
+    # the ciphertext before trusting the plaintext that's revealed ->
     
-    # Continue with decrypting ->
+    hmac = pad.StreamHMAC(salt=salt, pid=pid, siv=siv).for_decryption()
+        
         
     keystream.reset()
     
@@ -599,12 +611,20 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     with decipher.int_to_bytes() as decrypting:
     
-        padding_key = pad.padding_key(salt=salt)
+        padding_key = pad.padding_key(salt=salt, pid=pid)
         
         padded_data = decrypting.join(b"")
         
-        decrypted = pad.io.depad_bytes(padded_data, salted_key=padding_key)
+        hmac.finalize()
+
+        hmac.test_hmac(ciphertext_authentication)
         
+        # If no ValueError was raised, the authentication has passed! 
+
+
+    # Continue with processing the plaintext ->
+    
+    decrypted = pad.io.depad_bytes(padded_data, salted_key=padding_key)
     
     plaintext_bytes == decrypted
     
@@ -613,13 +633,13 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # This example was a low-level look at the encryption algorithm. And it 
     
-    # was a few lines of code. The Comprende class makes working with 
+    # was only a few lines of code. The Comprende class makes working with 
     
     # generators a breeze, & working with generators makes solving problems 
     
     # in bite-sized chunks a breeze. ->
     
-    padded_plaintext = pad.plaintext_stream(plaintext_bytes, salt=salt).list()
+    padded_plaintext = pad.plaintext_stream(plaintext_bytes, salt=salt, pid=pid).list()
     
     assert isinstance(padded_plaintext, list)
     
@@ -888,7 +908,8 @@ Generators under-pin most procedures in the library, let's take a look ->
         "adecode",
         "adecrypt",
         "adelimit",
-        "adelimit_resize",
+        "adelimited_resize",
+        "adepad_plaintext",
         "aencode",
         "aencrypt",
         "afeed",
@@ -906,6 +927,7 @@ Generators under-pin most procedures in the library, let's take a look ->
         "ajson_loads",
         "amap_decipher",
         "amap_encipher",
+        "apad_plaintext",
         "apasscrypt",
         "arandom_sleep",
         "areplace",
@@ -937,7 +959,8 @@ Generators under-pin most procedures in the library, let's take a look ->
         "decode",
         "decrypt",
         "delimit",
-        "delimit_resize",
+        "delimited_resize",
+        "depad_plaintext",
         "encode",
         "encrypt",
         "feed",
@@ -955,6 +978,7 @@ Generators under-pin most procedures in the library, let's take a look ->
         "json_loads",
         "map_decipher",
         "map_encipher",
+        "pad_plaintext",
         "passcrypt",
         "random_sleep",
         "replace",
@@ -1041,7 +1065,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     padding_key = aiootp.padding_key(key, salt=salt, pid=pid)
     
-    padded_data = aiootp.pad_bytes(plaintext, salted_key=padding_key)
+    padded_data = aiootp.pad_plaintext(plaintext, salted_key=padding_key)
     
     
     # We can now stream the data & ciphertext authentication process ->
@@ -1063,6 +1087,8 @@ Generators under-pin most procedures in the library, let's take a look ->
         
         ciphertext_authentication = await hmac.afinalize()
         
+        siv = hmac.siv
+        
         
     # Now we'll pick the chunks out in the order produced by ``names`` to 
 
@@ -1082,7 +1108,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # correct order ->
     
-    hmac = aiootp.StreamHMAC(key, salt=salt, pid=pid).for_decryption()
+    hmac = aiootp.StreamHMAC(key, salt=salt, pid=pid, siv=siv).for_decryption()
     
     async with ciphertext_stream.amap_decipher(key_stream, validator=hmac) as decrypting:
     
@@ -1095,7 +1121,7 @@ Generators under-pin most procedures in the library, let's take a look ->
         
     # We can now remove any padding from the data to reveal the plaintext ->
         
-    assert plaintext == aiootp.depad_bytes(decrypted, salted_key=padding_key)
+    assert plaintext == aiootp.depad_plaintext(decrypted, salted_key=padding_key)
     
     
     # This is neat, & makes sharding & authenticating encrypted data 
@@ -1127,20 +1153,36 @@ Let's take a deep dive into the low-level xor procedure used to implement the ps
     # And, ``validator`` should be an instance of the ``StreamHMAC`` class. ->
     
     def xor(data, *, key, validator):
+    
+        # Return the necessary method & coroutine pointers ->
         
-        keystream = key.send
+        datastream, keystream, validated_xor, hmac_hexdigest = (
         
-        # We use the first output of the keystream as a seed of entropy
+            xor_shortcuts(data, key, validator)
+            
+        )
         
-        # for all future key chunks pulled from the generator ->
+        # We use the first block of plaintext (which is prepended with an 
+
+        # 8-byte timestamp & a 16-byte random, ephemeral & automatically 
+
+        # generated SIV-key) to derive a syntheic IV, & use it to seed the 
+
+        # keystream & validator with globally unique entropy -> 
         
-        seed = aiootp.sha_256(keystream(None))
+        yield SyntheticIV.validated_xor(datastream, keystream, validator)
         
-        for chunk in data:
+        for chunk in datastream:
+        
+            # We use the output of the validator's current state to 
+
+            # continuously seed the keystream with message dependent entropy ->
+            
+            seed = hmac_hexdigest()
             
             # We contantenate two 128 byte key chunks together ->
             
-            key_chunk = int(await keystream(seed) + await keystream(seed), 16)
+            key_chunk = int(keystream(seed) + keystream(seed), 16)
             
             # Then xor the 256 byte key chunk with the 256 byte data chunk 
             
@@ -1148,29 +1190,30 @@ Let's take a deep dive into the low-level xor procedure used to implement the ps
             
             result = validator.validated_xor(chunk, key_chunk)
             
-            if result.bit_length() > 2048:
+            if result >> 2048:
                 
                 # If the result is for some reason larger than 256 bytes,
                 
-                # we abort the procedure, & warn the user ->
+                # (2048-bits), we abort the procedure, & warn the user ->
                 
-                raise ValueError("Data MUST NOT exceed 256 bytes.")
+                raise ValueError(EXCEEDED_BLOCKSIZE)
                 
-           # Then we yield the result ->
+            # Then we yield the result ->
            
             yield result
-            
-    # This is a very space-efficient algorithm for a pseudo-one-time-pad that 
+
+
+    # This is a very efficient, online-AEAD, salt-reuse/misuse resistant, 
+
+    # pseudo-one-time-pad cipher algorithm. It's built on generators, 
+
+    # which makes it simple to grok & compose with additional funcitonality. 
+
+    # It's backed by an infinite stream of non-repeating key material, 
     
-    # adapts dynamically to increased plaintext & ciphertext sizes. Both because 
-    
-    # it's built on generators, & because an infinite stream of key material
-    
-    # can efficiently be produced from a finite-sized key & an ephemeral salt.
-    
-    # This version of the algorithm is much simpler & much more efficient 
-    
-    # than that from previous versions.
+    # efficiently produced from a finite-sized key, an ephemeral salt, 
+
+    # context & content data, & the sha3_512 algorithm.
     
     
     #
@@ -1290,11 +1333,6 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 
 
-
-
-
-
-
 ``Known Issues``
 =================
 
@@ -1307,8 +1345,9 @@ A: We overwrite our modules in this package to have a more fine-grained control 
    hashing for user-friendliness, speed, readibility & the power of 
    being to hash any python object that has a repr. This behaviour is 
    purposeful, but can still be an issue.
--  This package is currently in beta testing. Contributions are welcome.
-   Send us a message if you spot a bug or security vulnerability:
+-  This package is currently in beta testing & active development. 
+   Contributions are welcome. Send us a message if you spot a bug or 
+   security vulnerability:
    
    -  < gonzo.development@protonmail.ch >
    -  < 31FD CC4F 9961 AFAC 522A 9D41 AE2B 47FA 1EF4 4F0A >
@@ -1318,6 +1357,184 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 ``Changelog``
 =============
+
+
+Changes for version 0.19.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security Upgrade: The package's cipher was changed to an online, 
+   authenticated scheme with salt reuse / misuse resistance. This was 
+   acheived through a few backwards incompatible techniques: 
+   
+   1. A synthetic IV (SIV) is calculated from the keyed-hash of the first 
+      256-byte block of plaintext. The SIV is then used to seed the 
+      keystream generator, & is used to update the validator object. This 
+      ensures that if the first block is unique, then the whole ciphertext 
+      will be unique.
+   2. A 16-byte ephemeral & random SIV-key is also prepended to the 
+      first block of plaintext during message padding. Since this value 
+      is also hashed to derive the SIV, this key gives a strong 
+      guarantee that a given message will produce a globally unique 
+      ciphertext.
+   3. An 8-byte timestamp is prepended to the first block of plaintext 
+      during padding. Timestamps are inherently sequential, they can be 
+      verified by a user within some bounds, & can also be used to 
+      mitigate replay attacks. Since it's hashed to make the SIV, then 
+      it helps make the entire ciphertext unique.
+   4. After being updated with each block of ciphertext, the validator's 
+      current state is again fed into the keystream generator as a new 
+      rotating seed. This mitigation is limited to ensuring only that 
+      every following block of ciphertext to a block which is unique
+      will also be unique. More specifically this means that: **if** 
+      *all* **other mitigations fail to be unique**, or are missing, then 
+      the first block which is unique **will appear the same**, except 
+      for the bits which have changed, **but, all following blocks will
+      be randomized.** This limitation could be avoided with a linear
+      expansion in the ciphertext size by generating an SIV for each
+      block of plaintext. This linear expansion is prohibitive as a
+      default setting, but the block level secrecy, even when all other 
+      mitigations fail, is enticing. This option may be added in the 
+      future as a type of padding mode on the plaintext.
+   
+   The SIV-key is by far the most important mitigation, as it isn't 
+   feasibly forgeable by an adversary, & therefore also protects against
+   attacks using encryption oracles. These changes can be found in the 
+   ``SyntheticIV`` class, the (en/de)cipher & xor generators, & the 
+   ``StreamHMAC`` class in the ``ciphers.py`` module. The padding 
+   changes can also be found in the new ``Padding`` class in the ``generics.py`` 
+   module. The SIV is attached in the clear with ciphertexts & was 
+   designed to function with minimal user interaction. It needs only to 
+   be passed into the ``StreamHMAC`` class during decryption -- during 
+   encryption it's automatically generated & stored in the ``StreamHMAC`` 
+   validator object's ``siv`` property attribute. 
+-  Security Patch: The internal ``sha3_512`` kdf's to the  ``akeys``, ``keys``, 
+   ``abytes_keys`` & ``bytes_keys`` keystream generators are now updated
+   with 72 bytes of (64 key material + 8 padding), instead of just 64 
+   bytes of key material. 72 bytes is the *bitrate* of the ``sha3_512`` 
+   object. This change causes the internal state of the object to be permuted 
+   for each iteration update & before releasing a chunk of key material. 
+   Frequency analysis of ciphertext bytes didn't smooth out to the 
+   cumulative distribution expected for all large ciphertexts prior to 
+   this change. But after the change the distribution does normalize as
+   expected. This indicates that the key material streams were biased 
+   away from random in a small but measurable way. Although, no 
+   particular byte values seem to have been preferred by this bias, this 
+   is a huge shortcoming with unknown potential impact on the strength 
+   of the package's cipher. This update is strongly recommended & is 
+   backwards incompatible. 
+-  This update gives a name to the package's pseudo-one-time-pad cipher 
+   implementation. It's now called ``Chunky2048``! The ``OneTimePad`` 
+   class' name was updated to ``Chunky2048`` to match the change.
+-  The ``PreemptiveHMACValidation`` class & its related logic in the
+   ``StreamHMAC`` class was removed. The chaining of validator output
+   into the keystream makes running the validator over the ciphertext 
+   separately or prior to the decryption process very costly. It would 
+   either mean recalculating the full hash of the ciphertext a second 
+   time to reproduce the correct outputs during each block, or a large 
+   linear memory increase to hold all of its digests to be fed in some 
+   time after preemtive validation. It's much simpler to remove that 
+   functionality & potentially replace it with something else that fits
+   the user's applications better. For instance, the ``current_digest``
+   & ``acurrent_digest`` methods can produce secure, 32-byte authentication
+   tags at any arbitrary blocks throughout the cipher's runtime, which
+   validate the cipehrtext up to that point. Or, the ``next_block_id`` 
+   & ``anext_block_id`` methods, which are a more robust option because 
+   each id they produce validates the next ciphertext block before 
+   updating the internal state of the validator. This acts as an 
+   automatic message ordering algorithm, & leaves the deciphering 
+   party's state unharmed by dropped packets or manipulated ciphertext.
+-  The ``update_key`` & ``aupdate_key`` methods were also added to the
+   ``StreamHMAC`` class. They allow the user to update the validators'
+   internal key with new entropy or context information during its 
+   runtime. 
+-  The ``Comprende`` class now takes a ``chained`` keyword-only argument
+   which flags an instance as a chained generator. This flag allows 
+   instances to communicate up & down their generator chain using the 
+   shared ``Namespace`` object accessible by their ``messages`` attribute.
+-  The chainable ``Comprende`` generator functions had their internals
+   altered to allow them to receive, & pass down their chain, values 
+   sent from a user using the standard coroutine ``send`` & ``asend``
+   method syntax.
+-  ``Comprende`` instances no longer automatically reset themselves every 
+   time they enter their context managers or when they are iterated over.
+   This makes their interface more closely immitate the behavior of 
+   async/sync generator objects. To get them to reset, the ``areset`` or 
+   ``reset`` methods must be used. The message chaining introduced in 
+   this update allows chains of ``Comprende`` async/sync generators to 
+   inform each other when the user instructs one of them to reset.
+-  The standard library's ``hmac`` module is now used internally to the
+   ``generics.py`` module's ``sha_512_hmac``, ``sha_256_hmac``, ``asha_512_hmac`` 
+   & ``asha_256_hmac`` functions. They still allow any type of data to be 
+   hashed, but also now default to hashing ``bytes`` type objects as 
+   they are given.
+-  The new ``Domains`` class, found in ``generics.py``, is now used to
+   encode constants into deterministic pseudo-random 8-byte values for
+   helping turn hash function outputs into domain-specific hashes. Its
+   use was included throughout the library. This method has an added
+   benefit with respect to this package's usage of SHA-3. That being, the
+   *bitrate* for both ``sha3_512`` & ``sha3_256`` are ``(2 * 32 * k) + 8``
+   bytes, where ``k = 1`` for ``sha3_512`` & ``k = 2`` for ``sha3_256``.
+   This means that prepending an 8-byte domain string to their inputs
+   also makes it more efficient to add some multiple of key material
+   to make the input data precisely equal the *bitrate*. More info on
+   domain-specific hashing can be found here_.
+
+.. _here: https://eprint.iacr.org/2020/241.pdf
+
+-  A new ``DomainsKDF`` class in ``cipehrs.py`` was added to create a
+   more standard & secure method of key derivation to the library which 
+   also incorporates domain separation. Its use was integrated thoughout 
+   the ``AsyncDatabase`` & ``Database`` classes to mitigate any further 
+   vulnerabilities of their internal key-derivation functions. The 
+   database classes now also use bytes-type keys internally, instead 
+   of hex strings.
+-  The ``Passcrypt`` class now contains methods which create & validate
+   passcrypt hashes which have their settings & salt attached to them.
+   Instances can now also be created with persistent settings that are 
+   automatically sent into instance methods.
+
+
+Minor Changes 
+------------- 
+
+-  Many fixes of docstrings, typos & tutorials. 
+-  Many refactorings: name changes, extracted classes / functions, 
+   reorderings & moves. 
+-  Various code clean-ups, efficiency & usability improvements.
+-  Many constants used throughout the library were given names defined 
+   in the ``commons.py`` module.
+-  Removed extraneous functions throughout the library.
+-  The asymmetric key generation & exchange functions/protocols were 
+   moved from the ``ciphers.py`` module to ``keygens.py``.
+-  Add missing modules to the MANIFEST.rst file. 
+-  Added a ``UniformPrimes`` class to the ``__datasets`` module for efficient 
+   access to primes that aren't either mostly 1 or 0 bits, as is the case for 
+   the ``primes`` helper table. These primes are now used in the ``Hasher`` 
+   class' ``amask_byte_order`` & ``mask_byte_order`` methods. 
+-  The ``time_safe_equality`` & ``atime_safe_equality`` methods are now 
+   standalone functions available from the ``generics.py`` module.
+-  Added ``reset_pool`` to the ``Processes`` & ``Threads`` classes. Also
+   fixed a missing piece of logic in their ``submit`` method.
+-  Added various conversion values & timing functions to the ``asynchs.py``
+   module.
+-  The ``make_uuid`` & ``amake_uuid`` coroutines had their names changed to 
+   ``make_uuids`` & ``amake_uuids``.
+-  Created a new ``Datastream`` class in ``generics.py`` to handle buffering
+   & resizing iterable streams of data. It enables simplifying logic that 
+   must happen some number of iterations before the end of a stream. It's 
+   utilized in the ``Padding`` class' generator functions available as 
+   chainable ``Comprende`` methods.
+-  The ``data`` & ``adata`` generators can now produce a precise number of
+   ``size``-length ``blocks`` as specified by a user. This gets rid of the
+   confusing usage of the old ``stop`` keyword-only argument, which stopped 
+   a stream after *approximately* ``size`` number of elements.
+-  Improved the efficiency & safety of entropy production in the 
+   ``randoms.py`` module.
+
 
 
 Changes for version 0.18.1 

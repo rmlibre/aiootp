@@ -42,6 +42,7 @@ licenses/cryptography_LICENSES/LICENSE.BSD
 licenses/cryptography_LICENSES/LICENSE.PSF
 licenses/cryptography_LICENSES/LICENSE.txt
 tests/init_tests.py
+tests/test_BytesIO.py
 tests/test_Comprende.py
 tests/test_Database_AsyncDatabase.py
 tests/test_Ropake.py
@@ -52,4 +53,5 @@ tests/test_ciphers.py
 tests/test_generics.py
 tests/test_high_level_encryption.py
 tests/test_misc_in_ciphers.py
+tests/test_misc_in_generics.py
 tests/test_passcrypt_apasscrypt.py

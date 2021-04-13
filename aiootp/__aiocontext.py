@@ -1,10 +1,11 @@
+#
 # This file is copied with minor edits from the asyncio_contextmanager
 # package whose license can be found in the /licenses directory of this
 # package. The edits prevent warnings from arising in the aiootp package
 # when values are retrieved from async generators since they do not stop
 # as the class here expects them to. For convenience the license for the
 # asyncio_contextmanager package will be copied below:
-# 
+#
 # MIT License
 #
 # Copyright (c) 2017 Alexander Gorokhov
@@ -109,5 +110,4 @@ def async_contextmanager(func):
         return _AsyncContextManager(func, args, kwargs)
 
     return wrapper
-
 

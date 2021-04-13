@@ -2,7 +2,7 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
@@ -21,10 +21,16 @@ __all__ = [
     "BASE_64_TABLE",
     "URL_SAFE_TABLE",
     "ONION_CHAR_TABLE",
-    "UNIFORM_PRIME_512",
     "ASCII_ALPHANUMERIC",
+    "UniformPrimes",
     "BasePrimeGroups",
 ]
+
+
+__doc__ = """\
+A collection of conversion tables & precomputed values to standardize, \
+speed up, & clean up their usage in the package.\
+"""
 
 
 ASCII_TABLE = """ !"#$%&'()*+,-./0123456789:;<=>?@"""
@@ -53,11 +59,11 @@ BASE_64_TABLE = "+/0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 BASE_64_TABLE += "abcdefghijklmnopqrstuvwxyz"
 
 
+URL_SAFE_TABLE = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+URL_SAFE_TABLE += "_abcdefghijklmnopqrstuvwxyz"
+
+
 ONION_CHAR_TABLE = "234567abcdefghijklmnopqrstuvwxyz"
-
-
-URL_SAFE_TABLE = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmn"
-URL_SAFE_TABLE += "opqrstuvwxyz"
 
 
 BYTES_TABLE = [
@@ -1408,15 +1414,27 @@ primes = {
 }
 
 
-UNIFORM_PRIME_512 = 0xfd9922ced53d074684fd8bfc52ac95852b8892a24c8607600df6e8d1354d7168769dca40b5c5ae90ee4daaa66ad46d81bd981b271f65a7fa8cc862d36721f195
+class UniformPrimes:
+    """
+    A collection of randomly generated primes, organized by bit length,
+    with no other expectation than starting with `0xff` & containing
+    uniformly distributed bits.
+    """
+    PRIME_32: int = 0xffe0a5b3
+    PRIME_64: int = 0xff7a83e357b995c9
+    PRIME_96: int = 0xff9669c7d66552972041fda5
+    PRIME_128: int = 0xffc58ad53144285a641a0207fb844019
+    PRIME_192: int = 0xff1ea3c024fabb588256055744450332f251264b7db2f3e7
+    PRIME_256: int = 0xff0ad61bc46b8662b58c27f6ccafafb80802b9371dc0dab3fc0537f45a1712a3
+    PRIME_384: int = 0xffff3a6471a198374d13c7b627f6695f82caf90d3063001ecaf3bf78267a27a3d30011133205fbc898758080ff4fa4df
+    PRIME_512: int = 0xffffa2898b4ebc7563db2f07fce74444cdd6d38ca1fbe0932a433e099a77b3a5ea012e1e0bfbd73530d594c374f3f1d42f2c72a3b72317a11cc78897f62fb2a7
 
 
 class BasePrimeGroups:
     """
-    A collection of prime moduli & each of their respective primitive
-    roots organized by bit length.
+    A collection of mostly small prime moduli & each of their respective
+    primitive roots organized by bit length.
     """
-
     GENERATOR_32: int = 2
     GENERATOR_40: int = 3
     GENERATOR_48: int = 3

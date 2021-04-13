@@ -1,1 +1,13 @@
-{"identity_key": "94a8ecc8e8c3b9490801579b8b68b360fa46927cfec5b9234ea0e946598e4121", "pgp_signed_identity_key": "-----BEGIN PGP MESSAGE-----\n\nowGbwMvMwCW2Ttv9l9wXfy7G025JDAl6jMssTRItUpOTLVItko2TLE0sDSwMDE3N\nLZMskswskozNDNISTcwsjcyT01KTTZMsjYxNUhMNUi1NzEwtLVJNDI0MO0pZGMS4\nGGTFFFkM/57xn5m4fk2Q1lxHmD2sTCBLGLg4BWAibl2MDM1XThx7yeM6XS7x9GtB\nc1fxzUuSLz1u2L3Qv3t3XNX0SWWMDD8ivJ/6bPfLVo9bxVqaafH1hYFw8sJP+1hn\n/p8VyrxeiREA\n=K9Lv\n-----END PGP MESSAGE-----\n", "name": "aiootp", "date": 18682, "version": "0.18.1", "ephemeral_key": "1d774a42b064283f0a50a4a94cae76662f7bf8ab03105742c212dc1bdff1f8b9", "signed_ephemeral_key": "1d2dcb458834003ccc1b817c38bc1dbd27a3a4508caf7432d7885e62aa22b8ce5a7ff4a26a49d03a34a0e91400a0d178972f4aa92b420b023a8e28176645a705", "checksums_txt_sha256": "756af4d4aef0a6d6e7dcbde3e04f3b8d4dd67e7a8f296b99503db5e8c957bac9", "checksums_txt_sha512": "5086b7144897300e472c590d74061b2ddc0c1671ba29f1bb4dc3f64433f324a3df24e7020c1cbadf00b23a7001f381324525bfa334083e2b8f429c8377da6f33", "signed_sha256sum": "71e1661dc255d2d80edadd94289a4bafcf6daf5937066ba02ae1181551c9e4acf7f1f35d6c72eb897651db141658e76dde076035230942fcd2525d54ddf0af0e", "signed_sha512sum": "ea98e48e26c9ed5a0f28ea9bd4a20a8b8259ced3bf68a0fbb2bb7fe2b3971d6248ff9336307b2c1e841ae9f5f05247552d365cccddcb9f2a6608f195d47da40f"}
+{
+    "identity_key": "94a8ecc8e8c3b9490801579b8b68b360fa46927cfec5b9234ea0e946598e4121",
+    "pgp_signed_identity_key": "-----BEGIN PGP MESSAGE-----\n\nowGbwMvMwCW2Ttv9l9wXfy7G025JDAl6jMssTRItUpOTLVItko2TLE0sDSwMDE3N\nLZMskswskozNDNISTcwsjcyT01KTTZMsjYxNUhMNUi1NzEwtLVJNDI0MO0pZGMS4\nGGTFFFkM/57xn5m4fk2Q1lxHmD2sTCBLGLg4BWAibl2MDM1XThx7yeM6XS7x9GtB\nc1fxzUuSLz1u2L3Qv3t3XNX0SWWMDD8ivJ/6bPfLVo9bxVqaafH1hYFw8sJP+1hn\n/p8VyrxeiREA\n=K9Lv\n-----END PGP MESSAGE-----\n",
+    "name": "aiootp",
+    "date": 18730,
+    "version": "0.19.0",
+    "ephemeral_key": "a7ab5b81cb4f11b727ac1e93f4d3fef36c1b4a024d00cd2713ce5d8261e23543",
+    "signed_ephemeral_key": "bcec1b45d0b979fc6c1e66fe8c17972e25522aeea050b8590d205df26de618d8ea4bd96c4967fc8f9dfbdcc4cacbdc789e302486a56234157e34129cee2e7005",
+    "checksums_txt_sha256": "4a8963589338f66b8b210fb842816a429bcc78ac079c51c94361a47446749303",
+    "checksums_txt_sha512": "b30bb251b8092571f46fc2f73e45409acddf66b34405a3b8923ed6290c82ad23341c3a7c68f73b7ce26f4f82603d3594f841d67661a2ebf3d336478d7fc47b87",
+    "signed_sha256sum": "549ef76170afd0a1c3542baedf21d20c4dbe4b789152c963f97f54edf88f7cf751f0909ea3b5dd04911cb144856d640baeb5e471a3b70bb243844d2c8aa11703",
+    "signed_sha512sum": "f50f4b6ce9b422559bcd8748a00396674f941342f81aa0f2fb16417a746bd6c0d85f821556cc5eddc08c44d7261c773dac1d3772ba577960cfba6093d5a0a30f"
+}

@@ -2,7 +2,7 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
@@ -17,13 +17,13 @@ from hashlib import sha256, sha512
 from collections import defaultdict
 from setuptools import setup, find_packages
 
-from aiootp import Ed25519, Database, passcrypt, asynchs
+from aiootp import Ed25519, Database, passcrypt, asynchs, sha_256
 
 
-description = """
-aiootp - an asynchronous pseudo-one-time-pad based crypto and anonymity \
-library.
-""".replace("\n", "")
+description = (
+    "aiootp - an asynchronous pseudo-one-time-pad based crypto and "
+    "anonymity library."
+)
 
 
 with open("PREADME.rst", "r") as preadme:
@@ -35,7 +35,7 @@ with open("FAQ.rst", "r") as faq:
 
 
 with open("CHANGES.rst", "r") as changelog:
-    long_description += f"{4 * linesep}{changelog.read()}"
+    long_description += changelog.read()
 
 
 with open("README.rst", "w+") as readme:
@@ -64,7 +64,7 @@ for line in filename_sheet:
 
 
 with open("CHECKSUMS.txt", "w+") as checksums_txt:
-    package_checksums = json.dumps(dict(checksums))
+    package_checksums = json.dumps(dict(checksums), indent=4)
     checksums_txt.write(package_checksums)
 
     with open("sha512_ROOT_CHECKSUM.txt", "w+") as root_hash_512:
@@ -76,9 +76,9 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
         root_hash_256.write(sha256sum.hex())
 
     name = b"aiootp"
-    version = b"0.18.1"
+    version = b"0.19.0"
     date = asynchs.this_day().to_bytes(8, "big")
-    if getpass("Sign Package ? y/N\n").lower().startswith("y"):
+    if getpass("Sign Package ? y/N\n").lower().strip().startswith("y"):
 
         db = Database(
             passcrypt(getpass("Database key ?\n"), getpass("Salt ?\n")),
@@ -93,6 +93,7 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
             ephemeral_hex = presigned_keys.pop()
             signed_ephemeral_key = db[sha_256(ephemeral_hex)]
             ephemeral_key = Ed25519().import_secret_key(ephemeral_hex)
+            scope = [name, version, date, ephemeral_key.public_bytes]
             del db["ephemeral_key_secret"]
             assert signed_ephemeral_key
             assert ephemeral_hex not in db["presigned_ephemeral_keys"]
@@ -104,6 +105,9 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
             signed_ephemeral_key = identity_key.sign(b"||".join(scope)).hex()
             db["ephemeral_key_secret"] = ephemeral_key.secret_bytes.hex()
 
+        identity_key.verify(
+            bytes.fromhex(signed_ephemeral_key), b"||".join(scope)
+        )
         proof = dict(
             identity_key=identity_key.public_bytes.hex(),
             pgp_signed_identity_key=db["pgp_attestation"],
@@ -122,7 +126,7 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
         db.save()
 
         with open("SIGNATURES.txt", "w+") as attestation:
-            attestation.write(json.dumps(proof))
+            attestation.write(json.dumps(proof, indent=4))
 
 
 setup(
@@ -133,19 +137,19 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
     url="https://twitter.com/aiootp",
-    author="Gonzo Investigatory Journalism Agency, LLC",
+    author="Gonzo Investigative Journalism Agency, LLC",
     author_email="gonzo.development@protonmail.ch",
-    maintainer="Gonzo Investigatory Journalism Agency, LLC",
+    maintainer="Gonzo Investigative Journalism Agency, LLC",
     maintainer_email="gonzo.development@protonmail.ch",
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.6",
-    tests_require=["pytest"],
+    tests_require=["pytest>=6.2.2"],
     install_requires=[
-        "sympy",
-        "aiofiles",
-        "async_lru",
-        "cryptography",
+        "sympy>=1.7.1",
+        "aiofiles>=0.6.0",
+        "async_lru>=1.0.2",
+        "cryptography>=3.4.6",
     ],
     classifiers=[
         "Framework :: AsyncIO",
@@ -174,66 +178,41 @@ setup(
     ],
     keywords=" ".join(
         [
-            "stream cipher",
-            "encrypt",
-            "decrypt",
-            "encryption",
-            "decryption",
-            "db",
-            "indistinguishable",
-            "pseudo one time pad",
-            "onetimepad",
-            "one-time-pad",
-            "pseudo-one-time-pad",
-            "256",
-            "512",
-            "xor",
-            "sha",
-            "key",
-            "hash",
-            "uuid",
-            "bits",
-            "2048",
-            "4096",
-            "sha3",
-            "sha-3",
-            "await",
-            "async",
-            "RNG",
-            "PRNG",
-            "CSPRNG",
-            "crypto",
-            "entropy",
-            "asyncio",
-            "bitwise",
-            "operations",
-            "information",
-            "security",
-            "ephemeral",
-            "integrity",
-            "utilities",
-            "anonymous",
-            "anonymity",
-            "symmetric",
-            "communications",
-            "simple code",
-            "cryptography",
-            "beta testing",
-            "communications",
-            "data processing",
-            "transparent database",
+            "xor key salt pepper nonce",
+            "AEAD auth authenticated authentication",
+            "shmac hmac nmac mac digest integrity",
+            "infosec opsec appsec",
+            "stream cipher chunky2048 chunky",
+            "encrypt plaintext",
+            "decrypt ciphertext",
+            "passcrypt passphrase",
+            "password based derivation function",
+            "ropake 3dh 2dh 25519 x25519 ed25519 curve25519",
+            "db database store",
+            "user uuid unique",
+            "transparent encryption decryption",
+            "chunky chunky2048 Chunky2048 indistinguishable",
+            "pseudo one time pad onetimepad",
+            "domain-specific kdf separation",
+            "bits 256 512 1024 2048 4096",
+            "hash sha sha3 sha-3 keccak",
+            "ephemeral byte entropy",
+            "PRF PRG RNG PRNG CSPRNG",
+            "cryptographically secure",
             "random number generator",
-            "coroutine",
-            "coroutines",
-            "comprehension",
-            "authenticated",
-            "infosec",
-            "opsec",
-            "chosen",
-            "ciphertext",
-            "plaintext",
-            "attack",
-            "secure",
+            "bitwise operations",
+            "information cyber security",
+            "chosen attack",
+            "resistance resistant",
+            "anonymous anonymity",
+            "symmetric asymmetric",
+            "communications utilities",
+            "simple clean code",
+            "crypto cryptology cryptography",
+            "beta testing",
+            "data science processing",
+            "await async asyncio",
+            "coroutine coroutines comprehension",
         ]
     ),
 ) if __name__ == "__main__" else 0

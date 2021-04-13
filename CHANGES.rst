@@ -10,8 +10,9 @@
    hashing for user-friendliness, speed, readibility & the power of 
    being to hash any python object that has a repr. This behaviour is 
    purposeful, but can still be an issue.
--  This package is currently in beta testing. Contributions are welcome.
-   Send us a message if you spot a bug or security vulnerability:
+-  This package is currently in beta testing & active development. 
+   Contributions are welcome. Send us a message if you spot a bug or 
+   security vulnerability:
    
    -  < gonzo.development@protonmail.ch >
    -  < 31FD CC4F 9961 AFAC 522A 9D41 AE2B 47FA 1EF4 4F0A >
@@ -21,6 +22,184 @@
 
 ``Changelog``
 =============
+
+
+Changes for version 0.19.0 
+========================== 
+
+
+Major Changes 
+------------- 
+
+-  Security Upgrade: The package's cipher was changed to an online, 
+   authenticated scheme with salt reuse / misuse resistance. This was 
+   acheived through a few backwards incompatible techniques: 
+   
+   1. A synthetic IV (SIV) is calculated from the keyed-hash of the first 
+      256-byte block of plaintext. The SIV is then used to seed the 
+      keystream generator, & is used to update the validator object. This 
+      ensures that if the first block is unique, then the whole ciphertext 
+      will be unique.
+   2. A 16-byte ephemeral & random SIV-key is also prepended to the 
+      first block of plaintext during message padding. Since this value 
+      is also hashed to derive the SIV, this key gives a strong 
+      guarantee that a given message will produce a globally unique 
+      ciphertext.
+   3. An 8-byte timestamp is prepended to the first block of plaintext 
+      during padding. Timestamps are inherently sequential, they can be 
+      verified by a user within some bounds, & can also be used to 
+      mitigate replay attacks. Since it's hashed to make the SIV, then 
+      it helps make the entire ciphertext unique.
+   4. After being updated with each block of ciphertext, the validator's 
+      current state is again fed into the keystream generator as a new 
+      rotating seed. This mitigation is limited to ensuring only that 
+      every following block of ciphertext to a block which is unique
+      will also be unique. More specifically this means that: **if** 
+      *all* **other mitigations fail to be unique**, or are missing, then 
+      the first block which is unique **will appear the same**, except 
+      for the bits which have changed, **but, all following blocks will
+      be randomized.** This limitation could be avoided with a linear
+      expansion in the ciphertext size by generating an SIV for each
+      block of plaintext. This linear expansion is prohibitive as a
+      default setting, but the block level secrecy, even when all other 
+      mitigations fail, is enticing. This option may be added in the 
+      future as a type of padding mode on the plaintext.
+   
+   The SIV-key is by far the most important mitigation, as it isn't 
+   feasibly forgeable by an adversary, & therefore also protects against
+   attacks using encryption oracles. These changes can be found in the 
+   ``SyntheticIV`` class, the (en/de)cipher & xor generators, & the 
+   ``StreamHMAC`` class in the ``ciphers.py`` module. The padding 
+   changes can also be found in the new ``Padding`` class in the ``generics.py`` 
+   module. The SIV is attached in the clear with ciphertexts & was 
+   designed to function with minimal user interaction. It needs only to 
+   be passed into the ``StreamHMAC`` class during decryption -- during 
+   encryption it's automatically generated & stored in the ``StreamHMAC`` 
+   validator object's ``siv`` property attribute. 
+-  Security Patch: The internal ``sha3_512`` kdf's to the  ``akeys``, ``keys``, 
+   ``abytes_keys`` & ``bytes_keys`` keystream generators are now updated
+   with 72 bytes of (64 key material + 8 padding), instead of just 64 
+   bytes of key material. 72 bytes is the *bitrate* of the ``sha3_512`` 
+   object. This change causes the internal state of the object to be permuted 
+   for each iteration update & before releasing a chunk of key material. 
+   Frequency analysis of ciphertext bytes didn't smooth out to the 
+   cumulative distribution expected for all large ciphertexts prior to 
+   this change. But after the change the distribution does normalize as
+   expected. This indicates that the key material streams were biased 
+   away from random in a small but measurable way. Although, no 
+   particular byte values seem to have been preferred by this bias, this 
+   is a huge shortcoming with unknown potential impact on the strength 
+   of the package's cipher. This update is strongly recommended & is 
+   backwards incompatible. 
+-  This update gives a name to the package's pseudo-one-time-pad cipher 
+   implementation. It's now called ``Chunky2048``! The ``OneTimePad`` 
+   class' name was updated to ``Chunky2048`` to match the change.
+-  The ``PreemptiveHMACValidation`` class & its related logic in the
+   ``StreamHMAC`` class was removed. The chaining of validator output
+   into the keystream makes running the validator over the ciphertext 
+   separately or prior to the decryption process very costly. It would 
+   either mean recalculating the full hash of the ciphertext a second 
+   time to reproduce the correct outputs during each block, or a large 
+   linear memory increase to hold all of its digests to be fed in some 
+   time after preemtive validation. It's much simpler to remove that 
+   functionality & potentially replace it with something else that fits
+   the user's applications better. For instance, the ``current_digest``
+   & ``acurrent_digest`` methods can produce secure, 32-byte authentication
+   tags at any arbitrary blocks throughout the cipher's runtime, which
+   validate the cipehrtext up to that point. Or, the ``next_block_id`` 
+   & ``anext_block_id`` methods, which are a more robust option because 
+   each id they produce validates the next ciphertext block before 
+   updating the internal state of the validator. This acts as an 
+   automatic message ordering algorithm, & leaves the deciphering 
+   party's state unharmed by dropped packets or manipulated ciphertext.
+-  The ``update_key`` & ``aupdate_key`` methods were also added to the
+   ``StreamHMAC`` class. They allow the user to update the validators'
+   internal key with new entropy or context information during its 
+   runtime. 
+-  The ``Comprende`` class now takes a ``chained`` keyword-only argument
+   which flags an instance as a chained generator. This flag allows 
+   instances to communicate up & down their generator chain using the 
+   shared ``Namespace`` object accessible by their ``messages`` attribute.
+-  The chainable ``Comprende`` generator functions had their internals
+   altered to allow them to receive, & pass down their chain, values 
+   sent from a user using the standard coroutine ``send`` & ``asend``
+   method syntax.
+-  ``Comprende`` instances no longer automatically reset themselves every 
+   time they enter their context managers or when they are iterated over.
+   This makes their interface more closely immitate the behavior of 
+   async/sync generator objects. To get them to reset, the ``areset`` or 
+   ``reset`` methods must be used. The message chaining introduced in 
+   this update allows chains of ``Comprende`` async/sync generators to 
+   inform each other when the user instructs one of them to reset.
+-  The standard library's ``hmac`` module is now used internally to the
+   ``generics.py`` module's ``sha_512_hmac``, ``sha_256_hmac``, ``asha_512_hmac`` 
+   & ``asha_256_hmac`` functions. They still allow any type of data to be 
+   hashed, but also now default to hashing ``bytes`` type objects as 
+   they are given.
+-  The new ``Domains`` class, found in ``generics.py``, is now used to
+   encode constants into deterministic pseudo-random 8-byte values for
+   helping turn hash function outputs into domain-specific hashes. Its
+   use was included throughout the library. This method has an added
+   benefit with respect to this package's usage of SHA-3. That being, the
+   *bitrate* for both ``sha3_512`` & ``sha3_256`` are ``(2 * 32 * k) + 8``
+   bytes, where ``k = 1`` for ``sha3_512`` & ``k = 2`` for ``sha3_256``.
+   This means that prepending an 8-byte domain string to their inputs
+   also makes it more efficient to add some multiple of key material
+   to make the input data precisely equal the *bitrate*. More info on
+   domain-specific hashing can be found here_.
+
+.. _here: https://eprint.iacr.org/2020/241.pdf
+
+-  A new ``DomainsKDF`` class in ``cipehrs.py`` was added to create a
+   more standard & secure method of key derivation to the library which 
+   also incorporates domain separation. Its use was integrated thoughout 
+   the ``AsyncDatabase`` & ``Database`` classes to mitigate any further 
+   vulnerabilities of their internal key-derivation functions. The 
+   database classes now also use bytes-type keys internally, instead 
+   of hex strings.
+-  The ``Passcrypt`` class now contains methods which create & validate
+   passcrypt hashes which have their settings & salt attached to them.
+   Instances can now also be created with persistent settings that are 
+   automatically sent into instance methods.
+
+
+Minor Changes 
+------------- 
+
+-  Many fixes of docstrings, typos & tutorials. 
+-  Many refactorings: name changes, extracted classes / functions, 
+   reorderings & moves. 
+-  Various code clean-ups, efficiency & usability improvements.
+-  Many constants used throughout the library were given names defined 
+   in the ``commons.py`` module.
+-  Removed extraneous functions throughout the library.
+-  The asymmetric key generation & exchange functions/protocols were 
+   moved from the ``ciphers.py`` module to ``keygens.py``.
+-  Add missing modules to the MANIFEST.rst file. 
+-  Added a ``UniformPrimes`` class to the ``__datasets`` module for efficient 
+   access to primes that aren't either mostly 1 or 0 bits, as is the case for 
+   the ``primes`` helper table. These primes are now used in the ``Hasher`` 
+   class' ``amask_byte_order`` & ``mask_byte_order`` methods. 
+-  The ``time_safe_equality`` & ``atime_safe_equality`` methods are now 
+   standalone functions available from the ``generics.py`` module.
+-  Added ``reset_pool`` to the ``Processes`` & ``Threads`` classes. Also
+   fixed a missing piece of logic in their ``submit`` method.
+-  Added various conversion values & timing functions to the ``asynchs.py``
+   module.
+-  The ``make_uuid`` & ``amake_uuid`` coroutines had their names changed to 
+   ``make_uuids`` & ``amake_uuids``.
+-  Created a new ``Datastream`` class in ``generics.py`` to handle buffering
+   & resizing iterable streams of data. It enables simplifying logic that 
+   must happen some number of iterations before the end of a stream. It's 
+   utilized in the ``Padding`` class' generator functions available as 
+   chainable ``Comprende`` methods.
+-  The ``data`` & ``adata`` generators can now produce a precise number of
+   ``size``-length ``blocks`` as specified by a user. This gets rid of the
+   confusing usage of the old ``stop`` keyword-only argument, which stopped 
+   a stream after *approximately* ``size`` number of elements.
+-  Improved the efficiency & safety of entropy production in the 
+   ``randoms.py`` module.
+
 
 
 Changes for version 0.18.1 
