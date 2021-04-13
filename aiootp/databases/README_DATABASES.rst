@@ -4,7 +4,7 @@ Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 
 Copyright
 
--  © 2019-2021 Gonzo Investigatory Journalism Agency, LLC <gonzo.development@protonmail.ch>
+-  © 2019-2021 Gonzo Investigative Journalism Agency, LLC <gonzo.development@protonmail.ch>
 -  © 2019-2021 Richard Machado <rmlibre@riseup.net>
 
 All rights reserved.
@@ -40,14 +40,16 @@ Description
 
     # Users can also use passwords to open a database, if necessary.
 
-    # Although it's not recommended, here's how to do it ->
+    # Although passwords & passphrases are low-entropy, & not recommended,
+
+    # here's how to use them more safely ->
 
     tokens = aiootp.Database.generate_profile_tokens(
         "server_url",     # An unlimited number of arguments can be passed
         "email_address",  # here as additional, optional credentials.
         username="username",
         password="password",
-        salt="optional_salt_keyword_argument",
+        salt="optional salt keyword argument",
     )
 
     db = aiootp.Database.generate_profile(tokens)
@@ -64,6 +66,15 @@ Description
         db["lawyer"] = {"#": "555-555-1000", "$": 13000.50}
 
         db["safehouses"] = ["Dublin Forgery", "NY Insurrection"]
+
+
+    # Databases also have access to conversion functions for saving 
+
+    # bytes type data ->
+    
+    db["bytes data"] = db.base64_encode(b"fash smasher")
+
+    assert b"fash smasher" == db.base64_decode(db["bytes data"])
 
 
     # Access to data is open to the user, so care must be taken
@@ -125,6 +136,9 @@ Description
     # If the user no longer wants a piece of data, pop it out ->
 
     molly.pop("hobbies")
+
+ >>> ["skipping", "punching", "reading"]
+ 
 
     "hobbies" in molly
 
@@ -243,7 +257,7 @@ Description
  >>> True
 
 
-    # Encrypted messages have timestamps that can be used to enforce
+    # All encrypted messages have timestamps that can be used to enforce
 
     # limits on how old messages can be (in seconds) before they are
 
@@ -280,14 +294,16 @@ Description
 
     # Users can also use passwords to open a database, if necessary.
 
-    # Although it's not recommended, here's how to do it ->
+    # Although passwords & passphrases are low-entropy, & not recommended,
+
+    # here's how to use them more safely ->
 
     tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
         "server_url",     # An unlimited number of arguments can be passed
         "email_address",  # here as additional, optional credentials.
         username="username",
         password="password",
-        salt="optional_salt_keyword_argument",
+        salt="optional salt keyword argument",
     )
 
     db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
@@ -304,6 +320,15 @@ Description
         db["lawyer"] = {"#": "555-555-1000", "$": 13000.50}
 
         db["safehouses"] = ["Dublin Forgery", "NY Insurrection"]
+
+
+    # Databases also have access to conversion functions for saving 
+
+    # bytes type data ->
+    
+    db["bytes data"] = await db.abase64_encode(b"fash smasher")
+
+    assert b"fash smasher" == await db.abase64_decode(db["bytes data"])
 
 
     # Access to data is open to the user, so care must be taken
@@ -365,6 +390,9 @@ Description
     # If the user no longer wants a piece of data, pop it out ->
 
     await molly.apop("hobbies")
+
+ >>> ["skipping", "punching", "reading"]
+ 
 
     "hobbies" in molly
 
@@ -487,7 +515,7 @@ Description
  >>> True
 
 
-    # Encrypted messages have timestamps that can be used to enforce
+    # All encrypted messages have timestamps that can be used to enforce
 
     # limits on how old messages can be (in seconds) before they are
 
