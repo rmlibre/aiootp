@@ -2,7 +2,7 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
@@ -12,10 +12,10 @@
 __all__ = ["paths", "SecurePath", "AsyncSecurePath", "DatabasePath"]
 
 
-__doc__ = """
-A small collection of ``pathlib.Path`` objects with references to
-potentially helpful directories.
-"""
+__doc__ = (
+    "A small collection of ``pathlib.Path`` objects with references to "
+    "potentially helpful directories."
+)
 
 
 import os
@@ -66,6 +66,12 @@ def DatabasePath(dir_function=RootPath):
 
 
 async def adeniable_filename(key, *, size=8):
+    """
+    Xors subsequent bytes-type, ``size`` length segments of ``key`` with
+    each other to create a condensed & variably forgeable hash. This
+    hash is used as a filename which is deniably attributable to a
+    particular ``key``.
+    """
     from .generics import asha_256, axi_mix
 
     if size > 16:
@@ -74,6 +80,12 @@ async def adeniable_filename(key, *, size=8):
 
 
 def deniable_filename(key, *, size=8):
+    """
+    Xors subsequent bytes-type, ``size`` length segments of ``key`` with
+    each other to create a condensed & variably forgeable hash. This
+    hash is used as a filename which is deniably attributable to a
+    particular ``key``.
+    """
     from .generics import sha_256, xi_mix
 
     if size > 16:
@@ -82,6 +94,13 @@ def deniable_filename(key, *, size=8):
 
 
 async def amake_salt_file(path, *, key=None):
+    """
+    Creates & populates the ``path`` file with a sensitive cryptographic
+    salt used to harden user databases. If ``key`` is specified then the
+    filename is deterministically derived from the key so a database can
+    find its own salt. These salt files have their permissions changed
+    with `os.chmod` to `0o000` after they're created.
+    """
     from .randoms import acsprng
 
     salt = await acsprng()
@@ -94,6 +113,13 @@ async def amake_salt_file(path, *, key=None):
 
 
 def make_salt_file(path, *, key=None):
+    """
+    Creates & populates the ``path`` file with a sensitive cryptographic
+    salt used to harden user databases. If ``key`` is specified then the
+    filename is deterministically derived from the key so a database can
+    find its own salt. These salt files have their permissions changed
+    with `os.chmod` to `0o000` after they're created.
+    """
     from .randoms import csprng
 
     salt = csprng()
@@ -106,6 +132,12 @@ def make_salt_file(path, *, key=None):
 
 
 async def afind_salt_file(path, *, key=None):
+    """
+    This returns the path of a sensitive cryptographic salt used to
+    harden user databases. If ``key`` is specified, the salt filename is
+    deterministically derived from the key so a database can find its
+    own salt.
+    """
     if key:
         return path / await adeniable_filename(key)
     for subpath in path.iterdir():
@@ -115,6 +147,12 @@ async def afind_salt_file(path, *, key=None):
 
 
 def find_salt_file(path, *, key=None):
+    """
+    This returns the path of a sensitive cryptographic salt used to
+    harden user databases. If ``key`` is specified, the salt filename is
+    deterministically derived from the key so a database can find its
+    own salt.
+    """
     if key:
         return path / deniable_filename(key)
     for subpath in path.iterdir():
@@ -123,6 +161,11 @@ def find_salt_file(path, *, key=None):
 
 
 async def aread_salt_file(filepath):
+    """
+    This returns the sensitive cryptographic salt contained within the
+    file located at ``filepath``. The file has its permissions changed
+    with `os.chmod` to `0o000` after its read.
+    """
     try:
         await aos.chmod(filepath, 0o700)
         async with aiofiles.open(filepath, "rb") as salt_file:
@@ -136,6 +179,11 @@ async def aread_salt_file(filepath):
 
 
 def read_salt_file(filepath):
+    """
+    This returns the sensitive cryptographic salt contained within the
+    file located at ``filepath``. The file has its permissions changed
+    with `os.chmod` to `0o000` after its read.
+    """
     try:
         os.chmod(filepath, 0o700)
         with open(filepath, "rb") as salt_file:
@@ -149,9 +197,17 @@ def read_salt_file(filepath):
 
 
 async def AsyncSecurePath(dir_function=DatabasePath, *, key=None):
+    """
+    This constructor returns the path of files which contain sensitive
+    cryptographic salts used to harden user databases. If ``key`` is
+    specified then the salt filename is deterministically derived from
+    the key so a database can find its own salt. These salt files have
+    their permissions changed with `os.chmod` to `0o000` before & after
+    they're read from or created.
+    """
     path = dir_function() / "secure"
     if not path.exists():
-        path.mkdir()
+        await aos.mkdir(path)
     filepath = await afind_salt_file(path, key=key)
     if not filepath or not filepath.exists():
         await amake_salt_file(path, key=key)
@@ -161,6 +217,14 @@ async def AsyncSecurePath(dir_function=DatabasePath, *, key=None):
 
 
 def SecurePath(dir_function=DatabasePath, *, key=None):
+    """
+    This constructor returns the path of files which contain sensitive
+    cryptographic salts used to harden user databases. If ``key`` is
+    specified then the salt filename is deterministically derived from
+    the key so a database can find its own salt. These salt files have
+    their permissions changed with `os.chmod` to `0o000` before & after
+    they're read from or created.
+    """
     path = dir_function() / "secure"
     if not path.exists():
         path.mkdir()
