@@ -2,7 +2,7 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
@@ -21,12 +21,13 @@ __all__ = [
 ]
 
 
-__doc__ = """
-A collection of asyncio & concurrency references to simplify their
-standard usage in this package. This module can be used to replace the
-default event loop policy, for instance, to run uvloop or change async
-frameworks. The default asyncio loop is available in ``default_loop``.
-"""
+__doc__ = (
+    "A collection of asyncio & concurrency references to simplify their "
+    "standard usage in this package. This module can be used to replace "
+    "the default event loop policy, for instance, to run uvloop or "
+    "change async frameworks. The default asyncio loop is available in "
+    "``default_loop``."
+)
 
 
 import os
@@ -45,10 +46,22 @@ from . import DebugControl
 from .commons import Namespace
 
 
+ONE_MICROSECOND = 1_000_000
+ONE_MILLISECOND = 1_000
+ONE_SECOND = 1
+ONE_MINUTE = ONE_SECOND * 60
+ONE_HOUR = ONE_MINUTE * 60
+ONE_DAY = ONE_HOUR * 24
+ONE_YEAR = ONE_DAY * 365
+
+
+this_microsecond = lambda: int(time() * ONE_MICROSECOND)
+this_millisecond = lambda: int(time() * ONE_MILLISECOND)
 this_second = lambda: int(time())
-this_minute = lambda: this_second() // 60
-this_hour = lambda: this_second() // (60 * 60)
-this_day = lambda: this_second() // (60 * 60 * 24)
+this_minute = lambda: int(time() / ONE_MINUTE)
+this_hour = lambda: int(time() / ONE_HOUR)
+this_day = lambda: int(time() / ONE_DAY)
+this_year = lambda: int(time() / ONE_YEAR)
 
 
 thread_pool = ThreadPoolExecutor()
@@ -265,6 +278,8 @@ class Processes:
                 sleep(probe_frequency)
             return future._original_result()
 
+        if not probe_frequency:
+            probe_frequency = cls._default_probe_frequency
         future = cls._pool.submit(func, *args, **kwargs)
         future._original_result = future.result
         future.result = result
@@ -347,6 +362,15 @@ class Processes:
         process.join()
         return state.pop()
 
+    @classmethod
+    def reset_pool(cls):
+        """
+        When a process or thread pool is broken by an abruptly exited,
+        this method can be called to reset the class' pool object with
+        a new instance.
+        """
+        cls._pool = cls._pool.__class__()
+
 
 class Threads(Processes):
     """
@@ -376,6 +400,13 @@ __extras = {
     "__doc__": __doc__,
     "__main_exports__": __all__,
     "__package__": "aiootp",
+    "ONE_MICROSECOND": ONE_MICROSECOND,
+    "ONE_MILLISECOND": ONE_MILLISECOND,
+    "ONE_SECOND": ONE_SECOND,
+    "ONE_MINUTE": ONE_MINUTE,
+    "ONE_HOUR": ONE_HOUR,
+    "ONE_DAY": ONE_DAY,
+    "ONE_YEAR": ONE_YEAR,
     "Processes": Processes,
     "Threads": Threads,
     "asyncio": asyncio,
@@ -391,6 +422,7 @@ __extras = {
     "gather": gather,
     "this_day": this_day,
     "new_task": new_task,
+    "this_year": this_year,
     "this_hour": this_hour,
     "new_future": new_future,
     "this_minute": this_minute,
@@ -398,6 +430,8 @@ __extras = {
     "thread_pool": thread_pool,
     "process_pool": process_pool,
     "default_loop": default_loop,
+    "this_millisecond": this_millisecond,
+    "this_microsecond": this_microsecond,
     "reset_event_loop": reset_event_loop,
     "wrap_in_executor": wrap_in_executor,
 }
