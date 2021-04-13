@@ -2,7 +2,7 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
@@ -27,18 +27,17 @@ __all__ = [
 ]
 
 
-__doc__ = """
-A module used to aggregate commonly used constants & arbitrary utilities.
-"""
+__doc__ = (
+    "A module used to aggregate commonly used constants & arbitrary "
+    "utilities."
+)
 
 
-import re
 import sys
 import copy
 import types
 import asyncio
 from os import linesep
-from hashlib import sha3_256, sha3_512
 from .__datasets import *
 from . import DebugControl
 
@@ -110,29 +109,6 @@ def make_module(name=None, *, mapping=None, deepcopy=False):
     return Namespace(module.__dict__)
 
 
-async def aredact_keys(string, *, rule=r"[0-9a-fA-F]{64,}"):
-    """
-    Takes a ``string`` & redacts any key material  in it if they match
-    the regex ``rule``, then returns the redacted string.
-    """
-    key_finder = re.compile(rule)
-    for key in key_finder.finditer(string):
-        await asyncio.sleep(0)
-        string = string.replace(key.group(0), OMITTED)
-    return string
-
-
-def redact_keys(string, *, rule=r"[0-9a-fA-F]{64,}"):
-    """
-    Takes a ``string`` & redacts any key material  in it if they match
-    the regex ``rule``, then returns the redacted string.
-    """
-    key_finder = re.compile(rule)
-    for key in key_finder.finditer(string):
-        string = string.replace(key.group(0), OMITTED)
-    return string
-
-
 class Namespace():
     """
     A simple wrapper for turning mappings into Namespace objects that
@@ -175,6 +151,12 @@ class Namespace():
         """
         return len(self.__dict__)
 
+    def __bool__(self):
+        """
+        If the namespace is empty then return False, otherwise True.
+        """
+        return bool(self.__dict__)
+
     def __str__(self, *, tab=4 * " "):
         """
         Pretty displays the Namespace's mapping.
@@ -188,7 +170,8 @@ class Namespace():
                 result += spacer + f"{variable}:\t{repr(value)},"
         else:
             for variable, value in self:
-                omitted_value = f"{OMITTED} of {type(value)}"
+                exists = (bool(value) and "is <truthy>") or "is <falsey>"
+                omitted_value = f"{OMITTED} of {type(value)} {exists}"
                 result += spacer + f"{variable}:\t{omitted_value},"
         return result + ending
 
@@ -234,8 +217,8 @@ class Namespace():
         Allows Namespace's to be unpacked with with async iteration.
         """
         for variable, value in dict(self.__dict__).items():
-            yield variable, value
             await asyncio.sleep(0)
+            yield variable, value
 
     def __contains__(self, variable=None):
         """
@@ -258,18 +241,32 @@ class Namespace():
         return self.__dict__
 
     def keys(self):
-        return dir(self)
+        """
+        Yields the names of all items in the namespace.
+        """
+        yield from (name for name, value in self)
 
+    def values(self):
+        """
+        Yields the values of all items in the namespace.
+        """
+        yield from (value for name, value in self)
 
-NONE = sha3_512(f"__NONE__{bits[512]}".encode()).hexdigest()
+    def items(self):
+        """
+        Yields the name, value pairs of all items in the namespace.
+        """
+        yield from self
 
 
 __extras = {
-    # A domain-specific namespace for networking & communications
+    # A domain-specific support namespace for networking, communications
+    # & cryptographic data processing.
     "ACTIVE": "active_connection",
     "ADDRESS": "address",
     "ADMIN": "admin",
     "AGE": "age_of_connection",
+    "ALL_BLOCKS": "all_blocks",
     "ASCII_ALPHANUMERIC": ASCII_ALPHANUMERIC,
     "ASCII_TABLE": ASCII_TABLE,
     "ASCII_TABLE_128": ASCII_TABLE_128,
@@ -278,100 +275,151 @@ __extras = {
     "BASE_38_TABLE": BASE_38_TABLE,
     "BASE_64_TABLE": BASE_64_TABLE,
     "BLOCKSIZE": 256,
+    "BLOCK_ID": "block_id",
     "BYTES_TABLE": BYTES_TABLE,
     "CHANNEL": "channel",
     "CHANNELS": "channels",
+    "CHUNKY_2048": "Chunky2048",
     "CIPHERED_SALT": "ciphered_salt",
     "CIPHERTEXT": "ciphertext",
     "CIPHERTEXT_IS_NOT_BYTES": "Ciphertext is not in bytes format.",
     "CLIENT": "client",
+    "CLIENT_ID": "client_identifier",
+    "CLIENT_INDEX": "client_database_index",
+    "CLIENT_KEY": "client_key",
+    "CLIENT_MESSAGE_KEY": "client_message_key",
+    "CLIENT_URL": "client_contact_address",
     "CORRUPT": "corrupt_connection",
     "DECRYPT": "decrypt",
     "DECRYPTION": "decryption",
+    "DIGEST": "message_digest",
     "DIRECTORY": "directory",
     "ENCRYPT": "encrypt",
     "ENCRYPTION": "encryption",
+    "ENTROPY": "entropy",
+    "EQUALITY": "equality",
     "EXCEEDED_BLOCKSIZE": "Data MUST NOT exceed 256 bytes.",
     "FAILED": "failed",
+    "STREAM_IS_EMPTY": "An emtpy stream is invalid.",
+    "FILENAME": "filename",
+    "FILE_KEY": "file_key",
     "GUEST": "guest",
+    "HEADER": "header",
+    "HEADER_BYTES": 80,
+    "HEADER_NIBBLES": 160,
     "HMAC": "hmac",
     "HMAC_BYTES": 32,
+    "HMAC_NIBBLES": 64,
     "HTTP": "http",
     "HTTPS": "https",
     "ID": "contact_identifier",
     "INACTIVE": "terminated_connection",
+    "INNER_HEADER": "inner_header",
+    "INNER_HEADER_BYTES": 24,
+    "INNER_HEADER_NIBBLES": 48,
+    "INVALID_BLOCKSIZE": "The block of data isn't 256 bytes.",
     "INVALID_CIPHERTEXT_LENGTH": "The length of ciphertext is invalid.",
     "INVALID_DECRYPTION_VALIDATOR": (
         "Must set `validator` for decryption or preemptive validation."
     ),
     "INVALID_DIGEST": "Current digest of the data stream isn't valid.",
+    "INVALID_BLOCK_ID": "Next block id of the data stream isn't valid.",
     "INVALID_ENCRYPTION_VALIDATOR": "Must set `validator` for encryption.",
+    "UNSAFE_DETERMINISM": (
+        "Must enable dangerous determinism to use a custom salt."
+    ),
     "INVALID_HMAC": "HMAC of the data stream isn't valid.",
+    "KDF": "key_derivation_function",
     "KEEP_ALIVE": "keep_alive",
     "KEY": "key",
     "KEY_ID": "key_id",
+    "KEYSTREAM": "keystream",
     "KEYED_PASSWORD": "keyed_password",
+    "LEFT_PAD": b"\x5c\x5c\x5c\x5c\x5c\x5c\x5c\x5c",
     "LIST_ENCODING": "listed_ciphertext",
-    "PLAINTEXT_ISNT_BYTES": "The provided ``data`` must be bytes type.",
     "LISTENING": "listening",
     "MAINTAINING": "maintaining",
-    "MANIFEST": sha3_256(f"__manifest__{NONE}".encode()).hexdigest(),
+    "MANIFEST": "manifest",
     "MANUAL": "manual_mode",
     "MAP_ENCODING": "mapped_ciphertext",
+    "MAX_INACTIVITY": "max_inactivity",
     "MESSAGE_ID": "message_id",
+    "MESSAGE_KEY": "message_key",
+    "MESSAGE_NUMBER": "message_number",
     "MESSAGES": "message_archive",
     "METADATA": "metadata",
-    "METATAG": sha3_256(f"__metatags__{NONE}".encode()).hexdigest(),
+    "METATAG": "metatag",
+    "METATAG_KEY": "metatag_key",
     "MISSING_HMAC": "The ``hmac`` keyword argument was not given.",
     "NEW_CONTACT": "new_contact",
     "NEXT_KEYED_PASSWORD": "next_keyed_password",
     "NEXT_PASSWORD_SALT": "next_password_salt",
     "NO_PROFILE_OR_CORRUPT": "Profile doesn't exist or is corrupt.",
-    "NONE": NONE,
     "OLD_KEY": "last_shared_key",
     "OLD_VERIFID": "last_verification_code",
     "OMITTED": "<omitted-data>",
     "ONION": "onion",
     "ONION_CHAR_TABLE": ONION_CHAR_TABLE,
+    "PADDING_KEY": "padding_key",
     "PASSWORD": "password",
     "PASSWORD_SALT": "password_salt",
     "PHASE": "phase",
     "PLAINTEXT": "plaintext",
+    "PLAINTEXT_ISNT_BYTES": "The provided ``data`` must be bytes type.",
     "PUB": "pub",
     "PORT": 8081,
     "PREEMPTIVE": "preemptive_mode",
     "RACHET": "rachet_shared_key",
-    "UNIFORM_PRIME_512": UNIFORM_PRIME_512,
     "RECEIVING": "receiving",
     "REGISTRATION": "registration",
     "RETRY": "retry",
+    "RIGHT_PAD": b"\x36\x36\x36\x36\x36\x36\x36\x36",
+    "ROPAKE_TIMEOUT": 0,
     "SALT": "salt",
     "SALT_BYTES": 32,
+    "SALT_NIBBLES": 64,
     "SECRET": "secret",
     "SEED": "seed",
     "SENDER": "sender",
     "SENDING": "sending",
     "SERVER": "server",
-    "SERVER_BASE": "server_prime_base",
-    "SERVER_PUB": "server_public_key_part",
-    "SERVER_SECRET": "server_secret",
+    "SERVER_ID": "server_identifier",
+    "SERVER_INDEX": "server_database_index",
+    "SERVER_KEY": "server_key",
+    "SERVER_MESSAGE_KEY": "server_message_key",
+    "SERVER_URL": "server_contact_address",
+    "SESSION_ID": "session_identifier",
     "SESSION_KEY": "session_key",
     "SESSION_SALT": "session_salt",
+    "SESSION_TOKEN": "session_tracking_token",
     "SHARED_KEY": "shared_key",
     "SHARED_SECRET": "shared_secret",
     "SHARED_SEED": "shared_seed",
+    "SHMAC": "stream_hmac",
+    "SIV": "synthetic_iv",
+    "SIV_BYTES": 16,
+    "SIV_NIBBLES": 32,
+    "SIV_KEY": "synthetic_iv_key",
+    "SIV_KEY_BYTES": 16,
+    "SIV_KEY_NIBBLES": 32,
+    "SMALL_MESSAGE_ISNT_PADDED": (
+        "The first block is too small & was not flagged as also the final "
+        "block."
+    ),
     "STATUS": "status",
     "SUCCESS": "success",
     "TB_PORT": 9150,
-    "ROPAKE_TIMEOUT": 0,
+    "TIMEOUT": "timeout",
+    "TIMESTAMP": "timestamp",
+    "TIMESTAMP_BYTES": 8,
+    "TIMESTAMP_NIBBLES": 16,
     "TOR_PORT": 9050,
+    "UniformPrimes": UniformPrimes,
     "UNSAFE_KEY_REUSE": "Providing both a `key` & `salt` risks key reuse.",
     "UNSENT_MESSAGES": "unsent_message_archive",
     "URL": "url",
     "URL_SAFE_TABLE": URL_SAFE_TABLE,
-    "USER_MOD": "user_prime_modulus",
-    "USER_PUB": "user_public_key_part",
-    "USER_SECRET": "user_secret",
+    "UUID": "unique_user_id",
     "VERIFICATION": "verification",
     "VERIFID": "verification_code",
     "WORD_LIST": WORD_LIST,
@@ -386,8 +434,6 @@ __extras = {
     "import_namespace": import_namespace,
     "amake_module": amake_module,
     "make_module": make_module,
-    "aredact_keys": aredact_keys,
-    "redact_keys": redact_keys,
     "bits": bits,
     "primes": primes,
 }
