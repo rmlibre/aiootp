@@ -2,7 +2,7 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
@@ -87,7 +87,7 @@ def test_X25519(database, async_database):
     # 2DH
     peer_key = X25519().generate()
     with secret_key_b.protocols.dh2_client() as client:
-        server = peer_key.dh2_server(public_key_d=client())
+        server = peer_key.dh2_server(peer_ephemeral_key=client())
         client(server.exhaust())
 
     assert client.result().digest() == server.result().digest()
@@ -95,7 +95,7 @@ def test_X25519(database, async_database):
     # 3DH
     with secret_key_b.dh3_client() as client:
         pkB, pkD = client()
-        server = peer_key.dh3_server(public_key_b=pkB, public_key_d=pkD)
+        server = peer_key.dh3_server(peer_identity_key=pkB, peer_ephemeral_key=pkD)
         client(server.exhaust())
 
     assert client.result().digest() == server.result().digest()
@@ -106,7 +106,7 @@ def test_X25519(database, async_database):
         # 2DH
         peer_key = await X25519().agenerate()
         async with secret_key_b.protocols.adh2_client() as client:
-            server = peer_key.adh2_server(public_key_d=await client())
+            server = peer_key.adh2_server(peer_ephemeral_key=await client())
             await client(await server.aexhaust())
 
         assert (await client.aresult()).digest() == (await server.aresult()).digest()
@@ -114,7 +114,7 @@ def test_X25519(database, async_database):
         # 3DH
         async with secret_key_b.adh3_client() as client:
             pkB, pkD = await client()
-            server = peer_key.adh3_server(public_key_b=pkB, public_key_d=pkD)
+            server = peer_key.adh3_server(peer_identity_key=pkB, peer_ephemeral_key=pkD)
             await client(await server.aexhaust())
 
         assert (await client.aresult()).digest() == (await server.aresult()).digest()
@@ -141,3 +141,4 @@ def test_Ed25519(database, async_database):
 
     key_b_verifier.verify(signature, plaintext_bytes)
     arbitrary_verifier.verify(signature, plaintext_bytes, public_key=secret_key_b.public_bytes)
+

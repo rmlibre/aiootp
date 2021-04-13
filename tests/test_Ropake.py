@@ -2,7 +2,7 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
@@ -25,10 +25,7 @@ async def async_registration(async_database):
     await db.asave()
     async with Ropake.aclient_registration(db.client) as client:
         server = Ropake.aserver_registration(await client(), db.server)  # client sends hello
-        await client(await server())  # server sends hello response
-
-    with generics.ignore(StopAsyncIteration):
-        await server()  # server finishes authenticating client data
+        await client(await server.aexhaust())  # server sends hello response
 
     clients_keys = await client.aresult()
     servers_keys = await server.aresult()
@@ -41,6 +38,7 @@ async def async_registration(async_database):
     assert clients_keys.namespace == servers_keys.namespace
 
     await db.asave()
+    assert db.client[Ropake.KEY] == clients_keys.key
     assert (
         db.client[Ropake.KEY] == db.server[servers_keys.key_id][Ropake.KEY]
     )
@@ -55,10 +53,7 @@ def registration(database):
     db.load(manifest=True)
     with Ropake.client_registration(db.client) as client:
         server = Ropake.server_registration(client(), db.server)  # client sends hello
-        client(server())  # server sends hello response
-
-    with generics.ignore(StopIteration):
-        server()  # server finishes authenticating client data
+        client(server.exhaust())  # server sends hello response
 
     clients_keys = client.result()
     servers_keys = server.result()
@@ -71,6 +66,7 @@ def registration(database):
     assert clients_keys.namespace == servers_keys.namespace
 
     db.save()
+    assert db.client[Ropake.KEY] == clients_keys.key
     assert (
         db.client[Ropake.KEY] == db.server[servers_keys.key_id][Ropake.KEY]
     )
@@ -85,10 +81,7 @@ async def async_authentication(async_database):
     await db.aload(manifest=True)
     async with Ropake.aclient(db.client) as client:
         server = Ropake.aserver(await client(), db.server)  # client sends hello
-        await client(await server())  # server sends hello response
-
-    with generics.ignore(StopAsyncIteration):
-        await server()  # server finishes authenticating client data
+        await client(await server.aexhaust())  # server sends hello response
 
     clients_keys = await client.aresult()
     servers_keys = await server.aresult()
@@ -101,6 +94,7 @@ async def async_authentication(async_database):
     assert clients_keys.namespace == servers_keys.namespace
 
     await db.asave()
+    assert db.client[Ropake.KEY] == clients_keys.key
     assert (
         db.client[Ropake.KEY] == db.server[servers_keys.key_id][Ropake.KEY]
     )
@@ -115,10 +109,7 @@ def authentication(database):
     db.load(manifest=True)
     with Ropake.client(db.client) as client:
         server = Ropake.server(client(), db.server)  # client sends hello
-        client(server())  # server sends hello response
-
-    with generics.ignore(StopIteration):
-        server()  # server finishes authenticating client data
+        client(server.exhaust())  # server sends hello response
 
     clients_keys = client.result()
     servers_keys = server.result()
@@ -131,6 +122,7 @@ def authentication(database):
     assert clients_keys.namespace == servers_keys.namespace
 
     db.save()
+    assert db.client[Ropake.KEY] == clients_keys.key
     assert (
         db.client[Ropake.KEY] == db.server[servers_keys.key_id][Ropake.KEY]
     )

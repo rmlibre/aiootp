@@ -2,7 +2,7 @@
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
-# Copyright © 2019-2021 Gonzo Investigatory Journalism Agency, LLC
+# Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
 #           © 2019-2021 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
@@ -21,12 +21,13 @@ sys.path.append(PACKAGE_PATH)
 
 import aiootp
 from aiootp import *
+from commons import *
 
 
 key = csprng()
 salt = generate_salt()
 pid = sha_256(key, salt)
-pad = OneTimePad(key)
+pad = Chunky2048(key)
 
 passcrypt_passwords = []
 apasscrypt_passwords = []
@@ -55,19 +56,21 @@ PROFILE = dict(username=username, password=password, salt=salt)
 LOW_PASSCRYPT_SETTINGS = dict(kb=256, cpu=2, hardness=256)
 PROFILE_AND_SETTINGS = {**PROFILE, **LOW_PASSCRYPT_SETTINGS}
 
-plaintext_bytes = 100 * randoms.urandom(128)
-plaintext_string = 1280 * "testing..."
+plaintext_bytes = randoms.urandom(320)
+plaintext_string = 32 * "testing..."
+# Testing json encrypt of these dictionaries may fail because the order
+# of their elements may change
 test_data = {
     "floats": 10000.243,
     "dicts": {"testing": {}},
-    "lists": list(range(100)),
-    "strings": 100 * "testing...",
+    "lists": list(range(16)),
+    "strings": "testing...",
 }
 atest_data = {
     "floats": 10000.243,
     "dicts": {"testing": {}},
-    "lists": list(range(100)),
-    "strings": 100 * "testing...",
+    "lists": list(range(16)),
+    "strings": "testing...",
 }
 
 
@@ -104,6 +107,7 @@ __all__ = [
     "PACKAGE_PATH",
     "aiootp",
     *aiootp.__all__,
+    *commons.__all__,
     "key",
     "salt",
     "pid",
