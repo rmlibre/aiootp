@@ -4217,6 +4217,64 @@ class Padding:
         data = cls.depad_beginning(data=data, ttl=ttl)
         return cls.depad_ending(data=data, padding_key=padding_key)
 
+    @classmethod
+    async def _asurpress_stop_iteration(cls, plaintext_stream, *, rounds=4):
+        """
+        Yields upto ``rounds`` number of plaintext blocks from the
+        ``plaintext_stream`` async iterable. It surpresses any raised
+        `StopAsyncIteration` to do so. If the stream is empty, then the
+        remaining number of empty bytes sequences are yielded instead.
+        """
+        for _ in range(rounds):
+            try:
+                yield await plaintext_stream.asend(None)
+            except StopAsyncIteration:
+                yield b""
+
+    @classmethod
+    def _surpress_stop_iteration(cls, plaintext_stream, *, rounds=4):
+        """
+        Yields upto ``rounds`` number of plaintext blocks from the
+        ``plaintext_stream`` iterable by surpressing `StopIteration` if
+        it's raised. If the stream is empty, then the remaining number
+        of empty bytes sequences are yielded instead.
+        """
+        for _ in range(rounds):
+            try:
+                yield plaintext_stream.send(None)
+            except StopIteration:
+                yield b""
+
+    @classmethod
+    async def _abegin_pad_stream(cls, plaintext_stream):
+        """
+        Returns a stream with its inner header added. It attempts to
+        buffer several iterations of output from the ``output_stream``
+        which produces unpadded plaintext data.
+        """
+        buffer = [
+            chunk
+            async for chunk
+            in cls._asurpress_stop_iteration(plaintext_stream, rounds=4)
+        ]
+        return Datastream(
+            await Padding.apad_beginning(b"".join(buffer)), buffer_size=1
+        )
+
+    @classmethod
+    def _begin_pad_stream(cls, plaintext_stream):
+        """
+        Returns a stream with its inner header added. It attempts to
+        buffer several iterations of output from the ``output_stream``
+        which produces unpadded plaintext data.
+        """
+        buffer = b"".join(
+            chunk
+            for chunk
+            in cls._surpress_stop_iteration(plaintext_stream, rounds=4)
+        )
+        return Datastream(Padding.pad_beginning(buffer), buffer_size=1)
+
     @comprehension(chained=True)
     async def _apad_plaintext(self, key, *, salt, pid=0):
         """
@@ -4247,20 +4305,17 @@ class Padding:
         padding will make the plaintext a multiple of 256 bytes.
         """
         try:
-            got = None
-            cls = Padding
             asend = self.asend
-            first_block = await cls.apad_beginning(await asend(got))
-            stream = Datastream(first_block, buffer_size=1)
+            stream = await Padding._abegin_pad_stream(self)
             while True:
                 try:
-                    stream.append(await asend(got))
+                    stream.append(await asend(None))
                 except StopAsyncIteration:
                     pass
-                got = yield await stream.apopleft()
+                yield await stream.apopleft()
         except StopAsyncIteration:
-            padding_key = await cls.aderive_key(key, salt=salt, pid=pid)
-            yield await cls.apad_ending(
+            padding_key = await Padding.aderive_key(key, salt=salt, pid=pid)
+            yield await Padding.apad_ending(
                 stream.buffer.popleft(), padding_key=padding_key
             )
 
@@ -4294,21 +4349,52 @@ class Padding:
         padding will make the plaintext a multiple of 256 bytes.
         """
         try:
-            got = None
-            cls = Padding
             send = self.send
-            stream = Datastream(cls.pad_beginning(send(got)), buffer_size=1)
+            stream = Padding._begin_pad_stream(self)
             while True:
                 try:
-                    stream.append(send(got))
+                    stream.append(send(None))
                 except StopIteration:
                     pass
-                got = yield stream.popleft()
+                yield stream.popleft()
         except StopIteration:
-            padding_key = cls.derive_key(key, salt=salt, pid=pid)
-            yield cls.pad_ending(
+            padding_key = Padding.derive_key(key, salt=salt, pid=pid)
+            yield Padding.pad_ending(
                 stream.buffer.popleft(), padding_key=padding_key
             )
+
+    @classmethod
+    async def _abegin_depad_stream(cls, plaintext_stream, ttl=0):
+        """
+        Returns a stream with its inner header removed. It attempts to
+        buffer several iterations of output from the ``output_stream``
+        which produces data with padding attached to it.
+        """
+        buffer = [
+            chunk
+            async for chunk
+            in cls._asurpress_stop_iteration(plaintext_stream, rounds=4)
+        ]
+        return Datastream(
+            await cls.adepad_beginning(b"".join(buffer), ttl=ttl),
+            buffer_size=2,
+        )
+
+    @classmethod
+    def _begin_depad_stream(cls, plaintext_stream, ttl=0):
+        """
+        Returns a stream with its inner header removed. It attempts to
+        buffer several iterations of output from the ``output_stream``
+        which produces data with padding attached to it.
+        """
+        buffer = b"".join(
+            chunk
+            for chunk
+            in cls._surpress_stop_iteration(plaintext_stream, rounds=4)
+        )
+        return Datastream(
+            cls.depad_beginning(buffer, ttl=ttl), buffer_size=2
+        )
 
     @comprehension(chained=True)
     async def _adepad_plaintext(self, key, *, salt, pid=0, ttl=0):
@@ -4320,22 +4406,17 @@ class Padding:
           output of an object fed a ``padding_key``.
         """
         try:
-            got = None
-            cls = Padding
             asend = self.asend
-            stream = Datastream(
-                await cls.adepad_beginning(await asend(got), ttl=ttl),
-                buffer_size=2,
-            )
+            stream = await Padding._abegin_depad_stream(self, ttl)
             while True:
                 try:
-                    stream.append(await asend(got))
+                    stream.append(await asend(None))
                 except StopAsyncIteration:
                     pass
-                got = yield await stream.apopleft()
+                yield await stream.apopleft()
         except StopAsyncIteration:
-            padding_key = await cls.aderive_key(key, salt=salt, pid=pid)
-            plaintext_ending = await cls.adepad_ending(
+            padding_key = await Padding.aderive_key(key, salt=salt, pid=pid)
+            plaintext_ending = await Padding.adepad_ending(
                 b"".join(stream.buffer), padding_key=padding_key
             )
             async for final_chunk in adata.root(plaintext_ending):
@@ -4351,21 +4432,17 @@ class Padding:
           output of an object fed a ``padding_key``.
         """
         try:
-            got = None
-            cls = Padding
             send = self.send
-            stream = Datastream(
-                cls.depad_beginning(send(got), ttl=ttl), buffer_size=2
-            )
+            stream = Padding._begin_depad_stream(self, ttl)
             while True:
                 try:
-                    stream.append(send(got))
+                    stream.append(send(None))
                 except StopIteration:
                     pass
-                got = yield stream.popleft()
+                yield stream.popleft()
         except StopIteration:
-            padding_key = cls.derive_key(key, salt=salt, pid=pid)
-            plaintext_ending = cls.depad_ending(
+            padding_key = Padding.derive_key(key, salt=salt, pid=pid)
+            plaintext_ending = Padding.depad_ending(
                 b"".join(stream.buffer), padding_key=padding_key
             )
             yield from data.root(plaintext_ending)
