@@ -3,11 +3,11 @@
     "pgp_signed_identity_key": "-----BEGIN PGP MESSAGE-----\n\nowGbwMvMwCW2Ttv9l9wXfy7G025JDAl6jMssTRItUpOTLVItko2TLE0sDSwMDE3N\nLZMskswskozNDNISTcwsjcyT01KTTZMsjYxNUhMNUi1NzEwtLVJNDI0MO0pZGMS4\nGGTFFFkM/57xn5m4fk2Q1lxHmD2sTCBLGLg4BWAibl2MDM1XThx7yeM6XS7x9GtB\nc1fxzUuSLz1u2L3Qv3t3XNX0SWWMDD8ivJ/6bPfLVo9bxVqaafH1hYFw8sJP+1hn\n/p8VyrxeiREA\n=K9Lv\n-----END PGP MESSAGE-----\n",
     "name": "aiootp",
     "date": 18733,
-    "version": "0.19.1",
-    "ephemeral_key": "56b113d2e944e06d13df692abc7254cf5d4baf4d400c7eab662c96d659c61b38",
-    "signed_ephemeral_key": "f99fe7fb066032d982e9c9faa36f61528e63cc18bb5ef1425287d4e5efb26e3b11cf8774a389807c37f8563685052b9c736b4cad6342d3a64eddbe0f0c4fac0f",
-    "checksums_txt_sha256": "28711295e0bd36dda1305661a9d5c91fef059f4e5096e3d15a0fcfd7fc1db697",
-    "checksums_txt_sha512": "9b06a09cd5f31c899c6e53f1f57be2e42ca75ef295a18a7094de67f295d29101d248bbbdb94ebf3c822e594be8aedc3406854f09b25276fbddcd7d29e5fd6a4e",
-    "signed_sha256sum": "4408d3a5fa54f76d63f9022dac2b2e3a4fba667b5677782872efe0c393199c8806062117f5ae528c24723bdfc39acfdebeb90beeb0069841b74501c5e0b2900e",
-    "signed_sha512sum": "65604f1936834d157f62420d95f1f352bcc7c76a039857b6f901c5e4651f1c0453d28e88f66b7a4db189ae15a176a4b7741d938835285a378ef0dd7a2d60f604"
+    "version": "0.19.2",
+    "ephemeral_key": "eadd8511ab05bb7c8dc65f62499bc92189d6ef3b6e52f7e048b82ac2c93995df",
+    "signed_ephemeral_key": "a555ec5c9f9f9dac96f8b64d73b1ab4beb68649bc1450e3f9fad7fa83fcdd48cc957106c7b7059cb4f0ac26c738a18f9007c820b4df68a1db7d8293daee2b20b",
+    "checksums_txt_sha256": "342c3e923a29ed3775d692cd7a592c117404f9f91c74cf2ca9ae4a5a5a460dac",
+    "checksums_txt_sha512": "305c13e39f59d1d3b78dfda32e59e859df7bd407f8c202958c0602b02be09b70a7327276027e58b51b31d79e95398f75f5425286da13cd8176b483b03da8895b",
+    "signed_sha256sum": "297de60ec21cb947caf641c00fbe3efacc11fecab4a2b8de4bbc4c007e0e96dfb3cc11caed93e27c1f1a3ffa794745d1c2b9d3cafc721a2c1cb3b1d17e77300f",
+    "signed_sha512sum": "916debe90df288853b857eaa0d3928b566990f433261581ae5cda8838a12a65c9c0fd2daf6ac8281106a42db45d3f890517ee3ee36ed9b162d5bdb62b5e5f00f"
 }

@@ -24,6 +24,25 @@
 =============
 
 
+Changes for version 0.19.2 
+========================== 
+
+
+Minor Changes 
+------------- 
+
+-  Made the output lengths of the ``Padding`` class' generator functions 
+   uniform. When the footer padding on a stream of plaintext needs to 
+   exceed the 256-byte blocksize (i.e. when the last unpadded plaintext 
+   block's length ``L`` is ``232 > L < 256``), then another full block of
+   padding is produced. The generators now yield 256-byte blocks 
+   consistently (except during depadding when the last block of plaintext
+   may be smaller than the blocksize), instead of sometimes producing a
+   final padded block which is 512 bytes.
+
+
+
+
 Changes for version 0.19.1 
 ========================== 
 
