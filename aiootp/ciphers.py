@@ -59,6 +59,7 @@ from .commons import *
 from commons import *  # import the module's constants
 from .randoms import csprbg, acsprbg
 from .randoms import csprng, acsprng
+from .randoms import csprng as _csprng
 from .randoms import make_uuids, amake_uuids
 from .randoms import generate_salt, agenerate_salt
 from .generics import arange
@@ -281,6 +282,7 @@ class StreamHMAC:
         self._encoded_key = await self._aencode_key(
             old_key, siv, pid, salt, key
         )
+        return self
 
     def update_key(self, key="", *, salt="", pid=0, siv=""):
         """
@@ -297,6 +299,7 @@ class StreamHMAC:
             raise PermissionError(self._ALREADY_FINALIZED)
         old_key = self._encoded_key.hex()
         self._encoded_key = self._encode_key(old_key, siv, pid, salt, key)
+        return self
 
     def for_encryption(self):
         """
@@ -402,6 +405,7 @@ class StreamHMAC:
         self._block_counter += 1
         self._last_mac = self._mac.digest()
         self._mac.update(ciphertext_chunk)
+        return self
 
     def _update(self, ciphertext_chunk):
         """
@@ -413,6 +417,7 @@ class StreamHMAC:
         self._block_counter += 1
         self._last_mac = self._mac.digest()
         self._mac.update(ciphertext_chunk)
+        return self
 
     async def aupdate(self, payload):
         """
@@ -636,8 +641,8 @@ class StreamHMAC:
         the encoded key derived from the user's key, salt, & pid, as
         well as the hashing object's current digest.
 
-        Usage Example (Encryption):
-
+        Usage Example (Encryption): # when the `key` & `pid` are already
+                                    # shared
         import aiootp
 
         key = await aiootp.acsprng()
@@ -660,8 +665,8 @@ class StreamHMAC:
             yield await cipherstream(), await hmac.acurrent_digest()
 
 
-        Usage Example (Decryption): # when the `key` is already shared
-
+        Usage Example (Decryption): # when the `key` & `pid` are already
+                                    # shared
         import aiootp
 
         pad = aiootp.Chunky2048(key)
@@ -700,8 +705,8 @@ class StreamHMAC:
         the encoded key derived from the user's key, salt, & pid, as
         well as the hashing object's current digest.
 
-        Usage Example (Encryption):
-
+        Usage Example (Encryption): # when the `key` & `pid` are already
+                                    # shared
         import aiootp
 
         key = aiootp.csprng()
@@ -724,8 +729,8 @@ class StreamHMAC:
             yield cipherstream(), hmac.current_digest()
 
 
-        Usage Example (Decryption): # when the `key` is already shared
-
+        Usage Example (Decryption): # when the `key` & `pid` are already
+                                    # shared
         import aiootp
 
         pad = aiootp.Chunky2048(key)
@@ -1613,9 +1618,10 @@ async def ajson_encrypt(
 
     Returns a dictionary containing pseudo-one-time-pad ciphertext of
     any json serializable ``data``. The dictionary also contains the
-    ephemeral 256-bit salt & a 256-bit HMAC used to verify the integrity
-    & authenticity of the ciphertext & the values used to create it. The
-    key stream is derived from permutations of these values:
+    ephemeral 256-bit salt, a 128-bit SIV, & a 256-bit HMAC used to
+    verify the integrity & authenticity of the ciphertext & the values
+    used to create it. The key stream is derived from permutations of
+    these values:
 
     ``key``: An arbitrary, non-zero amount & type of entropic key
             material whose __repr__ returns the user's desired
@@ -1656,9 +1662,10 @@ def json_encrypt(
 
     Returns a dictionary containing pseudo-one-time-pad ciphertext of
     any json serializable ``data``. The dictionary also contains the
-    ephemeral 256-bit salt & a 256-bit HMAC used to verify the integrity
-    & authenticity of the ciphertext & the values used to create it. The
-    key stream is derived from permutations of these values:
+    ephemeral 256-bit salt, a 128-bit SIV, & a 256-bit HMAC used to
+    verify the integrity & authenticity of the ciphertext & the values
+    used to create it. The key stream is derived from permutations of
+    these values:
 
     ``key``: An arbitrary, non-zero amount & type of entropic key
             material whose __repr__ returns the user's desired entropy
@@ -1692,10 +1699,10 @@ async def ajson_decrypt(data, key, *, pid=0, ttl=0):
 
     Returns the plaintext bytes of the pseudo-one-time pad ciphertext
     ``data``. ``data`` is a dictionary or json object containing an
-    iterable of ciphertext, a 256-bit hex string ephemeral salt, & a
-    256-bit HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it. The keystream is derived
-    from permutations of these values:
+    iterable of ciphertext, a 256-bit hex string ephemeral salt, a 128-
+    bit SIV & a 256-bit HMAC used to verify the integrity & authenticity
+    of the ciphertext & the values used to create it. The keystream is
+    derived from permutations of these values:
 
     ``key``: An arbitrary, non-zero amount & type of entropic key
             material whose __repr__ returns the user's desired
@@ -1725,10 +1732,10 @@ def json_decrypt(data, key, *, pid=0, ttl=0):
 
     Returns the plaintext bytes of the pseudo-one-time pad ciphertext
     ``data``. ``data`` is a dictionary or json object containing an
-    iterable of ciphertext, a 256-bit hex string ephemeral salt, & a
-    256-bit HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it. The keystream is derived
-    from permutations of these values:
+    iterable of ciphertext, a 256-bit hex string ephemeral salt, a 128-
+    bit SIV & a 256-bit HMAC used to verify the integrity & authenticity
+    of the ciphertext & the values used to create it. The keystream is
+    derived from permutations of these values:
 
     ``key``: An arbitrary, non-zero amount & type of entropic key
             material whose __repr__ returns the user's desired
@@ -1793,9 +1800,9 @@ async def abytes_encrypt(
 
     Returns a dictionary containing pseudo-one-time-pad ciphertext of
     any bytes type ``data``. The dictionary also contains the ephemeral
-    256-bit salt & a 256-bit HMAC used to verify the integrity &
-    authenticity of the ciphertext & values used to create it. The key
-    stream is derived from permutations of these values:
+    256-bit salt, the 128-bit SIV, & a 256-bit HMAC used to verify the
+    integrity & authenticity of the ciphertext & values used to create
+    it. The key stream is derived from permutations of these values:
 
     ``key``: An arbitrary, non-zero amount & type of entropic key
             material whose __repr__ returns the user's desired
@@ -1843,9 +1850,9 @@ def bytes_encrypt(
 
     Returns a dictionary containing pseudo-one-time-pad ciphertext of
     any bytes type ``data``. The dictionary also contains the ephemeral
-    256-bit salt & a 256-bit HMAC used to verify the integrity &
-    authenticity of the ciphertext & values used to create it. The key
-    stream is derived from permutations of these values:
+    256-bit salt, the 128-bit SIV, & a 256-bit HMAC used to verify the
+    integrity & authenticity of the ciphertext & values used to create
+    it. The key stream is derived from permutations of these values:
 
     ``key``: An arbitrary, non-zero amount & type of entropic key
             material whose __repr__ returns the user's desired
@@ -1886,10 +1893,10 @@ async def abytes_decrypt(data, key, *, pid=0, ttl=0):
 
     Returns the plaintext bytes of the pseudo-one-time pad ciphertext
     ``data``. ``data`` is a dictionary containing an iterable of
-    ciphertext, a 256-bit hex string ephemeral salt, & a 256-bit HMAC
-    used to verify the integrity & authenticity of the ciphertext &
-    values used to create it. The keystream is derived from permutations
-    of these values:
+    ciphertext, a 256-bit hex string ephemeral salt, a 128-bit SIV, & a
+    256-bit HMAC used to verify the integrity & authenticity of the
+    ciphertext & values used to create it. The keystream is derived from
+    permutations of these values:
 
     ``key``: An arbitrary, non-zero amount & type of entropic key
             material whose __repr__ returns the user's desired
@@ -1926,10 +1933,10 @@ def bytes_decrypt(data, key, *, pid=0, ttl=0):
 
     Returns the plaintext bytes of the pseudo-one-time pad ciphertext
     ``data``. ``data`` is a dictionary containing an iterable of
-    ciphertext, a 256-bit hex string ephemeral salt, & a 256-bit HMAC
-    used to verify the integrity & authenticity of the ciphertext &
-    values used to create it. The keystream is derived from permutations
-    of these values:
+    ciphertext, a 256-bit hex string ephemeral salt, a 128-bit SIV, & a
+    256-bit HMAC used to verify the integrity & authenticity of the
+    ciphertext & values used to create it. The keystream is derived from
+    permutations of these values:
 
     ``key``: An arbitrary, non-zero amount & type of entropic key
             material whose __repr__ returns the user's desired
@@ -2665,6 +2672,8 @@ class Chunky2048:
     generate_salt = staticmethod(generate_salt)
     acsprbg = staticmethod(acsprbg)
     csprbg = staticmethod(csprbg)
+    acsprng = staticmethod(acsprng)
+    csprng = staticmethod(csprng)
     akeys = staticmethod(akeys)
     keys = staticmethod(keys)
     abytes_keys = staticmethod(abytes_keys)
@@ -2943,7 +2952,7 @@ class Chunky2048:
 
     @comprehension(chained=True)
     async def _aascii_encipher(
-        self, key=csprng(), *, salt, pid=0, validator
+        self, key=_csprng(), *, salt, pid=0, validator
     ):
         """
         This function is copied into the ``Comprende`` class dictionary.
@@ -3004,7 +3013,7 @@ class Chunky2048:
         raise UserWarning(await encrypting.aresult())
 
     @comprehension(chained=True)
-    def _ascii_encipher(self, key=csprng(), *, salt, pid=0, validator):
+    def _ascii_encipher(self, key=_csprng(), *, salt, pid=0, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
@@ -3065,7 +3074,7 @@ class Chunky2048:
 
     @comprehension(chained=True)
     async def _aascii_decipher(
-        self, key=csprng(), *, salt, pid=0, validator
+        self, key=_csprng(), *, salt, pid=0, validator
     ):
         """
         This function is copied into the ``Comprende`` class dictionary.
@@ -3118,7 +3127,7 @@ class Chunky2048:
             yield plaintext.decode()
 
     @comprehension(chained=True)
-    def _ascii_decipher(self, key=csprng(), *, salt, pid=0, validator):
+    def _ascii_decipher(self, key=_csprng(), *, salt, pid=0, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
@@ -3171,7 +3180,7 @@ class Chunky2048:
 
     @comprehension(chained=True)
     async def _abytes_encipher(
-        self, key=csprng(), *, salt, pid=0, validator
+        self, key=_csprng(), *, salt, pid=0, validator
     ):
         """
         This function is copied into the ``Comprende`` class dictionary.
@@ -3232,7 +3241,7 @@ class Chunky2048:
         await keystream.athrow(UserWarning)
 
     @comprehension(chained=True)
-    def _bytes_encipher(self, key=csprng(), *, salt, pid=0, validator):
+    def _bytes_encipher(self, key=_csprng(), *, salt, pid=0, validator):
         """
         This function is copied into the ``Comprende`` class dictionary.
         Doing so allows instances of ``Comprende`` generators access to
@@ -3436,6 +3445,7 @@ class DomainKDF:
         """
         await asleep(0)
         self._payload.update(payload)
+        return self
 
     def update(self, payload):
         """
@@ -3444,6 +3454,7 @@ class DomainKDF:
         large in-memory cost.
         """
         self._payload.update(payload)
+        return self
 
     async def aupdate_key(self, key):
         """
@@ -3452,6 +3463,7 @@ class DomainKDF:
         """
         await asleep(0)
         self._key = self._domain + sha3_512(self._key + key).digest()
+        return self
 
     def update_key(self, key):
         """
@@ -3459,6 +3471,7 @@ class DomainKDF:
         material & the previous key.
         """
         self._key = self._domain + sha3_512(self._key + key).digest()
+        return self
 
     async def asha3_256(self, *, _hmac=_hmac):
         """
@@ -4049,8 +4062,9 @@ class AsyncDatabase(metaclass=AsyncInit):
 
     async def ahmac(self, *data):
         """
-        Creates an HMAC hash of the arguments passed into ``*data`` with
-        keys derived from the key used to open the database instance.
+        Derives an HMAC hash of the arguments passed into ``*data`` with
+        a unique permutation of the database's keys & a domain-specific
+        kdf.
         """
         await asleep(0)
         domain = self._HMAC
@@ -4097,7 +4111,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Passcrypt._check_inputs(password, salt)
         salted_password = await self.ahmac(password, salt)
-        return await Chunky2048.apasscrypt(
+        return await Passcrypt.anew(
             salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
         )
 
@@ -4171,38 +4185,6 @@ class AsyncDatabase(metaclass=AsyncInit):
         payload = self.__root_salt + repr((salt, filename)).encode()
         return (await DomainKDF(domain, payload, key=key).asha3_512()).hex()
 
-    async def abytes_decrypt(self, filename, ciphertext, ttl=0):
-        """
-        Decrypts ``ciphertext`` with keys specific to the ``filename``
-        value.
-
-        ``filename``    This is the hashed tag that labels a piece of
-            data in the database.
-        ``ciphertext``  This is a dictionary of ciphertext.
-        ``ttl``:        An amount of seconds that dictate the allowable
-            age of the decrypted message.
-        """
-        salt = ciphertext["salt"]
-        key = await self._aencryption_key(filename, salt)
-        return await Chunky2048.abytes_decrypt(
-            data=ciphertext, key=key, ttl=ttl
-        )
-
-    async def adecrypt(self, filename, ciphertext, ttl=0):
-        """
-        Decrypts ``ciphertext`` with keys specific to the ``filename``
-        value.
-
-        ``filename``    This is the hashed tag that labels a piece of
-            data in the database.
-        ``ciphertext``  This is a dictionary of ciphertext.
-        ``ttl``:        An amount of seconds that dictate the allowable
-            age of the decrypted message.
-        """
-        salt = ciphertext["salt"]
-        key = await self._aencryption_key(filename, salt)
-        return await ajson_decrypt(data=ciphertext, key=key, ttl=ttl)
-
     async def abytes_encrypt(self, filename, plaintext):
         """
         Encrypts ``plaintext`` with keys specific to the ``filename``
@@ -4240,6 +4222,38 @@ class AsyncDatabase(metaclass=AsyncInit):
             salt=salt,
             allow_dangerous_determinism=True,
         )
+
+    async def abytes_decrypt(self, filename, ciphertext, ttl=0):
+        """
+        Decrypts ``ciphertext`` with keys specific to the ``filename``
+        value.
+
+        ``filename``    This is the hashed tag that labels a piece of
+            data in the database.
+        ``ciphertext``  This is a dictionary of ciphertext.
+        ``ttl``:        An amount of seconds that dictate the allowable
+            age of the decrypted message.
+        """
+        salt = ciphertext["salt"]
+        key = await self._aencryption_key(filename, salt)
+        return await Chunky2048.abytes_decrypt(
+            data=ciphertext, key=key, ttl=ttl
+        )
+
+    async def adecrypt(self, filename, ciphertext, ttl=0):
+        """
+        Decrypts ``ciphertext`` with keys specific to the ``filename``
+        value.
+
+        ``filename``    This is the hashed tag that labels a piece of
+            data in the database.
+        ``ciphertext``  This is a dictionary of ciphertext.
+        ``ttl``:        An amount of seconds that dictate the allowable
+            age of the decrypted message.
+        """
+        salt = ciphertext["salt"]
+        key = await self._aencryption_key(filename, salt)
+        return await ajson_decrypt(data=ciphertext, key=key, ttl=ttl)
 
     async def _asave_ciphertext(self, filename=None, ciphertext=None):
         """
@@ -4543,6 +4557,13 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         filename = self._filename(tag)
         return filename in self._manifest or filename in self._cache
+
+    def __bool__(self):
+        """
+        Returns true if the instance dictionary is populated or the
+        manifast is saved to the filesystem.
+        """
+        return bool(self.__dict__)
 
     async def __aenter__(self):
         """
@@ -5117,8 +5138,9 @@ class Database:
 
     def hmac(self, *data):
         """
-        Creates an HMAC hash of the arguments passed into ``*data`` with
-        keys derived from the key used to open the database instance.
+        Derives an HMAC hash of the arguments passed into ``*data`` with
+        a unique permutation of the database's keys & a domain-specific
+        kdf.
         """
         domain = self._HMAC
         payload = repr(data).encode()
@@ -5164,7 +5186,7 @@ class Database:
         """
         Passcrypt._check_inputs(password, salt)
         salted_password = self.hmac(password, salt)
-        return Chunky2048.passcrypt(
+        return Passcrypt.new(
             salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
         )
 
@@ -5234,32 +5256,6 @@ class Database:
         payload = self.__root_salt + repr((salt, filename)).encode()
         return DomainKDF(domain, payload, key=key).sha3_512().hex()
 
-    def bytes_decrypt(self, filename, ciphertext, ttl=0):
-        """
-        Decrypts ``ciphertext`` with keys specific to the ``filename``
-        value.
-
-        ``filename``:   This is the hashed tag that labels a piece of
-            data in the database.
-        ``ciphertext``: This is a dictionary of ciphertext.
-        """
-        salt = ciphertext["salt"]
-        key = self._encryption_key(filename, salt)
-        return Chunky2048.bytes_decrypt(data=ciphertext, key=key, ttl=ttl)
-
-    def decrypt(self, filename, ciphertext, ttl=0):
-        """
-        Decrypts ``ciphertext`` with keys specific to the ``filename``
-        value.
-
-        ``filename``:   This is the hashed tag that labels a piece of
-            data in the database.
-        ``ciphertext``: This is a dictionary of ciphertext.
-        """
-        salt = ciphertext["salt"]
-        key = self._encryption_key(filename, salt)
-        return json_decrypt(data=ciphertext, key=key, ttl=ttl)
-
     def bytes_encrypt(self, filename, plaintext):
         """
         Encrypts ``plaintext`` with keys specific to the ``filename``
@@ -5297,6 +5293,32 @@ class Database:
             salt=salt,
             allow_dangerous_determinism=True,
         )
+
+    def bytes_decrypt(self, filename, ciphertext, ttl=0):
+        """
+        Decrypts ``ciphertext`` with keys specific to the ``filename``
+        value.
+
+        ``filename``:   This is the hashed tag that labels a piece of
+            data in the database.
+        ``ciphertext``: This is a dictionary of ciphertext.
+        """
+        salt = ciphertext["salt"]
+        key = self._encryption_key(filename, salt)
+        return Chunky2048.bytes_decrypt(data=ciphertext, key=key, ttl=ttl)
+
+    def decrypt(self, filename, ciphertext, ttl=0):
+        """
+        Decrypts ``ciphertext`` with keys specific to the ``filename``
+        value.
+
+        ``filename``:   This is the hashed tag that labels a piece of
+            data in the database.
+        ``ciphertext``: This is a dictionary of ciphertext.
+        """
+        salt = ciphertext["salt"]
+        key = self._encryption_key(filename, salt)
+        return json_decrypt(data=ciphertext, key=key, ttl=ttl)
 
     def _save_ciphertext(self, filename=None, ciphertext=None):
         """
@@ -5590,6 +5612,13 @@ class Database:
         """
         filename = self.filename(tag)
         return filename in self._manifest or filename in self._cache
+
+    def __bool__(self):
+        """
+        Returns true if the instance dictionary is populated or the
+        manifast is saved to the filesystem.
+        """
+        return bool(self.__dict__)
 
     def __enter__(self):
         """
