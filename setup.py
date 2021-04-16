@@ -17,6 +17,7 @@ from hashlib import sha256, sha512
 from collections import defaultdict
 from setuptools import setup, find_packages
 
+from aiootp import __package__, __version__, __license__
 from aiootp import Ed25519, Database, passcrypt, asynchs, sha_256
 
 
@@ -75,8 +76,8 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
         sha256sum = sha256(package_checksums.encode()).digest()
         root_hash_256.write(sha256sum.hex())
 
-    name = b"aiootp"
-    version = b"0.19.0"
+    name = __package__.encode()
+    version = __version__.encode()
     date = asynchs.this_day().to_bytes(8, "big")
     if getpass("Sign Package ? y/N\n").lower().strip().startswith("y"):
 
@@ -130,9 +131,9 @@ with open("CHECKSUMS.txt", "w+") as checksums_txt:
 
 
 setup(
-    name=name.decode(),
-    license="AGPLv3",
-    version=version.decode(),
+    name=__package__,
+    license=__license__,
+    version=__version__,
     description=description,
     long_description=long_description,
     long_description_content_type="text/x-rst",
