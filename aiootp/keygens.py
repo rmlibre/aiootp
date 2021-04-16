@@ -348,6 +348,7 @@ class AsyncKeys:
         asingle_use_key,
     }
 
+    DomainKDF = DomainKDF
     akeys = staticmethod(akeys)
     acsprbg = staticmethod(acsprbg)
     acsprng = staticmethod(acsprng)
@@ -493,6 +494,7 @@ class Keys:
         single_use_key,
     }
 
+    DomainKDF = DomainKDF
     keys = staticmethod(keys)
     csprbg = staticmethod(csprbg)
     csprng = staticmethod(csprng)
