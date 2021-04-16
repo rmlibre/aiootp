@@ -4315,9 +4315,11 @@ class Padding:
                 yield await stream.apopleft()
         except StopAsyncIteration:
             padding_key = await Padding.aderive_key(key, salt=salt, pid=pid)
-            yield await Padding.apad_ending(
+            final_chunks = await Padding.apad_ending(
                 stream.buffer.popleft(), padding_key=padding_key
             )
+            async for final_chunk in adata.root(final_chunks):
+                yield final_chunk
 
     @comprehension(chained=True)
     def _pad_plaintext(self, key, *, salt, pid=0):
@@ -4359,9 +4361,10 @@ class Padding:
                 yield stream.popleft()
         except StopIteration:
             padding_key = Padding.derive_key(key, salt=salt, pid=pid)
-            yield Padding.pad_ending(
+            final_chunks = Padding.pad_ending(
                 stream.buffer.popleft(), padding_key=padding_key
             )
+            yield from data.root(final_chunks)
 
     @classmethod
     async def _abegin_depad_stream(cls, plaintext_stream, ttl=0):
@@ -4416,10 +4419,10 @@ class Padding:
                 yield await stream.apopleft()
         except StopAsyncIteration:
             padding_key = await Padding.aderive_key(key, salt=salt, pid=pid)
-            plaintext_ending = await Padding.adepad_ending(
+            final_chunks = await Padding.adepad_ending(
                 b"".join(stream.buffer), padding_key=padding_key
             )
-            async for final_chunk in adata.root(plaintext_ending):
+            async for final_chunk in adata.root(final_chunks):
                 yield final_chunk
 
     @comprehension(chained=True)
@@ -4442,10 +4445,10 @@ class Padding:
                 yield stream.popleft()
         except StopIteration:
             padding_key = Padding.derive_key(key, salt=salt, pid=pid)
-            plaintext_ending = Padding.depad_ending(
+            final_chunks = Padding.depad_ending(
                 b"".join(stream.buffer), padding_key=padding_key
             )
-            yield from data.root(plaintext_ending)
+            yield from data.root(final_chunks)
 
 
 class BytesIO:
