@@ -1359,6 +1359,40 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 =============
 
 
+Changes for version 0.19.1 
+========================== 
+
+
+Minor Changes 
+------------- 
+
+-  Fixed a bug where database classes were evaluating as falsey when they
+   didn't have any tags saved in them. They should be considered truthy 
+   if they're instantiated & ready to store data, even if they're 
+   currently empty & not saved to disk. This was reflected in their 
+   ``__bool__`` methods. The bug caused empty metatags not to be loaded 
+   when an instance loads, even when ``preload`` is toggled ``True``.
+-  Removed the coroutine-receiving logic from the ``Padding`` class'
+   ``Comprende`` generators. Since they buffer data, the received values
+   aren't ever going to coincide with the correct iteration & will be
+   susceptible to bugs
+-  Fixed a bug in the ``Padding`` class' ``Comprende`` generators which 
+   cut iteration short because not enough data was available from the 
+   underlying generators upfront. Now, if used correctly to pad/depad 
+   chunks of plaintext 256 bytes at a time, then they work as expected.
+-  The ``update``, ``aupdate``, ``update_key`` & ``aupdate_key`` methods
+   in both the ``StreamHMAC`` & ``DomainKDF`` classes now return ``self``
+   to allow inline updates.
+-  Added ``acsprng`` & ``csprng`` function pointers to the ``Chunky2048``
+   class.
+-  Updates to docstrings which didn't get updated with info on the new 
+   *synthetic IV* feature.
+-  Some other docstring fixes.
+-  Some small code cleanups & refactorings.
+
+
+
+
 Changes for version 0.19.0 
 ========================== 
 
