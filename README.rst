@@ -1452,7 +1452,7 @@ A: Although primatives like AES are strong enough for now, there's no guarantee 
 A: Well, because it relies on ``hashlib.sha3_512`` hashing to build key material streams, it's rather efficient. It can process about 20 MB/s on a ~1.5 GHz core for both encrypting & decrypting. This is slower than other stream ciphers, but this package is written in pure Python & without hardware optimizations. Using sha3_512 ASICs, or specific chipset instructions, or a lower-level language implementation, could make this algorithm competitively fast.
 
 
-**Q: What size keys does this one-time pad cipher use?** 
+**Q: What size keys does this pseudo one-time pad cipher use?** 
 
 A: It's been designed to work with 512-bit hexidecimal keys. 
 
