@@ -48,7 +48,7 @@ from hashlib import sha3_512
 from collections import deque
 from collections import defaultdict
 from .commons import *
-from .commons import BasePrimeGroups
+from commons import *
 from .asynchs import *
 from .asynchs import time
 from .asynchs import sleep
@@ -658,7 +658,10 @@ def _salt(*, _entropy=_initial_entropy):
 
 
 async def arandom_256(
-    entropy=bytes.fromhex(sha_512(run(_asalt()))), *, refresh=False, runs=26
+    entropy=bytes.fromhex(sha_512(run(_asalt()))),
+    *,
+    refresh=False,
+    rounds=26,
 ):
     """
     A high-level public interface to simultaneously retreive from, &
@@ -667,23 +670,26 @@ async def arandom_256(
 
     Users can pass any ``entropy`` they have access to into the function.
     If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``runs`` number of times over
-    its internal entropy pools & generators, cranking more entropy into
-    the package the higher the number. Generating new entropy can be
-    quite slow, so by default ``refresh`` is set to ``False``, & ``runs``
-    is only set to 26.
+    `random_number_generator` will iterate ``rounds`` number of times
+    over its internal entropy pools & generators, cranking more entropy
+    into the package the higher the number. Generating new entropy can
+    be quite slow, so by default ``refresh`` is set to ``False``, &
+    ``rounds`` is only set to 26.
     """
     return sha3_256(
         Domains.ENTROPY
         + bytes.fromhex(await atoken_hash(64))
         + await arandom_number_generator(
-            entropy=entropy, runs=runs, refresh=refresh
+            entropy=entropy, rounds=rounds, refresh=refresh
         )
     ).digest()
 
 
 def random_256(
-    entropy=bytes.fromhex(sha_512(run(_asalt()))), *, refresh=False, runs=26
+    entropy=bytes.fromhex(sha_512(run(_asalt()))),
+    *,
+    refresh=False,
+    rounds=26,
 ):
     """
     A high-level public interface to simultaneously retreive from &,
@@ -692,23 +698,23 @@ def random_256(
 
     Users can pass any ``entropy`` they have access to into the function.
     If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``runs`` number of times over
-    its internal entropy pools & generators, cranking more entropy into
-    the package the higher the number. Generating new entropy can be
-    quite slow, so by default ``refresh`` is set to ``False``, & ``runs``
-    is only set to 26.
+    `random_number_generator` will iterate ``rounds`` number of times
+    over its internal entropy pools & generators, cranking more entropy
+    into the package the higher the number. Generating new entropy can
+    be quite slow, so by default ``refresh`` is set to ``False``, &
+    ``rounds`` is only set to 26.
     """
     return sha3_256(
         Domains.ENTROPY
         + bytes.fromhex(token_hash(64))
         + random_number_generator(
-            entropy=entropy, runs=runs, refresh=refresh
+            entropy=entropy, rounds=rounds, refresh=refresh
         )
     ).digest()
 
 
 async def arandom_512(
-    entropy=bytes.fromhex(sha_512(_salt())), *, refresh=False, runs=26
+    entropy=bytes.fromhex(sha_512(_salt())), *, refresh=False, rounds=26
 ):
     """
     A high-level public interface to simultaneously retreive from &,
@@ -717,23 +723,23 @@ async def arandom_512(
 
     Users can pass any ``entropy`` they have access to into the function.
     If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``runs`` number of times over
-    its internal entropy pools & generators, cranking more entropy into
-    the package the higher the number. Generating new entropy can be
-    quite slow, so by default ``refresh`` is set to ``False``, & ``runs``
-    is only set to 26.
+    `random_number_generator` will iterate ``rounds`` number of times
+    over its internal entropy pools & generators, cranking more entropy
+    into the package the higher the number. Generating new entropy can
+    be quite slow, so by default ``refresh`` is set to ``False``, &
+    ``rounds`` is only set to 26.
     """
     return sha3_512(
         Domains.ENTROPY
         + bytes.fromhex(await atoken_hash(64))
         + await arandom_number_generator(
-            entropy=entropy, runs=runs, refresh=refresh
+            entropy=entropy, rounds=rounds, refresh=refresh
         )
     ).digest()
 
 
 def random_512(
-    entropy=bytes.fromhex(sha_512(_salt())), *, refresh=False, runs=26
+    entropy=bytes.fromhex(sha_512(_salt())), *, refresh=False, rounds=26
 ):
     """
     A high-level public interface to simultaneously retreive from &,
@@ -742,17 +748,17 @@ def random_512(
 
     Users can pass any ``entropy`` they have access to into the function.
     If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``runs`` number of times over
-    its internal entropy pools & generators, cranking more entropy into
-    the package the higher the number. Generating new entropy can be
-    quite slow, so by default ``refresh`` is set to ``False``, & ``runs``
-    is only set to 26.
+    `random_number_generator` will iterate ``rounds`` number of times
+    over its internal entropy pools & generators, cranking more entropy
+    into the package the higher the number. Generating new entropy can
+    be quite slow, so by default ``refresh`` is set to ``False``, &
+    ``rounds`` is only set to 26.
     """
     return sha3_512(
         Domains.ENTROPY
         + bytes.fromhex(token_hash(64))
         + random_number_generator(
-            entropy=entropy, runs=runs, refresh=refresh
+            entropy=entropy, rounds=rounds, refresh=refresh
         )
     ).digest()
 
@@ -761,7 +767,7 @@ async def arandom_number_generator(
     entropy=bytes.fromhex(sha_512(_salt())),
     *,
     refresh=False,
-    runs=26,
+    rounds=26,
     _cache=deque([], maxlen=256),
 ):
     """
@@ -832,8 +838,8 @@ async def arandom_number_generator(
 
     if refresh or not _cache:
 
-        async def start_generator(runs, tasks=deque()):
-            for _ in range(runs):
+        async def start_generator(rounds, tasks=deque()):
+            for _ in range(rounds):
                 await asleep(0)
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
@@ -871,7 +877,7 @@ async def arandom_number_generator(
             ) % await achoice(primes[512])
 
         await agenerate_unique_range_bounds()
-        await start_generator(runs)
+        await start_generator(rounds)
         await agenerate_unique_range_bounds()
     else:
         _cache.appendleft(
@@ -885,7 +891,7 @@ def random_number_generator(
     entropy=bytes.fromhex(sha_512(_salt())),
     *,
     refresh=False,
-    runs=26,
+    rounds=26,
     _cache=deque([], maxlen=256),
 ):
     """
@@ -956,8 +962,8 @@ def random_number_generator(
 
     if refresh or not _cache:
 
-        async def start_generator(runs, tasks=deque()):
-            for _ in range(runs):
+        async def start_generator(rounds, tasks=deque()):
+            for _ in range(rounds):
                 await asleep(0)
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
@@ -995,7 +1001,7 @@ def random_number_generator(
             ) % await achoice(primes[512])
 
         generate_unique_range_bounds()
-        run(start_generator(runs))    # <- RuntimeError in event loops
+        run(start_generator(rounds))    # <- RuntimeError in event loops
         generate_unique_range_bounds()
     else:
         _cache.appendleft(_entropy.hash(domain, token_bytes(32), entropy))
@@ -1229,7 +1235,7 @@ def generate_unique_range_bounds():
 
 
 async def asafe_symm_keypair(
-    entropy=sha_512(_salt()), refresh=False, runs=26
+    entropy=sha_512(_salt()), refresh=False, rounds=26
 ):
     """
     Returns two ``bytes`` type, 512-bit hexidecimal keys. This function
@@ -1245,7 +1251,7 @@ async def asafe_symm_keypair(
             entropy,
             global_seed,
             global_seed_key,
-            await arandom_512(refresh=refresh, runs=runs),
+            await arandom_512(refresh=refresh, rounds=rounds),
         )
     )
     seed = bytes.fromhex(await asha_512_hmac(global_seed, key=seed_key))
@@ -1255,7 +1261,7 @@ async def asafe_symm_keypair(
     return seed, seed_key
 
 
-def safe_symm_keypair(entropy=sha_512(_salt()), refresh=False, runs=26):
+def safe_symm_keypair(entropy=sha_512(_salt()), refresh=False, rounds=26):
     """
     Returns two ``bytes`` type, 512-bit hexidecimal keys. This function
     updates the package's static random seeds before & after deriving
@@ -1270,7 +1276,7 @@ def safe_symm_keypair(entropy=sha_512(_salt()), refresh=False, runs=26):
             entropy,
             global_seed,
             global_seed_key,
-            random_512(refresh=refresh, runs=runs),
+            random_512(refresh=refresh, rounds=rounds),
         )
     )
     seed = bytes.fromhex(sha_512_hmac(global_seed, key=seed_key))
@@ -1281,7 +1287,7 @@ def safe_symm_keypair(entropy=sha_512(_salt()), refresh=False, runs=26):
 
 
 @comprehension()
-async def aseeder(entropy=sha_512(_salt()), refresh=False, runs=26):
+async def aseeder(entropy=sha_512(_salt()), *, refresh=False, rounds=26):
     """
     A fast random number generator that supports adding entropy during
     iteration. It's based on the randomness produced from combining a
@@ -1305,7 +1311,7 @@ async def aseeder(entropy=sha_512(_salt()), refresh=False, runs=26):
     seed = await acsprng(entropy)  # &/or entropy can be added here
     """
     ENTROPY = Domains.ENTROPY
-    seed, seed_key = await asafe_symm_keypair(entropy, refresh, runs)
+    seed, seed_key = await asafe_symm_keypair(entropy, refresh, rounds)
     output = sha3_512(ENTROPY + seed_key + seed)
     rotation_key = bytes.fromhex(await asha_256(seed, seed_key, entropy))
     while True:
@@ -1320,7 +1326,7 @@ async def aseeder(entropy=sha_512(_salt()), refresh=False, runs=26):
 
 
 @comprehension()
-def seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
+def seeder(entropy=sha_512(_salt()), *, refresh=False, rounds=26):
     """
     A fast random number generator that supports adding entropy during
     iteration. It's based on the randomness produced from combining a
@@ -1344,7 +1350,7 @@ def seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
     seed = csprng(entropy)  # &/or entropy can be added here
     """
     ENTROPY = Domains.ENTROPY
-    seed, seed_key = safe_symm_keypair(entropy, refresh, runs)
+    seed, seed_key = safe_symm_keypair(entropy, refresh, rounds)
     output = sha3_512(ENTROPY + seed_key + seed)
     rotation_key = bytes.fromhex(sha_256(seed, seed_key, entropy))
     while True:
@@ -1359,7 +1365,9 @@ def seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
 
 
 @comprehension()
-async def abytes_seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
+async def abytes_seeder(
+    entropy=sha_512(_salt()), *, refresh=False, rounds=26
+):
     """
     A fast random number generator that supports adding entropy during
     iteration. It's based on the randomness produced from combining a
@@ -1383,7 +1391,7 @@ async def abytes_seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
     seed = await acsprng(entropy)  # &/or entropy can be added here
     """
     ENTROPY = Domains.ENTROPY
-    seed, seed_key = await asafe_symm_keypair(entropy, refresh, runs)
+    seed, seed_key = await asafe_symm_keypair(entropy, refresh, rounds)
     output = sha3_512(ENTROPY + seed_key + seed)
     rotation_key = bytes.fromhex(await asha_256(seed, seed_key, entropy))
     while True:
@@ -1398,7 +1406,7 @@ async def abytes_seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
 
 
 @comprehension()
-def bytes_seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
+def bytes_seeder(entropy=sha_512(_salt()), *, refresh=False, rounds=26):
     """
     A fast random number generator that supports adding entropy during
     iteration. It's based on the randomness produced from combining a
@@ -1422,7 +1430,7 @@ def bytes_seeder(entropy=sha_512(_salt()), refresh=False, runs=26):
     seed = csprng(entropy)  # &/or entropy can be added here
     """
     ENTROPY = Domains.ENTROPY
-    seed, seed_key = safe_symm_keypair(entropy, refresh, runs)
+    seed, seed_key = safe_symm_keypair(entropy, refresh, rounds)
     output = sha3_512(ENTROPY + seed_key + seed)
     rotation_key = bytes.fromhex(sha_256(seed, seed_key, entropy))
     while True:
@@ -1644,7 +1652,7 @@ async def agenerate_salt(entropy=bytes.fromhex(sha_512(_salt()))):
     Returns a cryptographically secure pseudo-random 256-bit hex number
     that also seeds new entropy into the acsprng generator.
     """
-    return await asha_256(await acsprng(entropy))
+    return (await acsprng(entropy))[:SALT_NIBBLES]
 
 
 def generate_salt(entropy=bytes.fromhex(sha_512(_salt()))):
@@ -1652,7 +1660,7 @@ def generate_salt(entropy=bytes.fromhex(sha_512(_salt()))):
     Returns a cryptographically secure pseudo-random 256-bit hex number
     that also seeds new entropy into the csprng generator.
     """
-    return sha_256(csprng(entropy))
+    return csprng(entropy)[:SALT_NIBBLES]
 
 
 async def acsprng(entropy=bytes.fromhex(sha_512(_salt()))):
