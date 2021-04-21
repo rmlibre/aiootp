@@ -61,6 +61,7 @@ from .ciphers import test_key_and_salt, atest_key_and_salt
 from .generics import azip
 from .generics import Hasher
 from .generics import arange
+from .generics import Domains
 from .generics import is_iterable
 from .generics import comprehension
 from .generics import sha_256, asha_256
@@ -220,7 +221,15 @@ def table_key(key=None, table=ASCII_TABLE, size=64):
 
 
 @comprehension()
-async def amnemonic(key, *, salt=None, words=None):
+async def amnemonic(
+    key,
+    *,
+    salt=None,
+    words=None,
+    kb=Passcrypt._DEFAULT_KB,
+    cpu=Passcrypt._DEFAULT_CPU,
+    hardness=Passcrypt._DEFAULT_HARDNESS,
+):
     """
     Creates a stream of words for a mnemonic key from a user password
     ``key`` & random salt. If a salt isn't passed, then a random salt is
@@ -233,7 +242,7 @@ async def amnemonic(key, *, salt=None, words=None):
     words = words if words else WORD_LIST
     length = len(words)
     salt = salt if salt else await agenerate_salt()
-    key = await apasscrypt(key, salt)
+    key = await apasscrypt(key, salt, kb=kb, cpu=cpu, hardness=hardness)
     keystream = abytes_keys(key, salt=salt, pid=key)
     async with keystream.abytes_to_int().arelay(salt) as indexes:
         while True:
@@ -243,7 +252,15 @@ async def amnemonic(key, *, salt=None, words=None):
 
 
 @comprehension()
-def mnemonic(key, *, salt=None, words=None):
+def mnemonic(
+    key,
+    *,
+    salt=None,
+    words=None,
+    kb=Passcrypt._DEFAULT_KB,
+    cpu=Passcrypt._DEFAULT_CPU,
+    hardness=Passcrypt._DEFAULT_HARDNESS,
+):
     """
     Creates a stream of words for a mnemonic key from a user password
     ``key`` & random salt. If a salt isn't passed, then a random salt is
@@ -256,7 +273,7 @@ def mnemonic(key, *, salt=None, words=None):
     words = words if words else WORD_LIST
     length = len(words)
     salt = salt if salt else generate_salt()
-    key = passcrypt(key, salt)
+    key = passcrypt(key, salt, kb=kb, cpu=cpu, hardness=hardness)
     keystream = bytes_keys(key, salt=salt, pid=key)
     with keystream.bytes_to_int().relay(salt) as indexes:
         while True:
@@ -462,7 +479,13 @@ class AsyncKeys:
                 await asleep(0)
 
     async def _apasscrypt(
-        self, password, salt, *, kb=1024, cpu=3, hardness=1024
+        self,
+        password,
+        salt,
+        *,
+        kb=Passcrypt._DEFAULT_KB,
+        cpu=Passcrypt._DEFAULT_CPU,
+        hardness=Passcrypt._DEFAULT_HARDNESS,
     ):
         """
         A tunably memory & cpu hard method which returns a key from a
@@ -591,7 +614,13 @@ class Keys:
                 )
 
     def _passcrypt(
-        self, password, salt, *, kb=1024, cpu=3, hardness=1024
+        self,
+        password,
+        salt,
+        *,
+        kb=Passcrypt._DEFAULT_KB,
+        cpu=Passcrypt._DEFAULT_CPU,
+        hardness=Passcrypt._DEFAULT_HARDNESS,
     ):
         """
         A tunably memory & cpu hard method which returns a key from a
@@ -786,6 +815,7 @@ class Asymmetric25519:
 
         shared_key_kdf = await exchange.aresult()
         """
+        domain = Domains.DH2
         my_ephemeral_key = await X25519().agenerate()
         my_public_ephemeral_key = my_ephemeral_key.public_bytes
         peer_identity_key, peer_ephemeral_key = yield (
@@ -793,7 +823,7 @@ class Asymmetric25519:
         )
         shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(sha3_512(shared_key_ad + shared_key_cd))
+        raise UserWarning(sha3_512(domain + shared_key_ad + shared_key_cd))
 
     @classmethod
     @comprehension()
@@ -817,6 +847,7 @@ class Asymmetric25519:
 
         shared_key_kdf = exchange.result()
         """
+        domain = Domains.DH2
         my_ephemeral_key = X25519().generate()
         my_public_ephemeral_key = my_ephemeral_key.public_bytes
         peer_identity_key, peer_ephemeral_key = yield (
@@ -824,7 +855,7 @@ class Asymmetric25519:
         )
         shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(shared_key_ad + shared_key_cd)
+        return sha3_512(domain + shared_key_ad + shared_key_cd)
 
     @classmethod
     @comprehension()
@@ -853,11 +884,12 @@ class Asymmetric25519:
 
         shared_key_kdf = await exchange.aresult()
         """
+        domain = Domains.DH2
         my_ephemeral_key = await X25519().agenerate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(sha3_512(shared_key_ad + shared_key_cd))
+        raise UserWarning(sha3_512(domain + shared_key_ad + shared_key_cd))
 
     @classmethod
     @comprehension()
@@ -884,11 +916,12 @@ class Asymmetric25519:
 
         shared_key_kdf = exchange.result()
         """
+        domain = Domains.DH2
         my_ephemeral_key = X25519().generate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(shared_key_ad + shared_key_cd)
+        return sha3_512(domain + shared_key_ad + shared_key_cd)
 
     @classmethod
     @comprehension()
@@ -915,6 +948,7 @@ class Asymmetric25519:
 
         shared_key_kdf = await exchange.aresult()
         """
+        domain = Domains.DH3
         my_ephemeral_key = await X25519().agenerate()
         peer_identity_key, peer_ephemeral_key = yield (
             my_identity_key.public_bytes,
@@ -924,7 +958,7 @@ class Asymmetric25519:
         shared_key_bc = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
         raise UserWarning(
-            sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
+            sha3_512(domain + shared_key_ad + shared_key_bc + shared_key_cd)
         )
 
     @classmethod
@@ -952,6 +986,7 @@ class Asymmetric25519:
 
         shared_key_kdf = exchange.result()
         """
+        domain = Domains.DH3
         my_ephemeral_key = X25519().generate()
         peer_identity_key, peer_ephemeral_key = yield (
             my_identity_key.public_bytes,
@@ -960,7 +995,9 @@ class Asymmetric25519:
         shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
         shared_key_bc = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
+        return sha3_512(
+            domain + shared_key_ad + shared_key_bc + shared_key_cd
+        )
 
     @classmethod
     @comprehension()
@@ -997,13 +1034,14 @@ class Asymmetric25519:
 
         shared_key_kdf = await exchange.aresult()
         """
+        domain = Domains.DH3
         my_ephemeral_key = await X25519().agenerate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_bc = await my_ephemeral_key.aexchange(peer_identity_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
         raise UserWarning(
-            sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
+            sha3_512(domain + shared_key_ad + shared_key_bc + shared_key_cd)
         )
 
     @classmethod
@@ -1041,12 +1079,15 @@ class Asymmetric25519:
 
         shared_key_kdf = exchange.result()
         """
+        domain = Domains.DH3
         my_ephemeral_key = X25519().generate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_bc = my_ephemeral_key.exchange(peer_identity_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(shared_key_ad + shared_key_bc + shared_key_cd)
+        return sha3_512(
+            domain + shared_key_ad + shared_key_bc + shared_key_cd
+        )
 
 
 class BaseEllipticCurve:
@@ -1234,7 +1275,6 @@ class Ed25519(BaseEllipticCurve):
     # The verification didn't throw an exception! So, Bob knows the file
     # was signed by Alice.
     """
-
     PublicKey = BaseEllipticCurve._asymmetric.Ed25519PublicKey
     SecretKey = BaseEllipticCurve._asymmetric.Ed25519PrivateKey
     InvalidSignature = BaseEllipticCurve._exceptions.InvalidSignature
@@ -1334,7 +1374,6 @@ class X25519(BaseEllipticCurve):
     manipulate the information while its in transit between Alice &
     Bob. Each public key should only be used once.
     """
-
     PublicKey = BaseEllipticCurve._asymmetric.X25519PublicKey
     SecretKey = BaseEllipticCurve._asymmetric.X25519PrivateKey
 
