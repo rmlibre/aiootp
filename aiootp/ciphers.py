@@ -1115,7 +1115,7 @@ class SyntheticIV:
         plaintext & is attached to the ciphertext, into the keystream
         coroutine prior to xoring the first block. This improves the
         cipher's salt reuse/misuse resistance since if either the first
-        240 bytes of plaintext are unique, or the 16-byte inner header
+        232 bytes of plaintext are unique, or the 24-byte inner header
         is unique, then the entire stream of key material will be unique.
         The inner header is prepended to the first plaintext block, &
         consists of an 8-byte timestamp & an 16-byte random & ephemeral
@@ -1147,7 +1147,7 @@ class SyntheticIV:
         plaintext & is attached to the ciphertext, into the keystream
         coroutine prior to xoring the first block. This improves the
         cipher's salt reuse/misuse resistance since if either the first
-        240 bytes of plaintext are unique, or the 16-byte inner header
+        232 bytes of plaintext are unique, or the 24-byte inner header
         is unique, then the entire stream of key material will be unique.
         The inner header is prepended to the first plaintext block, &
         consists of an 8-byte timestamp & an 16-byte random & ephemeral
@@ -2007,7 +2007,7 @@ class Passcrypt:
                                           |
     ram = |--------'----------------------'--------'--------| columns
         = |--------'----------------------'--------'--------| are hashed
-        = |oooooooo'                               'xxxxxxxx| sequentially
+        = |ooooooooO                               Xxxxxxxxx| sequentially
                    |   ->                     <-   |          & new row
                  index                        reflection      elements
                                                               are added.
@@ -2016,7 +2016,7 @@ class Passcrypt:
     ram = |-'------------------'-------'--------------------| A pseudo-
         = |-'------------------'-------'--------------------| random index
         = |o'oooooooooooooooooo'ooooxxx'xxxxxxxxxxxxxxxxxxxx| is also
-        = | |                  'xxxxooo'                    | chosen &
+        = | |                  XxxxxoooO                    | chosen &
             |                          |   ->                 the column
     pseudo-random selection          index                    at the index
                                                               is also
@@ -2026,7 +2026,7 @@ class Passcrypt:
         = |--'---'---------------------------------------'--| reflection,
         = |oo'ooo'ooooooooooooooooooxxxxxxxxxxxxxxxxxxxxx'xx| & pseudo-
         = |xx'xxx'xxxxxxxxxxxxxxxxxxooooooooooooooooooooo'oo| random index
-        = |oo'                                           'xx| tuple represents
+        = |ooO                                           Xxx| tuple represents
              |   ->                                 <-   |    one round.
            index                                    reflection
                                    |
@@ -2042,8 +2042,16 @@ class Passcrypt:
 
     generate_salt = staticmethod(generate_salt)
     agenerate_salt = staticmethod(agenerate_salt)
+    _DEFAULT_KB = 1024
+    _DEFAULT_CPU = 3
+    _DEFAULT_HARDNESS = 1024
 
-    def __init__(self, kb=1024, cpu=3, hardness=1024):
+    def __init__(
+        self,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
+    ):
         """
         Stores a dict of user-defined settings which are automatically
         passed into instance methods when they are called.
@@ -2170,7 +2178,13 @@ class Passcrypt:
 
     @classmethod
     async def _apasscrypt(
-        cls, password, salt, *, kb=1024, cpu=3, hardness=1024
+        cls,
+        password,
+        salt,
+        *,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
     ):
         """
         An implementation of an Argon2id-like password-based key
@@ -2218,7 +2232,15 @@ class Passcrypt:
             return proof.hexdigest()
 
     @classmethod
-    def _passcrypt(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
+    def _passcrypt(
+        cls,
+        password,
+        salt,
+        *,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
+    ):
         """
         An implementation of an Argon2id-like password-based key
         derivation function that's designed to be resistant to cache-
@@ -2264,7 +2286,15 @@ class Passcrypt:
             return proof.hexdigest()
 
     @classmethod
-    async def anew(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
+    async def anew(
+        cls,
+        password,
+        salt,
+        *,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
+    ):
         """
         Returns just the 64-byte hexidecimal passcrypt hash of the
         ``password`` when mixed with the given ``salt`` & difficulty
@@ -2289,7 +2319,15 @@ class Passcrypt:
         )
 
     @classmethod
-    def new(cls, password, salt, *, kb=1024, cpu=3, hardness=1024):
+    def new(
+        cls,
+        password,
+        salt,
+        *,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
+    ):
         """
         Returns just the 64-byte hexidecimal passcrypt hash of the
         ``password`` when mixed with the given ``salt`` & difficulty
@@ -2376,7 +2414,12 @@ class Passcrypt:
 
     @classmethod
     async def ahash_password_raw(
-        cls, password, *, kb=1024, cpu=3, hardness=1024
+        cls,
+        password,
+        *,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
     ):
         """
         Returns the passcrypt difficulty settings, salt & hash of the
@@ -2396,7 +2439,14 @@ class Passcrypt:
         )
 
     @classmethod
-    def hash_password_raw(cls, password, *, kb=1024, cpu=3, hardness=1024):
+    def hash_password_raw(
+        cls,
+        password,
+        *,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
+    ):
         """
         Returns the passcrypt difficulty settings, salt & hash of the
         ``password`` in a single raw bytes sequence for convenient
@@ -2416,7 +2466,12 @@ class Passcrypt:
 
     @classmethod
     async def ahash_password(
-        cls, password, *, kb=1024, cpu=3, hardness=1024
+        cls,
+        password,
+        *,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
     ):
         """
         Returns the passcrypt difficulty settings, salt & hash of the
@@ -2433,7 +2488,14 @@ class Passcrypt:
         return (await BytesIO.abytes_to_urlsafe(raw_password_hash)).decode()
 
     @classmethod
-    def hash_password(cls, password, *, kb=1024, cpu=3, hardness=1024):
+    def hash_password(
+        cls,
+        password,
+        *,
+        kb=_DEFAULT_KB,
+        cpu=_DEFAULT_CPU,
+        hardness=_DEFAULT_HARDNESS,
+    ):
         """
         Returns the passcrypt difficulty settings, salt & hash of the
         ``password`` in a single urlsafe base64 encoded string for
@@ -2552,7 +2614,14 @@ class Passcrypt:
 
 
 @wraps(Passcrypt._apasscrypt)
-async def apasscrypt(password, salt, *, kb=1024, cpu=3, hardness=1024):
+async def apasscrypt(
+    password,
+    salt,
+    *,
+    kb=Passcrypt._DEFAULT_KB,
+    cpu=Passcrypt._DEFAULT_CPU,
+    hardness=Passcrypt._DEFAULT_HARDNESS,
+):
     """
     Creates an async function which simplifies the ui/ux for access to
     the module's implementation of an Argon2id-like password-based key
@@ -2571,7 +2640,14 @@ async def apasscrypt(password, salt, *, kb=1024, cpu=3, hardness=1024):
 
 
 @wraps(Passcrypt._passcrypt)
-def passcrypt(password, salt, *, kb=1024, cpu=3, hardness=1024):
+def passcrypt(
+    password,
+    salt,
+    *,
+    kb=Passcrypt._DEFAULT_KB,
+    cpu=Passcrypt._DEFAULT_CPU,
+    hardness=Passcrypt._DEFAULT_HARDNESS,
+):
     """
     Creates a function which simplifies the ui/ux for users to access
     the module's implementation of an Argon2id-like password-based key
@@ -2767,416 +2843,6 @@ class Chunky2048:
         bytes_ciphertext = self.io.urlsafe_to_bytes(token)
         ciphertext = self.io.bytes_to_json(bytes_ciphertext)
         return self.bytes_decrypt(ciphertext, key=key, pid=pid, ttl=ttl)
-
-    @comprehension(chained=True)
-    async def _amap_encipher(self, names, keystream, *, validator):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online-offline MRAE / AEAD pseudo-one-time-pad
-        cipher algorithm called Chunky2048.
-
-        When ``names`` is a stream of deterministic key material, this
-        algorithm produces a hashmap of ciphertext, such that without
-        the key material used to derive the stream, ordering the chunks
-        of ciphertext correctly is a guessing game.
-
-        ``keystream`` should be an async ``Comprende`` generator which,
-        like ``aiootp.akeys``, yields a stream key material from some
-        source key material and a random salt >= 256-bits.
-
-        ``self`` is an instance of a ``Comprende`` generator that yields
-        256 or less plaintext bytes per iteration.
-
-        WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
-        or less per iteration or security WILL BE BROKEN by directly
-        leaking plaintext. The plaintext MUST also be padded using the
-        `Padding` class in order to add salt reuse / misuse resistance
-        (MRAE) to the cipher.
-
-        WARNING: ``keystream`` MUST produce key chunks of exactly 256
-        hexidecimal characters per iteration or security WILL BE BROKEN
-        by directly leaking plaintext.
-
-        WARNING: This generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
-        """
-        if validator.mode != ENCRYPTION:
-            raise ValueError(INVALID_ENCRYPTION_VALIDATOR)
-        data = self.abytes_to_int()
-        ciphering = axor(data, key=keystream, validator=validator)
-        async for name, ciphertext in ciphering.atag(names):
-            yield name, ciphertext
-
-    @comprehension(chained=True)
-    def _map_encipher(self, names, keystream, *, validator):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online-offline MRAE / AEAD pseudo-one-time-pad
-        cipher algorithm called Chunky2048.
-
-        When ``names`` is a stream of deterministic key material, this
-        algorithm produces a hashmap of ciphertext, such that without
-        the key material used to derive the stream, ordering the chunks
-        of ciphertext correctly is a guessing game.
-
-        ``keystream`` should be an sync ``Comprende`` generator which,
-        like ``aiootp.keys``, yields a stream key material from some
-        source key material and a random salt >= 256-bits.
-
-        ``self`` is an instance of a ``Comprende`` generator that yields
-        256 or less plaintext bytes per iteration.
-
-        WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
-        or less per iteration or security WILL BE BROKEN by directly
-        leaking plaintext. The plaintext MUST also be padded using the
-        `Padding` class in order to add salt reuse / misuse resistance
-        (MRAE) to the cipher.
-
-        WARNING: ``keystream`` MUST produce key chunks of exactly 256
-        hexidecimal characters per iteration or security WILL BE BROKEN
-        by directly leaking plaintext.
-
-        WARNING: This generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
-        """
-        if validator.mode != ENCRYPTION:
-            raise ValueError(INVALID_ENCRYPTION_VALIDATOR)
-        data = self.bytes_to_int()
-        ciphering = xor(data, key=keystream, validator=validator)
-        for name, ciphertext in ciphering.tag(names):
-            yield name, ciphertext
-
-    @comprehension(chained=True)
-    async def _amap_decipher(self, keystream, *, validator):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online-offline MRAE / AEAD pseudo-one-time-pad
-        cipher algorithm called Chunky2048.
-
-        ``keystream`` should be an async ``Comprende`` generator which,
-        like ``aiootp.akeys``, yields a stream key material from some
-        source key material and a random salt >= 256-bits. The salt must
-        be the same as the one used for encryption.
-
-        ``self`` is an instance of an async ``Comprende`` generator that
-        yields a chunk of ciphertext in the correct order each iteration.
-        ``keystream`` is the async ``Comprende`` generator that produces
-        the same key material stream used during encryption.
-
-        WARNING: ``keystream`` MUST produce key chunks of exactly 256
-        hexidecimal characters per iteration or security WILL BE BROKEN
-        by directly leaking plaintext.
-
-        WARNING: This generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
-        """
-        if validator.mode != DECRYPTION:
-            raise ValueError(INVALID_DECRYPTION_VALIDATOR)
-        deciphering = axor.root(self, key=keystream, validator=validator)
-        async for plaintext in deciphering:
-            yield plaintext.to_bytes(BLOCKSIZE, "big")
-
-    @comprehension(chained=True)
-    def _map_decipher(self, keystream, *, validator):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online-offline MRAE / AEAD pseudo-one-time-pad
-        cipher algorithm called Chunky2048.
-
-        ``keystream`` should be an sync ``Comprende`` generator which,
-        like ``aiootp.keys``, yields a stream key material from some
-        source key material and a random salt >= 256-bits. The salt must
-        be the same as the one used for encryption.
-
-        ``self`` is an instance of an sync ``Comprende`` generator that
-        yields a chunk of ciphertext in the correct order each iteration.
-        ``keystream`` is the sync ``Comprende`` generator that produces
-        the same key material stream used during encryption.
-
-        WARNING: ``keystream`` MUST produce key chunks of exactly 256
-        hexidecimal characters per iteration or security WILL BE BROKEN
-        by directly leaking plaintext.
-
-        WARNING: This generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
-        """
-        if validator.mode != DECRYPTION:
-            raise ValueError(INVALID_DECRYPTION_VALIDATOR)
-        deciphering = xor.root(self, key=keystream, validator=validator)
-        for plaintext in deciphering:
-            yield plaintext.to_bytes(BLOCKSIZE, "big")
-
-    @comprehension(chained=True)
-    async def _aascii_encipher(
-        self, key=_csprng(), *, salt, pid=0, validator
-    ):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online-offline MRAE / AEAD pseudo-one-time-pad
-        cipher algorithm called Chunky2048.
-
-        Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all async generators
-        that are decorated with ``comprehension`` can encrypt the
-        plaintext str type strings it yields.
-
-        ``key``: An arbitrary, non-zero amount & type of entropic key
-                material whose __repr__ returns the user's desired
-                entropy & cryptographic strength. Designed to be used as
-                a longer-term user encryption / decryption key & should
-                be a 512-bit value.
-
-        ``salt``: An ephemeral 256-bit random hexidecimal string that
-                MUST BE USED ONLY ONCE for each encryption. This value
-                is sent in the clear along with the ciphertext.
-
-        ``pid``: An arbitrary value whose __repr__ function returns any
-                value that a user decides to categorize keystreams. It
-                safely differentiates those keystreams & initially was
-                designed to permute parallelized keystreams derived from
-                the same ``key`` & ``salt``. Since this value is now
-                verified during message authentication, it can be used
-                to verify arbitrary additional data.
-
-        WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
-        or less per iteration or security WILL BE BROKEN by directly
-        leaking plaintext. The plaintext MUST also be padded using the
-        `Padding` class in order to add salt reuse / misuse resistance
-        (MRAE) to the cipher.
-
-        WARNING: This generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
-        """
-        if validator.mode != ENCRYPTION:
-            raise ValueError(INVALID_ENCRYPTION_VALIDATOR)
-        data = self.aencode()
-        encrypting = data.abytes_encipher(
-            key=key, salt=salt, pid=pid, validator=validator
-        )
-        async for ciphertext in encrypting:
-            yield ciphertext
-        raise UserWarning(await encrypting.aresult())
-
-    @comprehension(chained=True)
-    def _ascii_encipher(self, key=_csprng(), *, salt, pid=0, validator):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online-offline MRAE / AEAD pseudo-one-time-pad
-        cipher algorithm called Chunky2048.
-
-        Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all generators that
-        are decorated with ``comprehension`` can encrypt the plaintext
-        str type strings it yields.
-
-        ``key``: An arbitrary, non-zero amount & type of entropic key
-                material whose __repr__ returns the user's desired
-                entropy & cryptographic strength. Designed to be used as
-                a longer-term user encryption / decryption key & should
-                be a 512-bit value.
-
-        ``salt``: An ephemeral 256-bit random hexidecimal string that
-                MUST BE USED ONLY ONCE for each encryption. This value
-                is sent in the clear along with the ciphertext.
-
-        ``pid``: An arbitrary value whose __repr__ function returns any
-                value that a user decides to categorize keystreams. It
-                safely differentiates those keystreams & initially was
-                designed to permute parallelized keystreams derived from
-                the same ``key`` & ``salt``. Since this value is now
-                verified during message authentication, it can be used
-                to verify arbitrary additional data.
-
-        WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
-        or less per iteration or security WILL BE BROKEN by directly
-        leaking plaintext. The plaintext MUST also be padded using the
-        `Padding` class in order to add salt reuse / misuse resistance
-        (MRAE) to the cipher.
-
-        WARNING: This generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
-        """
-        if validator.mode != ENCRYPTION:
-            raise ValueError(INVALID_ENCRYPTION_VALIDATOR)
-        data = self.encode()
-        encrypting = data.bytes_encipher(
-            key=key, salt=salt, pid=pid, validator=validator
-        )
-        for ciphertext in encrypting:
-            yield ciphertext
-        return encrypting.result()
-
-    @comprehension(chained=True)
-    async def _aascii_decipher(
-        self, key=_csprng(), *, salt, pid=0, validator
-    ):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online-offline MRAE / AEAD pseudo-one-time-pad
-        cipher algorithm called Chunky2048.
-
-        Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all async generators
-        that are decorated with ``comprehension`` can decrypt valid
-        streams of pseudo-one-time-pad encrypted ciphertext.
-
-        ``key``: An arbitrary, non-zero amount & type of entropic key
-                material whose __repr__ returns the user's desired
-                entropy & cryptographic strength. Designed to be used as
-                a longer-term user encryption / decryption key & should
-                be a 512-bit value.
-
-        ``salt``: An ephemeral 256-bit random hexidecimal string that
-                MUST BE USED ONLY ONCE for each encryption. This value
-                is sent in the clear along with the ciphertext.
-
-        ``pid``: An arbitrary value whose __repr__ function returns any
-                value that a user decides to categorize keystreams. It
-                safely differentiates those keystreams & initially was
-                designed to permute parallelized keystreams derived from
-                the same ``key`` & ``salt``. Since this value is now
-                verified during message authentication, it can be used
-                to verify arbitrary additional data.
-
-        WARNING: This generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
-        """
-        if validator.mode != DECRYPTION:
-            raise ValueError(INVALID_DECRYPTION_VALIDATOR)
-        decrypting = self.abytes_decipher(
-            key=key, salt=salt, pid=pid, validator=validator
-        )
-        async for plaintext in decrypting:
-            yield plaintext.decode()
-
-    @comprehension(chained=True)
-    def _ascii_decipher(self, key=_csprng(), *, salt, pid=0, validator):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online-offline MRAE / AEAD pseudo-one-time-pad
-        cipher algorithm called Chunky2048.
-
-        Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all generators that
-        are decorated with ``comprehension`` can decrypt valid streams
-        of pseudo-one-time-pad encrypted ciphertext.
-
-        ``key``: An arbitrary, non-zero amount & type of entropic key
-                material whose __repr__ returns the user's desired
-                entropy & cryptographic strength. Designed to be used as
-                a longer-term user encryption / decryption key & should
-                be a 512-bit value.
-
-        ``salt``: An ephemeral 256-bit random hexidecimal string that
-                MUST BE USED ONLY ONCE for each encryption. This value
-                is sent in the clear along with the ciphertext.
-
-        ``pid``: An arbitrary value whose __repr__ function returns any
-                value that a user decides to categorize keystreams. It
-                safely differentiates those keystreams & initially was
-                designed to permute parallelized keystreams derived from
-                the same ``key`` & ``salt``. Since this value is now
-                verified during message authentication, it can be used
-                to verify arbitrary additional data.
-
-        WARNING: This generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
-        """
-        if validator.mode != DECRYPTION:
-            raise ValueError(INVALID_DECRYPTION_VALIDATOR)
-        decrypting = self.bytes_decipher(
-            key=key, salt=salt, pid=pid, validator=validator
-        )
-        for plaintext in decrypting:
-            yield plaintext.decode()
 
     @comprehension(chained=True)
     async def _abytes_encipher(
@@ -4094,7 +3760,13 @@ class AsyncDatabase(metaclass=AsyncInit):
             raise ValueError("HMAC of `data` isn't valid.")
 
     async def apasscrypt(
-        self, password, salt, *, kb=1024, cpu=3, hardness=1024
+        self,
+        password,
+        salt,
+        *,
+        kb=Passcrypt._DEFAULT_KB,
+        cpu=Passcrypt._DEFAULT_CPU,
+        hardness=Passcrypt._DEFAULT_HARDNESS,
     ):
         """
         An implementation of an Argon2id-like password-based derivation
@@ -4185,15 +3857,15 @@ class AsyncDatabase(metaclass=AsyncInit):
         payload = self.__root_salt + repr((salt, filename)).encode()
         return (await DomainKDF(domain, payload, key=key).asha3_512()).hex()
 
-    async def abytes_encrypt(self, filename, plaintext):
+    async def abytes_encrypt(self, plaintext, *, filename=None):
         """
         Encrypts ``plaintext`` with keys specific to the ``filename``
         value.
 
-        ``filename``    This is the hashed tag that labels a piece of
+        ``filename``:   This is the hashed tag that labels a piece of
             data in the database.
-        ``plaintext``   This is any json serializable object that is to
-            be encrypted.
+        ``plaintext``:  This is any bytes type object that's to be
+            encrypted.
         """
         salt = await agenerate_salt()
         key = await self._aencryption_key(filename, salt)
@@ -4204,33 +3876,33 @@ class AsyncDatabase(metaclass=AsyncInit):
             allow_dangerous_determinism=True,
         )
 
-    async def aencrypt(self, filename, plaintext):
+    async def ajson_encrypt(self, plaintext, *, filename=None):
         """
         Encrypts ``plaintext`` with keys specific to the ``filename``
         value.
 
-        ``filename``    This is the hashed tag that labels a piece of
+        ``filename``:   This is the hashed tag that labels a piece of
             data in the database.
-        ``plaintext``   This is any json serializable object that is to
+        ``plaintext``:  This is any json serializable object that's to
             be encrypted.
         """
         salt = await agenerate_salt()
         key = await self._aencryption_key(filename, salt)
-        return await ajson_encrypt(
+        return await Chunky2048.ajson_encrypt(
             data=plaintext,
             key=key,
             salt=salt,
             allow_dangerous_determinism=True,
         )
 
-    async def abytes_decrypt(self, filename, ciphertext, ttl=0):
+    async def abytes_decrypt(self, ciphertext, *, filename=None, ttl=0):
         """
         Decrypts ``ciphertext`` with keys specific to the ``filename``
         value.
 
-        ``filename``    This is the hashed tag that labels a piece of
+        ``filename``:   This is the hashed tag that labels a piece of
             data in the database.
-        ``ciphertext``  This is a dictionary of ciphertext.
+        ``ciphertext``: This is a dictionary of ciphertext.
         ``ttl``:        An amount of seconds that dictate the allowable
             age of the decrypted message.
         """
@@ -4240,20 +3912,22 @@ class AsyncDatabase(metaclass=AsyncInit):
             data=ciphertext, key=key, ttl=ttl
         )
 
-    async def adecrypt(self, filename, ciphertext, ttl=0):
+    async def ajson_decrypt(self, ciphertext, *, filename=None, ttl=0):
         """
         Decrypts ``ciphertext`` with keys specific to the ``filename``
         value.
 
-        ``filename``    This is the hashed tag that labels a piece of
+        ``filename``:   This is the hashed tag that labels a piece of
             data in the database.
-        ``ciphertext``  This is a dictionary of ciphertext.
+        ``ciphertext``: This is a dictionary of ciphertext.
         ``ttl``:        An amount of seconds that dictate the allowable
             age of the decrypted message.
         """
         salt = ciphertext["salt"]
         key = await self._aencryption_key(filename, salt)
-        return await ajson_decrypt(data=ciphertext, key=key, ttl=ttl)
+        return await Chunky2048.ajson_decrypt(
+            data=ciphertext, key=key, ttl=ttl
+        )
 
     async def _asave_ciphertext(self, filename=None, ciphertext=None):
         """
@@ -4299,7 +3973,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             )
             if not ciphertext and silent:
                 return
-            result = await self.adecrypt(filename, ciphertext)
+            result = await self.ajson_decrypt(ciphertext, filename=filename)
             self._cache[filename] = result
             return result
 
@@ -4468,7 +4142,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         if not admin and filename in self._maintenance_files:
             raise PermissionError("Cannot edit maintenance files.")
-        ciphertext = await self.aencrypt(filename, self._cache[filename])
+        ciphertext = await self.ajson_encrypt(
+            self._cache[filename], filename=filename
+        )
         await self._asave_ciphertext(filename, ciphertext)
 
     async def _asave_tags(self):
@@ -5168,7 +4844,15 @@ class Database:
         else:
             raise ValueError("HMAC of `data` isn't valid.")
 
-    def passcrypt(self, password, salt, *, kb=1024, cpu=3, hardness=1024):
+    def passcrypt(
+        self,
+        password,
+        salt,
+        *,
+        kb=Passcrypt._DEFAULT_KB,
+        cpu=Passcrypt._DEFAULT_CPU,
+        hardness=Passcrypt._DEFAULT_HARDNESS,
+    ):
         """
         An implementation of an Argon2id-like password-based derivation
         function which requires a tunable amount of memory & cpu time to
@@ -5256,15 +4940,15 @@ class Database:
         payload = self.__root_salt + repr((salt, filename)).encode()
         return DomainKDF(domain, payload, key=key).sha3_512().hex()
 
-    def bytes_encrypt(self, filename, plaintext):
+    def bytes_encrypt(self, plaintext, *, filename=None):
         """
         Encrypts ``plaintext`` with keys specific to the ``filename``
         value.
 
         ``filename``:   This is the hashed tag that labels a piece of
             data in the database.
-        ``plaintext``:  This is any json serializable object that is to
-            be encrypted.
+        ``plaintext``:  This is any bytes type object that's to be
+            encrypted.
         """
         salt = generate_salt()
         key = self._encryption_key(filename, salt)
@@ -5275,7 +4959,7 @@ class Database:
             allow_dangerous_determinism=True,
         )
 
-    def encrypt(self, filename, plaintext):
+    def json_encrypt(self, plaintext, *, filename=None):
         """
         Encrypts ``plaintext`` with keys specific to the ``filename``
         value.
@@ -5287,14 +4971,14 @@ class Database:
         """
         salt = generate_salt()
         key = self._encryption_key(filename, salt)
-        return json_encrypt(
+        return Chunky2048.json_encrypt(
             data=plaintext,
             key=key,
             salt=salt,
             allow_dangerous_determinism=True,
         )
 
-    def bytes_decrypt(self, filename, ciphertext, ttl=0):
+    def bytes_decrypt(self, ciphertext, *, filename=None, ttl=0):
         """
         Decrypts ``ciphertext`` with keys specific to the ``filename``
         value.
@@ -5307,7 +4991,7 @@ class Database:
         key = self._encryption_key(filename, salt)
         return Chunky2048.bytes_decrypt(data=ciphertext, key=key, ttl=ttl)
 
-    def decrypt(self, filename, ciphertext, ttl=0):
+    def json_decrypt(self, ciphertext, *, filename=None, ttl=0):
         """
         Decrypts ``ciphertext`` with keys specific to the ``filename``
         value.
@@ -5318,7 +5002,7 @@ class Database:
         """
         salt = ciphertext["salt"]
         key = self._encryption_key(filename, salt)
-        return json_decrypt(data=ciphertext, key=key, ttl=ttl)
+        return Chunky2048.json_decrypt(data=ciphertext, key=key, ttl=ttl)
 
     def _save_ciphertext(self, filename=None, ciphertext=None):
         """
@@ -5362,7 +5046,7 @@ class Database:
             ciphertext = self._query_ciphertext(filename, silent=silent)
             if not ciphertext and silent:
                 return
-            result = self.decrypt(filename, ciphertext)
+            result = self.json_decrypt(ciphertext, filename=filename)
             self._cache[filename] = result
             return result
 
@@ -5527,7 +5211,9 @@ class Database:
         """
         if not admin and filename in self._maintenance_files:
             raise PermissionError("Cannot edit maintenance files.")
-        ciphertext = self.encrypt(filename, self._cache[filename])
+        ciphertext = self.json_encrypt(
+            self._cache[filename], filename=filename
+        )
         self._save_ciphertext(filename, ciphertext)
 
     def _save_tags(self):
