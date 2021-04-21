@@ -55,7 +55,7 @@ def test_Database_cipher(database):
     db = database
     filename = db.filename(tag)
 
-    encrypted_data = db.encrypt(filename, test_data)
+    encrypted_data = db.json_encrypt(test_data, filename=filename)
 
     db[tag] = test_data
     db.save()
@@ -63,15 +63,15 @@ def test_Database_cipher(database):
 
     assert encrypted_file != encrypted_data
     assert encrypted_file["salt"] != encrypted_data["salt"]
-    assert db.decrypt(filename, encrypted_file) == test_data
-    assert db.decrypt(filename, encrypted_data) == test_data
+    assert db.json_decrypt(encrypted_file, filename=filename) == test_data
+    assert db.json_decrypt(encrypted_data, filename=filename) == test_data
 
 
 def test_AsyncDatabase_cipher(database, async_database):
     db = async_database
     filename = run(db.afilename(tag))
 
-    encrypted_data = run(db.aencrypt(filename, test_data))
+    encrypted_data = run(db.ajson_encrypt(test_data, filename=filename))
 
     db[tag] = test_data
     run(db.asave())
@@ -79,8 +79,8 @@ def test_AsyncDatabase_cipher(database, async_database):
 
     assert encrypted_file != encrypted_data
     assert encrypted_file["salt"] != encrypted_data["salt"]
-    assert run(db.adecrypt(filename, encrypted_file)) == test_data
-    assert run(db.adecrypt(filename, encrypted_data)) == test_data
+    assert run(db.ajson_decrypt(encrypted_file, filename=filename)) == test_data
+    assert run(db.ajson_decrypt(encrypted_data, filename=filename)) == test_data
 
 
 def metatag_isnt_ametatag_but_equal(child, achild, db, adb):
