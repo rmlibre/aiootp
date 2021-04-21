@@ -24,6 +24,57 @@
 =============
 
 
+Changes for version 0.19.3 
+========================== 
+
+
+Major Changes
+-------------
+
+-  Removed ``ascii_encipher``, ``ascii_decipher``, ``aascii_encipher`` &
+   ``aascii_decipher`` generators from the ``Chunky2048`` & ``Comprende``
+   classes, & the package. It was unnecessary, didn't fit well with the
+   intended use of the ``Padding`` class, & users would be much better
+   served by converting their ascii to bytes to use the ``bytes_``
+   generators instead.
+-  Removed the ``map_encipher``, ``map_decipher``, ``amap_encipher`` &
+   ``amap_decipher`` generators from the ``Chunky2048`` & ``Comprende``
+   classes, & the package. They were not being used internally to the 
+   package anymore, & their functionality, security & efficiency could 
+   not be guaranteed to track well with the changes in the rest of the 
+   library.
+-  Added domain specificity to the ``X25519`` protocols' key derivations.
+-  Renamed the database classes' ``(a)encrypt`` & ``(a)decrypt`` methods
+   to ``(a)json_encrypt`` & ``(a)json_decrypt`` for clarity & consistency
+   with the rest of the package. Their signatures, as well as those in 
+   ``(a)bytes_encrypt`` & ``(a)bytes_decrypt``, were also altered to
+   receive plaintext & ciphertext as their only positional arguments. 
+   The ``filename`` argument is now a keyword-only argument with a default
+   ``None`` value. This allows databases to be used more succinctly for
+   manual encryption & decryption by making the filename tweak optional.
+-  The ``runs`` keyword argument for the functions in ``randoms.py`` was
+   renamed to ``rounds``. It seems more clear that it is controlling the
+   number of rounds are internally run within the ``(a)random_number_generator``
+   functions when deriving new entropy. 
+
+
+Minor Changes 
+------------- 
+
+-  Fixes to docstrings & tutorials. Rewrite & reorganization of the 
+   ``PREADME.rst`` & ``README.rst``. More updates to the readme's are still
+   on the way.
+-  Slight fix to the Passcrypt docstring's algorithm diagram.
+-  Moved the default passcrypt settings to variables in the ``Passcrypt``
+   class.
+-  Added the ability to send passcrypt settings into the ``mnemonic`` &
+   ``amnemonic`` coroutines, which call the algorithm internally but 
+   previously could only use the default settings.
+-  Some code cleanups & refactorings.
+
+
+
+
 Changes for version 0.19.2 
 ========================== 
 

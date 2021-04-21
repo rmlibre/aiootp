@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: aiootp
-Version: 0.19.2
+Version: 0.19.3
 Summary: aiootp - an asynchronous pseudo-one-time-pad based crypto and anonymity library.
 Home-page: https://twitter.com/aiootp
 Author: Gonzo Investigative Journalism Agency, LLC
@@ -13,8 +13,8 @@ Project-URL: Source, https://github.com/rmlibre/aiootp
 Project-URL: Tracker, https://github.com/rmlibre/aiootp/issues
 Project-URL: Changelog, https://github.com/rmlibre/aiootp/blob/master/CHANGES.rst
 Project-URL: Documentation, https://github.com/rmlibre/aiootp/blob/master/README.rst
-Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
-            :target: https://github.com/rmlibre/aiootp/blob/master/logo.png
+Description: .. image:: https://raw.githubusercontent.com/rmlibre/aiootp/master/logo.png
+            :target: https://raw.githubusercontent.com/rmlibre/aiootp/master/logo.png
             :alt: logo for python package named aiootp
         
         
@@ -63,270 +63,540 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
         
         
         
-        Some Examples
-        -------------
+        Table Of Contents
+        -----------------
         
-        Users can create and modify transparently encrypted databases:
+        - `Transparently Encrypted Databases`_
+        - 
+          a) `Ideal Initialization`_
+          b) `User Profiles`_
+          c) `Tags`_
+          d) `Metatags`_
+          e) `Basic Management`_
+          f) `Mirrors`_
+          g) `Namespaces`_
+          h) `Public Cryptographic Functions`_
+        
+             I. `Encrypt / Decrypt`_
+             II. `HMACs`_
+             III. `UUIDs`_
+             IV. `Passcrypt`_
+        
+        - `Other Tutorials`_
+        - 
+          a) (more coming soon)
+        
+        
+        
+        
+        _`Transparently Encrypted Databases`
+        ------------------------------------
+        
+        The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest, to dynamic objects in use.
+        
+        
+        _`Ideal Initialization`
+        ^^^^^^^^^^^^^^^^^^^^^^^
+        
+        Make a new user key with a fast, cryptographically secure pseudo-random number generator. Then this strong 512-bit key can be used to create a database object.
         
         .. code-block:: python
         
-            #
+            from aiootp import AsyncKeys, AsyncDatabase
+            
+            
+            key = await AsyncKeys.acsprng()
         
-            import aiootp
+            db = await AsyncDatabase(key)
             
-            
-            # Make a new user key for encryption / decryption with a fast,
-            
-            # cryptographically secure pseudo-random number generator ->
-            
-            key = await aiootp.acsprng()
-            
-            
-            # Create a database object with it ->
-            
-            db = await aiootp.AsyncDatabase(key)
-            
-            
-            # Users can also use passwords to open a database, if necessary.
         
-            # Although passwords & passphrases are low-entropy, & not recommended,
+        _`User Profiles`
+        ^^^^^^^^^^^^^^^^
         
-            # here's how to use them more safely ->
+        With User Profiles, passwords may be used instead to open a database. Often, passwords & passphrases contain very little entropy. So, they aren't recommended for that reason. However, profiles provide a succinct way to use passwords more safely. They do this by deriving strong keys from low entropy user input, the memory/cpu hard passcrypt algorithm, & a secret salt which is automatically generated & stored on the user's filesystem.
         
-            tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
-                "server_url",     # An unlimited number of arguments can be passed
-                "email_address",  # here as additional, optional credentials.
+        .. code-block:: python
+        
+            # Convert any available user credentials into cryptographic tokens ->
+        
+            tokens = await AsyncDatabase.agenerate_profile_tokens(
+            
+                "server-url.com",     # An unlimited number of arguments can be passed
+                
+                "address@email.net",  # here as additional, optional credentials.
+                
                 username="username",
+                
                 password="password",
+                
                 salt="optional salt keyword argument",
+                
             )
-            
-            db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
-            
-            
-            # Data within databases are organized by ``tag``s ->
-            
-            async with db:    #  <---Context saves data to disk when closed
+        
+        
+            # Finally, use those special tokens to open a database instance ->
+        
+            db = await AsyncDatabase.agenerate_profile(tokens)
+        
+        
+        _`Tags`
+        ^^^^^^^
+        
+        Data within databases are primarily organized by Tags. Tags are simply json serializable labels, and the data stored under them can also be any json serializable objects.
+        
+        .. code-block:: python
+        
+            # Open a context to automatically save data to disk when closed ->
+        
+            async with db:
             
                 db["tag"] = {"data": "can be any json serializable object"}
+                
+                db["hobby"] = await db.abase64_encode(b"fash smasher")
                 
                 db["bitcoin"] = "0bb6eee10d2f8f45f8a"
                 
                 db["lawyer"] = {"#": "555-555-1000", "$": 13000.50}
                 
                 db["safehouses"] = ["Dublin Forgery", "NY Insurrection"]
-            
-        
-            # Databases also have access to conversion functions for saving 
-        
-            # bytes type data ->
-            
-            db["bytes data"] = await db.abase64_encode(b"fash smasher")
-        
-            assert b"fash smasher" == await db.abase64_decode(db["bytes data"])
         
         
-            # Access to data is open to the user, so care must be taken
-            
-            # not to let external api calls touch the database without
-            
-            # accounting for how that can go wrong.
-            
-            
-            # Sensitive tags can be hashed into uuids of arbitrary size ->
+            # Instead of saving the entire database when a single new tag is 
         
-            await db.ametatag("clients")
-            
-            email_uuids = await db.clients.auuids("emails", size=64)
-            
-            for email_address in ["brittany@email.com", "john.doe@email.net"]:
-            
-                hashed_tag = await email_uuids(email_address)
-                
-                db.clients[hashed_tag] = "client account data"
-            
-            db["clients salt"] = await email_uuids.aresult(exit=True)
-            
-            
-            # Data of any type can be verified using an hmac ->
-            
-            hmac = await db.ahmac({"id": 1234, "payload": "message"})
-            
-            await db.atest_hmac({"id": 1234, "payload": "message"}, hmac=hmac)
-            
-         >>> True
-            
-            # Although, datatypes where order of values is not preserved may fail to 
-            
-            # validate -> 
-            
-            await db.atest_hmac({"payload": "message", "id": 1234}, hmac=hmac) 
-            
-         >>> ValueError: "HMAC of the data stream isn't valid."
-            
-            
-            # Create child databases accessible from the parent by a ``metatag`` ->
-            
-            metatag = "child"
-            
-            molly = await db.ametatag(metatag)
+            # added, a tag can be saved to disk individually ->
+        
+            await db.asave_tag("lawyer")
+        
+        
+            # View an instance's tags ->
+        
+            db.tags
+            >>> ['tag', 'hobby', 'bitcoin', 'lawyer', 'safehouses']
+        
+        
+            # Set & query tags in the instance's cache with dedicated method ->
+        
+            await db.aset("pseudonym", "Free The People")
+        
+            await db.aquery("pseudonym")
+            >>> 'Free The People'
+        
+            assert "pseudonym" in db
+        
+        
+            # Remove a tag from the cache & its associated data on the filesystem ->
+        
+            await db.apop("pseudonym")
+            >>> 'Free The People'
+        
+            assert "pseudonym" not in db
+        
+        Access to data is open to the user, so care must be taken not to let external api calls touch the database without accounting for how that can go wrong.
+        
+        
+        _`Metatags`
+        ^^^^^^^^^^^
+        
+        Metatags are used to organize & create children of parent databases. They are fully-fledged databases all on their own, with their own distinct key material too. They're accessible from the parent through an attribute that's added to the parent instance with the same name as the metatag. When the parent is saved, or deleted, then their children are also.
+        
+        .. code-block:: python
+        
+            # Create a metatag database ->
+        
+            molly = await db.ametatag("molly")
+        
+        
+            # They can contain their own sets of tags (and metatags) ->
             
             molly["hobbies"] = ["skipping", "punching"]
             
             molly["hobbies"].append("reading")
-            
-            molly["hobbies"] is db.child["hobbies"]
-            
-         >>> True
-            
-            assert isinstance(molly, aiootp.AsyncDatabase)
-            
-            
-            # If the user no longer wants a piece of data, pop it out ->
-            
-            await molly.apop("hobbies")
         
-         >>> ["skipping", "punching", "reading"]
+        
+            # The returned metatag & the reference in the parent are the same ->
+        
+            assert molly["hobbies"] is db.molly["hobbies"]
             
+            assert isinstance(molly, AsyncDatabase)
             
-            "hobbies" in molly
+        
+            # All of an instance's metatags are quickly viewable ->
+        
+            db.metatags
+            >>> ['molly']
             
-         >>> False
+        
+            # Delete a metatag from an instance ->
+        
+            await db.adelete_metatag("molly")
             
+            db.metatags
+            >>> []
             
-            # Delete a child database from the filesystem ->
-            
-            await db.adelete_metatag("child")
-            
-            db.child["hobbies"]
-            
-         >>> AttributeError: 'AsyncDatabase' object has no attribute 'child'
+            assert not hasattr(db, "molly")
+        
+        
+        _`Basic Management`
+        ^^^^^^^^^^^^^^^^^^^
+        
+        There's a few settings & public methods on databases for users to manage their instances & data. This includes general utilities for saving & deleting databases to & from the filesystem, as well as fine-grained controls for how data is handled. 
+        
+        .. code-block:: python
+        
+            # The directory attribute is set within the instance's __init__
+        
+            # using a keyword-only argument. It's the directory where the
+        
+            # instance will store all of its files.
+        
+            db.directory
+            >>> PosixPath('site-packages/aiootp/aiootp/databases')
             
             
             # Write database changes to disk with transparent encryption ->
             
             await db.asave()
+        
+        
+            # Entering the instance's context also saves data to disk ->
+        
+            async with db:
             
+                print("Saving to disk...")
             
-            # Make mirrors of databases ->
-            
-            new_key = await aiootp.acsprng()
-            
-            new_db = await aiootp.AsyncDatabase(new_key)
-            
-            await new_db.amirror_database(db)
-            
-            assert new_db["lawyer"] is db["lawyer"]
-            
-            
-            # Or make namespaces out of databases for very efficient lookups ->
-            
-            namespace = await new_db.ainto_namespace()
-            
-            assert namespace.bitcoin == new_db["bitcoin"]
-            
-            assert namespace.lawyer is new_db["lawyer"]
-            
-            
+        
             # Delete a database from the filesystem ->
             
             await db.adelete_database()
             
             
-            # Initialization of a database object is more computationally expensive
+        As databases grow in the number of tags, metatags & the size of data within, it may become desireable to load data from them as needed, instead of all at once during initialization. This can be done with the ``preload`` boolean keyword argument.
+        
+        .. code-block:: python
+        
+            # Let's create some test values to show the impact preloading has ->
+        
+            async with (await AsyncDatabase(key)) as db:
+        
+                db["favorite_foods"] = ["justice", "community"]
             
-            # than entering its context manager. So keeping a reference to a
-        
-            # preloaded database is a great idea, either call ``asave`` / ``save``
-        
-            # periodically, or open a context with the reference whenever wanting to
-        
-            # capture changes to the filesystem ->
+                await db.ametatag("exercise_routines") 
             
+        
+            # This is how to toggle preloading off during initialization ->
+        
+            quick_db = await AsyncDatabase(key, preload=False)
+            
+            
+            # Now to retrieve elements from an async database, the ``aquery`` 
+        
+            # method must first be used to load a tag into the cache ->
+        
+            async with quick_db:
+            
+                quick_db["favorite_foods"]
+                >>> None
+            
+                loaded_value = await quick_db.aquery("favorite_foods")
+            
+                assert loaded_value == ["justice", "community"]
+            
+                assert quick_db["favorite_foods"] == ["justice", "community"]
+            
+            
+                # Metatags need to be loaded manually as well ->
+            
+                quick_db.exercise_routines
+                >>> AttributeError:
+            
+                await quick_db.ametatag("exercise_routines")
+            
+                assert type(quick_db.exercise_routines) == AsyncDatabase
+        
+        
+        _`Mirrors`
+        ^^^^^^^^^^
+        
+        Database mirrors allow users to make copies of all files within a database under new encryption keys. This is useful if users simply want to make backups, or if they'd like to update / change their database keys. 
+        
+        .. code-block:: python
+        
+            # A unique login key / credentials are needed to create a new 
+        
+            # database ->
+            
+            new_key = await AsyncKeys.acsprng()
+            
+            new_db = await AsyncDatabase(new_key)
+        
+        
+            # Mirroring an existing database is done like this ->
+            
+            await new_db.amirror_database(db)
+        
+            assert new_db["favorite_foods"] is db["favorite_foods"]
+        
+        
+            # If the user is just updating their database keys, then the old
+        
+            # database should be deleted ->
+        
+            await db.adelete_database()
+        
+        
+            # Now the new database can be saved to disk & given an appropriate 
+        
+            # name ->
+        
             async with new_db as db:
+        
+                pass
+        
+        
+        _`Namespaces`
+        ^^^^^^^^^^^^^
+        
+        Database Tags can be loaded into ``Namespace`` objects. This saves lots of time & cpu effort on lookups. This is because databases use cryptographic hashes of Tags to find their associtated data within themselves. This can be up to a couple thousand times slower than the dotted lookups on a ``Namespace`` object. This is a great way to load lots of encrypted values but then use them very efficiently in calculations.
+        
+        .. code-block:: python
+        
+            # Loading a database's tags into a Namespace is done this way ->
+        
+            namespace = await db.ainto_namespace()
             
-                print("Saving to disk...")
+            assert namespace.favorite_foods is db["favorite_foods"]
+        
+        
+            # View all the Namespace's tags ->
+        
+            list(namespace.keys())
+            >>> ["favorite_foods"]
+        
+        
+            # View all the Namespace's values ->
+        
+            list(namespace.values())
+            >>> [["justice", "community"]]
+        
+        
+            # Namespace's yield their key & value pairs whien iterated over ->
+        
+            for tag, value in namespace:
+            
+                print(tag, value)
                 
+            >>> "favorite_foods" ["justice", "community"]
+        
+        
+        _`Public Cryptographic Functions`
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        
+        Although databases handle encryption & decryption automatically, users may want to utilize their databases' keys to do custom cryptographic procedures manually. There are a few public functions available to users if they should want such functionality.
+        
+        
+        _`Encrypt / Decrypt`
+        ********************
+        
+        .. code-block:: python
+        
+            # Either json serializable or bytes-type data can be encrypted ->
+        
+            json_plaintext = {"some": "json data can go here"}
+            
+            bytes_plaintext = b"some bytes plaintext goes here"
+        
+            jciphertext = await db.ajson_encrypt(json_plaintext)
+        
+            bciphertext = await db.abytes_encrypt(bytes_plaintext)
+        
+        
+            # Those values can just as easily be decrypted ->
+        
+            assert json_plaintext == await db.ajson_decrypt(jciphertext)
+        
+            assert bytes_plaintext == await db.abytes_decrypt(bciphertext)
+        
+        
+            # Filenames may be added to classify ciphertexts. They also alter the 
+        
+            # key material used during encryption in such a way, that without the
+        
+            # correct filename, the data cannot be decrypted ->
+        
+            filename = "grocery list"
+        
+            groceries = ["carrots", "taytoes", "rice", "beans"]
+        
+            ciphertext = await db.ajson_encrypt(groceries, filename=filename)
+        
+            assert groceries == await db.ajson_decrypt(ciphertext, filename=filename)
+        
+        
+            # Time-based expiration of ciphertexts is also available for all 
+        
+            # encrypted data this package produces ->
+        
+            from aiootp.asynchs import asleep
+        
+        
+            await asleep(6)
+        
+            await db.ajson_decrypt(jciphertext, ttl=2)
+            >>> TimeoutError: Timestamp expired by <4> seconds.
+        
+            await db.abytes_decrypt(bciphertext, ttl=2)
+            >>> TimeoutError: Timestamp expired by <4> seconds.
+        
+        
+            # The number of seconds that are exceeded may be helpful to know. In
+        
+            # which case, this is how to retrieve that integer value ->
+        
+            try: 
+            
+                await db.abytes_decrypt(bciphertext, ttl=2)
+        
+            except TimeoutError as error:
+        
+                seconds_expired_by = error.value
+        
+        
+        _`HMACs`
+        ********
+        
+        Besides encryption & decryption, databases can also be used to manually verify the authenticity of data with HMACs.
+        
+        .. code-block:: python
+        
+            # Creating an HMAC of some data with a database is done this way ->
+        
+            data = "validate this data!"
+        
+            hmac = await db.ahmac(data)
+        
+            await db.atest_hmac(data, hmac=hmac)
+            >>> True
+        
+        
+            # Data that is not the same, or is altered, will be caught ->
+        
+            altered_data = "valiZate this data!"
+        
+            await db.atest_hmac(altered_data, hmac=hmac)
+            >>> ValueError: "HMAC of the data stream isn't valid."
+            
+        
+            # Any type of data can be run thorugh the function, it's the repr
+        
+            # of the data which is evaluated ->
+        
+            arbitrary_data = {"id": 1234, "payload": "message"}
+        
+            hmac = await db.ahmac(arbitrary_data)
+            
+            await db.atest_hmac(arbitrary_data, hmac=hmac)
+            >>> True
+        
+        
+            # Beware: Datatypes where order of values is not preserved may fail 
+        
+            # to validate even if they are functionally equivalent -> 
+        
+            order_swapped_data = {"payload": "message", "id": 1234}
+        
+            assert order_swapped_data == arbitrary_data
+            
+            await db.atest_hmac(order_swapped_data, hmac=hmac) 
+            >>> ValueError: "HMAC of the data stream isn't valid."
+            
+        
+        _`UUIDs`
+        ********
+        
+        Instances can create special generator coroutines that are used to hash sensitive tags, or other data, into hexidecimal UUIDs of arbitrary size. These hashes are secured with the database instance's keys, & a salt value which is either passed in manually by the user, or if not, is automatically generated. The salt is available at the end of the coroutine's usage by calling for it to be returned & for the coroutine to be exited. 
+        
+        .. code-block:: python
+        
+            # Organizing databases with metatags improves readability & safely 
+        
+            # isolates cryptographic domains, because metatags use their own
+        
+            # sets of keys. Their keys also can't be used to derive their 
+        
+            # parent's keys ->
+        
+            await db.ametatag("clients")
+        
+        
+            # Choosing a category for the coroutine also separates domains ->
+            
+            email_uuids = await db.clients.auuids("emails", size=24, salt=None)
+        
+        
+            # Then a user can hash any values by sending them into the coroutine ->
+        
+            for email_address in ["brittany@email.com", "john.doe@email.net"]:
+            
+                hashed_tag = await email_uuids(email_address)
                 
-            # As databases grow in the number of tags & metatags & the size of
-            
-            # the data within, it may become desireable to load data from them
-            
-            # as needed, instead of all at once during initialization. This can
+                db.clients[hashed_tag] = "client account data"
         
-            # be done with the ``preload`` boolean keyword argument ->
-            
-            db["tag_test"] = "test value"
-            
-            await db.ametatag("metatag_test")
-            
-            await db.asave()
-            
-            quick_db = await aiootp.AsyncDatabase(key, preload=False)
-            
-            
-            # Although, now to retrieve elements from an async database, the
-            
-            # ``aquery`` method must first be used to load tags into the cache ->
-            
-            quick_db["tag_test"]
-            
-         >>> None
-            
-            loaded_value = await quick_db.aquery("tag_test")
-            
-            assert loaded_value == "test value"
-            
-            assert quick_db["tag_test"] == "test value"
-            
-            
-            # Metatags need to be loaded manually as well ->
-            
-            quick_db.metatag_test
-            
-         >>> AttributeError:
-            
-            await quick_db.ametatag("metatag_test")
-            
-            assert type(quick_db.metatag_test) == aiootp.AsyncDatabase
-            
-            
-            # Transparent and automatic encryption makes persisting sensitive 
-            
-            # information very simple. Though, if users do want to encrypt / 
-            
-            # decrypt things manually, then databases allow that too ->
-            
-            data_name = "saturday clients"
-            
-            clients = ["Tony", "Maria"]
-            
-            encrypted = await db.aencrypt(filename=data_name, plaintext=clients)
-            
-            decrypted = await db.adecrypt(filename=data_name, ciphertext=encrypted)
-            
-            clients == decrypted
-            
-         >>> True
-            
-            
-            # All encrypted messages have timestamps that can be used to enforce
         
-            # limits on how old messages can be (in seconds) before they are
+            # Once finished hashing, the salt that was used can be retrieved ->
+            
+            db["clients salt"] = await email_uuids.aresult(exit=True)
         
-            # rejected ->
+        
+        _`Passcrypt`
+        ************
+        
+        ``Passcrypt`` is the package's Argon2id-like password-based key derivation function. It was designed to be resistant to time-memory tradeoffs & cache timing side-channel attacks. When passwords (or data in general) are processed through an instance's passcrypt method, then they're also protected by being hashed together with the database's keys.
+        
+        .. code-block:: python
+        
+            # This is an example usage of the databases' passcrypt methods ->
+        
+            from getpass import getpass
             
-            decrypted = await db.adecrypt(data_name, encrypted, ttl=25)
+        
+            password = getpass("Enter password: ")
+        
+            salt = await db.agenerate_salt()
+        
+            await db.apasscrypt(password, salt)
+            >>> '''938db60e0deab983ed1eed5ca96980a0557f4a450fcac2ca16e45cc2c36ac0
+            40669d30c7f55e3537658d6c91d24a5026a04e2dfe98c59574c02b782a194ccdc1'''
+        
+        
+            # The difficulty settings for the algorithm can be controlled too ->
+        
+            settings = dict(
             
-         >>> TimeoutError: Timestamp expired by <10> seconds.
-            
-            
+                kb=16*1024,  # This means 16MB of ram are used to create the hash
+        
+                cpu=7,  # This means 7 passes over the memory cache are done
+        
+                hardness=2048,  # This is the minimum # of columns in the cache
+                
+            )
+        
+        
+            # They go into the method as keyword-only arguments, so we can use
+        
+            # the ** syntax ->
+        
+            password_hash = await db.apasscrypt(password, salt, **settings)
+        
+        
             #
         
         
         
         
-        What other tools are available to users?:
+        _`Other Tutorials`
+        ------------------
+        
+        What other tools are available to users?
         
         .. code-block:: python
         
@@ -627,7 +897,7 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
             with decipher.int_to_bytes() as decrypting:
             
                 padding_key = pad.padding_key(salt=salt, pid=pid)
-                
+        
                 padded_data = decrypting.join(b"")
                 
                 hmac.finalize()
@@ -639,11 +909,10 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
         
             # Continue with processing the plaintext ->
             
-            decrypted = pad.io.depad_bytes(padded_data, salted_key=padding_key)
+            decrypted = pad.io.depad_plaintext(padded_data, padding_key=padding_key)
             
             plaintext_bytes == decrypted
-            
-         >>> True
+            >>> True
             
             
             # This example was a low-level look at the encryption algorithm. And it 
@@ -915,18 +1184,16 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
                 "aascii_to_int",
                 "abin",
                 "abytes",
-                "abytes_decrypt",
-                "abytes_encrypt",
+                "abytes_decipher",
+                "abytes_encipher",
                 "abytes_to_hex",
                 "abytes_to_int",
                 "adebugger",
                 "adecode",
-                "adecrypt",
                 "adelimit",
                 "adelimited_resize",
                 "adepad_plaintext",
                 "aencode",
-                "aencrypt",
                 "afeed",
                 "afeed_self",
                 "afrom_base",
@@ -940,8 +1207,6 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
                 "aint_to_bytes",
                 "ajson_dumps",
                 "ajson_loads",
-                "amap_decipher",
-                "amap_encipher",
                 "apad_plaintext",
                 "apasscrypt",
                 "arandom_sleep",
@@ -966,18 +1231,16 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
                 "azfill",
                 "bin",
                 "bytes",
-                "bytes_decrypt",
-                "bytes_encrypt",
+                "bytes_decipher",
+                "bytes_encipher",
                 "bytes_to_hex",
                 "bytes_to_int",
                 "debugger",
                 "decode",
-                "decrypt",
                 "delimit",
                 "delimited_resize",
                 "depad_plaintext",
                 "encode",
-                "encrypt",
                 "feed",
                 "feed_self",
                 "from_base",
@@ -991,8 +1254,6 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
                 "int_to_bytes",
                 "json_dumps",
                 "json_loads",
-                "map_decipher",
-                "map_encipher",
                 "pad_plaintext",
                 "passcrypt",
                 "random_sleep",
@@ -1015,135 +1276,7 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
                 "xor",
                 "zfill",
             }
-            
-            
-            # Let's look at a more complicated example with the one-time pad 
-            
-            # keystreams. There are many uses for endless streams of deterministic 
-            
-            # key material outside of one-time pad cipher keys. They can, for instance, 
-            
-            # give hash tables order that's cryptographically determined & obscured -> 
-            
-            ordered_entries = {}
-            
-            salt = await aiootp.asalt()
-            
-            names = aiootp.akeys(key, salt=salt)
-            
-            
-            # Resize each output of ``names`` to 32 characters, tag each output with
-            
-            # an incrementing number, & stop the stream after 0.01 seconds ->
-            
-            async for index, name in names.aresize(32).atag().atimeout(0.01):
-            
-                ordered_entries[name] = f"{index} data organized by the stream of hashes"
-            
-            
-            # Retrieving items in the correct order requires knowing both ``key`` & ``salt``
-            
-            async for index, name in aiootp.akeys(key, salt=salt).aresize(32).atag():
-            
-                try:
-                
-                    assert ordered_entries[name] == f"{index} data organized by the stream of hashes"
-                    
-                except KeyError:
-                
-                    print(f"There are no more entries after {index} iterations.")
-                    
-                    assert index == len(ordered_entries) + 1
-                    
-                    break
-                    
-                    
-            # There's a prepackaged ``Comprende`` generator function that does
-            
-            # encryption / decryption of key ordered hash maps. It needs bytes
-            
-            # data to work on though. First let's make an actual encryption key
-            
-            # stream that's different from ``names`` ->
-            
-            pid = aiootp.sha_256(key, salt, "any additional data")
-            
-            key_stream = aiootp.akeys(key, salt=salt, pid=pid)
-            
-            
-            # And example plaintext ->
-            
-            plaintext = 100 * b"Some kinda message..."
-            
-            
-            # We'll have to safely pad the plaintext to a multiple of 256 bytes ->
-            
-            padding_key = aiootp.padding_key(key, salt=salt, pid=pid)
-            
-            padded_data = aiootp.pad_plaintext(plaintext, salted_key=padding_key)
-            
-            
-            # We can now stream the data & ciphertext authentication process ->
-            
-            data_stream = aiootp.adata(padded_data)
-            
-            hmac = aiootp.StreamHMAC(key, salt=salt, pid=pid).for_encryption()
-            
-            
-            # And let's make sure to clean up after ourselves with a context manager ->
-            
-            async with data_stream.amap_encipher(names, key_stream, validator=hmac) as encrypting:
-            
-                # ``adata`` takes a sequence, & ``amap_encipher`` takes two iterables,
-                
-                # a stream of names for the hash map, & the stream of key material.
-                
-                ciphertext_hashmap = await encrypting.adict()
-                
-                ciphertext_authentication = await hmac.afinalize()
-                
-                siv = hmac.siv
-                
-                
-            # Now we'll pick the chunks out in the order produced by ``names`` to 
         
-            # decrypt them ->
-            
-            ciphertext_stream = aiootp.apick(names, ciphertext_hashmap)
-            
-            
-            # The decrypting party will likely have to instantiate their own 
-            
-            # keystream object, but we'll just reset ours for convenience ->
-            
-            await key_stream.areset()
-            
-            
-            # Next we'll authenticate & decrypt the ciphertext hashmap in the 
-            
-            # correct order ->
-            
-            hmac = aiootp.StreamHMAC(key, salt=salt, pid=pid, siv=siv).for_decryption()
-            
-            async with ciphertext_stream.amap_decipher(key_stream, validator=hmac) as decrypting:
-            
-                decrypted = await decrypting.ajoin(b"")
-                
-                await hmac.afinalize()
-                
-                await hmac.atest_hmac(ciphertext_authentication)
-                
-                
-            # We can now remove any padding from the data to reveal the plaintext ->
-                
-            assert plaintext == aiootp.depad_plaintext(decrypted, salted_key=padding_key)
-            
-            
-            # This is neat, & makes sharding & authenticating encrypted data 
-            
-            # incredibly easy.
-            
-            
             #
         
         
@@ -1307,7 +1440,7 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
          -  loss of information occurs as they process data & produce digests 
          -  they're standardized cryptographic hash functions designed with wide security margins 
         
-        True random purists should note that even something as complicated, & seemingly unpredictable, as quantum mechanical events_, can in theory be the result of rather simple_ & predictable processes. We in no way claim to be quantum physicists. It, however, seems fitting in a discussion on the existence of randomness, & when challenging the conventional notion that the natural world is quintessential randomness, when none of that is proven (or provable) mathematically. This problem is related to several impossibility proofs [1_][2_][3_].
+        True random advocates should note that even something as complicated, & seemingly unpredictable, as quantum mechanical events_, can in theory be the result of rather simple_ & predictable processes. We in no way claim to be quantum physicists. It, however, seems fitting in a discussion on the existence of randomness, & when challenging the conventional notion that the natural world is quintessential randomness, when none of that is proven (or provable) mathematically. This problem is related to several impossibility proofs [1_][2_][3_].
         
         .. _1: https://en.wikipedia.org/wiki/Turing%27s_proof
         .. _2: https://www.scientificamerican.com/article/are-we-living-in-a-computer-simulation/
@@ -1322,14 +1455,16 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
         A: The infinite stream of key material produced by that generator has amazing properties. Under the hood it's a ``hashlib.sha3_512`` key ratchet algorithm. It's internal state consists of a seed hash, & three ``hashlib.sha3_512`` objects primed iteratively with the one prior and the seed hash's seed. The first object is updated with the seed hash, its prior output, and the entropy that may be sent into the generator as a coroutine. This first object's digest is then used to update the last two objects before yielding the last two's concatenated results. The seed to the seed hash is itself the hash of the input key material, a random salt, and a user-defined ID value which can safely differentiate streams with the same key material. This algorithm is forward secure because compromising a future key will not compromise past keys since these hashes are irreversibly constructed. It's also semi-future secure since having a past key doesn't allow you to compute future keys without also compromising the seed hash, and the first ratcheting ``hashlib`` object. Since those two states are never disclosed or used for encryption, the key material produced is future secure with respect to itself only. Full future-security would allow for the same property even if the seed & ratchet object's states were compromised. This feature can, however, be added to the algorithm since the generator itself can receive entropy externally from a user at any arbitrary point in its execution, say, after computing a shared diffie-hellman exchange key.
         
         
-        **Q: How fast is this implementation of the one-time pad cipher?** 
-        
-        A: Well, because it relies on ``hashlib.sha3_512`` hashing to build key material streams, it's rather efficient, encrypting & decrypting about 20 MB/s on a ~1.5 GHz core. This is slower than most other stream ciphers, and without optimizations. However, using sha3_512 ASICs could make this algorithm competitively fast.
-        
-        
         **Q: Why make a new cipher when AES is strong enough?** 
         
-        A: Although primatives like AES are strong enough for now, there's no guarantee that future hardware or algorithms won't be developed that break them. In fact, AES's theoretical bit-strength has dropped over the years because of hardware and algorithmic developments. It's still considered a secure cipher, but the **one-time pad** isn't considered theoretically "strong enough", instead it's mathematically proven to be unbreakable. Such a cryptographic guarantee is too profound not to develop further into an efficient, accessible standard.
+        A: Although primatives like AES are strong enough for now, there's no guarantee that future hardware or algorithms won't be developed which break them. In fact, AES's theoretical bit-strength has dropped over the years because of new developments_. Many popular AES modes don't provide authenication, salt reuse/misuse resistance, post-quantum resistance, or beyond-birthday-bound security. And the most common authenticated AES mode (GCM) involves some complex maths & has large pits implementers can easily fall into. AES's efficiency is important, even though it falls short in defending against these vulnerabilities. We wanted to build a cipher which focuses on security & simplicity for developers, even at the cost of some efficiency. AES is still considered a secure cipher, but the **pseudo-one-time pad** isn't considered theoretically "strong enough". Instead, it's mathematically proven to be computationally secure if the keystream is produced from a large enough key & a secure pseudo-random function. Such a cryptographic guarantee is too profound not to develop further into an accessible standard. This cipher is an attempt to do just that.
+        
+        .. _developments: https://www.schneier.com/blog/archives/2009/07/another_new_aes.html
+        
+        
+        **Q: How fast is this implementation of the pseudo one-time pad cipher?** 
+        
+        A: Well, because it relies on ``hashlib.sha3_512`` hashing to build key material streams, it's rather efficient. It can process about 20 MB/s on a ~1.5 GHz core for both encrypting & decrypting. This is slower than other stream ciphers, but this package is written in pure Python & without hardware optimizations. Using sha3_512 ASICs, or specific chipset instructions, or a lower-level language implementation, could make this algorithm competitively fast.
         
         
         **Q: What size keys does this one-time pad cipher use?** 
@@ -1372,6 +1507,57 @@ Description: .. image:: https://github.com/rmlibre/aiootp/blob/master/logo.png
         
         ``Changelog``
         =============
+        
+        
+        Changes for version 0.19.3 
+        ========================== 
+        
+        
+        Major Changes
+        -------------
+        
+        -  Removed ``ascii_encipher``, ``ascii_decipher``, ``aascii_encipher`` &
+           ``aascii_decipher`` generators from the ``Chunky2048`` & ``Comprende``
+           classes, & the package. It was unnecessary, didn't fit well with the
+           intended use of the ``Padding`` class, & users would be much better
+           served by converting their ascii to bytes to use the ``bytes_``
+           generators instead.
+        -  Removed the ``map_encipher``, ``map_decipher``, ``amap_encipher`` &
+           ``amap_decipher`` generators from the ``Chunky2048`` & ``Comprende``
+           classes, & the package. They were not being used internally to the 
+           package anymore, & their functionality, security & efficiency could 
+           not be guaranteed to track well with the changes in the rest of the 
+           library.
+        -  Added domain specificity to the ``X25519`` protocols' key derivations.
+        -  Renamed the database classes' ``(a)encrypt`` & ``(a)decrypt`` methods
+           to ``(a)json_encrypt`` & ``(a)json_decrypt`` for clarity & consistency
+           with the rest of the package. Their signatures, as well as those in 
+           ``(a)bytes_encrypt`` & ``(a)bytes_decrypt``, were also altered to
+           receive plaintext & ciphertext as their only positional arguments. 
+           The ``filename`` argument is now a keyword-only argument with a default
+           ``None`` value. This allows databases to be used more succinctly for
+           manual encryption & decryption by making the filename tweak optional.
+        -  The ``runs`` keyword argument for the functions in ``randoms.py`` was
+           renamed to ``rounds``. It seems more clear that it is controlling the
+           number of rounds are internally run within the ``(a)random_number_generator``
+           functions when deriving new entropy. 
+        
+        
+        Minor Changes 
+        ------------- 
+        
+        -  Fixes to docstrings & tutorials. Rewrite & reorganization of the 
+           ``PREADME.rst`` & ``README.rst``. More updates to the readme's are still
+           on the way.
+        -  Slight fix to the Passcrypt docstring's algorithm diagram.
+        -  Moved the default passcrypt settings to variables in the ``Passcrypt``
+           class.
+        -  Added the ability to send passcrypt settings into the ``mnemonic`` &
+           ``amnemonic`` coroutines, which call the algorithm internally but 
+           previously could only use the default settings.
+        -  Some code cleanups & refactorings.
+        
+        
         
         
         Changes for version 0.19.2 
