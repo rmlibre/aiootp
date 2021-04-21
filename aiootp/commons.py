@@ -292,6 +292,8 @@ __extras = {
     "CORRUPT": "corrupt_connection",
     "DECRYPT": "decrypt",
     "DECRYPTION": "decryption",
+    "DH2": "diffie_hellman_2x",
+    "DH3": "diffie_hellman_3x",
     "DIGEST": "message_digest",
     "DIRECTORY": "directory",
     "ENCRYPT": "encrypt",
