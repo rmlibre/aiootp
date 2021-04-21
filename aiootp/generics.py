@@ -3774,6 +3774,8 @@ class Domains(metaclass=IterableClass):
 
     _encode_constant = encode_constant.__func__
 
+    DH2: bytes = _encode_constant(DH2)
+    DH3: bytes = _encode_constant(DH3)
     KDF: bytes = _encode_constant(KDF)
     SIV: bytes = _encode_constant(SIV)
     HMAC: bytes = _encode_constant(HMAC)
@@ -4490,14 +4492,6 @@ class BytesIO:
         pass
 
     @classmethod
-    def _pop(cls, name, obj):
-        """
-        An exception-free pop from a dictionary.
-        """
-        if obj.get(name):
-            return obj.pop(name)
-
-    @classmethod
     def _load_json(cls, obj):
         """
         Loads a string as json or copies makes a copy of an existing
@@ -4528,10 +4522,10 @@ class BytesIO:
         obj.result = b""
         obj.copy = cls._load_json(data)
         await asleep(0)
-        obj.hmac = cls._pop(cls._HMAC, obj.copy)
-        obj.salt = cls._pop(cls._SALT, obj.copy)
-        obj.siv = cls._pop(cls._SIV, obj.copy)
-        obj.ciphertext = cls._pop(cls._CIPHERTEXT, obj.copy)
+        obj.hmac = obj.copy.pop(cls._HMAC)
+        obj.salt = obj.copy.pop(cls._SALT)
+        obj.siv = obj.copy.pop(cls._SIV)
+        obj.ciphertext = obj.copy.pop(cls._CIPHERTEXT)
         await asleep(0)
         return obj
 
@@ -4544,10 +4538,10 @@ class BytesIO:
         obj = cls._make_stack()
         obj.result = b""
         obj.copy = cls._load_json(data)
-        obj.hmac = cls._pop(cls._HMAC, obj.copy)
-        obj.salt = cls._pop(cls._SALT, obj.copy)
-        obj.siv = cls._pop(cls._SIV, obj.copy)
-        obj.ciphertext = cls._pop(cls._CIPHERTEXT, obj.copy)
+        obj.hmac = obj.copy.pop(cls._HMAC)
+        obj.salt = obj.copy.pop(cls._SALT)
+        obj.siv = obj.copy.pop(cls._SIV)
+        obj.ciphertext = obj.copy.pop(cls._CIPHERTEXT)
         return obj
 
     @classmethod
