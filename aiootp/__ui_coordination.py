@@ -124,7 +124,13 @@ def xor(self, *, key, validator):
 
 
 @comprehension(chained=True)
-async def apasscrypt(self, *, kb=1024, cpu=3, hardness=1024):
+async def apasscrypt(
+    self,
+    *,
+    kb=Passcrypt._DEFAULT_KB,
+    cpu=Passcrypt._DEFAULT_CPU,
+    hardness=Passcrypt._DEFAULT_HARDNESS,
+):
     """
     Applies the `passcrypt` algorithm on a pseudo-randomly generated
     salt & each value that's yielded from the underlying `Comprende`
@@ -140,7 +146,13 @@ async def apasscrypt(self, *, kb=1024, cpu=3, hardness=1024):
 
 
 @comprehension(chained=True)
-def passcrypt(self, *, kb=1024, cpu=3, hardness=1024):
+def passcrypt(
+    self,
+    *,
+    kb=Passcrypt._DEFAULT_KB,
+    cpu=Passcrypt._DEFAULT_CPU,
+    hardness=Passcrypt._DEFAULT_HARDNESS,
+):
     """
     Applies the `passcrypt` algorithm on a pseudo-randomly generated
     salt & each value that's yielded from the underlying `Comprende`
@@ -159,7 +171,14 @@ def passcrypt(self, *, kb=1024, cpu=3, hardness=1024):
 
 
 @comprehension(chained=True)
-async def asum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
+async def asum_passcrypt(
+    self,
+    salt,
+    *,
+    kb=Passcrypt._DEFAULT_KB,
+    cpu=Passcrypt._DEFAULT_CPU,
+    hardness=Passcrypt._DEFAULT_HARDNESS,
+):
     """
     Cumulatively applies the ``apasscrypt`` algorithm to each value
     that's yielded from the underlying Comprende async generator with
@@ -175,7 +194,14 @@ async def asum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
 
 
 @comprehension(chained=True)
-def sum_passcrypt(self, salt, *, kb=1024, cpu=3, hardness=1024):
+def sum_passcrypt(
+    self,
+    salt,
+    *,
+    kb=Passcrypt._DEFAULT_KB,
+    cpu=Passcrypt._DEFAULT_CPU,
+    hardness=Passcrypt._DEFAULT_HARDNESS,
+):
     """
     Cumulatively applies the ``passcrypt`` algorithm to each value
     that's yielded from the underlying Comprende sync generator with
@@ -280,37 +306,6 @@ def insert_bytes_cipher_methods():
         Comprende.lazy_generators.add(name)
 
 
-def insert_stream_cipher_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = {
-        Chunky2048._ascii_encipher,
-        Chunky2048._ascii_decipher,
-        Chunky2048._aascii_encipher,
-        Chunky2048._aascii_decipher,
-    }
-    for addon in addons:
-        name = addon.__name__[1:]
-        setattr(Comprende, name, addon)
-        Comprende.lazy_generators.add(name)
-
-
-def insert_hashmap_cipher_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = {
-        Chunky2048._map_encipher,
-        Chunky2048._map_decipher,
-        Chunky2048._amap_encipher,
-        Chunky2048._amap_decipher,
-    }
-    for addon in addons:
-        setattr(Comprende, addon.__name__[1:], addon)
-        Comprende.lazy_generators.add(addon.__name__[1:])
-
-
 def insert_stateful_key_generator_objects():
     """
     Copies the addons over into the ``Chunky2048`` class.
@@ -387,8 +382,6 @@ insert_xor_methods()
 insert_passcrypt_methods()
 insert_random_sleep_methods()
 insert_bytes_cipher_methods()
-insert_stream_cipher_methods()
-insert_hashmap_cipher_methods()
 insert_stateful_key_generator_objects()
 add_protocols_to_collections()
 insert_padding_methods()
