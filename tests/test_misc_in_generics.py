@@ -38,8 +38,8 @@ def test_Enumerate():
 
 
 def test_binary_tree():
-    depth = randoms.random_range(1, 6)
-    width = randoms.random_range(1, 6)
+    depth = randoms.unique_range(1, 6)
+    width = randoms.unique_range(1, 6)
     leaf = bytes.fromhex(salt[:16])
     kwargs = dict(depth=depth, width=width, leaf=leaf)
 

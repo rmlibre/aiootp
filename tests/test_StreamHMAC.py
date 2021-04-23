@@ -23,7 +23,7 @@ __all__ = [
 def test_detection_of_ciphertext_modification():
     CT = CIPHERTEXT
     a_hex = lambda: randoms.choice("0123456789abcdef")
-    a_number = lambda: randoms.random_range(1, bits[128])
+    a_number = lambda: randoms.unique_range(1, bits[128])
 
     aciphertext = run(pad.abytes_encrypt(plaintext_bytes))
     act = [CT, aciphertext[CT][:1], aciphertext[SALT], aciphertext[HMAC]]
