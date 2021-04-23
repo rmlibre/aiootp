@@ -2,12 +2,12 @@
     "identity_key": "94a8ecc8e8c3b9490801579b8b68b360fa46927cfec5b9234ea0e946598e4121",
     "pgp_signed_identity_key": "-----BEGIN PGP MESSAGE-----\n\nowGbwMvMwCW2Ttv9l9wXfy7G025JDAl6jMssTRItUpOTLVItko2TLE0sDSwMDE3N\nLZMskswskozNDNISTcwsjcyT01KTTZMsjYxNUhMNUi1NzEwtLVJNDI0MO0pZGMS4\nGGTFFFkM/57xn5m4fk2Q1lxHmD2sTCBLGLg4BWAibl2MDM1XThx7yeM6XS7x9GtB\nc1fxzUuSLz1u2L3Qv3t3XNX0SWWMDD8ivJ/6bPfLVo9bxVqaafH1hYFw8sJP+1hn\n/p8VyrxeiREA\n=K9Lv\n-----END PGP MESSAGE-----\n",
     "name": "aiootp",
-    "date": 18738,
-    "version": "0.19.3",
-    "ephemeral_key": "8b9f5d7fe2676b91f65dff5ddb7dcf08b9d7f97d46c4369d5c65ec366006937c",
-    "signed_ephemeral_key": "961ef82837a1b299eb757861095348885012e53a7e868c31dbf5e4dbee8c3ce7e59ca842c54e65a004c6452cad2c9dd6bb8c5d0d7e4533f275637cb61f658902",
-    "checksums_txt_sha256": "11a5ad85d8ac9ad7bad6151547f1ba4000da7df22fcc8e6d697b1ac465667164",
-    "checksums_txt_sha512": "392c499e622eed761ad808d1cfef0298b2a225df223d31d30da4d7c336f5f15de126093237039ba7d2fd2ab5febae775988258ed4b873a9912fee30d2943a9cb",
-    "signed_sha256sum": "5930ef742adf883de4854b3f71fa62605f90ba87a96de2667335d093b87aeb0cfdbca0010ddc244443067347e671887838c7ba26716a1113aeeace1cda2fe202",
-    "signed_sha512sum": "8a284d8a8d3ddbb7ae760d4d6e8ea2cbb4f16c93c6d0a64e828ae06c2446c8c0efcbd39713d60e8f1e546b1eb9d4f6b221d81eee7935a0333d9fd2d2c4722e04"
+    "date": 18740,
+    "version": "0.19.4",
+    "ephemeral_key": "2a57f8cd93c603349ca6f8ef95a857a1cd4a4c7d2a46a2383e10adb646f9ff14",
+    "signed_ephemeral_key": "749267b99f0f4878ac55dfe917da3e53fab369a29e609164a8dd0bbc610480900673cc622987a3a24cb051d2b2c14d4806fe113299e6b4b503f78c815926c504",
+    "checksums_txt_sha256": "a91a1b3297979086e4984b95802cc8e091d3b1e4a66e358479316f5e509c5054",
+    "checksums_txt_sha512": "3ad01dc59fe3855613a848c8228695bc9d6036ef0e196b02978be0247e1c7f415d293cd247f2f70a3f5a19e1499ae7df5f9af246397d0aafd935c800c62a95b7",
+    "signed_sha256sum": "781eea6a4f2b31a9d8ba90181e5da34d5b29056e249786a4f9c0f6e65fb59f882252bc9f1698a21bcd482b3096ff6dae85cadaff053eaedde8089da1a6e3710c",
+    "signed_sha512sum": "e1890efdd91f8b4ac93e38afdc244d8a9b8c6cfc42e8e6ff29af0d1242c6a3b56651d1c7ce72041fa43bd229f274a139373cb1a28b4b491880ca1f4526cd5f0e"
 }

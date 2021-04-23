@@ -52,23 +52,33 @@ Table Of Contents
 -----------------
 
 - `Transparently Encrypted Databases`_
-- 
+
   a) `Ideal Initialization`_
+  
   b) `User Profiles`_
+  
   c) `Tags`_
+  
   d) `Metatags`_
+  
   e) `Basic Management`_
+  
   f) `Mirrors`_
+  
   g) `Namespaces`_
+  
   h) `Public Cryptographic Functions`_
 
      I. `Encrypt / Decrypt`_
+     
      II. `HMACs`_
+     
      III. `UUIDs`_
+     
      IV. `Passcrypt`_
 
 - `Other Tutorials`_
-- 
+
   a) (more coming soon)
 
 
@@ -77,7 +87,7 @@ Table Of Contents
 _`Transparently Encrypted Databases`
 ------------------------------------
 
-The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest, to dynamic objects in use.
+The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest to users as dynamic objects in use.
 
 
 _`Ideal Initialization`
@@ -1262,6 +1272,7 @@ Generators under-pin most procedures in the library, let's take a look ->
         "zfill",
     }
 
+
     #
 
 
@@ -1469,7 +1480,7 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 
 ``Known Issues``
-=================
+================
 
 -  The test suite for this software is under construction, & what tests
    have been published are currently inadequate to the needs of
@@ -1492,6 +1503,39 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 ``Changelog``
 =============
+
+
+Changes for version 0.19.4 
+========================== 
+
+
+Major Changes
+-------------
+
+-  Created a private ``EntropyDaemon`` class to run a thread in the 
+   background which feeds into & extracts entropy from some of the 
+   package's entropy pools. Also moved the separate private ``_cache`` 
+   entropy pools from the parameters to the random number generators. 
+   They're now a single private ``_pool`` shared global that's 
+   asynchronously & continuously updated by the background daemon thread. 
+-  Switched the ``random`` portion of function names in the ``randoms.py`` 
+   module to read ``unique`` instead. This was done to the functions which 
+   are actually pseudo-random. This should give users a better idea of 
+   which functions do what. The exception is that the ``random_sleep`` & 
+   ``arandom_sleep`` functions have kept their names even though they 
+   sleep a pseudo-randomly variable amount of time. Their names may 
+   cause more confusion if they were either ``(a)unique_sleep`` or 
+   ``(a)urandom_sleep``. Because they don't use ``os.urandom`` & what 
+   is a ``unique_sleep``? When / if a better name is found these 
+   function names will be updated as well. 
+
+
+Minor Changes
+-------------
+
+-  Various docstring / documentation fixes & refactorings.
+
+
 
 
 Changes for version 0.19.3 

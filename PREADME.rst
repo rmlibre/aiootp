@@ -52,23 +52,33 @@ Table Of Contents
 -----------------
 
 - `Transparently Encrypted Databases`_
-- 
+
   a) `Ideal Initialization`_
+  
   b) `User Profiles`_
+  
   c) `Tags`_
+  
   d) `Metatags`_
+  
   e) `Basic Management`_
+  
   f) `Mirrors`_
+  
   g) `Namespaces`_
+  
   h) `Public Cryptographic Functions`_
 
      I. `Encrypt / Decrypt`_
+     
      II. `HMACs`_
+     
      III. `UUIDs`_
+     
      IV. `Passcrypt`_
 
 - `Other Tutorials`_
-- 
+
   a) (more coming soon)
 
 
@@ -77,7 +87,7 @@ Table Of Contents
 _`Transparently Encrypted Databases`
 ------------------------------------
 
-The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest, to dynamic objects in use.
+The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest to users as dynamic objects in use.
 
 
 _`Ideal Initialization`
@@ -1261,6 +1271,7 @@ Generators under-pin most procedures in the library, let's take a look ->
         "xor",
         "zfill",
     }
+
 
     #
 

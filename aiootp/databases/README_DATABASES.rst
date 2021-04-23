@@ -24,35 +24,55 @@ Table Of Contents
 -----------------
 
 - `Database`_
--
+
   a) `Ideal Initialization`_
+  
   b) `User Profiles`_
+  
   c) `Tags`_
+  
   d) `Metatags`_
+  
   e) `Basic Management`_
+  
   f) `Mirrors`_
+  
   g) `Namespaces`_
+  
   h) `Public Cryptographic Functions`_
 
      I. `Encrypt / Decrypt`_
+     
      II. `HMACs`_
+     
      III. `UUIDs`_
+     
      IV. `Passcrypt`_
 
 - `AsyncDatabase`_
--
-  a) `(async) Ideal Initialization`_
-  b) `(async) User Profiles`_
-  c) `(async) Tags`_
-  d) `(async) Metatags`_
-  e) `(async) Basic Management`_
-  f) `(async) Mirrors`_
-  g) `(async) Namespaces`_
-  h) `(async) Public Cryptographic Functions`_
 
+  a) `(async) Ideal Initialization`_
+  
+  b) `(async) User Profiles`_
+  
+  c) `(async) Tags`_
+  
+  d) `(async) Metatags`_
+  
+  e) `(async) Basic Management`_
+  
+  f) `(async) Mirrors`_
+  
+  g) `(async) Namespaces`_
+  
+  h) `(async) Public Cryptographic Functions`_
+  
      I. `(async) Encrypt / Decrypt`_
+     
      II. `(async) HMACs`_
+     
      III. `(async) UUIDs`_
+     
      IV. `(async) Passcrypt`_
 
 
@@ -61,7 +81,7 @@ Table Of Contents
 _`Database`
 -----------
 
-The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest, to dynamic objects in use.
+The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest to users as dynamic objects in use.
 
 
 _`Ideal Initialization`

@@ -1,5 +1,5 @@
 ``Known Issues``
-=================
+================
 
 -  The test suite for this software is under construction, & what tests
    have been published are currently inadequate to the needs of
@@ -22,6 +22,39 @@
 
 ``Changelog``
 =============
+
+
+Changes for version 0.19.4 
+========================== 
+
+
+Major Changes
+-------------
+
+-  Created a private ``EntropyDaemon`` class to run a thread in the 
+   background which feeds into & extracts entropy from some of the 
+   package's entropy pools. Also moved the separate private ``_cache`` 
+   entropy pools from the parameters to the random number generators. 
+   They're now a single private ``_pool`` shared global that's 
+   asynchronously & continuously updated by the background daemon thread. 
+-  Switched the ``random`` portion of function names in the ``randoms.py`` 
+   module to read ``unique`` instead. This was done to the functions which 
+   are actually pseudo-random. This should give users a better idea of 
+   which functions do what. The exception is that the ``random_sleep`` & 
+   ``arandom_sleep`` functions have kept their names even though they 
+   sleep a pseudo-randomly variable amount of time. Their names may 
+   cause more confusion if they were either ``(a)unique_sleep`` or 
+   ``(a)urandom_sleep``. Because they don't use ``os.urandom`` & what 
+   is a ``unique_sleep``? When / if a better name is found these 
+   function names will be updated as well. 
+
+
+Minor Changes
+-------------
+
+-  Various docstring / documentation fixes & refactorings.
+
+
 
 
 Changes for version 0.19.3 
