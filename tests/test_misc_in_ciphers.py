@@ -21,34 +21,18 @@ __all__ = [
 from init_tests import *
 
 
-ainvalid_size_datastream = adata(plaintext_string, size=257).aascii_to_int()
-invalid_size_datastream = data(plaintext_string, size=257).ascii_to_int()
+ainvalid_size_datastream = adata(plaintext_bytes, size=257)
+invalid_size_datastream = data(plaintext_bytes, size=257)
 
 
 def test_datastream_limits():
-    try:
-        keystream = akeys(key, salt=salt)
-        validator = StreamHMAC(key, salt=salt).for_encryption()
-        run(pad.axor(ainvalid_size_datastream, key=keystream, validator=validator)[100]())
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("A cipher block exceeded 256 bytes", e)
-
-    try:
-        keystream = keys(key, salt=salt)
-        validator = StreamHMAC(key, salt=salt).for_encryption()
-        pad.xor(invalid_size_datastream, key=keystream, validator=validator)[100]()
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("A cipher block exceeded 256 bytes", e)
-
+    akey_bundle = run(KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).async_mode())
+    key_bundle = KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).sync_mode()
     try:
         run(ainvalid_size_datastream.areset())
-        keystream = abytes_keys(key, salt=salt)
-        validator = StreamHMAC(key, salt=salt).for_encryption()
-        run(pad.abytes_xor(ainvalid_size_datastream, key=keystream, validator=validator)[100]())
+        keystream = abytes_keys.root(akey_bundle)
+        validator = StreamHMAC(akey_bundle).for_encryption()
+        run(ciphers._abytes_xor(ainvalid_size_datastream, key=akey_bundle._keystream, validator=validator)[100]())
     except ValueError as e:
         pass
     else:
@@ -56,9 +40,9 @@ def test_datastream_limits():
 
     try:
         invalid_size_datastream.reset()
-        keystream = bytes_keys(key, salt=salt)
-        validator = StreamHMAC(key, salt=salt).for_encryption()
-        pad.bytes_xor(invalid_size_datastream, key=keystream, validator=validator)[100]()
+        keystream = bytes_keys(key_bundle)
+        validator = StreamHMAC(key_bundle).for_encryption()
+        ciphers._bytes_xor(invalid_size_datastream, key=key_bundle._keystream, validator=validator)[100]()
     except ValueError as e:
         pass
     else:
@@ -67,112 +51,69 @@ def test_datastream_limits():
 
 def test_keys_limits():
     try:
-        run(akeys(key=None)[100]())
-    except ValueError as e:
+        key_bundle = KeyAADBundle(key=None)
+        assert not key_bundle.key
+    except AssertionError as e:
         pass
     else:
-        raise AssertionError("A falsey key was used", e)
+        raise AssertionError("A falsey key was not overridden", e)
 
     try:
-        keys(key=None)[100]()
-    except ValueError as e:
+        KeyAADBundle(key=csprng().hex())
+    except TypeError as e:
         pass
     else:
-        raise AssertionError("A falsey key was used", e)
-
-    try:
-        run(abytes_keys(key=None)[100]())
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("A falsey key was used", e)
-
-    try:
-        bytes_keys(key=None)[100]()
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("A falsey key was used", e)
+        raise AssertionError("Non-bytes key was allowed", e)
 
 
 def test_key_limits():
     try:
-        run(pad.apadding_key(key=None, salt=salt))
-    except ValueError as e:
+        KeyAADBundle(salt=csprng().hex())
+    except TypeError as e:
         pass
     else:
-        raise AssertionError("A falsey key was used", e)
+        raise AssertionError("Non-bytes salt was allowed", e)
 
     try:
-        pad.padding_key(key=None, salt=salt)
+        KeyAADBundle(salt=csprng())
     except ValueError as e:
         pass
     else:
-        raise AssertionError("A falsey key was used", e)
-
-    try:
-        run(pad.apadding_key(salt=None))
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("A falsey salt was used", e)
-
-    try:
-        pad.padding_key(salt=None)
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("A falsey salt was used", e)
-
-    try:
-        run(pad.apadding_key(salt=csprng()))
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("Salt isn't a 32 byte hex string", e)
-
-    try:
-        pad.padding_key(salt=csprng())
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("Salt isn't a 32 byte hex string", e)
-
-    try:
-        run(pad.apadding_key(salt=csprbg()))
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("Salt isn't a 32 byte hex string", e)
-
-    try:
-        pad.padding_key(salt=csprbg())
-    except ValueError as e:
-        pass
-    else:
-        raise AssertionError("Salt isn't a 32 byte hex string", e)
+        raise AssertionError("Invalid length salt was allowed", e)
 
 
 def test_missing_Passcrypt_lines():
     pcrypt = Passcrypt(**passcrypt_settings)
-    pcrypt.new(key, salt)
     pcrypt._passcrypt(key, salt, **passcrypt_settings)
-    run(pcrypt.anew(key, salt))
     run(pcrypt._apasscrypt(key, salt, **passcrypt_settings))
 
     try:
-        run(pcrypt.anew(None, salt))
+        run(pcrypt.anew(b"", salt))
     except ValueError as e:
         pass
     else:
-        raise AssertionError("Empty password was allowed.", e)
+        raise AssertionError("Empty passphrase was allowed.", e)
 
     try:
-        pcrypt.new(key, None)
+        run(pcrypt.anew(None, salt))
+    except TypeError as e:
+        pass
+    else:
+        raise AssertionError("Non-bytes passphrase was allowed.", e)
+
+    try:
+        pcrypt.new(key, b"")
     except ValueError as e:
         pass
     else:
         raise AssertionError("Empty salt was allowed.", e)
+
+    try:
+        pcrypt.new(key, None)
+    except TypeError as e:
+        pass
+    else:
+        raise AssertionError("Non-bytes salt was allowed.", e)
 
     try:
         run(pcrypt.anew(key, salt, kb=255, hardness=256))
