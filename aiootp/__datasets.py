@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -26,6 +26,7 @@ __doc__ = (
 
 class Tables:
     """
+    Conversion tables that are made available throughout the package.
     """
 
     __slots__ = []
