@@ -9,10 +9,13 @@
 #
 
 
-__version__ = "0.19.4"
+__version__ = "0.20.0"
 
 
 __license__ = "AGPLv3"
+
+
+__author__ = "rmlibre@riseup.net"
 
 
 __doc__ = (
@@ -21,58 +24,26 @@ __doc__ = (
 )
 
 
-
-class DebugControl:
-    """
-    Enabling debugging reveals omitted values in object ``repr``s &
-    turns on asyncio's debugging.
-    """
-    _switches = []
-    _DEBUG_MODE = False
-
-    @classmethod
-    def is_debugging(cls):
-        return cls._DEBUG_MODE
-
-    @classmethod
-    def enable_debugging(cls):
-        """
-        WARNING: This will also reveal potentially sensitive values,
-        such as cryptographic keys, in object repr's that are omitted by
-        default.
-        """
-        cls._DEBUG_MODE = True
-        for toggle in cls._switches:
-            toggle()
-
-    @classmethod
-    def disable_debugging(cls):
-        cls._DEBUG_MODE = False
-        for toggle in cls._switches:
-            toggle()
-
-
+from .commons import *
 from .paths import *
 from .asynchs  import *
-from .commons import *
 from .debuggers import *
 from .generics import *
 from .randoms import *
-from .keygens import *
 from .ciphers import *
+from .keygens import *
 from .__ui_coordination import *
 
 
 __all__ = [
+    *commons.__main_exports__,
     *paths.__main_exports__,
     *asynchs.__main_exports__,
-    *commons.__main_exports__,
     *debuggers.__main_exports__,
     *generics.__main_exports__,
     *randoms.__main_exports__,
-    *keygens.__main_exports__,
     *ciphers.__main_exports__,
-    *__ui_coordination.__all__,
+    *keygens.__main_exports__,
 ]
 
 
