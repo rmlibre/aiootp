@@ -86,7 +86,7 @@ def test_X25519(database, async_database):
     # Testing sync protocols
     # 2DH
     peer_key = X25519().generate()
-    with secret_key_b.protocols.dh2_client() as client:
+    with secret_key_b.dh2_client() as client:
         server = peer_key.dh2_server(peer_ephemeral_key=client())
         client(server.exhaust())
 
@@ -105,7 +105,7 @@ def test_X25519(database, async_database):
 
         # 2DH
         peer_key = await X25519().agenerate()
-        async with secret_key_b.protocols.adh2_client() as client:
+        async with secret_key_b.adh2_client() as client:
             server = peer_key.adh2_server(peer_ephemeral_key=await client())
             await client(await server.aexhaust())
 
