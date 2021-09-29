@@ -12,6 +12,7 @@
 import sys
 import json
 import pytest
+import builtins
 from pathlib import Path
 
 
@@ -22,25 +23,37 @@ sys.path.append(PACKAGE_PATH)
 import aiootp
 from aiootp import *
 from commons import *
+from asynchs import asleep, run
+from aiootp import _containers
+
+
+g = globals()
+builtin_names = dir(builtins)
+added_generators = []
+for name, value in gentools.items():
+    if name in builtin_names:
+        continue
+    g[name] = value
+    added_generators.append(name)
 
 
 key = csprng()
-salt = generate_salt()
-pid = sha_256(key, salt)
-pad = Chunky2048(key)
+salt = generate_salt(size=SALT_BYTES)
+aad = sha3__256(key, salt, hex=False)
+akey_bundle = run(KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).async_mode())
+key_bundle = KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).sync_mode()
+cipher = Chunky2048(key)
 
-passcrypt_passwords = []
-apasscrypt_passwords = []
+passcrypt_passphrases = []
+apasscrypt_passphrases = []
 
-password_0 = csprng()
-password_1 = randoms.urandom(256)
-password_2 = dict(some_data=list(password_1))
-passwords = [password_0, password_1, password_2]
+passphrase_0 = csprng()
+passphrase_1 = randoms.urandom_bytes(32)
+passphrases = [passphrase_0, passphrase_1]
 
 salt_0 = csprng()
-salt_1 = randoms.urandom(256)
-salt_2 = dict(some_data=list(password_1))
-salts = [salt_0, salt_1, salt_2]
+salt_1 = randoms.urandom_bytes(32)
+salts = [salt_0, salt_1]
 
 passcrypt_settings = dict(kb=256, cpu=2, hardness=256)
 
@@ -50,13 +63,13 @@ metatag = "clients"
 ametatag = "a" + metatag
 
 depth = 100
-username = "test suite"
-password = "terrible low entropy password"
-PROFILE = dict(username=username, password=password, salt=salt)
+username = b"test suite"
+passphrase = b"terrible low entropy passphrase"
+PROFILE = dict(username=username, passphrase=passphrase, salt=salt)
 LOW_PASSCRYPT_SETTINGS = dict(kb=256, cpu=2, hardness=256)
 PROFILE_AND_SETTINGS = {**PROFILE, **LOW_PASSCRYPT_SETTINGS}
 
-plaintext_bytes = randoms.urandom(320)
+plaintext_bytes = randoms.urandom_bytes(512)
 plaintext_string = 32 * "testing..."
 # Testing json encrypt of these dictionaries may fail because the order
 # of their elements may change
@@ -78,8 +91,8 @@ atest_data = {
 def database():
     print("setup".center(15, "-"))
 
-    db = Database(key=key, password_depth=depth)
-    db.save()
+    db = Database(key=key, depth=depth, preload=True)
+    db.save_database()
     yield db
 
     print("teardown".center(18, "-"))
@@ -90,12 +103,12 @@ def database():
 def async_database():
     print("setup".center(15, "-"))
 
-    db = run(AsyncDatabase(key=key, password_depth=depth))
+    db = run(AsyncDatabase(key=key, depth=depth, preload=True))
     yield db
 
     print("teardown".center(18, "-"))
 
-    run(db.aload(manifest=True, silent=True))
+    run(db.aload_database(manifest=True, silent=True))
     run(db.adelete_database())
 
 
@@ -106,15 +119,21 @@ __all__ = [
     "Path",
     "PACKAGE_PATH",
     "aiootp",
+    "_containers",
+    "asleep",
+    "run",
     *aiootp.__all__,
     *commons.__all__,
+    *added_generators,
+    *Chunky2048._CONSTANTS.keys(),
     "key",
     "salt",
-    "pid",
-    "pad",
-    "passcrypt_passwords",
-    "apasscrypt_passwords",
-    "passwords",
+    "aad",
+    "key_bundle",
+    "cipher",
+    "passcrypt_passphrases",
+    "apasscrypt_passphrases",
+    "passphrases",
     "salts",
     "passcrypt_settings",
     "tag",
@@ -123,7 +142,7 @@ __all__ = [
     "ametatag",
     "depth",
     "username",
-    "password",
+    "passphrase",
     "PROFILE",
     "LOW_PASSCRYPT_SETTINGS",
     "PROFILE_AND_SETTINGS",
