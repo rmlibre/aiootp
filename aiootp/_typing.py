@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -13,8 +13,8 @@ __all__ = ["Typing"]
 
 
 __doc__ = (
-    "Describes the package's data structures & functionality by "
-    "explicitly declaring its type hinting types."
+    "Describes the package's data structures & functionality by explici"
+    "tly declaring their type-hinting types."
 )
 
 
@@ -55,7 +55,9 @@ Base64URLSafe = typing.Union[str, bytes]
 
 
 Path = pathlib.Path
+PathStr = typing.Union[Path, str]
 OptionalPath = typing.Optional[Path]
+OptionalPathStr = typing.Optional[PathStr]
 
 
 Number = typing.Union[int, float, complex]
@@ -120,6 +122,7 @@ AsyncOrSyncKeystream = typing.Union[AsyncKeystream, AsyncKeystream]
 
 def _transpose_this_modules_types(class_dict: typing.Dict):
     """
+    Inserts the types from this module's global namespace.
     """
     this_modules_types = {
         name: value for name, value in globals().items()
@@ -130,6 +133,7 @@ def _transpose_this_modules_types(class_dict: typing.Dict):
 
 def _transpose_types_modules_types(class_dict: typing.Dict):
     """
+    Inserts the types from the standard library's `types` module.
     """
     types_modules_types = {
         name: getattr(types, name) for name in types.__all__
@@ -140,6 +144,7 @@ def _transpose_types_modules_types(class_dict: typing.Dict):
 
 def _transpose_typing_modules_types(class_dict: typing.Dict):
     """
+    Inserts the types from the standard library's `typing` module.
     """
     typing_types = {
         name: value for name, value in typing.__dict__.items()
@@ -153,7 +158,10 @@ def _transpose_typing_modules_types(class_dict: typing.Dict):
 
 class Typing:
     """
+    A container for type-hinting variables.
     """
+
+    __slots__ = []
 
     _transpose_this_modules_types(class_dict=vars())
     _transpose_types_modules_types(class_dict=vars())
@@ -168,15 +176,19 @@ class Typing:
     @classmethod
     def _test_type_name(cls, name: str):
         """
+        Assures new type additions to the class are unique & title or
+        capital-cased.
         """
         attribute_already_defined = name in cls.__dict__
         is_mixed_case = "_" in name
         is_capitalized = name[0].isupper()
 
-        if attribute_already_defined:
-            raise _Issue.cant_overwrite_an_existing_attribute(name)
+        if not name.isidentifier():
+            raise _Issue.invalid_value(f"variable name {repr(name)}")
+        elif attribute_already_defined:
+            raise _Issue.cant_overwrite_existing_attribute(repr(name))
         elif is_mixed_case or not is_capitalized:
-            raise _Issue.type_name_isnt_cased_correctly(name)
+            raise _Issue.value_must(repr(name), "be title or capital-cased")
 
     @classmethod
     def add_type(cls, name: str, new_type: typing.Any):
