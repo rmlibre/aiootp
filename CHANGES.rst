@@ -1,35 +1,158 @@
-``Known Issues``
-================
-
--  The test suite for this software is under construction, & what tests
-   have been published are currently inadequate to the needs of
-   cryptography software.
--  None of the hash functions in the public facing part of the library
-   are to spec. This is because all inputs to the hash functions from
-   the generics.py module are put into a tuple & stringified before
-   hashing for user-friendliness, speed, readibility & the power of 
-   being to hash any python object that has a repr. This behaviour is 
-   purposeful, but can still be an issue.
--  This package is currently in beta testing & active development. 
-   Contributions are welcome. Send us a message if you spot a bug or 
-   security vulnerability:
-   
-   -  < gonzo.development@protonmail.ch >
-   -  < 31FD CC4F 9961 AFAC 522A 9D41 AE2B 47FA 1EF4 4F0A >
+_`Changelog` ...................................... `Table Of Contents`_
+========================================================================
 
 
-
-
-``Changelog``
-=============
-
-
-Changes for version 0.19.4 
-========================== 
+Changes for version 0.20.0 (Backwards incompatible updates)
+-----------------------------------------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
+
+-  The ``(a)json_(en/de)crypt`` & ``(a)bytes_(en/de)crypt`` functions &
+   methods now only expect to work with ``bytes`` type ciphertext. And,
+   the low-level cipher generators expect iterables of bytes where they
+   used to expect iterables of integers.
+-  The ``pid`` keyword-only argument throughout the package was changed
+   to ``aad`` to more clearly communicate its purpose as authenticated
+   additional data.
+-  The ``key``, ``salt`` & ``aad`` values throughout the package are now
+   expected to be ``bytes`` type values.
+-  The ``key`` must now be at least 32-bytes for use within the ``Chunky2048``
+   cipher & its interfaces.
+-  The ``salt``, for use in the ``Chunky2048`` cipher & its interfaces, 
+   was decreased from needing to be 32-bytes to 24-bytes.
+-  The ``siv`` for use in the ``Chunky2048`` cipher & its interfaces was
+   from needing to be 16-bytes to 24-bytes.
+-  The new ``KeyAADBundle`` class was created as the primary interface
+   for consuming ``key``, ``salt``, ``pid`` & ``siv`` values. This class'
+   objects are the only ones that are used to pass around these values
+   in low-level ``Chunky2048`` cipher functionalities. The higher-level
+   cipher functions are the only public interfaces that still receive
+   these ``key``, ``salt``, & ``pid`` values.
+-  The ``KeyAADBundle`` now manages the new initial key derivation of the
+   ``Chunky2048`` cipher. This new algorithm is much more efficient,
+   utilizing the output of the keystream's first priming call instead of
+   throwing it away, removing the need for several other previously used
+   hashing calls.
+-  The ``bytes_keys`` & ``abytes_keys`` keystream generator algorithms
+   were improved & made more efficient. They also now only receive ``bytes``
+   type coroutine values or ``None``.
+-  The ``StreamHMAC`` algorithms were improved & made more efficient.
+-  The ``Chunky2048`` class now creates instance's that initialize, & who's
+   methods are callable, much more efficiently by reducing its previously
+   dynamic structure. Its now reasonable to use these instances in code
+   that has strict performance requirements.
+-  The ``Keys`` & ``AsyncKeys`` classes were trimmed of all instance
+   behaviour. They are now strictly namespaces which contain static or
+   class methods.
+-  All instance's of the word `password` throughout the package have been
+   replaced with the word `passphrase`. The ``Passcrypt`` class now only
+   accepts ``bytes`` type ``passphrase`` & ``salt`` values. The returned
+   hashes are also now always ``bytes``.
+-  The ``Padding`` & ``BytesIO`` classes' functionalities were made more
+   efficient & cleaned up their implementations.
+-  New ``PackageSigner`` & ``PackageVerifier`` classes were added to the
+   ``keygens.py`` module to provide an intuituve API for users to sign their
+   own packages. This package now also uses these classes to sign itself.
+-  The new ``gentools.py`` module was created to organize the generator
+   utilities that were previously scattered throughout the package's
+   top-level namespaces.
+-  The new ``_exceptions.py`` module was created to help organize the
+   exceptions raised throughout the package, improving the readability
+   & maintainability of the package.
+-  The new ``_typing.py`` module was added to assist in the long process
+   of adding functional type-hinting throughout the package. For now,
+   the type hints that have been added primarily function as documentation.
+-  A new ``Slots`` base class was added to the ``commons.py`` module to
+   simplify the creation of more memory efficient & performant container
+   classes. The new ``_containers.py`` module was made for such classes
+   for use throughout the package. And, most classes throughout the
+   package were given ``__slots__`` attributes.
+-  A new ``OpenNamespace`` class was added which is a subclass of ``Namespace``
+   with the only difference being that instances do not omit attributes
+   from their repr's.
+-  The new ``(a)bytes_are_equal`` functions, which are pointers to
+   ``hmac.compare_digest`` from the standard library, have replaced the
+   ``(a)time_safe_equality`` functions.
+-  The ``(a)sha_256(_hmac)`` & ``(a)sha_512(_hmac)`` functions have had
+   their names changed to ``(a)sha3__256(_hmac)`` & ``(a)sha3__256(_hmac)``.
+   This was done to communicate that they are actually SHA3 functions,
+   but the double underscore is to keep them differentiable from the
+   standard library's ``hashlib`` objects. They can now also return
+   ``bytes`` instead of hex strings if their ``hex`` keyword argument is truthy.
+-  The base functionality of the ``Comprende`` class was refactored out into a
+   ``BaseComprende`` class. The chainable data processor generator methods
+   remain in the ``Comprende`` class. Their endpoint methods (such as ``(a)list``
+   & ``(a)join``) have also been changed so they don't cache results by default.
+-  The ``Passcrypt`` class' ``kb`` & ``hardness`` can now be set to values
+   independently from one another. The algorithm runs on the new
+   ``(a)bytes_keys`` coroutines, & a slightly more effective cache building
+   procedure.
+-  The databases classes now don't preload their values by default. And,
+   various methods which work with tags & metatags have been given a
+   ``cache`` keyword-only argument to toggle on/off the control of using
+   the cache for each operation.
+-  New method additions/changes to the database classes:
+
+   -  ``(a)rollback_tag``, ``(a)clear_cache``, & a ``filenames`` property.
+   -  ``(a)hmac`` was changed to ``(a)make_hmac``, & now returns ``bytes`` hashes.
+   -  ``(a)save`` was changed to ``(a)save_database``.
+   -  ``(a)query`` was changed to ``(a)query_tag``.
+   -  ``(a)set`` was changed to ``(a)set_tag``.
+   -  ``(a)pop`` was changed to ``(a)pop_tag``.
+   -  The ``tags``, ``metatags`` & ``filenames`` properties now return sets
+      instead of lists.
+
+-  The ``Ropake`` class has been removed from the package pending changes to
+   the protocol & its implementation.
+-  The ``(a)generate_salt`` function now returns ``bytes`` type values,
+   & takes a ``size`` keyword-only argument, with no default, that determines
+   the number of bytes returned between [8, 64].
+-  The ``(a)random_512`` & ``(a)random_256`` public functions can now cause
+   their underlying random number generators to fill their entropy pools
+   when either the ``rounds`` or ``refresh`` keyword arguments are specified.
+-  The following variables were removed from the package:
+   
+   -  ``(a)keys``, ``(a)passcrypt``, ``(a)seeder``, ``(a)time_safe_equality``,
+      ``Datastream``, ``bits``, ``(a)seedrange``, ``(a)build_tree``,
+      ``(a)customize_parameters``, ``convert_class_method_to_member``,
+      ``convert_static_method_to_member``, ``(a)xor``, ``(a)padding_key``,
+      ``(a)prime_table``, ``(a)unique_range_gen``, ``(a)non_0_digits``,
+      ``(a)bytes_digits``, ``(a)digits``, ``(a)permute``, ``(a)shuffle``,
+      ``(a)unshuffle``, ``(a)create_namespace``, ``(a)time_safe_equality``,
+      (``(a)depad_plaintext``, ``(a)pad_plaintext`` & their generator forms.
+      Only the non-generator forms remain in the ``Padding`` class), (The
+      ``(a)passcrypt``, ``(a)uuids``, ``(a)into_namespace`` methods from the
+      database classes), (The ``(a)csprbg`` functions were removed & instead
+      the ``(a)csprng`` functions produce ``bytes`` type values.)
+   
+-  Thorough & deep refactorings of modules, classes & methods. Many methods
+   & functions were made private, cleaning up the APIs of the package,
+   focusing on bringing the highest-level functionalities to top level
+   namespaces accessible to users. Some purely private functionalities
+   were entirely moved to private namespaces not readily accessible to
+   users.
+-  Most of the constants which determine the functionalities throughout
+   the package were refactored out into the ``commons.py``. This allows
+   for easy changes to protocols & data formats.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Many documentation improvements, fixes, trimmings & updates.
+-  Added a ``WeakEntropy`` class to the ``randoms.py`` module.
+
+
+
+
+Changes for version 0.19.4 
+-------------------------- 
+
+
+Major Changes
+^^^^^^^^^^^^^
 
 -  Created a private ``EntropyDaemon`` class to run a thread in the 
    background which feeds into & extracts entropy from some of the 
@@ -50,7 +173,7 @@ Major Changes
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Various docstring / documentation fixes & refactorings.
 
@@ -58,11 +181,11 @@ Minor Changes
 
 
 Changes for version 0.19.3 
-========================== 
+-------------------------- 
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Removed ``ascii_encipher``, ``ascii_decipher``, ``aascii_encipher`` &
    ``aascii_decipher`` generators from the ``Chunky2048`` & ``Comprende``
@@ -92,7 +215,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Fixes to docstrings & tutorials. Rewrite & reorganization of the 
    ``PREADME.rst`` & ``README.rst``. More updates to the readme's are still
@@ -109,16 +232,16 @@ Minor Changes
 
 
 Changes for version 0.19.2 
-========================== 
+-------------------------- 
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Made the output lengths of the ``Padding`` class' generator functions 
    uniform. When the footer padding on a stream of plaintext needs to 
    exceed the 256-byte blocksize (i.e. when the last unpadded plaintext 
-   block's length ``L`` is ``232 > L < 256``), then another full block of
+   block's length ``L`` is ``232 < L < 256``), then another full block of
    padding is produced. The generators now yield 256-byte blocks 
    consistently (except during depadding when the last block of plaintext
    may be smaller than the blocksize), instead of sometimes producing a
@@ -128,11 +251,11 @@ Minor Changes
 
 
 Changes for version 0.19.1 
-========================== 
+-------------------------- 
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Fixed a bug where database classes were evaluating as falsey when they
    didn't have any tags saved in them. They should be considered truthy 
@@ -162,11 +285,11 @@ Minor Changes
 
 
 Changes for version 0.19.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Security Upgrade: The package's cipher was changed to an online, 
    authenticated scheme with salt reuse / misuse resistance. This was 
@@ -301,7 +424,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Many fixes of docstrings, typos & tutorials. 
 -  Many refactorings: name changes, extracted classes / functions, 
@@ -340,11 +463,11 @@ Minor Changes
 
 
 Changes for version 0.18.1 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Security Patch: Deprecated & replaced an internal kdf for saving 
    database tags due to a vulnerability. If an adversary can get a user 
@@ -381,7 +504,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Fixes of various typos, docstrings & tutorials.
 -  Various cleanups, refactorings & efficiency improvements.
@@ -441,11 +564,11 @@ Minor Changes
 
 
 Changes for version 0.18.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Security Patch: Rewrote the HMAC-like creation & authentication 
    process for all of the package's ciphers. Now, the ``*_encipher``
@@ -518,7 +641,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Added a logo image to the package.
 -  Separated the FAQ section from ``PREADME.rst``.
@@ -557,11 +680,11 @@ Minor Changes
 
 
 Changes for version 0.17.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Security Patch: The HMAC verifiers on ciphertexts did not include 
    the ``salt`` or ``pid`` values when deriving the HMAC. This 
@@ -587,7 +710,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Various fixes to typos, docstrings & tutorials.
 -  New tutorials & docs added.
@@ -617,11 +740,11 @@ Minor Changes
 
 
 Changes for version 0.16.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  All ``Database`` & ``AsyncDatabase`` filenames have been converted to
    base36 to aid in making the manifest files & the databases as a whole 
@@ -654,7 +777,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Many fixes & additions to docstrings & tutorials.
 -  Massive refactorings, cleanups & typo fixes across the library, 
@@ -680,11 +803,11 @@ Minor Changes
 
 
 Changes for version 0.15.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Security Patch: The previous update left the default salt stored by
    the ``Ropake`` class on the user filesystem as an empty string  for
@@ -725,7 +848,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Added ``this_second`` function to ``asynchs`` module for integer time.
 -  Added ``apadding_key``, ``padding_key``, ``aplaintext_stream`` & 
@@ -750,11 +873,11 @@ Minor Changes
 
 
 Changes for version 0.14.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Security patch: The ``apad_bytes``, ``pad_bytes``, ``adepad_bytes`` &
    ``depad_bytes`` functions were changed internally to execute in a
@@ -784,7 +907,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Fixed various typos, docstrings & tutorials that have no kept up
    with the pace of changes.
@@ -803,11 +926,11 @@ Minor Changes
 
 
 Changes for version 0.13.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Security Patch: ``xor`` & ``axor`` functions that define the 
    one-time-pad cipher had a vulnerability fixed that can leak <1-bit of
@@ -864,7 +987,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Various refactorings across the library. 
 -  Fixed various typos, bugs & inaccurate docstrings throughout the library.
@@ -912,11 +1035,11 @@ Minor Changes
 
 
 Changes for version 0.12.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  The OPAKE protocol was renamed to ROPAKE, an acronym for Ratcheting 
    Opaque Password Authenticated Key Exchange. This change was necessary 
@@ -956,7 +1079,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Various refactorings & documentation additions / modifications throughout 
    the library. 
@@ -974,11 +1097,11 @@ Minor Changes
 
 
 Changes for version 0.11.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  The Opake protocol was made greatly more efficient. This was done by 
    replacing the diffie-hellman verifiers with a hash & xor commit & reveal
@@ -995,7 +1118,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Heavy refactorings & documentation additions / modifications of the 
    ``Opake`` class. Removed the ``Opake.ainit_database`` & ``Opake.init_database``
@@ -1012,11 +1135,11 @@ Minor Changes
 
 
 Changes for version 0.10.1 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Added ``Processes`` & ``Threads`` classes to ``asynchs.py`` which abstract 
    spawning & getting return values from async & sync functions intended to 
@@ -1033,7 +1156,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Heavy refactorings of the ``Opake`` class. 
 -  Various refactorings & cleanups around the package. 
@@ -1049,11 +1172,11 @@ Minor Changes
 
 
 Changes for version 0.10.0 
-========================== 
+-------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Added a new oblivious, one-message, password authenticated key exchange 
    protocol class in ``aiootp.ciphers.Opake``. It is a first attempt at the 
@@ -1080,7 +1203,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Various refactorings & cleanups around the package. 
 -  Added ``Comprende`` class feature to return the values from even the 
@@ -1100,17 +1223,17 @@ Minor Changes
 
 
 Changes for version 0.9.3 
-========================= 
+------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Speed & efficiency improvements in the ``Comprende`` class & ``azip``. 
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Various refactorings & code cleanups.
 -  Added ``apop`` & ``pop`` ``Comprende`` generators to the library.
@@ -1125,11 +1248,11 @@ Minor Changes
 
 
 Changes for version 0.9.2 
-========================= 
+------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Added ``passcrypt`` & ``apasscrypt`` instance methods to ``OneTimePad``,
    ``Keys``, & ``AsyncKeys`` classes. They produce password hashes that are
@@ -1139,7 +1262,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Further improvements to the random number generator in ``randoms.py``.
    Made its internals less sequential thereby raising the bar of work needed
@@ -1154,11 +1277,11 @@ Minor Changes
 
 
 Changes for version 0.9.1 
-========================= 
+------------------------- 
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Now any falsey values for the ``salt`` keyword argument in the library's 
    ``keys``, ``akeys``, ``bytes_keys``, ``abytes_keys``, ``subkeys``, & 
@@ -1183,11 +1306,11 @@ Minor Changes
 
 
 Changes for version 0.9.0 
-========================= 
+------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Added hmac codes to ciphertext for the following functions: ``json_encrypt``, 
    ``ajson_encrypt``, ``bytes_encrypt``, ``abytes_encrypt``, 
@@ -1218,7 +1341,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Updates to documentation & ``README.rst`` tutorials.
 -  The ``kb``, ``cpu``, & ``hardness`` arguments in ``sum_passcrypt`` &
@@ -1229,11 +1352,11 @@ Minor Changes
 
 
 Changes for version 0.8.1 
-========================= 
+------------------------- 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Added ``sum_passcrypt`` & ``asum_passcrypt`` chainable generator methods 
    to ``Comprende`` class. They cumulatively apply the passcrypt algorithm 
@@ -1244,7 +1367,7 @@ Major Changes
 
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Various inaccurate docstrings fixed. 
 -  Various refactorings of the codebase. 
@@ -1268,11 +1391,11 @@ Minor Changes
 
 
 Changes for version 0.8.0
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Fix ``test_hmac``, ``atest_hmac`` functions in the keys & database 
    classes. The new non-constant-time algorithm needs a random salt to be 
@@ -1294,7 +1417,7 @@ Major Changes
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Update ``CHANGES.rst`` file with the updates that were not logged for
    v0.7.1.
@@ -1305,11 +1428,11 @@ Minor Changes
 
 
 Changes for version 0.7.1
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Fix a mistake in the signatures of ``passcrypt`` & ``apasscrypt. The args
    ``kb``, ``cpu`` & ``hardness`` were changed into keyword only arguments
@@ -1321,11 +1444,11 @@ Major Changes
 
 
 Changes for version 0.7.0
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Replaced usage of bare ``random`` module functions, to usage of an 
    instance of ``random.Random`` to keep from messing with user's settings 
@@ -1350,7 +1473,7 @@ Major Changes
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Various code cleanups, refactorings & speedups.
 -  Several fixes to inaccurate documentation.
@@ -1366,11 +1489,11 @@ Minor Changes
 
 
 Changes for version 0.6.0
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Replaced the usage of ``os.urandom`` within the package with 
    ``secrets.token_bytes`` to be more reliable across platforms. 
@@ -1392,7 +1515,7 @@ Major Changes
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Various code cleanups, refactorings & speedups.
 -  Added a ``concurrent.futures.ThreadPoolExecutor`` instance to the ``asynchs``
@@ -1421,11 +1544,11 @@ Minor Changes
 
 
 Changes for version 0.5.1
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Fixed a bug in the methods ``auuids`` & ``uuids`` of the database classes 
    that assigned to a variable within a closure that was nonlocal but which 
@@ -1444,7 +1567,7 @@ Major Changes
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Various code cleanups.
 -  New tests added to the test suite for ``passcrypt`` & ``apasscrypt``.
@@ -1458,11 +1581,11 @@ Minor Changes
 
 
 Changes for version 0.5.0
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Added interfaces in ``Database`` & ``AsyncDatabase`` to handle encrypting
    & decrypting streams (``Comprende`` generators) instead of just raw json 
@@ -1481,7 +1604,7 @@ Major Changes
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Various code & logic cleanups / speedups.
 -  Refactorings of the ``Database`` & ``AsyncDatabase`` classes.
@@ -1491,11 +1614,11 @@ Minor Changes
 
 
 Changes for version 0.4.0
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Fixed bug in ``aiootp.abytes_encrypt`` function which inaccurately called
    a synchronous ``Comprende`` end-point method on the underlying async
@@ -1508,7 +1631,7 @@ Major Changes
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Various code cleanups.
 -  Various inaccurate docstrings fixed.
@@ -1526,11 +1649,11 @@ Minor Changes
 
 
 Changes for version 0.3.1
-=========================
+-------------------------
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Fixed bug where a static method in ``AsyncDatabase`` & ``Database`` was 
    wrongly labelled a class method causing a failure to initialize.
@@ -1539,11 +1662,11 @@ Minor Changes
 
 
 Changes for version 0.3.0
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  The ``AsyncDatabase`` & ``Database`` now use the more secure ``afilename`` 
    & ``filename`` methods to derive the hashmap name and encryption streams
@@ -1561,7 +1684,7 @@ Major Changes
    
    
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Fixed typos and inaccuracies in various docstrings.
 -  Added a ``__ui_coordination.py`` module to handle inserting functionality 
@@ -1581,11 +1704,11 @@ Minor Changes
 
 
 Changes for version 0.2.0
-=========================
+-------------------------
 
 
 Major Changes
--------------
+^^^^^^^^^^^^^
 
 -  Added ephemeral salts to the ``AsyncDatabase`` & ``Database`` file 
    encryption procedures. This is a major security fix, as re-encryption 
@@ -1604,7 +1727,7 @@ Major Changes
 
 
 Minor Changes
--------------
+^^^^^^^^^^^^^
 
 -  Fix typos in ``__root_salt`` & ``__aroot_salt`` docstrings. Also replaced 
    the ``hash(self)`` argument for their ``lru_cache``  & ``alru_cache`` 
@@ -1628,22 +1751,48 @@ Minor Changes
    ``map_decrypt`` & ``amap_decrypt`` ``OneTimePad`` methods. 
 -  Added ``acustomize_parameters`` async function to ``aiootp.generics`` 
    module. 
--  Various code clean ups.
+-  Various code clean ups. 
 
 
 
 
 Changes for version 0.1.0 
-========================= 
+------------------------- 
+
 
 Minor Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Initial version. 
 
 
 Major Changes 
-------------- 
+^^^^^^^^^^^^^ 
 
 -  Initial version. 
+
+
+
+
+_`Known Issues` ................................... `Table Of Contents`_
+========================================================================
+
+-  The test suite for this software is under construction, & what tests
+   have been published are currently inadequate to the needs of
+   cryptography software.
+-  None of the hash functions in the public facing part of the library
+   are to spec. This is because all inputs to the hash functions from
+   the generics.py module are put into a tuple & stringified before
+   hashing for user-friendliness, speed, readibility & the power of 
+   being to hash any python object that has a repr. This behaviour is 
+   purposeful, but can still be an issue.
+-  This package is currently in beta testing & active development. 
+   Contributions are welcome. Send us a message if you spot a bug or 
+   security vulnerability:
+   
+   -  < gonzo.development@protonmail.ch >
+   -  < 31FD CC4F 9961 AFAC 522A 9D41 AE2B 47FA 1EF4 4F0A >
+
+
+
 
