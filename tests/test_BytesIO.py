@@ -19,54 +19,56 @@ from init_tests import *
 
 
 def test_json_conversion_functions():
-    aciphertext = run(pad.abytes_encrypt(plaintext_bytes))
-    ciphertext = pad.bytes_encrypt(plaintext_bytes)
 
-    aascii_ciphertext = run(pad.io.ajson_to_ascii(json.dumps(aciphertext)))
-    ascii_ciphertext = pad.io.json_to_ascii(json.dumps(ciphertext))
+    aciphertext = run(cipher.abytes_encrypt(plaintext_bytes))
+    ciphertext = cipher.bytes_encrypt(plaintext_bytes)
 
-    ajson_ciphertext = run(pad.io.aascii_to_json(aascii_ciphertext))
-    json_ciphertext = pad.io.ascii_to_json(ascii_ciphertext)
+    assert aciphertext != ciphertext
 
-    assert ajson_ciphertext != json_ciphertext
-    assert ajson_ciphertext == aciphertext
-    assert json_ciphertext == ciphertext
-    assert aascii_ciphertext != ascii_ciphertext
+    aciphertext_json = run(BytesIO.abytes_to_json(aciphertext))
+    ciphertext_json = BytesIO.bytes_to_json(ciphertext)
 
+    assert aciphertext_json != ciphertext_json
 
-    aciphertext_deterministic = run(pad.abytes_encrypt(plaintext_bytes, salt=salt, allow_dangerous_determinism=True))
-    ciphertext_deterministic = pad.bytes_encrypt(plaintext_bytes, salt=salt, allow_dangerous_determinism=True)
-
-    aascii_ciphertext_deterministic = run(pad.io.ajson_to_ascii(json.dumps(aciphertext_deterministic)))
-    ascii_ciphertext_deterministic = pad.io.json_to_ascii(json.dumps(ciphertext_deterministic))
-
-    ajson_ciphertext_deterministic = run(pad.io.aascii_to_json(aascii_ciphertext_deterministic))
-    json_ciphertext_deterministic = pad.io.ascii_to_json(ascii_ciphertext_deterministic)
-
-    assert ajson_ciphertext_deterministic != json_ciphertext_deterministic
-    assert ajson_ciphertext_deterministic == aciphertext_deterministic
-    assert json_ciphertext_deterministic == ciphertext_deterministic
-    assert aascii_ciphertext_deterministic != ascii_ciphertext_deterministic
+    assert aciphertext == run(BytesIO.ajson_to_bytes(aciphertext_json))
+    assert ciphertext == BytesIO.json_to_bytes(ciphertext_json)
 
 
-    padding_key = pad.padding_key(salt=salt, pid=pid)
-    padded_plaintext = pad.io.pad_plaintext(plaintext_bytes, padding_key=padding_key)
-    apadded_plaintext = run(pad.io.apad_plaintext(plaintext_bytes, padding_key=padding_key))
-    hmac = pad.StreamHMAC(salt=salt, pid=pid).for_encryption()
-    ahmac = pad.StreamHMAC(salt=salt, pid=pid).for_encryption()
-    encipher = data(padded_plaintext).bytes_encipher(key, salt=salt, pid=pid, validator=hmac)
-    aencipher = adata(padded_plaintext).abytes_encipher(key, salt=salt, pid=pid, validator=ahmac)
+    xkey_bundle = KeyAADBundle(key=key, salt=salt, aad=b"wrong", allow_dangerous_determinism=True).sync_mode()
+    key_bundle = KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).sync_mode()
+    akey_bundle = run(KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).async_mode())
+
+    xpadded_plaintext = Padding.pad_plaintext(plaintext_bytes, xkey_bundle)
+    padded_plaintext = Padding.pad_plaintext(plaintext_bytes, key_bundle)
+    apadded_plaintext = run(Padding.apad_plaintext(plaintext_bytes, akey_bundle))
+
+    xshmac = StreamHMAC(xkey_bundle).for_encryption()
+    shmac = StreamHMAC(key_bundle).for_encryption()
+    ashmac = StreamHMAC(akey_bundle).for_encryption()
+
+    xencipher = data(padded_plaintext).bytes_encipher(xkey_bundle, xshmac)
+    encipher = data(padded_plaintext).bytes_encipher(key_bundle, shmac)
+    aencipher = adata(padded_plaintext).abytes_encipher(akey_bundle, ashmac)
+
+    xciphertext = {
+        CIPHERTEXT: xencipher.list(),
+        HMAC: xshmac.finalize(),
+        SALT: xkey_bundle.salt,
+        SIV: xkey_bundle.siv,
+    }
     ciphertext = {
-        commons.CIPHERTEXT: [block for block in encipher],
-        commons.HMAC: hmac.finalize().hex(),
-        commons.SALT: salt,
-        commons.SIV: hmac.siv,
+        CIPHERTEXT: encipher.list(),
+        HMAC: shmac.finalize(),
+        SALT: key_bundle.salt,
+        SIV: key_bundle.siv,
     }
     aciphertext = {
-        commons.CIPHERTEXT: run(aencipher.alist(mutable=True)),
-        commons.HMAC: run(ahmac.afinalize()).hex(),
-        commons.SALT: salt,
-        commons.SIV: ahmac.siv,
+        CIPHERTEXT: run(aencipher.alist()),
+        HMAC: run(ashmac.afinalize()),
+        SALT: akey_bundle.salt,
+        SIV: akey_bundle.siv,
     }
+
     assert ciphertext == aciphertext
+    assert ciphertext != xciphertext
 
