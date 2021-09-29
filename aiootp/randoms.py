@@ -11,23 +11,18 @@
 
 __all__ = [
     "randoms",
-    "arandom_256",
-    "random_256",
-    "arandom_512",
-    "random_512",
-    "amake_uuids",
-    "make_uuids",
-    "aseeder",
-    "seeder",
     "abytes_seeder",
-    "bytes_seeder",
     "acsprng",
-    "csprng",
-    "acsprbg",
-    "csprbg",
     "agenerate_salt",
+    "amake_uuids",
+    "arandom_256",
+    "arandom_512",
+    "bytes_seeder",
+    "csprng",
     "generate_salt",
-    "PrimeGroups",
+    "make_uuids",
+    "random_256",
+    "random_512",
 ]
 
 
@@ -38,37 +33,27 @@ __doc__ = (
 
 
 import math
-from os import urandom
+import base64
+from os import getpid
+from os import urandom as urandom_bytes
 import random as _random
-from secrets import choice
-from secrets import token_bytes
-from secrets import randbits as token_bits
-from hashlib import sha3_256
-from hashlib import sha3_512
 from collections import deque
-from collections import defaultdict
+from hashlib import sha3_256, sha3_512, shake_256
+from secrets import choice, token_bytes
+from secrets import randbits as token_bits
+from ._exceptions import *
+from ._typing import Typing
+from .commons import PrimeGroups
 from .commons import *
 from commons import *
 from .asynchs import *
-from .asynchs import time
-from .asynchs import sleep
-from .asynchs import asyncio
+from .asynchs import asleep, asyncio, gather, sleep, time, run
 from .generics import Hasher
 from .generics import Domains
-from .generics import sha_256
-from .generics import sha_512
-from .generics import asha_256
-from .generics import asha_512
-from .generics import generics
-from .generics import Enumerate
-from .generics import hash_bytes
-from .generics import ahash_bytes
-from .generics import Comprende
-from .generics import comprehension
-from .generics import sha_512_hmac
-from .generics import asha_512_hmac
-from .generics import xi_mix, axi_mix
-from .generics import is_async_iterable
+from .generics import sha3__256, asha3__256
+from .generics import sha3__512, asha3__512
+from .generics import Comprende, comprehension
+from .generics import sha3__512_hmac, asha3__512_hmac
 
 
 def _load_sympy():
@@ -85,331 +70,91 @@ def _load_sympy():
     from sympy import randprime as _unique_prime
 
 
-def is_prime(number):
+def is_prime(number: int):
     """
-    Pass through function for the ``sympy.isprime`` function.
+    Pass through function for the `sympy.isprime` function.
     """
     if "sympy" not in globals():
         _load_sympy()
     return _is_prime(number)
 
 
-def prev_prime(number):
+def prev_prime(number: int):
     """
-    Pass through function for the ``sympy.prevprime`` function.
+    Pass through function for the `sympy.prevprime` function.
     """
     if "sympy" not in globals():
         _load_sympy()
     return _prev_prime(number)
 
 
-def next_prime(number):
+def next_prime(number: int):
     """
-    Pass through function for the ``sympy.nextprime`` function.
+    Pass through function for the `sympy.nextprime` function.
     """
     if "sympy" not in globals():
         _load_sympy()
     return _next_prime(number)
 
 
-async def acreate_prime(bits=2048):
+async def acreate_prime(bits: int = 2048):
     """
-    Asynchronous wrapper around a ``sympy.randprime`` abstraction which
+    Asynchronous wrapper around a `sympy.randprime` abstraction which
     locates primes based on a user-defined amount of ``bits``.
     """
-    await asleep(0)
-    return unique_prime(2 ** (bits - 1), 2 ** bits)
+    await asleep()
+    return unique_prime(1 << (bits - 1), 1 << bits)
 
 
-def create_prime(bits=2048):
+def create_prime(bits: int = 2048):
     """
-    Synchronous wrapper around a ``sympy.randprime`` abstraction which
+    Synchronous wrapper around a `sympy.randprime` abstraction which
     locates primes based on a user-defined amount of ``bits``.
     """
-    return unique_prime(2 ** (bits - 1), 2 ** bits)
+    return unique_prime(1 << (bits - 1), 1 << bits)
 
 
-async def aunique_prime(low, high, **kw):
+async def aunique_prime(low: int, high: int, **kw):
     """
-    Asynchronous wrapper around ``sympy.randprime``.
+    Asynchronous wrapper around `sympy.randprime`.
     """
-    await asleep(0)
+    await asleep()
     return unique_prime(low, high, **kw)
 
 
-def unique_prime(low, high, **kw):
+def unique_prime(low: int, high: int, **kw):
     """
-    Pass through function for the ``sympy.randprime`` function.
+    Pass through function for the `sympy.randprime` function.
     """
     if "sympy" not in globals():
         _load_sympy()
     return _unique_prime(low, high, **kw)
 
 
-async def aprime_table(
-    low=None, high=None, step=1, depth=10, depth_error=25
-):
-    """
-    Create a dictionary with `depth` number of unique primes per group,
-    where range(low, high, step) determines the number of groups, and
-    each value and value + 1 in this range represents the minimum and
-    maximum number of bits, respectively, each prime in the group will
-    be.
-
-    If low or high are passed without the other, then high is assumed to
-    be low + 1, and low is assumed to be high - 1, respectively. By
-    default, if low and high are not passed, this function produces a
-    dictionary with 64 groups of primes from 64 to 128 bits each, with
-    groups of size 10 each.
-
-    The depth_error argument is used when attempting to populate a prime
-    group with `depth` number of elements, and `depth_error` iterations
-    have elapsed which produced a prime that's already in the table.
-    This throws an error indicating either that the function may be in
-    an infinite loop because the prime group has been completely
-    consumed of unique elements, or that the threshhold has been reached
-    where the user no longer wants to search the group for unique
-    elements.
-
-    Usage Examples:
-
-    table = prime_table(low=128, depth=3)
-    print(table[128])
-    [
-        183871519993762361722645332561840131041,
-        172905810664978458020784166140617688839,
-        216783371672079727743215016679065889237,
-    ]
-
-    table = prime_table(low=128, high=1029, step=128, depth=1)
-    print(128 in table)
-    >>> True
-    print(256 in table)
-    >>> True
-    print(384 in table)
-    >>> True
-    print(512 in table)
-    >>> True
-    print(513 in table)
-    >>> False
-    """
-    async def set_arguments():
-        nonlocal low
-        nonlocal high
-
-        if low == None and high == None:
-            low = 64
-            high = 129
-        elif low == None:
-            low = high - 1
-        elif high == None:
-            high = low + 1
-        elif low >= high:
-            raise ValueError("Lower bound isn't less than the upper bound.")
-
-    async def raise_if_insufficient_unique_primes():
-        await asleep(0)
-        if infinite_loop_checker >= depth_error:
-            problem = "Max recursion depth reached because "
-            cause = "not enough unique primes could be found "
-            cause += f"within the prime group of {prime_group} "
-            cause += f"bits to fill a list of length {depth}."
-            error = RuntimeError(problem + cause)
-            error.value = table
-            raise error
-
-    await set_arguments()
-    table = defaultdict(list)
-    for prime_group in range(low, high, step):
-        for loop in range(depth):
-            prime = await acreate_prime(bits=prime_group)
-            infinite_loop_checker = 0
-            while prime in table[prime_group]:
-                infinite_loop_checker += 1
-                await raise_if_insufficient_unique_primes()
-                prime = await acreate_prime(bits=prime_group)
-            table[prime_group].append(prime)
-    return dict(table)
-
-
-def prime_table(low=None, high=None, step=1, depth=10, depth_error=25):
-    """
-    Create a dictionary with `depth` number of unique primes per group,
-    where range(low, high, step) determines the number of groups, and
-    each value and value + 1 in this range represents the minimum and
-    maximum number of bits, respectively, each prime in the group will
-    be.
-
-    If low or high are passed without the other, then high is assumed to
-    be low + 1, and low is assumed to be high - 1, respectively. By
-    default, if low and high are not passed, this function produces a
-    dictionary with 64 groups of primes from 64 to 128 bits each, with
-    groups of size 10 each.
-
-    The depth_error argument is used when attempting to populate a prime
-    group with `depth` number of elements, and `depth_error` iterations
-    have elapsed which produced a prime that's already in the table.
-    This throws an error indicating either that the function may be in
-    an infinite loop because the prime group has been completely
-    consumed of unique elements, or that the threshhold has been reached
-    where the user no longer wants to search the group for unique
-    elements.
-
-    Usage Examples:
-
-    table = prime_table(low=128, depth=3)
-    print(table[128])
-    [
-        183871519993762361722645332561840131041,
-        172905810664978458020784166140617688839,
-        216783371672079727743215016679065889237,
-    ]
-
-    table = prime_table(low=128, high=1029, step=128, depth=1)
-    print(128 in table)
-    >>> True
-    print(256 in table)
-    >>> True
-    print(384 in table)
-    >>> True
-    print(512 in table)
-    >>> True
-    print(513 in table)
-    >>> False
-    """
-    def set_arguments():
-        nonlocal low
-        nonlocal high
-
-        if low == None and high == None:
-            low = 64
-            high = 129
-        elif low == None:
-            low = high - 1
-        elif high == None:
-            high = low + 1
-        elif low >= high:
-            raise ValueError("Lower bound isn't less than the upper bound.")
-
-    def raise_if_insufficient_unique_primes():
-        if infinite_loop_checker >= depth_error:
-            problem = "Max recursion depth reached because "
-            cause = "not enough unique primes could be found "
-            cause += f"within the prime group of {prime_group} "
-            cause += f"bits to fill a list of length {depth}."
-            error = RuntimeError(problem + cause)
-            error.value = table
-            raise error
-
-    set_arguments()
-    table = defaultdict(list)
-    for prime_group in range(low, high, step):
-        for loop in range(depth):
-            prime = create_prime(bits=prime_group)
-            infinite_loop_checker = 0
-            while prime in table[prime_group]:
-                infinite_loop_checker += 1
-                raise_if_insufficient_unique_primes()
-                prime = create_prime(bits=prime_group)
-            table[prime_group].append(prime)
-    return dict(table)
-
-
-class PrimeGroups(BasePrimeGroups):
+class PrimeTools(PrimeGroups):
     """
     A collection of mostly small prime moduli & each of their respective
     primitive roots organized by bit length.
     """
-    _table = BasePrimeGroups
-    create_prime = staticmethod(create_prime)
+
+    __slots__ = []
+
+    UniformPrimes = UniformPrimes
+
     acreate_prime = staticmethod(acreate_prime)
-    unique_prime = staticmethod(unique_prime)
     aunique_prime = staticmethod(aunique_prime)
-    prime_table = staticmethod(prime_table)
-    aprime_table = staticmethod(aprime_table)
-
-    @classmethod
-    async def _aproduct(cls, bytes_hash):
-        """
-        Multiplies a series of independent bytes together, adding 1 to
-        each number to avoid zeroing out the result.
-        """
-        try:
-            total = 1
-            await asleep(0)
-            for byte in bytes_hash:
-                total *= byte + 1
-            await asleep(0)
-            return total
-        except TypeError:
-            raise TypeError("Must use an iterable of integers.")
-
-    @classmethod
-    def _product(cls, bytes_hash):
-        """
-        Multiplies a series of independent bytes together, adding 1 to
-        each number to avoid zeroing out the result.
-        """
-        try:
-            total = 1
-            for byte in bytes_hash:
-                total *= byte + 1
-            return total
-        except TypeError:
-            raise TypeError("Must use an iterable of integers.")
-
-    @classmethod
-    async def aexponential_byte_mask(
-        cls,
-        bytes_hash,
-        *,
-        generator=_table.GENERATOR_256,
-        mod=_table.MOD_256,
-    ):
-        """
-        Uses each byte in the ``bytes_hash`` object as multiples for a
-        modular exponentiation that masks the order of the input bytes.
-        The ``generator`` & ``mod`` arguments can be given to specify
-        the group that's used for the calculation. This class contains
-        a table of convenient strong primes & their primitive roots as
-        generators. Each prime must be paired with its corresponding
-        primitive root.
-        """
-        if generator >= mod:
-            raise ValueError("`generator` must be < `mod`!")
-        exponent = await cls._aproduct(bytes_hash)
-        result = pow(generator, exponent, mod)
-        return result.to_bytes(math.ceil(mod.bit_length() / 8), "big")
-
-    @classmethod
-    def exponential_byte_mask(
-        cls,
-        bytes_hash,
-        *,
-        generator=_table.GENERATOR_256,
-        mod=_table.MOD_256,
-    ):
-        """
-        Uses each byte in the ``bytes_hash`` object as multiples for a
-        modular exponentiation that masks the order of the input bytes.
-        The ``generator`` & ``mod`` arguments can be given to specify
-        the group that's used for the calculation. This class contains
-        a table of convenient strong primes & their primitive roots as
-        generators. Each prime must be paired with its corresponding
-        primitive root.
-        """
-        if generator >= prime:
-            raise ValueError("`generator` must be < `prime`!")
-        exponent = cls._product(bytes_hash)
-        result = pow(generator, exponent, mod)
-        return result.to_bytes(math.ceil(mod.bit_length() / 8), "big")
+    create_prime = staticmethod(create_prime)
+    is_prime = staticmethod(is_prime)
+    next_prime = staticmethod(next_prime)
+    prev_prime = staticmethod(prev_prime)
+    unique_prime = staticmethod(unique_prime)
 
 
 async def auniform(*a, **kw):
     """
     Asynchronous version of the standard library's `random.uniform`.
     """
-    await asleep(0)
+    await asleep()
     return uniform(*a, **kw)
 
 
@@ -417,7 +162,7 @@ async def achoice(iterable):
     """
     Asynchronous version of the standard library's `secrets.choice`.
     """
-    await asleep(0)
+    await asleep()
     return choice(iterable)
 
 
@@ -425,31 +170,11 @@ async def aunique_range(*a, **kw):
     """
     Asynchronous version of the standard library's `random.randrange`.
     """
-    await asleep(0)
+    await asleep()
     return unique_range(*a, **kw)
 
 
-@comprehension()
-async def aunique_range_gen(low=1, high=10):
-    """
-    A generator which produces values from `random.randrange` from
-    ``low`` to ``high``.
-    """
-    while True:
-        yield await aunique_range(low, high)
-
-
-@comprehension()
-def unique_range_gen(low=1, high=10):
-    """
-    A generator which produces values from `random.randrange` from
-    ``low`` to ``high``.
-    """
-    while True:
-        yield unique_range(low, high)
-
-
-async def arandom_sleep(span=2):
+async def arandom_sleep(span: Typing.PositiveRealNumber = 2):
     """
     Asynchronously sleeps for a psuedo-random portion of ``span`` time,
     measured in seconds.
@@ -457,7 +182,7 @@ async def arandom_sleep(span=2):
     return await asleep(span * await auniform(0, 1))
 
 
-def random_sleep(span=2):
+def random_sleep(span: Typing.PositiveRealNumber = 2):
     """
     Synchronously sleeps for a psuedo-random portion of ``span`` time,
     measured in seconds.
@@ -465,71 +190,83 @@ def random_sleep(span=2):
     return sleep(span * uniform(0, 1))
 
 
-async def aurandom_hash(size):
+async def aurandom_hash(size: int):
     """
-    Feeds ``size`` + 16 bytes of `os.urandom` entropy into a `sha3_512`
+    Feeds ``size`` bytes of `os.urandom` entropy into a `sha3_512`
     object that carries one of the package's entropy pools & returns the
-    hash.
+    hash. If ``size`` is smaller than 64 (bytes), then 64 is used
+    instead. This ensures the entropy object receives at least its
+    bitrate of 72 on each call.
     """
-    domain = Domains.ENTROPY
-    result = await _entropy.ahash(domain + await aurandom(size + 16))
+    domain = Domains.ENTROPY  # 8 bytes
+    size = size if size >= 64 else 64  # at least the sha3_512 bitrate
+    result = await _entropy.ahash(domain, await aurandom_bytes(size))
     return result.hex()
 
 
-def urandom_hash(size):
+def urandom_hash(size: int):
     """
-    Feeds ``size`` + 16 bytes of `os.urandom` entropy into a `sha3_512`
+    Feeds ``size`` bytes of `os.urandom` entropy into a `sha3_512`
     object that carries one of the package's entropy pools & returns the
-    hash.
+    hash. If ``size`` is smaller than 64 (bytes), then 64 is used
+    instead. This ensures the entropy object receives at least its
+    bitrate of 72 on each call.
     """
-    domain = Domains.ENTROPY
-    return _entropy.hash(domain + urandom(size + 16)).hex()
+    domain = Domains.ENTROPY  # 8 bytes
+    size = size if size >= 64 else 64  # at least the sha3_512 bitrate
+    return _entropy.hash(domain, urandom_bytes(size)).hex()
 
 
-async def aurandom_number(size):
-    """
-    Returns ``size`` bytes of `os.urandom` entropy as an integer.
-    """
-    return int.from_bytes(await aurandom(size), "big")
-
-
-def urandom_number(size):
+async def aurandom_number(size: int):
     """
     Returns ``size`` bytes of `os.urandom` entropy as an integer.
     """
-    return int.from_bytes(urandom(size), "big")
+    return int.from_bytes(await aurandom_bytes(size), "big")
 
 
-async def aurandom(size):
+def urandom_number(size: int):
+    """
+    Returns ``size`` bytes of `os.urandom` entropy as an integer.
+    """
+    return int.from_bytes(urandom_bytes(size), "big")
+
+
+async def aurandom_bytes(size: int):
     """
     Returns ``size`` bytes of `os.urandom` entropy.
     """
-    await asleep(0)
-    return urandom(size)
+    await asleep()
+    return urandom_bytes(size)
 
 
-async def atoken_hash(size):
+async def atoken_hash(size: int):
     """
-    Feeds ``size`` + 16 bytes of `secrets.token_bytes` entropy into a
+    Feeds ``size`` bytes of `secrets.token_bytes` entropy into a
     `sha3_512` object that carries one of the package's entropy pools &
-    returns the hash.
+    returns the hash. If ``size`` is smaller than 64 (bytes), then 64 is
+    used instead. This ensures the entropy object receives at least its
+    bitrate of 72 on each call.
     """
-    domain = Domains.ENTROPY
-    result = await _entropy.ahash(domain + await atoken_bytes(size + 16))
+    domain = Domains.ENTROPY  # 8 bytes
+    size = size if size >= 64 else 64  # at least the sha3_512 bitrate
+    result = await _entropy.ahash(domain, await atoken_bytes(size))
     return result.hex()
 
 
-def token_hash(size):
+def token_hash(size: int):
     """
-    Feeds ``size`` + 16 bytes of `secrets.token_bytes` entropy into a
+    Feeds ``size`` bytes of `secrets.token_bytes` entropy into a
     `sha3_512` object that carries one of the package's entropy pools &
-    returns the hash.
+    returns the hash. If ``size`` is smaller than 64 (bytes), then 64 is
+    used instead. This ensures the entropy object receives at least its
+    bitrate of 72 on each call.
     """
-    domain = Domains.ENTROPY
-    return _entropy.hash(domain + token_bytes(size + 16)).hex()
+    domain = Domains.ENTROPY  # 8 bytes
+    size = size if size >= 64 else 64  # at least the sha3_512 bitrate
+    return _entropy.hash(domain, token_bytes(size)).hex()
 
 
-async def atoken_number(size):
+async def atoken_number(size: int):
     """
     Returns ``size`` bytes of `secrets.token_bytes` entropy as an
     integer.
@@ -537,7 +274,7 @@ async def atoken_number(size):
     return int.from_bytes(await atoken_bytes(size), "big")
 
 
-def token_number(size):
+def token_number(size: int):
     """
     Returns ``size`` bytes of `secrets.token_bytes` entropy as an
     integer.
@@ -545,23 +282,23 @@ def token_number(size):
     return int.from_bytes(token_bytes(size), "big")
 
 
-async def atoken_bytes(size):
+async def atoken_bytes(size: int):
     """
     Returns ``size`` bytes of `secrets.token_bytes` entropy.
     """
-    await asleep(0)
+    await asleep()
     return token_bytes(size)
 
 
-async def atoken_bits(size):
+async def atoken_bits(size: int):
     """
     Returns ``size`` number of bits from `secrets.randbits`.
     """
-    await asleep(0)
+    await asleep()
     return token_bits(size)
 
 
-async def _asalt_multiply(*numbers):
+async def _asalt_multiply(*numbers: Typing.Iterable[int]):
     """
     Allows for non-commutative multiplication. This assists pseudo-
     random number generators in turning combinations of low entropy
@@ -577,15 +314,15 @@ async def _asalt_multiply(*numbers):
     _seed ^= mix
     start = _seed
     _offset ^= _seed
-    await asleep(0)
+    await asleep()
     for number in numbers:
         mix += _offset
         start *= number ^ mix
-    await asleep(0)
+    await asleep()
     return start ^ _seed
 
 
-def _salt_multiply(*numbers):
+def _salt_multiply(*numbers: Typing.Iterable[int]):
     """
     Allows for non-commutative multiplication. This assists pseudo-
     random number generators in turning combinations of low entropy
@@ -605,6 +342,56 @@ def _salt_multiply(*numbers):
         mix += _offset
         start *= number ^ mix
     return start ^ _seed
+
+
+class WeakEntropy:
+    """
+    Creates objects which can produce any user specified amount of
+    entropic bytes using a fast, but not very strong PRNG.
+    """
+
+    __slots__ = ["_raw_seed", "_prng"]
+
+    _make_pid = staticmethod(lambda: getpid().to_bytes(6, "big"))
+    _make_timestamp = staticmethod(
+        lambda: int(1_000_000 * time()).to_bytes(12, "big")
+    )
+
+    def __init__(self):
+        """
+        Creates the starting seed entropy & the weak PRNG.
+        """
+        self._raw_seed = token_bytes(136)
+        self._prng = Hasher(b"".join(self._seed()), obj=shake_256)
+
+    def _seed(self, salt: bytes = token_bytes(56)):
+        """
+        Yields a series of fresh entropic values which are fed into the
+        instance's PRNG, which also more safely differentiate instance
+        outputs between possible forked processes.
+        """
+        yield self._make_timestamp()
+        yield self._make_pid()
+        yield salt
+        yield _entropy.hash(_pool[0], Domains.SEED)
+        yield self._raw_seed
+
+    async def atoken_bytes(self, output_size: int):
+        """
+        Returns ``output_size`` number of pseudo-random bytes.
+        """
+        await asleep()
+        try:
+            return self.token_bytes(output_size)
+        finally:
+            await asleep()
+
+    def token_bytes(self, output_size: int):
+        """
+        Returns ``output_size`` number of pseudo-random bytes.
+        """
+        self._prng.update(b"".join(self._seed()))
+        return self._prng.digest(output_size)
 
 
 class EntropyDaemon:
@@ -616,6 +403,14 @@ class EntropyDaemon:
     on entropy generation for the whole package.
     """
 
+    __slots__ = [
+        "_cancel",
+        "_currently_mutating_frequency",
+        "_daemon",
+        "_frequency",
+        "_initial_frequency",
+    ]
+
     @classmethod
     async def _anew_snapshot(cls):
         """
@@ -623,25 +418,69 @@ class EntropyDaemon:
         hash digest from it & three selections from another entropy
         pool all concatenated together.
         """
-        await asleep(0)
-        return (
-            bytes.fromhex(await atoken_hash(16))
-            + await achoice(_pool)
-            + _pool[0]
-            + _pool[-1]
-        )
+        await asleep()
+        return await atoken_bytes(32) + _pool[0] + _pool[-1][:48]
 
-    def __init__(self, *, frequency=2):
+    def __init__(self, *, frequency: Typing.PositiveRealNumber = 1):
         """
         Prepares an instance to safely start a background thread.
         """
         self._daemon = None
         self._cancel = False
+        self._currently_mutating_frequency = False
+        self.set_frequency(frequency)
+
+    def _set_temporary_frequency(
+        self,
+        frequency: Typing.PositiveRealNumber,
+        duration: Typing.PositiveRealNumber,
+    ):
+        """
+        Sets a temporary maximum number of seconds a started entropy
+        daemon will pseudo-randomly sleep in-between each iteration. The
+        frequency will return to its initial value after ``duration``
+        number of seconds.
+        """
+        try:
+            self._frequency = frequency
+            sleep(duration)
+        finally:
+            self._frequency = self._initial_frequency
+            self._currently_mutating_frequency = False
+
+    def set_temporary_frequency(
+        self,
+        frequency: Typing.PositiveRealNumber = 0.001,
+        *,
+        duration: Typing.PositiveRealNumber = 1,
+    ):
+        """
+        Sets a temporary maximum number of seconds a started entropy
+        daemon will pseudo-randomly sleep in-between each iteration. The
+        frequency will return to its initial value after ``duration``
+        number of seconds.
+        """
+        if not self._currently_mutating_frequency:
+            self._currently_mutating_frequency = True
+            Threads.submit(
+                self._set_temporary_frequency, frequency, duration
+            )
+        return self
+
+    def set_frequency(self, frequency: Typing.PositiveRealNumber = 1):
+        """
+        Sets the maximum number of seconds a started entropy daemon will
+        pseudo-randomly sleep in-between each iteration. Setting the
+        ``frequency`` to smaller numbers will cause more cpu power &
+        time to be consumed by the background daemon thread.
+        """
         self._frequency = frequency
+        self._initial_frequency = frequency
+        return self
 
     async def _araw_loop(self):
         """
-        Takes snapshots of & feed entropy into the module's entropy
+        Takes snapshots of & feeds entropy into the module's entropy
         pools before & after sleeping for a pseudo-random amount of time.
         This is done asynchronously & in a background thread to increase
         the unpredictability & non-determinism of entropy generation.
@@ -650,7 +489,6 @@ class EntropyDaemon:
             seed = await self._anew_snapshot()
             _pool.appendleft(await _entropy.ahash(seed))
             await arandom_sleep(self._frequency)
-            seed += await self._anew_snapshot()
             _pool.appendleft(await _entropy.ahash(seed))
             if self._cancel:
                 break
@@ -670,33 +508,37 @@ class EntropyDaemon:
         )
         self._daemon.daemon = True
         self._daemon.start()
+        return self
 
     def cancel(self):
         """
         Cancels the background thread.
         """
         self._cancel = True
+        return self
 
 
 try:
     #  initialize a global entropy pool
-    _pool = deque([token_bytes(64)], maxlen=256)
+    _pool = deque([token_bytes(64), token_bytes(64)], maxlen=256)
 
     #  initialize the global hashing object that also collects entropy
-    _entropy = Hasher(token_bytes(288))
+    _entropy = Hasher(token_bytes(304) + b"".join(_pool))
 
     #  avert event loop clashes
     run = asyncio.new_event_loop().run_until_complete
 
     #  initializing weakly entropic functions
+    _weak_entropy = WeakEntropy()
+
     random = _random.Random(token_bytes(2500))
     uniform = random.uniform
     unique_range = random.randrange
 
     _mod = primes[256][-1]
     _offset = token_bits(256)
-    _mix = int(sha_256(token_hash(32), _mod, _offset), 16)
-    _seed = int(sha_256(token_hash(32), _mix, _offset), 16)
+    _mix = int(sha3__256(token_hash(64), _mod, _offset), 16)
+    _seed = int(sha3__256(token_hash(64), _mix, _offset), 16)
     _numbers = (_mix, _seed, _offset)
 
     _ = _salt_multiply(*_numbers)
@@ -707,7 +549,8 @@ try:
     )
 
     # begin the entropy gathering daemon
-    EntropyDaemon().start()
+    _entropy_daemon = EntropyDaemon().start()
+    _entropy_daemon.set_temporary_frequency(0.001, duration=2)
 except RuntimeError as error:
     problem = f"{__package__}'s random seed initialization failed, "
     location = f"likely because {__name__} "
@@ -716,29 +559,29 @@ except RuntimeError as error:
     raise failure from error
 
 
-async def _asalt(*, _entropy=_initial_entropy):
+async def _asalt(*, _entropy: deque = _initial_entropy):
     """
     Returns a low-grade entropy number from cached & ratcheted system
     entropy.
     """
-    _entropy.appendleft(int(await asha_256(_entropy, token_hash(32)), 16))
+    _entropy.appendleft(int(await asha3__256(_entropy, token_hash(64)), 16))
     return await _asalt_multiply(*_entropy)
 
 
-def _salt(*, _entropy=_initial_entropy):
+def _salt(*, _entropy: deque = _initial_entropy):
     """
     Returns a low-grade entropy number from cached & ratcheted system
     entropy.
     """
-    _entropy.appendleft(int(sha_256(_entropy, token_hash(32)), 16))
+    _entropy.appendleft(int(sha3__256(_entropy, token_hash(64)), 16))
     return _salt_multiply(*_entropy)
 
 
 async def arandom_256(
-    entropy=bytes.fromhex(sha_512(run(_asalt()))),
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
     *,
-    refresh=False,
-    rounds=26,
+    refresh: bool = False,
+    rounds: int = 0,
 ):
     """
     A high-level public interface to simultaneously retreive from, &
@@ -763,10 +606,10 @@ async def arandom_256(
 
 
 def random_256(
-    entropy=bytes.fromhex(sha_512(run(_asalt()))),
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
     *,
-    refresh=False,
-    rounds=26,
+    refresh: bool = False,
+    rounds: int = 0,
 ):
     """
     A high-level public interface to simultaneously retreive from &,
@@ -791,7 +634,10 @@ def random_256(
 
 
 async def arandom_512(
-    entropy=bytes.fromhex(sha_512(_salt())), *, refresh=False, rounds=26
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
 ):
     """
     A high-level public interface to simultaneously retreive from &,
@@ -816,7 +662,10 @@ async def arandom_512(
 
 
 def random_512(
-    entropy=bytes.fromhex(sha_512(_salt())), *, refresh=False, rounds=26
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
 ):
     """
     A high-level public interface to simultaneously retreive from &,
@@ -841,7 +690,10 @@ def random_512(
 
 
 async def arandom_number_generator(
-    entropy=bytes.fromhex(sha_512(_salt())), *, refresh=False, rounds=26
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
 ):
     """
     We propose several methods for producing cryptographically secure
@@ -906,21 +758,25 @@ async def arandom_number_generator(
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     """
     domain = Domains.ENTROPY
-    if not issubclass(entropy.__class__, bytes):
+    refresh = True if (rounds or refresh) else False
+    rounds = rounds if rounds else 26
+    _entropy_daemon.set_temporary_frequency(0.001, duration=1)
+
+    if entropy.__class__ is not bytes:
         entropy = str(entropy).encode()
 
     if refresh or not _pool:
 
         async def start_generator(rounds, tasks=deque()):
             for _ in range(rounds):
-                await asleep(0)
+                await asleep()
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
                     tasks.appendleft(add_to_pool())
-            shuffled_tasks = shuffle.root(
-                tasks, key=entropy, salt=token_bytes(32)
+            await gather(
+                *sorted(tasks, key=lambda val: token_bytes(16)),
+                return_exceptions=True,
             )
-            await gather(*shuffled_tasks, return_exceptions=True)
 
         async def add_to_pool():
             seed = await atoken_bytes(32)
@@ -937,31 +793,32 @@ async def arandom_number_generator(
                 domain, result.to_bytes(64, "big"), seed.to_bytes(64, "big")
             )
 
-        async def create_unique_multiple(seed):
+        async def create_unique_multiple(seed: int):
             return await _asalt_multiply(
-                seed,
-                await aunique_integer(),
-                await atoken_number(32),
+                seed, await _aunique_integer(), await atoken_number(32)
             )
 
         async def big_modulation(*args):
             return await _asalt_multiply(
                 *args, await atoken_number(32)
-            ) % await achoice(primes[512])
+            ) % await achoice([primes[512][-1], primes[513][0]])
 
-        await agenerate_unique_range_bounds()
+        await _agenerate_unique_range_bounds()
         await start_generator(rounds)
-        await agenerate_unique_range_bounds()
+        await _agenerate_unique_range_bounds()
     else:
         _pool.appendleft(
-            await _entropy.ahash(domain, await atoken_bytes(32), entropy)
+            await _entropy.ahash(domain, await atoken_bytes(64), entropy)
         )
 
-    return await _entropy.ahash(domain, *_pool, token_bytes(32), entropy)
+    return await _entropy.ahash(domain, token_bytes(32), entropy, *_pool)
 
 
 def random_number_generator(
-    entropy=bytes.fromhex(sha_512(_salt())), *, refresh=False, rounds=26
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
 ):
     """
     We propose several methods for producing cryptographically secure
@@ -1026,21 +883,25 @@ def random_number_generator(
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     """
     domain = Domains.ENTROPY
-    if not issubclass(entropy.__class__, bytes):
+    refresh = True if (rounds or refresh) else False
+    rounds = rounds if rounds else 26
+    _entropy_daemon.set_temporary_frequency(0.001, duration=1)
+
+    if entropy.__class__ is not bytes:
         entropy = str(entropy).encode()
 
     if refresh or not _pool:
 
-        async def start_generator(rounds, tasks=deque()):
+        async def start_generator(rounds: int, tasks=deque()):
             for _ in range(rounds):
-                await asleep(0)
+                await asleep()
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
                     tasks.appendleft(add_to_pool())
-            shuffled_tasks = shuffle.root(
-                tasks, key=entropy, salt=token_bytes(32)
+            await gather(
+                *sorted(tasks, key=lambda val: token_bytes(16)),
+                return_exceptions=True,
             )
-            await gather(*shuffled_tasks, return_exceptions=True)
 
         async def add_to_pool():
             seed = await atoken_bytes(32)
@@ -1057,95 +918,92 @@ def random_number_generator(
                 domain, result.to_bytes(64, "big"), seed.to_bytes(64, "big")
             )
 
-        async def create_unique_multiple(seed):
+        async def create_unique_multiple(seed: int):
             return await _asalt_multiply(
-                seed,
-                await aunique_integer(),
-                await atoken_number(32),
+                seed, await _aunique_integer(), await atoken_number(32)
             )
 
         async def big_modulation(*args):
             return await _asalt_multiply(
                 *args, await atoken_number(32)
-            ) % await achoice(primes[512])
+            ) % await achoice([primes[512][-1], primes[513][0]])
 
-        generate_unique_range_bounds()
-        run(start_generator(rounds))    # <- RuntimeError in event loops
-        generate_unique_range_bounds()
+        _generate_unique_range_bounds()
+        run(start_generator(rounds))  # <- RuntimeError in event loops
+        _generate_unique_range_bounds()
     else:
-        _pool.appendleft(_entropy.hash(domain, token_bytes(32), entropy))
+        _pool.appendleft(_entropy.hash(domain, token_bytes(64), entropy))
 
-    return _entropy.hash(domain, *_pool, token_bytes(32), entropy)
+    return _entropy.hash(domain, token_bytes(32), entropy, *_pool)
 
 
-async def aunique_integer():
+async def _aunique_integer():
     """
-    Returns an ``int(hex_hash, 16)`` value of a unique hexidecimal hash.
+    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
     """
-    return int(await aunique_hash(), 16)
+    return int(await _aunique_hash(), 16)
 
 
-def unique_integer():
+def _unique_integer():
     """
-    Returns an ``int(hex_hash, 16)`` value of a unique hexidecimal hash.
+    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
     """
-    return int(unique_hash(), 16)
+    return int(_unique_hash(), 16)
 
 
-async def aunique_hash():
+async def _aunique_hash():
     """
     Returns a ``hashlib.sha3_512`` string hash of an integer which is
     greater than a 512-bit number by many orders of magnitude.
     """
-    number = await aunique_big_int()
+    number = await _aunique_big_int()
     hashed_number = await _entropy.ahash(number.to_bytes(576, "big"))
     return hashed_number.hex()
 
 
-def unique_hash():
+def _unique_hash():
     """
     Returns a ``hashlib.sha3_512`` string hash of an integer which is
     greater than a 512-bit number by many orders of magnitude.
     """
-    number = unique_big_int()
+    number = _unique_big_int()
     return _entropy.hash(number.to_bytes(576, "big")).hex()
 
 
-async def aunique_big_int():
+async def _aunique_big_int():
     """
     Uses unique lower & upper bound integers to feed into the standard
     library's ``randrange`` function & returns the result.
     """
-    upper_bound = aunique_upper_bound()
-    lower_bound = aunique_lower_bound()
-    numbers = await gather(lower_bound, upper_bound, return_exceptions=True)
-    return await aunique_range(*numbers) ^ await atoken_number(32)
+    upper_bound = _aunique_upper_bound()
+    lower_bound = _aunique_lower_bound()
+    ranges = [await lower_bound, await upper_bound]
+    return await aunique_range(*ranges) ^ await atoken_number(32)
 
 
-def unique_big_int():
+def _unique_big_int():
     """
     Uses unique lower & upper bound integers to feed into the standard
     library's ``randrange`` function & returns the result.
     """
-    upper_bound = unique_upper_bound()
-    lower_bound = unique_lower_bound()
+    upper_bound = _unique_upper_bound()
+    lower_bound = _unique_lower_bound()
     return unique_range(lower_bound, upper_bound) ^ token_number(32)
 
 
-async def aunique_lower_bound():
+async def _aunique_lower_bound():
     """
     Returns a unique number where 2**1536 < number < 2**2048 from a pair
     of global, semi-constant 256-bit - 512-bit seeds.
     """
     global SMALL_UPPER_BOUND
     global SMALL_LOWER_BOUND
-    number_0 = aunique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
-    number_1 = aunique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
-    numbers = await gather(number_0, number_1, return_exceptions=True)
-    return await _asalt_multiply(*numbers)
+    number_0 = await aunique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
+    number_1 = await aunique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
+    return await _asalt_multiply(number_0, number_1)
 
 
-def unique_lower_bound():
+def _unique_lower_bound():
     """
     Returns a unique number where 2**1536 < number < 2**2048 from a pair
     of global, semi-constant 256-bit - 512-bit seeds.
@@ -1157,20 +1015,19 @@ def unique_lower_bound():
     return _salt_multiply(number_0, number_1)
 
 
-async def aunique_upper_bound():
+async def _aunique_upper_bound():
     """
     Returns a unique number where 2**4096 < number < 2**4608 from a pair
     of global, semi-constant 1536-bit - 2048-bit seeds.
     """
     global BIG_UPPER_BOUND
     global BIG_LOWER_BOUND
-    number_0 = aunique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
-    number_1 = aunique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
-    numbers = await gather(number_0, number_1, return_exceptions=True)
-    return await _asalt_multiply(*numbers)
+    number_0 = await aunique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
+    number_1 = await aunique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
+    return await _asalt_multiply(number_0, number_1)
 
 
-def unique_upper_bound():
+def _unique_upper_bound():
     """
     Returns a unique number where 2**4096 < number < 2**4608 from a pair
     of global, semi-constant 1536-bit - 2048-bit seeds.
@@ -1182,7 +1039,7 @@ def unique_upper_bound():
     return _salt_multiply(number_0, number_1)
 
 
-async def atemplate_unique_number(number):
+async def _atemplate_unique_number(number: int):
     """
     A pseudo-random number generator helper function. An alternative
     method of constructing unique numbers. The length of the number
@@ -1201,7 +1058,7 @@ async def atemplate_unique_number(number):
     return int(str(seed)[: len(str(number))])
 
 
-def template_unique_number(number):
+def _template_unique_number(number: int):
     """
     A pseudo-random number generator helper function. An alternative
     method of constructing unique numbers. The length of the number
@@ -1220,7 +1077,7 @@ def template_unique_number(number):
     return int(str(seed)[: len(str(number))])
 
 
-async def agenerate_small_range_bounds():
+async def _agenerate_small_range_bounds():
     """
     Generates a pair of unique global, semi-constant seeds which feed
     uniqueness into the lower bound of ``random.randrange``, with the
@@ -1230,11 +1087,11 @@ async def agenerate_small_range_bounds():
     """
     global SMALL_UPPER_BOUND
     global SMALL_LOWER_BOUND
-    SMALL_UPPER_BOUND = await atemplate_unique_number(bits[512])
-    SMALL_LOWER_BOUND = await atemplate_unique_number(bits[256])
+    SMALL_UPPER_BOUND = await _atemplate_unique_number(1 << 512)
+    SMALL_LOWER_BOUND = await _atemplate_unique_number(1 << 256)
 
 
-def generate_small_range_bounds():
+def _generate_small_range_bounds():
     """
     Generates a pair of unique global, semi-constant seeds which feed
     uniqueness into the lower bound of ``random.randrange``, with the
@@ -1244,11 +1101,11 @@ def generate_small_range_bounds():
     """
     global SMALL_UPPER_BOUND
     global SMALL_LOWER_BOUND
-    SMALL_UPPER_BOUND = template_unique_number(bits[512])
-    SMALL_LOWER_BOUND = template_unique_number(bits[256])
+    SMALL_UPPER_BOUND = _template_unique_number(1 << 512)
+    SMALL_LOWER_BOUND = _template_unique_number(1 << 256)
 
 
-async def agenerate_big_range_bounds():
+async def _agenerate_big_range_bounds():
     """
     Generates a pair of unique global, semi-constant seeds which feed
     uniqueness into the upper bound of ``random.randrange``, with the
@@ -1258,11 +1115,11 @@ async def agenerate_big_range_bounds():
     """
     global BIG_UPPER_BOUND
     global BIG_LOWER_BOUND
-    BIG_UPPER_BOUND = await atemplate_unique_number(bits[2048])
-    BIG_LOWER_BOUND = await atemplate_unique_number(bits[1536])
+    BIG_UPPER_BOUND = await _atemplate_unique_number(1 << 2048)
+    BIG_LOWER_BOUND = await _atemplate_unique_number(1 << 1536)
 
 
-def generate_big_range_bounds():
+def _generate_big_range_bounds():
     """
     Generates a pair of unique global, semi-constant seeds which feed
     uniqueness into the upper bound of ``random.randrange``, with the
@@ -1272,11 +1129,11 @@ def generate_big_range_bounds():
     """
     global BIG_UPPER_BOUND
     global BIG_LOWER_BOUND
-    BIG_UPPER_BOUND = template_unique_number(bits[2048])
-    BIG_LOWER_BOUND = template_unique_number(bits[1536])
+    BIG_UPPER_BOUND = _template_unique_number(1 << 2048)
+    BIG_LOWER_BOUND = _template_unique_number(1 << 1536)
 
 
-async def agenerate_unique_range_bounds():
+async def _agenerate_unique_range_bounds():
     """
     Generates two pairs of unique global, semi-constant seeds which
     feed uniqueness into ``random.randrange``, with the consideration
@@ -1284,14 +1141,11 @@ async def agenerate_unique_range_bounds():
     Making its inputs unknown should then help keep its outputs unknown.
     """
     random.seed(token_bytes(2500))
-    await gather(
-        agenerate_small_range_bounds(),
-        agenerate_big_range_bounds(),
-        return_exceptions=True,
-    )
+    await _agenerate_small_range_bounds()
+    await _agenerate_big_range_bounds()
 
 
-def generate_unique_range_bounds():
+def _generate_unique_range_bounds():
     """
     Generates two pairs of unique global, semi-constant seeds which
     feed uniqueness into ``random.randrange``, with the consideration
@@ -1299,150 +1153,81 @@ def generate_unique_range_bounds():
     Making its inputs unknown should then help keep its outputs unknown.
     """
     random.seed(token_bytes(2500))
-    generate_small_range_bounds()
-    generate_big_range_bounds()
+    _generate_small_range_bounds()
+    _generate_big_range_bounds()
 
 
-async def asafe_symm_keypair(
-    entropy=sha_512(_salt()), refresh=False, rounds=26
+async def asymmetric_keypair( # misnomer: asynchronous symmetric keypair!
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    refresh: bool = False,
+    rounds: int = 0,
 ):
     """
-    Returns two ``bytes`` type, 512-bit hexidecimal keys. This function
-    updates the package's static random seeds before & after deriving
-    the returned key pair.
+    Returns two 64-byte symmetric keys. This function updates the
+    package's static random seeds before & after deriving the returned
+    key pair.
     """
     global global_seed
     global global_seed_key
 
-    await agenerate_unique_range_bounds()
-    seed_key = bytes.fromhex(
-        sha_512(
-            entropy,
-            global_seed,
-            global_seed_key,
-            await arandom_512(refresh=refresh, rounds=rounds),
-        )
+    await _agenerate_unique_range_bounds()
+    seed_key = sha3__512(
+        entropy,
+        global_seed,
+        global_seed_key,
+        await arandom_512(refresh=refresh, rounds=rounds),
+        hex=False,
     )
-    seed = bytes.fromhex(await asha_512_hmac(global_seed, key=seed_key))
-    global_seed_key = sha_512_hmac(global_seed_key, key=seed_key)
-    global_seed = sha_512_hmac(global_seed, key=seed)
-    await agenerate_unique_range_bounds()
+    seed = await asha3__512_hmac(global_seed, key=seed_key, hex=False)
+    global_seed_key = sha3__512_hmac(
+        global_seed_key, key=seed_key, hex=False
+    )
+    global_seed = sha3__512_hmac(global_seed, key=seed, hex=False)
+    await _agenerate_unique_range_bounds()
     return seed, seed_key
 
 
-def safe_symm_keypair(entropy=sha_512(_salt()), refresh=False, rounds=26):
+def symmetric_keypair(
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    refresh: bool = False,
+    rounds: int = 0,
+):
     """
-    Returns two ``bytes`` type, 512-bit hexidecimal keys. This function
-    updates the package's static random seeds before & after deriving
-    the returned key pair.
+    Returns two 64-byte symmetric keys. This function updates the
+    package's static random seeds before & after deriving the returned
+    key pair.
     """
     global global_seed
     global global_seed_key
 
-    generate_unique_range_bounds()
-    seed_key = bytes.fromhex(
-        sha_512(
-            entropy,
-            global_seed,
-            global_seed_key,
-            random_512(refresh=refresh, rounds=rounds),
-        )
+    _generate_unique_range_bounds()
+    seed_key = sha3__512(
+        entropy,
+        global_seed,
+        global_seed_key,
+        random_512(refresh=refresh, rounds=rounds),
+        hex=False,
     )
-    seed = bytes.fromhex(sha_512_hmac(global_seed, key=seed_key))
-    global_seed_key = sha_512_hmac(global_seed_key, key=seed_key)
-    global_seed = sha_512_hmac(global_seed, key=seed)
-    generate_unique_range_bounds()
+    seed = sha3__512_hmac(global_seed, key=seed_key, hex=False)
+    global_seed_key = sha3__512_hmac(
+        global_seed_key, key=seed_key, hex=False
+    )
+    global_seed = sha3__512_hmac(global_seed, key=seed, hex=False)
+    _generate_unique_range_bounds()
     return seed, seed_key
-
-
-@comprehension()
-async def aseeder(entropy=sha_512(_salt()), *, refresh=False, rounds=26):
-    """
-    A fast cryptographically secure pseudo-random number generator that
-    supports adding entropy during iteration. It's securely hashes
-    together the randomness produced from key ratchet algorithm, OS
-    psuedo-randomness, & this module's cpu-intensive & chaotic random
-    number generator.
-
-    Usage examples:
-
-    # In async for loops ->
-    async for seed in aseeder():
-        # do something with ``seed``, a random 512-bit hash
-
-    # By awaiting next ->
-    acsprng = aseeder()
-    seed = await next(acsprng)
-
-    # By sending in entropy ->
-    entropy = "any object as a source of randomness"
-    acsprng = aseeder(entropy)  # entropy can be added here
-    await acsprng(None)
-    seed = await acsprng(entropy)  # &/or entropy can be added here
-    """
-    ENTROPY = Domains.ENTROPY
-    seed, seed_key = await asafe_symm_keypair(entropy, refresh, rounds)
-    output = sha3_512(ENTROPY + seed_key + seed)
-    rotation_key = bytes.fromhex(await asha_256(seed, seed_key, entropy))
-    while True:
-        if not entropy:
-            entropy = rotation_key
-        elif not entropy.__class__ == bytes:
-            entropy = str(entropy).encode()
-
-        ratchet = await _entropy.ahash(ENTROPY + token_bytes(32) + entropy)
-        output.update(ENTROPY + ratchet)
-        entropy = yield output.hexdigest()
-
-
-@comprehension()
-def seeder(entropy=sha_512(_salt()), *, refresh=False, rounds=26):
-    """
-    A fast cryptographically secure pseudo-random number generator that
-    supports adding entropy during iteration. It's securely hashes
-    together the randomness produced from key ratchet algorithm, OS
-    psuedo-randomness, & this module's cpu-intensive & chaotic random
-    number generator.
-
-    Usage examples:
-
-    # In for loops ->
-    for seed in seeder():
-        # do something with ``seed``, a random 512-bit hash
-
-    # By calling next ->
-    csprng = seeder()
-    seed = next(csprng)
-
-    # By sending in entropy ->
-    entropy = "any object as a source of randomness"
-    csprng = seeder(entropy)  # entropy can be added here
-    csprng(None)
-    seed = csprng(entropy)  # &/or entropy can be added here
-    """
-    ENTROPY = Domains.ENTROPY
-    seed, seed_key = safe_symm_keypair(entropy, refresh, rounds)
-    output = sha3_512(ENTROPY + seed_key + seed)
-    rotation_key = bytes.fromhex(sha_256(seed, seed_key, entropy))
-    while True:
-        if not entropy:
-            entropy = rotation_key
-        elif not entropy.__class__ == bytes:
-            entropy = str(entropy).encode()
-
-        ratchet = _entropy.hash(ENTROPY + token_bytes(32) + entropy)
-        output.update(ENTROPY + ratchet)
-        entropy = yield output.hexdigest()
 
 
 @comprehension()
 async def abytes_seeder(
-    entropy=sha_512(_salt()), *, refresh=False, rounds=26
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
 ):
     """
     A fast cryptographically secure pseudo-random number generator that
-    supports adding entropy during iteration. It's securely hashes
-    together the randomness produced from key ratchet algorithm, OS
+    supports adding entropy during iteration. It securely hashes
+    together the randomness produced from a key ratchet algorithm, OS
     psuedo-randomness, & this module's cpu-intensive & chaotic random
     number generator.
 
@@ -1450,7 +1235,7 @@ async def abytes_seeder(
 
     # In async for loops ->
     async for seed in abytes_seeder():
-        # do something with ``seed``, 64 random bytes
+        # do something with `seed`, a strong pseudo-random 512-bit hash
 
     # By awaiting next ->
     acsprng = abytes_seeder()
@@ -1462,27 +1247,33 @@ async def abytes_seeder(
     await acsprng(None)
     seed = await acsprng(entropy)  # &/or entropy can be added here
     """
-    ENTROPY = Domains.ENTROPY
-    seed, seed_key = await asafe_symm_keypair(entropy, refresh, rounds)
-    output = sha3_512(ENTROPY + seed_key + seed)
-    rotation_key = bytes.fromhex(await asha_256(seed, seed_key, entropy))
+    domain = Domains.ENTROPY
+    # misnomer: asynchronous symmetric keypair!
+    seed, seed_key = await asymmetric_keypair(entropy, refresh, rounds)
+    output = sha3_512(domain + seed_key + seed).digest()
+    rotation_key = await asha3__256(seed, seed_key, entropy, hex=False)
     while True:
         if not entropy:
             entropy = rotation_key
-        elif not entropy.__class__ == bytes:
-            entropy = str(entropy).encode()
-
-        ratchet = await _entropy.ahash(ENTROPY + token_bytes(32) + entropy)
-        output.update(ENTROPY + ratchet)
-        entropy = yield output.digest()
+        elif entropy.__class__ is not bytes:
+            entropy = repr(entropy).encode()
+        output = await _entropy.ahash(
+            domain, token_bytes(32), entropy, output
+        )
+        entropy = yield output
 
 
 @comprehension()
-def bytes_seeder(entropy=sha_512(_salt()), *, refresh=False, rounds=26):
+def bytes_seeder(
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
+):
     """
     A fast cryptographically secure pseudo-random number generator that
-    supports adding entropy during iteration. It's securely hashes
-    together the randomness produced from key ratchet algorithm, OS
+    supports adding entropy during iteration. It securely hashes
+    together the randomness produced from a key ratchet algorithm, OS
     psuedo-randomness, & this module's cpu-intensive & chaotic random
     number generator.
 
@@ -1490,7 +1281,7 @@ def bytes_seeder(entropy=sha_512(_salt()), *, refresh=False, rounds=26):
 
     # In for loops ->
     for seed in bytes_seeder():
-        # do something with ``seed``, 64 random bytes
+        # do something with `seed`, a strong pseudo-random 512-bit hash
 
     # By calling next ->
     csprng = bytes_seeder()
@@ -1502,244 +1293,81 @@ def bytes_seeder(entropy=sha_512(_salt()), *, refresh=False, rounds=26):
     csprng(None)
     seed = csprng(entropy)  # &/or entropy can be added here
     """
-    ENTROPY = Domains.ENTROPY
-    seed, seed_key = safe_symm_keypair(entropy, refresh, rounds)
-    output = sha3_512(ENTROPY + seed_key + seed)
-    rotation_key = bytes.fromhex(sha_256(seed, seed_key, entropy))
+    domain = Domains.ENTROPY
+    seed, seed_key = symmetric_keypair(entropy, refresh, rounds)
+    output = sha3_512(domain + seed_key + seed).digest()
+    rotation_key = sha3__256(seed, seed_key, entropy, hex=False)
     while True:
         if not entropy:
             entropy = rotation_key
-        elif not entropy.__class__ == bytes:
-            entropy = str(entropy).encode()
-
-        ratchet = _entropy.hash(ENTROPY + token_bytes(32) + entropy)
-        output.update(ENTROPY + ratchet)
-        entropy = yield output.digest()
+        elif entropy.__class__ is not bytes:
+            entropy = repr(entropy).encode()
+        output = _entropy.hash(domain, token_bytes(32), entropy, output)
+        entropy = yield output
 
 
 @comprehension()
-async def anon_0_digits(key=None, stream_key=""):
+async def amake_uuids(*, size: int = 24, salt: Typing.Any = None):
     """
-    Creates a deterministic stream of non-zero digits from a key.
-    """
-    key = key if key else await acsprng()
-    seed = await asha_512(key)
-    while True:
-        stream_key = int(await asha_512(seed, key, stream_key), 16)
-        for char in str(stream_key).replace("0", "")[8:]:
-            yield int(char)
-
-
-@comprehension()
-def non_0_digits(key=None, stream_key=""):
-    """
-    Creates a deterministic stream of non-zero digits from a key.
-    """
-    key = key if key else csprng()
-    seed = sha_512(key)
-    while True:
-        stream_key = int(sha_512(seed, key, stream_key), 16)
-        for char in str(stream_key).replace("0", "")[8:]:
-            yield int(char)
-
-
-@comprehension()
-async def abytes_digits(key=None, stream_key=""):
-    """
-    Creates a deterministic stream of bytes numbers from a key.
-    """
-    key = key if key else await acsprng()
-    seed = await asha_512(key)
-    from_hex = bytes.fromhex
-    while True:
-        stream_key = from_hex(await asha_512(seed, key, stream_key))
-        for char in stream_key:
-            yield char
-
-
-@comprehension()
-def bytes_digits(key=None, stream_key=""):
-    """
-    Creates a deterministic stream of bytes numbers from a key.
-    """
-    key = key if key else csprng()
-    seed = sha_512(key)
-    from_hex = bytes.fromhex
-    while True:
-        stream_key = from_hex(sha_512(seed, key, stream_key))
-        for char in stream_key:
-            yield char
-
-
-@comprehension()
-async def adigits(key=None, stream_key=""):
-    """
-    Creates a deterministic stream of digits from a key.
-    """
-    key = key if key else await acsprng()
-    seed = await asha_512(key)
-    while True:
-        stream_key = int(await asha_512(seed, key, stream_key), 16)
-        for char in str(stream_key)[8:]:
-            yield int(char)
-
-
-@comprehension()
-def digits(key=None, stream_key=""):
-    """
-    Creates a deterministic stream of digits from a key.
-    """
-    key = key if key else csprng()
-    seed = sha_512(key)
-    while True:
-        stream_key = int(sha_512(seed, key, stream_key), 16)
-        for char in str(stream_key)[8:]:
-            yield int(char)
-
-
-async def apermute(sequence=None, key=None, salt=None):
-    """
-    Returns a list of indexes of size len(sequence) that map a starting
-    order of elements to a new shuffled state using the ``key`` & ``salt``
-    arguments as seeds.
-    """
-    seed = bytes.fromhex(await asha_512_hmac(salt, key=key))
-    mappings = [index async for index in aunpack(range(len(sequence)))]
-    random.__class__(seed).shuffle(mappings)
-    return mappings
-
-
-def permute(sequence=None, key=None, salt=None):
-    """
-    Returns a list of indexes of size len(sequence) that map a starting
-    order of elements to a new shuffled state using the ``key`` & ``salt``
-    arguments as seeds.
-    """
-    seed = bytes.fromhex(sha_512_hmac(salt, key=key))
-    mappings = [index for index in range(len(sequence))]
-    random.__class__(seed).shuffle(mappings)
-    return mappings
-
-
-@comprehension()
-async def ashuffle(sequence=None, key=None, salt=None):
-    """
-    Reorganizes & yields each element in a sequence in a shuffled state
-    from a starting order using the ``key`` & ``salt`` arguments as
-    seeds.
-    """
-    mappings = await apermute(sequence, key, salt)
-    for index in mappings:
-        yield sequence[index]
-
-
-@comprehension()
-def shuffle(sequence=None, key=None, salt=None):
-    """
-    Reorganizes & yields each element in a sequence in a shuffled state
-    from a starting order using the ``key`` & ``salt`` arguments as
-    seeds.
-    """
-    mappings = permute(sequence, key, salt)
-    for index in mappings:
-        yield sequence[index]
-
-
-@comprehension()
-async def aunshuffle(sequence=None, key=None, salt=None):
-    """
-    Reorganizes & yields each element in a sequence in its original
-    order from a shuffled state that was produced using the ``key`` &
-    ``salt`` arguments as seeds.
-    """
-    cache = {}
-    counter = 0
-    mappings = await apermute(sequence, key, salt)
-    for index, placement in enumerate(mappings):
-        if placement != counter:
-            cache[placement] = sequence[index]
-            await asleep(0)
-        else:
-            yield sequence[index]
-            counter += 1
-        while counter in cache:
-            yield cache.pop(counter)
-            counter += 1
-
-
-@comprehension()
-def unshuffle(sequence=None, key=None, salt=None):
-    """
-    Reorganizes & yields each element in a sequence in its original
-    order from a shuffled state that was produced using the ``key`` &
-    ``salt`` arguments as seeds.
-    """
-    cache = {}
-    counter = 0
-    mappings = permute(sequence, key, salt)
-    for index, placement in enumerate(mappings):
-        if placement != counter:
-            cache[placement] = sequence[index]
-        else:
-            yield sequence[index]
-            counter += 1
-        while counter in cache:
-            yield cache.pop(counter)
-            counter += 1
-
-
-@comprehension()
-async def amake_uuids(size=16, salt=None):
-    """
-    Creates a deterministic, unique user id from a ``salt`` & a ``stamp``
-    sent into coroutine.
+    Creates deterministic, ``size``-byte unique user ids from a ``salt``
+    & a ``stamp`` sent into coroutine.
     """
     stamp = None
-    salt = salt if salt else await acsprng()
+    salt = salt if salt else (await agenerate_salt(size=32)).hex()
+    UUID = await asha3__512(Domains.UUID.hex(), salt)
     async with Comprende.aclass_relay(salt):
         while True:
-            uuid = ""
+            uuid = b""
             while len(uuid) < size:
-                uuid += sha_512(salt, uuid, stamp)
-            stamp = yield uuid[:size]
+                uuid += await asha3__512(UUID, salt, uuid, stamp, hex=False)
+            stamp = yield base64.urlsafe_b64encode(uuid)[:size]
 
 
 @comprehension()
-def make_uuids(size=16, salt=None):
+def make_uuids(*, size: int = 24, salt: Typing.Any = None):
     """
-    Creates a deterministic, unique user id from a ``salt`` & a ``stamp``
-    sent into coroutine.
+    Creates deterministic, ``size``-byte unique user ids from a ``salt``
+    & a ``stamp`` sent into coroutine.
     """
     stamp = None
-    salt = salt if salt else csprng()
+    salt = salt if salt else generate_salt(size=32).hex()
+    UUID = sha3__512(Domains.UUID.hex(), salt)
     with Comprende.class_relay(salt):
         while True:
-            uuid = ""
+            uuid = b""
             while len(uuid) < size:
-                uuid += sha_512(salt, uuid, stamp)
-            stamp = yield uuid[:size]
+                uuid += sha3__512(UUID, salt, uuid, stamp, hex=False)
+            stamp = yield base64.urlsafe_b64encode(uuid)[:size]
 
 
-async def agenerate_salt(entropy=bytes.fromhex(sha_512(_salt()))):
+async def agenerate_salt(
+    entropy: Typing.Any = sha3__512(_salt(), hex=False), *, size: int
+):
     """
-    Returns a cryptographically secure pseudo-random 256-bit hex number
-    that also seeds new entropy into the acsprng generator.
+    Returns ``size`` cryptographically secure pseudo-random bytes &
+    seeds new entropy into the acsprng generator.
     """
-    return (await acsprng(entropy))[:SALT_NIBBLES]
+    if size > 64 or size < 8:
+        raise Issue.invalid_length("salt", "min(8):max(64)")
+    return (await acsprng(entropy))[:size]
 
 
-def generate_salt(entropy=bytes.fromhex(sha_512(_salt()))):
+def generate_salt(
+    entropy: Typing.Any = sha3__512(_salt(), hex=False), *, size: int
+):
     """
-    Returns a cryptographically secure pseudo-random 256-bit hex number
-    that also seeds new entropy into the csprng generator.
+    Returns ``size`` cryptographically secure pseudo-random bytes &
+    seeds new entropy into the acsprng generator.
     """
-    return csprng(entropy)[:SALT_NIBBLES]
+    if size > 64 or size < 8:
+        raise Issue.invalid_length("salt", "min(8):max(64)")
+    return csprng(entropy)[:size]
 
 
-async def acsprng(entropy=bytes.fromhex(sha_512(_salt()))):
+async def acsprng(entropy: Typing.Any = sha3__512(_salt(), hex=False)):
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
-    return a 512-bit cryptographically secure pseudo-random hex number.
+    return a 512-bit cryptographically secure pseudo-random bytes value.
     This function also restarts the package's CSPRNG if it stalls, which,
     for example, can happen when CTRL-Cing in the middle of the
     generator's runtime. This makes sure the whole package doesn't come
@@ -1749,14 +1377,14 @@ async def acsprng(entropy=bytes.fromhex(sha_512(_salt()))):
     try:
         return await _acsprng(entropy)
     except (StopAsyncIteration, ValueError):
-        _acsprng = aseeder.root(entropy).asend
+        _acsprng = abytes_seeder.root(entropy).asend
         return await _acsprng(None)
 
 
-def csprng(entropy=bytes.fromhex(sha_512(_salt()))):
+def csprng(entropy: Typing.Any = sha3__512(_salt(), hex=False)):
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
-    return a 512-bit cryptographically secure pseudo-random hex number.
+    return a 512-bit cryptographically secure pseudo-random bytes value.
     This function also restarts the package's CSPRNG if it stalls, which,
     for example, can happen when CTRL-Cing in the middle of the
     generator's runtime. This makes sure the whole package doesn't come
@@ -1766,58 +1394,20 @@ def csprng(entropy=bytes.fromhex(sha_512(_salt()))):
     try:
         return _csprng(entropy)
     except (StopIteration, ValueError):
-        _csprng = seeder.root(entropy).send
+        _csprng = bytes_seeder.root(entropy).send
         return _csprng(None)
-
-
-async def acsprbg(entropy=bytes.fromhex(sha_512(_salt()))):
-    """
-    Takes in an arbitrary ``entropy`` value from the user to seed then
-    return a 512-bit cryptographically secure pseudo-random bytes value.
-    This function also restarts the package's CSPRNG if it stalls, which,
-    for example, can happen when CTRL-Cing in the middle of the
-    generator's runtime. This makes sure the whole package doesn't come
-    crashing down for users when the generator is halted unexpectedly.
-    """
-    global _acsprbg
-    try:
-        return await _acsprbg(entropy)
-    except (StopAsyncIteration, ValueError):
-        _acsprbg = abytes_seeder.root(entropy).asend
-        return await _acsprbg(None)
-
-
-def csprbg(entropy=bytes.fromhex(sha_512(_salt()))):
-    """
-    Takes in an arbitrary ``entropy`` value from the user to seed then
-    return a 512-bit cryptographically secure pseudo-random bytes value.
-    This function also restarts the package's CSPRNG if it stalls, which,
-    for example, can happen when CTRL-Cing in the middle of the
-    generator's runtime. This makes sure the whole package doesn't come
-    crashing down for users when the generator is halted unexpectedly.
-    """
-    global _csprbg
-    try:
-        return _csprbg(entropy)
-    except (StopIteration, ValueError):
-        _csprbg = bytes_seeder.root(entropy).send
-        return _csprbg(None)
 
 
 try:
     # Initalize package entropy pool & cryptographically secure pseudo-
     # random number generators.
-    global_seed_key = random_512(entropy=sha_512(_salt()))
-    global_seed = random_512(entropy=global_seed_key)
-    _csprng = seeder.root(global_seed).send
-    _acsprng = aseeder.root(_csprng(None)).asend
-    _csprbg = bytes_seeder.root(run(_acsprng(None))).send
-    _acsprbg = abytes_seeder.root(_csprbg(None)).asend
-    global_seed_key = run(_acsprbg(None))
-    global_seed = (
-        generate_salt(run(_acsprbg(global_seed)))
-        + run(agenerate_salt(_csprbg(global_seed)))
-    )
+    global_seed_key = random_512(entropy=sha3__512(_salt(), hex=False))
+    global_seed = run(arandom_512(entropy=global_seed_key))
+    _csprng = bytes_seeder.root(global_seed).send
+    _acsprng = abytes_seeder.root(_csprng(None)).asend
+    global_seed_key = run(_acsprng(None))
+    global_seed = _csprng(global_seed_key)
+    run(_acsprng(global_seed))
 except RuntimeError as error:
     problem = f"{__package__}'s random seed initialization failed, "
     location = f"likely because {__name__} "
@@ -1826,95 +1416,50 @@ except RuntimeError as error:
     raise failure from error
 
 
-__extras = {
-    "PrimeGroups": PrimeGroups,
-    "__doc__": __doc__,
-    "__main_exports__": __all__,
-    "__package__": "aiootp",
-    "abytes_digits": abytes_digits,
-    "abytes_seeder": abytes_seeder,
-    "achoice": achoice,
-    "acreate_prime": acreate_prime,
-    "acsprbg": acsprbg,
-    "acsprng": acsprng,
-    "adigits": adigits,
-    "agenerate_big_range_bounds": agenerate_big_range_bounds,
-    "agenerate_salt": agenerate_salt,
-    "agenerate_small_range_bounds": agenerate_small_range_bounds,
-    "agenerate_unique_range_bounds": agenerate_unique_range_bounds,
-    "amake_uuids": amake_uuids,
-    "anon_0_digits": anon_0_digits,
-    "aprime_table": aprime_table,
-    "arandom_256": arandom_256,
-    "arandom_512": arandom_512,
-    "arandom_number_generator": arandom_number_generator,
-    "aunique_prime": aunique_prime,
-    "aunique_range": aunique_range,
-    "aunique_range_gen": aunique_range_gen,
-    "arandom_sleep": arandom_sleep,
-    "asafe_symm_keypair": asafe_symm_keypair,
-    "aseeder": aseeder,
-    "ashuffle": ashuffle,
-    "atemplate_unique_number": atemplate_unique_number,
-    "atoken_bits": atoken_bits,
-    "atoken_bytes": atoken_bytes,
-    "atoken_hash": atoken_hash,
-    "atoken_number": atoken_number,
-    "auniform": auniform,
-    "aunique_big_int": aunique_big_int,
-    "aunique_hash": aunique_hash,
-    "aunique_integer": aunique_integer,
-    "aunique_lower_bound": aunique_lower_bound,
-    "aunique_upper_bound": aunique_upper_bound,
-    "aunshuffle": aunshuffle,
-    "aurandom": aurandom,
-    "aurandom_hash": aurandom_hash,
-    "aurandom_number": aurandom_number,
-    "bytes_digits": bytes_digits,
-    "bytes_seeder": bytes_seeder,
-    "choice": choice,
-    "create_prime": create_prime,
-    "csprbg": csprbg,
-    "csprng": csprng,
-    "digits": digits,
-    "generate_big_range_bounds": generate_big_range_bounds,
-    "generate_salt": generate_salt,
-    "generate_small_range_bounds": generate_small_range_bounds,
-    "generate_unique_range_bounds": generate_unique_range_bounds,
-    "is_prime": is_prime,
-    "make_uuids": make_uuids,
-    "next_prime": next_prime,
-    "non_0_digits": non_0_digits,
-    "permute": permute,
-    "prev_prime": prev_prime,
-    "prime_table": prime_table,
-    "random_256": random_256,
-    "random_512": random_512,
-    "random_number_generator": random_number_generator,
-    "unique_prime": unique_prime,
-    "unique_range": unique_range,
-    "unique_range_gen": unique_range_gen,
-    "random_sleep": random_sleep,
-    "safe_symm_keypair": safe_symm_keypair,
-    "seeder": seeder,
-    "shuffle": shuffle,
-    "template_unique_number": template_unique_number,
-    "token_bits": token_bits,
-    "token_bytes": token_bytes,
-    "token_hash": token_hash,
-    "token_number": token_number,
-    "uniform": uniform,
-    "unique_big_int": unique_big_int,
-    "unique_hash": unique_hash,
-    "unique_integer": unique_integer,
-    "unique_lower_bound": unique_lower_bound,
-    "unique_upper_bound": unique_upper_bound,
-    "unshuffle": unshuffle,
-    "urandom": urandom,
-    "urandom_hash": urandom_hash,
-    "urandom_number": urandom_number,
-}
+extras = dict(
+    PrimeTools=PrimeTools,
+    WeakEntropy=WeakEntropy,
+    __doc__=__doc__,
+    __main_exports__=__all__,
+    __package__=__package__,
+    abytes_seeder=abytes_seeder,
+    achoice=achoice,
+    acsprng=acsprng,
+    agenerate_salt=agenerate_salt,
+    amake_uuids=amake_uuids,
+    arandom_256=arandom_256,
+    arandom_512=arandom_512,
+    arandom_number_generator=arandom_number_generator,
+    arandom_sleep=arandom_sleep,
+    atoken_bits=atoken_bits,
+    atoken_bytes=atoken_bytes,
+    atoken_hash=atoken_hash,
+    atoken_number=atoken_number,
+    auniform=auniform,
+    aunique_range=aunique_range,
+    aurandom_bytes=aurandom_bytes,
+    aurandom_hash=aurandom_hash,
+    aurandom_number=aurandom_number,
+    bytes_seeder=bytes_seeder,
+    choice=choice,
+    csprng=csprng,
+    generate_salt=generate_salt,
+    make_uuids=make_uuids,
+    random_256=random_256,
+    random_512=random_512,
+    random_number_generator=random_number_generator,
+    random_sleep=random_sleep,
+    token_bits=token_bits,
+    token_bytes=token_bytes,
+    token_hash=token_hash,
+    token_number=token_number,
+    uniform=uniform,
+    unique_range=unique_range,
+    urandom_bytes=urandom_bytes,
+    urandom_hash=urandom_hash,
+    urandom_number=urandom_number,
+)
 
 
-randoms = Namespace.make_module("randoms", mapping=__extras)
+randoms = commons.make_module("randoms", mapping=extras)
 
