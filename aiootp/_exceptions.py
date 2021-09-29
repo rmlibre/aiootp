@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -48,7 +48,7 @@ class Issue:
     _VALUE_MUST_BE_TYPE: str = "The NAME value must be a TYPE object."
     _VALUE_ALREADY_SET: str = "The OBJECT is already set to CONTEXT."
     _EXCEEDED_BLOCKSIZE: str = "Data block MUST NOT exceed 256 bytes."
-    _CANT_OVERWRITE_AN_EXISTING_ATTRIBUTE: str = (
+    _CANT_OVERWRITE_EXISTING_ATTRIBUTE: str = (
         "Can't overwrite the existing NAME attribute."
     )
     _INVALID_BLOCKSIZE: str = (
@@ -110,8 +110,8 @@ class Issue:
         return ValueError(cls._EXCEEDED_BLOCKSIZE)
 
     @classmethod
-    def cant_overwrite_an_existing_attribute(cls, name: str):
-        issue = cls._CANT_OVERWRITE_AN_EXISTING_ATTRIBUTE
+    def cant_overwrite_existing_attribute(cls, name: str):
+        issue = cls._CANT_OVERWRITE_EXISTING_ATTRIBUTE
         return ValueError(issue.replace("NAME", name))
 
     @classmethod
