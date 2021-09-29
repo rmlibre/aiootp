@@ -11,54 +11,22 @@
 
 __all__ = [
     "generics",
-    "json",
+    "gentools",
     "BytesIO",
     "Comprende",
-    "Datastream",
     "Domains",
-    "Enumerate",
     "Hasher",
     "Padding",
-    "comprehension",
-    "azip",
-    "anext",
-    "arange",
-    "abytes_range",
-    "bytes_range",
-    "aunpack",
-    "unpack",
-    "aecho",
-    "echo",
-    "abirth",
-    "birth",
-    "adata",
-    "data",
-    "aorder",
-    "order",
-    "apick",
-    "pick",
-    "acycle",
-    "cycle",
-    "acount",
-    "count",
-    "abytes_count",
-    "bytes_count",
-    "apop",
-    "pop",
-    "apopleft",
-    "popleft",
-    "await_on",
-    "wait_on",
-    "asha_256",
-    "sha_256",
-    "asha_256_hmac",
-    "sha_256_hmac",
-    "asha_512",
-    "sha_512",
-    "asha_512_hmac",
-    "sha_512_hmac",
-    "atime_safe_equality",
-    "time_safe_equality",
+    "abytes_are_equal",
+    "asha3__256",
+    "asha3__256_hmac",
+    "asha3__512",
+    "asha3__512_hmac",
+    "bytes_are_equal",
+    "sha3__256",
+    "sha3__256_hmac",
+    "sha3__512",
+    "sha3__512_hmac",
 ]
 
 
@@ -73,10 +41,10 @@ import math
 import json
 import heapq
 import base64
-import random
 import secrets
 import aiofiles
 import builtins
+from pathlib import Path
 from os import linesep
 from sys import getsizeof
 from functools import wraps
@@ -84,16 +52,13 @@ from functools import lru_cache
 from async_lru import alru_cache
 from types import GeneratorType
 from types import AsyncGeneratorType
-from random import uniform
 from contextlib import contextmanager
-from hashlib import sha3_256
-from hashlib import sha3_512
-from hashlib import shake_256
+from hashlib import blake2s
+from hashlib import sha3_256, sha3_512, shake_256
+from hmac import compare_digest as bytes_are_equal
 from collections import deque
-from collections.abc import Iterable
-from collections.abc import Iterator
-from collections.abc import AsyncIterable
-from collections.abc import AsyncIterator
+from collections.abc import Iterable, Iterator
+from collections.abc import AsyncIterable, AsyncIterator
 from inspect import getsource
 from inspect import isfunction as is_function
 from inspect import isawaitable as is_awaitable
@@ -101,12 +66,16 @@ from inspect import iscoroutinefunction as is_async_function
 from inspect import isasyncgenfunction as is_async_gen_function
 from inspect import isgeneratorfunction as is_generator_function
 from .__aiocontext import async_contextmanager
+from ._exceptions import *
+from ._typing import Typing
+from .debuggers import DebugControl
+from .commons import PrimeGroups
 from .commons import *
 from commons import *  # import the module's constants
+from ._containers import *
+from _containers import *
 from .asynchs import *
-from .asynchs import time
-from .asynchs import this_second
-from . import DebugControl
+from .asynchs import asleep, gather, this_second, time
 
 
 def src(obj, *, display=True):
@@ -179,99 +148,443 @@ def is_generator(obj):
     return isinstance(obj, GeneratorType)
 
 
-class AsyncInit(type):
+async def abytes_are_equal(value_0: bytes, value_1: bytes):
     """
-    A metaclass which allows classes to use asynchronous ``__init__``
-    methods. Inspired by David Beazley.
+    Tests if two bytes values are equal with a simple & fast timing-safe
+    comparison function from the `hmac` module.
+    """
+    await asleep()
+    return bytes_are_equal(value_0, value_1)
+
+
+async def arightmost_bit(number: int):
+    """
+    Returns the value of the right-most bit of a given positive integer.
+    """
+    await asleep()
+    return number ^ (number & (number - 1))
+
+
+def rightmost_bit(number: int):
+    """
+    Returns the value of the right-most bit of a given positive integer.
+    """
+    return number ^ (number & (number - 1))
+
+
+async def ato_base64(binary: Typing.AnyStr, encoding: str = "utf-8"):
+    """
+    A version of ``base64.standard_b64encode``.
+    """
+    if binary.__class__ is not bytes:
+        binary = binary.encode(encoding)
+    await asleep()
+    return base64.standard_b64encode(binary)
+
+
+def to_base64(binary: Typing.AnyStr, encoding: str = "utf-8"):
+    """
+    A version of ``base64.standard_b64encode``.
+    """
+    if binary.__class__ is not bytes:
+        binary = binary.encode(encoding)
+    return base64.standard_b64encode(binary)
+
+
+async def afrom_base64(base_64: Typing.AnyStr, encoding: str = "utf-8"):
+    """
+    A version of ``base64.standard_b64decode``.
+    """
+    if base_64.__class__ is not bytes:
+        base_64 = base_64.encode(encoding)
+    await asleep()
+    return base64.standard_b64decode(base_64)
+
+
+def from_base64(base_64: Typing.AnyStr, encoding: str = "utf-8"):
+    """
+    A version of ``base64.standard_b64decode``.
+    """
+    if base_64.__class__ is not bytes:
+        base_64 = base_64.encode(encoding)
+    return base64.standard_b64decode(base_64)
+
+
+async def abase_to_int(string, base, *, table=Tables.ASCII_95):
+    """
+    Convert ``string`` in numerical ``base`` into decimal integer.
+    """
+    power = 1
+    result = 0
+    base_table = table[:base]
+    await asleep()
+    for char in reversed(string):
+        if char not in base_table:
+            raise Issue.invalid_value("base with the given table")
+        result += base_table.find(char) * power
+        power = power * base
+    await asleep()
+    return result
+
+
+def base_to_int(string, base, *, table=Tables.ASCII_95):
+    """
+    Convert ``string`` in numerical ``base`` into decimal integer.
+    """
+    power = 1
+    result = 0
+    base_table = table[:base]
+    for char in reversed(string):
+        if char not in base_table:
+            raise Issue.invalid_value("base with the given table")
+        result += base_table.find(char) * power
+        power = power * base
+    return result
+
+
+async def aint_to_base(number, base, *, table=Tables.ASCII_95):
+    """
+    Convert an ``number`` back into a string in numerical ``base``.
+    """
+    digits = []
+    base_table = table[:base]
+    await asleep()
+    while number:
+        digits.append(base_table[number % base])
+        number //= base
+    await asleep()
+    if digits:
+        digits.reverse()
+        return digits[0][:0].join(digits)
+    else:
+        return table[:1]
+
+
+def int_to_base(number, base, *, table=Tables.ASCII_95):
+    """
+    Convert an ``number`` back into a string in numerical ``base``.
+    """
+    digits = []
+    base_table = table[:base]
+    while number:
+        digits.append(base_table[number % base])
+        number //= base
+    if digits:
+        digits.reverse()
+        return digits[0][:0].join(digits)
+    else:
+        return table[:1]
+
+
+async def asha3__256(*data: Typing.Iterable, hex: bool = True):
+    """
+    A string-based version of ``hashlib.sha3_256``. Stringifies & places
+    all inputs into a tuple before hashing.
+    """
+    await asleep()
+    if hex:
+        return sha3_256(str(data).encode()).hexdigest()
+    else:
+        return sha3_256(str(data).encode()).digest()
+
+
+def sha3__256(*data: Typing.Iterable, hex: bool = True):
+    """
+    A string-based version of ``hashlib.sha3_256``. Stringifies & places
+    all inputs into a tuple before hashing.
+    """
+    if hex:
+        return sha3_256(str(data).encode()).hexdigest()
+    else:
+        return sha3_256(str(data).encode()).digest()
+
+async def asha3__256_hmac(
+    data: Typing.Union[bytes, Typing.Any],
+    *,
+    key: Typing.Union[bytes, Typing.Any],
+    hex: bool = True,
+):
+    """
+    An HMAC-esque version of the ``hashlib.sha3_512`` function.
+    """
+    await asleep()
+    bytes_key = key if key.__class__ is bytes else repr(key).encode()
+    bytes_data = data if data.__class__ is bytes else repr(data).encode()
+    await asleep()
+    if hex:
+        return hmac.new(bytes_key, bytes_data, sha3_256).hexdigest()
+    else:
+        return hmac.new(bytes_key, bytes_data, sha3_256).digest()
+
+
+def sha3__256_hmac(
+    data: Typing.Union[bytes, Typing.Any],
+    *,
+    key: Typing.Union[bytes, Typing.Any],
+    hex: bool = True,
+):
+    """
+    An HMAC-esque version of the ``hashlib.sha3_512`` function.
+    """
+    bytes_key = key if key.__class__ is bytes else repr(key).encode()
+    bytes_data = data if data.__class__ is bytes else repr(data).encode()
+    if hex:
+        return hmac.new(bytes_key, bytes_data, sha3_256).hexdigest()
+    else:
+        return hmac.new(bytes_key, bytes_data, sha3_256).digest()
+
+
+async def asha3__512(*data: Typing.Iterable, hex: bool = True):
+    """
+    A string-based version of ``hashlib.sha3_512``. Stringifies & places
+    all inputs into a tuple before hashing.
+    """
+    await asleep()
+    if hex:
+        return sha3_512(str(data).encode()).hexdigest()
+    else:
+        return sha3_512(str(data).encode()).digest()
+
+
+def sha3__512(*data: Typing.Iterable, hex: bool = True):
+    """
+    A string-based version of ``hashlib.sha3_512``. Stringifies & places
+    all inputs into a tuple before hashing.
+    """
+    if hex:
+        return sha3_512(str(data).encode()).hexdigest()
+    else:
+        return sha3_512(str(data).encode()).digest()
+
+
+async def asha3__512_hmac(
+    data: Typing.Union[bytes, Typing.Any],
+    *,
+    key: Typing.Union[bytes, Typing.Any],
+    hex: bool = True,
+):
+    """
+    An HMAC-esque version of the ``hashlib.sha3_512`` function.
+    """
+    await asleep()
+    bytes_key = key if key.__class__ is bytes else repr(key).encode()
+    bytes_data = data if data.__class__ is bytes else repr(data).encode()
+    await asleep()
+    if hex:
+        return hmac.new(bytes_key, bytes_data, sha3_512).hexdigest()
+    else:
+        return hmac.new(bytes_key, bytes_data, sha3_512).digest()
+
+
+def sha3__512_hmac(
+    data: Typing.Union[bytes, Typing.Any],
+    *,
+    key: Typing.Union[bytes, Typing.Any],
+    hex: bool = True,
+):
+    """
+    An HMAC-esque version of the ``hashlib.sha3_512`` function.
+    """
+    bytes_key = key if key.__class__ is bytes else repr(key).encode()
+    bytes_data = data if data.__class__ is bytes else repr(data).encode()
+    if hex:
+        return hmac.new(bytes_key, bytes_data, sha3_512).hexdigest()
+    else:
+        return hmac.new(bytes_key, bytes_data, sha3_512).digest()
+
+
+async def axi_mix(bytes_hash: bytes, size: int = 8):
+    """
+    Xors subsequent ``size`` length segments of ``bytes_hash`` with each
+    other to condense the bytes hash down to ``size`` bytes.
+    """
+    result = 0
+    async for chunk in adata.root(bytes_hash, size=size):
+        result ^= int.from_bytes(chunk, "big")
+    return result.to_bytes(size, "big")
+
+
+def xi_mix(bytes_hash: bytes, size: int = 8):
+    """
+    Xors subsequent ``size`` length segments of ``bytes_hash`` with each
+    other to condense the bytes hash down to ``size`` bytes.
+    """
+    result = 0
+    for chunk in data.root(bytes_hash, size=size):
+        result ^= int.from_bytes(chunk, "big")
+    return result.to_bytes(size, "big")
+
+
+async def ahash_bytes(
+    *collection: Typing.Iterable[bytes],
+    hasher: Typing.Any = sha3_512,
+    on: bytes = b"",
+):
+    """
+    Joins all bytes objects in ``collection`` ``on`` a value & returns
+    the digest after passing all the joined bytes into the ``hasher``.
+    """
+    await asleep()
+    return hasher(on.join(collection)).digest()
+
+
+def hash_bytes(
+    *collection: Typing.Iterable[bytes],
+    hasher: Typing.Any = sha3_512,
+    on: bytes = b"",
+):
+    """
+    Joins all bytes objects in ``collection`` ``on`` a value & returns
+    the digest after passing all the joined bytes into the ``hasher``.
+    """
+    return hasher(on.join(collection)).digest()
+
+
+class Hasher:
+    """
+    A class that creates instances to mimmic & add functionality to the
+    hashing object passed in during initialization.
     """
 
-    async def __call__(cls, *args, **kwargs):
-        self = cls.__new__(cls, *args, **kwargs)
-        await self.__init__(*args, **kwargs)
-        return self
-
-
-class IterableClass(type):
-    """
-    A metaclass which allows classes, such as enums, to be iterable over
-    their non-private values. These capabilities do not extend to the
-    instance's of those classes.
-
-    Usage Example:
-
-    class Colors(metaclass=IterableClass):
-        red = "e20000"
-        green = "00e200"
-        blue = "0000e2"
-
-    assert list(Colors) == [
-        ("red", "e20000"), ("green", "00e200"), ("blue", "0000e2")
+    __slots__ = [
+        "_obj",
+        "block_size",
+        "copy",
+        "digest",
+        "digest_size",
+        "hexdigest",
+        "name",
+        "update",
     ]
 
-    assert {**Colors} == {
-        "red": "e20000", "green": "00e200", "blue": "0000e2"
-    }
+    _MOD: int = PrimeGroups.MOD_512
+    _BASE: int = UniformPrimes.PRIME_256
+    _MASK: int = UniformPrimes.PRIME_512
 
-    Colors["yellow"] = "fff700"
-    assert Colors.yellow == Colors["yellow"]
-    """
+    xi_mix: Typing.Callable = xi_mix
+    axi_mix: Typing.Coroutine = axi_mix
 
-    async def __aiter__(cls):
+    @classmethod
+    async def amask_byte_order(
+        cls, sequence: bytes, *, base: int = _BASE, mod: int = _MOD
+    ):
         """
-        Asynchronously iterates over a class & yields its non-private
-        variable-value pairs.
+        Uses each byte in a ``sequence`` as multiples along with ``base``
+        & takes that result ``mod`` a number to mask the order of the
+        bytes in the sequence. This final result is returned back to the
+        user as a new bytes sequence. Both ``mod`` & ``base`` should be
+        distinct prime numbers.
         """
-        for variable, item in cls.__dict__.items():
-            await asleep(0)
-            if not variable.startswith("_") and not is_function(item):
-                yield variable, item
+        if base == mod:
+            raise Issue.value_must("base", "!= mod")
+        product = 3
+        await asleep()
+        for byte in bytes(sequence):
+            product *= byte + 1    # <- Ensure non-zero
+        await asleep()
+        masked_value = (base * product * cls._MASK) % mod
+        return masked_value.to_bytes(math.ceil(mod.bit_length() / 8), "big")
 
-    def __iter__(cls):
+    @classmethod
+    def mask_byte_order(
+        cls, sequence: bytes, *, base: int = _BASE, mod: int = _MOD
+    ):
         """
-        Iterates over a class & yields its non-private variable-value
-        pairs.
+        Uses each byte in a ``sequence`` as multiples along with ``base``
+        & takes that result ``mod`` a number to mask the order of the
+        bytes in the sequence. This final result is returned back to the
+        user as a new bytes sequence. Both ``mod`` & ``base`` should be
+        distinct prime numbers.
         """
-        for variable, item in cls.__dict__.items():
-            if not variable.startswith("_") and not is_function(item):
-                yield variable, item
+        if base == mod:
+            raise Issue.value_must("base", "!= mod")
+        product = 3
+        for byte in bytes(sequence):
+            product *= byte + 1    # <- Ensure non-zero
+        masked_value = (base * product * cls._MASK) % mod
+        return masked_value.to_bytes(math.ceil(mod.bit_length() / 8), "big")
 
-    def __setitem__(cls, variable, value):
+    @classmethod
+    async def ashrink(
+        cls,
+        *data: Typing.Iterable[bytes],
+        size: int = 8,
+        on: bytes = b"",
+        obj: Typing.Any = sha3_512,
+    ):
         """
-        Transforms bracket item assignment into dotted assignment on the
-        Namespace's mapping.
+        Hashes an iterable of ``data`` elements joined ``on`` a value
+        & returns ``size`` byte `xi_mix` reduction of the result.
         """
-        setattr(cls, variable, value)
+        await asleep()
+        hashed_data = obj(on.join(data)).digest()
+        await asleep()
+        return await cls.axi_mix(hashed_data, size=size)
 
-    def __getitem__(cls, variable):
+    @classmethod
+    def shrink(
+        cls,
+        *data: Typing.Iterable[bytes],
+        size: int = 8,
+        on: bytes = b"",
+        obj: Typing.Any = sha3_512,
+    ):
         """
-        Allows the subclass's values to be extracted using the mapping
-        syntax {**subclass} or function(**subclass). Subsequently,
-        transforms bracket lookup into dotted access on the subclass'
-        values.
+        Hashes an iterable of ``data`` elements joined ``on`` a value
+        & returns ``size`` byte `xi_mix` reduction of the result.
         """
-        try:
-            return cls.__dict__[variable]
-        except KeyError:
-            return getattr(self, variable)
+        hashed_data = obj(on.join(data)).digest()
+        return cls.xi_mix(hashed_data, size=size)
 
-    def keys(cls):
+    def __init__(self, data: bytes = b"", *, obj: Typing.Any = sha3_512):
         """
-        Allows the subclass's values to be extracted using the mapping
-        syntax {**subclass} or function(**subclass).
+        Copies over the object dictionary of the ``obj`` hashing object.
         """
-        yield from (name for name, value in cls)
+        self._obj = obj(data)
+        for attr in dir(obj):
+            if attr[:1] != "_":
+                setattr(self, attr, getattr(self._obj, attr))
 
-    def values(cls):
+    def __call__(self, data: bytes = b""):
         """
-        Yields the subclass' values one at a time.
+        Allows objects of the class to accept new input data in the
+        same way the class of the mimmicked hashing object does during
+        initialization.
         """
-        yield from (value for name, value in cls)
+        self.update(data)
+        return self
 
-    def items(cls):
+    async def ahash(
+        self,
+        *data: Typing.Iterable[bytes],
+        on: bytes = b"",
+        output_size: int = None,
+    ):
         """
-        Yields the subclass' variable names one at a time.
+        Receives any number of arguments of bytes type ``data`` &
+        updates the instance with them all sequentially.
         """
-        yield from ((name, value) for name, value in cls)
+        await asleep()
+        self.update(on.join(data))
+        await asleep()
+        if output_size:
+            return self.digest(output_size)
+        return self.digest()
+
+    def hash(
+        self,
+        *data: Typing.Iterable[bytes],
+        on: bytes = b"",
+        output_size: int = None,
+    ):
+        """
+        Receives any number of arguments of bytes type ``data`` &
+        updates the instance with them all sequentially.
+        """
+        self.update(on.join(data))
+        if output_size:
+            return self.digest(output_size)
+        return self.digest()
 
 
 class Enumerate:
@@ -297,7 +610,7 @@ class Enumerate:
                 counter += 1
         else:
             for result in self.__iter__():
-                await asleep(0)
+                await asleep()
                 yield result
 
     def __iter__(self):
@@ -309,52 +622,6 @@ class Enumerate:
         for result in self.gen:
             yield counter, result
             counter += 1
-
-
-def convert_class_method_to_member(
-    self, class_method_name, class_method, *args, **kwargs
-):
-    """
-    Overwrites a class method as an object's member function with the
-    option to insert custom parameters to the function.
-    """
-    method = getattr(class_method, "__func__", class_method)
-
-    @wraps(method)
-    def wrapped_class_method(*a, **kw):
-        """
-        Replaces the parameters to the static method or free function
-        being turned into a member function of an object.
-        """
-        new_args = [*args]
-        new_args[: len(a) + 1] = [self] + [arg for arg in a]
-        new_kwargs = {**kwargs, **kw}
-        return method(*new_args, **new_kwargs)
-
-    setattr(self, class_method_name, wrapped_class_method)
-
-
-def convert_static_method_to_member(
-    self, static_method_name, static_method, *args, **kwargs
-):
-    """
-    Overwrites a static method, or sets a free function, as an object's
-    member function with the option to insert custom parameters to the
-    function.
-    """
-
-    @wraps(static_method)
-    def wrapped_static_method(*a, **kw):
-        """
-        Replaces the parameters to the static method or free function
-        being turned into a member function of an object.
-        """
-        new_args = [*args]
-        new_args[: len(a)] = a
-        new_kwargs = {**kwargs, **kw}
-        return static_method(*new_args, **new_kwargs)
-
-    setattr(self, static_method_name, wrapped_static_method)
 
 
 def display_exception_info(error):
@@ -374,6 +641,11 @@ class ExampleException(Exception):
 
 
 class AsyncRelayExceptions:
+    """
+    Creates objects which can run user-specified code in the event of
+    an exception or at the end of a context.
+    """
+
     __slots__ = ["aexcept_code", "afinally_code"]
 
     read_me = f"""
@@ -397,6 +669,11 @@ class AsyncRelayExceptions:
 
 
 class RelayExceptions:
+    """
+    Creates objects which can run user-specified code in the event of
+    an exception or at the end of a context.
+    """
+
     __slots__ = ["except_code", "finally_code"]
 
     read_me = f"""
@@ -454,7 +731,7 @@ async def aignore(
     try:
         exceptions = exceptions if exceptions else ExampleException
         relay = AsyncRelayExceptions(if_except, finally_run)
-        await asleep(0)
+        await asleep()
         yield relay
     except exceptions as error:
         if display:
@@ -515,88 +792,7 @@ def ignore(*exceptions, display=False, if_except=None, finally_run=None):
         relay.finally_code()
 
 
-async def atime_safe_equality(value_0=None, value_1=None, *, key=None):
-    """
-    Tests if ``value_0`` is equal to ``value_1`` with a randomized-time
-    comparison. Each value is prepended with a salt, a ``key`` & is
-    hashed prior to the comparison. This algorithm reveals no meaningful
-    information, even though compared in non-constant time, since an
-    adversary wouldn't have access to either. If ``key`` isn't supplied
-    then a 256-bit pseudo-random value is generated for the task. This
-    scheme is easier to implement correctly than a constant-time
-    algorithm, & it's easier to prove infeasibility guarantees regarding
-    timing attacks.
-    """
-    domain = Domains.EQUALITY.hex()
-    salt = secrets.token_bytes(32).hex()
-    key = key if key else secrets.token_bytes(32).hex()
-    if (
-        await asha_256(domain, key, salt, value_0)
-        == await asha_256(domain, key, salt, value_1)
-    ):
-        return True
-    else:
-        return False
-
-
-def time_safe_equality(value_0=None, value_1=None, *, key=None):
-    """
-    Tests if ``value_0`` is equal to ``value_1`` with a randomized-time
-    comparison. Each value is prepended with a salt, a ``key`` & is
-    hashed prior to the comparison. This algorithm reveals no meaningful
-    information, even though compared in non-constant time, since an
-    adversary wouldn't have access to either. If ``key`` isn't supplied
-    then a 256-bit pseudo-random value is generated for the task. This
-    scheme is easier to implement correctly than a constant-time
-    algorithm, & it's easier to prove infeasibility guarantees regarding
-    timing attacks.
-    """
-    domain = Domains.EQUALITY.hex()
-    salt = secrets.token_bytes(32).hex()
-    key = key if key else secrets.token_bytes(32).hex()
-    if (
-        sha_256(domain, key, salt, value_0)
-        == sha_256(domain, key, salt, value_1)
-    ):
-        return True
-    else:
-        return False
-
-
-async def acustomize_parameters(
-    a=(), kw=(), indexes=(), args=(), kwargs=()
-):
-    """
-    Replaces ``a`` and ``kw`` arguments & keyword arguments with ``args``
-    if ``indexes`` is specified, and ``kwargs``.
-    """
-    await asleep(0)
-    if args and indexes:
-        a = list(a)
-        for index in indexes:
-            a[index] = args[index]
-        await asleep(0)
-    for kwarg in kwargs:
-        kw[kwarg] = kwargs[kwarg]
-    await asleep(0)
-    return a, kw
-
-
-def customize_parameters(a=(), kw=(), indexes=(), args=(), kwargs=()):
-    """
-    Replaces ``a`` and ``kw`` arguments & keyword arguments with ``args``
-    if ``indexes`` is specified, and ``kwargs``.
-    """
-    if args and indexes:
-        a = list(a)
-        for index in indexes:
-            a[index] = args[index]
-    for kwarg in kwargs:
-        kw[kwarg] = kwargs[kwarg]
-    return a, kw
-
-
-def comprehension(*args, indexes=(), catcher=None, **kwargs):
+def comprehension(*, catcher=None, **kwargs):
     """
     A decorator which wraps async & sync generator functions with the
     ``Comprende`` class, or the wrapper passed into ``catcher``. Can
@@ -610,178 +806,660 @@ def comprehension(*args, indexes=(), catcher=None, **kwargs):
 
         @wraps(func)
         def gen_wrapper(*a, **kw):
-            nonlocal catcher
-
-            a, kw = customize_parameters(a, kw, indexes, args, kwargs)
-            catcher = Comprende if catcher == None else catcher
-            result = catcher(func, *a, **kw)
-            return result
+            cls = Comprende if not catcher else catcher
+            return cls(func, *a, **{**kw, **kwargs})
 
         return gen_wrapper
 
     return func_catch
 
 
-class Comprende:
+async def anext(coroutine_iterator: Typing.Iterator):
     """
-    Comprende is a generator wrapper class that exposes an innovative,
-    clean api for making sync & async generators more useful by making
-    their many features easier to use. Comprende allows for easily
-    retrieving generator "return" values, has built-in methods that
-    support dotted chaining for inline data processing of generator
-    outputs, & it opens channels of communication to and from sync &
-    async coroutines designed to be driven by a caller.
+    Creates an asynchronous version of the ``builtins.next`` function.
+    """
+    return await coroutine_iterator.__anext__()
 
-    Comprende is what generator comprehensions should be.
+
+@comprehension()
+async def azip(
+    *iterables: Typing.Union[
+        Typing.AsyncIterable[Typing.Any], Typing.Iterable[Typing.Any]
+    ]
+):
+    """
+    Creates an asynchronous version of the ``builtins.zip`` function
+    which is wrapped by the ``Comprende`` class.
+    """
+    aiter = aunpack.root
+    coroutines = [aiter(iterable).__anext__ for iterable in iterables]
+    try:
+        while True:
+            yield [await coroutine() for coroutine in coroutines]
+    except StopAsyncIteration:
+        pass
+
+
+@comprehension()
+def _zip(*iterables: Typing.Iterable[Typing.Any]):
+    """
+    Creates a synchronous version of the zip builtin function which is
+    wrapped by the ``Comprende`` class.
+    """
+    for results in zip(*iterables):
+        yield results
+
+
+@comprehension()
+async def aunpack(
+    iterable: Typing.Union[
+        Typing.AsyncIterable[Typing.Any], Typing.Iterable[Typing.Any]
+    ]
+):
+    """
+    Runs through an iterable &/or async iterable & yields elements one
+    at a time.
+    """
+    if is_async_iterable(iterable):
+        async for item in iterable:
+            yield item
+    else:
+        for item in iterable:
+            await asleep()
+            yield item
+
+
+@comprehension()
+def unpack(iterable: Typing.Iterable[Typing.Any]):
+    """
+    Runs through an iterable & yields elements one at a time.
+    """
+    yield from iterable
+
+
+@comprehension()
+async def aecho(initial_value: Typing.Any = None):
+    """
+    A coroutine which yields the values the are sent into it. It's most
+    useful as a debugger or in Comprende data processing chains.
 
     Usage Example:
 
-    def gen(x=None, y=None):
-        # The final result is returned normally in a sync generator ->
-        z = yield x + y
-        return x * y * z
+    str_to_int = await aecho("").aencode().abytes_to_int().aprime()
+    assert 2271432183284425044093 == await str_to_int('{"t0": 0}')
+    assert 2271432184383936672125 == await str_to_int('{"t1": 1}')
+    assert 2271432185483448300157 == await str_to_int('{"t2": 2}')
 
-    # Easily drive the generator forward.
-    with Comprende(gen, x=1, y=2) as example:
-        z = 3
+    int_to_str = await aecho(0).aint_to_bytes(size=1).adecode().aprime()
+    assert '!' == await int_to_str(33)
+    assert '@' == await int_to_str(64)
+    assert 'A' == await int_to_str(65)
+    """
+    got = yield initial_value
+    while True:
+        await asleep()
+        got = yield got
 
-        # Calling the object will send ``None`` into the coroutine ->
-        sum_of_x_y = example()
-        assert sum_of_x_y == 3
 
-        # Passing ``z`` will send it into the coroutine, cause it to
-        # reach the return statement & exit the context manager ->
-        example(z)
+@comprehension()
+def echo(initial_value: Typing.Any = None):
+    """
+    A coroutine which yields the values the are sent into it. It's most
+    useful as a debugger or in Comprende data processing chains.
 
-    # The result returned from the generator is now available ->
-    product_of_x_y_z = example.result()
-    assert product_of_x_y_z == 6
+    Usage Example:
 
-    # The ``example`` variable is actually the Comprende object, which
-    # redirects values to the wrapped generator's ``send()`` method
-    # using the instance's ``__call__()`` method.  It's still available
-    # after the context closes ->
-    assert example.__class__.__name__ == "Comprende"
+    str_to_int = echo("").encode().bytes_to_int().prime()
+    assert 2271432183284425044093 == str_to_int('{"t0": 0}')
+    assert 2271432184383936672125 == str_to_int('{"t1": 1}')
+    assert 2271432185483448300157 == str_to_int('{"t2": 2}')
 
-    # Here's another example ->
-    @aiootp.comprehension()
-    def one_byte_numbers():
-        for number in range(256):
-            yield number
+    int_to_str = echo(0).int_to_bytes(size=1).decode().prime()
+    assert '!' == int_to_str(33)
+    assert '@' == int_to_str(64)
+    assert 'A' == int_to_str(65)
+    """
+    got = yield initial_value
+    while True:
+        got = yield got
 
-    # Chained ``Comprende`` generators are excellent inline data
-    # processors ->
-    base64_data = [
-        b64_byte
-        for b64_byte
-        in one_byte_numbers().int_to_bytes(1).to_base64()
+
+@comprehension()
+async def acycle(
+    iterable: Typing.Union[
+        Typing.AsyncIterable[Typing.Any], Typing.Iterable[Typing.Any]
     ]
-    # This converted each number to bytes then base64 encoded them.
-
-    # We can wrap other iterables to add functionality to them ->
-    @aiootp.comprehension()
-    def unpack(iterable):
-        for item in iterable:
-            yield item
-
-    # This example just hashes each output then yields them
-    for hex_hash in unpack(base64_data).sha_256():
-        print(hex_hash)
-
-    # Here's another illustrative example ->
-    @comprehension()
-    def echo(initial_value):
-        received = initial_value
+):
+    """
+    Unendingly cycles in order over the elements of an async iterable.
+    """
+    results = []
+    if is_async_iterable(iterable):
+        async for result in iterable:
+            yield result
+            results.append(result)
+    else:
+        for result in iterable:
+            await asleep()
+            yield result
+            results.append(result)
+    if results:
         while True:
-            received = yield received
-
-    value = "some test value"
-    coroutine = echo("start")
-    assert coroutine() == "start"
-    assert coroutine(value) == "some test value"
+            for result in results:
+                await asleep()
+                yield result
 
 
-    Async Usage Example:
-
-    async def gen(x=None, y=None):
-        # Because having a return statement in an async generator is a
-        # SyntaxError, the return value is expected to be passed into
-        # UserWarning, and then raised to propagate upstream. It's then
-        # available from the instance's ``aresult`` method ->
-
-        z = yield x + y
-        result = x * y * z
-        raise UserWarning(result)
-
-    # Easily drive the generator forward.
-    async with Comprende(gen, x=1, y=2) as example:
-        z = 3
-
-        # Awaiting the object's call will send ``None`` into the
-        # coroutine ->
-        sum_of_x_y = await example()
-        assert sum_of_x_y == 3
-
-        # Passing ``z`` will send it into the coroutine, cause it to
-        # the raise statement & exit the context manager ->
-        await example(az)
-
-    # The result returned from the generator is now available ->
-    product_of_x_y_z = await example.aresult()
-    assert product_of_x_y_z == 6
-
-    # Let's see some other ways async generators mirror synchronous
-    # ones ->
-    @aiootp.comprehension()
-    async def one_byte_numbers():
-        for number in range(256):
-            yield number
-
-    # This is asynchronous data processing ->
-    base64_data = [
-        b64_byte
-        async for b64_byte
-        in one_byte_numbers().aint_to_bytes(1).ato_base64()
-    ]
-
-    # We can wrap other iterables to add asynchronous functionality to
-    # them ->
-    @aiootp.comprehension()
-    async def unpack(iterable):
-        for item in iterable:
-            yield item
-
-    # Want only the first twenty results? ->
-    async for hex_hash in unpack(base64_data).asha_256()[:20]:
-        # Then you can slice the generator.
-        print(hex_hash)
-
-    # Users can slice generators to receive more complex output rules,
-    # like: Getting every second result starting from the third result
-    # to the 50th ->
-    async for result in unpack(base64_data)[3:50:2]:
-        print(result)
-
-    # Although, negative slice numbers are not supported.
-
-    # Here's another illustrative example ->
-    @comprehension()
-    async def echo(initial_value):
-        received = initial_value
+@comprehension()
+def cycle(iterable: Typing.Iterable[Typing.Any]):
+    """
+    Unendingly cycles in order over the elements of a sync iterable.
+    """
+    results = []
+    for result in iterable:
+        yield result
+        results.append(result)
+    if results:
         while True:
-            received = yield received
+            for result in results:
+                yield result
 
-    value = "some test value"
-    coroutine = echo("start")
-    assert await coroutine() == "start"
-    assert await coroutine(value) == "some test value"
 
-    # ``Comprende`` generators have loads of tooling for users to explore.
-    # Play around with it and take a look at the other chainable generator
-    # methods in ``aiootp.Comprende.lazy_generators``.
+@comprehension()
+async def abytes_count(
+    start: int = 0, *, size: int = 8, byte_order: str = "big"
+):
+    """
+    Unendingly yields incrementing numbers starting from ``start``.
+    """
+    index = start
+    while True:
+        await asleep()
+        yield index.to_bytes(size, byte_order)
+        index += 1
 
-    Comprende has many more useful features to play around with! Have
-    fun with it!
+
+@comprehension()
+def bytes_count(start: int = 0, *, size: int = 8, byte_order: str = "big"):
+    """
+    Unendingly yields incrementing numbers starting from ``start``.
+    """
+    index = start
+    while True:
+        yield index.to_bytes(size, byte_order)
+        index += 1
+
+
+@comprehension()
+async def acount(start: int = 0):
+    """
+    Unendingly yields incrementing numbers starting from ``start``.
+    """
+    index = start
+    while True:
+        await asleep()
+        yield index
+        index += 1
+
+
+@comprehension()
+def count(start: int = 0):
+    """
+    Unendingly yields incrementing numbers starting from ``start``.
+    """
+    index = start
+    while True:
+        yield index
+        index += 1
+
+
+@comprehension()
+async def abirth(base: Typing.Any, *, stop: bool = True):
+    """
+    Yields ``base`` in its entirety once by default. If ``stop`` is set
+    `Falsey` then it's yielded unendingly. Useful for spawning a value
+    into chainable ``Comprende`` generators.
+    """
+    if stop:
+        yield base
+    else:
+        while True:
+            await asleep()
+            yield base
+
+
+@comprehension()
+def birth(base: Typing.Any, *, stop: bool = True):
+    """
+    Yields ``base`` in its entirety once by default. If ``stop`` is set
+    `Falsey` then it's yielded unendingly. Useful for spawning a value
+    into chainable ``Comprende`` generators.
+    """
+    if stop:
+        yield base
+    else:
+        while True:
+            yield base
+
+
+@comprehension()
+async def adata(
+    sequence: Typing.Sequence[Typing.Any],
+    size: int = BLOCKSIZE,
+    *,
+    blocks: int = 0,
+):
+    """
+    Runs through a sequence & yields ``size`` sized chunks of the
+    sequence one chunk at a time. ``blocks`` is the total number of
+    chunks allowed to be yielded from the generator. By default this
+    generator yields all elements in the sequence.
+
+    Usage Example:
+
+    sequence = 4 * " Data testing..."
+
+    async for piece in adata(sequence, size=32):
+        print(piece)
+    >>> ' Data testing... Data testing...'
+        ' Data testing... Data testing...'
+
+    async for piece in adata(sequence, size=64):
+        print(piece)
+    >>> ' Data testing... Data testing... Data testing... Data testing...'
+    """
+    length = len(sequence)
+    if not blocks or (blocks * size >= length):
+        blocks = length + size
+    else:
+        blocks = (blocks * size) + 1
+    async for previous_end, end in azip(
+        range(0, blocks, size), range(size, blocks, size)
+    ):
+        yield sequence[previous_end:end]
+
+
+@comprehension()
+def data(
+    sequence: Typing.Sequence[Typing.Any],
+    size: int = BLOCKSIZE,
+    *,
+    blocks: int = 0,
+):
+    """
+    Runs through a sequence & yields ``size`` sized chunks of the
+    sequence one chunk at a time. ``blocks`` is the total number of
+    chunks allowed to be yielded from the generator. By default this
+    generator yields all elements in the sequence.
+
+    Usage Example:
+
+    sequence = 4 * " Data testing..."
+
+    for piece in data(sequence, size=32):
+        print(piece)
+    >>> ' Data testing... Data testing...'
+        ' Data testing... Data testing...'
+
+    for piece in data(sequence, size=64):
+        print(piece)
+    >>> ' Data testing... Data testing... Data testing... Data testing...'
+    """
+    length = len(sequence)
+    if not blocks or (blocks * size >= length):
+        blocks = length + size
+    else:
+        blocks = (blocks * size) + 1
+    for previous_end, end in zip(
+        range(0, blocks, size), range(size, blocks, size)
+    ):
+        yield sequence[previous_end:end]
+
+
+@comprehension()
+async def _araw_reader(data: bytes):
+    """
+    An async generator which provides an api for reading an amount of
+    elements from a sequence ``data`` which users can determine on each
+    iteration by sending integers into the async generator as a
+    coroutine.
+    """
+    position = 0
+    size = yield
+    while True:
+        await asleep()
+        new_size = yield data[position:position + size]
+        position += size
+        size = new_size
+
+
+@comprehension()
+def _raw_reader(data: bytes):
+    """
+    A generator which provides an api for reading an amount of elements
+    from a sequence ``data`` which users can determine on each iteration
+    by sending integers into the generator as a coroutine.
+    """
+    position = 0
+    size = yield
+    while True:
+        new_size = yield data[position:position + size]
+        position += size
+        size = new_size
+
+
+async def areader(
+    data: Typing.Sequence[Typing.Any], *, comprehension: bool = False
+):
+    """
+    Provides an api for reading an amount of elements from a sequence
+    ``data`` which users can determine on each iteration by sending
+    integers into the returned async generator as a coroutine.
+    """
+    if comprehension:
+        reader = _araw_reader(data)
+    else:
+        reader = _araw_reader.root(data)
+    await reader.asend(None)
+    return reader
+
+
+def reader(
+    data: Typing.Sequence[Typing.Any], *, comprehension: bool = False
+):
+    """
+    Provides an api for reading an amount of elements from a sequence
+    ``data`` which users can determine on each iteration by sending
+    integers into the returned generator as a coroutine.
+    """
+    if comprehension:
+        reader = _raw_reader(data)
+    else:
+        reader = _raw_reader.root(data)
+    reader.send(None)
+    return reader
+
+
+@comprehension()
+async def aorder(*iterables: Typing.Iterable[Typing.AsyncOrSyncIterable]):
+    """
+    Takes a collection of iterables &/or async iterables & exhausts them
+    one at a time from left to right.
+    """
+    for iterable in iterables:
+        if is_async_iterable(iterable):
+            async for result in iterable:
+                yield result
+        else:
+            for result in iterable:
+                await asleep()
+                yield result
+
+
+@comprehension()
+def order(*iterables: Typing.Iterable[Typing.Iterable]):
+    """
+    Takes a collection of iterables & exhausts them one at a time from
+    left to right.
+    """
+    for iterable in iterables:
+        for result in iterable:
+            yield result
+
+
+@comprehension()
+async def askip(iterable: Typing.Iterable, steps: int = 1):
+    """
+    An async generator that produces the values yielded from ``iterable``
+    once every ``steps`` number of iterations, otherwise produces
+    ``None`` until ``iterable`` is exhausted.
+    """
+    if is_async_iterable(iterable):
+        async for result in iterable:
+            for _ in range(steps):
+                yield
+            await asleep()
+            yield result
+    else:
+        for result in iterable:
+            await asleep()
+            for _ in range(steps):
+                yield
+            await asleep()
+            yield result
+
+
+@comprehension()
+def skip(iterable: Typing.Iterable, steps: int = 1):
+    """
+    A sync generator that produces the values yielded from ``iterable``
+    once every ``steps`` number of iterations, otherwise produces
+    ``None`` until ``iterable`` is exhausted.
+    """
+    for result in iterable:
+        for _ in range(steps):
+            yield
+        yield result
+
+
+@comprehension()
+async def acompact(
+    iterable: Typing.Iterable[Typing.Any], batch_size: int = 1
+):
+    """
+    An async generator that yields ``batch_size`` number of elements
+    from an async or sync ``iterable`` at a time.
+    """
+    stack = {}
+    indexes = cycle.root(range(batch_size - 1, -1, -1))
+    async for toggle, item in azip(indexes, iterable):
+        stack[toggle] = item
+        if not toggle:
+            yield [*stack.values()]
+            stack.clear()
+    if stack:
+        yield [*stack.values()]
+
+
+@comprehension()
+def compact(iterable: Typing.Iterable[Typing.Any], batch_size: int = 1):
+    """
+    A generator that yields ``batch_size`` number of elements from an
+    ``iterable`` at a time.
+    """
+    stack = {}
+    indexes = cycle.root(range(batch_size - 1, -1, -1))
+    for toggle, item in zip(indexes, iterable):
+        stack[toggle] = item
+        if not toggle:
+            yield [*stack.values()]
+            stack.clear()
+    if stack:
+        yield [*stack.values()]
+
+
+@comprehension()
+async def apopleft(queue: Typing.SupportsPopleft):
+    """
+    An async generator which calls the ``popleft()`` method on ``queue``
+    for every iteration, & exits on ``IndexError``.
+    """
+    while True:
+        try:
+            yield queue.popleft()
+        except IndexError:
+            break
+
+
+@comprehension()
+def popleft(queue: Typing.SupportsPopleft):
+    """
+    A generator which calls the ``popleft()`` method on ``queue`` for
+    every iteration, & exits on ``IndexError``.
+    """
+    while True:
+        try:
+            yield queue.popleft()
+        except IndexError:
+            break
+
+
+@comprehension()
+async def apop(queue: Typing.SupportsPop):
+    """
+    An async generator which calls the ``pop()`` method on ``queue``
+    for every iteration, & exits on ``IndexError``.
+    """
+    while True:
+        try:
+            yield queue.pop()
+        except IndexError:
+            break
+
+
+@comprehension()
+def pop(queue: Typing.SupportsPop):
+    """
+    A generator which calls the ``pop()`` method on ``queue`` for
+    every iteration, & exits on ``IndexError``.
+    """
+    while True:
+        try:
+            yield queue.pop()
+        except IndexError:
+            break
+
+
+@comprehension()
+async def apick(
+    names: Typing.Union[
+        Typing.Iterable[Typing.Hashable],
+        Typing.AsyncIterable[Typing.Hashable],
+    ],
+    mapping: Typing.Union[
+        Typing.Sequence, Typing.Mapping[Typing.Hashable, Typing.Any]
+    ],
+):
+    """
+    Does a bracketed lookup on ``mapping`` for each name in ``names``.
+    """
+    names = names if is_async_iterable(names) else aunpack(names)
+    async for name in names:
+        try:
+            yield mapping[name]
+        except KeyError:
+            break
+
+
+@comprehension()
+def pick(
+    names: Typing.Iterable[Typing.Hashable],
+    mapping: Typing.Union[
+        Typing.Sequence, Typing.Mapping[Typing.Hashable, Typing.Any]
+    ],
+):
+    """
+    Does a bracketed lookup on ``mapping`` for each name in ``names``.
+    """
+    for name in names:
+        try:
+            yield mapping[name]
+        except KeyError:
+            break
+
+
+@comprehension()
+async def await_on(
+    queue: Typing.Container,
+    *,
+    probe_frequency: Typing.PositiveRealNumber = 0.0001,
+    timeout: Typing.PositiveRealNumber = 1,
+):
+    """
+    An async generator that waits ``timeout`` number of seconds each
+    iteration & checks every ``probe_frequency`` number of seconds for
+    entries to populate a ``queue`` & yields the queue when an entry
+    exists in the queue.
+    """
+    while True:
+        start = time()
+        while not queue and (time() - start < timeout):
+            await asleep(probe_frequency)
+        if time() - start > timeout:
+            break
+        yield queue
+
+
+@comprehension()
+def wait_on(
+    queue: Typing.Container,
+    *,
+    probe_frequency: Typing.PositiveRealNumber = 0.0001,
+    timeout: Typing.PositiveRealNumber = 1,
+):
+    """
+    An generator that waits ``timeout`` number of seconds each iteration
+    & checks every ``probe_frequency`` number of seconds for entries to
+    populate a ``queue`` & yields the queue when an entry exists in the
+    queue.
+    """
+    while True:
+        start = time()
+        while not queue and (time() - start < timeout):
+            asynchs.sleep(probe_frequency)
+        if time() - start > timeout:
+            break
+        yield queue
+
+
+@comprehension()
+async def arange(*a, **kw):
+    """
+    An async version of ``builtins.range``.
+    """
+    for result in range(*a, **kw):
+        await asleep()
+        yield result
+
+
+@comprehension()
+def _range(*a, **kw):
+    """
+    Creates a synchronous version of ``builtins.range`` which is
+    wrapped by the ``Comprende`` class.
+    """
+    for result in range(*a, **kw):
+        yield result
+
+
+@comprehension()
+async def abytes_range(*a, size: int = 8, byte_order: str = "big", **kw):
+    """
+    An async version of ``builtins.range`` wrapped by the ``Comprende``
+    class, & returns its values as bytes instead.
+    """
+    for result in range(*a, **kw):
+        await asleep()
+        yield result.to_bytes(size, byte_order)
+
+
+@comprehension()
+def bytes_range(*a, size: int = 8, byte_order: str = "big", **kw):
+    """
+    A synchronous version of ``builtins.range`` which is wrapped by the
+    ``Comprende`` class, & returns its values as bytes instead.
+    """
+    for result in range(*a, **kw):
+        yield result.to_bytes(size, byte_order)
+
+
+class BaseComprende:
+    """
+    This class is a generator wrapper that exposes an api for making
+    sync & async generators more useful by making their many
+    features easier to use. BaseComprende allows the retrieving of sync
+    & async generator "return" values, & opens channels of communication
+    to, from & in between sync & async coroutines.
     """
 
     decorator = comprehension
@@ -789,115 +1467,25 @@ class Comprende:
     _cached = {}
 
     __slots__ = [
-        "gen",
-        "func",
-        "args",
-        "kwargs",
-        "iterator",
+        "__call__",
+        "_areturn_cache",
+        "_args",
+        "_cache_index",
+        "_func",
+        "_gen",
+        "_is_async",
+        "_kwargs",
+        "_messages",
+        "_return",
+        "_return_cache",
+        "_thrown",
         "send",
         "asend",
-        "_runsum",
-        "_return",
-        "_thrown",
-        "_is_async",
-        "_messages",
-        "_areturn_cache",
-        "_return_cache",
     ]
-
-    lazy_generators = {
-        "_agetitem",
-        "_getitem",
-        "atimeout",
-        "timeout",
-        "ajson_loads",
-        "json_loads",
-        "ajson_dumps",
-        "json_dumps",
-        "aencode",
-        "encode",
-        "adecode",
-        "decode",
-        "astr",
-        "str",
-        "aint",
-        "int",
-        "ahex",
-        "hex",
-        "abin",
-        "bin",
-        "abytes",
-        "bytes",
-        "abytes_to_int",
-        "bytes_to_int",
-        "aint_to_bytes",
-        "int_to_bytes",
-        "ahex_to_bytes",
-        "hex_to_bytes",
-        "abytes_to_hex",
-        "bytes_to_hex",
-        "ato_base",
-        "to_base",
-        "afrom_base",
-        "from_base",
-        "azfill",
-        "zfill",
-        "aslice",
-        "slice",
-        "aindex",
-        "index",
-        "areplace",
-        "replace",
-        "asplit",
-        "split",
-        "atag",
-        "tag",
-        "ahalt",
-        "halt",
-        "afeed",
-        "feed",
-        "afeed_self",
-        "feed_self",
-        "aresize",
-        "resize",
-        "adelimit",
-        "delimit",
-        "adelimited_resize",
-        "delimited_resize",
-        "ato_base64",
-        "to_base64",
-        "afrom_base64",
-        "from_base64",
-        "aint_to_ascii",
-        "int_to_ascii",
-        "aascii_to_int",
-        "ascii_to_int",
-        "asha_512",
-        "sha_512",
-        "asha_512_hmac",
-        "sha_512_hmac",
-        "asum_sha_512",
-        "sum_sha_512",
-        "asha_256",
-        "sha_256",
-        "asha_256_hmac",
-        "sha_256_hmac",
-        "asum_sha_256",
-        "sum_sha_256",
-    }
-
-    eager_generators = {
-        "aheappop",
-        "heappop",
-        "areversed",
-        "reversed",
-        "asort",
-        "sort",
-    }
 
     _generators = {"__aiter__", "__iter__"}
 
-    lazy_methods = {"anext", "next", "asend", "send"}
+    lazy_methods = {"asend", "send"}
 
     eager_methods = {
         "alist",
@@ -915,8 +1503,6 @@ class Comprende:
     }
 
     _methods = {
-        "athrows",
-        "throws",
         "athrow",
         "throw",
         "aclose",
@@ -927,19 +1513,21 @@ class Comprende:
         "prime",
         "aresult",
         "result",
-        "aclear",
-        "clear",
         "acatch",
         "catch",
         "arelay",
         "relay",
-        "aauto_cache",
-        "auto_cache",
+        "aclass_relay",
+        "class_relay",
+        "aclear",
+        "clear",
         "aclear_class",
         "clear_class",
-        "runsum",
-        "precomputed",
+        "_aauto_cache",
+        "_auto_cache",
     }
+
+    _properties = {"_precomputed", "messages"}
 
     _ASYNC_GEN_DONE = "async generator raised StopAsyncIteration"
 
@@ -959,24 +1547,12 @@ class Comprende:
         """
         Populate the instance's basic attributes.
         """
-        self.args = a
-        self.kwargs = kw
-        self.func = func
-        self._runsum = b""
+        self._args = a
+        self._kwargs = kw
+        self._func = func
         self._thrown = deque()
         self._return = deque()
-
-    def _initialize_object_message_chain(self, chained=False):
-        """
-        Objects in a chain can communicate with each other through this
-        `messages` Namespace object. It is also used internally by the
-        class to help instance's keep track with each other's state.
-        """
-        if chained:
-            self._messages = self.args[0].messages
-            self.args[0].messages._chained_instances.append(self)
-        else:
-            self._messages = Namespace(_chained_instances=[self])
+        self._cache_index = b""
 
     @property
     def messages(self):
@@ -986,13 +1562,25 @@ class Comprende:
         """
         return self._messages
 
-    async def __aexamine_sent_exceptions(self, gen=None, got=None):
+    def _initialize_object_message_chain(self, chained: bool = False):
+        """
+        Objects in a chain can communicate with each other through this
+        `messages` Namespace object. It is also used internally by the
+        class to help instance's keep track with each other's state.
+        """
+        if chained:
+            self._messages = self._args[0].messages
+            self._messages._chained_instances.append(self)
+        else:
+            self._messages = Namespace(_chained_instances=[self])
+
+    async def __aexamine_sent_exceptions(self, gen: Typing.Generator):
         """
         Catches ``UserWarning``s which signals that the generator, or a
         subgenerator in the stack, has raised a return value.
         """
         while True:
-            got = yield got
+            got = yield
             if issubclass(got.__class__, UserWarning):
                 if any(got.args):
                     self._thrown.append(got.args[0])
@@ -1004,7 +1592,7 @@ class Comprende:
         coroutine for the `UserWarning()` signal to halt iteration &
         return the exception's value.
         """
-        gen = self.func(*self.args, **self.kwargs)
+        gen = self._func(*self._args, **self._kwargs)
         catch_UserWarning = self.__aexamine_sent_exceptions(gen)
         await catch_UserWarning.asend(None)
         async with self.acatch():
@@ -1019,18 +1607,18 @@ class Comprende:
         return values.
         """
         self._is_async = True
-        self.gen = self._acomprehension()
+        self._gen = self._acomprehension()
         self.send = None
-        self.asend = self.gen.asend
-        self.iterator = aiter.root(self.gen)
+        asend = self.asend = self._gen.asend
+        self.__call__ = lambda got=None: asend(got)
 
-    def __examine_sent_exceptions(self, gen=None, got=None):
+    def __examine_sent_exceptions(self, gen: Typing.Generator):
         """
         Catches ``UserWarning``s which signals that the generator, or a
         subgenerator in the stack, has raised a return value.
         """
         while True:
-            got = yield got
+            got = yield
             if issubclass(got.__class__, UserWarning):
                 if any(got.args):
                     self._thrown.append(got.args[0])
@@ -1042,7 +1630,7 @@ class Comprende:
         coroutine for the `UserWarning()` signal to halt iteration &
         return the exception's value.
         """
-        gen = self.func(*self.args, **self.kwargs)
+        gen = self._func(*self._args, **self._kwargs)
         catch_UserWarning = self.__examine_sent_exceptions(gen)
         catch_UserWarning.send(None)
         with self.catch():
@@ -1057,16 +1645,142 @@ class Comprende:
         values.
         """
         self._is_async = False
-        self.gen = self._comprehension()
+        self._gen = self._comprehension()
         self.asend = None
-        self.send = self.gen.send
-        self.iterator = iter(self.gen)
+        send = self.send = self._gen.send
+        self.__call__ = lambda got=None: send(got)
+
+    def __next__(self):
+        """
+        Allows calling ``builtins.next`` on async / sync generators &
+        coroutines.
+        """
+        if self._is_async:
+            return self.asend(None)
+        else:
+            return self.send(None)
+
+    async def __aiter__(self, *, got=None):
+        """
+        Iterates over the wrapped async generator / coroutine & produces
+        its values directly, or from alru_cache if an eager calculation
+        has already computed the gererators values.
+        """
+        if self._precomputed:
+            async with self._aauto_cache() as results:
+                for result in results:
+                    await asleep()
+                    yield result
+        else:
+            while True:
+                try:
+                    got = yield await self(got)
+                except StopAsyncIteration:
+                    break
+
+    def __iter__(self, *, got=None):
+        """
+        Iterates over the wrapped generator / coroutine and produces its
+        values directly, or from lru_cache if an eager calculation has
+        already computed the gererators values.
+        """
+        if self._precomputed:
+            with self._auto_cache() as results:
+                yield from results
+        else:
+            while True:
+                try:
+                    got = yield self(got)
+                except StopIteration:
+                    break
+
+    async def __aenter__(self):
+        """
+        Opens a context & yields ``self``.
+        """
+        return self
+
+    def __enter__(self):
+        """
+        Opens a context & yields ``self``.
+        """
+        return self
+
+    async def __aexit__(
+        self, exc_type=None, exc_value=None, traceback=None
+    ):
+        """
+        Surpresses StopAsyncIteration exceptions within a context.
+        Clears the cached results upon exit.
+        """
+        try:
+            if exc_type is StopAsyncIteration:
+                return True
+        finally:
+            await self.aclear()
+
+    def __exit__(self, exc_type=None, exc_value=None, traceback=None):
+        """
+        Surpresses StopIteration exceptions within a context. Clears the
+        cached results upon exit.
+        """
+        try:
+            if exc_type is StopIteration:
+                return True
+        finally:
+            self.clear()
+
+    def __repr__(self, *, mask: bool = True):
+        """
+        Displays the string which, if ``exec``'d, would yield a new
+        equivalent object.
+        """
+        a = self._args
+        kw = self._kwargs
+        func = self._func.__qualname__
+        cls = self.__class__.__qualname__
+        tab = f"{linesep + 4 * ' '}"
+        _repr = f"{cls}({tab}func={func},{tab}"
+        if not mask or DebugControl.is_debugging():
+            return _repr + f"*{a},{tab}**{kw},{linesep})"
+        else:
+            _repr += f"args={len(a)},{tab}kwargs={len(kw)},{linesep})"
+            return _repr
+
+    def __del__(self):
+        """
+        Attempts to cleanup instance caches when deleted or garbage
+        collected to reduce memory overhead.
+        """
+        self.clear()
+        if hasattr(self, "gen"):
+            del self._gen
+
+    async def aprime(self):
+        """
+        Resets the instance's async wrapper generator & ``asend``s in a
+        ``None`` value to prime the generator, i.e. bringing it to the
+        first yield statement.
+        """
+        await self.areset()
+        await self(None)
+        return self
+
+    def prime(self):
+        """
+        Resets the instance's sync wrapper generator & ``send``s in a
+        ``None`` value to prime the generator, i.e. bringing it to the
+        first yield statement.
+        """
+        self.reset()
+        self(None)
+        return self
 
     async def areset(self, *, _top_of_the_chain=True):
         """
         Replaces the generator wrapper with a new async wrapper.
         """
-        await asleep(0)
+        await asleep()
         if _top_of_the_chain:
             for instance in self.messages._chained_instances:
                 await instance.areset(_top_of_the_chain=False)
@@ -1085,26 +1799,6 @@ class Comprende:
             self.__set_sync()
         return self
 
-    async def aprime(self):
-        """
-        Resets the instance's async wrapper generator & ``asend``s in a
-        ``None`` value to prime the generator, i.e. bringing it to the
-        first yield statement.
-        """
-        await self.areset()
-        await self.asend(None)
-        return self
-
-    def prime(self):
-        """
-        Resets the instance's sync wrapper generator & ``send``s in a
-        ``None`` value to prime the generator, i.e. bringing it to the
-        first yield statement.
-        """
-        self.reset()
-        self.send(None)
-        return self
-
     @async_contextmanager
     async def acatch(self):
         """
@@ -1117,7 +1811,7 @@ class Comprende:
         in the result queue are accessible from ``self.aresult()``.
         """
         try:
-            await asleep(0)
+            await asleep()
             yield self
         except UserWarning as done:
             if done.args:
@@ -1151,7 +1845,7 @@ class Comprende:
 
     @classmethod
     @async_contextmanager
-    async def aclass_relay(cls, result=None, source=None):
+    async def aclass_relay(cls, result=None, *, source=None):
         """
         This is a lower level context manager for users who've created
         async generators that need to propagate results up to calling
@@ -1160,7 +1854,7 @@ class Comprende:
         up to its caller in a UserWarning exception.
         """
         try:
-            await asleep(0)
+            await asleep()
             yield source
         except UserWarning:
             if result != None:
@@ -1169,7 +1863,7 @@ class Comprende:
 
     @classmethod
     @contextmanager
-    def class_relay(cls, result=None, source=None):
+    def class_relay(cls, result=None, *, source=None):
         """
         This is a lower level context manager for users who've created
         sync generators that need to propagate results up to calling
@@ -1232,9 +1926,9 @@ class Comprende:
             async with aignore(
                 TypeError, StopAsyncIteration, display=not silent
             ):
-                await self.asend(UserWarning())
+                await self(UserWarning())
         elif exit:
-            await self.asend(UserWarning())
+            await self(UserWarning())
         async with aignore(IndexError, display=not silent):
             if pop:
                 return self._return.popleft()
@@ -1253,73 +1947,40 @@ class Comprende:
         """
         if exit and silent:
             with ignore(TypeError, StopIteration, display=not silent):
-                self.send(UserWarning())
+                self(UserWarning())
         elif exit:
-            self.send(UserWarning())
+            self(UserWarning())
         with ignore(IndexError, display=not silent):
             if pop:
                 return self._return.popleft()
             else:
                 return self._return[0]
 
-    async def athrows(self):
+    @staticmethod
+    async def _amake_cache_index(size: int = 16):
         """
-        When causing an async generator to exit using ``self.aresult()``,
-        the exception is appended to the instance ``self._thrown`` queue.
-        Normally this doesn't have significance, but users can adapt this
-        queue & override ``self.aresult`` to send in relevant values
-        instead.
+        Calculates a ``size``-byte pseudo-random index which is used to
+        find an instance with cached results from the class.
         """
-        await asleep(0)
-        return self._thrown
-
-    def throws(self):
-        """
-        When causing a sync generator to exit using ``self.result()``,
-        the exception is appended to the instance ``self._thrown`` queue.
-        Normally this doesn't have significance, but users can adapt this
-        queue & override ``self.result`` to send in relevant values
-        instead.
-        """
-        return self._thrown
+        await asleep()
+        return secrets.token_bytes(size)
 
     @staticmethod
-    async def _amake_runsum(*args):
+    def _make_cache_index(size: int = 16):
         """
-        Calculates a 32-byte pseudo-random id for instances to mark
-        themselves as having cached results.
+        Calculates a ``size``-byte pseudo-random index which is used to
+        find an instance with cached results from the class.
         """
-        return bytes.fromhex(
-            await asha_256(secrets.token_bytes(32), args)
-        )
-
-    @staticmethod
-    def _make_runsum(*args):
-        """
-        Calculates a 32-byte pseudo-random id for instances to mark
-        themselves as having cached results.
-        """
-        return bytes.fromhex(sha_256(secrets.token_bytes(32), args))
+        return secrets.token_bytes(size)
 
     @property
-    def runsum(self):
-        """
-        Returns an empty bytes string if the instance generator has not
-        cached any results, or returns the generator's 16-byte id if it
-        has.
-        """
-        return self._runsum[:16]
-
-    @property
-    def precomputed(self):
+    def _precomputed(self):
         """
         Checks the class' dictionary of cached flags for the generator's
-        ``self.runsum`` id. Returns the instance if found, False if not.
+        ``self._cache_index`` id. Returns the instance if found, False
+        if not.
         """
-        if self._runsum and self.runsum in self.__class__._cached:
-            return self.__class__._cached[self.runsum]
-        else:
-            return False
+        return self.__class__._cached.get(self._cache_index)
 
     async def _aset_cache(self):
         """
@@ -1330,12 +1991,12 @@ class Comprende:
         """
 
         @alru_cache(maxsize=1)
-        async def _areturn_cache(runsum=None):
+        async def _areturn_cache(cache_index=None):
             return [result async for result in self]
 
-        await asleep(0)
+        await asleep()
         self._areturn_cache = _areturn_cache
-        self._runsum = await self._amake_runsum()
+        self._cache_index = await self._amake_cache_index()
 
     def _set_cache(self):
         """
@@ -1346,14 +2007,14 @@ class Comprende:
         """
 
         @lru_cache(maxsize=1)
-        def _return_cache(runsum=None):
+        def _return_cache(cache_index=None):
             return [result for result in self]
 
         self._return_cache = _return_cache
-        self._runsum = self._make_runsum()
+        self._cache_index = self._make_cache_index()
 
     @async_contextmanager
-    async def aauto_cache(self):
+    async def _aauto_cache(self):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``list``, then ``alru_cache``'s the result
@@ -1362,14 +2023,14 @@ class Comprende:
         manage the memory overhead of caching values.
         """
         try:
-            if not self._runsum:
+            if not self._cache_index:
                 await self._aset_cache()
-            yield await self._areturn_cache(self.runsum)
+            yield await self._areturn_cache(self._cache_index)
         finally:
-            self.__class__._cached[self.runsum] = self
+            self.__class__._cached[self._cache_index] = self
 
     @contextmanager
-    def auto_cache(self):
+    def _auto_cache(self):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``list``, then ``lru_cache``'s the result
@@ -1378,21 +2039,21 @@ class Comprende:
         manage the memory overhead of caching values.
         """
         try:
-            if not self._runsum:
+            if not self._cache_index:
                 self._set_cache()
-            yield self._return_cache(self.runsum)
+            yield self._return_cache(self._cache_index)
         finally:
-            self.__class__._cached[self.runsum] = self
+            self.__class__._cached[self._cache_index] = self
 
     async def _astored_caches(self):
         """
         Returns the lru cached methods of an instance in an iterable.
         """
         if hasattr(self, "_return_cache"):
-            await asleep(0)
+            await asleep()
             yield self._return_cache
         if hasattr(self, "_areturn_cache"):
-            await asleep(0)
+            await asleep()
             yield self._areturn_cache
 
     def _stored_caches(self):
@@ -1404,7 +2065,7 @@ class Comprende:
         if hasattr(self, "_areturn_cache"):
             yield self._areturn_cache
 
-    async def alist(self, *, mutable=False):
+    async def alist(self, *, mutable=False, cache=False):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``list``, then ``alru_cache``'s the result
@@ -1418,10 +2079,12 @@ class Comprende:
         to be specified manually by setting the ``mutable`` boolean
         keyword argument be set to `True`.
         """
-        async with self.aauto_cache() as results:
+        if not cache:
+            return [item async for item in self]
+        async with self._aauto_cache() as results:
             return results if mutable else list(results)
 
-    def list(self, *, mutable=False):
+    def list(self, *, mutable=False, cache=False):
         """
         Exhausts the underlying Comprende sync generator & joins the
         results together in a ``list``, then ``lru_cache``'s the result
@@ -1435,79 +2098,97 @@ class Comprende:
         to be specified manually by setting the ``mutable`` boolean
         keyword argument be set to `True`.
         """
-        with self.auto_cache() as results:
+        if not cache:
+            return list(self)
+        with self._auto_cache() as results:
             return results if mutable else list(results)
 
-    async def adeque(self):
+    async def adeque(self, *, maxlen=None, cache=False):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``collections.deque``, then ``alru_cache``'s
         the result & returns it.
         """
-        async with self.aauto_cache() as results:
-            return deque(results)
+        if not cache:
+            return deque([item async for item in self], maxlen=maxlen)
+        async with self._aauto_cache() as results:
+            return deque(results, maxlen=maxlen)
 
-    def deque(self):
+    def deque(self, *, maxlen=None, cache=False):
         """
         Exhausts the underlying Comprende sync generator & joins the
         results together in a ``collections.deque``, then ``lru_cache``'s
         the result & returns it.
         """
-        with self.auto_cache() as results:
-            return deque(results)
+        if not cache:
+            return deque(self, maxlen=maxlen)
+        with self._auto_cache() as results:
+            return deque(results, maxlen=maxlen)
 
-    async def aset(self):
+    async def aset(self, *, cache=False):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``set``, then ``alru_cache``'s the result
         & returns it.
         """
-        async with self.aauto_cache() as results:
+        if not cache:
+            return {item async for item in self}
+        async with self._aauto_cache() as results:
             return set(results)
 
-    def set(self):
+    def set(self, *, cache=False):
         """
         Exhausts the underlying Comprende sync generator & joins the
         results together in a ``set``, then ``lru_cache``'s the result
         & returns it.
         """
-        with self.auto_cache() as results:
+        if not cache:
+            return set(self)
+        with self._auto_cache() as results:
             return set(results)
 
-    async def adict(self):
+    async def adict(self, *, cache=False):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together in a ``dict``, then ``alru_cache``'s the result
         & returns it.
         """
-        async with self.aauto_cache() as results:
+        if not cache:
+            return {key: value async for key, value in self}
+        async with self._aauto_cache() as results:
             return dict(results)
 
-    def dict(self):
+    def dict(self, *, cache=False):
         """
         Exhausts the underlying Comprende sync generator & joins the
         results together in a ``dict``, then ``lru_cache``'s the result
         & returns it.
         """
-        with self.auto_cache() as results:
+        if not cache:
+            return dict(self)
+        with self._auto_cache() as results:
             return dict(results)
 
-    async def ajoin(self, on=""):
+    async def ajoin(self, on="", *, cache=False):
         """
         Exhausts the underlying Comprende async generator & joins the
         results together ``on`` the string that's passed, then
         ``alru_cache``'s the result & returns it.
         """
-        async with self.aauto_cache() as results:
+        if not cache:
+            return on.join([item async for item in self])
+        async with self._aauto_cache() as results:
             return on.join(results)
 
-    def join(self, on=""):
+    def join(self, on="", *, cache=False):
         """
         Exhausts the underlying Comprende sync generator & joins the
         results together ``on`` the string that's passed, then
         ``lru_cache``'s the result & returns it.
         """
-        with self.auto_cache() as results:
+        if not cache:
+            return on.join(self)
+        with self._auto_cache() as results:
             return on.join(results)
 
     async def aexhaust(self):
@@ -1538,11 +2219,11 @@ class Comprende:
         Allows users to manually clear the cache of all the class'
         instances.
         """
-        for runsum, instance in dict(cls._cached).items():
-            del cls._cached[runsum]
+        for cache_index, instance in dict(cls._cached).items():
+            del cls._cached[cache_index]
             async for cache in instance._astored_caches():
                 cache.cache_clear()
-            instance._runsum = b""
+            instance._cache_index = b""
 
     @classmethod
     def clear_class(cls):
@@ -1550,11 +2231,11 @@ class Comprende:
         Allows users to manually clear the cache of all the class'
         instances.
         """
-        for runsum, instance in dict(cls._cached).items():
-            del cls._cached[runsum]
+        for cache_index, instance in dict(cls._cached).items():
+            del cls._cached[cache_index]
             for cache in instance._stored_caches():
                 cache.cache_clear()
-            instance._runsum = b""
+            instance._cache_index = b""
 
     async def aclear(self, *, cls=False):
         """
@@ -1563,13 +2244,13 @@ class Comprende:
         """
         if cls == True:
             await self.aclear_class()
-        elif self.precomputed:
+        elif self._precomputed:
             try:
-                del self.__class__._cached[self.runsum]
+                del self.__class__._cached[self._cache_index]
                 async for cache in self._astored_caches():
                     cache.cache_clear()
             finally:
-                self._runsum = b""
+                self._cache_index = b""
 
     def clear(self, *, cls=False):
         """
@@ -1578,24 +2259,385 @@ class Comprende:
         """
         if cls == True:
             self.clear_class()
-        elif self.precomputed:
+        elif self._precomputed:
             try:
-                del self.__class__._cached[self.runsum]
+                del self.__class__._cached[self._cache_index]
                 for cache in self._stored_caches():
                     cache.cache_clear()
             finally:
-                self._runsum = b""
+                self._cache_index = b""
 
-    def __del__(self):
+    @property
+    def ag_await(self):
         """
-        Attempts to cleanup instance caches when deleted or garbage
-        collected to reduce memory overhead.
+        Copies the interface for async generators.
         """
-        self.clear()
-        if hasattr(self, "gen"):
-            del self.gen
+        return self._gen.ag_await
 
-    async def atimeout(self, seconds=5, *, probe_frequency=0):
+    @property
+    def gi_yieldfrom(self):
+        """
+        Copies the interface for generators.
+        """
+        return self._gen.gi_yieldfrom
+
+    @property
+    def ag_code(self):
+        """
+        Copies the interface for async generators.
+        """
+        return self._gen.ag_code
+
+    @property
+    def gi_code(self):
+        """
+        Copies the interface for generators.
+        """
+        return self._gen.gi_code
+
+    @property
+    def ag_frame(self):
+        """
+        Copies the interface for async generators.
+        """
+        return self._gen.ag_frame
+
+    @property
+    def gi_frame(self):
+        """
+        Copies the interface for generators.
+        """
+        return self._gen.gi_frame
+
+    @property
+    def ag_running(self):
+        """
+        Copies the interface for async generators.
+        """
+        return self._gen.ag_running
+
+    @property
+    def gi_running(self):
+        """
+        Copies the interface for generators.
+        """
+        return self._gen.gi_running
+
+    async def aclose(self, *a, **kw):
+        """
+        This is quivalent to a wrapped async generator's ``aclose``
+        method.
+        """
+        return await self._gen.aclose(*a, **kw)
+
+    def close(self, *a, **kw):
+        """
+        This is quivalent to a wrapped sync generator's ``close`` method.
+        """
+        return self._gen.close(*a, **kw)
+
+    async def athrow(self, exc_type, exc_value=None, traceback=None):
+        """
+        This is quivalent to a wrapped async generator's ``athrow``
+        method.
+        """
+        await self._gen.athrow(exc_type, exc_value, traceback)
+
+    def throw(self, exc_type, exc_value=None, traceback=None):
+        """
+        This is quivalent to a wrapped sync generator's ``throw`` method.
+        """
+        self._gen.throw(exc_type, exc_value, traceback)
+
+
+class Comprende(BaseComprende):
+    """
+    Comprende is a generator wrapper class that exposes an expansive api
+    for making sync & async generators more useful by making their many
+    features easier to use. Comprende allows for easily retrieving
+    sync & async generator "return" values, has built-in methods that
+    support dotted chaining for inline data processing, & it opens
+    channels of communication to, from & in between sync & async
+    coroutines.
+    """
+
+    _cached = {}
+
+    __slots__ = []
+
+    lazy_generators = {
+        "_agetitem",
+        "_getitem",
+        "atimeout",
+        "timeout",
+        "ajson_loads",
+        "json_loads",
+        "ajson_dumps",
+        "json_dumps",
+        "aencode",
+        "encode",
+        "adecode",
+        "decode",
+        "astr",
+        "str",
+        "aint",
+        "int",
+        "ahex",
+        "hex",
+        "abin",
+        "bin",
+        "aoct",
+        "oct",
+        "abytes",
+        "bytes",
+        "abytes_to_int",
+        "bytes_to_int",
+        "aint_to_bytes",
+        "int_to_bytes",
+        "ahex_to_bytes",
+        "hex_to_bytes",
+        "abytes_to_hex",
+        "bytes_to_hex",
+        "ato_base",
+        "to_base",
+        "afrom_base",
+        "from_base",
+        "azfill",
+        "zfill",
+        "aslice",
+        "slice",
+        "aindex",
+        "index",
+        "areplace",
+        "replace",
+        "asplit",
+        "split",
+        "atag",
+        "tag",
+        "ahalt",
+        "halt",
+        "afeed",
+        "feed",
+        "afeed_self",
+        "feed_self",
+        "aresize",
+        "resize",
+        "adelimit",
+        "delimit",
+        "adelimited_resize",
+        "delimited_resize",
+        "ato_base64",
+        "to_base64",
+        "afrom_base64",
+        "from_base64",
+        "aint_to_ascii",
+        "int_to_ascii",
+        "aascii_to_int",
+        "ascii_to_int",
+        "asha3__512",
+        "sha3__512",
+        "asha3__512_hmac",
+        "sha3__512_hmac",
+        "asum_sha3__512",
+        "sum_sha3__512",
+        "asha3__256",
+        "sha3__256",
+        "asha3__256_hmac",
+        "sha3__256_hmac",
+        "asum_sha3__256",
+        "sum_sha3__256",
+    }
+
+    eager_generators = {
+        "aheappop",
+        "heappop",
+        "areversed",
+        "reversed",
+        "asort",
+        "sort",
+    }
+
+    _methods = BaseComprende._methods.union({"__getitem__"})
+
+    @staticmethod
+    def _interpret_index(index: int):
+        """
+        Converts an integer index into `start`, `stop` & `step` values.
+        """
+        start = index
+        stop = index + 1
+        step = 1
+        return start, stop, step
+
+    @staticmethod
+    def _unpack_slice(index: Typing.Index, _max: int = 1 << 128):
+        """
+        Returns the `start`, `stop` & `step` values from a slice object.
+        """
+        start = index.start if index.start.__class__ is int else 0
+        stop = index.stop if index.stop.__class__ is int else _max
+        step = index.step if index.step.__class__ is int else 1
+        return start, stop, step
+
+    def _set_index(self, index: Typing.Index):
+        """
+        Interprets the slice or int passed into __getitem__ into an
+        iterable of a range object.
+        """
+        if index.__class__ is int:
+            start, stop, step = self._interpret_index(index)
+        else:
+            start, stop, step = self._unpack_slice(index)
+        for value in [start, stop, step]:
+            if value < 0:
+                raise Issue.value_must_be_value("index", "positive int")
+        return iter(range(start, stop, step)).__next__
+
+    async def _agetitem(self, index: Typing.Index):
+        """
+        Allows indexing of async generators to yield the values
+        associated with the slice or integer passed into the brackets.
+        Does not support negative indices.
+        """
+        got = None
+        next_target = self._set_index(index)
+        with ignore(StopIteration, StopAsyncIteration):
+            target = next_target()
+            async for match in acount.root():
+                if target == match:
+                    got = yield await self(got)
+                    target = next_target()
+                else:
+                    await self(got)
+                    got = None
+
+    def _getitem(self, index: Typing.Index):
+        """
+        Allows indexing of generators to yield the values associated
+        with the slice or integer passed into the brackets. Does not
+        support negative indices.
+        """
+        got = None
+        next_target = self._set_index(index)
+        with ignore(StopIteration):
+            target = next_target()
+            for match in count.root():
+                if target == match:
+                    got = yield self(got)
+                    target = next_target()
+                else:
+                    self(got)
+                    got = None
+
+    def __getitem__(self, index: Typing.Index):
+        """
+        Allows indexing of generators & async generators to yield the
+        values associated with the slice or integer passed into the
+        brackets. Does not support negative indices.
+        """
+        if self._is_async:
+            return self._agetitem(index)
+        else:
+            return self._getitem(index)
+
+    async def areversed(self, span: Typing.OptionalIndex = None):
+        """
+        Exhausts the underlying Comprende async generator upto ``span``
+        number of iterations, then yields the results in reversed order.
+        """
+        target = self[:span] if span else self
+        async with target as accumulator:
+            results = await accumulator.alist()
+        for result in reversed(results):
+            yield result
+
+    def reversed(self, span: Typing.OptionalIndex = None):
+        """
+        Exhausts the underlying Comprende sync generator upto ``span``
+        number of iterations, then yields the results in reversed order.
+        """
+        target = self[:span] if span else self
+        with target as accumulator:
+            results = accumulator.list()
+        yield from reversed(results)
+
+    def __reversed__(self):
+        """
+        Allows reversing async/sync generators, but must compute all
+        values first to do so.
+        """
+        if self._is_async:
+            return self.areversed()
+        else:
+            return self.reversed()
+
+    async def asort(
+        self,
+        *,
+        key: Typing.Optional[Typing.Callable] = None,
+        span: Typing.OptionalIndex = None,
+    ):
+        """
+        Exhausts the underlying Comprende async generator upto ``span``
+        number of iterations, then yields the results in sorted order.
+        """
+        target = self[:span] if span else self
+        async with target as accumulator:
+            results = await accumulator.alist()
+        for result in sorted(results, key=key):
+            yield result
+
+    def sort(
+        self,
+        *,
+        key: Typing.Optional[Typing.Callable] = None,
+        span: Typing.OptionalIndex = None,
+    ):
+        """
+        Exhausts the underlying Comprende sync generator upto ``span``
+        number of iterations, then yields the results in sorted order.
+        """
+        target = self[:span] if span else self
+        yield from sorted(target, key=key)
+
+    async def aheappop(self, span: Typing.OptionalIndex = None):
+        """
+        Exhausts the underlying Comprende async generator upto ``span``
+        number of iterations, then yields the results in sorted order
+        based on the ``heapq.heappop`` function.
+        """
+        target = self[:span] if span else self
+        async with target as accumulator:
+            results = await accumulator.alist()
+        heapq.heapify(results)
+        while True:
+            try:
+                yield heapq.heappop(results)
+            except IndexError:
+                break
+
+    def heappop(self, span: Typing.OptionalIndex = None):
+        """
+        Exhausts the underlying Comprende sync generator upto ``span``
+        number of iterations, then yields the results in sorted order
+        based on the ``heapq.heappop`` function.
+        """
+        target = self[:span] if span else self
+        with target as accumulator:
+            results = accumulator.list()
+        heapq.heapify(results)
+        while True:
+            try:
+                yield heapq.heappop(results)
+            except IndexError:
+                break
+
+    async def atimeout(
+        self,
+        seconds: int = 5,
+        *,
+        probe_frequency: Typing.PositiveRealNumber = 0,
+    ):
         """
         Stops the instance's wrapped async generator's current iteration
         after a ``seconds`` number of seconds. Otherwise, the countdown
@@ -1617,7 +2659,12 @@ class Comprende:
                 iteration.cancel()
                 break
 
-    def timeout(self, seconds=5, *, probe_frequency=0):
+    def timeout(
+        self,
+        seconds: int = 5,
+        *,
+        probe_frequency: Typing.PositiveRealNumber = 0,
+    ):
         """
         Stops the instance's wrapped sync generator's current iteration
         after a ``seconds`` number of seconds. Otherwise, the countdown
@@ -1642,22 +2689,34 @@ class Comprende:
         except StopIteration:
             pass
 
-    async def ahalt(self, sentinel="", *, sentinels=()):
+    async def ahalt(
+        self,
+        sentinel: Typing.Any = "",
+        *,
+        sentinels: Typing.SupportsContains=(),
+    ):
         """
         Takes a ``sentinel`` or iterable of ``sentinels`` & halts the
         underlying Comprende async generator if it yields any of those
         sentinels.
         """
-        got = None
-        asend = self.asend
-        sentinels = set(sentinels) if sentinels else {sentinel}
-        while True:
-            result = await asend(got)
-            if result in sentinels:
-                break
-            got = yield result
+        try:
+            got = None
+            sentinels = set(sentinels) if sentinels else {sentinel}
+            while True:
+                result = await self(got)
+                if result in sentinels:
+                    break
+                got = yield result
+        except StopAsyncIteration:
+            pass
 
-    def halt(self, sentinel="", *, sentinels=()):
+    def halt(
+        self,
+        sentinel: Typing.Any = "",
+        *,
+        sentinels: Typing.SupportsContains=(),
+    ):
         """
         Takes a ``sentinel`` or iterable of ``sentinels`` & halts the
         underlying Comprende sync generator if it yields any of those
@@ -1665,38 +2724,35 @@ class Comprende:
         """
         try:
             got = None
-            send = self.send
             sentinels = set(sentinels) if sentinels else {sentinel}
             while True:
-                result = send(got)
+                result = self(got)
                 if result in sentinels:
                     break
                 got = yield result
         except StopIteration:
             pass
 
-    async def afeed(self, iterable=None):
+    async def afeed(self, iterable: Typing.Iterable[Typing.Any]):
         """
         Takes in an sync or async iterable & sends those values into an
         async coroutine which automates the process of driving an async
         generator which is expecting results from a caller.
         """
-        asend = self.asend
-        yield await asend(None)
+        yield await self(None)
         async for food in aunpack.root(iterable):
-            yield await asend(food)
+            yield await self(food)
 
-    def feed(self, iterable=None):
+    def feed(self, iterable: Typing.Iterable[Typing.Any]):
         """
         Takes in an iterable & sends those values into a sync coroutine
         which automates the process of driving a generator which is
         expecting results from a caller.
         """
         try:
-            send = self.send
-            yield send(None)
+            yield self(None)
             for food in iterable:
-                yield send(food)
+                yield self(food)
         except StopIteration:
             pass
 
@@ -1705,11 +2761,10 @@ class Comprende:
         Recursively feeds the results of an async generator back into
         itself as coroutine values for the ``asend`` function.
         """
-        asend = self.asend
-        food = await asend(None)
+        food = await self(None)
         yield food
         while True:
-            food = await asend(food)
+            food = await self(food)
             yield food
 
     def feed_self(self):
@@ -1718,16 +2773,15 @@ class Comprende:
         as coroutine values for the ``send`` function.
         """
         try:
-            send = self.send
-            food = send(None)
+            food = self(None)
             yield food
             while True:
-                food = send(food)
+                food = self(food)
                 yield food
         except StopIteration:
             pass
 
-    async def atag(self, tags=None):
+    async def atag(self, tags: Typing.Iterable[Typing.Any] = None):
         """
         By default behaves like ``enumerate`` for each value yielded
         from the underlying Comprende async generator. Optionally,
@@ -1735,15 +2789,14 @@ class Comprende:
         values to the generator's results.
         """
         got = None
-        asend = self.asend
         if tags:
             async for name in aunpack.root(tags):
-                got = yield name, await asend(got)
+                got = yield name, await self(got)
         else:
             async for index in acount.root():
-                got = yield index, await asend(got)
+                got = yield index, await self(got)
 
-    def tag(self, tags=None):
+    def tag(self, tags: Typing.Iterable[Typing.Any] = None):
         """
         By default behaves like ``enumerate`` for each value yielded
         from the underlying Comprende sync generator. Optionally,
@@ -1751,174 +2804,79 @@ class Comprende:
         the generator's results.
         """
         got = None
-        send = self.send
         try:
             if tags:
                 for name in tags:
-                    got = yield name, send(got)
+                    got = yield name, self(got)
             else:
                 for index in count.root():
-                    got = yield index, send(got)
+                    got = yield index, self(got)
         except StopIteration:
             pass
 
-    async def aheappop(self, span=None):
-        """
-        Exhausts the underlying Comprende async generator upto ``span``
-        number of iterations, then yields the results in sorted order
-        based on the ``heapq.heappop`` function.
-        """
-        target = self[:span] if span else self
-        async with target as accumulator:
-            results = await accumulator.alist(mutable=True)
-        heapq.heapify(results)
-        while True:
-            try:
-                yield heapq.heappop(results)
-            except IndexError:
-                break
-
-    def heappop(self, span=None):
-        """
-        Exhausts the underlying Comprende sync generator upto ``span``
-        number of iterations, then yields the results in sorted order
-        based on the ``heapq.heappop`` function.
-        """
-        target = self[:span] if span else self
-        with target as accumulator:
-            results = accumulator.list(mutable=True)
-        heapq.heapify(results)
-        while True:
-            try:
-                yield heapq.heappop(results)
-            except IndexError:
-                break
-
-    async def areversed(self, span=None):
-        """
-        Exhausts the underlying Comprende async generator upto ``span``
-        number of iterations, then yields the results in reversed order.
-        """
-        target = self[:span] if span else self
-        async with target as accumulator:
-            results = await accumulator.alist(mutable=True)
-        for result in reversed(results):
-            await asleep(0)
-            yield result
-
-    def reversed(self, span=None):
-        """
-        Exhausts the underlying Comprende sync generator upto ``span``
-        number of iterations, then yields the results in reversed order.
-        """
-        target = self[:span] if span else self
-        with target as accumulator:
-            results = accumulator.list(mutable=True)
-        for result in reversed(results):
-            yield result
-
-    def __reversed__(self):
-        """
-        Allows reversing async/sync generators, but must compute all
-        values first to do so.
-        """
-        if self._is_async:
-            return self.areversed()
-        else:
-            return self.reversed()
-
-    async def asort(self, *, key=None, span=None):
-        """
-        Exhausts the underlying Comprende async generator upto ``span``
-        number of iterations, then yields the results in sorted order.
-        """
-        target = self[:span] if span else self
-        async with target as accumulator:
-            results = await accumulator.alist(mutable=True)
-        results.sort(key=key)
-        for result in results:
-            await asleep(0)
-            yield result
-
-    def sort(self, *, key=None, span=None):
-        """
-        Exhausts the underlying Comprende sync generator upto ``span``
-        number of iterations, then yields the results in sorted order.
-        """
-        target = self[:span] if span else self
-        with target as accumulator:
-            results = accumulator.list(mutable=True)
-        results.sort(key=key)
-        for result in results:
-            yield result
-
-    async def aresize(self, size=BLOCKSIZE):
+    async def aresize(self, size: int = BLOCKSIZE):
         """
         Buffers the output from the underlying Comprende async generator
         to yield the results in chunks of length ``size``.
         """
-        asend = self.asend
-        result = await asend(None)
+        result = await self(None)
         while True:
             while len(result) >= size:
                 yield result[:size]
                 result = result[size:]
             try:
-                result += await asend(None)
+                result += await self(None)
             except StopAsyncIteration:
                 break
         if result:
             yield result
 
-    def resize(self, size=BLOCKSIZE):
+    def resize(self, size: int = BLOCKSIZE):
         """
         Buffers the output from the underlying Comprende sync generator
         to yield the results in chunks of length ``size``.
         """
-        send = self.send
-        result = send(None)
+        result = self(None)
         while True:
             while len(result) >= size:
                 yield result[:size]
                 result = result[size:]
             try:
-                result += send(None)
+                result += self(None)
             except StopIteration:
                 break
         if result:
             yield result
 
-    async def adelimit(self, delimiter=" "):
+    async def adelimit(self, delimiter: Typing.AnyStr = " "):
         """
         Adds a user-defined ``delimiter`` to the end of end result
         yielded from the underlying ``Comprende`` async generator.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield await asend(got) + delimiter
+            got = yield await self(got) + delimiter
 
-    def delimit(self, delimiter=" "):
+    def delimit(self, delimiter: Typing.AnyStr = " "):
         """
         Adds a user-defined ``delimiter`` to the end of end result
         yielded from the underlying ``Comprende`` generator.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got) + delimiter
+                got = yield self(got) + delimiter
         except StopIteration:
             pass
 
-    async def adelimited_resize(self, delimiter=" ", base=""):
+    async def adelimited_resize(self, delimiter: Typing.AnyStr = " "):
         """
         Yields the results of the underlying ``Comprende`` async
         generator in chunks delimited by ``delimiter``. The ``base``
         keyword argument is an empty sequence of the same type
         (``str`` or ``bytes``) that the yielded results are in.
         """
-        cache = base
+        cache = delimiter[:0]
         async for result in self:
             result = (cache + result).lstrip(delimiter)
             while delimiter in result:
@@ -1929,14 +2887,12 @@ class Comprende:
         if cache:
             yield cache
 
-    def delimited_resize(self, delimiter=" ", base=""):
+    def delimited_resize(self, delimiter: Typing.AnyStr = " "):
         """
         Yields the results of the underlying ``Comprende`` generator in
-        chunks delimited by ``delimiter``. The ``base`` keyword argument
-        is an empty sequence of the same type (``str`` or ``bytes``)
-        that the yielded results are in.
+        chunks delimited by ``delimiter``.
         """
-        cache = base
+        cache = delimiter[:0]
         for result in self:
             result = (cache + result).lstrip(delimiter)
             while delimiter in result:
@@ -1954,9 +2910,8 @@ class Comprende:
         before yielding the result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield to_b64(await asend(got))
+            got = yield to_base64(await self(got))
 
     def to_base64(self):
         """
@@ -1965,10 +2920,9 @@ class Comprende:
         before yielding the result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield to_b64(send(got))
+                got = yield to_base64(self(got))
         except StopIteration:
             pass
 
@@ -1979,9 +2933,8 @@ class Comprende:
         before yielding the result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield from_b64(await asend(got))
+            got = yield from_base64(await self(got))
 
     def from_base64(self):
         """
@@ -1990,10 +2943,9 @@ class Comprende:
         before yielding the result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield from_b64(send(got))
+                got = yield from_base64(self(got))
         except StopIteration:
             pass
 
@@ -2004,9 +2956,8 @@ class Comprende:
         before yielding the result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got)).to_bytes(
+            got = yield (await self(got)).to_bytes(
                 math.ceil(result.bit_length() / 8), "big"
             ).decode()
 
@@ -2017,10 +2968,9 @@ class Comprende:
         before yielding the result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got).to_bytes(
+                got = yield self(got).to_bytes(
                     math.ceil(result.bit_length() / 8), "big"
                 ).decode()
         except StopIteration:
@@ -2033,10 +2983,9 @@ class Comprende:
         before yielding the result.
         """
         got = None
-        asend = self.asend
         while True:
             got = yield int.from_bytes(
-                (await asend(got)).encode(), "big"
+                (await self(got)).encode(), "big"
             )
 
     def ascii_to_int(self):
@@ -2046,203 +2995,194 @@ class Comprende:
         before yielding the result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield int.from_bytes(send(got).encode(), "big")
+                got = yield int.from_bytes(self(got).encode(), "big")
         except StopIteration:
             pass
 
-    async def asha_512(self, *, salt=None):
+    async def asha3__512(self, *, salt: Typing.Any = None):
         """
         Applies ``hashlib.sha3_512()`` to each value that's yielded
         from the underlying Comprende async generator before yielding
         the result.
         """
         got = None
-        asend = self.asend
         if salt:
             while True:
-                got = yield await asha_512(salt, await asend(got))
+                got = yield await asha3__512(salt, await self(got))
         else:
             while True:
-                got = yield await asha_512(await asend(got))
+                got = yield await asha3__512(await self(got))
 
-    def sha_512(self, *, salt=None):
+    def sha3__512(self, *, salt: Typing.Any = None):
         """
         Applies ``hashlib.sha3_512()`` to each value that's yielded
         from the underlying Comprende sync generator before yielding
         the result.
         """
         got = None
-        send = self.send
         try:
             if salt:
                 while True:
-                    got = yield sha_512(salt, send(got))
+                    got = yield sha3__512(salt, self(got))
             else:
                 while True:
-                    got = yield sha_512(send(got))
+                    got = yield sha3__512(self(got))
         except StopIteration:
             pass
 
-    async def asha_512_hmac(self, *, key, salt=None):
+    async def asha3__512_hmac(
+        self, *, key: Typing.Any, salt: Typing.Any = None
+    ):
         """
         Applies a ``hashlib.sha3_512()`` based hmac algorithm to each
         value that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
         got = None
-        asend = self.asend
         if salt:
             while True:
-                got = yield await asha_512_hmac(
-                    (salt, await asend(got)), key=key
+                got = yield await asha3__512_hmac(
+                    (salt, await self(got)), key=key
                 )
         else:
             while True:
-                got = yield await asha_512_hmac(await asend(got), key=key)
+                got = yield await asha3__512_hmac(await self(got), key=key)
 
-    def sha_512_hmac(self, *, key, salt=None):
+    def sha3__512_hmac(self, *, key: Typing.Any, salt: Typing.Any = None):
         """
         Applies a ``hashlib.sha3_512()`` based hmac algorithm to each
         value that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
         got = None
-        send = self.send
         try:
             if salt:
                 while True:
-                    got = yield sha_512_hmac((salt, send(got)), key=key)
+                    got = yield sha3__512_hmac((salt, self(got)), key=key)
             else:
                 while True:
-                    got = yield sha_512_hmac(send(got), key=key)
+                    got = yield sha3__512_hmac(self(got), key=key)
         except StopIteration:
             pass
 
-    async def asum_sha_512(self, *, salt=None):
+    async def asum_sha3__512(self, *, salt: Typing.Any = None):
         """
         Cumulatively applies a ``hashlib.sha3_512()`` to each value
         that's yielded from the underlying Comprende async generator
         with the results of prior hashing before yielding the result.
         """
         got = None
-        asend = self.asend
-        summary = await asha_512(salt)
+        summary = await asha3__512(salt)
         while True:
-            summary = await asha_512(salt, summary, await asend(got))
+            summary = await asha3__512(salt, summary, await self(got))
             got = yield summary
 
-    def sum_sha_512(self, *, salt=None):
+    def sum_sha3__512(self, *, salt: Typing.Any = None):
         """
         Cumulatively applies a ``hashlib.sha3_512()`` to each value
         that's yielded from the underlying Comprende sync generator with
         the results of prior hashing before yielding the result.
         """
         got = None
-        send = self.send
-        summary = sha_512(salt)
+        summary = sha3__512(salt)
         try:
             while True:
-                summary = sha_512(salt, summary, send(got))
+                summary = sha3__512(salt, summary, self(got))
                 got = yield summary
         except StopIteration:
             pass
 
-    async def asha_256(self, *, salt=None):
+    async def asha3__256(self, *, salt: Typing.Any = None):
         """
         Applies ``hashlib.sha3_256()`` to each value that's yielded
         from the underlying Comprende async generator before yielding
         the result.
         """
         got = None
-        asend = self.asend
         if salt:
             while True:
-                got = yield await asha_256(salt, await asend(got))
+                got = yield await asha3__256(salt, await self(got))
         else:
             while True:
-                got = yield await asha_256(await asend(got))
+                got = yield await asha3__256(await self(got))
 
-    def sha_256(self, *, salt=None):
+    def sha3__256(self, *, salt: Typing.Any = None):
         """
         Applies ``hashlib.sha3_256()`` to each value that's yielded
         from the underlying Comprende sync generator before yielding the
         result.
         """
         got = None
-        send = self.send
         try:
             if salt:
                 while True:
-                    got = yield sha_256(salt, send(got))
+                    got = yield sha3__256(salt, self(got))
             else:
                 while True:
-                    got = yield sha_256(send(got))
+                    got = yield sha3__256(self(got))
         except StopIteration:
             pass
 
-    async def asha_256_hmac(self, *, key, salt=None):
+    async def asha3__256_hmac(
+        self, *, key: Typing.Any, salt: Typing.Any = None
+    ):
         """
         Applies a ``hashlib.sha3_256()`` based hmac algorithm to each
         value that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
         got = None
-        asend = self.asend
         if salt:
             while True:
-                got = yield await asha_256_hmac(
-                    (salt, await asend(got)), key=key
+                got = yield await asha3__256_hmac(
+                    (salt, await self(got)), key=key
                 )
         else:
             while True:
-                got = yield await asha_256_hmac(await asend(got), key=key)
+                got = yield await asha3__256_hmac(await self(got), key=key)
 
-    def sha_256_hmac(self, *, key, salt=None):
+    def sha3__256_hmac(self, *, key: Typing.Any, salt: Typing.Any = None):
         """
         Applies a ``hashlib.sha3_256()`` based hmac algorithm to each
         value that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
         got = None
-        send = self.send
         try:
             if salt:
                 while True:
-                    got = yield sha_256_hmac((salt, send(got)), key=key)
+                    got = yield sha3__256_hmac((salt, self(got)), key=key)
             else:
                 while True:
-                    got = yield sha_256_hmac(send(got), key=key)
+                    got = yield sha3__256_hmac(self(got), key=key)
         except StopIteration:
             pass
 
-    async def asum_sha_256(self, *, salt=None):
+    async def asum_sha3__256(self, *, salt: Typing.Any = None):
         """
         Cumulatively applies a ``hashlib.sha3_256()`` to each value
         that's yielded from the underlying Comprende async generator
         with the results of prior hashing before yielding the result.
         """
         got = None
-        asend = self.asend
-        summary = await asha_256(salt)
+        summary = await asha3__256(salt)
         while True:
-            summary = await asha_256(salt, summary, await asend(got))
+            summary = await asha3__256(salt, summary, await self(got))
             got = yield summary
 
-    def sum_sha_256(self, *, salt=None):
+    def sum_sha3__256(self, *, salt: Typing.Any = None):
         """
         Cumulatively applies a ``hashlib.sha3_256()`` to each value
         that's yielded from the underlying Comprende sync generator with
         the results of prior hashing before yielding the result.
         """
         got = None
-        send = self.send
-        summary = sha_256(salt)
+        summary = sha3__256(salt)
         try:
             while True:
-                summary = sha_256(salt, summary, send(got))
+                summary = sha3__256(salt, summary, self(got))
                 got = yield summary
         except StopIteration:
             pass
@@ -2254,9 +3194,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield int(await asend(got), *a, **kw)
+            got = yield int(await self(got), *a, **kw)
 
     def int(self, *a, **kw):
         """
@@ -2265,60 +3204,57 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield builtins.int(send(got), *a, **kw)
+                got = yield builtins.int(self(got), *a, **kw)
         except StopIteration:
             pass
 
-    async def abytes_to_int(self, byte_order="big"):
+    async def abytes_to_int(self, byte_order: str = "big"):
         """
         Applies ``int.from_bytes(result, byte_order)`` to each value
         that's yielded from the underlying Comprende async generator
         before yielding the result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield int.from_bytes(await asend(got), byte_order)
+            got = yield int.from_bytes(await self(got), byte_order)
 
-    def bytes_to_int(self, byte_order="big"):
+    def bytes_to_int(self, byte_order: str = "big"):
         """
         Applies ``int.from_bytes(result, byte_order)`` to each value
         that's yielded from the underlying Comprende sync generator
         before yielding the result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield int.from_bytes(send(got), byte_order)
+                got = yield int.from_bytes(self(got), byte_order)
         except StopIteration:
             pass
 
-    async def aint_to_bytes(self, size=BLOCKSIZE, byte_order="big"):
+    async def aint_to_bytes(
+        self, size: int = BLOCKSIZE, byte_order: str = "big"
+    ):
         """
         Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende async
         generator before yielding the result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got)).to_bytes(size, byte_order)
+            got = yield (await self(got)).to_bytes(size, byte_order)
 
-    def int_to_bytes(self, size=BLOCKSIZE, byte_order="big"):
+    def int_to_bytes(self, size: int = BLOCKSIZE, byte_order: str = "big"):
         """
         Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende sync
         generator before yielding the result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got).to_bytes(size, byte_order)
+                got = yield self(got).to_bytes(size, byte_order)
         except StopIteration:
             pass
 
@@ -2329,9 +3265,8 @@ class Comprende:
         the result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield bytes.fromhex(await asend(got))
+            got = yield bytes.fromhex(await self(got))
 
     def hex_to_bytes(self):
         """
@@ -2340,10 +3275,9 @@ class Comprende:
         the result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield bytes.fromhex(send(got))
+                got = yield bytes.fromhex(self(got))
         except StopIteration:
             pass
 
@@ -2354,9 +3288,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got)).hex()
+            got = yield (await self(got)).hex()
 
     def bytes_to_hex(self):
         """
@@ -2365,57 +3298,54 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got).hex()
+                got = yield self(got).hex()
         except StopIteration:
             pass
 
-    async def ato_base(self, base=95, table=ASCII_TABLE):
+    async def ato_base(self, base: int = 95, table: str = Tables.ASCII_95):
         """
         Converts each integer value that's yielded from the underlying
         Comprende async generator to a string in ``base`` before yielding
         the result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield await aint_to_base(await asend(got), base, table)
+            got = yield await aint_to_base(await self(got), base, table)
 
-    def to_base(self, base=95, table=ASCII_TABLE):
+    def to_base(self, base: int = 95, table: str = Tables.ASCII_95):
         """
         Converts each integer value that's yielded from the underlying
         Comprende sync generator to a string in ``base`` before yielding
         the result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield int_to_base(send(got), base, table)
+                got = yield int_to_base(self(got), base, table)
         except StopIteration:
             pass
 
-    async def afrom_base(self, base=95, table=ASCII_TABLE):
+    async def afrom_base(
+        self, base: int = 95, table: str = Tables.ASCII_95
+    ):
         """
         Convert string results of generator results in numerical ``base``
         into decimal.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield await abase_to_int(await asend(got), base, table)
+            got = yield await abase_to_int(await self(got), base, table)
 
-    def from_base(self, base=95, table=ASCII_TABLE):
+    def from_base(self, base: int = 95, table: str = Tables.ASCII_95):
         """
         Convert ``string`` in numerical ``base`` into decimal.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield base_to_int(send(got), base, table)
+                got = yield base_to_int(self(got), base, table)
         except StopIteration:
             pass
 
@@ -2426,9 +3356,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got)).zfill(*a, **kw)
+            got = yield (await self(got)).zfill(*a, **kw)
 
     def zfill(self, *a, **kw):
         """
@@ -2437,10 +3366,9 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got).zfill(*a, **kw)
+                got = yield self(got).zfill(*a, **kw)
         except StopIteration:
             pass
 
@@ -2451,10 +3379,9 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         selected = slice(*a)
         while True:
-            got = yield (await asend(got))[selected]
+            got = yield (await self(got))[selected]
 
     def slice(self, *a):
         """
@@ -2463,34 +3390,31 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         selected = slice(*a)
         try:
             while True:
-                got = yield send(got)[selected]
+                got = yield self(got)[selected]
         except StopIteration:
             pass
 
-    async def aindex(self, selected=None):
+    async def aindex(self, selected: Typing.Union[int, slice]):
         """
         Yields the ``selected`` index of each result produced by the
         underlying Comprende async generator.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got))[selected]
+            got = yield (await self(got))[selected]
 
-    def index(self, selected=None):
+    def index(self, selected: Typing.Union[int, slice]):
         """
         Yields the ``selected`` index of each result produced by the
         underlying Comprende sync generator.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got)[selected]
+                got = yield self(got)[selected]
         except StopIteration:
             pass
 
@@ -2501,9 +3425,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield str(await asend(got), *a, **kw)
+            got = yield str(await self(got), *a, **kw)
 
     def str(self, *a, **kw):
         """
@@ -2512,11 +3435,10 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         _str = builtins.str
         try:
             while True:
-                got = yield _str(send(got), *a, **kw)
+                got = yield _str(self(got), *a, **kw)
         except StopIteration:
             pass
 
@@ -2527,9 +3449,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got)).split(*a, **kw)
+            got = yield (await self(got)).split(*a, **kw)
 
     def split(self, *a, **kw):
         """
@@ -2538,10 +3459,9 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                yield send(got).split(*a, **kw)
+                yield self(got).split(*a, **kw)
         except StopIteration:
             pass
 
@@ -2552,9 +3472,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got)).replace(*a, **kw)
+            got = yield (await self(got)).replace(*a, **kw)
 
     def replace(self, *a, **kw):
         """
@@ -2563,10 +3482,9 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got).replace(*a, **kw)
+                got = yield self(got).replace(*a, **kw)
         except StopIteration:
             pass
 
@@ -2577,9 +3495,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got)).encode(*a, **kw)
+            got = yield (await self(got)).encode(*a, **kw)
 
     def encode(self, *a, **kw):
         """
@@ -2588,10 +3505,9 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got).encode(*a, **kw)
+                got = yield self(got).encode(*a, **kw)
         except StopIteration:
             pass
 
@@ -2602,9 +3518,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield (await asend(got)).decode(*a, **kw)
+            got = yield (await self(got)).decode(*a, **kw)
 
     def decode(self, *a, **kw):
         """
@@ -2613,10 +3528,9 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield send(got).decode(*a, **kw)
+                got = yield self(got).decode(*a, **kw)
         except StopIteration:
             pass
 
@@ -2627,9 +3541,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield json.loads(await asend(got), *a, **kw)
+            got = yield json.loads(await self(got), *a, **kw)
 
     def json_loads(self, *a, **kw):
         """
@@ -2638,10 +3551,9 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield json.loads(send(got), *a, **kw)
+                got = yield json.loads(self(got), *a, **kw)
         except StopIteration:
             pass
 
@@ -2652,9 +3564,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield json.dumps(await asend(got), *a, **kw)
+            got = yield json.dumps(await self(got), *a, **kw)
 
     def json_dumps(self, *a, **kw):
         """
@@ -2663,64 +3574,9 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         try:
             while True:
-                got = yield json.dumps(send(got), *a, **kw)
-        except StopIteration:
-            pass
-
-    async def ahex(self, prefix=False):
-        """
-        Applies ``builtins.hex()`` to each value that's yielded from
-        the underlying Comprende async generator before yielding the
-        result.
-        """
-        got = None
-        asend = self.asend
-        start = 0 if prefix else 2
-        while True:
-            got = yield hex(await asend(got))[start:]
-
-    def hex(self, prefix=False):
-        """
-        Applies ``builtins.hex()`` to each value that's yielded from
-        the underlying Comprende sync generator before yielding the
-        result.
-        """
-        got = None
-        send = self.send
-        _hex = builtins.hex
-        start = 0 if prefix else 2
-        try:
-            while True:
-                got = yield _hex(send(got))[start:]
-        except StopIteration:
-            pass
-
-    async def abytes(self, *a, **kw):
-        """
-        Applies ``builtins.bytes()`` to each value that's yielded from
-        the underlying Comprende async generator before yielding the
-        result.
-        """
-        got = None
-        asend = self.asend
-        while True:
-            got = yield bytes(await asend(got), *a, **kw)
-
-    def bytes(self, *a, **kw):
-        """
-        Applies ``builtins.bytes()`` to each value that's yielded from
-        the underlying Comprende sync generator before yielding the
-        result.
-        """
-        got = None
-        send = self.send
-        _bytes = builtins.bytes
-        try:
-            while True:
-                got = yield _bytes(send(got), *a, **kw)
+                got = yield json.dumps(self(got), *a, **kw)
         except StopIteration:
             pass
 
@@ -2731,9 +3587,8 @@ class Comprende:
         result.
         """
         got = None
-        asend = self.asend
         while True:
-            got = yield bin(await asend(got), *a, **kw)
+            got = yield bin(await self(got), *a, **kw)[2:]
 
     def bin(self, *a, **kw):
         """
@@ -2742,987 +3597,90 @@ class Comprende:
         result.
         """
         got = None
-        send = self.send
         _bin = builtins.bin
         try:
             while True:
-                got = yield _bin(send(got), *a, **kw)
+                got = yield _bin(self(got), *a, **kw)[2:]
         except StopIteration:
             pass
 
-    def _set_index(self, index, _max=bits[128]):
+    async def aoct(self, *a, **kw):
         """
-        Interprets the slice or int passed into __getitem__ into an
-        iterable of a range object.
-        """
-        if isinstance(index, int):
-            step = 1
-            start = index
-            stop = index + 1
-        else:
-            step = index.step if isinstance(index.step, int) else 1
-            start = index.start if isinstance(index.start, int) else 0
-            stop = index.stop if isinstance(index.stop, int) else _max
-        return iter(range(start, stop, step)).__next__
-
-    async def _agetitem(self, index):
-        """
-        Allows indexing of async generators to yield the values
-        associated with the slice or integer passed into the brackets.
-        Does not support negative indices.
+        Applies ``builtins.bin()`` to each value that's yielded from
+        the underlying Comprende async generator before yielding the
+        result.
         """
         got = None
-        asend = self.asend
-        next_target = self._set_index(index)
-        with ignore(StopIteration, StopAsyncIteration):
-            target = next_target()
-            async for match in acount.root():
-                if target == match:
-                    got = yield await asend(got)
-                    target = next_target()
-                else:
-                    await asend(got)
-                    got = None
+        while True:
+            got = yield oct(await self(got), *a, **kw)[2:]
 
-    def _getitem(self, index):
+    def oct(self, *a, **kw):
         """
-        Allows indexing of generators to yield the values associated
-        with the slice or integer passed into the brackets. Does not
-        support negative indices.
+        Applies ``builtins.bin()`` to each value that's yielded from
+        the underlying Comprende sync generator before yielding the
+        result.
         """
         got = None
-        send = self.send
-        next_target = self._set_index(index)
-        with ignore(StopIteration):
-            target = next_target()
-            for match in count.root():
-                if target == match:
-                    got = yield send(got)
-                    target = next_target()
-                else:
-                    send(got)
-                    got = None
-
-    def __getitem__(self, index):
-        """
-        Allows indexing of generators & async generators to yield the
-        values associated with the slice or integer passed into the
-        brackets. Does not support negative indices.
-        """
-        if self._is_async:
-            return self._agetitem(index)
-        else:
-            return self._getitem(index)
-
-    async def __aiter__(self, *, got=None):
-        """
-        Iterates over the wrapped async generator / coroutine & produces
-        its values directly, or from alru_cache if an eager calculation
-        has already computed the gererators values.
-        """
-        if self.precomputed:
-            async with self.aauto_cache() as results:
-                for result in results:
-                    await asleep(0)
-                    yield result
-        else:
-            asend = self.asend
-            while True:
-                try:
-                    got = yield await asend(got)
-                except StopAsyncIteration:
-                    break
-
-    def __iter__(self, *, got=None):
-        """
-        Iterates over the wrapped generator / coroutine and produces its
-        values directly, or from lru_cache if an eager calculation has
-        already computed the gererators values.
-        """
-        if self.precomputed:
-            with self.auto_cache() as results:
-                for result in results:
-                    yield result
-        else:
-            send = self.send
-            while True:
-                try:
-                    got = yield send(got)
-                except StopIteration:
-                    break
-
-    async def _acall(self, got=None):
-        """
-        Allows the wrapped async generator / coroutine to receive
-        ``asend`` values by using the class' __call__ method.
-        """
-        return await self.gen.asend(got)
-
-    def _call(self, got=None):
-        """
-        Allows the wrapped generator / coroutine to receive ``send``
-        values by using the class' __call__ method.
-        """
-        return self.gen.send(got)
-
-    def __call__(self, got=None):
-        """
-        Allows the wrapped async & sync coroutine generator to receive
-        ``send`` values by calling the instance.
-        """
-        if self._is_async:
-            return self._acall(got)
-        else:
-            return self._call(got)
-
-    async def anext(self, *a):
-        """
-        Advances the wrapped async generator to the next yield.
-        """
-        return await self.iterator.asend(None)
-
-    def next(self, *a):
-        """
-        Advances the wrapped sync generator to the next yield.
-        """
-        return builtins.next(self.iterator)
-
-    def __next__(self):
-        """
-        Allows calling ``builtins.next`` on async / sync generators &
-        coroutines.
-        """
-        if self._is_async:
-            return self.anext()
-        else:
-            return self.next()
-
-    async def __aenter__(self):
-        """
-        Opens a context & yields ``self``.
-        """
-        return self
-
-    def __enter__(self):
-        """
-        Opens a context & yields ``self``.
-        """
-        return self
-
-    async def __aexit__(
-        self, exc_type=None, exc_value=None, traceback=None
-    ):
-        """
-        Surpresses StopAsyncIteration exceptions within a context.
-        Clears the cached results upon exit.
-        """
+        _oct = builtins.oct
         try:
-            if exc_type == StopAsyncIteration:
-                return True
-        finally:
-            await self.aclear()
+            while True:
+                got = yield _oct(self(got), *a, **kw)[2:]
+        except StopIteration:
+            pass
 
-    def __exit__(self, exc_type=None, exc_value=None, traceback=None):
+    async def ahex(self, prefix: bool = False):
         """
-        Surpresses StopIteration exceptions within a context. Clears the
-        cached results upon exit.
+        Applies ``builtins.hex()`` to each value that's yielded from
+        the underlying Comprende async generator before yielding the
+        result.
         """
+        got = None
+        start = 0 if prefix else 2
+        while True:
+            got = yield hex(await self(got))[start:]
+
+    def hex(self, prefix: bool = False):
+        """
+        Applies ``builtins.hex()`` to each value that's yielded from
+        the underlying Comprende sync generator before yielding the
+        result.
+        """
+        got = None
+        _hex = builtins.hex
+        start = 0 if prefix else 2
         try:
-            if exc_type == StopIteration:
-                return True
-        finally:
-            self.clear()
+            while True:
+                got = yield _hex(self(got))[start:]
+        except StopIteration:
+            pass
 
-    def __repr__(self, *, debugging=None):
+    async def abytes(self, *a, **kw):
         """
-        Displays the string which, if ``exec``'d, would yield a new
-        equivalent object.
+        Applies ``builtins.bytes()`` to each value that's yielded from
+        the underlying Comprende async generator before yielding the
+        result.
         """
-        a = self.args
-        kw = self.kwargs
-        func = self.func.__qualname__
-        cls = self.__class__.__qualname__
-        tab = f"{linesep + 4 * ' '}"
-        _repr = f"{cls}({tab}func={func},{tab}"
-        if debugging == None:
-            debugging = DebugControl.is_debugging()
-        if not debugging:
-            _repr += f"args={len(a)},{tab}kwargs={len(kw)},{linesep})"
-            return _repr
-        else:
-            _repr += f"*{a},{tab}**{kw},{linesep})"
-            return _repr
+        got = None
+        while True:
+            got = yield bytes(await self(got), *a, **kw)
 
-    async def athrow(self, exc_type, exc_value=None, traceback=None):
+    def bytes(self, *a, **kw):
         """
-        This is quivalent to a wrapped async generator's ``athrow``
-        method.
+        Applies ``builtins.bytes()`` to each value that's yielded from
+        the underlying Comprende sync generator before yielding the
+        result.
         """
-        await self.gen.athrow(exc_type, exc_value, traceback)
-
-    def throw(self, exc_type, exc_value=None, traceback=None):
-        """
-        This is quivalent to a wrapped sync generator's ``throw`` method.
-        """
-        self.gen.throw(exc_type, exc_value, traceback)
-
-    @property
-    def ag_await(self):
-        """
-        Copies the interface for async generators.
-        """
-        return self.gen.ag_await
-
-    @property
-    def gi_yieldfrom(self):
-        """
-        Copies the interface for generators.
-        """
-        return self.gen.gi_yieldfrom
-
-    @property
-    def ag_code(self):
-        """
-        Copies the interface for async generators.
-        """
-        return self.gen.ag_code
-
-    @property
-    def gi_code(self):
-        """
-        Copies the interface for generators.
-        """
-        return self.gen.gi_code
-
-    @property
-    def ag_frame(self):
-        """
-        Copies the interface for async generators.
-        """
-        return self.gen.ag_frame
-
-    @property
-    def gi_frame(self):
-        """
-        Copies the interface for generators.
-        """
-        return self.gen.gi_frame
-
-    @property
-    def ag_running(self):
-        """
-        Copies the interface for async generators.
-        """
-        return self.gen.ag_running
-
-    @property
-    def gi_running(self):
-        """
-        Copies the interface for generators.
-        """
-        return self.gen.gi_running
-
-    async def aclose(self, *a, **kw):
-        """
-        This is quivalent to a wrapped async generator's ``aclose``
-        method.
-        """
-        return await self.gen.aclose(*a, **kw)
-
-    def close(self, *a, **kw):
-        """
-        This is quivalent to a wrapped sync generator's ``close`` method.
-        """
-        return self.gen.close(*a, **kw)
+        got = None
+        _bytes = builtins.bytes
+        try:
+            while True:
+                got = yield _bytes(self(got), *a, **kw)
+        except StopIteration:
+            pass
 
     for method in lazy_generators.union(eager_generators):
         vars()[method] = comprehension(chained=True)(vars()[method])
-
-
-async def anext(coroutine_iterator):
-    """
-    Creates an asynchronous version of the ``builtins.next`` function.
-    """
-    return await coroutine_iterator.__anext__()
-
-
-@comprehension()
-async def azip(*iterables):
-    """
-    Creates an asynchronous version of the ``builtins.zip`` function
-    which is wrapped by the ``Comprende`` class.
-    """
-    coroutines = [aiter.root(iterable).__anext__ for iterable in iterables]
-    try:
-        while True:
-            yield [await coroutine() for coroutine in coroutines]
-    except StopAsyncIteration:
-        pass
-
-
-@comprehension()
-def _zip(*iterables):
-    """
-    Creates a synchronous version of the zip builtin function which is
-    wrapped by the ``Comprende`` class.
-    """
-    for results in zip(*iterables):
-        yield results
-
-
-@comprehension()
-async def aiter(iterable):
-    """
-    Creates an async version of ``builtins.iter`` which is wrapped by
-    the ``Comprende`` class.
-    """
-    if is_async_iterable(iterable):
-        async for result in iterable:
-            yield result
-    else:
-        for result in iterable:
-            await asleep(0)
-            yield result
-
-
-@comprehension()
-def _iter(iterable, *a, **kw):
-    """
-    Creates an synchronous version of ``builtins.iter`` that is wrapped
-    by the ``Comprende`` class.
-    """
-    for result in iter(iterable, *a, **kw):
-        yield result
-
-
-@comprehension()
-async def aecho(initial_value, *, buffer=()):
-    """
-    A coroutine which yields the values the are sent into it. It's most
-    useful as a debugger or in Comprende data processing chains.
-
-    Usage Example:
-
-    converstion = aecho(b'{"field_0": 0}').adecode().ajson_loads()
-    assert {"field_0": 0} == await converstion()
-    assert {"field_1": 1} == await converstion(b'{"field_1": 1}')
-    assert {"field_2": 2} == await converstion(b'{"field_2": 2}')
-    """
-    await asleep(0)
-    got = yield initial_value
-    for item in buffer:
-        await asleep(0)
-        got = yield item
-    while True:
-        await asleep(0)
-        got = yield got
-
-
-@comprehension()
-def echo(initial_value, *, buffer=()):
-    """
-    A coroutine which yields the values the are sent into it. It's most
-    useful as a debugger or in Comprende data processing chains.
-
-    Usage Example:
-
-    converstion = echo(b'{"field_0": 0}').decode().json_loads()
-    assert {"field_0": 0} == converstion()
-    assert {"field_1": 1} == converstion(b'{"field_1": 1}')
-    assert {"field_2": 2} == converstion(b'{"field_2": 2}')
-    """
-    got = yield initial_value
-    for item in buffer:
-        got = yield item
-    while True:
-        got = yield got
-
-
-@comprehension()
-async def acycle(iterable):
-    """
-    Unendingly cycles in order over the elements of an async iterable.
-    """
-    results = []
-    if is_async_iterable(iterable):
-        async for result in iterable:
-            yield result
-            results.append(result)
-    else:
-        for result in iterable:
-            await asleep(0)
-            yield result
-            results.append(result)
-    if results:
-        while True:
-            for result in results:
-                await asleep(0)
-                yield result
-
-
-@comprehension()
-def cycle(iterable):
-    """
-    Unendingly cycles in order over the elements of a sync iterable.
-    """
-    results = []
-    for result in iterable:
-        yield result
-        results.append(result)
-    if results:
-        while True:
-            for result in results:
-                yield result
-
-
-@comprehension()
-async def acount(start=0):
-    """
-    Unendingly yields incrementing numbers starting from ``start``.
-    """
-    index = start
-    while True:
-        await asleep(0)
-        yield index
-        index += 1
-
-
-@comprehension()
-def count(start=0):
-    """
-    Unendingly yields incrementing numbers starting from ``start``.
-    """
-    index = start
-    while True:
-        yield index
-        index += 1
-
-
-@comprehension()
-async def abytes_count(start=0, *, size=8, byte_order="big"):
-    """
-    Unendingly yields incrementing numbers starting from ``start``.
-    """
-    index = start
-    while True:
-        await asleep(0)
-        yield index.to_bytes(length, byte_order)
-        index += 1
-
-
-@comprehension()
-def bytes_count(start=0, *, size=8, byte_order="big"):
-    """
-    Unendingly yields incrementing numbers starting from ``start``.
-    """
-    index = start
-    while True:
-        yield index.to_bytes(length, byte_order)
-        index += 1
-
-
-@comprehension()
-async def aunpack(iterable=None):
-    """
-    Runs through an iterable &/or async iterable & yields elements one
-    at a time.
-    """
-    if iterable == None:
-        iterable = acount.root()
-    if is_async_iterable(iterable):
-        async for item in iterable:
-            yield item
-    else:
-        for item in iterable:
-            await asleep(0)
-            yield item
-
-
-@comprehension()
-def unpack(iterable=None):
-    """
-    Runs through an iterable & yields elements one at a time.
-    """
-    if iterable == None:
-        iterable = count.root()
-    for result in iterable:
-        yield result
-
-
-@comprehension()
-async def abirth(base="", *, stop=True):
-    """
-    Yields ``base`` in its entirety once by default. If ``stop`` is set
-    `Falsey` then it's yielded unendingly. Useful for spawning a value
-    into chainable ``Comprende`` generators.
-    """
-    if stop:
-        yield base
-    else:
-        while True:
-            await asleep(0)
-            yield base
-
-
-@comprehension()
-def birth(base="", *, stop=True):
-    """
-    Yields ``base`` in its entirety once by default. If ``stop`` is set
-    `Falsey` then it's yielded unendingly. Useful for spawning a value
-    into chainable ``Comprende`` generators.
-    """
-    if stop:
-        yield base
-    else:
-        while True:
-            yield base
-
-
-@comprehension()
-async def adata(sequence="", size=256, *, blocks=ALL_BLOCKS):
-    """
-    Runs through a sequence & yields ``size`` sized chunks of the
-    sequence one chunk at a time. ``blocks`` is the total number of
-    chunks allowed to be yielded from the generator. By default this
-    generator yields all elements in the sequence.
-    """
-    length = len(sequence)
-    if (blocks == ALL_BLOCKS) or (blocks * size >= length):
-        blocks = length + size
-    else:
-        blocks = (blocks * size) + 1
-    async for last, end in azip(
-        range(0, blocks, size), range(size, blocks, size)
-    ):
-        yield sequence[last:end]
-
-
-@comprehension()
-def data(sequence="", size=256, *, blocks=ALL_BLOCKS):
-    """
-    Runs through a sequence & yields ``size`` sized chunks of the
-    sequence one chunk at a time. ``blocks`` is the total number of
-    chunks allowed to be yielded from the generator. By default this
-    generator yields all elements in the sequence.
-    """
-    length = len(sequence)
-    if (blocks == ALL_BLOCKS) or (blocks * size >= length):
-        blocks = length + size
-    else:
-        blocks = (blocks * size) + 1
-    for last, end in zip(range(0, blocks, size), range(size, blocks, size)):
-        yield sequence[last:end]
-
-
-@comprehension()
-async def aorder(*iterables):
-    """
-    Takes a collection of iterables &/or async iterables & exhausts them
-    one at a time from left to right.
-    """
-    for iterable in iterables:
-        if is_async_iterable(iterable):
-            async for result in iterable:
-                yield result
-        else:
-            for result in iterable:
-                await asleep(0)
-                yield result
-
-
-@comprehension()
-def order(*iterables):
-    """
-    Takes a collection of iterables & exhausts them one at a time from
-    left to right.
-    """
-    for iterable in iterables:
-        for result in iterable:
-            yield result
-
-
-@comprehension()
-async def askip(iterable, steps=1):
-    """
-    An async generator that produces the values yielded from ``iterable``
-    once every ``steps`` number of iterations, otherwise produces
-    ``None`` until ``iterable`` is exhausted.
-    """
-    if is_async_iterable(iterable):
-        async for result in iterable:
-            for _ in range(steps):
-                yield
-            await asleep(0)
-            yield result
-    else:
-        for result in iterable:
-            await asleep(0)
-            for _ in range(steps):
-                yield
-            await asleep(0)
-            yield result
-
-
-@comprehension()
-def skip(iterable, steps=1):
-    """
-    A sync generator that produces the values yielded from ``iterable``
-    once every ``steps`` number of iterations, otherwise produces
-    ``None`` until ``iterable`` is exhausted.
-    """
-    for result in iterable:
-        for _ in range(steps):
-            yield
-        yield result
-
-
-@comprehension()
-async def acompact(iterable, batch_size=1):
-    """
-    An async generator that yields ``batch_size`` number of elements
-    from an async or sync ``iterable`` at a time.
-    """
-    stack = {}
-    indexes = list(reversed(range(batch_size)))
-    async for toggle, item in azip(cycle(indexes), iterable):
-        stack[toggle] = item
-        if not toggle:
-            yield list(stack.values())
-            stack.clear()
-    if stack:
-        yield list(stack.values())
-
-
-@comprehension()
-def compact(iterable, batch_size=1):
-    """
-    A generator that yields ``batch_size`` number of elements from an
-    ``iterable`` at a time.
-    """
-    stack = {}
-    indexes = list(reversed(range(batch_size)))
-    for toggle, item in zip(cycle(indexes), iterable):
-        stack[toggle] = item
-        if not toggle:
-            yield list(stack.values())
-            stack.clear()
-    if stack:
-        yield list(stack.values())
-
-
-@comprehension()
-async def apopleft(queue):
-    """
-    An async generator which calls the ``popleft()`` method on ``queue``
-    for every iteration, & exits on ``IndexError``.
-    """
-    while True:
-        try:
-            yield queue.popleft()
-        except IndexError:
-            break
-
-
-@comprehension()
-def popleft(queue):
-    """
-    A generator which calls the ``popleft()`` method on ``queue`` for
-    every iteration, & exits on ``IndexError``.
-    """
-    while True:
-        try:
-            yield queue.popleft()
-        except IndexError:
-            break
-
-
-@comprehension()
-async def apop(queue):
-    """
-    An async generator which calls the ``pop()`` method on ``queue``
-    for every iteration, & exits on ``IndexError``.
-    """
-    while True:
-        try:
-            yield queue.pop()
-        except IndexError:
-            break
-
-
-@comprehension()
-def pop(queue):
-    """
-    A generator which calls the ``pop()`` method on ``queue`` for
-    every iteration, & exits on ``IndexError``.
-    """
-    while True:
-        try:
-            yield queue.pop()
-        except IndexError:
-            break
-
-
-@comprehension()
-async def apick(names=None, mapping=None):
-    """
-    Does a bracketed lookup on ``mapping`` for each name in ``names``.
-    """
-    names = names if is_async_iterable(names) else aunpack(names)
-    async for name in names:
-        try:
-            yield mapping[name]
-        except KeyError:
-            break
-
-
-@comprehension()
-def pick(names=None, mapping=None):
-    """
-    Does a bracketed lookup on ``mapping`` for each name in ``names``.
-    """
-    for name in names:
-        try:
-            yield mapping[name]
-        except KeyError:
-            break
-
-
-@comprehension()
-async def await_on(queue, *, probe_frequency=0.0001, timeout=1):
-    """
-    An async generator that waits ``timeout`` number of seconds each
-    iteration & checks every ``probe_frequency`` number of seconds for
-    entries to populate a ``queue`` & yields the queue when an entry
-    exists in the queue.
-    """
-    while True:
-        start = time()
-        while not queue and (time() - start < timeout):
-            await asleep(probe_frequency)
-        if time() - start > timeout:
-            break
-        yield queue
-
-
-@comprehension()
-def wait_on(queue, *, probe_frequency=0.0001, timeout=1):
-    """
-    An generator that waits ``timeout`` number of seconds each iteration
-    & checks every ``probe_frequency`` number of seconds for entries to
-    populate a ``queue`` & yields the queue when an entry exists in the
-    queue.
-    """
-    while True:
-        start = time()
-        while not queue and (time() - start < timeout):
-            asynchs.sleep(probe_frequency)
-        if time() - start > timeout:
-            break
-        yield queue
-
-
-@comprehension()
-async def arange(*a, **kw):
-    """
-    An async version of ``builtins.range``.
-    """
-    for result in range(*a, **kw):
-        await asleep(0)
-        yield result
-
-
-@comprehension()
-def _range(*a, **kw):
-    """
-    Creates a synchronous version of ``builtins.range`` which is
-    wrapped by the ``Comprende`` class.
-    """
-    for result in range(*a, **kw):
-        yield result
-
-
-@comprehension()
-async def abytes_range(*a, size=8, byte_order="big", **kw):
-    """
-    An async version of ``builtins.range`` wrapped by the ``Comprende``
-    class, & returns its values as bytes instead.
-    """
-    for result in range(*a, **kw):
-        await asleep(0)
-        yield result.to_bytes(size, byte_order)
-
-
-@comprehension()
-def bytes_range(*a, size=8, byte_order="big", **kw):
-    """
-    A synchronous version of ``builtins.range`` which is wrapped by the
-    ``Comprende`` class, & returns its values as bytes instead.
-    """
-    for result in range(*a, **kw):
-        yield result.to_bytes(size, byte_order)
-
-
-@comprehension()
-async def aseedrange(iterations, *, seed):
-    """
-    This async generator transforms ``builtins.range`` into a producer
-    of ``iterations`` number of multiples of ``seed``.
-    """
-    for salt in seedrange.root(iterations, seed=seed):
-        await asleep(0)
-        yield salt
-
-
-@comprehension()
-def seedrange(iterations, *, seed):
-    """
-    This generator transforms ``builtins.range`` into a producer of
-    ``iterations`` number of multiples of ``seed``.
-    """
-    for salt in range(seed, seed + (seed * iterations), seed):
-        yield salt
-
-
-async def axi_mix(bytes_hash, size=8):
-    """
-    Xors subsequent ``size`` length segments of ``bytes_hash`` with each
-    other to condense the bytes hash down to a ``size`` bytes.
-    """
-    result = 0
-    async for chunk in adata.root(bytes_hash, size=size):
-        result ^= int.from_bytes(chunk, "big")
-    return result.to_bytes(size, "big")
-
-
-def xi_mix(bytes_hash, size=8):
-    """
-    Xors subsequent ``size`` length segments of ``bytes_hash`` with each
-    other to condense the bytes hash down to ``size`` bytes.
-    """
-    result = 0
-    for chunk in data.root(bytes_hash, size=size):
-        result ^= int.from_bytes(chunk, "big")
-    return result.to_bytes(size, "big")
-
-
-async def ahash_bytes(*collection, hasher=sha3_512, on=b""):
-    """
-    Joins all bytes objects in ``collection`` ``on`` a value & returns
-    the digest after passing all the joined bytes into the ``hasher``.
-    """
-    await asleep(0)
-    return hasher(on.join(collection)).digest()
-
-
-def hash_bytes(*collection, hasher=sha3_512, on=b""):
-    """
-    Joins all bytes objects in ``collection`` ``on`` a value & returns
-    the digest after passing all the joined bytes into the ``hasher``.
-    """
-    return hasher(on.join(collection)).digest()
-
-
-class Hasher:
-    """
-    A class that creates instances to mimmic & add functionality to the
-    hashing object passed in during initialization.
-    """
-
-    xi_mix = xi_mix
-    axi_mix = axi_mix
-    _MOD = BasePrimeGroups.MOD_512
-    _BASE = UniformPrimes.PRIME_256
-    _MASK = UniformPrimes.PRIME_512
-
-    def __init__(self, data=b"", *, obj=sha3_512):
-        """
-        Copies over the object dictionary of the ``obj`` hashing object.
-        """
-        self._obj = obj(data)
-        for method in dir(obj):
-            if not method.startswith("_"):
-                setattr(self, method, getattr(self._obj, method))
-
-    def __call__(self, data=b""):
-        """
-        Allows objects of the class to accept new input data in the
-        same way the class of the mimmicked hashing object does during
-        initialization.
-        """
-        self.update(data)
-        return self
-
-    async def ahash(self, *data, on=b""):
-        """
-        Receives any number of arguments of bytes type ``data`` &
-        updates the instance with them all sequentially.
-        """
-        await asleep(0)
-        self.update(on.join(data))
-        await asleep(0)
-        return self.digest()
-
-    def hash(self, *data, on=b""):
-        """
-        Receives any number of arguments of bytes type ``data`` &
-        updates the instance with them all sequentially.
-        """
-        self.update(on.join(data))
-        return self.digest()
-
-    @classmethod
-    async def amask_byte_order(cls, sequence, *, base=_BASE, mod=_MOD):
-        """
-        Uses each byte in a ``sequence`` as multiples along with ``base``
-        & takes that result ``mod`` a number to mask the order of the
-        bytes in the sequence. This final result is returned back to the
-        user as a new bytes sequence. Both ``mod`` & ``base`` should be
-        prime numbers.
-        """
-        if base == mod:
-            raise ValueError("``base`` & ``mod`` must be different!")
-        product = 3
-        await asleep(0)
-        for byte in bytes(sequence):
-            product *= byte + 1    # <- Ensure non-zero
-        await asleep(0)
-        masked_value = (base * product * cls._MASK) % mod
-        return masked_value.to_bytes(math.ceil(mod.bit_length() / 8), "big")
-
-    @classmethod
-    def mask_byte_order(cls, sequence, *, base=_BASE, mod=_MOD):
-        """
-        Uses each byte in a ``sequence`` as multiples along with ``base``
-        & takes that result ``mod`` a number to mask the order of the
-        bytes in the sequence. This final result is returned back to the
-        user as a new bytes sequence. Both ``mod`` & ``base`` should be
-        prime numbers.
-        """
-        if base == mod:
-            raise ValueError("``base`` & ``mod`` must be different!")
-        product = 3
-        for byte in bytes(sequence):
-            product *= byte + 1    # <- Ensure non-zero
-        masked_value = (base * product * cls._MASK) % mod
-        return masked_value.to_bytes(math.ceil(mod.bit_length() / 8), "big")
-
-    @classmethod
-    async def ashrink(cls, *data, size=8, on=b"", base=_BASE, mod=_MOD):
-        """
-        Hashes an iterable of ``data`` elements joined ``on`` a value
-        & returns ``size`` byte `xi_mix` reduction of the result.
-        """
-        hashed_data = await cls().ahash(*data, on=on)
-        return await cls.axi_mix(hashed_data, size=size)
-
-    @classmethod
-    def shrink(cls, *data, size=8, on=b"", base=_BASE, mod=_MOD):
-        """
-        Hashes an iterable of ``data`` elements joined ``on`` a value
-        & returns ``size`` byte `xi_mix` reduction of the result.
-        """
-        hashed_data = cls().hash(*data, on=on)
-        return cls.xi_mix(hashed_data, size=size)
+    del method
 
 
 class Domains(metaclass=IterableClass):
@@ -3732,7 +3690,7 @@ class Domains(metaclass=IterableClass):
     """
 
     @staticmethod
-    async def aencode_constant(constant):
+    async def aencode_constant(constant: Typing.DeterministicRepr):
         """
         Receives a bytes-type ``constant``, hashes it under a domain which
         is specific to this function, & returns a compressed 8-byte value.
@@ -3746,14 +3704,14 @@ class Domains(metaclass=IterableClass):
         some assumptions that certain functions which they rely happen to be
         domain-specific.
         """
-        await asleep(0)
-        if type(constant) != bytes:
+        await asleep()
+        if constant.__class__ is not bytes:
             constant = str(constant).encode()
         hashed_constant = await ahash_bytes(b"encoded_constant:", constant)
         return await axi_mix(hashed_constant, size=8)
 
     @staticmethod
-    def encode_constant(constant):
+    def encode_constant(constant: Typing.DeterministicRepr):
         """
         Receives a bytes-type ``constant``, hashes it under a domain which
         is specific to this function, & returns a compressed 8-byte value.
@@ -3767,131 +3725,69 @@ class Domains(metaclass=IterableClass):
         some assumptions that certain functions which they rely happen to be
         domain-specific.
         """
-        if type(constant) != bytes:
+        if constant.__class__ is not bytes:
             constant = str(constant).encode()
         hashed_constant = hash_bytes(b"encoded_constant:", constant)
         return xi_mix(hashed_constant, size=8)
 
-    _encode_constant = encode_constant.__func__
+    _encode = encode_constant.__func__
 
-    DH2: bytes = _encode_constant(DH2)
-    DH3: bytes = _encode_constant(DH3)
-    KDF: bytes = _encode_constant(KDF)
-    SIV: bytes = _encode_constant(SIV)
-    HMAC: bytes = _encode_constant(HMAC)
-    SEED: bytes = _encode_constant(SEED)
-    SALT: bytes = _encode_constant(SALT)
-    UUID: bytes = _encode_constant(UUID)
-    SHMAC: bytes = _encode_constant(SHMAC)
-    KEY_ID: bytes = _encode_constant(KEY_ID)
-    DIGEST: bytes = _encode_constant(DIGEST)
-    METATAG: bytes = _encode_constant(METATAG)
-    SIV_KEY: bytes = _encode_constant(SIV_KEY)
-    ENTROPY: bytes = _encode_constant(ENTROPY)
-    EQUALITY: bytes = _encode_constant(EQUALITY)
-    MANIFEST: bytes = _encode_constant(MANIFEST)
-    BLOCK_ID: bytes = _encode_constant(BLOCK_ID)
-    FILENAME: bytes = _encode_constant(FILENAME)
-    FILE_KEY: bytes = _encode_constant(FILE_KEY)
-    KEYSTREAM: bytes = _encode_constant(KEYSTREAM)
-    CLIENT_ID: bytes = _encode_constant(CLIENT_ID)
-    MESSAGE_ID: bytes = _encode_constant(MESSAGE_ID)
-    CHUNKY_2048: bytes = _encode_constant(CHUNKY_2048)
-    METATAG_KEY: bytes = _encode_constant(METATAG_KEY)
-    MESSAGE_KEY: bytes = _encode_constant(MESSAGE_KEY)
-    PADDING_KEY: bytes = _encode_constant(PADDING_KEY)
-    SESSION_KEY: bytes = _encode_constant(SESSION_KEY)
-    CLIENT_INDEX: bytes = _encode_constant(CLIENT_INDEX)
-    REGISTRATION: bytes = _encode_constant(REGISTRATION)
-    AUTHENTICATION: bytes = _encode_constant(AUTHENTICATION)
-    CLIENT_MESSAGE_KEY: bytes = _encode_constant(CLIENT_MESSAGE_KEY)
-    SERVER_MESSAGE_KEY: bytes = _encode_constant(SERVER_MESSAGE_KEY)
-
-
-async def asha_256(*data):
-    """
-    A string-based version of ``hashlib.sha3_256``. Stringifies & places
-    all inputs into a tuple before hashing.
-    """
-    await asleep(0)
-    return sha3_256(str(data).encode()).hexdigest()
-
-
-def sha_256(*data):
-    """
-    A string-based version of ``hashlib.sha3_256``. Stringifies & places
-    all inputs into a tuple before hashing.
-    """
-    return sha3_256(str(data).encode()).hexdigest()
+    DH2: bytes = _encode(DH2)
+    DH3: bytes = _encode(DH3)
+    KDF: bytes = _encode(KDF)
+    SIV: bytes = _encode(SIV)
+    HMAC: bytes = _encode(HMAC)
+    SEED: bytes = _encode(SEED)
+    SALT: bytes = _encode(SALT)
+    UUID: bytes = _encode(UUID)
+    SHMAC: bytes = _encode(SHMAC)
+    TOKEN: bytes = _encode(TOKEN)
+    KEY_ID: bytes = _encode(KEY_ID)
+    DIGEST: bytes = _encode(DIGEST)
+    PAYLOAD: bytes = _encode(PAYLOAD)
+    METATAG: bytes = _encode(METATAG)
+    SIV_KEY: bytes = _encode(SIV_KEY)
+    ENTROPY: bytes = _encode(ENTROPY)
+    EQUALITY: bytes = _encode(EQUALITY)
+    MANIFEST: bytes = _encode(MANIFEST)
+    BLOCK_ID: bytes = _encode(BLOCK_ID)
+    FILENAME: bytes = _encode(FILENAME)
+    FILE_KEY: bytes = _encode(FILE_KEY)
+    PASSCRYPT: bytes = _encode(PASSCRYPT)
+    KEYSTREAM: bytes = _encode(KEYSTREAM)
+    CLIENT_ID: bytes = _encode(CLIENT_ID)
+    MESSAGE_ID: bytes = _encode(MESSAGE_ID)
+    CHUNKY_2048: bytes = _encode(CHUNKY_2048)
+    METATAG_KEY: bytes = _encode(METATAG_KEY)
+    MESSAGE_KEY: bytes = _encode(MESSAGE_KEY)
+    PADDING_KEY: bytes = _encode(PADDING_KEY)
+    SESSION_KEY: bytes = _encode(SESSION_KEY)
+    CLIENT_INDEX: bytes = _encode(CLIENT_INDEX)
+    REGISTRATION: bytes = _encode(REGISTRATION)
+    SENDING_COUNT: bytes = _encode(SENDING_COUNT)
+    DIFFIE_HELLMAN: bytes = _encode(DIFFIE_HELLMAN)
+    AUTHENTICATION: bytes = _encode(AUTHENTICATION)
+    SECURE_CHANNEL: bytes = _encode(SECURE_CHANNEL)
+    SENDING_STREAM: bytes = _encode(SENDING_STREAM)
+    RECEIVING_COUNT: bytes = _encode(RECEIVING_COUNT)
+    RECEIVING_STREAM: bytes = _encode(RECEIVING_STREAM)
+    CLIENT_MESSAGE_KEY: bytes = _encode(CLIENT_MESSAGE_KEY)
+    SERVER_MESSAGE_KEY: bytes = _encode(SERVER_MESSAGE_KEY)
+    EXTENDED_DH_EXCHANGE: bytes = _encode(EXTENDED_DH_EXCHANGE)
 
 
-async def asha_256_hmac(data, *, key):
-    """
-    An HMAC-esque version of the ``hashlib.sha3_512`` function.
-    """
-    await asleep(0)
-    bytes_key = key if isinstance(key, bytes) else repr(key).encode()
-    bytes_data = data if isinstance(data, bytes) else repr(data).encode()
-    await asleep(0)
-    return hmac.new(bytes_key, bytes_data, sha3_256).hexdigest()
-
-
-def sha_256_hmac(data, *, key):
-    """
-    An HMAC-esque version of the ``hashlib.sha3_512`` function.
-    """
-    bytes_key = key if isinstance(key, bytes) else repr(key).encode()
-    bytes_data = data if isinstance(data, bytes) else repr(data).encode()
-    return hmac.new(bytes_key, bytes_data, sha3_256).hexdigest()
-
-
-async def asha_512(*data):
-    """
-    A string-based version of ``hashlib.sha3_512``. Stringifies & places
-    all inputs into a tuple before hashing.
-    """
-    await asleep(0)
-    return sha3_512(str(data).encode()).hexdigest()
-
-
-def sha_512(*data):
-    """
-    A string-based version of ``hashlib.sha3_512``. Stringifies & places
-    all inputs into a tuple before hashing.
-    """
-    return sha3_512(str(data).encode()).hexdigest()
-
-
-async def asha_512_hmac(data, *, key):
-    """
-    An HMAC-esque version of the ``hashlib.sha3_512`` function.
-    """
-    await asleep(0)
-    bytes_key = key if isinstance(key, bytes) else repr(key).encode()
-    bytes_data = data if isinstance(data, bytes) else repr(data).encode()
-    await asleep(0)
-    return hmac.new(bytes_key, bytes_data, sha3_512).hexdigest()
-
-
-def sha_512_hmac(data, *, key):
-    """
-    An HMAC-esque version of the ``hashlib.sha3_512`` function.
-    """
-    bytes_key = key if isinstance(key, bytes) else repr(key).encode()
-    bytes_data = data if isinstance(data, bytes) else repr(data).encode()
-    return hmac.new(bytes_key, bytes_data, sha3_512).hexdigest()
-
-
-async def amake_timestamp(*, width=TIMESTAMP_BYTES, byteorder="big"):
+async def amake_timestamp(
+    *, width: int = TIMESTAMP_BYTES, byteorder: str = "big"
+):
     """
     Returns a ``width`` length byte sequence representation of the
     current time in seconds.
     """
-    await asleep(0)
+    await asleep()
     return this_second().to_bytes(width, byteorder)
 
 
-def make_timestamp(*, width=TIMESTAMP_BYTES, byteorder="big"):
+def make_timestamp(*, width: int = TIMESTAMP_BYTES, byteorder: str = "big"):
     """
     Returns a ``width`` length byte sequence representation of the
     current time in seconds.
@@ -3899,7 +3795,7 @@ def make_timestamp(*, width=TIMESTAMP_BYTES, byteorder="big"):
     return this_second().to_bytes(width, byteorder)
 
 
-async def atimestamp_ttl_delta(timestamp, ttl):
+async def atimestamp_ttl_delta(timestamp: bytes, ttl: int):
     """
     Takes a ``timestamp`` & returns the difference between now & the
     timestamp & the ``ttl`` time-to-live limit. If the result is
@@ -3910,7 +3806,7 @@ async def atimestamp_ttl_delta(timestamp, ttl):
     return delta - ttl
 
 
-def timestamp_ttl_delta(timestamp, ttl):
+def timestamp_ttl_delta(timestamp: bytes, ttl: int):
     """
     Takes a ``timestamp`` & returns the difference between now & the
     timestamp & the ``ttl`` time-to-live limit. If the result is
@@ -3921,7 +3817,7 @@ def timestamp_ttl_delta(timestamp, ttl):
     return delta - ttl
 
 
-async def acheck_timestamp(timestamp, ttl):
+async def acheck_timestamp(timestamp: bytes, ttl: int):
     """
     Raises ``ValueError`` if ``timestamp`` is more than ``ttl`` seconds
     from the current time.
@@ -3929,18 +3825,18 @@ async def acheck_timestamp(timestamp, ttl):
     is_invalid_timestamp_length = len(timestamp) != TIMESTAMP_BYTES
     seconds = timespan = await atimestamp_ttl_delta(timestamp, ttl)
     timestamp_is_expired = timespan > 0
-    await asleep(0)
+    await asleep()
     if is_invalid_timestamp_length:
-        raise ValueError("Invalid timestamp format, must be 8 bytes long.")
+        raise PlaintextIssue.invalid_timestamp_format()
     elif not ttl:
         return
     elif timestamp_is_expired:
-        error = TimeoutError(f"Timestamp expired by <{seconds}> seconds.")
-        error.value = seconds
+        error = PlaintextIssue.timestamp_expired(seconds)
+        error.seconds_expired = seconds
         raise error
 
 
-def check_timestamp(timestamp, ttl):
+def check_timestamp(timestamp: bytes, ttl: int):
     """
     Raises ``ValueError`` if ``timestamp`` is more than ``ttl`` seconds
     from the current time.
@@ -3949,12 +3845,12 @@ def check_timestamp(timestamp, ttl):
     seconds = timespan = timestamp_ttl_delta(timestamp, ttl)
     timestamp_is_expired = timespan > 0
     if is_invalid_timestamp_length:
-        raise ValueError("Invalid timestamp format, must be 8 bytes long.")
+        raise PlaintextIssue.invalid_timestamp_format()
     elif not ttl:
         return
     elif timestamp_is_expired:
-        error = TimeoutError(f"Timestamp expired by <{seconds}> seconds.")
-        error.value = seconds
+        error = PlaintextIssue.timestamp_expired(seconds)
+        error.seconds_expired = seconds
         raise error
 
 
@@ -3976,26 +3872,32 @@ class Padding:
     ``SIV-key``: A 16-byte ephemeral & random key which aids in salt
         reuse / misuse resistance.
 
-    ``padding``: Y-bytes of pseudo-random bytes derived from a cipher
-        rounds particular `key`, `salt` & `pid` using shake_256. Y has
-        three categories of potential values:
+    ``padding``: `Y` pseudo-random bytes derived from a cipher rounds'
+        particular `key`, `salt` & `aad` using sha3_256 as well as OS
+        randomness. Y has four categories of potential values:
         When Y == 0-bytes:
             Y can be 0-bytes if the inner-header + body is exactly a
             multiple of the 256-byte blocksize.
-        When 32 <= Y <= 256:
+        When Y == 256-bytes:
+            Y can be 256-bytes when the plaintext X contains no data.
+        When 32 <= Y < 256:
             Y can be 32-bytes or more, but less than 256, if the inner-
-            header + body is more than 32 bytes less than a multiple of
+            header + body is at least 32 bytes less than a multiple of
             the 256-byte blocksize.
-        When 256 < Y <= 256 + ε and ε < 32:
+        When Y == 256 + ε and 0 < ε < 32:
             Y can be greater than 256 but less than 256 + 32-bytes if
-            the inner-header + body is ε less than a multiple of the 256-
-            byte blocksize.
+            the inner-header + body leaves less than 32 bytes before
+            reaching a multiple of the 256-byte blocksize.
         These rules ensure the padding can reliably be removed after
-        decryption since it either doesn't exist or is at least 32 key-
+        decryption since it either doesn't exist or has at least 32 key-
         dependant, unique, pseudo-random, searchable bytes.
     """
+
     _BLOCKSIZE = BLOCKSIZE
     _TWO_BLOCKS = 2 * BLOCKSIZE
+    _EXTRA_PADDING_BYTES = BLOCKSIZE
+    _PADDING_KEY_BYTES = PADDING_KEY_BYTES
+    _PADDING_KEY_NIBBLES = PADDING_KEY_NIBBLES
     _SIV_KEY_BYTES = SIV_KEY_BYTES
     _SIV_KEY_NIBBLES = SIV_KEY_NIBBLES
     _TIMESTAMP_BYTES = TIMESTAMP_BYTES
@@ -4003,150 +3905,261 @@ class Padding:
     _INNER_HEADER_BYTES = INNER_HEADER_BYTES
     _INNER_HEADER_NIBBLES = INNER_HEADER_NIBBLES
 
-    @classmethod
-    async def apad_beginning(cls, data):
-        """
-        Pads & returns a plaintext ``data`` with various values that
-        improve the package's AEAD cipher security & converts it into an
-        MRAE scheme.
+    acheck_timestamp = staticmethod(acheck_timestamp)
+    amake_timestamp = staticmethod(amake_timestamp)
+    check_timestamp = staticmethod(check_timestamp)
+    make_timestamp = staticmethod(make_timestamp)
 
-        Prepends an 8-byte timestamp & a 16-byte random & ephemeral SIV-
-        key to ``data``. The timestamp allows a time-to-live feature to
-        exist for all ciphertexts, aiding replay attack resistance. It
-        also, along with the SIV-key, ensures that the synthetic IV,
-        which is derived from the keyed-hash of the first plaintext
-        block, is globally unique. The SIV therefore makes the keystream
-        & resulting ciphertext globally unique & salt reuse / misuse
+    @classmethod
+    async def amake_siv_key(cls):
+        """
+        Returns a 16-byte SIV-key to be prepended to some data bytes.
+        """
+        await asleep()
+        return secrets.token_bytes(cls._SIV_KEY_BYTES)
+
+    @classmethod
+    def make_siv_key(cls):
+        """
+        Returns a 16-byte SIV-key to be prepended to some data bytes.
+        """
+        return secrets.token_bytes(cls._SIV_KEY_BYTES)
+
+    @classmethod
+    async def astart_padding(cls):
+        """
+        Returns a 24-byte value which when prepended to plaintext will
+        improve the `Chunky2048` AEAD cipher's security & converts it
+        into an MRAE scheme.
+
+        Returns the 8-byte timestamp & a 16-byte random & ephemeral SIV-
+        key. The timestamp allows a time-to-live feature to exist for
+        all ciphertexts, aiding replay attack resistance. It also,
+        along with the SIV-key, ensures that the synthetic IV, which is
+        derived from the keyed-hash of the first plaintext block, is
+        globally unique. The SIV therefore makes the keystream &
+        resulting ciphertext globally unique & salt reuse / misuse
         resistant.
         """
-        siv_key = secrets.token_bytes(cls._SIV_KEY_BYTES)
-        timestamp = await amake_timestamp()
-        return timestamp + siv_key + data
+        return await cls.amake_timestamp() + await cls.amake_siv_key()
 
     @classmethod
-    def pad_beginning(cls, data):
+    def start_padding(cls):
         """
-        Pads & returns a plaintext ``data`` with various values that
-        improve the package's AEAD cipher security & converts it into an
-        MRAE scheme.
+        Returns a 24-byte value which when prepended to plaintext will
+        improve the `Chunky2048` AEAD cipher's security & converts it
+        into an MRAE scheme.
 
-        Prepends an 8-byte timestamp & a 16-byte random & ephemeral SIV-
-        key to ``data``. The timestamp allows a time-to-live feature to
-        exist for all ciphertexts, aiding replay attack resistance. It
-        also, along with the SIV-key, ensures that the synthetic IV,
-        which is derived from the keyed-hash of the first plaintext
-        block, is globally unique. The SIV therefore makes the keystream
-        & resulting ciphertext globally unique & salt reuse / misuse
+        Returns the 8-byte timestamp & a 16-byte random & ephemeral SIV-
+        key. The timestamp allows a time-to-live feature to exist for
+        all ciphertexts, aiding replay attack resistance. It also,
+        along with the SIV-key, ensures that the synthetic IV, which is
+        derived from the keyed-hash of the first plaintext block, is
+        globally unique. The SIV therefore makes the keystream &
+        resulting ciphertext globally unique & salt reuse / misuse
         resistant.
         """
-        siv_key = secrets.token_bytes(cls._SIV_KEY_BYTES)
-        timestamp = make_timestamp()
-        return timestamp + siv_key + data
+        return cls.make_timestamp() + cls.make_siv_key()
 
     @classmethod
-    async def apad_ending(cls, data, *, padding_key):
+    async def _adata_measurements(cls, length: int):
         """
-        Pads & returns a plaintext ``data`` with various values that
-        improve the package's AEAD cipher security, getting it ready for
-        encryption.
-
-        Also, appends padding bytes to ``data`` that are the ``shake_256``
-        output of an object fed a ``padding_key`` to aid in CCA security
-        / padding oracle attacks. The padding key is derived from the
-        hash of the `key`, `salt` & `pid` values. The padding will make
-        the plaintext a multiple of 256 bytes.
+        Does padding measurements based on the ``length`` of some
+        unpadded data & stores the findings in an object for convenient
+        usage.
         """
-        await asleep(0)
-        remainder = len(data) % cls._BLOCKSIZE
+        await asleep()
+        remainder = (length + cls._INNER_HEADER_BYTES) % cls._BLOCKSIZE
         padding_size = cls._BLOCKSIZE - remainder
-        payload = Domains.PADDING_KEY + 2 * padding_key
-        padding = shake_256(payload).digest(cls._TWO_BLOCKS)
-        await asleep(0)
-        if data and not remainder:
-            return data
-        elif padding_size >= 32:
-            return data + padding[:padding_size]
-        else:
-            return data + padding[: padding_size + cls._BLOCKSIZE]
+        no_padding_required = data and not remainder
+        padding_sentinel_fits_in_block = padding_size >= 32
+        await asleep()
+        return PlaintextMeasurements(
+            length=length,
+            remainder=remainder,
+            padding_size=padding_size,
+            no_padding_required=no_padding_required,
+            padding_sentinel_fits_in_block=padding_sentinel_fits_in_block,
+        )
 
     @classmethod
-    def pad_ending(cls, data, *, padding_key):
+    def _data_measurements(cls, length: int):
         """
-        Pads & returns a plaintext ``data`` with various values that
-        improve the package's AEAD cipher security, getting it ready for
-        encryption.
-
-        Also, appends padding bytes to ``data`` that are the ``shake_256``
-        output of an object fed a ``padding_key`` to aid in CCA security
-        / padding oracle attacks. The padding key is derived from the
-        hash of the `key`, `salt` & `pid` values. The padding will make
-        the plaintext a multiple of 256 bytes.
+        Does padding measurements based on the ``length`` of some
+        unpadded data & stores the findings in an object for convenient
+        usage.
         """
-        remainder = len(data) % cls._BLOCKSIZE
+        remainder = (length + cls._INNER_HEADER_BYTES) % cls._BLOCKSIZE
         padding_size = cls._BLOCKSIZE - remainder
-        payload = Domains.PADDING_KEY + 2 * padding_key
-        padding = shake_256(payload).digest(cls._TWO_BLOCKS)
-        if data and not remainder:
-            return data
-        elif padding_size >= 32:
-            return data + padding[:padding_size]
-        else:
-            return data + padding[: padding_size + cls._BLOCKSIZE]
+        no_padding_required = data and not remainder
+        padding_sentinel_fits_in_block = padding_size >= 32
+        return PlaintextMeasurements(
+            length=length,
+            remainder=remainder,
+            padding_size=padding_size,
+            no_padding_required=no_padding_required,
+            padding_sentinel_fits_in_block=padding_sentinel_fits_in_block,
+        )
 
     @classmethod
-    async def adepad_beginning(cls, data, *, ttl=0):
+    async def _amake_extra_padding(cls):
         """
-        Returns ``data`` after these values are removed:
-        - The prepended eight byte timestamp.
+        Returns a number of random bytes equal to the length of a block.
+
+        These bytes provide a kind of deniability, where an adversary
+        with even unlimited computational capability can't distinguish
+        between all possible legitimate plaintexts. This is because
+        there are enough random padding degrees of freedom (between 0 &
+        255 bytes) for such an adversary to create an exponentially
+        large number of plaintexts which appear legitimate under any key
+        (satisfy verification tags) & appear plausible (they can be made
+        to be almost any message + random padding).
+
+        This deniability doesn't apply when the plaintext is already
+        known by an adversary.
+        """
+        await asleep()
+        return secrets.token_bytes(cls._EXTRA_PADDING_BYTES)
+
+    @classmethod
+    def _make_extra_padding(cls):
+        """
+        Returns a number of random bytes equal to the length of a block.
+
+        These bytes provide a kind of deniability, where an adversary
+        with even unlimited computational capability can't distinguish
+        between all possible legitimate plaintexts. This is because
+        there are enough random padding degrees of freedom (between 0 &
+        255 bytes) for such an adversary to create an exponentially
+        large number of plaintexts which appear legitimate under any key
+        (satisfy verification tags) & appear plausible (they can be made
+        to be almost any message + random padding).
+
+        This deniability doesn't apply when the plaintext is already
+        known by an adversary.
+        """
+        return secrets.token_bytes(cls._EXTRA_PADDING_BYTES)
+
+    @classmethod
+    async def _amake_end_padding(cls, key_bundle):
+        """
+        Returns 32 bytes of keyed padding, & 256 bytes of random padding.
+        """
+        key_bundle._mode.validate()
+        keyed_padding = key_bundle._padding_key
+        extra_padding = await cls._amake_extra_padding()
+        return keyed_padding + extra_padding
+
+    @classmethod
+    def _make_end_padding(cls, key_bundle):
+        """
+        Returns 32 bytes of keyed padding, & 256 bytes of random padding.
+        """
+        key_bundle._mode.validate()
+        keyed_padding = key_bundle._padding_key
+        extra_padding = cls._make_extra_padding()
+        return keyed_padding + extra_padding
+
+    @classmethod
+    async def aend_padding(cls, data: bytes, key_bundle):
+        """
+        Returns the padding bytes that are to be appended to the end of
+        some unpadded ``data``.
+
+        The returned bytes incluce a padding key which aids against
+        padding oracle attacks. The padding key is derived from the
+        user's `key`, `salt` & `aad` values. The final random padding
+        will make the ``data``, when prepended with the 24-byte start
+        padding, a multiple of 256 bytes.
+        """
+        report = await cls._adata_measurements(len(data))
+        padding = await cls._amake_end_padding(key_bundle)
+        if report.no_padding_required:
+            padding_slice = slice(0)
+        elif report.padding_sentinel_fits_in_block:
+            padding_slice = slice(report.padding_size)
+        else:
+            padding_slice = slice(report.padding_size + cls._BLOCKSIZE)
+        return padding[padding_slice]
+
+    @classmethod
+    def end_padding(cls, data: bytes, key_bundle):
+        """
+        Returns the padding bytes that are to be appended to the end of
+        some unpadded ``data``.
+
+        The returned bytes incluce a padding key which aids against
+        padding oracle attacks. The padding key is derived from the
+        user's `key`, `salt` & `aad` values. The final random padding
+        will make the ``data``, when prepended with the 24-byte start
+        padding, a multiple of 256 bytes.
+        """
+        report = cls._data_measurements(len(data))
+        padding = cls._make_end_padding(key_bundle)
+        if report.no_padding_required:
+            padding_slice = slice(0)
+        elif report.padding_sentinel_fits_in_block:
+            padding_slice = slice(report.padding_size)
+        else:
+            padding_slice = slice(report.padding_size + cls._BLOCKSIZE)
+        return padding[padding_slice]
+
+    @classmethod
+    async def adepadding_start_index(cls, data: bytes, *, ttl: int = 0):
+        """
+        Returns a start index which is used to slice off the following
+        values from some plaintext ``data``:
+        - The prepended 8-byte timestamp.
         - The prepended 16 byte SIV-key.
         """
         await acheck_timestamp(data[:cls._TIMESTAMP_BYTES], ttl)
-        return data[cls._INNER_HEADER_BYTES:]
+        return cls._INNER_HEADER_BYTES
 
     @classmethod
-    def depad_beginning(cls, data, *, ttl=0):
+    def depadding_start_index(cls, data: bytes, *, ttl: int = 0):
         """
-        Returns ``data`` after these values are removed:
-        - The prepended eight byte timestamp.
+        Returns a start index which is used to slice off the following
+        values from some plaintext ``data``:
+        - The prepended 8-byte timestamp.
         - The prepended 16 byte SIV-key.
         """
         check_timestamp(data[:cls._TIMESTAMP_BYTES], ttl)
-        return data[cls._INNER_HEADER_BYTES:]
+        return cls._INNER_HEADER_BYTES
 
     @classmethod
-    async def adepad_ending(cls, data, *, padding_key):
+    async def adepadding_end_index(cls, data: bytes, key_bundle):
         """
-        Returns ``data`` after these values are removed:
-        - The appended padding bytes that are built from the ``shake_256``
-          output of an object fed a ``padding_key``.
+        Returns an end index which is used to slice off the following
+        values from some plaintext ``data``:
+        - The appended 32-byte `padding_key`.
+        - The random padding bytes appended after the `padding_key`.
         """
-        await asleep(0)
-        payload = Domains.PADDING_KEY + 2 * padding_key
-        padding = shake_256(payload).digest(32)
-        padding_index = data.find(padding)
-        await asleep(0)
-        if padding_index == -1:
-            return data
+        key_bundle._mode.validate()
+        key = key_bundle._padding_key
+        index = data[:-cls._TWO_BLOCKS:-1].find(key[::-1])
+        if index == -1:
+            return None
         else:
-            return data[:padding_index]
+            return -index - len(key)
 
     @classmethod
-    def depad_ending(cls, data, *, padding_key):
+    def depadding_end_index(cls, data: bytes, key_bundle):
         """
-        Returns ``data`` after these values are removed:
-        - The appended padding bytes that are built from the ``shake_256``
-          output of an object fed a ``padding_key``.
+        Returns an end index which is used to slice off the following
+        values from some plaintext ``data``:
+        - The appended 32-byte `padding_key`.
+        - The random padding bytes appended after the `padding_key`.
         """
-        payload = Domains.PADDING_KEY + 2 * padding_key
-        padding = shake_256(payload).digest(32)
-        padding_index = data.find(padding)
-        if padding_index == -1:
-            return data
+        key_bundle._mode.validate()
+        key = key_bundle._padding_key
+        index = data[:-cls._TWO_BLOCKS:-1].find(key[::-1])
+        if index == -1:
+            return None
         else:
-            return data[:padding_index]
+            return -index - len(key)
 
     @classmethod
-    async def apad_plaintext(cls, data, *, padding_key):
+    async def apad_plaintext(cls, data: bytes, key_bundle):
         """
         Pads & returns a plaintext ``data`` with various values that
         improve the package's AEAD cipher security & converts it into an
@@ -4161,17 +4174,17 @@ class Padding:
         & resulting ciphertext globally unique & salt reuse / misuse
         resistant.
 
-        Also, appends padding bytes to ``data`` that are the ``shake_256``
-        output of an object fed a ``padding_key`` to aid in CCA security
-        / padding oracle attacks. The padding key is derived from the
-        hash of the `key`, `salt` & `pid` values. The padding will make
-        the plaintext a multiple of 256 bytes.
+        Also, appends 32-byte `padding_key`. The padding key is derived
+        from a hash of the `key`, `salt` & `aad` values. An amount of
+        additional random padding will be appended to make the plaintext
+        a multiple of 256 bytes.
         """
-        data = await cls.apad_beginning(data=data)
-        return await cls.apad_ending(data=data, padding_key=padding_key)
+        start_padding = await cls.astart_padding()
+        end_padding = await cls.aend_padding(data, key_bundle)
+        return b"".join((start_padding, data, end_padding))
 
     @classmethod
-    def pad_plaintext(cls, data, *, padding_key):
+    def pad_plaintext(cls, data: bytes, key_bundle):
         """
         Pads & returns a plaintext ``data`` with various values that
         improve the package's AEAD cipher security & converts it into an
@@ -4186,271 +4199,42 @@ class Padding:
         & resulting ciphertext globally unique & salt reuse / misuse
         resistant.
 
-        Also, appends padding bytes to ``data`` that are the ``shake_256``
-        output of an object fed a ``padding_key`` to aid in CCA security
-        / padding oracle attacks. The padding key is derived from the
-        hash of the `key`, `salt` & `pid` values. The padding will make
-        the plaintext a multiple of 256 bytes.
+        Also, appends 32-byte `padding_key`. The padding key is derived
+        from a hash of the `key`, `salt` & `aad` values. An amount of
+        additional random padding will be appended to make the plaintext
+        a multiple of 256 bytes.
         """
-        data = cls.pad_beginning(data=data)
-        return cls.pad_ending(data=data, padding_key=padding_key)
+        start_padding = cls.start_padding()
+        end_padding = cls.end_padding(data, key_bundle)
+        return b"".join((start_padding, data, end_padding))
 
     @classmethod
-    async def adepad_plaintext(cls, data, *, padding_key, ttl=0):
+    async def adepad_plaintext(
+        cls, data: bytes, key_bundle, *, ttl: int = 0
+    ):
         """
         Returns ``data`` after these values are removed:
-        - The prepended eight byte timestamp.
-        - The prepended 16 byte SIV-key.
-        - The appended padding bytes that are built from the ``shake_256``
-          output of an object fed a ``padding_key``.
+        - The prepended 8-byte timestamp.
+        - The prepended 16-byte SIV-key.
+        - The appended 32-byte `padding_key`.
+        - The appended 0-255-byte random padding.
         """
-        data = await cls.adepad_beginning(data=data, ttl=ttl)
-        return await cls.adepad_ending(data=data, padding_key=padding_key)
+        start_index = await cls.adepadding_start_index(data, ttl=ttl)
+        end_index = await cls.adepadding_end_index(data, key_bundle)
+        return data[start_index:end_index]
 
     @classmethod
-    def depad_plaintext(cls, data, *, padding_key, ttl=0):
+    def depad_plaintext(cls, data: bytes, key_bundle, *, ttl: int = 0):
         """
         Returns ``data`` after these values are removed:
-        - The prepended eight byte timestamp.
-        - The prepended 16 byte SIV-key.
-        - The appended padding bytes that are built from the ``shake_256``
-          output of an object fed a ``padding_key``.
+        - The prepended 8-byte timestamp.
+        - The prepended 16-byte SIV-key.
+        - The appended 32-byte `padding_key`.
+        - The appended 0-255-byte random padding.
         """
-        data = cls.depad_beginning(data=data, ttl=ttl)
-        return cls.depad_ending(data=data, padding_key=padding_key)
-
-    @classmethod
-    async def _asurpress_stop_iteration(cls, plaintext_stream, *, rounds=4):
-        """
-        Yields upto ``rounds`` number of plaintext blocks from the
-        ``plaintext_stream`` async iterable. It surpresses any raised
-        `StopAsyncIteration` to do so. If the stream is empty, then the
-        remaining number of empty bytes sequences are yielded instead.
-        """
-        for _ in range(rounds):
-            try:
-                yield await plaintext_stream.asend(None)
-            except StopAsyncIteration:
-                yield b""
-
-    @classmethod
-    def _surpress_stop_iteration(cls, plaintext_stream, *, rounds=4):
-        """
-        Yields upto ``rounds`` number of plaintext blocks from the
-        ``plaintext_stream`` iterable by surpressing `StopIteration` if
-        it's raised. If the stream is empty, then the remaining number
-        of empty bytes sequences are yielded instead.
-        """
-        for _ in range(rounds):
-            try:
-                yield plaintext_stream.send(None)
-            except StopIteration:
-                yield b""
-
-    @classmethod
-    async def _abegin_pad_stream(cls, plaintext_stream):
-        """
-        Returns a stream with its inner header added. It attempts to
-        buffer several iterations of output from the ``output_stream``
-        which produces unpadded plaintext data.
-        """
-        buffer = [
-            chunk
-            async for chunk
-            in cls._asurpress_stop_iteration(plaintext_stream, rounds=4)
-        ]
-        return Datastream(
-            await Padding.apad_beginning(b"".join(buffer)), buffer_size=1
-        )
-
-    @classmethod
-    def _begin_pad_stream(cls, plaintext_stream):
-        """
-        Returns a stream with its inner header added. It attempts to
-        buffer several iterations of output from the ``output_stream``
-        which produces unpadded plaintext data.
-        """
-        buffer = b"".join(
-            chunk
-            for chunk
-            in cls._surpress_stop_iteration(plaintext_stream, rounds=4)
-        )
-        return Datastream(Padding.pad_beginning(buffer), buffer_size=1)
-
-    @comprehension(chained=True)
-    async def _apad_plaintext(self, key, *, salt, pid=0):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        a baked-in plaintext padding algorithm for binary data. Once
-        copied, the ``self`` argument becomes a reference to an instance
-        of ``Comprende``.
-
-        Pads & yields the plaintext that is produced from the underlying
-        generator with various values that improve the package's online
-        AEAD cipher security & converts it into an online MRAE scheme.
-        The yielded plaintext is resized to 256 bytes per iteration.
-
-        Prepends an 8-byte timestamp & a 16-byte random & ephemeral SIV-
-        key to the stream of data produced. The timestamp allows a time-
-        to-live feature to exist for all ciphertexts, aiding replay
-        attack resistance. It also, along with the SIV-key, ensures that
-        the synthetic IV, which is derived from the keyed-hash of the
-        first plaintext block, is globally unique. The SIV therefore
-        makes the keystream & resulting ciphertext globally unique &
-        salt reuse / misuse resistant.
-
-        Also, appends padding bytes to the stream of data that are the
-        ``shake_256`` output of an object fed a ``padding_key`` to aid
-        in CCA security / padding oracle attacks. The padding key is
-        derived from the hash of the `key`, `salt` & `pid` values. The
-        padding will make the plaintext a multiple of 256 bytes.
-        """
-        try:
-            asend = self.asend
-            stream = await Padding._abegin_pad_stream(self)
-            while True:
-                try:
-                    stream.append(await asend(None))
-                except StopAsyncIteration:
-                    pass
-                yield await stream.apopleft()
-        except StopAsyncIteration:
-            padding_key = await Padding.aderive_key(key, salt=salt, pid=pid)
-            final_chunks = await Padding.apad_ending(
-                stream.buffer.popleft(), padding_key=padding_key
-            )
-            async for final_chunk in adata.root(final_chunks):
-                yield final_chunk
-
-    @comprehension(chained=True)
-    def _pad_plaintext(self, key, *, salt, pid=0):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        a baked-in plaintext padding algorithm for binary data. Once
-        copied, the ``self`` argument becomes a reference to an instance
-        of ``Comprende``.
-
-        Pads & yields the plaintext that is produced from the underlying
-        generator with various values that improve the package's online
-        AEAD cipher security & converts it into an online MRAE scheme.
-        The yielded plaintext is resized to 256 bytes per iteration.
-
-        Prepends an 8-byte timestamp & a 16-byte random & ephemeral SIV-
-        key to the stream of data produced. The timestamp allows a time-
-        to-live feature to exist for all ciphertexts, aiding replay
-        attack resistance. It also, along with the SIV-key, ensures that
-        the synthetic IV, which is derived from the keyed-hash of the
-        first plaintext block, is globally unique. The SIV therefore
-        makes the keystream & resulting ciphertext globally unique &
-        salt reuse / misuse resistant.
-
-        Also, appends padding bytes to the stream of data that are the
-        ``shake_256`` output of an object fed a ``padding_key`` to aid
-        in CCA security / padding oracle attacks. The padding key is
-        derived from the hash of the `key`, `salt` & `pid` values. The
-        padding will make the plaintext a multiple of 256 bytes.
-        """
-        try:
-            send = self.send
-            stream = Padding._begin_pad_stream(self)
-            while True:
-                try:
-                    stream.append(send(None))
-                except StopIteration:
-                    pass
-                yield stream.popleft()
-        except StopIteration:
-            padding_key = Padding.derive_key(key, salt=salt, pid=pid)
-            final_chunks = Padding.pad_ending(
-                stream.buffer.popleft(), padding_key=padding_key
-            )
-            yield from data.root(final_chunks)
-
-    @classmethod
-    async def _abegin_depad_stream(cls, plaintext_stream, ttl=0):
-        """
-        Returns a stream with its inner header removed. It attempts to
-        buffer several iterations of output from the ``output_stream``
-        which produces data with padding attached to it.
-        """
-        buffer = [
-            chunk
-            async for chunk
-            in cls._asurpress_stop_iteration(plaintext_stream, rounds=4)
-        ]
-        return Datastream(
-            await cls.adepad_beginning(b"".join(buffer), ttl=ttl),
-            buffer_size=2,
-        )
-
-    @classmethod
-    def _begin_depad_stream(cls, plaintext_stream, ttl=0):
-        """
-        Returns a stream with its inner header removed. It attempts to
-        buffer several iterations of output from the ``output_stream``
-        which produces data with padding attached to it.
-        """
-        buffer = b"".join(
-            chunk
-            for chunk
-            in cls._surpress_stop_iteration(plaintext_stream, rounds=4)
-        )
-        return Datastream(
-            cls.depad_beginning(buffer, ttl=ttl), buffer_size=2
-        )
-
-    @comprehension(chained=True)
-    async def _adepad_plaintext(self, key, *, salt, pid=0, ttl=0):
-        """
-        Returns ``data`` after these values are removed:
-        - The prepended eight byte timestamp.
-        - The prepended 16 byte SIV-key.
-        - The appended padding bytes that are built from the ``shake_256``
-          output of an object fed a ``padding_key``.
-        """
-        try:
-            asend = self.asend
-            stream = await Padding._abegin_depad_stream(self, ttl)
-            while True:
-                try:
-                    stream.append(await asend(None))
-                except StopAsyncIteration:
-                    pass
-                yield await stream.apopleft()
-        except StopAsyncIteration:
-            padding_key = await Padding.aderive_key(key, salt=salt, pid=pid)
-            final_chunks = await Padding.adepad_ending(
-                b"".join(stream.buffer), padding_key=padding_key
-            )
-            async for final_chunk in adata.root(final_chunks):
-                yield final_chunk
-
-    @comprehension(chained=True)
-    def _depad_plaintext(self, key, *, salt, pid=0, ttl=0):
-        """
-        Returns ``data`` after these values are removed:
-        - The prepended eight byte timestamp.
-        - The prepended 16 byte SIV-key.
-        - The appended padding bytes that are built from the ``shake_256``
-          output of an object fed a ``padding_key``.
-        """
-        try:
-            send = self.send
-            stream = Padding._begin_depad_stream(self, ttl)
-            while True:
-                try:
-                    stream.append(send(None))
-                except StopIteration:
-                    pass
-                yield stream.popleft()
-        except StopIteration:
-            padding_key = Padding.derive_key(key, salt=salt, pid=pid)
-            final_chunks = Padding.depad_ending(
-                b"".join(stream.buffer), padding_key=padding_key
-            )
-            yield from data.root(final_chunks)
+        start_index = cls.depadding_start_index(data, ttl=ttl)
+        end_index = cls.depadding_end_index(data, key_bundle)
+        return data[start_index:end_index]
 
 
 class BytesIO:
@@ -4461,220 +4245,153 @@ class BytesIO:
     dictionaries. This class also has access to the plaintext padding
     algorithm used by the package.
     """
-    _SIV = SIV
-    _HMAC = HMAC
-    _SALT = SALT
-    _EQUAL_SIGN = b"%3D"
-    _BLOCKSIZE = BLOCKSIZE
-    _SIV_BYTES = SIV_BYTES
-    _CIPHERTEXT = CIPHERTEXT
-    _HMAC_BYTES = HMAC_BYTES
-    _SALT_BYTES = SALT_BYTES
-    _HEADER_BYTES = HEADER_BYTES
-    _MAP_ENCODING = MAP_ENCODING
-    _SIV_KEY_BYTES = SIV_KEY_BYTES
-    _LIST_ENCODING = LIST_ENCODING
-    _URL_SAFE_TABLE = URL_SAFE_TABLE
-    _ASCII_TABLE_128 = ASCII_TABLE_128
-    _TIMESTAMP_BYTES = TIMESTAMP_BYTES
-    _INNER_HEADER_BYTES = INNER_HEADER_BYTES
-    pad_plaintext = staticmethod(Padding.pad_plaintext)
-    apad_plaintext = staticmethod(Padding.apad_plaintext)
-    depad_plaintext = staticmethod(Padding.depad_plaintext)
-    adepad_plaintext = staticmethod(Padding.adepad_plaintext)
-    check_timestamp = staticmethod(check_timestamp)
-    acheck_timestamp = staticmethod(acheck_timestamp)
-    amake_timestamp = staticmethod(amake_timestamp)
-    make_timestamp = staticmethod(make_timestamp)
-    Padding = Padding
 
-    def __init__(self):
-        pass
+    _SIV: str = SIV
+    _HMAC: str = HMAC
+    _SALT: str = SALT
+    _EQUAL_SIGN: bytes = b"%3D"
+    _BLOCKSIZE: int = BLOCKSIZE
+    _SIV_BYTES: int = SIV_BYTES
+    _CIPHERTEXT: str = CIPHERTEXT
+    _HMAC_BYTES: int = HMAC_BYTES
+    _SALT_BYTES: int = SALT_BYTES
+    _HEADER_BYTES: int = HEADER_BYTES
+    _SIV_KEY_BYTES: int = SIV_KEY_BYTES
+    _TIMESTAMP_BYTES: int = TIMESTAMP_BYTES
+    _INNER_HEADER_BYTES: int = INNER_HEADER_BYTES
 
     @classmethod
-    def _load_json(cls, obj):
-        """
-        Loads a string as json or copies makes a copy of an existing
-        dictionary depending on the type of ``obj``.
-        """
-        if not issubclass(obj.__class__, dict):
-            return json.loads(obj)
-        return dict(obj)
-
-    @classmethod
-    def _make_stack(cls):
-        """
-        Creates an empty template namespace to hold processed values to
-        & from bytes ciphertext.
-        """
-        return Namespace(
-            copy=None, result=None, hmac=None, salt=None, ciphertext=None
-        )
-
-    @classmethod
-    async def _aprocess_json(cls, data):
-        """
-        Takes in json ``data`` for initial processing. Returns a
-        namespace populated with the discovered values.
-        """
-        await asleep(0)
-        obj = cls._make_stack()
-        obj.result = b""
-        obj.copy = cls._load_json(data)
-        await asleep(0)
-        obj.hmac = obj.copy.pop(cls._HMAC)
-        obj.salt = obj.copy.pop(cls._SALT)
-        obj.siv = obj.copy.pop(cls._SIV)
-        obj.ciphertext = obj.copy.pop(cls._CIPHERTEXT)
-        await asleep(0)
-        return obj
-
-    @classmethod
-    def _process_json(cls, data):
-        """
-        Takes in json ``data`` for initial processing. Returns a
-        namespace populated with the discovered values.
-        """
-        obj = cls._make_stack()
-        obj.result = b""
-        obj.copy = cls._load_json(data)
-        obj.hmac = obj.copy.pop(cls._HMAC)
-        obj.salt = obj.copy.pop(cls._SALT)
-        obj.siv = obj.copy.pop(cls._SIV)
-        obj.ciphertext = obj.copy.pop(cls._CIPHERTEXT)
-        return obj
-
-    @classmethod
-    def _validate_ciphertext_length(cls, ciphertext):
+    def _validate_ciphertext(cls, ciphertext: bytes):
         """
         Measures the length of a blob of bytes ciphertext that has its
         salt & hmac attached. If it doesn't conform to the standard then
         raises ValueError. If the ``ciphertext`` that's passed isn't of
         bytes type then ``TypeErrpr`` is raised.
         """
-        if not issubclass(ciphertext.__class__, bytes):
-            raise TypeError(CIPHERTEXT_IS_NOT_BYTES)
-        elif (len(ciphertext) - cls._HEADER_BYTES) % cls._BLOCKSIZE:
-            raise ValueError(INVALID_CIPHERTEXT_LENGTH)
+        size = len(ciphertext) - cls._HEADER_BYTES
+        if ciphertext.__class__ is not bytes:
+            raise Issue.value_must_be_type("ciphertext", bytes)
+        elif size <= 0 or size % cls._BLOCKSIZE:
+            raise CiphertextIssue.invalid_ciphertext_length(len(ciphertext))
 
     @classmethod
-    async def ajson_to_bytes(cls, data):
+    async def _aprocess_json_to_bytes(cls, data: Typing.JSONCiphertext):
         """
-        Converts json ``data`` of listed ciphertext into a bytes object.
+        Converts JSON formatted `Chunky2048` ciphertext into bytes
+        values that are yielded one logical piece at a time.
         """
-        data = await cls._aprocess_json(data)
-        data.result = bytes.fromhex(data.hmac + data.salt + data.siv)
+        data = JSONCiphertext(data)
+        BLOCKSIZE = cls._BLOCKSIZE
+        yield bytes.fromhex(data.hmac)
+        yield bytes.fromhex(data.salt)
+        yield bytes.fromhex(data.synthetic_iv)
         for chunk in data.ciphertext:
-            await asleep(0)
-            data.result += chunk.to_bytes(cls._BLOCKSIZE, "big")
-        cls._validate_ciphertext_length(data.result)
-        return data.result
+            await asleep()
+            yield chunk.to_bytes(BLOCKSIZE, "big")
 
     @classmethod
-    def json_to_bytes(cls, data):
+    def _process_json_to_bytes(cls, data: Typing.JSONCiphertext):
+        """
+        Converts JSON formatted `Chunky2048` ciphertext into bytes
+        values that are yielded one logical piece at a time.
+        """
+        data = JSONCiphertext(data)
+        BLOCKSIZE = cls._BLOCKSIZE
+        yield bytes.fromhex(data.hmac)
+        yield bytes.fromhex(data.salt)
+        yield bytes.fromhex(data.synthetic_iv)
+        for chunk in data.ciphertext:
+            yield chunk.to_bytes(BLOCKSIZE, "big")
+
+    @classmethod
+    async def ajson_to_bytes(cls, data: Typing.JSONCiphertext):
         """
         Converts json ``data`` of listed ciphertext into a bytes object.
         """
-        data = cls._process_json(data)
-        data.result = bytes.fromhex(data.hmac + data.salt + data.siv)
-        data.result += b"".join(
-            chunk.to_bytes(cls._BLOCKSIZE, "big")
-            for chunk in data.ciphertext
+        data = b"".join(
+            [block async for block in cls._aprocess_json_to_bytes(data)]
         )
-        cls._validate_ciphertext_length(data.result)
-        return data.result
+        cls._validate_ciphertext(data)
+        return data
 
     @classmethod
-    async def _aprocess_bytes(cls, data, *, encoding=_LIST_ENCODING):
+    def json_to_bytes(cls, data: Typing.JSONCiphertext):
+        """
+        Converts json ``data`` of listed ciphertext into a bytes object.
+        """
+        data = b"".join(cls._process_json_to_bytes(data))
+        cls._validate_ciphertext(data)
+        return data
+
+    @classmethod
+    async def _aprocess_bytes_to_json(cls, data: bytes):
         """
         Takes in bytes ``data`` for initial processing. Returns a
         namespace populated with the discovered ciphertext values.
-        `LIST_ENCODING` is the default encoding for all ciphertext.
-        Databases used to use the `MAP_ENCODING`, but they now also
-        output listed ciphertext.
         """
-        await asleep(0)
-        cls._validate_ciphertext_length(data)
-        obj = cls._make_stack()
-        obj.result = {}
-        obj.copy = data
-        obj.hmac = data[:cls._HMAC_BYTES]
-        obj.salt = data[cls._HMAC_BYTES:cls._HMAC_BYTES + cls._SALT_BYTES]
-        obj.siv = data[cls._HMAC_BYTES + cls._SALT_BYTES:cls._HEADER_BYTES]
-        obj.ciphertext = data[cls._HEADER_BYTES:]
-        await asleep(0)
-        return obj
+        to_int = int.from_bytes
+        cls._validate_ciphertext(data)
+        yield data[HMAC_SLICE].hex()
+        yield data[SALT_SLICE].hex()
+        yield data[SIV_SLICE].hex()
+        async for block in adata.root(data[CIPHERTEXT_SLICE]):
+            yield to_int(block, "big")
 
     @classmethod
-    def _process_bytes(cls, data, *, encoding=_LIST_ENCODING):
+    def _process_bytes_to_json(cls, data: bytes):
         """
         Takes in bytes ``data`` for initial processing. Returns a
         namespace populated with the discovered ciphertext values.
-        `LIST_ENCODING` is the default encoding for all ciphertext.
-        Databases used to use the `MAP_ENCODING`, but they now also
-        output listed ciphertext.
         """
-        cls._validate_ciphertext_length(data)
-        obj = cls._make_stack()
-        obj.result = {}
-        obj.copy = data
-        obj.hmac = data[:cls._HMAC_BYTES]
-        obj.salt = data[cls._HMAC_BYTES:cls._HMAC_BYTES + cls._SALT_BYTES]
-        obj.siv = data[cls._HMAC_BYTES + cls._SALT_BYTES:cls._HEADER_BYTES]
-        obj.ciphertext = data[cls._HEADER_BYTES:]
-        return obj
+        to_int = int.from_bytes
+        cls._validate_ciphertext(data)
+        yield data[HMAC_SLICE].hex()
+        yield data[SALT_SLICE].hex()
+        yield data[SIV_SLICE].hex()
+        for block in gentools.data.root(data[CIPHERTEXT_SLICE]):
+            yield to_int(block, "big")
 
     @classmethod
-    async def abytes_to_json(cls, data, *, encoding=_LIST_ENCODING):
+    async def abytes_to_json(cls, data: bytes):
         """
         Converts bytes ``data`` of listed ciphertext back into a json
-        dictionary. `LIST_ENCODING` is the default encoding for all
-        ciphertext. Databases used to use the `MAP_ENCODING`, but they
-        now also output listed ciphertext.
+        dictionary.
         """
-        streamer = adata.root
-        obj = await cls._aprocess_bytes(data, encoding=encoding)
-        obj.result["ciphertext"] = [
-            int.from_bytes(chunk, "big")
-            async for chunk in streamer(obj.ciphertext)
-        ]
-        obj.result[cls._HMAC] = obj.hmac.hex()
-        obj.result[cls._SALT] = obj.salt.hex()
-        obj.result[cls._SIV] = obj.siv.hex()
-        return obj.result
+        data = cls._aprocess_bytes_to_json(data)
+        return {
+            cls._HMAC: await data.asend(None),
+            cls._SALT: await data.asend(None),
+            cls._SIV: await data.asend(None),
+            cls._CIPHERTEXT: [block async for block in data],
+        }
 
     @classmethod
-    def bytes_to_json(cls, data, *, encoding=_LIST_ENCODING):
+    def bytes_to_json(cls, data: bytes):
         """
         Converts bytes ``data`` of listed ciphertext back into a json
-        dictionary. `LIST_ENCODING` is the default encoding for all
-        ciphertext. Databases used to use the `MAP_ENCODING`, but they
-        now also output listed ciphertext.
+        dictionary.
         """
-        streamer = generics.data.root
-        obj = cls._process_bytes(data, encoding=encoding)
-        obj.result["ciphertext"] = [
-            int.from_bytes(chunk, "big")
-            for chunk in streamer(obj.ciphertext)
-        ]
-        obj.result[cls._HMAC] = obj.hmac.hex()
-        obj.result[cls._SALT] = obj.salt.hex()
-        obj.result[cls._SIV] = obj.siv.hex()
-        return obj.result
+        data = cls._process_bytes_to_json(data)
+        return {
+            cls._HMAC: data.send(None),
+            cls._SALT: data.send(None),
+            cls._SIV: data.send(None),
+            cls._CIPHERTEXT: [block for block in data],
+        }
 
     @classmethod
-    async def abytes_to_urlsafe(cls, byte_string):
+    async def abytes_to_urlsafe(cls, byte_string: bytes):
         """
         Turns a ``byte_string`` into a url safe string derived from the
         given ``table``.
         """
-        await asleep(0)
+        await asleep()
         urlsafe_token = base64.urlsafe_b64encode(byte_string)
-        await asleep(0)
+        await asleep()
         return urlsafe_token.replace(b"=", cls._EQUAL_SIGN)
 
     @classmethod
-    def bytes_to_urlsafe(cls, byte_string):
+    def bytes_to_urlsafe(cls, byte_string: bytes):
         """
         Turns a ``byte_string`` into a url safe string derived from the
         given ``table``.
@@ -4683,479 +4400,160 @@ class BytesIO:
         return urlsafe_token.replace(b"=", cls._EQUAL_SIGN)
 
     @classmethod
-    async def aurlsafe_to_bytes(cls, token):
+    async def aurlsafe_to_bytes(cls, token: Typing.AnyStr):
         """
         Turns a url safe ``token`` into a bytes type string.
         """
-        decoded_token = token.replace(cls._EQUAL_SIGN, b"=")
-        await asleep(0)
-        return base64.urlsafe_b64decode(decoded_token)
+        await asleep()
+        return base64.urlsafe_b64decode(
+            token.encode().replace(cls._EQUAL_SIGN, b"=")
+            if token.__class__ is str
+            else token.replace(cls._EQUAL_SIGN, b"=")
+        )
 
     @classmethod
-    def urlsafe_to_bytes(cls, token):
+    def urlsafe_to_bytes(cls, token: Typing.AnyStr):
         """
         Turns a url safe ``token`` into a bytes type string.
         """
-        decoded_token = token.replace(cls._EQUAL_SIGN, b"=")
-        return base64.urlsafe_b64decode(decoded_token)
+        return base64.urlsafe_b64decode(
+            token.encode().replace(cls._EQUAL_SIGN, b"=")
+            if token.__class__ is str
+            else token.replace(cls._EQUAL_SIGN, b"=")
+        )
 
     @classmethod
-    async def ajson_to_ascii(cls, data, *, table=ASCII_TABLE_128):
+    async def aread(cls, path: Typing.Union[str, Path]):
         """
-        Converts json ciphertext into ascii consisting of characters
-        found inside the ``table`` keyword argument.
-        """
-        int_data = int.from_bytes(await cls.ajson_to_bytes(data), "big")
-        return await aint_to_base(int_data, len(table), table)
-
-    @classmethod
-    def json_to_ascii(cls, data, *, table=ASCII_TABLE_128):
-        """
-        Converts json ciphertext into ascii consisting of characters
-        found inside the ``table`` keyword argument.
-        """
-        int_data = int.from_bytes(cls.json_to_bytes(data), "big")
-        return int_to_base(int_data, len(table), table)
-
-    @classmethod
-    async def aascii_to_json(cls, data, *, table=ASCII_TABLE_128):
-        """
-        Converts ascii formated ciphertext, consisting of characters
-        from the ``table`` keyword argument, back into json.
-        """
-        int_data = await abase_to_int(data, len(table), table=table)
-        length = math.ceil(int_data.bit_length() / 8)
-        return await cls.abytes_to_json(int_data.to_bytes(length, "big"))
-
-    @classmethod
-    def ascii_to_json(cls, data, *, table=ASCII_TABLE_128):
-        """
-        Converts ascii formated ciphertext, consisting of characters
-        from the ``table`` keyword argument, back into json.
-        """
-        int_data = base_to_int(data, base=len(table), table=table)
-        length = math.ceil(int_data.bit_length() / 8)
-        return cls.bytes_to_json(int_data.to_bytes(length, "big"))
-
-    @classmethod
-    async def aread(cls, path, *, encoding=_LIST_ENCODING):
-        """
-        Reads the bytes file at ``path`` under a certain ``encoding``.
-        `LIST_ENCODING` is the default encoding for all ciphertext.
-        Databases used to use the `MAP_ENCODING`, but they now also
-        output listed ciphertext.
+        Reads the bytes ciphertext file at ``path``.
         """
         async with aiofiles.open(path, "rb") as f:
-            return await cls.abytes_to_json(
-                await f.read(), encoding=encoding
-            )
+            return await f.read()
 
     @classmethod
-    def read(cls, path, *, encoding=_LIST_ENCODING):
+    def read(cls, path: Typing.Union[str, Path]):
         """
-        Reads the bytes file at ``path`` under a certain ``encoding``.
-        `LIST_ENCODING` is the default encoding for all ciphertext.
-        Databases used to use the `MAP_ENCODING`, but they now also
-        output listed ciphertext.
+        Reads the bytes ciphertext file at ``path``.
         """
         with open(path, "rb") as f:
-            return cls.bytes_to_json(f.read(), encoding=encoding)
+            return f.read()
 
     @classmethod
-    async def awrite(cls, path, ciphertext):
+    async def awrite(cls, path: Typing.Union[str, Path], ciphertext: bytes):
         """
-        Writes json ``ciphertext`` to a bytes file at ``path``.
+        Writes bytes ``ciphertext`` to a bytes file at ``path``.
         """
         async with aiofiles.open(path, "wb+") as f:
-            await f.write(await cls.ajson_to_bytes(ciphertext))
+            await f.write(ciphertext)
 
     @classmethod
-    def write(cls, path, ciphertext):
+    def write(cls, path: Typing.Union[str, Path], ciphertext: bytes):
         """
-        Writes json ``ciphertext`` to a bytes file at ``path``.
+        Writes bytes ``ciphertext`` to a bytes file at ``path``.
         """
         with open(path, "wb+") as f:
-            f.write(cls.json_to_bytes(ciphertext))
+            f.write(ciphertext)
 
 
-class Datastream:
-    """
-    An iterable type which allows for incomplete data to be iterated
-    over & extended during iteration. This funcitonality can save on in-
-    memory costs while processes large amounts of data. Protocols which
-    require logic for the last elements of a stream can be assisted by
-    passing a `buffer_size` to the initializer. The size determines the
-    number of iteration results will withheld from the end of a stream
-    in the `buffer` attribute deque. They can then be yielded processed
-    in some custom manner determined by the user
-
-    WARNING: Because of Python quirks around memory management, loading
-    up large amounts of data into an instance will fill up a machine's
-    memory & not be freed even after being popped out or deleted. This
-    is behaviour that occurs in the deque where the sequences are stored
-    prior to being processed. If buffering up large amounts of data is
-    needed, then a workaround would be to run the data processing using
-    this class in a separate process. When the process is complete then
-    the memory will be freed up.
-    """
-
-    def __init__(self, sequence, size=BLOCKSIZE, *, buffer_size=0):
-        """
-        Prepare the object to iterate over sequences of any arbitrary
-        length, to yield them in ``size``-sized chunks.
-        """
-        if buffer_size < 0:
-            raise ValueError("The ``buffer_size`` must be non-negative.")
-        self.index = -1
-        self._size = size
-        self._buffer_size = buffer_size
-        self._sequences = deque([sequence])
-        self.append = self._sequences.append
-        self._iterator = unpack.root(self.__iter__())
-        self._aiterator = aunpack.root(self.__aiter__())
-        self.buffer = deque([], maxlen=self._buffer_size + 1)
-
-    def __bool__(self):
-        """
-        If the datastream is empty then return False, otherwise True.
-        """
-        return bool(self._sequences or self._buffer)
-
-    async def _afill_buffer(self, stream):
-        """
-        Fills the instance's buffer with the user defined amount of
-        uniformly sized sequences.
-        """
-        try:
-            for _ in range(self._buffer_size):
-                self.buffer.append(await stream())
-                self.index += 1
-        except IndexError:
-            pass
-
-    def _fill_buffer(self, stream):
-        """
-        Fills the instance's buffer with the user defined amount of
-        uniformly sized sequences.
-        """
-        try:
-            for _ in range(self._buffer_size):
-                self.buffer.append(stream())
-                self.index += 1
-        except IndexError:
-            pass
-
-    async def _astart_stream(self):
-        """
-        Returns the generator stream which yields & uniformly resizes
-        the chunks of user sequences in its collection.
-        """
-        return apopleft(self._sequences).aresize(self._size)
-
-    def _start_stream(self):
-        """
-        Returns the generator stream which yields & uniformly resizes
-        the chunks of user sequences in its collection.
-        """
-        return popleft(self._sequences).resize(self._size)
-
-    async def __aiter__(self):
-        """
-        Runs through a list of sequences & yields ``size`` sized chunks
-        of the collected sequences one chunk at a time.
-        """
-        try:
-            stream = await self._astart_stream()
-            await self._afill_buffer(stream)
-            append = self.buffer.append
-            popleft = self.buffer.popleft
-            while True:
-                append(await stream())
-                self.index += 1
-                yield popleft()
-        except StopAsyncIteration:
-            pass
-
-    def __iter__(self):
-        """
-        Runs through a list of sequences & yields ``size`` sized chunks
-        of the collected sequences one chunk at a time.
-        """
-        try:
-            stream = self._start_stream()
-            self._fill_buffer(stream)
-            append = self.buffer.append
-            popleft = self.buffer.popleft
-            while True:
-                append(stream())
-                self.index += 1
-                yield popleft()
-        except StopIteration:
-            pass
-
-    async def apopleft(self):
-        """
-        Returns the next value in the instance's async iterator object.
-        """
-        return await self._aiterator.asend(None)
-
-    def popleft(self):
-        """
-        Returns the next value in the instance's iterator object.
-        """
-        return self._iterator.send(None)
+gentools = OpenNamespace(
+    BaseComprende=BaseComprende,
+    Comprende=Comprende,
+    Enumerate=Enumerate,
+    abirth=abirth,
+    abytes_count=abytes_count,
+    abytes_range=abytes_range,
+    acompact=acompact,
+    acount=acount,
+    acycle=acycle,
+    adata=adata,
+    aecho=aecho,
+    aorder=aorder,
+    apick=apick,
+    apop=apop,
+    apopleft=apopleft,
+    arange=arange,
+    areader=areader,
+    askip=askip,
+    aunpack=aunpack,
+    await_on=await_on,
+    azip=azip,
+    birth=birth,
+    bytes_count=bytes_count,
+    bytes_range=bytes_range,
+    compact=compact,
+    comprehension=comprehension,
+    count=count,
+    cycle=cycle,
+    data=data,
+    echo=echo,
+    order=order,
+    pick=pick,
+    pop=pop,
+    popleft=popleft,
+    range=_range,
+    reader=reader,
+    skip=skip,
+    unpack=unpack,
+    wait_on=wait_on,
+    zip=_zip,
+)
 
 
-async def ato_b64(binary=None, encoding="utf-8"):
-    """
-    A version of ``base64.standard_b64encode``.
-    """
-    if type(binary) != bytes:
-        binary = bytes(binary, encoding)
-    await asleep(0)
-    return base64.standard_b64encode(binary)
+extras = dict(
+    BytesIO=BytesIO,
+    Domains=Domains,
+    Hasher=Hasher,
+    Padding=Padding,
+    __doc__=__doc__,
+    __main_exports__=__all__,
+    __package__=__package__,
+    abase_to_int=abase_to_int,
+    abytes_are_equal=abytes_are_equal,
+    afrom_base64=afrom_base64,
+    ahash_bytes=ahash_bytes,
+    aignore=aignore,
+    aint_to_base=aint_to_base,
+    amake_timestamp=amake_timestamp,
+    anext=anext,
+    arightmost_bit=arightmost_bit,
+    asha3__256=asha3__256,
+    asha3__256_hmac=asha3__256_hmac,
+    asha3__512=asha3__512,
+    asha3__512_hmac=asha3__512_hmac,
+    async_contextmanager=async_contextmanager,
+    ato_base64=ato_base64,
+    axi_mix=axi_mix,
+    base64=base64,
+    base_to_int=base_to_int,
+    bytes_are_equal=bytes_are_equal,
+    from_base64=from_base64,
+    hash_bytes=hash_bytes,
+    ignore=ignore,
+    int_to_base=int_to_base,
+    is_async_function=is_async_function,
+    is_async_gen_function=is_async_gen_function,
+    is_async_generator=is_async_generator,
+    is_async_iterable=is_async_iterable,
+    is_async_iterator=is_async_iterator,
+    is_awaitable=is_awaitable,
+    is_exception=is_exception,
+    is_generator=is_generator,
+    is_generator_function=is_generator_function,
+    is_iterable=is_iterable,
+    is_iterator=is_iterator,
+    json=json,
+    make_timestamp=make_timestamp,
+    rightmost_bit=rightmost_bit,
+    sha3__256=sha3__256,
+    sha3__256_hmac=sha3__256_hmac,
+    sha3__512=sha3__512,
+    sha3__512_hmac=sha3__512_hmac,
+    size_of=size_of,
+    src=src,
+    to_base64=to_base64,
+    xi_mix=xi_mix,
+)
 
 
-def to_b64(binary=None, encoding="utf-8"):
-    """
-    A version of ``base64.standard_b64encode``.
-    """
-    if type(binary) != bytes:
-        binary = bytes(binary, encoding)
-    return base64.standard_b64encode(binary)
-
-
-async def afrom_b64(base_64=None, encoding="utf-8"):
-    """
-    A version of ``base64.standard_b64decode``.
-    """
-    if type(base_64) != bytes:
-        base_64 = base_64.encode(encoding)
-    await asleep(0)
-    return base64.standard_b64decode(base_64)
-
-
-def from_b64(base_64=None, encoding="utf-8"):
-    """
-    A version of ``base64.standard_b64decode``.
-    """
-    if type(base_64) != bytes:
-        base_64 = base_64.encode(encoding)
-    return base64.standard_b64decode(base_64)
-
-
-async def abase_to_int(string, base, table=ASCII_ALPHANUMERIC):
-    """
-    Convert ``string`` in numerical ``base`` into decimal integer.
-    """
-    power = 1
-    result = 0
-    base_table = table[:base]
-    await asleep(0)
-    for char in reversed(string):
-        if base_table.find(char) == -1:
-            raise ValueError("Invalid base with given string or table.")
-        result += base_table.find(char) * power
-        power = power * base
-    await asleep(0)
-    return result
-
-
-def base_to_int(string, base, table=ASCII_ALPHANUMERIC):
-    """
-    Convert ``string`` in numerical ``base`` into decimal integer.
-    """
-    power = 1
-    result = 0
-    base_table = table[:base]
-    for char in reversed(string):
-        if base_table.find(char) == -1:
-            raise ValueError("Invalid base with given string or table.")
-        result += base_table.find(char) * power
-        power = power * base
-    return result
-
-
-async def aint_to_base(number, base, table=ASCII_ALPHANUMERIC):
-    """
-    Convert an ``number`` back into a string in numerical ``base``.
-    """
-    digits = []
-    base_table = table[:base]
-    await asleep(0)
-    while number:
-        digits.append(base_table[number % base])
-        number //= base
-    await asleep(0)
-    if digits:
-        digits.reverse()
-        return digits[0].__class__().join(digits)
-    else:
-        return table[0]
-
-
-def int_to_base(number, base, table=ASCII_ALPHANUMERIC):
-    """
-    Convert an ``number`` back into a string in numerical ``base``.
-    """
-    digits = []
-    base_table = table[:base]
-    while number:
-        digits.append(base_table[number % base])
-        number //= base
-    if digits:
-        digits.reverse()
-        return digits[0].__class__().join(digits)
-    else:
-        return table[0]
-
-
-async def abuild_tree(*, depth=4, width=2, leaf=None):
-    """
-    Recursively builds a tree ``depth`` branches deep with ``width``
-    branches per level, & places the placeholder value ``leaf`` at each
-    endpoint of the tree.
-    """
-    if depth < 0:
-        raise ValueError("The ``depth`` argument cannot be < 0")
-    elif width <= 0:
-        raise ValueError("The ``width`` argument cannot be <= 0")
-    elif depth > 0:
-        await asleep(0)
-        next_depth = depth - 1
-        return {
-            branch: await abuild_tree(
-                depth=next_depth, width=width, leaf=leaf
-            )
-            for branch in range(width)
-        }
-    else:
-        return leaf
-
-
-def build_tree(*, depth=4, width=2, leaf=None):
-    """
-    Recursively builds a tree ``depth`` branches deep with ``width``
-    branches per level, & places the placeholder value ``leaf`` at each
-    endpoint of the tree.
-    """
-    if depth < 0:
-        raise ValueError("The ``depth`` argument cannot be < 0")
-    elif width <= 0:
-        raise ValueError("The ``width`` argument cannot be <= 0")
-    elif depth > 0:
-        next_depth = depth - 1
-        return {
-            branch: build_tree(depth=next_depth, width=width, leaf=leaf)
-            for branch in range(width)
-        }
-    else:
-        return leaf
-
-
-__extras = {
-    "AsyncInit": AsyncInit,
-    "BytesIO": BytesIO,
-    "Comprende": Comprende,
-    "Datastream": Datastream,
-    "Enumerate": Enumerate,
-    "Hasher": Hasher,
-    "Domains": Domains,
-    "Padding": Padding,
-    "IterableClass": IterableClass,
-    "__doc__": __doc__,
-    "__main_exports__": __all__,
-    "__package__": "aiootp",
-    "abase_to_int": abase_to_int,
-    "abuild_tree": abuild_tree,
-    "abirth": abirth,
-    "abytes_count": abytes_count,
-    "abytes_range": abytes_range,
-    "acompact": acompact,
-    "acount": acount,
-    "acustomize_parameters": acustomize_parameters,
-    "acycle": acycle,
-    "adata": adata,
-    "aecho": aecho,
-    "afrom_b64": afrom_b64,
-    "ahash_bytes": ahash_bytes,
-    "aignore": aignore,
-    "aint_to_base": aint_to_base,
-    "aiter": aiter,
-    "amake_timestamp": amake_timestamp,
-    "anext": anext,
-    "aorder": aorder,
-    "apick": apick,
-    "apop": apop,
-    "apopleft": apopleft,
-    "arange": arange,
-    "aseedrange": aseedrange,
-    "asha_256": asha_256,
-    "asha_256_hmac": asha_256_hmac,
-    "asha_512": asha_512,
-    "asha_512_hmac": asha_512_hmac,
-    "askip": askip,
-    "atime_safe_equality": atime_safe_equality,
-    "ato_b64": ato_b64,
-    "aunpack": aunpack,
-    "await_on": await_on,
-    "axi_mix": axi_mix,
-    "azip": azip,
-    "base_to_int": base_to_int,
-    "build_tree": build_tree,
-    "birth": birth,
-    "bytes_count": bytes_count,
-    "bytes_range": bytes_range,
-    "compact": compact,
-    "comprehension": comprehension,
-    "convert_class_method_to_member": convert_class_method_to_member,
-    "convert_static_method_to_member": convert_static_method_to_member,
-    "count": count,
-    "customize_parameters": customize_parameters,
-    "cycle": cycle,
-    "data": data,
-    "display_exception_info": display_exception_info,
-    "echo": echo,
-    "from_b64": from_b64,
-    "hash_bytes": hash_bytes,
-    "ignore": ignore,
-    "int_to_base": int_to_base,
-    "is_async_function": is_async_function,
-    "is_async_gen_function": is_async_gen_function,
-    "is_async_generator": is_async_generator,
-    "is_async_iterable": is_async_iterable,
-    "is_async_iterator": is_async_iterator,
-    "is_awaitable": is_awaitable,
-    "is_exception": is_exception,
-    "is_generator": is_generator,
-    "is_generator_function": is_generator_function,
-    "is_iterable": is_iterable,
-    "is_iterator": is_iterator,
-    "iter": _iter,
-    "make_timestamp": make_timestamp,
-    "order": order,
-    "pick": pick,
-    "pop": pop,
-    "popleft": popleft,
-    "range": _range,
-    "seedrange": seedrange,
-    "sha3_256": sha3_256,
-    "sha3_512": sha3_512,
-    "sha_256": sha_256,
-    "sha_256_hmac": sha_256_hmac,
-    "sha_512": sha_512,
-    "sha_512_hmac": sha_512_hmac,
-    "size_of": size_of,
-    "skip": skip,
-    "src": src,
-    "time_safe_equality": time_safe_equality,
-    "to_b64": to_b64,
-    "unpack": unpack,
-    "wait_on": wait_on,
-    "xi_mix": xi_mix,
-    "zip": _zip,
-}
-
-
-generics = Namespace.make_module("generics", mapping=__extras)
+generics = commons.make_module("generics", mapping=extras)
 
