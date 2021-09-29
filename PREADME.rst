@@ -5,7 +5,7 @@
 
 
 
-aiootp - Asynchronous pseudo-one-time-pad based crypto and anonymity library.
+aiootp - Asynchronous pseudo one-time pad based crypto and anonymity library.
 =============================================================================
 
 ``aiootp`` is an asynchronous library providing access to cryptographic 
@@ -13,7 +13,7 @@ primatives and abstractions, transparently encrypted / decrypted file
 I/O and databases, as well as powerful, pythonic utilities that 
 simplify data processing & cryptographic procedures in python code. 
 This library's online MRAE / AEAD cipher, called ``Chunky2048``, is an 
-implementation of the **pseudo-one-time-pad**. The aim is to create a simple, 
+implementation of the **pseudo one-time pad**. The aim is to create a simple, 
 standard, efficient implementation that's indistinguishable from the 
 unbreakable one-time-pad cipher; to give users and applications access to 
 user-friendly cryptographic tools; and, to increase the overall security, 
@@ -115,10 +115,10 @@ _`Table Of Contents`
 - `FAQ`_
   
 
--  `Changelog`_
+- `Changelog`_
   
 
--  `Known Issues`_
+- `Known Issues`_
 
 
 
@@ -201,6 +201,16 @@ Data within databases are primarily organized by Tags. Tags are simply string la
 
     db.tags
     >>> {'tag', 'hobby', 'bitcoin', 'lawyer', 'safehouses'}
+
+
+    # View the filenames of an instance's tags ->
+    
+    db.filenames
+    >>> {'0z0l10btu_yd-n4quc8tsj9baqu8xmrxz87ix',
+     '197ulmqmxg15lebm26zaahpqnabwr8sprojuh',
+     '248piaop3j9tmcvqach60qk146mt5xu6kjc-u',
+     '2enwc3crove2cnrx7ks963d8_se25k6cdn6q9',
+     '5dm-60yspq8yhah4ywxcp52kztq_9toj0owm2'}
 
 
     # There are various ways of working with tags ->
@@ -657,7 +667,7 @@ These premade recipes allow for the easiest usage of the cipher.
 _`Low-level Generators` ........................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The cipher can also be used as an online cipher, handling blocks of data 256-bytes at a time. Using these generators are more difficult to use, giving more fine-grained control to the user.
+The cipher can also be used as an online cipher, handling blocks of data 256-bytes at a time. Using these generators is more difficult, giving more fine-grained control to the user.
 
 .. code-block:: python
     
@@ -687,7 +697,7 @@ The cipher can also be used as an online cipher, handling blocks of data 256-byt
     
     # Iterates over the plaintext ``stream`` generator, in this case, 
     
-    # returning the enciphed data in one ``join`` call ->
+    # returning the enciphered data in one ``join`` call ->
     
     ciphertext = stream.bytes_encipher(key_bundle, shmac).join(b"")
     
