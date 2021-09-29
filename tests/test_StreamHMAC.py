@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -299,14 +299,14 @@ def test_current_digest():
             except ValueError:
                 pass
             else:
-                raise AssertionError("Validators don't detect invalid current digests.")
+                raise AssertionError("Validators don't detect invalid current digests!")
             try:
                 change = (digest[-1] ^ 1).to_bytes(1, "big")
                 await shmac.atest_current_digest(digest[:-1] + change)
             except ValueError:
                 pass
             else:
-                raise AssertionError("Validators don't detect invalid current digests.")
+                raise AssertionError("Validators don't detect invalid current digests!")
 
         assert plaintext_bytes == await Padding.adepad_plaintext(
             padded_plaintext, key_bundle
@@ -334,14 +334,14 @@ def test_current_digest():
             except ValueError:
                 pass
             else:
-                raise AssertionError("Validators don't detect invalid current digests.")
+                raise AssertionError("Validators don't detect invalid current digests!")
             try:
                 change = (digest[-1] ^ 1).to_bytes(1, "big")
                 shmac.test_current_digest(digest[:-1] + change)
             except ValueError:
                 pass
             else:
-                raise AssertionError("Validators don't detect invalid current digests.")
+                raise AssertionError("Validators don't detect invalid current digests!")
 
         assert plaintext_bytes == Padding.depad_plaintext(
             padded_plaintext, key_bundle
