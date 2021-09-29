@@ -9,12 +9,7 @@
 #
 
 
-__all__ = [
-    "pad_plaintext",
-    "apad_plaintext",
-    "depad_plaintext",
-    "adepad_plaintext",
-]
+__all__ = ["gentools"]
 
 
 __doc__ = (
@@ -24,112 +19,85 @@ __doc__ = (
 )
 
 
-from collections import deque
+from ._typing import Typing
 from .debuggers import gen_timer, agen_timer
-from .generics import azip
-from .generics import Padding
-from .generics import Datastream
-from .generics import data, adata
-from .generics import sha_512, asha_512
+from .generics import sha3__512, asha3__512
 from .generics import Comprende, comprehension
-from .generics import convert_static_method_to_member
 from .randoms import random_sleep as _random_sleep
 from .randoms import arandom_sleep as _arandom_sleep
-from .ciphers import csprng
-from .ciphers import Passcrypt
-from .ciphers import Chunky2048
-from .ciphers import passcrypt as _passcrypt
-from .ciphers import apasscrypt as _apasscrypt
 from .ciphers import generate_salt, agenerate_salt
-from .keygens import Ropake
-from .keygens import X25519
-from .keygens import Keys, AsyncKeys
-from .keygens import insert_keygens
+from .ciphers import plaintext_stream, aplaintext_stream
+from .ciphers import bytes_encipher, abytes_encipher
+from .ciphers import bytes_decipher, abytes_decipher
+from . import *
+from . import AsyncKeys, Keys
+from . import Ed25519, X25519
+from . import Processes, Threads
+from . import AsyncDatabase, Database
+from . import Namespace, OpenNamespace
+from . import Domains, DomainKDF, Hasher, Passcrypt, Chunky2048
+from . import BytesIO, Padding, KeyAADBundle, StreamHMAC, Chunky2048
 
 
 @comprehension(chained=True)
-async def adebugger(self, *args, **kwargs):
+async def adebugger(self: Comprende, *args, **kwargs):
     """
     Allows users to benchmark & read inspection details of running async
     generators inline as a chainable method.
     """
-    args = args if args else self.args
-    kwargs = {**self.kwargs, **kwargs}
-    async for result in agen_timer(self.func)(*args, **kwargs):
+    args = args if args else self._args
+    kwargs = {**self._kwargs, **kwargs}
+    async for result in agen_timer(self._func)(*args, **kwargs):
         yield result
 
 
 @comprehension(chained=True)
-def debugger(self, *args, **kwargs):
+def debugger(self: Comprende, *args, **kwargs):
     """
     Allows users to benchmark & read inspection details of running sync
     generators inline as a chainable method.
     """
-    args = args if args else self.args
-    kwargs = {**self.kwargs, **kwargs}
-    for result in gen_timer(self.func)(*args, **kwargs):
-        yield result
+    args = args if args else self._args
+    kwargs = {**self._kwargs, **kwargs}
+    yield from gen_timer(self._func)(*args, **kwargs)
 
 
 @comprehension(chained=True)
-async def abytes_xor(self, *, key, validator):
+async def abytes_xor(
+    self: Comprende,*, key: Typing.AsyncKeystream, validator: StreamHMAC
+):
     """
     Applies an xor to each result of any underlying async `Comprende`
     generator. ``key`` is an async `Comprende` `abytes_keys` generator.
     The underlying ``self`` async generator needs to produce 256-byte
     integers to be xor'd on each iteration.
     """
-    xoring = Chunky2048.abytes_xor.root(self, key=key, validator=validator)
+    xoring = ciphers.abytes_xor.root(self, key=key, validator=validator)
     async for result in xoring:
         yield result
 
 
 @comprehension(chained=True)
-def bytes_xor(self, *, key, validator):
+def bytes_xor(
+    self: Comprende, *, key: Typing.Keystream, validator: StreamHMAC
+):
     """
     Applies an xor to each result of any underlying sync `Comprende`
     generator. ``key`` is a sync `Comprende` `bytes_keys` generator. The
     underlying ``self`` sync generator needs to produce 256-byte
     integers to be xor'd on each iteration.
     """
-    xoring = Chunky2048.bytes_xor.root(self, key=key, validator=validator)
-    for result in xoring:
-        yield result
-
-
-@comprehension(chained=True)
-async def axor(self, *, key, validator):
-    """
-    Applies an xor to each result of any underlying async `Comprende`
-    generator. ``key`` is an async `Comprende` keystream generator. The
-    underlying ``self`` async generator needs to produce 256-byte
-    integers to be xor'd on each iteration.
-    """
-    xoring = Chunky2048.axor.root(self, key=key, validator=validator)
-    async for result in xoring:
-        yield result
-
-
-@comprehension(chained=True)
-def xor(self, *, key, validator):
-    """
-    Applies an xor to each result of any underlying sync `Comprende`
-    generator. ``key`` is a sync `Comprende` keystream generator. The
-    underlying ``self`` sync generator needs to produce 256-byte
-    integers to be xor'd on each iteration.
-    """
-    xoring = Chunky2048.xor.root(self, key=key, validator=validator)
-    for result in xoring:
-        yield result
+    xoring = ciphers.bytes_xor.root(self, key=key, validator=validator)
+    yield from xoring
 
 
 @comprehension(chained=True)
 async def apasscrypt(
-    self,
+    self: Comprende,
     *,
-    kb=Passcrypt._DEFAULT_KB,
-    cpu=Passcrypt._DEFAULT_CPU,
-    hardness=Passcrypt._DEFAULT_HARDNESS,
+    kb: int = Passcrypt._DEFAULT_KB,
+    cpu: int = Passcrypt._DEFAULT_CPU,
+    hardness: int = Passcrypt._DEFAULT_HARDNESS,
 ):
     """
     Applies the `passcrypt` algorithm on a pseudo-randomly generated
@@ -138,20 +106,20 @@ async def apasscrypt(
     along with the result of the `passcrypt` operation.
     """
     got = None
-    passcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
+    pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
     while True:
-        salt = await agenerate_salt()
-        result = await passcrypt.anew(await self.asend(got), salt)
+        salt = await agenerate_salt(size=Passcrypt._SALT_BYTES)
+        result = await pcrypt.anew(await self.asend(got), salt)
         got = yield salt, result
 
 
 @comprehension(chained=True)
 def passcrypt(
-    self,
+    self: Comprende,
     *,
-    kb=Passcrypt._DEFAULT_KB,
-    cpu=Passcrypt._DEFAULT_CPU,
-    hardness=Passcrypt._DEFAULT_HARDNESS,
+    kb: int = Passcrypt._DEFAULT_KB,
+    cpu: int = Passcrypt._DEFAULT_CPU,
+    hardness: int = Passcrypt._DEFAULT_HARDNESS,
 ):
     """
     Applies the `passcrypt` algorithm on a pseudo-randomly generated
@@ -160,11 +128,11 @@ def passcrypt(
     along with the result of the `passcrypt` operation.
     """
     got = None
-    _passcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
+    pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
     try:
         while True:
-            salt = generate_salt()
-            result = _passcrypt.new(self.send(got), salt)
+            salt = generate_salt(size=Passcrypt._SALT_BYTES)
+            result = pcrypt.new(self.send(got), salt)
             got = yield salt, result
     except StopIteration:
         pass
@@ -172,12 +140,12 @@ def passcrypt(
 
 @comprehension(chained=True)
 async def asum_passcrypt(
-    self,
-    salt,
+    self: Comprende,
+    salt: Typing.EntropicRepr,
     *,
-    kb=Passcrypt._DEFAULT_KB,
-    cpu=Passcrypt._DEFAULT_CPU,
-    hardness=Passcrypt._DEFAULT_HARDNESS,
+    kb: int = Passcrypt._DEFAULT_KB,
+    cpu: int = Passcrypt._DEFAULT_CPU,
+    hardness: int = Passcrypt._DEFAULT_HARDNESS,
 ):
     """
     Cumulatively applies the ``apasscrypt`` algorithm to each value
@@ -185,22 +153,25 @@ async def asum_passcrypt(
     the previously processed result before yielding the current result.
     """
     got = None
-    passcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
-    summary = await asha_512(salt, kb, cpu, hardness)
+    asend = self.asend
+    pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
+    summary = await asha3__512(salt, kb, cpu, hardness, hex=False)
     while True:
-        pre_key = await asha_512(salt, summary, await self.asend(got))
-        summary = await passcrypt.anew(pre_key, summary)
+        pre_key = await asha3__512(
+            salt, summary, await asend(got), hex=False
+        )
+        summary = await pcrypt.anew(pre_key, summary)
         got = yield summary
 
 
 @comprehension(chained=True)
 def sum_passcrypt(
-    self,
-    salt,
+    self: Comprende,
+    salt: Typing.EntropicRepr,
     *,
-    kb=Passcrypt._DEFAULT_KB,
-    cpu=Passcrypt._DEFAULT_CPU,
-    hardness=Passcrypt._DEFAULT_HARDNESS,
+    kb: int = Passcrypt._DEFAULT_KB,
+    cpu: int = Passcrypt._DEFAULT_CPU,
+    hardness: int = Passcrypt._DEFAULT_HARDNESS,
 ):
     """
     Cumulatively applies the ``passcrypt`` algorithm to each value
@@ -208,19 +179,22 @@ def sum_passcrypt(
     the previously processed result before yielding the current result.
     """
     got = None
-    passcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
-    summary = sha_512(salt, kb, cpu, hardness)
+    send = self.send
+    pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
+    summary = sha3__512(salt, kb, cpu, hardness, hex=False)
     try:
         while True:
-            pre_key = sha_512(salt, summary, self.send(got))
-            summary = passcrypt.new(pre_key, summary)
+            pre_key = sha3__512(salt, summary, send(got), hex=False)
+            summary = pcrypt.new(pre_key, summary)
             got = yield summary
     except StopIteration:
         pass
 
 
 @comprehension(chained=True)
-async def arandom_sleep(self, span=1):
+async def arandom_sleep(
+    self: Comprende, span: Typing.Union[int, float] = 1
+):
     """
     Applies a random sleep before each yielded value from the underlying
     ``Comprende`` async generator.
@@ -233,7 +207,7 @@ async def arandom_sleep(self, span=1):
 
 
 @comprehension(chained=True)
-def random_sleep(self, span=1):
+def random_sleep(self: Comprende, span: Typing.Union[int, float] = 1):
     """
     Applies a random sleep before each yielded value from the underlying
     ``Comprende`` sync generator.
@@ -246,48 +220,6 @@ def random_sleep(self, span=1):
             got = yield send(got)
     except StopIteration:
         pass
-
-
-def insert_debuggers():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = {debugger, adebugger}
-    for addon in addons:
-        setattr(Comprende, addon.__name__, addon)
-        Comprende.lazy_generators.add(addon.__name__)
-
-
-def insert_xor_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = {xor, axor, bytes_xor, abytes_xor}
-    for addon in addons:
-        setattr(Comprende, addon.__name__, addon)
-        Comprende.lazy_generators.add(addon.__name__)
-
-
-def insert_passcrypt_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    _passcrypt.generate_salt = generate_salt
-    _apasscrypt.agenerate_salt = agenerate_salt
-    addons = {passcrypt, apasscrypt, sum_passcrypt, asum_passcrypt}
-    for addon in addons:
-        setattr(Comprende, addon.__name__, addon)
-        Comprende.lazy_generators.add(addon.__name__)
-
-
-def insert_random_sleep_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = {random_sleep, arandom_sleep}
-    for addon in addons:
-        setattr(Comprende, addon.__name__, addon)
-        Comprende.lazy_generators.add(addon.__name__)
 
 
 def insert_bytes_cipher_methods():
@@ -306,83 +238,90 @@ def insert_bytes_cipher_methods():
         Comprende.lazy_generators.add(name)
 
 
-def insert_stateful_key_generator_objects():
+def insert_debuggers():
     """
-    Copies the addons over into the ``Chunky2048`` class.
+    Copies the addons over into the ``Comprende`` class.
     """
-
-    def __init__(self, key=None, *, automate_key_use=True):
-        """
-        Creates an object which manages a main encryption key for use in
-        a set of the package's static functions & generators. This
-        simplifies usage of encryption/decryption, key generation, &
-        HMAC creation/validation by automatically passing in the key as
-        a keyword argument.
-        """
-        insert_keygens(self, key, automate_key_use=automate_key_use)
-        self._key = self.keygen.key
-        self.hmac = self.keygen.hmac
-        self.ahmac = self.akeygen.ahmac
-        self.test_hmac = self.keygen.test_hmac
-        self.atest_hmac = self.akeygen.atest_hmac
-        self.passcrypt = self.keygen.passcrypt
-        self.apasscrypt = self.akeygen.apasscrypt
-        self.time_safe_equality = self.keygen.time_safe_equality
-        self.atime_safe_equality = self.akeygen.atime_safe_equality
-        if automate_key_use:
-            for method in self.instance_methods:
-                convert_static_method_to_member(
-                    self, method.__name__, method, key=self.key
-                )
-
-    Chunky2048.__init__ = __init__
-    Chunky2048.Keys = Keys
-    Chunky2048.AsyncKeys = AsyncKeys
-
-
-def add_protocols_to_collections():
-    """
-    Adds the assorted protocols defined throughout the library to the
-    relevant list for ease of discovery, consumption & contextualization.
-    """
-    X25519.protocols.Ropake = Ropake
-
-
-def insert_padding_methods():
-    """
-    Gives the `Padding` class access to methods defined in higher level
-    modules.
-    """
-    global pad_plaintext
-    global apad_plaintext
-    global depad_plaintext
-    global adepad_plaintext
-
-    Padding.derive_key = Chunky2048.padding_key
-    Padding.aderive_key = Chunky2048.apadding_key
-    pad_plaintext, apad_plaintext, depad_plaintext, adepad_plaintext = (
-        Padding.pad_plaintext,
-        Padding.apad_plaintext,
-        Padding.depad_plaintext,
-        Padding.adepad_plaintext,
-    )
-    addons = {
-        Padding._pad_plaintext,
-        Padding._depad_plaintext,
-        Padding._apad_plaintext,
-        Padding._adepad_plaintext,
-    }
+    addons = {debugger, adebugger}
     for addon in addons:
-        setattr(Comprende, addon.__name__[1:], addon)
-        Comprende.lazy_generators.add(addon.__name__[1:])
+        setattr(Comprende, addon.__name__, addon)
+        Comprende.lazy_generators.add(addon.__name__)
 
 
+def insert_gentools_pointers():
+    """
+    Inserts generator function pointers into the gentools namespace.
+    """
+    gentools.aplaintext_stream = aplaintext_stream
+    gentools.plaintext_stream = plaintext_stream
+    gentools.abytes_encipher = abytes_encipher
+    gentools.bytes_encipher = bytes_encipher
+    gentools.abytes_decipher = abytes_decipher
+    gentools.bytes_decipher = bytes_decipher
+
+
+def insert_passcrypt_methods():
+    """
+    Copies the addons over into the ``Comprende`` class.
+    """
+    addons = {passcrypt, apasscrypt, sum_passcrypt, asum_passcrypt}
+    for addon in addons:
+        setattr(Comprende, addon.__name__, addon)
+        Comprende.lazy_generators.add(addon.__name__)
+
+
+def insert_random_sleep_methods():
+    """
+    Copies the addons over into the ``Comprende`` class.
+    """
+    addons = {random_sleep, arandom_sleep}
+    for addon in addons:
+        setattr(Comprende, addon.__name__, addon)
+        Comprende.lazy_generators.add(addon.__name__)
+
+
+def insert_types():
+    """
+    Gives the package's type-hinting helper class access to the higher
+    level classes.
+    """
+    Typing.AsyncDatabase = AsyncDatabase
+    Typing.AsyncKeys = AsyncKeys
+    Typing.BytesIO = BytesIO
+    Typing.Chunky2048 = Chunky2048
+    Typing.Comprende = Comprende
+    Typing.Database = Database
+    Typing.DomainKDF = DomainKDF
+    Typing.Domains = Domains
+    Typing.Ed25519 = Ed25519
+    Typing.Hasher = Hasher
+    Typing.KeyAADBundle = KeyAADBundle
+    Typing.Keys = Keys
+    Typing.Namespace = Namespace
+    Typing.OpenNamespace = OpenNamespace
+    Typing.Padding = Padding
+    Typing.Passcrypt = Passcrypt
+    Typing.Processes = Processes
+    Typing.StreamHMAC = StreamHMAC
+    Typing.Threads = Threads
+    Typing.X25519 = X25519
+
+
+def insert_xor_methods():
+    """
+    Copies the addons over into the ``Comprende`` class.
+    """
+    addons = {bytes_xor, abytes_xor}
+    for addon in addons:
+        setattr(Comprende, addon.__name__, addon)
+        Comprende.lazy_generators.add(addon.__name__)
+
+
+insert_bytes_cipher_methods()
 insert_debuggers()
-insert_xor_methods()
+insert_gentools_pointers()
 insert_passcrypt_methods()
 insert_random_sleep_methods()
-insert_bytes_cipher_methods()
-insert_stateful_key_generator_objects()
-add_protocols_to_collections()
-insert_padding_methods()
+insert_types()
+insert_xor_methods()
 
