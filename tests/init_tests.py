@@ -69,7 +69,7 @@ PROFILE = dict(username=username, passphrase=passphrase, salt=salt)
 LOW_PASSCRYPT_SETTINGS = dict(kb=256, cpu=2, hardness=256)
 PROFILE_AND_SETTINGS = {**PROFILE, **LOW_PASSCRYPT_SETTINGS}
 
-plaintext_bytes = randoms.urandom_bytes(512)
+plaintext_bytes = b"!" + randoms.urandom_bytes(512)
 plaintext_string = 32 * "testing..."
 # Testing json encrypt of these dictionaries may fail because the order
 # of their elements may change
