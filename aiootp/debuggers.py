@@ -9,7 +9,7 @@
 #
 
 
-__all__ = ["debuggers", "DebugControl"]
+__all__ = ["debuggers"]
 
 
 __doc__ = (
@@ -22,8 +22,51 @@ import datetime
 from time import time
 from functools import wraps
 from inspect import isasyncgenfunction
-from . import DebugControl
-from .commons import Namespace
+from ._exceptions import *
+from ._typing import Typing
+from .commons import commons
+
+
+# Instead of printing, a user can define a custom way to log debugging
+# information for this module's debugging decorators.
+#
+# Usage Example:
+#
+# import aiootp
+#
+# log = []
+# aiootp.debuggers.add_to_log = lambda entry: log.append(entry)
+add_to_log = lambda entry: debuggers.add_to_log(entry)
+
+
+class DebugControl:
+    """
+    Enabling debugging reveals omitted values in object ``repr``s &
+    turns on asyncio's debugging.
+    """
+    _switches = []
+    _DEBUG_MODE = False
+
+    @classmethod
+    def is_debugging(cls):
+        return cls._DEBUG_MODE
+
+    @classmethod
+    def enable_debugging(cls):
+        """
+        WARNING: This will also reveal potentially sensitive values,
+        such as cryptographic keys, in object repr's that are omitted by
+        default.
+        """
+        cls._DEBUG_MODE = True
+        for toggle in cls._switches:
+            toggle()
+
+    @classmethod
+    def disable_debugging(cls):
+        cls._DEBUG_MODE = False
+        for toggle in cls._switches:
+            toggle()
 
 
 class DebugTools:
@@ -56,7 +99,7 @@ class DebugTools:
         Displays the number of times the wrapped sync function has been
         run.
         """
-        print(f"Test #{self.times_run}")
+        add_to_log(f"Test #{self.times_run}")
 
     def start_the_timer(self, decorated_func):
         """
@@ -73,7 +116,7 @@ class DebugTools:
         """
         Displays the datetime of when the function has been called.
         """
-        print(f"Time Start:    {datetime.datetime.now()}")
+        add_to_log(f"Time Start:    {datetime.datetime.now()}")
 
     def print_happening_now(self, decorated_func):
         """
@@ -82,16 +125,16 @@ class DebugTools:
         self.timed_func = decorated_func
         print_string = f"Function:      {decorated_func.__name__}\n"
         print_string += f"{repr(decorated_func)}"
-        print(print_string)
+        add_to_log(print_string)
 
     def print_arguments(self):
         """
         Displays the wrapped sync function's supplied parameters.
         """
         for arg in self.arg_tuple:
-            print(f"Argument:      {repr(arg)}")
+            add_to_log(f"Argument:      {repr(arg)}")
         for kwarg in self.kw_dict.items():
-            print(f"KW Argument:   {str(kwarg)}")
+            add_to_log(f"KW Argument:   {str(kwarg)}")
 
     def time_the_function(self):
         """
@@ -111,7 +154,7 @@ class DebugTools:
         print_string = f"{self.timed_func.__name__}\n"
         print_string += "Time Elapsed:         "
         print_string += f"{self.time_elapsed} seconds."
-        print(print_string)
+        add_to_log(print_string)
 
     def close_timer(self):
         """
@@ -122,7 +165,7 @@ class DebugTools:
         self.print_average_runtime()
         self.print_standard_deviation()
         self.print_return_value(self.return_value)
-        self.print_source_code()
+        # self.print_source_code()
 
     def sum_runtimes(self):
         """
@@ -136,7 +179,7 @@ class DebugTools:
         function.
         """
         self.time_average = self.timer_sum / float(self.times_run)
-        print(f"Average Elapsed Time: {self.time_average} seconds.")
+        add_to_log(f"Average Elapsed Time: {self.time_average} seconds.")
 
     def print_standard_deviation(self):
         """
@@ -145,7 +188,7 @@ class DebugTools:
         """
         print_string = "Standard Deviation:   "
         print_string += f"{self.standard_deviation()} seconds."
-        print(print_string)
+        add_to_log(print_string)
 
     def standard_deviation(self):
         """
@@ -174,13 +217,13 @@ class DebugTools:
         """
         Displays the return value of the wrapped sync function.
         """
-        print(f"Return Value:  {return_value}")
+        add_to_log(f"Return Value:  {repr(return_value)}")
 
     def print_source_code(self):
         """
         Prints the source code of the currently running wrapped function.
         """
-        print(f"Source Code:\n{inspect.getsource(self.timed_func)}")
+        add_to_log(f"Source Code:\n{inspect.getsource(self.timed_func)}")
 
     @staticmethod
     def print_trace_call():
@@ -189,7 +232,7 @@ class DebugTools:
         function in user code by inspecting the stack.
         """
         calling_function = inspect.stack()[2][3]
-        print(f"Calling Function: {calling_function}\n\n")
+        add_to_log(f"Calling Function: {calling_function}\n\n")
 
 
 class AsyncDebugTools(DebugTools):
@@ -222,7 +265,7 @@ class AsyncDebugTools(DebugTools):
         Displays the number of times the wrapped async function has been
         run.
         """
-        print(f"Test #{self.times_run}")
+        add_to_log(f"Test #{self.times_run}")
 
     async def astart_the_timer(self, decorated_func):
         """
@@ -239,7 +282,7 @@ class AsyncDebugTools(DebugTools):
         """
         Displays the datetime of when the function has been called.
         """
-        print(f"Time Start:\t{datetime.datetime.now()}")
+        add_to_log(f"Time Start:\t{datetime.datetime.now()}")
 
     async def aprint_happening_now(self, decorated_func):
         """
@@ -248,16 +291,16 @@ class AsyncDebugTools(DebugTools):
         self.timed_func = decorated_func
         print_string = f"Function:\t{decorated_func.__qualname__}\n"
         print_string += f"{repr(decorated_func)}"
-        print(print_string)
+        add_to_log(print_string)
 
     async def aprint_arguments(self):
         """
         Displays the wrapped async function's supplied parameters.
         """
         for arg in self.arg_tuple:
-            print(f"Argument:      {repr(arg)}")
+            add_to_log(f"Argument:      {repr(arg)}")
         for kwarg in self.kw_dict.items():
-            print(f"KW Argument:   {str(kwarg)}")
+            add_to_log(f"KW Argument:   {str(kwarg)}")
 
     async def atime_the_function(self):
         """
@@ -277,7 +320,7 @@ class AsyncDebugTools(DebugTools):
         print_string = f"{self.timed_func.__qualname__}\n"
         print_string += "Time Elapsed:         "
         print_string += f"{self.time_elapsed} seconds."
-        print(print_string)
+        add_to_log(print_string)
 
     async def aclose_timer(self):
         """
@@ -302,7 +345,7 @@ class AsyncDebugTools(DebugTools):
         function.
         """
         self.time_average = self.timer_sum / float(self.times_run)
-        print(f"Average Elapsed Time: {self.time_average} seconds.")
+        add_to_log(f"Average Elapsed Time: {self.time_average} seconds.")
 
     async def aprint_standard_deviation(self):
         """
@@ -312,7 +355,7 @@ class AsyncDebugTools(DebugTools):
         std_deviation = await self.astandard_deviation()
         print_string = "Standard Deviation:   "
         print_string += f"{std_deviation} seconds."
-        print(print_string)
+        add_to_log(print_string)
 
     async def astandard_deviation(self):
         """
@@ -341,13 +384,13 @@ class AsyncDebugTools(DebugTools):
         """
         Displays the return value of the wrapped async function.
         """
-        print(f"Return Value:  {return_value}")
+        add_to_log(f"Return Value:  {repr(return_value)}")
 
     async def aprint_source_code(self):
         """
         Prints the source code of the currently running wrapped function.
         """
-        print(f"Source Code:\n{inspect.getsource(self.timed_func)}")
+        add_to_log(f"Source Code:\n{inspect.getsource(self.timed_func)}")
 
     @staticmethod
     async def aprint_trace_call():
@@ -356,7 +399,7 @@ class AsyncDebugTools(DebugTools):
         async function in user code by inspecting the stack.
         """
         calling_function = inspect.stack()[2][3]
-        print(f"Calling Function: {calling_function}\n\n")
+        add_to_log(f"Calling Function: {calling_function}\n\n")
 
 
 class AsyncGenDebugTools(AsyncDebugTools):
@@ -393,7 +436,7 @@ class AsyncGenDebugTools(AsyncDebugTools):
         """
         print_string = f"Function:\t{decorated_func.__qualname__}\n"
         print_string += f"{repr(decorated_func)}"
-        print(print_string)
+        add_to_log(print_string)
 
     async def atime_the_function(self):
         """
@@ -417,7 +460,7 @@ class AsyncGenDebugTools(AsyncDebugTools):
         async function in user code by inspecting the stack.
         """
         calling_function = inspect.stack()[5][3], inspect.stack()[2][3]
-        print(f"Calling Function: {calling_function}\n\n")
+        add_to_log(f"Calling Function: {calling_function}\n\n")
 
 
 class GenDebugTools(DebugTools):
@@ -454,7 +497,7 @@ class GenDebugTools(DebugTools):
         """
         print_string = f"Function:\t{decorated_func.__qualname__}\n"
         print_string += f"{repr(decorated_func)}"
-        print(print_string)
+        add_to_log(print_string)
 
     def time_the_function(self):
         """
@@ -478,7 +521,7 @@ class GenDebugTools(DebugTools):
         async function in user code by inspecting the stack.
         """
         calling_function = inspect.stack()[5][3], inspect.stack()[2][3]
-        print(f"Calling Function: {calling_function}\n\n")
+        add_to_log(f"Calling Function: {calling_function}\n\n")
 
 
 def agen_timer(decorated_func):
@@ -591,16 +634,14 @@ def func_timer(decorated_func):
     return decorated_func_timed
 
 
-async_timers = {
-    "agen_timer": agen_timer,
-    "afunc_timer": afunc_timer,
-}
+async_timers = dict(
+    agen_timer=agen_timer, afunc_timer=afunc_timer
+)
 
 
-sync_timers = {
-    "gen_timer": gen_timer,
-    "func_timer": func_timer,
-}
+sync_timers = dict(
+    gen_timer=gen_timer, func_timer=func_timer
+)
 
 
 for name, method in  async_timers.items():
@@ -611,19 +652,20 @@ for name, method in  sync_timers.items():
     setattr(DebugTools, name, method)
 
 
-__extras = {
-    "AsyncDebugGenTools": AsyncGenDebugTools,
-    "AsyncDebugTools": AsyncDebugTools,
-    "DebugControl": DebugControl,
-    "DebugGenTools": GenDebugTools,
-    "DebugTools": DebugTools,
-    "__doc__": __doc__,
-    "__main_exports__": __all__,
-    "__package__": "aiootp",
+extras = dict(
+    AsyncDebugGenTools=AsyncGenDebugTools,
+    AsyncDebugTools=AsyncDebugTools,
+    DebugControl=DebugControl,
+    DebugGenTools=GenDebugTools,
+    DebugTools=DebugTools,
+    __doc__=__doc__,
+    __main_exports__=__all__,
+    __package__=__package__,
+    add_to_log=print,
     **async_timers,
     **sync_timers,
-}
+)
 
 
-debuggers = Namespace.make_module("debuggers", mapping=__extras)
+debuggers = commons.make_module("debuggers", mapping=extras)
 
