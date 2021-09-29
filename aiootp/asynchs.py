@@ -9,16 +9,7 @@
 #
 
 
-__all__ = [
-    "asynchs",
-    "run",
-    "gather",
-    "asleep",
-    "new_task",
-    "new_future",
-    "Processes",
-    "Threads",
-]
+__all__ = ["asynchs", "Processes", "Threads"]
 
 
 __doc__ = (
@@ -42,26 +33,28 @@ from multiprocessing import Process, Manager
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
 from inspect import iscoroutinefunction as is_async_function
-from . import DebugControl
-from .commons import Namespace
+from ._exceptions import *
+from ._typing import Typing
+from .debuggers import DebugControl
+from .commons import commons
 
 
-ONE_MICROSECOND = 1_000_000
-ONE_MILLISECOND = 1_000
-ONE_SECOND = 1
-ONE_MINUTE = ONE_SECOND * 60
-ONE_HOUR = ONE_MINUTE * 60
-ONE_DAY = ONE_HOUR * 24
-ONE_YEAR = ONE_DAY * 365
+_ONE_MICROSECOND = 1_000_000
+_ONE_MILLISECOND = 1_000
+_ONE_SECOND = 1
+_ONE_MINUTE = _ONE_SECOND * 60
+_ONE_HOUR = _ONE_MINUTE * 60
+_ONE_DAY = _ONE_HOUR * 24
+_ONE_YEAR = _ONE_DAY * 365
 
 
-this_microsecond = lambda: int(time() * ONE_MICROSECOND)
-this_millisecond = lambda: int(time() * ONE_MILLISECOND)
+this_microsecond = lambda: int(time() * _ONE_MICROSECOND)
+this_millisecond = lambda: int(time() * _ONE_MILLISECOND)
 this_second = lambda: int(time())
-this_minute = lambda: int(time() / ONE_MINUTE)
-this_hour = lambda: int(time() / ONE_HOUR)
-this_day = lambda: int(time() / ONE_DAY)
-this_year = lambda: int(time() / ONE_YEAR)
+this_minute = lambda: int(time() / _ONE_MINUTE)
+this_hour = lambda: int(time() / _ONE_HOUR)
+this_day = lambda: int(time() / _ONE_DAY)
+this_year = lambda: int(time() / _ONE_YEAR)
 
 
 thread_pool = ThreadPoolExecutor()
@@ -175,7 +168,7 @@ def make_os_async(namespace=None):
     http://www.apache.org/licenses/LICENSE-2.0
     """
     if namespace == None:
-        namespace = Namespace()
+        namespace = commons.OpenNamespace()
     attrs = [
         "chmod",
         "chown",
@@ -203,6 +196,7 @@ class Processes:
     `ProcessPoolExecutor` objects with an interface over these types
     from the `multiprocessing` & `concurrent.futures` packages.
     """
+
     _type = Process
     _pool = process_pool
     _state_machine = Manager
@@ -383,7 +377,7 @@ class Threads(Processes):
         """
         This type is for parity with the `Processes` class' use of the
         `multiprocessing.Manager`. It returns a list so state can be
-        passed around internally from spawned threads.
+        passed around from spawned threads to calling code.
         """
 
         @staticmethod
@@ -396,46 +390,39 @@ class Threads(Processes):
     _default_probe_frequency = 0.001
 
 
-__extras = {
-    "__doc__": __doc__,
-    "__main_exports__": __all__,
-    "__package__": "aiootp",
-    "ONE_MICROSECOND": ONE_MICROSECOND,
-    "ONE_MILLISECOND": ONE_MILLISECOND,
-    "ONE_SECOND": ONE_SECOND,
-    "ONE_MINUTE": ONE_MINUTE,
-    "ONE_HOUR": ONE_HOUR,
-    "ONE_DAY": ONE_DAY,
-    "ONE_YEAR": ONE_YEAR,
-    "Processes": Processes,
-    "Threads": Threads,
-    "asyncio": asyncio,
-    "aiofiles": aiofiles,
-    "aos": aos,
-    "run": run,
-    "time": time,
-    "stop": stop,
-    "loop": loop,
-    "serve": serve,
-    "sleep": sleep,
-    "asleep": asleep,
-    "gather": gather,
-    "this_day": this_day,
-    "new_task": new_task,
-    "this_year": this_year,
-    "this_hour": this_hour,
-    "new_future": new_future,
-    "this_minute": this_minute,
-    "this_second": this_second,
-    "thread_pool": thread_pool,
-    "process_pool": process_pool,
-    "default_loop": default_loop,
-    "this_millisecond": this_millisecond,
-    "this_microsecond": this_microsecond,
-    "reset_event_loop": reset_event_loop,
-    "wrap_in_executor": wrap_in_executor,
-}
+extras = dict(
+    Processes=Processes,
+    Threads=Threads,
+    __doc__=__doc__,
+    __main_exports__=__all__,
+    __package__=__package__,
+    aiofiles=aiofiles,
+    aos=aos,
+    asleep=asleep,
+    asyncio=asyncio,
+    default_loop=default_loop,
+    gather=gather,
+    loop=loop,
+    new_future=new_future,
+    new_task=new_task,
+    process_pool=process_pool,
+    reset_event_loop=reset_event_loop,
+    run=run,
+    serve=serve,
+    sleep=sleep,
+    stop=stop,
+    this_day=this_day,
+    this_hour=this_hour,
+    this_microsecond=this_microsecond,
+    this_millisecond=this_millisecond,
+    this_minute=this_minute,
+    this_second=this_second,
+    this_year=this_year,
+    time=time,
+    thread_pool=thread_pool,
+    wrap_in_executor=wrap_in_executor,
+)
 
 
-asynchs = Namespace.make_module("asynchs", mapping=__extras)
+asynchs = commons.make_module("asynchs", mapping=extras)
 
