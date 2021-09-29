@@ -48,8 +48,8 @@ Quick install
 
 
 
-Table Of Contents
------------------
+_`Table Of Contents`
+--------------------
 
 - `Transparently Encrypted Databases`_
 
@@ -65,35 +65,60 @@ Table Of Contents
   
   f) `Mirrors`_
   
-  g) `Namespaces`_
-  
-  h) `Public Cryptographic Functions`_
+  g) `Public Cryptographic Functions`_
 
      I. `Encrypt / Decrypt`_
      
      II. `HMACs`_
      
-     III. `UUIDs`_
-     
-     IV. `Passcrypt`_
 
-- `Other Tutorials`_
+- `Chunky2048 Cipher`_
+  
+  a) `High-level Interfaces`_
+  
+  b) `Low-level Generators`_
+  
+  c) `Nuts & Bolts`_
+  
 
-  a) (more coming soon)
+- `X25519 & Ed25519`_
+  
+  a) `X25519`_
+  
+  b) `Ed25519`_
+  
+
+- `Comprende`_
+  
+  a) `Synchronous Generators`_
+  
+  b) `Asynchronous Generators`_
+  
+
+- `Module Overview`_
+  
+
+- `FAQ`_
+  
+
+-  `Changelog`_
+  
+
+-  `Known Issues`_
 
 
 
 
-_`Transparently Encrypted Databases`
-------------------------------------
+_`Transparently Encrypted Databases` .............. `Table Of Contents`_
+------------------------------------------------------------------------
 
 The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest to users as dynamic objects in use.
 
 
-_`Ideal Initialization`
-^^^^^^^^^^^^^^^^^^^^^^^
+_`Ideal Initialization` ........................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Make a new user key with a fast, cryptographically secure pseudo-random number generator. Then this strong 512-bit key can be used to create a database object.
+Make a new user key with a fast, cryptographically secure pseudo-random number generator. Then this strong 64-byte key can be used to create a database object.
 
 .. code-block:: python
 
@@ -105,10 +130,10 @@ Make a new user key with a fast, cryptographically secure pseudo-random number g
     db = await AsyncDatabase(key)
     
 
-_`User Profiles`
-^^^^^^^^^^^^^^^^
+_`User Profiles` .................................. `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-With User Profiles, passwords may be used instead to open a database. Often, passwords & passphrases contain very little entropy. So, they aren't recommended for that reason. However, profiles provide a succinct way to use passwords more safely. They do this by deriving strong keys from low entropy user input, the memory/cpu hard passcrypt algorithm, & a secret salt which is automatically generated & stored on the user's filesystem.
+With User Profiles, passphrases may be used instead to open a database. Often, passwords & passphrases contain very little entropy. So, they aren't recommended for that reason. However, profiles provide a succinct way to use passphrases more safely. They do this by deriving strong keys from low entropy user input, the memory/cpu hard passcrypt algorithm, & a secret salt which is automatically generated & stored on the user's filesystem.
 
 .. code-block:: python
 
@@ -122,7 +147,7 @@ With User Profiles, passwords may be used instead to open a database. Often, pas
         
         username="username",
         
-        password="password",
+        passphrase="passphrase",
         
         salt="optional salt keyword argument",
         
@@ -134,16 +159,16 @@ With User Profiles, passwords may be used instead to open a database. Often, pas
     db = await AsyncDatabase.agenerate_profile(tokens)
 
 
-_`Tags`
-^^^^^^^
+_`Tags` ........................................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Data within databases are primarily organized by Tags. Tags are simply json serializable labels, and the data stored under them can also be any json serializable objects.
+Data within databases are primarily organized by Tags. Tags are simply string labels, and the data stored under them can be any json serializable objects.
 
 .. code-block:: python
 
-    # Open a context to automatically save data to disk when closed ->
-
     async with db:
+    
+        # Using bracketed assignment adds tags to the cache
     
         db["tag"] = {"data": "can be any json serializable object"}
         
@@ -154,43 +179,58 @@ Data within databases are primarily organized by Tags. Tags are simply json seri
         db["lawyer"] = {"#": "555-555-1000", "$": 13000.50}
         
         db["safehouses"] = ["Dublin Forgery", "NY Insurrection"]
-
-
-    # Instead of saving the entire database when a single new tag is 
-
-    # added, a tag can be saved to disk individually ->
-
-    await db.asave_tag("lawyer")
-
-
+        
+        # Changes in the cache are saved to disk when the context closes.
+        
+        
     # View an instance's tags ->
 
     db.tags
-    >>> ['tag', 'hobby', 'bitcoin', 'lawyer', 'safehouses']
+    >>> {'tag', 'hobby', 'bitcoin', 'lawyer', 'safehouses'}
 
 
-    # Set & query tags in the instance's cache with dedicated method ->
+    # There are various ways of working with tags ->
 
-    await db.aset("pseudonym", "Free The People")
+    await db.aset_tag("new_tag", ["data", "goes", "here"])  # stored only in cache
 
-    await db.aquery("pseudonym")
-    >>> 'Free The People'
+    await db.aquery_tag("new_tag")  # reads from disk if not in the cache
+    >>> ['data', 'goes', 'here']
 
-    assert "pseudonym" in db
+    tag_path = db.directory / await db.afilename("new_tag")
+
+    "new_tag" in db
+    >>> True
+
+    tag_path.is_file()  # the tag is saved in the cache, not to disk yet
+    >>> False
+
+    await db.asave_tag("new_tag")
+    
+    tag_path.is_file()  # now it's saved to disk
+    >>> True
+    
+    
+    # This removes the tag from cache, & any of its unsaved changes ->
+
+    await db.arollback_tag("new_tag")
 
 
-    # Remove a tag from the cache & its associated data on the filesystem ->
+    # Or, the user can take the tag out of the database & the filesystem ->
 
-    await db.apop("pseudonym")
-    >>> 'Free The People'
+    await db.apop_tag("new_tag")
+    >>> ['data', 'goes', 'here']
 
-    assert "pseudonym" not in db
+    "new_tag" in db
+    >>> False
+
+    tag_path.is_file()
+    >>> False
 
 Access to data is open to the user, so care must be taken not to let external api calls touch the database without accounting for how that can go wrong.
 
 
-_`Metatags`
-^^^^^^^^^^^
+_`Metatags` ....................................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Metatags are used to organize & create children of parent databases. They are fully-fledged databases all on their own, with their own distinct key material too. They're accessible from the parent through an attribute that's added to the parent instance with the same name as the metatag. When the parent is saved, or deleted, then their children are also.
 
@@ -215,10 +255,10 @@ Metatags are used to organize & create children of parent databases. They are fu
     assert isinstance(molly, AsyncDatabase)
     
 
-    # All of an instance's metatags are quickly viewable ->
+    # All of an instance's metatags are viewable ->
 
     db.metatags
-    >>> ['molly']
+    >>> {'molly'}
     
 
     # Delete a metatag from an instance ->
@@ -226,13 +266,13 @@ Metatags are used to organize & create children of parent databases. They are fu
     await db.adelete_metatag("molly")
     
     db.metatags
-    >>> []
+    >>> set()
     
     assert not hasattr(db, "molly")
 
 
-_`Basic Management`
-^^^^^^^^^^^^^^^^^^^
+_`Basic Management` ............................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There's a few settings & public methods on databases for users to manage their instances & data. This includes general utilities for saving & deleting databases to & from the filesystem, as well as fine-grained controls for how data is handled. 
 
@@ -250,7 +290,7 @@ There's a few settings & public methods on databases for users to manage their i
     
     # Write database changes to disk with transparent encryption ->
     
-    await db.asave()
+    await db.asave_database()
 
 
     # Entering the instance's context also saves data to disk ->
@@ -265,151 +305,171 @@ There's a few settings & public methods on databases for users to manage their i
     await db.adelete_database()
     
     
-As databases grow in the number of tags, metatags & the size of data within, it may become desireable to load data from them as needed, instead of all at once during initialization. This can be done with the ``preload`` boolean keyword argument.
+As databases grow in the number of tags, metatags & the size of data within, it becomes desireable to load data from them as needed, instead of all at once into the cache during initialization. This is why the ``preload`` boolean keyword-only argument is set to ``False`` by default.
 
 .. code-block:: python
 
     # Let's create some test values to show the impact preloading has ->
 
-    async with (await AsyncDatabase(key)) as db:
+    async with (await AsyncDatabase(key, preload=True)) as db:
 
         db["favorite_foods"] = ["justice", "community"]
     
         await db.ametatag("exercise_routines") 
-    
 
-    # This is how to toggle preloading off during initialization ->
+        db.exercise_routines["gardening"] = {"days": ["moday", "wednesday"]}
+        
+        db.exercise_routines["swimming"] = {"days": ["thursday", "saturday"]}
+        
 
-    quick_db = await AsyncDatabase(key, preload=False)
+    # Again, preloading into the cache is toggled off by default ->
+
+    uncached_db = await AsyncDatabase(key)
     
     
-    # Now to retrieve elements from an async database, the ``aquery`` 
+    # To retrieve elements, ``aquery_tag`` isn't necessary when 
 
-    # method must first be used to load a tag into the cache ->
+    # preloading is used, since the tag is already in the cache ->
 
-    async with quick_db:
+    async with uncached_db:
     
-        quick_db["favorite_foods"]
+        db["favorite_foods"]
+        >>> ["justice", "community"]
+    
+        uncached_db["favorite_foods"]
         >>> None
     
-        loaded_value = await quick_db.aquery("favorite_foods")
+        value = await uncached_db.aquery_tag("favorite_foods", cache=True)
     
-        assert loaded_value == ["justice", "community"]
+        assert value == ["justice", "community"]
     
-        assert quick_db["favorite_foods"] == ["justice", "community"]
+        assert uncached_db["favorite_foods"] == ["justice", "community"]
     
     
-        # Metatags need to be loaded manually as well ->
+        # Metatags will be loaded, but their tags won't be ->
     
-        quick_db.exercise_routines
-        >>> AttributeError:
+        assert type(uncached_db.exercise_routines) == AsyncDatabase
+        
+        uncached_db.exercise_routines["gardening"]
+        >>> None
+        
+        await uncached_db.exercise_routines.aquery_tag("gardening", cache=True)
+        >>> {"days": ["moday", "wednesday"]}
+        
+        uncached_db.exercise_routines["gardening"]
+        >>> {"days": ["moday", "wednesday"]}
+        
+        
+        # But, tags can also be queried without caching their values, 
+        
+        value = await uncached_db.exercise_routines.aquery_tag("swimming")
+        
+        value
+        >>> {"days": ["thursday", "saturday"]}
+        
+        uncached_db.exercise_routines["swimming"]
+        >>> None
+        
+        
+        # However, changes to mutable values won't be transmitted to the
+        
+        # database if they aren't retrieved from the cache ->
+        
+        value["days"].append("sunday")
+        
+        value
+        >>> {"days": ["thursday", "saturday", "sunday"]}
+        
+        await uncached_db.exercise_routines.aquery_tag("swimming")
+        >>> {"days": ["thursday", "saturday"]}
     
-        await quick_db.ametatag("exercise_routines")
     
-        assert type(quick_db.exercise_routines) == AsyncDatabase
-
-
-_`Mirrors`
-^^^^^^^^^^
-
+_`Mirrors` ........................................ `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    
 Database mirrors allow users to make copies of all files within a database under new encryption keys. This is useful if users simply want to make backups, or if they'd like to update / change their database keys. 
-
+    
 .. code-block:: python
-
+    
     # A unique login key / credentials are needed to create a new 
-
+    
     # database ->
     
     new_key = await AsyncKeys.acsprng()
     
     new_db = await AsyncDatabase(new_key)
-
-
+    
+    
     # Mirroring an existing database is done like this ->
     
     await new_db.amirror_database(db)
-
-    assert new_db["favorite_foods"] is db["favorite_foods"]
-
-
-    # If the user is just updating their database keys, then the old
-
-    # database should be deleted ->
-
-    await db.adelete_database()
-
-
-    # Now the new database can be saved to disk & given an appropriate 
-
-    # name ->
-
-    async with new_db as db:
-
-        pass
-
-
-_`Namespaces`
-^^^^^^^^^^^^^
-
-Database Tags can be loaded into ``Namespace`` objects. This saves lots of time & cpu effort on lookups. This is because databases use cryptographic hashes of Tags to find their associtated data within themselves. This can be up to a couple thousand times slower than the dotted lookups on a ``Namespace`` object. This is a great way to load lots of encrypted values but then use them very efficiently in calculations.
-
-.. code-block:: python
-
-    # Loading a database's tags into a Namespace is done this way ->
-
-    namespace = await db.ainto_namespace()
     
-    assert namespace.favorite_foods is db["favorite_foods"]
-
-
-    # View all the Namespace's tags ->
-
-    list(namespace.keys())
-    >>> ["favorite_foods"]
-
-
-    # View all the Namespace's values ->
-
-    list(namespace.values())
-    >>> [["justice", "community"]]
-
-
-    # Namespace's yield their key & value pairs whien iterated over ->
-
-    for tag, value in namespace:
+    assert (
     
-        print(tag, value)
+        await new_db.aquery_tag("favorite_foods") 
         
-    >>> "favorite_foods" ["justice", "community"]
+        == await db.aquery_tag("favorite_foods")
+        
+    )
 
+    assert (
+    
+        await new_db.aquery_tag("favorite_foods") 
+        
+        is not await db.aquery_tag("favorite_foods")
+        
+    )
+    
+    
+    # If the user is just updating their database keys, then the old
+    
+    # database should be deleted ->
+    
+    await db.adelete_database()
+    
+    
+    # Now, the new database can be saved to disk & given an appropriate 
+    
+    # name ->
+    
+    async with new_db as db:
+    
+        pass
+    
 
-_`Public Cryptographic Functions`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_`Public Cryptographic Functions` ................. `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Although databases handle encryption & decryption automatically, users may want to utilize their databases' keys to do custom cryptographic procedures manually. There are a few public functions available to users if they should want such functionality.
 
 
-_`Encrypt / Decrypt`
-********************
+_`Encrypt / Decrypt` .............................. `Table Of Contents`_
+************************************************************************
 
 .. code-block:: python
 
     # Either json serializable or bytes-type data can be encrypted ->
 
-    json_plaintext = {"some": "json data can go here"}
+    json_plaintext = {"some": "json data can go here..."}
     
-    bytes_plaintext = b"some bytes plaintext goes here"
+    bytes_plaintext = b"some bytes plaintext goes here..."
+    
+    token_plaintext = b"some token data goes here..."
 
-    jciphertext = await db.ajson_encrypt(json_plaintext)
+    json_ciphertext = await db.ajson_encrypt(json_plaintext)
 
-    bciphertext = await db.abytes_encrypt(bytes_plaintext)
+    bytes_ciphertext = await db.abytes_encrypt(bytes_plaintext)
+    
+    token_ciphertext = await db.amake_token(token_plaintext)
 
 
     # Those values can just as easily be decrypted ->
 
-    assert json_plaintext == await db.ajson_decrypt(jciphertext)
+    assert json_plaintext == await db.ajson_decrypt(json_ciphertext)
 
-    assert bytes_plaintext == await db.abytes_decrypt(bciphertext)
+    assert bytes_plaintext == await db.abytes_decrypt(bytes_ciphertext)
+    
+    assert token_plaintext == await db.aread_token(token_ciphertext)
 
 
     # Filenames may be added to classify ciphertexts. They also alter the 
@@ -418,13 +478,16 @@ _`Encrypt / Decrypt`
 
     # correct filename, the data cannot be decrypted ->
 
-    filename = "grocery list"
+    filename = "grocery-list"
 
     groceries = ["carrots", "taytoes", "rice", "beans"]
 
     ciphertext = await db.ajson_encrypt(groceries, filename=filename)
 
     assert groceries == await db.ajson_decrypt(ciphertext, filename=filename)
+    
+    await db.ajson_decrypt(ciphertext, filename="wrong filename")
+    >>> ValueError: Invalid HMAC of data stream!
 
 
     # Time-based expiration of ciphertexts is also available for all 
@@ -436,11 +499,14 @@ _`Encrypt / Decrypt`
 
     await asleep(6)
 
-    await db.ajson_decrypt(jciphertext, ttl=2)
-    >>> TimeoutError: Timestamp expired by <4> seconds.
+    await db.ajson_decrypt(json_ciphertext, ttl=1)
+    >>> TimeoutError: Timestamp expired by <5> seconds.
 
-    await db.abytes_decrypt(bciphertext, ttl=2)
-    >>> TimeoutError: Timestamp expired by <4> seconds.
+    await db.abytes_decrypt(bytes_ciphertext, ttl=1)
+    >>> TimeoutError: Timestamp expired by <5> seconds.
+
+    await db.aread_token(token_ciphertext, ttl=1)
+    >>> TimeoutError: Timestamp expired by <5> seconds.
 
 
     # The number of seconds that are exceeded may be helpful to know. In
@@ -449,15 +515,15 @@ _`Encrypt / Decrypt`
 
     try: 
     
-        await db.abytes_decrypt(bciphertext, ttl=2)
+        await db.abytes_decrypt(bytes_ciphertext, ttl=2)
 
     except TimeoutError as error:
 
-        seconds_expired_by = error.value
+        seconds_expired = error.seconds_expired
 
 
-_`HMACs`
-********
+_`HMACs` .......................................... `Table Of Contents`_
+************************************************************************
 
 Besides encryption & decryption, databases can also be used to manually verify the authenticity of data with HMACs.
 
@@ -465,9 +531,9 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     # Creating an HMAC of some data with a database is done this way ->
 
-    data = "validate this data!"
+    data = b"validate this data!"
 
-    hmac = await db.ahmac(data)
+    hmac = await db.amake_hmac(data)
 
     await db.atest_hmac(data, hmac=hmac)
     >>> True
@@ -475,10 +541,10 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     # Data that is not the same, or is altered, will be caught ->
 
-    altered_data = "valiZate this data!"
+    altered_data = b"valiZate this data!"
 
     await db.atest_hmac(altered_data, hmac=hmac)
-    >>> ValueError: "HMAC of the data stream isn't valid."
+    >>> ValueError: HMAC of the data stream isn't valid.
     
 
     # Any type of data can be run thorugh the function, it's the repr
@@ -487,7 +553,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     arbitrary_data = {"id": 1234, "payload": "message"}
 
-    hmac = await db.ahmac(arbitrary_data)
+    hmac = await db.amake_hmac(arbitrary_data)
     
     await db.atest_hmac(arbitrary_data, hmac=hmac)
     >>> True
@@ -502,129 +568,246 @@ Besides encryption & decryption, databases can also be used to manually verify t
     assert order_swapped_data == arbitrary_data
     
     await db.atest_hmac(order_swapped_data, hmac=hmac) 
-    >>> ValueError: "HMAC of the data stream isn't valid."
+    >>> ValueError: HMAC of the data stream isn't valid.
     
+    
+    #
 
-_`UUIDs`
-********
 
-Instances can create special generator coroutines that are used to hash sensitive tags, or other data, into hexidecimal UUIDs of arbitrary size. These hashes are secured with the database instance's keys, & a salt value which is either passed in manually by the user, or if not, is automatically generated. The salt is available at the end of the coroutine's usage by calling for it to be returned & for the coroutine to be exited. 
+
+
+_`Chunky2048 Cipher` .............................. `Table Of Contents`_
+------------------------------------------------------------------------
+
+The ``Chunky2048`` cipher is the built from generators & SHA3-based key-derivation functions. It's designed to be easy to use, difficult to misuse & future-proof with large security margins. 
+
+
+_`High-level Interfaces` .......................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These premade recipes allow for the easiest usage of the cipher.
 
 .. code-block:: python
 
-    # Organizing databases with metatags improves readability & safely 
-
-    # isolates cryptographic domains, because metatags use their own
-
-    # sets of keys. Their keys also can't be used to derive their 
-
-    # parent's keys ->
-
-    await db.ametatag("clients")
-
-
-    # Choosing a category for the coroutine also separates domains ->
+    import aiootp
     
-    email_uuids = await db.clients.auuids("emails", size=24, salt=None)
-
-
-    # Then a user can hash any values by sending them into the coroutine ->
-
-    for email_address in ["brittany@email.com", "john.doe@email.net"]:
     
-        hashed_tag = await email_uuids(email_address)
-        
-        db.clients[hashed_tag] = "client account data"
-
-
-    # Once finished hashing, the salt that was used can be retrieved ->
+    cipher = aiootp.Chunky2048(key)
     
-    db["clients salt"] = await email_uuids.aresult(exit=True)
-
-
-_`Passcrypt`
-************
-
-``Passcrypt`` is the package's Argon2id-like password-based key derivation function. It was designed to be resistant to time-memory tradeoffs & cache timing side-channel attacks. When passwords (or data in general) are processed through an instance's passcrypt method, then they're also protected by being hashed together with the database's keys.
-
-.. code-block:: python
-
-    # This is an example usage of the databases' passcrypt methods ->
-
-    from getpass import getpass
     
-
-    password = getpass("Enter password: ")
-
-    salt = await db.agenerate_salt()
-
-    await db.apasscrypt(password, salt)
-    >>> '''938db60e0deab983ed1eed5ca96980a0557f4a450fcac2ca16e45cc2c36ac0
-    40669d30c7f55e3537658d6c91d24a5026a04e2dfe98c59574c02b782a194ccdc1'''
-
-
-    # The difficulty settings for the algorithm can be controlled too ->
-
-    settings = dict(
+    # Symmetric encryption of json data ->
     
-        kb=16*1024,  # This means 16MB of ram are used to create the hash
-
-        cpu=7,  # This means 7 passes over the memory cache are done
-
-        hardness=2048,  # This is the minimum # of columns in the cache
+    json_data = {"account": 33817, "names": ["queen b"], "id": None}
+    
+    encrypted_json_data = cipher.json_encrypt(json_data, aad=b"demo")
+    
+    decrypted_json_data = cipher.json_decrypt(
+    
+        encrypted_json_data, aad=b"demo", ttl=120
         
     )
+    
+    assert decrypted_json_data == json_data
+    
+    
+    # Symmetric encryption of binary data ->
+    
+    binary_data = b"some plaintext data..."
+    
+    encrypted_binary_data = cipher.bytes_encrypt(binary_data, aad=b"demo")
+    
+    decrypted_binary_data = cipher.bytes_decrypt(
+    
+        encrypted_binary_data, aad=b"demo", ttl=30
+        
+    )
+    
+    assert decrypted_binary_data == binary_data
+    
+    
+    # URL-safe Base64 encoded encrypted tokens ->
+    
+    token_data = b"some plaintext token data..."
+    
+    encrypted_token_data = cipher.make_token(token_data, aad=b"demo")
+    
+    decrypted_token_data = cipher.read_token(
+    
+        encrypted_token_data, aad=b"demo", ttl=3600
+        
+    )
+    
+    assert decrypted_token_data == token_data
 
 
-    # They go into the method as keyword-only arguments, so we can use
+_`Low-level Generators` ........................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # the ** syntax ->
+The cipher can also be used as an online cipher, handling blocks of data 256-bytes at a time. Using these generators are more difficult to use, giving more fine-grained control to the user.
 
-    password_hash = await db.apasscrypt(password, salt, **settings)
+.. code-block:: python
+    
+    from aiootp import gentools
+    
+    from aiootp import csprng, Padding, KeyAADBundle, StreamHMAC
+    
+    
+    key = csprng()  # <---Must be known by the decrypting party
+    
+    aad = b"any additional data"  # <---Must be known by the decrypting party
+
+    key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
+    
+    plaintext = b"Example plaintext..."
+    
+    
+    # Yields padded plaintext in chunks of 256 bytes ->
+    
+    stream = gentools.plaintext_stream(plaintext, key_bundle)
+    
+    
+    # This is used to authenticate the ciphertext & additional data ->
+    
+    shmac = StreamHMAC(key_bundle).for_encryption()
+    
+    
+    # Iterates over the plaintext ``stream`` generator, in this case, 
+    
+    # returning the enciphed data in one ``join`` call ->
+    
+    ciphertext = stream.bytes_encipher(key_bundle, shmac).join(b"")
+    
+    assert type(ciphertext) == bytes
+        
+    hmac = shmac.finalize()  # <---Must be shared with the decrypting party
+        
+    siv = key_bundle.siv  # <---Must be shared with the decrypting party
+    
+    salt = key_bundle.salt  # <---Must be shared with the decrypting party
+        
+        
+    # When receiving ciphertext, the user must first validate the hmac of 
+    
+    # the ciphertext before trusting the plaintext that's revealed! ->
+    
+    key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv).sync_mode()
+    
+    shmac = StreamHMAC(key_bundle).for_decryption()
+    
+    
+    # Yields the ciphertext 256-bytes at a time.
+    
+    stream = gentools.data(ciphertext)
+    
+    with stream.bytes_decipher(key_bundle, shmac) as decrypting:
+        
+        # Consumes the ciphertext stream, deciphering it simultaneously ->
+        
+        padded_data = decrypting.join(b"")
+        
+        shmac.finalize()
+        
+        shmac.test_hmac(hmac)
+        
+        # If no ValueError was raised, the authentication has passed! 
+        
+    
+    # Continue with processing the plaintext ->
+    
+    depadded_data = Padding.depad_plaintext(padded_data, key_bundle, ttl=60)
+    
+    depadded_data == plaintext
+    >>> True
+
+This example was a low-level look at the encryption algorithm. And it was only a few lines of code. The Comprende class makes working with generators a breeze, & working with generators makes solving problems in bite-sized chunks a breeze.
 
 
-    #
+_`Nuts & Bolts` ................................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-
-
-_`Other Tutorials`
-------------------
-
-What other tools are available to users?
+Let's take a deep dive into the low-level xor procedure used to implement the ``Chunky2048`` cipher.
 
 .. code-block:: python
 
-    #
+    from aiootp.ciphers import SyntheticIV
     
-    import aiootp   
-    
-    
-    # Async & synchronous versions of almost everything in the library ->
-    
-    assert await aiootp.asha_512("data") == aiootp.sha_512("data")
-    
-    key = aiootp.csprng()
-    
-    db = aiootp.Database(key)
-    
-    async_db = await aiootp.AsyncDatabase(key)
-    
-    assert db._root_filename == async_db._root_filename
+    from aiootp.gentools import comprehension
     
     
-    # Precomputed & organized values that can aid users, like:
+    # It's a ``Comprende`` generator ->
     
-    # A dictionary of prime numbers grouped by their bit-size ->
+    @comprehension()
     
-    aiootp.primes[513][0]    # <- The first 65 byte prime
+    # ``data`` is an iterable which produces 256-bytes of either plaintext 
     
-    aiootp.primes[2048][-1]    # <- The last 256 byte prime
+    # or ciphertext data on each iteration. ``key`` should be an instance 
+
+    # of the ``bytes_keys`` generator. And, ``validator`` should be an 
+
+    # instance of the ``StreamHMAC`` class. ->
+    
+    def xor(data, *, key, validator):
+    
+        # Return the necessary method & coroutine pointers ->
+        
+        datastream, keystream, validated_xor, shmac_hexdigest = (
+        
+            _xor_shortcuts(data, key, validator)
+            
+        )
+        
+        # We use the first block of plaintext (which is prepended with an 
+
+        # 8-byte timestamp & a 16-byte random, ephemeral & automatically 
+
+        # generated SIV-key) to derive a syntheic IV, seeding the keystream 
+        
+        # & validator with globally unique entropy -> 
+        
+        yield SyntheticIV.validated_xor(datastream, keystream, validator)
+        
+        for block in datastream:
+        
+            # We use the output of the validator's current state to 
+
+            # continuously seed the keystream with message dependent entropy ->
+            
+            seed = shmac_digest()
+            
+            # We contantenate two 128-byte key chunks together ->
+            
+            key_chunk = keystream(seed) + keystream(seed)
+            
+            # Then xor the 256-byte key chunk & 256-byte data block, & 
+            
+            # update the validator with the ciphertext ->
+            
+            yield validated_xor(block, key_chunk)
+
+This is a very efficient, online-AEAD, salt-reuse/misuse resistant, pseudo-one-time-pad cipher algorithm. Being built on generators makes it simple to grok & compose with additional funcitonality. It's backed by an infinite stream of non-repeating key material, efficiently produced from a finite-sized key, an ephemeral salt, additional authenticated data, message content, & SHA3 hashing.
+
+
+
+
+_`X25519 & Ed25519` ............................... `Table Of Contents`_
+------------------------------------------------------------------------
+
+Asymmetric curve 25519 tools are available from these high-level interfaces over the ``cryptography`` package.
+
+
+_`X25519` ......................................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Elliptic curve 25519 diffie-hellman exchange protocols.
+
+.. code-block:: python
+
+    from aiootp import X25519
     
     
-    # Elliptic curve 25519 diffie-hellman exchange protocols ->
+    # Triple Diffie-Hellman Key Exchange client initialization ->
     
-    ecdhe_key = aiootp.X25519().generate()
+    ecdhe_key = X25519().generate()
     
     with ecdhe_key.dh3_client() as exchange:
     
@@ -635,13 +818,13 @@ What other tools are available to users?
     clients_kdf = exchange.result()
 
 
-    # This is how a peer can accept the exchange ->
+    # Triple Diffie-Hellman Key Exchange for a receiving peer ->
 
-    ecdhe_key = aiootp.X25519().generate()
+    ecdhe_key = X25519().generate()
     
-    pkB, pkD = client_public_keys = internet.receive()
+    identity_key, ephemeral_key = client_public_keys = internet.receive()
     
-    server = ecdhe_key.dh3_server(peer_identity_key=pkB, peer_ephemeral_key=pkD)
+    server = ecdhe_key.dh3_server(identity_key, ephemeral_key)
     
     with server as exchange:
     
@@ -652,18 +835,26 @@ What other tools are available to users?
 
     # Success! Now both the client & server peers share an identical
     
-    # sha3_512 hashing object to create shared keys with ->
+    # sha3_512 hashing object to create shared keys ->
 
     assert clients_kdf.digest() == servers_kdf.digest()
     
     
-    # Edwards curve 25519 signing & verification ->
+_`Ed25519` ........................................ `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Edwards curve 25519 signing & verification.
+
+.. code-block:: python
+
+    from aiootp import Ed25519
+    
     
     # In a land, long ago ->
     
-    user_alice = Ed25519().generate()
+    alices_key = Ed25519().generate()
     
-    internet.send(user_alice.public_bytes.hex())
+    internet.send(alices_key.public_bytes)
     
 
     # Alice wants to sign a document so that Bob can prove she wrote it.
@@ -674,12 +865,12 @@ What other tools are available to users?
     
     document = b"DesignDocument.cad"
     
-    signed_document = user_alice.sign(document)
+    signed_document = alices_key.sign(document)
 
     message = {
         "document": document,
         "signature": signed_document,
-        "public_key": user_alice.public_bytes.hex(),
+        "public_key": alices_key.public_bytes,
     }
 
     internet.send(message)
@@ -705,272 +896,28 @@ What other tools are available to users?
     
     internet.send(b"Beautiful work, Alice! Thanks ^u^")
 
-    # The verification didn't throw an exception! So, Bob knows the file
-    
-    # was signed by Alice.
+The verification didn't throw an exception! So, Bob knows the file was signed by Alice.
     
     
-    # Symmetric pseudo-one-time-pad encryption of json data ->
-    
-    plaintext = {"account": 3311149, "titles": ["queen b"]}
-    
-    encrypted = aiootp.json_encrypt(plaintext, key=key)
-    
-    decrypted = aiootp.json_decrypt(encrypted, key=key)
-    
-    assert decrypted == plaintext
     
     
-    # Symmetric pseudo-one-time-pad encryption of binary data ->
-    
-    binary_data = b"This bytes string is also valid plaintext."
-    
-    encrypted = aiootp.bytes_encrypt(binary_data, key=key)
-    
-    decrypted = aiootp.bytes_decrypt(encrypted, key=key)
-    
-    assert decrypted == binary_data
-    
-    
-    # The Chunky2048 class carries the key so users don't have to pass
-    
-    # it around every where ->
-    
-    pad = aiootp.Chunky2048(key)
-    
-    encrypted = pad.bytes_encrypt(binary_data)
-    
-    decrypted = pad.bytes_decrypt(encrypted)
-    
-    
-    # The class also has access to an encoder for transforming 
-    
-    # ciphertext to & from its default dictionary format ->
-    
-    bytes_ciphertext = pad.io.json_to_bytes(encrypted)
-    
-    dict_ciphertext = pad.io.bytes_to_json(bytes_ciphertext)
-    
-    
-    # As well as tools for saving ciphertext to files on disk as bytes ->
-    
-    path = aiootp.DatabasePath() / "testing_ciphertext"
-    
-    pad.io.write(path, encrypted)
-    
-    assert encrypted == pad.io.read(path)
-    
-    
-    # Or ciphertext can be encoded to & from a urlsafe string ->
-    
-    urlsafe_ciphertext = pad.io.bytes_to_urlsafe(bytes_ciphertext)
-    
-    bytes_ciphertext = pad.io.urlsafe_to_bytes(urlsafe_ciphertext)
+_`Comprende` ...................................... `Table Of Contents`_
+------------------------------------------------------------------------
+
+This magic with generators is made simple with the ``comprehension`` decorator. It wraps them in ``Comprende`` objects with access to myriad data processing & cryptographic utilities right out of the box.
 
 
-    # These urlsafe tokens have their own convenience functions ->
-    
-    token = pad.make_token(b"binary data")
-    
-    assert b"binary data" == pad.read_token(token)
-    
-    
-    # Ratcheting Opaque Password Authenticated Key Exchange (ROPAKE) with 
-    
-    # online services -> 
-    
-    db = aiootp.Database(pad.key)
-    
-    with aiootp.Ropake.client_registration(db) as registration:
-    
-        server_response = internet.post("service-url.com", json=registration())
-    
-        registration(server_response)
-    
-    shared_keys = registration.result()
-        
-        
-    # The client is securely registered with the service if there was no 
-
-    # active adversary in the middle. The user can now authenticate & login ->
-    
-    with aiootp.Ropake.client(db) as authentication:
-    
-        server_response = internet.post("service-url.com", authentication())
-    
-        authentication(server_response)
-    
-    shared_keys = authentication.result()
-        
-        
-    # Upon the first uncompromised registration or authentication, then 
-
-    # future authentications will be immune to adversaries in the middle 
-
-    # because the protocol generates new keys by combining the prior key, 
-
-    # the current ecdhe ephemeral key, & the revealed keyed password that 
-
-    # was transmitted with an extra mask during the prior exchange. The 
-
-    # keyed password authenticates the user & the server to each other when 
-
-    # the commit is revealed, the ephemeral ecdhe key assures future security, 
-
-    # & the prior key encrypts & HMACs the authentication packets which 
-
-    # provides privacy, & added authentication, & the KDF which combines all 
-
-    # these keys to ensure forward security. 
-    
-    
-    # 
-
-
-
-
-Generators under-pin most procedures in the library, let's take a look ->
+_`Synchronous Generators` ......................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
-    #
+    from aiootp.gentools import comprehension
     
     
-    from aiootp import Chunky2048, json
+    @comprehension()
     
-    
-    pad = Chunky2048()   # <---Auto-generates an encryption key
-    
-    salt = pad.generate_salt()    # <---A NEW salt MUST be used every encryption!
-    
-    pid = aiootp.sha_256("any additional data")   # <---Must be known by the decrypting party
-    
-    plaintext_bytes = json.dumps({"message": "secretsssss"}).encode()
-    
-    
-    # Yields padded plaintext in chunks of 256 bytes ->
-    
-    plaintext_stream = pad.plaintext_stream(plaintext_bytes, salt=salt, pid=pid)
-    
-    datastream = plaintext_stream.bytes_to_int()
-    
-    
-    # An endless stream of forward + semi-future secure hex keys ->
-    
-    keystream = pad.keys(salt=salt, pid=pid)
-    
-    
-    # This is used to authenticate the ciphertext & additional data ->
-    
-    hmac = pad.StreamHMAC(salt=salt, pid=pid).for_encryption()
-    
-    
-    # xor's the plaintext chunks with key chunks ->
-    
-    with pad.xor(datastream, key=keystream, validator=hmac) as encrypting:
-        
-        # ``list`` returns all generator results in a list
-        
-        ciphertext = encrypting.list()
-        
-        ciphertext_authentication = hmac.finalize()
-        
-        siv = hmac.siv
-        
-        
-    # When receiving ciphertext, the user must first validate the hmac of 
-
-    # the ciphertext before trusting the plaintext that's revealed ->
-    
-    hmac = pad.StreamHMAC(salt=salt, pid=pid, siv=siv).for_decryption()
-        
-        
-    keystream.reset()
-    
-    decipher = pad.xor(ciphertext, key=keystream, validator=hmac)
-    
-    with decipher.int_to_bytes() as decrypting:
-    
-        padding_key = pad.padding_key(salt=salt, pid=pid)
-
-        padded_data = decrypting.join(b"")
-        
-        hmac.finalize()
-
-        hmac.test_hmac(ciphertext_authentication)
-        
-        # If no ValueError was raised, the authentication has passed! 
-
-
-    # Continue with processing the plaintext ->
-    
-    decrypted = pad.io.depad_plaintext(padded_data, padding_key=padding_key)
-    
-    plaintext_bytes == decrypted
-    >>> True
-    
-    
-    # This example was a low-level look at the encryption algorithm. And it 
-    
-    # was only a few lines of code. The Comprende class makes working with 
-    
-    # generators a breeze, & working with generators makes solving problems 
-    
-    # in bite-sized chunks a breeze. ->
-    
-    padded_plaintext = pad.plaintext_stream(plaintext_bytes, salt=salt, pid=pid).list()
-    
-    assert isinstance(padded_plaintext, list)
-    
-    for block in padded_plaintext:
-    
-        assert len(block) == 256
-    
-    
-    # We just used the ``list`` end-point to get the full series 
-
-    # of results from the underlying generator. These results are lru-cached 
-
-    # to facilitate their efficient reuse for alternate computations. The 
-
-    # ``Comprende`` context managers clear the opened instance's cache on exit, 
-
-    # this clears every instance's cache ->
-
-    aiootp.Comprende.clear_class()
-    
-    
-    # The other end-points can be found under ``aiootp.Comprende.eager_methods`` ->
-    
-    {
-        'adeque',
-        'adict',
-        'aexhaust',    # <- Doesn't cache results, only returns the last element
-        'ajoin',
-        'alist',
-        'aset',
-        'deque',
-        'dict',
-        'exhaust',    # <- Doesn't cache results, only returns the last element
-        'join',
-        'list',
-        'set',
-    }
-    
-    
-    # A lot of this magic with generators is made possible with a sweet little
-    
-    # ``comprehension`` decorator. It reimagines the generator interface by 
-    
-    # wrapping generators in the innovative ``Comprende`` class, giving every 
-    
-    # generator access to a plethora of data processing & cryptographic utilities 
-    
-    # right out of the box ->
-    
-    @aiootp.comprehension()
-    
-    def gen(x=None, y=None):
+    def gen(x: int, y: int):
     
         z = yield x + y
         
@@ -981,7 +928,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     with gen(x=1, y=2) as example:
     
-        z = 3
+        z = 5
         
         
         # Calling the object will send ``None`` into the coroutine by default ->
@@ -1002,19 +949,17 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     product_of_x_y_z = example.result()
     
-    assert product_of_x_y_z == 6
+    assert product_of_x_y_z == 10
     
     
-    # The ``example`` variable is actually the ``Comprende`` object,
+    # The ``example`` variable is actually a ``Comprende`` object, which
 
-    # which redirects values to the wrapped generator's ``send()``
-    
-    # method using the instance's ``__call__()`` method.
+    # redirects values to the wrapped generator's ``send()`` method.
     
     
     # Here's another example ->
     
-    @aiootp.comprehension() 
+    @comprehension()
     
     def one_byte_numbers():
     
@@ -1025,22 +970,14 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # Chained ``Comprende`` generators are excellent inline data processors ->
     
-    base64_data = [
-    
-        b64_byte
-        
-        for b64_byte
-        
-        in one_byte_numbers().int_to_bytes(1).to_base64()
-        
-    ]
+    base64_data = one_byte_numbers().int_to_bytes(1).to_base64().list()
     
     # This converted each number to bytes then base64 encoded them.
 
 
     # We can wrap other iterables to add functionality to them ->
 
-    @aiootp.comprehension()
+    @comprehension()
     
     def unpack(iterable):
     
@@ -1051,18 +988,24 @@ Generators under-pin most procedures in the library, let's take a look ->
 
     # This example just hashes each output then yields them
 
-    for hex_hash in unpack(base64_data).sha_256():
+    for hex_digest in unpack(base64_data).sha3__256():
         
-        print(hex_hash)
+        print(hex_digest)
 
 
-    # Async ``Comprende`` coroutines have almost exactly the same interface as
+_`Asynchronous Generators` ........................ `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Async ``Comprende`` coroutines have almost exactly the same interface as synchronous ones.
+
+.. code-block:: python
+
+    from aiootp.gentools import comprehension
+
+
+    @comprehension()
     
-    # synchronous ones ->
-    
-    @aiootp.comprehension()
-    
-    async def gen(x=None, y=None):
+    async def gen(x: int, y: int):
     
         # Because having a return statement in an async generator is a
         
@@ -1083,7 +1026,7 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     async with gen(x=1, y=2) as example:
     
-        z = 3
+        z = 5
         
         
         # Awaiting the ``__call__`` method will send ``None`` into the
@@ -1106,12 +1049,12 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     product_of_x_y_z = await example.aresult()
     
-    assert product_of_x_y_z == 6
+    assert product_of_x_y_z == 10
     
     
     # Let's see some other ways async generators mirror synchronous ones ->
     
-    @aiootp.comprehension() 
+    @comprehension()
     
     async def one_byte_numbers():
     
@@ -1122,22 +1065,14 @@ Generators under-pin most procedures in the library, let's take a look ->
     
     # This is asynchronous data processing ->
     
-    base64_data = [
-    
-        b64_byte
-        
-        async for b64_byte
-        
-        in one_byte_numbers().aint_to_bytes(1).ato_base64()
-        
-    ]
+    base64_data = await one_byte_numbers().aint_to_bytes(1).ato_base64().alist()
     
     # This converted each number to bytes then base64 encoded them.
 
 
     # We can wrap other iterables to add asynchronous functionality to them ->
 
-    @aiootp.comprehension()
+    @comprehension()
     
     async def unpack(iterable):
     
@@ -1148,7 +1083,7 @@ Generators under-pin most procedures in the library, let's take a look ->
 
     # Want only the first twenty results? ->
 
-    async for hex_hash in unpack(base64_data).asha_256()[:20]:
+    async for hex_hash in unpack(base64_data).asha3__256()[:20]:
     
         # Then you can slice the generator.
         
@@ -1157,7 +1092,7 @@ Generators under-pin most procedures in the library, let's take a look ->
         
     # Users can slice generators to receive more complex output rules, like:
     
-    # Getting every second result starting from the third result to the 50th ->
+    # Getting every second result starting from the 4th result to the 50th ->
     
     async for result in unpack(base64_data)[3:50:2]:
     
@@ -1165,212 +1100,20 @@ Generators under-pin most procedures in the library, let's take a look ->
 
 
     # Although, negative slice numbers are not supported.
-    
-    
-    # ``Comprende`` generators have loads of tooling for users to explore. 
-    
-    # Play around with it and take a look at the other chainable generator 
 
-    # methods in ``aiootp.Comprende.lazy_generators``.
-    
-    {
-        "_agetitem",
-        "_getitem",
-        "aascii_to_int",
-        "abin",
-        "abytes",
-        "abytes_decipher",
-        "abytes_encipher",
-        "abytes_to_hex",
-        "abytes_to_int",
-        "adebugger",
-        "adecode",
-        "adelimit",
-        "adelimited_resize",
-        "adepad_plaintext",
-        "aencode",
-        "afeed",
-        "afeed_self",
-        "afrom_base",
-        "afrom_base64",
-        "ahalt",
-        "ahex",
-        "ahex_to_bytes",
-        "aindex",
-        "aint",
-        "aint_to_ascii",
-        "aint_to_bytes",
-        "ajson_dumps",
-        "ajson_loads",
-        "apad_plaintext",
-        "apasscrypt",
-        "arandom_sleep",
-        "areplace",
-        "aresize",
-        "ascii_to_int",
-        "asha_256",
-        "asha_256_hmac",
-        "asha_512",
-        "asha_512_hmac",
-        "aslice",
-        "asplit",
-        "astr",
-        "asum_passcrypt",
-        "asum_sha_256",
-        "asum_sha_512",
-        "atag",
-        "atimeout",
-        "ato_base",
-        "ato_base64",
-        "axor",
-        "azfill",
-        "bin",
-        "bytes",
-        "bytes_decipher",
-        "bytes_encipher",
-        "bytes_to_hex",
-        "bytes_to_int",
-        "debugger",
-        "decode",
-        "delimit",
-        "delimited_resize",
-        "depad_plaintext",
-        "encode",
-        "feed",
-        "feed_self",
-        "from_base",
-        "from_base64",
-        "halt",
-        "hex",
-        "hex_to_bytes",
-        "index",
-        "int",
-        "int_to_ascii",
-        "int_to_bytes",
-        "json_dumps",
-        "json_loads",
-        "pad_plaintext",
-        "passcrypt",
-        "random_sleep",
-        "replace",
-        "resize",
-        "sha_256",
-        "sha_256_hmac",
-        "sha_512",
-        "sha_512_hmac",
-        "slice",
-        "split",
-        "str",
-        "sum_passcrypt",
-        "sum_sha_256",
-        "sum_sha_512",
-        "tag",
-        "timeout",
-        "to_base",
-        "to_base64",
-        "xor",
-        "zfill",
-    }
-
-
-    #
+``Comprende`` generators have loads of tooling for users to explore. Play around with it and take a look at the other chainable generator methods in ``aiootp.Comprende.lazy_generators``.
 
 
 
 
-Let's take a deep dive into the low-level xor procedure used to implement the pseudo-one-time-pad:
-
-.. code-block:: python
-
-    #
-    
-    import aiootp
-    
-    # It is a ``Comprende`` generator ->
-    
-    @aiootp.comprehension()
-    
-    # ``data`` is an iterable of 256 byte integers that are either plaintext
-    
-    # or ciphertext. ``key`` should be an instance of the ``keys`` generator. 
-    
-    # And, ``validator`` should be an instance of the ``StreamHMAC`` class. ->
-    
-    def xor(data, *, key, validator):
-    
-        # Return the necessary method & coroutine pointers ->
-        
-        datastream, keystream, validated_xor, hmac_hexdigest = (
-        
-            xor_shortcuts(data, key, validator)
-            
-        )
-        
-        # We use the first block of plaintext (which is prepended with an 
-
-        # 8-byte timestamp & a 16-byte random, ephemeral & automatically 
-
-        # generated SIV-key) to derive a syntheic IV, & use it to seed the 
-
-        # keystream & validator with globally unique entropy -> 
-        
-        yield SyntheticIV.validated_xor(datastream, keystream, validator)
-        
-        for chunk in datastream:
-        
-            # We use the output of the validator's current state to 
-
-            # continuously seed the keystream with message dependent entropy ->
-            
-            seed = hmac_hexdigest()
-            
-            # We contantenate two 128 byte key chunks together ->
-            
-            key_chunk = int(keystream(seed) + keystream(seed), 16)
-            
-            # Then xor the 256 byte key chunk with the 256 byte data chunk 
-            
-            # and use the validator to update the HMAC with the ciphertext ->
-            
-            result = validator.validated_xor(chunk, key_chunk)
-            
-            if result >> 2048:
-                
-                # If the result is for some reason larger than 256 bytes,
-                
-                # (2048-bits), we abort the procedure, & warn the user ->
-                
-                raise ValueError(EXCEEDED_BLOCKSIZE)
-                
-            # Then we yield the result ->
-           
-            yield result
-
-
-    # This is a very efficient, online-AEAD, salt-reuse/misuse resistant, 
-
-    # pseudo-one-time-pad cipher algorithm. It's built on generators, 
-
-    # which makes it simple to grok & compose with additional funcitonality. 
-
-    # It's backed by an infinite stream of non-repeating key material, 
-    
-    # efficiently produced from a finite-sized key, an ephemeral salt, 
-
-    # context & content data, & the sha3_512 algorithm.
-    
-    
-    #
-
-
-
+_`Module Overview` ................................ `Table Of Contents`_
+------------------------------------------------------------------------
 
 Here's a quick overview of this package's modules:
 
+
 .. code-block:: python
 
-    #
-    
     import aiootp
     
     
@@ -1384,12 +1127,17 @@ Here's a quick overview of this package's modules:
     aiootp.generics
     
     
+    # A collection of the package's generator utilities ->
+    
+    aiootp.gentools
+    
+    
     # This module is responsible for providing entropy to the package ->
     
     aiootp.randoms
     
     
-    # The higher-level abstractions used to implement the pseudo-one-time pad ->
+    # The high & low level abstractions used to implement the Chunky2048 cipher ->
     
     aiootp.ciphers
     
