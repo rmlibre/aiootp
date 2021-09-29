@@ -2,6 +2,21 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+Changes for version 0.20.1
+--------------------------
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Small fixes & improvements to documentation.
+-  Small fixes & improvements to tests.
+-  Small re-organization of source file contents.
+-  Small bug fixes.
+
+
+
+
 Changes for version 0.20.0 (Backwards incompatible updates)
 -----------------------------------------------------------
 
