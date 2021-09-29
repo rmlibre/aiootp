@@ -223,6 +223,8 @@ async def Comprende_chainable_methods():
     """
     Testing the chainable generator methods of the ``Comprende`` class.
     """
+    key_bundle = KeyAADBundle.unsafe(key, salt=salt, aad=aad)
+
     # Check timeout / atimeout
     time_limit = 0.01
     time_start = asynchs.time()
@@ -240,27 +242,26 @@ async def Comprende_chainable_methods():
     assert time_elapsed < time_limit + 0.02
 
     # Check halt / ahalt
-    sentinel = csprng()[:2]
-    chars = keys(key, salt=salt, pid=pid)
-    achars = akeys(key, salt=salt, pid=pid)
-    with keys(key, salt=salt, pid=pid)[:128] as sequence:
-        sentinel_check = sequence.join()
-    async for letters in achars.aresize(2).ahalt(sentinel):
-        pass
-    assert letters != sentinel
-    assert letters + sentinel in sentinel_check
-
-    for letters in chars.resize(2).halt(sentinel):
-        pass
-    assert letters != sentinel
-    assert letters + sentinel in sentinel_check
+    sentinel = csprng()[:1]
+    chars = bytes_keys(key_bundle)
+    achars = abytes_keys(key_bundle)
+    result = b""
+    aresult = b""
+    for index, val in chars.resize(1).halt(sentinel).tag():
+        result += val
+    async for aindex, aval in achars.aresize(1).ahalt(sentinel).atag():
+        aresult += aval
+    assert index == aindex
+    assert val == aval
+    assert sentinel not in val
+    assert sentinel not in aval
 
     # Check feed / afeed
-    mock_keys = keys(key, salt=salt, pid=pid)
-    mock_food = order([None], range(4))
-    async with akeys(key, salt=salt, pid=pid).afeed(range(5)) as altered_keys:
+    mock_keys = bytes_keys(key_bundle)
+    mock_food = order([None], bytes_range(4))
+    async with abytes_keys(key_bundle).afeed(abytes_range(5)) as altered_keys:
         first_loop = True
-        for original_key in keys(key, salt=salt, pid=pid):
+        for original_key in bytes_keys(key_bundle):
             altered_key = await altered_keys()
             if first_loop:
                 first_loop = False
@@ -270,11 +271,11 @@ async def Comprende_chainable_methods():
             with generics.ignore(StopIteration):
                 assert mock_keys(mock_food()) == altered_key
 
-    mock_keys = keys(key, salt=salt, pid=pid)
-    mock_food = order([None], range(4))
-    with keys(key, salt=salt, pid=pid).feed(range(5)) as altered_keys:
+    mock_keys = bytes_keys(key_bundle)
+    mock_food = order([None], bytes_range(4))
+    with bytes_keys(key_bundle).feed(bytes_range(5)) as altered_keys:
         first_loop = True
-        async for original_key in akeys(key, salt=salt, pid=pid):
+        async for original_key in abytes_keys(key_bundle):
             altered_key = altered_keys()
             if first_loop:
                 first_loop = False
@@ -285,10 +286,10 @@ async def Comprende_chainable_methods():
                 assert mock_keys(mock_food()) == altered_key
 
     # Check feed_self / afeed_self
-    mock_keys = keys(key, salt=salt, pid=pid)
-    async with akeys(key, salt=salt, pid=pid).afeed_self()[:5] as altered_keys:
+    mock_keys = bytes_keys(key_bundle)
+    async with abytes_keys(key_bundle).afeed_self()[:5] as altered_keys:
         first_loop = True
-        for original_key in keys(key, salt=salt, pid=pid):
+        for original_key in bytes_keys(key_bundle):
             altered_key = await altered_keys()
             if first_loop:
                 food = None
@@ -300,10 +301,10 @@ async def Comprende_chainable_methods():
                 food = mock_keys(food)
                 assert food == altered_key
 
-    mock_keys = keys(key, salt=salt, pid=pid)
-    with keys(key, salt=salt, pid=pid).feed_self()[:5] as altered_keys:
+    mock_keys = bytes_keys(key_bundle)
+    with bytes_keys(key_bundle).feed_self()[:5] as altered_keys:
         first_loop = True
-        async for original_key in akeys(key, salt=salt, pid=pid):
+        async for original_key in abytes_keys(key_bundle):
             altered_key = altered_keys()
             if first_loop:
                 food = None
@@ -316,23 +317,23 @@ async def Comprende_chainable_methods():
                 assert food == altered_key
 
     # Check heappop / aheappop
-    mock_tags = generics.range(5)
-    mock_keys = keys(key, salt=salt, pid=pid)
-    async for tag, hex_number in akeys(key, salt=salt, pid=pid).atag().aheappop(5):
-        assert tag == mock_tags()
-        assert hex_number == mock_keys()
+    mock_keys = await abytes_keys(key_bundle)[:16].alist()
+    keys = await abytes_keys(key_bundle).aheappop(16).alist()
+    assert keys != mock_keys
+    mock_keys.sort()
+    assert keys == mock_keys
 
-    mock_tags = generics.range(5)
-    mock_keys = keys(key, salt=salt, pid=pid)
-    for tag, hex_number in keys(key, salt=salt, pid=pid).tag().heappop(5):
-        assert tag == mock_tags()
-        assert hex_number == mock_keys()
+    mock_keys = bytes_keys(key_bundle)[:16].list()
+    keys = bytes_keys(key_bundle).heappop(16).list()
+    assert keys != mock_keys
+    mock_keys.sort()
+    assert keys == mock_keys
 
     # Check reversed / areversed
     reversed_list = list(reversed(range(5, 10)))
-    async for tag, item in reversed(generics.arange(5, 10)).atag():
+    async for tag, item in reversed(gentools.arange(5, 10)).atag():
         assert item == reversed_list[tag]
 
-    for tag, item in reversed(generics.range(5, 10)).tag():
+    for tag, item in reversed(gentools.range(5, 10)).tag():
         assert item == reversed_list[tag]
 
