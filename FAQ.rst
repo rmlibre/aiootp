@@ -1,5 +1,6 @@
-FAQ
----
+_`FAQ` ............................................ `Table Of Contents`_
+========================================================================
+
 
 **Q: What is the one-time-pad?**
 
@@ -55,6 +56,7 @@ A: The idea is to create an intuitive, pythonic interface to a transparently enc
 **Q: Why are the modules transformed into ``Namespace`` objects?**
 
 A: We overwrite our modules in this package to have a more fine-grained control over what part of the package's internal state is exposed to users and applications. The goal is make it more difficult for users to inadvertently jeopardize their security tools, and minimize the attack surface available to adversaries. The ``aiootp.Namespace`` class also makes it easier to coordinate and decide the library's UI/UX across the package.
+
 
 
 
