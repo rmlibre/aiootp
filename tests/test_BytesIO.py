@@ -51,24 +51,28 @@ def test_json_conversion_functions():
     aencipher = adata(padded_plaintext).abytes_encipher(akey_bundle, ashmac)
 
     xciphertext = {
-        CIPHERTEXT: xencipher.list(),
-        HMAC: xshmac.finalize(),
-        SALT: xkey_bundle.salt,
-        SIV: xkey_bundle.siv,
+        CIPHERTEXT: xencipher.bytes_to_int().list(),
+        HMAC: xshmac.finalize().hex(),
+        SALT: xkey_bundle.salt.hex(),
+        SIV: xkey_bundle.siv.hex(),
     }
     ciphertext = {
-        CIPHERTEXT: encipher.list(),
-        HMAC: shmac.finalize(),
-        SALT: key_bundle.salt,
-        SIV: key_bundle.siv,
+        CIPHERTEXT: encipher.bytes_to_int().list(),
+        HMAC: shmac.finalize().hex(),
+        SALT: key_bundle.salt.hex(),
+        SIV: key_bundle.siv.hex(),
     }
     aciphertext = {
-        CIPHERTEXT: run(aencipher.alist()),
-        HMAC: run(ashmac.afinalize()),
-        SALT: akey_bundle.salt,
-        SIV: akey_bundle.siv,
+        CIPHERTEXT: run(aencipher.abytes_to_int().alist()),
+        HMAC: run(ashmac.afinalize()).hex(),
+        SALT: akey_bundle.salt.hex(),
+        SIV: akey_bundle.siv.hex(),
     }
 
     assert ciphertext == aciphertext
     assert ciphertext != xciphertext
+
+    for json_message in [ciphertext, aciphertext]:
+        message = BytesIO.json_to_bytes(json_message)
+        assert plaintext_bytes == cipher.bytes_decrypt(message, aad=aad)
 
