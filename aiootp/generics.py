@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -31,8 +31,8 @@ __all__ = [
 
 
 __doc__ = (
-    "A collection of basic utilities for simplifying & supporting the "
-    "rest of the codebase."
+    "A collection of basic utilities for simplifying & supporting the r"
+    "est of the codebase."
 )
 
 
@@ -587,43 +587,6 @@ class Hasher:
         return self.digest()
 
 
-class Enumerate:
-    """
-    An ``enumerate`` variant that supports sync & async generators.
-    """
-
-    __slots__ = ["gen", "start"]
-
-    def __init__(self, gen, start=0):
-        self.gen = gen
-        self.start = start
-
-    async def __aiter__(self):
-        """
-        Adds an incrementing number to each yielded result of either an
-        async or sync generator.
-        """
-        if is_async_iterable(self.gen):
-            counter = self.start
-            async for result in self.gen:
-                yield counter, result
-                counter += 1
-        else:
-            for result in self.__iter__():
-                await asleep()
-                yield result
-
-    def __iter__(self):
-        """
-        Adds an incrementing number to each yielded result of either a
-        synchronous generator.
-        """
-        counter = self.start
-        for result in self.gen:
-            yield counter, result
-            counter += 1
-
-
 def display_exception_info(error):
     """
     Prints out debug information of exceptions.
@@ -638,6 +601,8 @@ class ExampleException(Exception):
     """
     Empty, unused placeholder exception.
     """
+
+    __slots__ = []
 
 
 class AsyncRelayExceptions:
@@ -819,6 +784,43 @@ async def anext(coroutine_iterator: Typing.Iterator):
     Creates an asynchronous version of the ``builtins.next`` function.
     """
     return await coroutine_iterator.__anext__()
+
+
+class Enumerate:
+    """
+    An ``enumerate`` variant that supports sync & async generators.
+    """
+
+    __slots__ = ["gen", "start"]
+
+    def __init__(self, gen, start=0):
+        self.gen = gen
+        self.start = start
+
+    async def __aiter__(self):
+        """
+        Adds an incrementing number to each yielded result of either an
+        async or sync generator.
+        """
+        if is_async_iterable(self.gen):
+            counter = self.start
+            async for result in self.gen:
+                yield counter, result
+                counter += 1
+        else:
+            for result in self.__iter__():
+                await asleep()
+                yield result
+
+    def __iter__(self):
+        """
+        Adds an incrementing number to each yielded result of either a
+        synchronous generator.
+        """
+        counter = self.start
+        for result in self.gen:
+            yield counter, result
+            counter += 1
 
 
 @comprehension()
@@ -3689,6 +3691,8 @@ class Domains(metaclass=IterableClass):
     to make their outputs domain specific.
     """
 
+    __slots__ = []
+
     @staticmethod
     async def aencode_constant(constant: Typing.DeterministicRepr):
         """
@@ -3892,6 +3896,8 @@ class Padding:
         decryption since it either doesn't exist or has at least 32 key-
         dependant, unique, pseudo-random, searchable bytes.
     """
+
+    __slots__ = []
 
     _BLOCKSIZE = BLOCKSIZE
     _TWO_BLOCKS = 2 * BLOCKSIZE
@@ -4245,6 +4251,8 @@ class BytesIO:
     dictionaries. This class also has access to the plaintext padding
     algorithm used by the package.
     """
+
+    __slots__ = []
 
     _SIV: str = SIV
     _HMAC: str = HMAC
