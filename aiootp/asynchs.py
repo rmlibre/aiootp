@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -13,11 +13,11 @@ __all__ = ["asynchs", "Processes", "Threads"]
 
 
 __doc__ = (
-    "A collection of asyncio & concurrency references to simplify their "
-    "standard usage in this package. This module can be used to replace "
-    "the default event loop policy, for instance, to run uvloop or "
-    "change async frameworks. The default asyncio loop is available in "
-    "``default_loop``."
+    "A collection of asyncio & concurrency references to simplify their"
+    " standard usage in this package. This module can be used to replac"
+    "e the default event loop policy, for instance, to run uvloop or ch"
+    "ange async frameworks. The default asyncio loop is available in ``"
+    "default_loop``."
 )
 
 
@@ -37,6 +37,14 @@ from ._exceptions import *
 from ._typing import Typing
 from .debuggers import DebugControl
 from .commons import commons
+
+
+# Can toggle asyncio's debug mode using DebugControl.enable_debugging()
+# WARNING: This will also reveal potentially sensitive values in object
+# repr's that are omitted by default.
+DebugControl._switches.append(
+    lambda: loop().set_debug(DebugControl.is_debugging())
+)
 
 
 _ONE_MICROSECOND = 1_000_000
@@ -59,15 +67,12 @@ this_year = lambda: int(time() / _ONE_YEAR)
 
 thread_pool = ThreadPoolExecutor()
 process_pool = ProcessPoolExecutor()
-default_loop = asyncio.get_event_loop()
 
 
-# Can toggle asyncio's debug mode using DebugControl.enable_debugging()
-# WARNING: This will also reveal potentially sensitive values in object
-# repr's that are omitted by default.
-DebugControl._switches.append(
-    lambda: loop().set_debug(DebugControl.is_debugging())
-)
+loop = asyncio.get_event_loop
+default_loop = loop()
+new_future = asyncio.ensure_future
+gather = asyncio.gather
 
 
 def reset_event_loop():
@@ -75,13 +80,6 @@ def reset_event_loop():
     Sets a new event loops for asyncio.
     """
     asyncio.set_event_loop(asyncio.new_event_loop())
-
-
-def loop(*a, _default=asyncio.get_event_loop, **kw):
-    """
-    Proxy's access to ``asyncio.get_event_loop()``.
-    """
-    return _default(*a, **kw)
 
 
 def serve(*a, **kw):
@@ -105,21 +103,7 @@ def new_task(coro, **kw):
     return loop().create_task(coro, **kw)
 
 
-def new_future(coro, **kw):
-    """
-    Proxy's access to ``asyncio.ensure_future()``.
-    """
-    return asyncio.ensure_future(coro, **kw)
-
-
-def gather(*coros, **kw):
-    """
-    Proxy's access to ``asyncio.gather()``.
-    """
-    return asyncio.gather(*coros, **kw)
-
-
-async def asleep(delay=0.0, **kw):
+async def asleep(delay=0, **kw):
     """
     Proxy's access to ``asyncio.sleep()``.
     """
