@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -173,7 +173,7 @@ class Chunky2048Keys(Slots):
 
     def __iter__(self):
         """
-        An api for retrieving the instance & its key seeds
+        An api for retrieving the instance & its key seeds.
         """
         yield self
         yield self.seed_0
@@ -287,15 +287,10 @@ class PasscryptHash(Slots):
     PASSPHRASE_HASH_SLICE = passcrypt_constants.PASSPHRASE_HASH_SLICE
 
     def __init__(self, passcrypt_hash: bytes):
-        """
-        Efficiently stores & formats the bytes type passcrypt hash that
-        has attached metadata & organizes its values in the instance's
-        attributes.
-        """
-        _bytes = int.from_bytes
-        self.kb = _bytes(passcrypt_hash[self.KB_SLICE], "big")
-        self.cpu = _bytes(passcrypt_hash[self.CPU_SLICE], "big")
-        self.hardness = _bytes(passcrypt_hash[self.HARDNESS_SLICE], "big")
+        _int = int.from_bytes
+        self.kb = _int(passcrypt_hash[self.KB_SLICE], "big")
+        self.cpu = _int(passcrypt_hash[self.CPU_SLICE], "big")
+        self.hardness = _int(passcrypt_hash[self.HARDNESS_SLICE], "big")
         self.salt = passcrypt_hash[self.SALT_SLICE]
         self.passphrase_hash = passcrypt_hash[self.PASSPHRASE_HASH_SLICE]
 
@@ -323,8 +318,7 @@ class ProfileTokens(Slots):
 
 class PackageSignerScope(OpenNamespace):
     """
-    Efficiently stores user-defined scope values of a package signing
-    session.
+    Stores user-defined scope values of a package signing session.
     """
 
     def __init__(
@@ -335,10 +329,10 @@ class PackageSignerScope(OpenNamespace):
         date: int,
         **extras: Typing.Dict[str, Typing.JSONSerializable],
     ):
+        self.__dict__.update(extras)
         self.package = package
         self.version = version
         self.date = date
-        self.__dict__.update(extras)
 
 
 class PackageSignerFiles(OpenNamespace):
