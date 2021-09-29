@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -32,9 +32,9 @@ __all__ = [
 
 __doc__ = (
     "A collection of low-level tools & higher level abstractions which "
-    "can be used to create custom security tools, or as pre-assembled "
-    "recipes, including the package's main MRAE / AEAD pseudo-one-time-"
-    "pad cipher called `Chunky2048`."
+    "can be used to create custom security tools, or as pre-assembled r"
+    "ecipes, including the package's main MRAE / AEAD pseudo-one-time-p"
+    "ad cipher called `Chunky2048`."
 )
 
 
@@ -1696,7 +1696,7 @@ async def abytes_xor(
     validator: StreamHMAC,
 ):
     """
-    'Chunky2048' - an online MRAE / AEAD pseudo-one-time-pad cipher
+    `Chunky2048` - an online MRAE / AEAD pseudo one-time pad cipher
     implementation.
 
     Gathers both an iterable of 256-byte blocks of ``data``, & a
@@ -1738,7 +1738,7 @@ def bytes_xor(
     validator: StreamHMAC,
 ):
     """
-    'Chunky2048' - an online MRAE / AEAD pseudo-one-time-pad cipher
+    `Chunky2048` - an online MRAE / AEAD pseudo one-time pad cipher
     implementation.
 
     Gathers both an iterable of 256-byte blocks of ``data``, & a
@@ -1969,7 +1969,7 @@ async def ajson_encrypt(
 ):
     """
     A high-level public interface to the package's MRAE / AEAD
-    'Chunky2048' cipher.
+    `Chunky2048` cipher.
 
     Returns the `Chunky2048` ciphertext of any json serializable ``data``.
     The returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV,
@@ -2003,7 +2003,7 @@ def json_encrypt(
 ):
     """
     A high-level public interface to the package's MRAE / AEAD
-    'Chunky2048' cipher.
+    `Chunky2048` cipher.
 
     Returns the `Chunky2048` ciphertext of any json serializable ``data``.
     The returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV,
@@ -2033,7 +2033,7 @@ async def ajson_decrypt(
 ):
     """
     A high-level public interface to the package's MRAE / AEAD
-    'Chunky2048' cipher.
+    `Chunky2048` cipher.
 
     Returns the loaded plaintext json object from the bytes ciphertext
     ``data``. The ``data`` bytes contain a 24-byte ephemeral salt, a
@@ -2060,7 +2060,7 @@ def json_decrypt(
 ):
     """
     A high-level public interface to the package's MRAE / AEAD
-    'Chunky2048' cipher.
+    `Chunky2048` cipher.
 
     Returns the loaded plaintext json object from the bytes ciphertext
     ``data``. The ``data`` bytes contain a 24-byte ephemeral salt, a
@@ -2091,7 +2091,7 @@ async def abytes_encrypt(
 ):
     """
     A high-level public interface to the package's MRAE / AEAD
-    'Chunky2048' cipher.
+    `Chunky2048` cipher.
 
     Returns the `Chunky2048` ciphertext of any bytes type ``data``. The
     returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV, &
@@ -2135,7 +2135,7 @@ def bytes_encrypt(
 ):
     """
     A high-level public interface to the package's MRAE / AEAD
-    'Chunky2048' cipher.
+    `Chunky2048` cipher.
 
     Returns the `Chunky2048` ciphertext of any bytes type ``data``. The
     returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV, &
@@ -2174,7 +2174,7 @@ async def abytes_decrypt(
 ):
     """
     A high-level public interface to the package's MRAE / AEAD
-    'Chunky2048' cipher.
+    `Chunky2048` cipher.
 
     Returns the plaintext bytes from the bytes ciphertext ``data``. The
     ``data`` bytes contain a 24-byte ephemeral salt, a 24-byte SIV & a
@@ -2211,7 +2211,7 @@ def bytes_decrypt(
 ):
     """
     A high-level public interface to the package's MRAE / AEAD
-    'Chunky2048' cipher.
+    `Chunky2048` cipher.
 
     Returns the plaintext bytes from the bytes ciphertext ``data``. The
     ``data`` bytes contain a 24-byte ephemeral salt, a 24-byte SIV & a
@@ -2245,7 +2245,7 @@ def bytes_decrypt(
 class Chunky2048:
     """
     An efficient high-level public interface to the package's online
-    MRAE / AEAD pseudo-one-time-pad cipher implementation. This
+    MRAE / AEAD pseudo one-time pad cipher implementation. This
     implementation is built primarily out of async & sync generators as
     data processing pipelines & communication coroutines.
 
@@ -2304,7 +2304,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
         authenticated additional data which also permutes the cipher's
@@ -2321,7 +2321,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
         authenticated additional data which also permutes the cipher's
@@ -2334,7 +2334,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
         be allowed during validation. The age in measured from a
@@ -2349,7 +2349,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
         be allowed during validation. The age in measured from a
@@ -2368,7 +2368,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
         authenticated additional data which also permutes the cipher's
@@ -2385,7 +2385,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
         authenticated additional data which also permutes the cipher's
@@ -2398,7 +2398,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
         be allowed during validation. The age in measured from a
@@ -2413,7 +2413,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
         be allowed during validation. The age in measured from a
@@ -2426,7 +2426,7 @@ class Chunky2048:
     async def amake_token(self, data: bytes, *, aad: bytes = b"aad"):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         Encrypts ``data`` with the instance key & returns a urlsafe
         encoded ciphertext token. ``aad`` is authenticated additional
@@ -2440,7 +2440,7 @@ class Chunky2048:
     def make_token(self, data: bytes, *, aad: bytes = b"aad"):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         Encrypts ``data`` with the instance key & returns a urlsafe
         encoded ciphertext token. ``aad`` is authenticated additional
@@ -2460,7 +2460,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         Decodes a ciphertext token & returns the decrypted token data.
         ``ttl`` is the maximum age of a token, in seconds, that will
@@ -2483,7 +2483,7 @@ class Chunky2048:
     ):
         """
         A high-level public interface to the package's MRAE / AEAD
-        'Chunky2048' cipher.
+        `Chunky2048` cipher.
 
         Decodes a ciphertext token & returns the decrypted token data.
         ``ttl`` is the maximum age of a token, in seconds, that will
@@ -3505,9 +3505,8 @@ class AsyncDatabase(metaclass=AsyncInit):
     This class creates databases which enable the disk persistence of
     any json serializable, native python data-types, with fully
     transparent, asynchronous encryption / decryption using the
-    library's pseudo-one-time-pad cipher implementation called
-    Chunky2048.
-
+    library's pseudo one-time pad cipher implementation called
+    `Chunky2048`.
 
     Usage Examples:
 
@@ -4340,12 +4339,12 @@ class AsyncDatabase(metaclass=AsyncInit):
         assert child == parent.sub_database
         """
         if tag in self.__class__.__dict__:
-            raise Issue.cant_overwrite_an_existing_attribute(tag)
+            raise Issue.cant_overwrite_existing_attribute(tag)
         elif tag in self.__dict__:
             if issubclass(self.__dict__[tag].__class__, self.__class__):
                 return self.__dict__[tag]
             else:
-                raise Issue.cant_overwrite_an_existing_attribute(tag)
+                raise Issue.cant_overwrite_existing_attribute(tag)
         self.__dict__[tag] = await self.__class__(
             key=await self._ametatag_key(tag),
             depth=0,
@@ -4588,9 +4587,8 @@ class Database:
     """
     This class creates databases which enable the disk persistence of
     any json serializable, native python data-types, with fully
-    transparent encryption / decryption using the library's pseudo-one-
-    time-pad cipher implementation called Chunky2048.
-
+    transparent encryption / decryption using the library's pseudo one-
+    time pad cipher implementation called `Chunky2048`.
 
     Usage Examples:
 
@@ -5367,12 +5365,12 @@ class Database:
         assert child == parent.sub_database
         """
         if tag in self.__class__.__dict__:
-            raise Issue.cant_overwrite_an_existing_attribute(tag)
+            raise Issue.cant_overwrite_existing_attribute(tag)
         elif tag in self.__dict__:
             if issubclass(self.__dict__[tag].__class__, self.__class__):
                 return self.__dict__[tag]
             else:
-                raise Issue.cant_overwrite_an_existing_attribute(tag)
+                raise Issue.cant_overwrite_existing_attribute(tag)
         self.__dict__[tag] = self.__class__(
             key=self._metatag_key(tag),
             depth=0,
