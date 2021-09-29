@@ -11,23 +11,30 @@
 
 __all__ = [
     "keygens",
-    "Ropake",
-    "X25519",
-    "Ed25519",
     "AsyncKeys",
+    "Ed25519",
     "Keys",
+    "KeyAADBundle",
+    "PackageSigner",
+    "PackageVerifier",
+    "X25519",
     "amnemonic",
     "mnemonic",
 ]
 
 
 __doc__ = (
-    "A collection of high-level tools for creating & managing symmetric "
-    "& 25519 elliptic curve asymmetric keys."
+    "A collection of high-level tools for creating & managing symmetric"
+    " & 25519 elliptic curve asymmetric keys."
 )
 
 
+import hmac
+import json
+import math
 from collections import deque
+from functools import partial
+from functools import lru_cache
 import cryptography
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import (
@@ -36,202 +43,209 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import (
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey, Ed25519PrivateKey
 )
-from hashlib import sha3_256, sha3_512
+from hashlib import sha512, sha3_256, sha3_512
+from ._exceptions import *
+from ._typing import Typing
+from ._containers import PackageSignerFiles, PackageSignerScope
 from .asynchs import *
+from .asynchs import asleep
 from .commons import *
+from .commons import ropake_constants
 from commons import *  # import the module's constants
-from .randoms import csprbg, acsprbg
+from .paths import Path
+from .generics import Hasher, BytesIO, Domains
+from .generics import azip
+from .generics import arange
+from .generics import is_iterable
+from .generics import comprehension
+from .generics import reader, areader
+from .generics import xi_mix, axi_mix
+from .generics import sha3__256, asha3__256
+from .generics import sha3__512, asha3__512
+from .generics import bytes_range, abytes_range
+from .generics import sha3__256_hmac, asha3__256_hmac
+from .generics import sha3__512_hmac, asha3__512_hmac
+from .generics import bytes_are_equal, abytes_are_equal
 from .randoms import csprng, acsprng
 from .randoms import random_256, arandom_256
 from .randoms import random_512, arandom_512
-from .randoms import token_hash, atoken_hash
 from .randoms import generate_salt, agenerate_salt
 from .ciphers import Database
 from .ciphers import DomainKDF
 from .ciphers import Passcrypt
+from .ciphers import KeyAADBundle
 from .ciphers import AsyncDatabase
-from .ciphers import keys, akeys
-from .ciphers import passcrypt, apasscrypt
 from .ciphers import bytes_keys, abytes_keys
-from .ciphers import padding_key, apadding_key
 from .ciphers import json_encrypt, ajson_encrypt
 from .ciphers import json_decrypt, ajson_decrypt
 from .ciphers import keypair_ratchets, akeypair_ratchets
-from .ciphers import test_key_and_salt, atest_key_and_salt
-from .generics import azip
-from .generics import Hasher
-from .generics import arange
-from .generics import Domains
-from .generics import is_iterable
-from .generics import comprehension
-from .generics import sha_256, asha_256
-from .generics import sha_512, asha_512
-from .generics import bytes_range, abytes_range
-from .generics import sha_256_hmac, asha_256_hmac
-from .generics import sha_512_hmac, asha_512_hmac
-from .generics import convert_static_method_to_member
-from .generics import time_safe_equality, atime_safe_equality
 
 
 @comprehension()
-async def atable_keystream(key=None, table=ASCII_TABLE):
+async def atable_keystream(
+    key: Typing.Optional[bytes] = None,
+    *,
+    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
+):
     """
-    This table based key generator function converts any key string
-    containing an arbitrary set of characters, into another key string
-    containing the set of characters provided by the table argument.
-    This is an infinite generator that produces key material at about
-    128 bytes per iteration.
+    This is an infinite key generator function that pseudo-randomly
+    yields a single element from a supplied `table` on each iteration.
+    The pseudo-random function used to make element choices is the
+    Chunky2048 cipher's keystream algorithm. This keystream is either
+    derived from a user-supplied `key`, or a random 64-byte key that's
+    automatically generated.
 
-    The ASCII_TABLE that's provided as a default, is a comprehensive set
-    of ascii characters that are legible, unique, and have single octet
-    byte representations. It contains 95 unique characters.
-
-    This generator function provides either deterministic keys from a
-    user key, or generates a random 512-bit hash and derives a random
-    key with the desired table elements from this hash. The result is a
-    random, normal distribution of characters from among the items
-    within the table.
+    The ASCII_95 table that's provided as a default, is the set of ascii
+    characters with ordinal values in set(range(32, 127)). It contains
+    95 unique, printable characters.
 
     Usage Examples:
 
-    key = "hotdiggitydog_thischowisyummy"
-    async with atable_keystream(key=key) as generator:
-        new_key = await generator()
-        assert new_key != await generator()
-    print(new_key)
-    >>> Hx`4^ej;u&/]qOF21Ea2~(6f"smp'DvMk[(wy'lME%CpCo|1ZWt> &tu=Mw_
+    key = b"smellycaaaat, smelly caaaaat!"
+
+    await atable_keystream(key)[:32].ajoin()
+    >>> J=Gci8WMpRR9SQlN8t0~oj95ZK<k+&HW
     """
-    if not key:
+    table_size = len(table)
+    if table_size > 256:
+        raise Issue.value_must("table", "contain at most 256 elements")
+    elif not key:
         key = await acsprng()
-    size = len(table)
-    keystream = abytes_keys(key, salt=key).abytes_to_int()
-    async for key_portion in keystream.ato_base(size, table):
-        yield key_portion
+    keystream = abytes_keys.root(await KeyAADBundle.aunsafe(key, key))
+    if table_size % 256:
+        async for key in keystream:
+            for byte in key:
+                if byte < table_size:
+                    yield table[byte]
+    else:
+        async for key in keystream:
+            for byte in key:
+                yield table[byte % table_size]
 
 
 @comprehension()
-def table_keystream(key=None, table=ASCII_TABLE):
+def table_keystream(
+    key: Typing.Optional[bytes] = None,
+    *,
+    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
+):
     """
-    This table based key generator function converts any key string
-    containing an arbitrary set of characters, into another key string
-    containing the set of characters provided by the table argument.
-    This is an infinite generator that produces key material at about
-    128 bytes per iteration.
+    This is an infinite key generator function that pseudo-randomly
+    yields a single element from a supplied `table` on each iteration.
+    The pseudo-random function used to make element choices is the
+    Chunky2048 cipher's keystream algorithm. This keystream is either
+    derived from a user-supplied `key`, or a random 64-byte key that's
+    automatically generated.
 
-    The ASCII_TABLE that's provided as a default, is a comprehensive set
-    of ascii characters that are legible, unique, and have single octet
-    byte representations. It contains 95 unique characters.
-
-    This generator function provides either deterministic keys from a
-    user key, or generates a random 512-bit hash and derives a random
-    key with the desired table elements from this hash. The result is a
-    random, normal distribution of characters from among the items
-    within the table.
+    The ASCII_95 table that's provided as a default, is the set of ascii
+    characters with ordinal values in set(range(32, 127)). It contains
+    95 unique, printable characters.
 
     Usage Example:
 
-    key = "hotdiggitydog_thischowisyummy"
-    with table_keystream(key=key) as generator:
-        new_key = generator()
-        assert new_key != generator()
-    print(new_key)
-    >>> Hx`4^ej;u&/]qOF21Ea2~(6f"smp'DvMk[(wy'lME%CpCo|1ZWt> &tu=Mw_
+    key = b"smellycaaaat, smelly caaaaat!"
+
+    "".join(table_keystream(key)[:32])
+    >>> J=Gci8WMpRR9SQlN8t0~oj95ZK<k+&HW
     """
-    if not key:
+    table_size = len(table)
+    if table_size > 256:
+        raise Issue.value_must("table", "contain at most 256 elements")
+    elif not key:
         key = csprng()
-    size = len(table)
-    keystream = bytes_keys(key, salt=key).bytes_to_int()
-    for key_portion in keystream.to_base(size, table):
-        yield key_portion
+    keystream = bytes_keys.root(KeyAADBundle.unsafe(key, key))
+    if table_size % 256:
+        for key in keystream:
+            yield from (table[byte] for byte in key if byte < table_size)
+    else:
+        for key in keystream:
+            yield from (table[byte % table_size] for byte in key)
 
 
-async def atable_key(key=None, table=ASCII_TABLE, size=64):
+async def atable_key(
+    key: Typing.Optional[bytes] = None,
+    *,
+    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
+    size: int = 64,
+):
     """
-    This table based key function converts any key string containing
-    any arbitrary set of characters, into another key string containing
-    the set of items provided by the table argument.
+    This is an key generation function that builds keys pseudo-randomly
+    from elements in a supplied `table`. The pseudo-random function used
+    to make element choices is the Chunky2048 cipher's keystream
+    algorithm. This keystream is either derived from a user-supplied
+    `key`, or a random 64-byte key that's automatically generated.
 
-    The ASCII_TABLE that's provided as a default, is a comprehensive set
-    of ascii characters that are all legible, with unique, single octet
-    byte representations. It contains 95 unique characters.
+    The ASCII_95 table that's provided as a default, is the set of ascii
+    characters with ordinal values in set(range(32, 127)). It contains
+    95 unique, printable characters.
 
-    This generator function provides either deterministic keys from a
-    user key, or generates a random 512-bit hash and derives a random
-    key with the desired table elements from this hash. The result is a
-    random, normal distribution of characters from among the items
-    within the table.
-
-    The size parameter determines the number of bytes/elements the
-    output will contain.
+    The size parameter determines the number of elements the output key
+    will contain.
 
 
     Usage Examples:
 
-    key = "smellycaaaat, smelly caaaaat!"
-    new_key = table_key(key=key, table="0123456789abcdef")
-    print(new_key)
-    >>> 4f271c61b0e615a7d3e9ac0161497034d047d4ecddc650ae054f829b3416818c
+    key = b"smellycaaaat, smelly caaaaat!"
 
-    new_key = table_key(key=key, size=len(key))
-    print(new_key)
-    >>> #mE)bOQD@lY%]Qwpb9Zi^32]jteVg
+    table_key(key=key, table="0123456789abcdef")
+    >>> b6558225d702851463a7c9b82d23365d20e28a9b7020fa83c03b0140decdc225
+
+    table_key(key, size=32)
+    >>> J=Gci8WMpRR9SQlN8t0~oj95ZK<k+&HW
     """
-    async with atable_keystream(key=key, table=table) as generator:
-        new_key = await generator()
-        while len(new_key) < size:
-            new_key += await generator()
-        return new_key[:size]
+    on = table[0][:0]
+    stream = atable_keystream.root(key=key, table=table)
+    return on.join(
+        [char async for _, char in azip.root(range(size), stream)]
+    )
 
 
-def table_key(key=None, table=ASCII_TABLE, size=64):
+def table_key(
+    key: Typing.Optional[bytes] = None,
+    *,
+    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
+    size: int = 64,
+):
     """
-    This table based key function converts any key string containing
-    any arbitrary set of characters, into another key string containing
-    the set of items provided by the table argument.
+    This is an key generation function that builds keys pseudo-randomly
+    from elements in a supplied `table`. The pseudo-random function used
+    to make element choices is the Chunky2048 cipher's keystream
+    algorithm. This keystream is either derived from a user-supplied
+    `key`, or a random 64-byte key that's automatically generated.
 
-    The ASCII_TABLE that's provided as a default, is a comprehensive set
-    of ascii characters that are all legible, with unique, single octet
-    byte representations. It contains 95 unique characters.
+    The ASCII_95 table that's provided as a default, is the set of ascii
+    characters with ordinal values in set(range(32, 127)). It contains
+    95 unique, printable characters.
 
-    This generator function provides either deterministic keys from a
-    user key, or generates a random 512-bit hash and derives a random
-    key with the desired table elements from this hash. The result is a
-    random, normal distribution of characters from among the items
-    within the table.
-
-    The size parameter determines the number of bytes/elements the
-    output will contain.
+    The size parameter determines the number of elements the output key
+    will contain.
 
 
     Usage Examples:
-    key = "smellycaaaat, smelly caaaaat!"
-    new_key = table_key(key=key, table="0123456789abcdef")
-    print(new_key)
-    >>> 4f271c61b0e615a7d3e9ac0161497034d047d4ecddc650ae054f829b3416818c
 
-    new_key = table_key(key=key, size=len(key))
-    print(new_key)
-    >>> #mE)bOQD@lY%]Qwpb9Zi^32]jteVg
+    key = b"smellycaaaat, smelly caaaaat!"
+
+    table_key(key, table="0123456789abcdef")
+    >>> b6558225d702851463a7c9b82d23365d20e28a9b7020fa83c03b0140decdc225
+
+    table_key(key, size=32)
+    >>> J=Gci8WMpRR9SQlN8t0~oj95ZK<k+&HW
     """
-    with table_keystream(key=key, table=table) as generator:
-        new_key = generator()
-        while len(new_key) < size:
-            new_key += generator()
-        return new_key[:size]
+    on = table[0][:0]
+    stream = table_keystream.root(key=key, table=table)
+    return on.join(char for _, char in zip(range(size), stream))
 
 
 @comprehension()
 async def amnemonic(
-    key,
+    key: bytes,
     *,
-    salt=None,
-    words=None,
-    kb=Passcrypt._DEFAULT_KB,
-    cpu=Passcrypt._DEFAULT_CPU,
-    hardness=Passcrypt._DEFAULT_HARDNESS,
+    salt: Typing.Optional[bytes] = None,
+    words: Typing.Optional[Typing.Sequence[Typing.Any]] = None,
+    **passcrypt_settings,
 ):
     """
-    Creates a stream of words for a mnemonic key from a user password
+    Creates a stream of words for a mnemonic key from a user passphrase
     ``key`` & random salt. If a salt isn't passed, then a random salt is
     generated & is available by calling ``result(exit=True)`` on the
     generator object. The ``words`` used for the mnemonic can be passed
@@ -241,28 +255,26 @@ async def amnemonic(
     keystream_shift = None
     words = words if words else WORD_LIST
     length = len(words)
-    salt = salt if salt else await agenerate_salt()
-    key = await apasscrypt(key, salt, kb=kb, cpu=cpu, hardness=hardness)
-    keystream = abytes_keys(key, salt=salt, pid=key)
+    salt = salt if salt else await agenerate_salt(size=32)
+    key = await Passcrypt.anew(key, salt, **passcrypt_settings)
+    keystream = abytes_keys(await KeyAADBundle.aunsafe(key, salt, key))
     async with keystream.abytes_to_int().arelay(salt) as indexes:
         while True:
             if keystream_shift:
-                await keystream.gen.asend(keystream_shift)
+                await keystream.asend(keystream_shift)
             keystream_shift = yield words[await indexes() % length]
 
 
 @comprehension()
 def mnemonic(
-    key,
+    key: bytes,
     *,
-    salt=None,
-    words=None,
-    kb=Passcrypt._DEFAULT_KB,
-    cpu=Passcrypt._DEFAULT_CPU,
-    hardness=Passcrypt._DEFAULT_HARDNESS,
+    salt: Typing.Optional[bytes] = None,
+    words: Typing.Optional[Typing.Sequence[Typing.Any]] = None,
+    **passcrypt_settings,
 ):
     """
-    Creates a stream of words for a mnemonic key from a user password
+    Creates a stream of words for a mnemonic key from a user passphrase
     ``key`` & random salt. If a salt isn't passed, then a random salt is
     generated & is available by calling ``result(exit=True)`` on the
     generator object. The ``words`` used for the mnemonic can be passed
@@ -272,384 +284,145 @@ def mnemonic(
     keystream_shift = None
     words = words if words else WORD_LIST
     length = len(words)
-    salt = salt if salt else generate_salt()
-    key = passcrypt(key, salt, kb=kb, cpu=cpu, hardness=hardness)
-    keystream = bytes_keys(key, salt=salt, pid=key)
+    salt = salt if salt else generate_salt(size=32)
+    key = Passcrypt.new(key, salt, **passcrypt_settings)
+    keystream = bytes_keys(KeyAADBundle.unsafe(key, salt, key))
     with keystream.bytes_to_int().relay(salt) as indexes:
         while True:
             if keystream_shift:
-                keystream.gen.send(keystream_shift)
+                keystream.send(keystream_shift)
             keystream_shift = yield words[indexes() % length]
-
-
-async def ainsert_keygens(self, key=None, *, automate_key_use=True):
-    """
-    A generic __init__ function that can be copied into abitrary class
-    or instance dictionaries to give those objects access to stateful
-    & ephemeral key material generators.
-    """
-    key = key if key else await acsprng()
-    self.keygen = Keys(key=key, automate_key_use=automate_key_use)
-    self.akeygen = AsyncKeys(key=key, automate_key_use=automate_key_use)
-
-
-def insert_keygens(self, key=None, *, automate_key_use=True):
-    """
-    A generic __init__ function that can be copied into abitrary class
-    or instance dictionaries to give those objects access to stateful
-    & ephemeral key material generators.
-    """
-    key = key if key else csprng()
-    self.keygen = Keys(key=key, automate_key_use=automate_key_use)
-    self.akeygen = AsyncKeys(key=key, automate_key_use=automate_key_use)
-
-
-async def asingle_use_key(key=None, *, salt=None, pid=0):
-    """
-    Returns a mapping containing a unique combination of a ``key``,
-    ``salt`` & ``pid`` whose use is limited TO A SINGLE encryption /
-    decryption round. The reuse of the same permutation of ``key``,
-    ``salt`` & ``pid`` for multiple different messages **completely**
-    breaks the security of the encryption algorithm if the correct
-    padding, available from the `Padding` class, on the plaintext is not
-    used.
-
-    Both new ``key`` & ``salt`` values are returned in the mapping
-    if neither are specified. The returned ``pid`` defaults to ``0``,
-    as it does across the package.
-    """
-    if key and salt:
-        raise PermissionError(UNSAFE_KEY_REUSE)
-    key = key if key else await acsprng()
-    salt = salt if salt else await agenerate_salt()
-    await atest_key_and_salt(key, salt)
-    return Namespace(key=key, salt=salt, pid=pid)
-
-
-def single_use_key(key=None, *, salt=None, pid=0):
-    """
-    Returns a mapping containing a unique combination of a ``key``,
-    ``salt`` & ``pid`` whose use is limited TO A SINGLE encryption /
-    decryption round. The reuse of the same permutation of ``key``,
-    ``salt`` & ``pid`` for multiple different messages **completely**
-    breaks the security of the encryption algorithm if the correct
-    padding, available from the `Padding` class, on the plaintext is not
-    used.
-
-    Both new ``key`` & ``salt`` values are returned in the mapping
-    if neither are specified. The returned ``pid`` defaults to ``0``,
-    as it does across the package.
-    """
-    if key and salt:
-        raise PermissionError(UNSAFE_KEY_REUSE)
-    key = key if key else csprng()
-    salt = salt if salt else generate_salt()
-    test_key_and_salt(key, salt)
-    return Namespace(key=key, salt=salt, pid=pid)
 
 
 class AsyncKeys:
     """
-    This simple class coordinates and manages a symmetric key to create
-    pseudo-one-time-pad key material streams, key derivation functions,
-    as well as HMAC creation & HMAC validation of data. The class also
-    contains static methods & key generators that function independantly
-    from instance states.
+    This simple class is a high-level interface for symmetric key
+    creation, derivation & HMAC validation of data.
     """
-    instance_methods = {
-        akeys,
-        abytes_keys,
-        amnemonic,
-        atable_key,
-        atable_keystream,
-        asingle_use_key,
-    }
+
+    __slots__ = []
 
     DomainKDF = DomainKDF
-    akeys = staticmethod(akeys)
-    acsprbg = staticmethod(acsprbg)
+    Passcrypt = Passcrypt
+    KeyAADBundle = KeyAADBundle
+
+    abytes_keys = staticmethod(abytes_keys)
     acsprng = staticmethod(acsprng)
+    agenerate_salt = staticmethod(agenerate_salt)
     amnemonic = staticmethod(amnemonic)
-    apasscrypt = staticmethod(apasscrypt)
-    atable_key = staticmethod(atable_key)
     arandom_256 = staticmethod(arandom_256)
     arandom_512 = staticmethod(arandom_512)
-    abytes_keys = staticmethod(abytes_keys)
-    apadding_key = staticmethod(apadding_key)
-    agenerate_salt = staticmethod(agenerate_salt)
-    asingle_use_key = staticmethod(asingle_use_key)
+    atable_key = staticmethod(atable_key)
     atable_keystream = staticmethod(atable_keystream)
-    akeypair_ratchets = staticmethod(akeypair_ratchets)
-    _atest_key_and_salt = staticmethod(atest_key_and_salt)
-    _atime_safe_equality = staticmethod(atime_safe_equality)
 
-    def __init__(self, key=None, *, automate_key_use=True):
-        """
-        Stores a key in the instance used to create deterministic
-        streams of key material &, create & validate HMAC codes. If a
-        ``key`` argument is not passed then a new 512-bit random key is
-        created.
-        """
-        self._reset(key=key, automate_key_use=automate_key_use)
-        self.apasscrypt = self._apasscrypt
-
-    @property
-    def key(self):
-        """
-        Returns the instance's main symmetric key.
-        """
-        return self._key
-
-    async def ahmac(
-        self, data, *, key=None, hasher=asha_256_hmac
+    @staticmethod
+    async def amake_hmac(
+        data: Typing.DeterministicRepr,
+        *,
+        key: bytes,
+        hasher: Typing.Callable = asha3__256_hmac,
     ):
         """
-        Creates an HMAC code of ``data`` using ``key``  or the
-        instance's ``self.key`` if it's not supplied & the hashing
-        function ``hasher``.
+        Creates an HMAC code of ``data`` using the supplied ``key`` &
+        the hashing function ``hasher``. Any async ``hasher`` function
+        can be specified as the HMAC function, which is by default
+        SHA3_256_HMAC.
         """
-        return await hasher(data, key=key if key else self.key)
+        return await hasher(data, key=key, hex=False)
 
-    async def atime_safe_equality(
-        self, value_0=None, value_1=None, *, key=None
-    ):
-        """
-        Tests if ``value_0`` is equal to ``value_1`` with a randomized-
-        time comparison. Each value is prepended with a salt, a ``key``
-        & is hashed prior to the comparison. This algorithm reveals no
-        meaningful information, even though compared in non-constant
-        time, since an adversary wouldn't have access to these values.
-        If ``key`` isn't supplied then the instance's `self.key` is used
-        for the task. This scheme is easier to implement correctly than
-        a constant-time algorithm, & it's easier to prove infeasibility
-        guarantees regarding timing attacks.
-        """
-        key = key if key else self.key
-        return await self._atime_safe_equality(value_0, value_1, key=key)
-
+    @classmethod
     async def atest_hmac(
-        self, data, *, hmac=None, key=None, hasher=asha_256_hmac
+        cls,
+        data: Typing.DeterministicRepr,
+        untrusted_hmac: bytes,
+        *,
+        key: bytes,
+        hasher: Typing.Callable = asha3__256_hmac,
     ):
         """
         Tests if the given ``hmac`` of some ``data`` is valid with a
-        non-constant time comparison on the hash of each the supplied &
-        derived HMACs, appended with a salt prior to hashing. The
-        algorithm prepends the instance's ``self.key`` if ``key`` is not
-        supplied to further make the tested outputs undeterminable to an
-        attacker. The random salt & key allow the hashes to be compared
-        normally in non-constant time, without revealing meaningful
-        information, since an attacker wouldn't have access to either.
-        This scheme is easier to implement correctly & is easier to
-        prove guarantees of the infeasibility of timing attacks. Any
-        async ``hasher`` function can be specified as the HMAC function,
-        which is by default ``asha_256_hmac``.
+        time-safe comparison with a derived HMAC. Any async ``hasher``
+        function can be specified as the HMAC function, which is by
+        default SHA3_256_HMAC.
         """
-        if not hmac:
-            raise ValueError(MISSING_HMAC)
-        key = key if key else self.key
-        true_hmac = await self.ahmac(data=data, key=key, hasher=hasher)
-        if await self.atime_safe_equality(hmac, true_hmac, key=key):
+        if not untrusted_hmac:
+            raise Issue.no_value_specified("hmac")
+        true_hmac = await cls.amake_hmac(data, key=key, hasher=hasher)
+        if await abytes_are_equal(untrusted_hmac, true_hmac):
             return True
         else:
-            raise ValueError(INVALID_HMAC)
-
-    def _reset(self, key=None, *, automate_key_use=True):
-        """
-        Replaces the stored instance key used to create deterministic
-        streams of key material &, create & validate HMAC codes.
-        """
-        self._key = key if key else csprng()
-        if automate_key_use:
-            for method in self.instance_methods:
-                convert_static_method_to_member(
-                    self, method.__name__, method, key=self.key,
-                )
-
-    async def areset(self, key=None, *, automate_key_use=True):
-        """
-        Replaces the stored instance key used to create deterministic
-        streams of key material &, create & validate HMAC codes.
-        """
-        self._key = key if key else await acsprng()
-        if automate_key_use:
-            for method in self.instance_methods:
-                convert_static_method_to_member(
-                    self, method.__name__, method, key=self.key
-                )
-                await asleep(0)
-
-    async def _apasscrypt(
-        self,
-        password,
-        salt,
-        *,
-        kb=Passcrypt._DEFAULT_KB,
-        cpu=Passcrypt._DEFAULT_CPU,
-        hardness=Passcrypt._DEFAULT_HARDNESS,
-    ):
-        """
-        A tunably memory & cpu hard method which returns a key from a
-        user password & salt. This method also protects the passwords
-        it processes with the instance's key, which forces attackers to
-        also find a way to retrieve it in order to crack the passwords.
-        """
-        Passcrypt._check_inputs(password, salt)
-        salted_password = await self.ahmac((password, salt))
-        return await apasscrypt(
-            salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
-        )
+            raise Issue.invalid_value("HMAC of data stream")
 
 
 class Keys:
     """
-    This simple class coordinates and manages a symmetric key to create
-    pseudo-one-time-pad key material streams, key derivation functions,
-    as well as HMAC creation & HMAC validation of data. The class also
-    contains static methods & key generators that function independantly
-    from instance states.
+    This simple class is a high-level interface for symmetric key
+    creation, derivation & HMAC validation of data.
     """
-    instance_methods = {
-        keys,
-        bytes_keys,
-        mnemonic,
-        table_key,
-        table_keystream,
-        single_use_key,
-    }
+
+    __slots__ = []
 
     DomainKDF = DomainKDF
-    keys = staticmethod(keys)
-    csprbg = staticmethod(csprbg)
+    Passcrypt = Passcrypt
+    KeyAADBundle = KeyAADBundle
+
+    bytes_keys = staticmethod(bytes_keys)
     csprng = staticmethod(csprng)
+    generate_salt = staticmethod(generate_salt)
     mnemonic = staticmethod(mnemonic)
-    passcrypt = staticmethod(passcrypt)
-    table_key = staticmethod(table_key)
     random_256 = staticmethod(random_256)
     random_512 = staticmethod(random_512)
-    bytes_keys = staticmethod(bytes_keys)
-    padding_key = staticmethod(padding_key)
-    generate_salt = staticmethod(generate_salt)
-    single_use_key = staticmethod(single_use_key)
+    table_key = staticmethod(table_key)
     table_keystream = staticmethod(table_keystream)
-    keypair_ratchets = staticmethod(keypair_ratchets)
-    _test_key_and_salt = staticmethod(test_key_and_salt)
-    _time_safe_equality = staticmethod(time_safe_equality)
 
-    def __init__(self, key=None, *, automate_key_use=True):
+    @staticmethod
+    def make_hmac(
+        data: Typing.DeterministicRepr,
+        *,
+        key: bytes,
+        hasher: Typing.Callable = sha3__256_hmac,
+    ):
         """
-        Stores a key in the instance used to create deterministic
-        streams of key material &, create & validate HMAC codes. If a
-        ``key`` argument is not passed then a new 512-bit random key is
-        created.
+        Creates an HMAC code of ``data`` using the supplied ``key`` &
+        the hashing function ``hasher``. Any sync ``hasher`` function
+        can be specified as the HMAC function, which is by default
+        SHA3_256_HMAC.
         """
-        self.reset(key, automate_key_use=automate_key_use)
-        self.passcrypt = self._passcrypt
+        return hasher(data, key=key, hex=False)
 
-    @property
-    def key(self):
-        """
-        Returns the instance's main symmetric key.
-        """
-        return self._key
-
-    def hmac(self, data, *, key=None, hasher=sha_256_hmac):
-        """
-        Creates an HMAC code of ``data`` using ``key``  or the
-        instance's ``self.key`` if it's not supplied & the hashing
-        function ``hasher``.
-        """
-        return hasher(data, key=key if key else self.key)
-
-    def time_safe_equality(self, value_0=None, value_1=None, *, key=None):
-        """
-        Tests if ``value_0`` is equal to ``value_1`` with a randomized-
-        time comparison. Each value is prepended with a salt, a ``key``
-        & is hashed prior to the comparison. This algorithm reveals no
-        meaningful information, even though compared in non-constant
-        time, since an adversary wouldn't have access to these values.
-        If ``key`` isn't supplied then the instance's `self.key` is used
-        for the task. This scheme is easier to implement correctly than
-        a constant-time algorithm, & it's easier to prove infeasibility
-        guarantees regarding timing attacks.
-        """
-        key = key if key else self.key
-        return self._time_safe_equality(value_0, value_1, key=key)
-
+    @classmethod
     def test_hmac(
-        self, data, *, hmac=None, key=None, hasher=sha_256_hmac
+        cls,
+        data: Typing.DeterministicRepr,
+        untrusted_hmac: bytes,
+        *,
+        key: bytes,
+        hasher: Typing.Callable = sha3__256_hmac,
     ):
         """
         Tests if the given ``hmac`` of some ``data`` is valid with a
-        non-constant time comparison on the hash of each the supplied &
-        derived HMACs, appended with a salt prior to hashing. The
-        algorithm prepends the instance's ``self.key`` if ``key`` is not
-        supplied to further make the tested outputs undeterminable to an
-        attacker. The random salt & key allow the hashes to be compared
-        normally in non-constant time, without revealing meaningful
-        information, since an attacker wouldn't have access to either.
-        This scheme is easier to implement correctly & is easier to
-        prove guarantees of the infeasibility of timing attacks. Any
-        sync ``hasher`` function can be specified as the HMAC function,
-        which is by default ``sha_256_hmac``.
+        time-safe comparison with a derived HMAC. Any sync ``hasher``
+        function can be specified as the HMAC function, which is by
+        default SHA3_256_HMAC.
         """
-        if not hmac:
-            raise ValueError(MISSING_HMAC)
-        key = key if key else self.key
-        true_hmac = self.hmac(data=data, key=key, hasher=hasher)
-        if self.time_safe_equality(hmac, true_hmac, key=key):
+        if not untrusted_hmac:
+            raise Issue.no_value_specified("hmac")
+        true_hmac = cls.make_hmac(data, key=key, hasher=hasher)
+        if bytes_are_equal(untrusted_hmac, true_hmac):
             return True
         else:
-            raise ValueError(INVALID_HMAC)
-
-    def reset(self, key=None, *, automate_key_use=True):
-        """
-        Replaces the stored instance key used to create deterministic
-        streams of key material &, create & validate HMAC codes.
-        """
-        self._key = key if key else csprng()
-        if automate_key_use:
-            for method in self.instance_methods:
-                convert_static_method_to_member(
-                    self, method.__name__, method, key=self.key,
-                )
-
-    def _passcrypt(
-        self,
-        password,
-        salt,
-        *,
-        kb=Passcrypt._DEFAULT_KB,
-        cpu=Passcrypt._DEFAULT_CPU,
-        hardness=Passcrypt._DEFAULT_HARDNESS,
-    ):
-        """
-        A tunably memory & cpu hard method which returns a key from a
-        user password & salt. This method also protects the passwords
-        it processes with the instance's key, which forces attackers to
-        also find a way to retrieve it in order to crack the passwords.
-        """
-        Passcrypt._check_inputs(password, salt)
-        salted_password = self.hmac((password, salt))
-        return passcrypt(
-            salted_password, salt, kb=kb, cpu=cpu, hardness=hardness
-        )
+            raise Issue.invalid_value("HMAC of data stream")
 
 
-class Asymmetric25519:
+class Curve25519:
     """
     Contains a collection of class methods & values that simplify the
     usage of the cryptography library, as well as pointers to values in
     the cryptography library.
     """
 
-    cryptography = cryptography
-    hazmat = cryptography.hazmat
-    serialization = serialization
-    exceptions = cryptography.exceptions
-    X25519PublicKey = X25519PublicKey
-    X25519PrivateKey = X25519PrivateKey
-    Ed25519PublicKey = Ed25519PublicKey
-    Ed25519PrivateKey = Ed25519PrivateKey
+    __slots__ = []
+
     _PUBLIC_BYTES_ENUM = {
         "encoding": serialization.Encoding.Raw,
         "format": serialization.PublicFormat.Raw,
@@ -660,13 +433,23 @@ class Asymmetric25519:
         "encryption_algorithm": serialization.NoEncryption(),
     }
 
+    X25519PublicKey = X25519PublicKey
+    X25519PrivateKey = X25519PrivateKey
+    Ed25519PublicKey = Ed25519PublicKey
+    Ed25519PrivateKey = Ed25519PrivateKey
+
+    cryptography = cryptography
+    exceptions = cryptography.exceptions
+    hazmat = cryptography.hazmat
+    serialization = serialization
+
     @staticmethod
     async def aed25519_key():
         """
         Returns an ``Ed25519PrivateKey`` from the cryptography package
         used to make elliptic curve signatures of data.
         """
-        await asleep(0)
+        await asleep()
         return Ed25519PrivateKey.generate()
 
     @staticmethod
@@ -683,7 +466,7 @@ class Asymmetric25519:
         Returns a ``X25519PrivateKey`` from the cryptography package for
         use in an elliptic curve diffie-hellman exchange.
         """
-        await asleep(0)
+        await asleep()
         return X25519PrivateKey.generate()
 
     @staticmethod
@@ -695,411 +478,91 @@ class Asymmetric25519:
         return X25519PrivateKey.generate()
 
     @classmethod
-    async def apublic_bytes(cls, secret_key, *, hex=False):
+    async def apublic_bytes(cls, key):
         """
-        Returns the public key bytes of either an ``X25519PrivateKey``
-        or ``Ed25519PrivateKey`` from the cryptography package for an
-        elliptic curve diffie-hellman exchange or signature verification
-        key. If ``hex`` is truthy, then a hex string of the public key
-        is returned instead of bytes.
+        Returns the public key bytes of either an ``X25519PrivateKey``,
+        ``X25519PublicKey``, ``Ed25519PublicKey`` or ``Ed25519PrivateKey``
+        object from the cryptography package.
         """
-        await asleep(0)
-        if hasattr(secret_key, "public_key"):
-            public_key = secret_key.public_key()
+        await asleep()
+        if hasattr(key, "public_key"):
+            public_key = key.public_key()
         else:
-            public_key = secret_key
-
-        public_bytes = public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
-        if hex:
-            return public_bytes.hex()
-        else:
-            return public_bytes
+            public_key = key
+        return public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
 
     @classmethod
-    def public_bytes(cls, secret_key, *, hex=False):
+    def public_bytes(cls, key):
         """
-        Returns the public key bytes of either an ``X25519PrivateKey``
-        or ``Ed25519PrivateKey`` from the cryptography package for an
-        elliptic curve diffie-hellman exchange or signature verification
-        key. If ``hex`` is truthy, then a hex string of the public key
-        is returned instead of bytes.
+        Returns the public key bytes of either an ``X25519PrivateKey``,
+        ``X25519PublicKey``, ``Ed25519PublicKey`` or ``Ed25519PrivateKey``
+        object from the cryptography package.
         """
-        if hasattr(secret_key, "public_key"):
-            public_key = secret_key.public_key()
+        if hasattr(key, "public_key"):
+            public_key = key.public_key()
         else:
-            public_key = secret_key
-
-        public_bytes = public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
-        if hex:
-            return public_bytes.hex()
-        else:
-            return public_bytes
+            public_key = key
+        return public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
 
     @classmethod
-    async def asecret_bytes(cls, secret_key, *, hex=False):
+    async def asecret_bytes(cls, secret_key):
         """
         Returns the secret key bytes of either an ``X25519PrivateKey``
-        or ``Ed25519PrivateKey`` from the cryptography package for an
-        elliptic curve diffie-hellman exchange or signature creation
-        key. If ``hex`` is truthy, then a hex string of the secret key
-        is returned instead of bytes.
+        or ``Ed25519PrivateKey`` from the cryptography package.
         """
-        await asleep(0)
-        secret_bytes = secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
-        if hex:
-            return secret_bytes.hex()
-        else:
-            return secret_bytes
+        await asleep()
+        return secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
 
     @classmethod
-    def secret_bytes(cls, secret_key, *, hex=False):
+    def secret_bytes(cls, secret_key):
         """
         Returns the secret key bytes of either an ``X25519PrivateKey``
-        or ``Ed25519PrivateKey`` from the cryptography package for an
-        elliptic curve diffie-hellman exchange or signature creation
-        key. If ``hex`` is truthy, then a hex string of the secret key
-        is returned instead of bytes.
+        or ``Ed25519PrivateKey`` from the cryptography package.
         """
-        secret_bytes = secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
-        if hex:
-            return secret_bytes.hex()
-        else:
-            return secret_bytes
+        return secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
 
     @staticmethod
-    async def aexchange(secret_key: X25519PrivateKey, public_key: bytes):
+    async def aexchange(secret_key, public_key: bytes):
         """
         Returns the shared key bytes derived from an elliptic curve key
         exchange with the user's ``secret_key`` key, & their communicating
         peer's ``public_key`` public key's bytes or hex value.
         """
-        await asleep(0)
-        if not isinstance(public_key, bytes):
+        await asleep()
+        if public_key.__class__ is not bytes:
             public_key = bytes.fromhex(public_key)
         return secret_key.exchange(
             X25519PublicKey.from_public_bytes(public_key)
         )
 
     @staticmethod
-    def exchange(secret_key: X25519PrivateKey, public_key: bytes):
+    def exchange(secret_key, public_key: bytes):
         """
         Returns the shared key bytes derived from an elliptic curve key
         exchange with the user's ``secret_key`` key, & their communicating
         peer's ``public_key`` public key's bytes or hex value.
         """
-        if not isinstance(public_key, bytes):
+        if public_key.__class__ is not bytes:
             public_key = bytes.fromhex(public_key)
         return secret_key.exchange(
             X25519PublicKey.from_public_bytes(public_key)
         )
 
-    @classmethod
-    @comprehension()
-    async def adh2_client(cls):
-        """
-        Generates an ephemeral ``X25519`` secret key which is used to
-        start a 2DH client key exchange. This key is yielded as public
-        key bytes. Then the server's two public keys should be sent into
-        this coroutine when they're received. When this coroutine
-        reaches the raise statement, a primed ``sha3_512`` kdf object
-        will be accessible from the ``aresult`` method of this generator.
 
-        Usage Example:
-
-        from aiootp import X25519
-
-        async with X25519.protocols.adh2_client() as exchange:
-            client_hello = await exchange()
-            response = internet.post(client_hello)
-            await exchange(response)
-
-        shared_key_kdf = await exchange.aresult()
-        """
-        domain = Domains.DH2
-        my_ephemeral_key = await X25519().agenerate()
-        my_public_ephemeral_key = my_ephemeral_key.public_bytes
-        peer_identity_key, peer_ephemeral_key = yield (
-            my_public_ephemeral_key
-        )
-        shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
-        shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(sha3_512(domain + shared_key_ad + shared_key_cd))
-
-    @classmethod
-    @comprehension()
-    def dh2_client(cls):
-        """
-        Generates an ephemeral ``X25519`` secret key which is used to
-        start a 2DH client key exchange. This key is yielded as public
-        key bytes. Then the server's two public keys should be sent into
-        this coroutine when they're received. When this coroutine
-        reaches the return statement, a primed ``sha3_512`` kdf object
-        will be accessible from the ``result`` method of this generator.
-
-        Usage Example:
-
-        from aiootp import X25519
-
-        with X25519.protocols.dh2_client() as exchange:
-            client_hello = exchange()
-            response = internet.post(client_hello)
-            exchange(response)
-
-        shared_key_kdf = exchange.result()
-        """
-        domain = Domains.DH2
-        my_ephemeral_key = X25519().generate()
-        my_public_ephemeral_key = my_ephemeral_key.public_bytes
-        peer_identity_key, peer_ephemeral_key = yield (
-            my_public_ephemeral_key
-        )
-        shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
-        shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(domain + shared_key_ad + shared_key_cd)
-
-    @classmethod
-    @comprehension()
-    async def adh2_server(
-        cls, *, my_identity_key, peer_ephemeral_key: bytes
-    ):
-        """
-        Takes in the user's ``X25519`` secret key & a peer's public key
-        bytes to enact a 2DH key exchange. This yields the user's two
-        public keys as bytes, one from the secret key which was passed
-        in as an argument, one which is ephemeral. When this coroutine
-        reaches the raise statement, a primed ``sha3_512`` kdf object
-        will be accessible from the ``aresult`` method of this generator.
-
-        Usage Example:
-
-        from aiootp import X25519
-
-        # This key may be used again as an identity for this protocol
-        ecdhe_key = await X25519().agenerate()
-
-        pkD = client_public_key = internet.receive()
-
-        async with ecdhe_key.adh2_server(peer_ephemeral_key=pkD) as exchange:
-            internet.send(await exchange.aexhaust())
-
-        shared_key_kdf = await exchange.aresult()
-        """
-        domain = Domains.DH2
-        my_ephemeral_key = await X25519().agenerate()
-        yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
-        shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
-        shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(sha3_512(domain + shared_key_ad + shared_key_cd))
-
-    @classmethod
-    @comprehension()
-    def dh2_server(cls, *, my_identity_key, peer_ephemeral_key: bytes):
-        """
-        Takes in the user's ``X25519`` secret key & a peer's public key
-        bytes to enact a 2DH key exchange. This yields the user's two
-        public keys as bytes, one from the secret key which was passed
-        in as an argument, one which is ephemeral. When this coroutine
-        reaches the return statement, a primed ``sha3_512`` kdf object
-        will be accessible from the ``result`` method of this generator.
-
-        Usage Example:
-
-        from aiootp import X25519
-
-        # This key may be used again as an identity for this protocol
-        ecdhe_key = X25519().generate()
-
-        pkD = client_public_key = internet.receive()
-
-        with ecdhe_key.dh2_server(peer_ephemeral_key=pkD) as exchange:
-            internet.send(exchange.exhaust())
-
-        shared_key_kdf = exchange.result()
-        """
-        domain = Domains.DH2
-        my_ephemeral_key = X25519().generate()
-        yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
-        shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
-        shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(domain + shared_key_ad + shared_key_cd)
-
-    @classmethod
-    @comprehension()
-    async def adh3_client(cls, *, my_identity_key):
-        """
-        Takes in the user's ``X25519`` secret key to enact a 3DH key
-        exchange with a peer. This yields the user's two public keys as
-        bytes, one from the secret key which was passed in as an
-        argument, one which is ephemeral. When this coroutine reaches
-        the raise statement, a primed ``sha3_512`` kdf object will be
-        accessible from the ``aresult`` method of this generator.
-
-        Usage Example:
-
-        from aiootp import X25519
-
-        # This key may be used again as an identity for this protocol
-        ecdhe_key = await X25519().agenerate()
-
-        async with ecdhe_key.adh3_client() as exchange:
-            client_hello = await exchange()
-            response = internet.post(client_hello)
-            await exchange(response)
-
-        shared_key_kdf = await exchange.aresult()
-        """
-        domain = Domains.DH3
-        my_ephemeral_key = await X25519().agenerate()
-        peer_identity_key, peer_ephemeral_key = yield (
-            my_identity_key.public_bytes,
-            my_ephemeral_key.public_bytes,
-        )
-        shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
-        shared_key_bc = await my_identity_key.aexchange(peer_ephemeral_key)
-        shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(
-            sha3_512(domain + shared_key_ad + shared_key_bc + shared_key_cd)
-        )
-
-    @classmethod
-    @comprehension()
-    def dh3_client(cls, *, my_identity_key):
-        """
-        Takes in the user's ``X25519`` secret key to enact a 3DH key
-        exchange with a peer. This yields the user's two public keys as
-        bytes, one from the secret key which was passed in as an
-        argument, one which is ephemeral. When this coroutine reaches
-        the return statement, a primed ``sha3_512`` kdf object will be
-        accessible from the ``result`` method of this generator.
-
-        Usage Example:
-
-        from aiootp import X25519
-
-        # This key may be used again as an identity for this protocol
-        ecdhe_key = X25519().generate()
-
-        with ecdhe_key.dh3_client() as exchange:
-            client_hello = exchange()
-            response = internet.post(client_hello)
-            exchange(response)
-
-        shared_key_kdf = exchange.result()
-        """
-        domain = Domains.DH3
-        my_ephemeral_key = X25519().generate()
-        peer_identity_key, peer_ephemeral_key = yield (
-            my_identity_key.public_bytes,
-            my_ephemeral_key.public_bytes,
-        )
-        shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
-        shared_key_bc = my_identity_key.exchange(peer_ephemeral_key)
-        shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(
-            domain + shared_key_ad + shared_key_bc + shared_key_cd
-        )
-
-    @classmethod
-    @comprehension()
-    async def adh3_server(
-        cls,
-        *,
-        my_identity_key,
-        peer_identity_key: bytes,
-        peer_ephemeral_key: bytes,
-    ):
-        """
-        Takes in the user's ``X25519`` secret key & two of a peer's
-        public keys bytes to enact a 3DH deniable key exchange. This
-        yields the user's two public keys as bytes, one from the secret
-        key which was passed in as an argument, one which is ephemeral.
-        When this coroutine reaches the raise statement, a primed
-        ``sha3_512`` kdf object will be accessible from the ``aresult``
-        method of this generator.
-
-        Usage Example:
-
-        from aiootp import X25519
-
-        # This key may be used again as an identity for this protocol
-        ecdhe_key = await X25519().agenerate()
-
-        pkB, pkD = client_public_keys = internet.receive()
-
-        server = ecdhe_key.adh3_server(
-            peer_identity_key=pkB, peer_ephemeral_key=pkD
-        )
-        async with server as exchange:
-            internet.send(await exchange.aexhaust())
-
-        shared_key_kdf = await exchange.aresult()
-        """
-        domain = Domains.DH3
-        my_ephemeral_key = await X25519().agenerate()
-        yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
-        shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
-        shared_key_bc = await my_ephemeral_key.aexchange(peer_identity_key)
-        shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(
-            sha3_512(domain + shared_key_ad + shared_key_bc + shared_key_cd)
-        )
-
-    @classmethod
-    @comprehension()
-    def dh3_server(
-        cls,
-        *,
-        my_identity_key,
-        peer_identity_key: bytes,
-        peer_ephemeral_key: bytes,
-    ):
-        """
-        Takes in the user's ``X25519`` secret key & two of a peer's
-        public keys bytes to enact a 3DH deniable key exchange. This
-        yields the user's two public keys as bytes, one from the secret
-        key which was passed in as an argument, one which is ephemeral.
-        When this coroutine reaches the raise statement, a primed
-        ``sha3_512`` kdf object will be accessible from the ``result``
-        method of this generator.
-
-        Usage Example:
-
-        from aiootp import X25519
-
-        # This key may be used again as an identity for this protocol
-        ecdhe_key = X25519().generate()
-
-        pkB, pkD = client_public_keys = internet.receive()
-
-        server = ecdhe_key.dh3_server(
-            peer_identity_key=pkB, peer_ephemeral_key=pkD
-        )
-        with server as exchange:
-            internet.send(exchange.exhaust())
-
-        shared_key_kdf = exchange.result()
-        """
-        domain = Domains.DH3
-        my_ephemeral_key = X25519().generate()
-        yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
-        shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
-        shared_key_bc = my_ephemeral_key.exchange(peer_identity_key)
-        shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(
-            domain + shared_key_ad + shared_key_bc + shared_key_cd
-        )
-
-
-class BaseEllipticCurve:
+class Base25519:
     """
     Collects the shared functionality between the ``X25519`` & ``Ed25519``
     classes.
     """
 
+    __slots__ = ["_public_key", "_secret_key"]
+
+    _Curve25519 = Curve25519
+
+    _exceptions = Curve25519.exceptions
+
     PublicKey = None
     SecretKey = None
-    _asymmetric = Asymmetric25519
-    _exceptions = _asymmetric.exceptions
 
     @classmethod
     def _preprocess_key(cls, key_material):
@@ -1108,8 +571,8 @@ class BaseEllipticCurve:
         it unaltered only if is truthy.
         """
         if not key_material:
-            raise ValueError("No key material or object given.")
-        elif issubclass(key_material.__class__, str):
+            raise Issue.no_value_specified("key material")
+        elif key_material.__class__ is str:
             key_material = bytes.fromhex(key_material)
             return key_material
         else:
@@ -1124,11 +587,9 @@ class BaseEllipticCurve:
         subclass inhereting this method.
         """
         public_key = cls._preprocess_key(public_key)
-        if issubclass(public_key.__class__, bytes):
-            return cls.PublicKey.from_public_bytes(public_key)
-        else:
-            public_key = cls._asymmetric.public_bytes(public_key)
-            return cls.PublicKey.from_public_bytes(public_key)
+        if public_key.__class__ is not bytes:
+            public_key = cls._Curve25519.public_bytes(public_key)
+        return cls.PublicKey.from_public_bytes(public_key)
 
     @classmethod
     def _process_secret_key(cls, secret_key):
@@ -1138,18 +599,9 @@ class BaseEllipticCurve:
         key associated with the subclass inhereting this method.
         """
         secret_key = cls._preprocess_key(secret_key)
-        if issubclass(secret_key.__class__, bytes):
-            return cls.SecretKey.from_private_bytes(secret_key)
-        else:
-            secret_key = cls._asymmetric.secret_bytes(secret_key)
-            return cls.SecretKey.from_private_bytes(secret_key)
-
-    def __init__(self):
-        """
-        Create a instance specific object of the ``Asymmetric25519``
-        class.
-        """
-        self._asymmetric = self._asymmetric()
+        if secret_key.__class__ is not bytes:
+            secret_key = cls._Curve25519.secret_bytes(secret_key)
+        return cls.SecretKey.from_private_bytes(secret_key)
 
     async def aimport_public_key(self, public_key):
         """
@@ -1157,7 +609,7 @@ class BaseEllipticCurve:
         of either hex, bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
         ``Ed25519PublicKey`` or ``Ed25519PrivateKey`` type.
         """
-        await asleep(0)
+        await asleep()
         self._public_key = self._process_public_key(public_key)
         return self
 
@@ -1176,12 +628,13 @@ class BaseEllipticCurve:
         of either hex, bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
         type.
         """
-        await asleep(0)
+        await asleep()
         if hasattr(self, "_secret_key"):
-            raise PermissionError("This instance is already initialized.")
+            cls = self.__class__.__qualname__
+            raise Issue.value_already_set(f"{cls} instance key")
         self._secret_key = self._process_secret_key(secret_key)
         self._public_key = self.PublicKey.from_public_bytes(
-            await self._asymmetric.apublic_bytes(self._secret_key)
+            await self._Curve25519.apublic_bytes(self._secret_key)
         )
         return self
 
@@ -1192,10 +645,11 @@ class BaseEllipticCurve:
         type.
         """
         if hasattr(self, "_secret_key"):
-            raise PermissionError("This instance is already initialized.")
+            cls = self.__class__.__qualname__
+            raise Issue.value_already_set(f"{cls} instance key")
         self._secret_key = self._process_secret_key(secret_key)
         self._public_key = self.PublicKey.from_public_bytes(
-            self._asymmetric.public_bytes(self._secret_key)
+            self._Curve25519.public_bytes(self._secret_key)
         )
         return self
 
@@ -1222,7 +676,7 @@ class BaseEllipticCurve:
         populated SecretKey of the associated sublass inhereting this
         method.
         """
-        return self._asymmetric.secret_bytes(self._secret_key)
+        return self._Curve25519.secret_bytes(self._secret_key)
 
     @property
     def public_bytes(self):
@@ -1231,10 +685,22 @@ class BaseEllipticCurve:
         populated PublicKey of the associated sublass inhereting this
         method.
         """
-        return self._asymmetric.public_bytes(self._public_key)
+        return self._Curve25519.public_bytes(self._public_key)
+
+    def is_secret_key(self):
+        """
+        Returns a boolean of whether the instance contains a secret key.
+        """
+        return hasattr(self, "_secret_key")
+
+    def is_public_key(self):
+        """
+        Returns a boolean of whether the instance contains a public key.
+        """
+        return hasattr(self, "_public_key")
 
 
-class Ed25519(BaseEllipticCurve):
+class Ed25519(Base25519):
     """
     This class is used to create stateful objects that simplify usage of
     the cryptography library's ed25519 protocol.
@@ -1244,18 +710,18 @@ class Ed25519(BaseEllipticCurve):
     from aiootp import Ed25519
 
     # In a land, long ago ->
-    user_alice = Ed25519().generate()
-    internet.send(user_alice.public_bytes.hex())
+    alices_key = Ed25519().generate()
+    internet.send(alices_key.public_bytes)
 
     # Alice wants to sign a document so that Bob can prove she wrote it.
     # So, Alice sends her public key bytes of the key she wants to
     # associate with her identity, the document & the signature ->
     document = b"DesignDocument.cad"
-    signed_document = user_alice.sign(document)
+    signed_document = alices_key.sign(document)
     message = {
         "document": document,
         "signature": signed_document,
-        "public_key": user_alice.public_bytes.hex(),
+        "public_key": alices_key.public_bytes,
     }
     internet.send(message)
 
@@ -1275,9 +741,12 @@ class Ed25519(BaseEllipticCurve):
     # The verification didn't throw an exception! So, Bob knows the file
     # was signed by Alice.
     """
-    PublicKey = BaseEllipticCurve._asymmetric.Ed25519PublicKey
-    SecretKey = BaseEllipticCurve._asymmetric.Ed25519PrivateKey
-    InvalidSignature = BaseEllipticCurve._exceptions.InvalidSignature
+
+    __slots__ = ["_public_key", "_secret_key"]
+
+    InvalidSignature = Base25519._exceptions.InvalidSignature
+    PublicKey = Curve25519.Ed25519PublicKey
+    SecretKey = Curve25519.Ed25519PrivateKey
 
     async def agenerate(self):
         """
@@ -1286,7 +755,7 @@ class Ed25519(BaseEllipticCurve):
         method returns the instance for convenience in instantiating a
         stateful object with await Ed25519().agenerate().
         """
-        key = await self._asymmetric.aed25519_key()
+        key = await self._Curve25519.aed25519_key()
         await self.aimport_secret_key(key)
         return self
 
@@ -1297,7 +766,7 @@ class Ed25519(BaseEllipticCurve):
         method returns the instance for convenience in instantiating a
         stateful object with Ed25519().generate().
         """
-        key = self._asymmetric.ed25519_key()
+        key = self._Curve25519.ed25519_key()
         self.import_secret_key(key)
         return self
 
@@ -1305,7 +774,7 @@ class Ed25519(BaseEllipticCurve):
         """
         Signs some bytes ``data`` with the instance's secret key.
         """
-        await asleep(0)
+        await asleep()
         return self.secret_key.sign(data)
 
     def sign(self, data):
@@ -1322,11 +791,11 @@ class Ed25519(BaseEllipticCurve):
         the verification.
         """
         if public_key:
-            await asleep(0)
+            await asleep()
             public_key = self._process_public_key(public_key)
         else:
             public_key = self.public_key
-        await asleep(0)
+        await asleep()
         public_key.verify(signature, data)
 
     def verify(self, signature, data, *, public_key=None):
@@ -1343,7 +812,7 @@ class Ed25519(BaseEllipticCurve):
         public_key.verify(signature, data)
 
 
-class X25519(BaseEllipticCurve):
+class X25519(Base25519):
     """
     This class is used to create stateful objects that simplify usage of
     the cryptography library's x25519 protocol.
@@ -1374,63 +843,11 @@ class X25519(BaseEllipticCurve):
     manipulate the information while its in transit between Alice &
     Bob. Each public key should only be used once.
     """
-    PublicKey = BaseEllipticCurve._asymmetric.X25519PublicKey
-    SecretKey = BaseEllipticCurve._asymmetric.X25519PrivateKey
 
-    _client_indentity_protocols = Namespace(
-        adh3_client=Asymmetric25519.adh3_client,
-        dh3_client=Asymmetric25519.dh3_client,
-    )
-    _client_no_indentity_protocols = Namespace(
-        adh2_client=Asymmetric25519.adh2_client,
-        dh2_client=Asymmetric25519.dh2_client,
-    )
-    _client_protocols = Namespace(
-        **_client_indentity_protocols, **_client_no_indentity_protocols
-    )
-    _server_protocols = Namespace(
-        adh2_server=Asymmetric25519.adh2_server,
-        dh2_server=Asymmetric25519.dh2_server,
-        adh3_server=Asymmetric25519.adh3_server,
-        dh3_server=Asymmetric25519.dh3_server,
-    )
-    protocols = Namespace(**_server_protocols, **_client_protocols)
+    __slots__ = ["_public_key", "_secret_key"]
 
-    async def _ainsert_identity_key_into_protocols(self):
-        """
-        Creates instance method versions of the protocols in
-        self.protocols. Those methods automatically pass the instance's
-        secret key as a keyword argument to streamline their usage in
-        the package's ready-made elliptic curve diffie-hellman exchange
-        protocols.
-        """
-        for name, protocol in self._server_protocols:
-            await asleep(0)
-            convert_static_method_to_member(
-                self, name, protocol, my_identity_key=self
-            )
-        for name, protocol in self._client_indentity_protocols:
-            await asleep(0)
-            convert_static_method_to_member(
-                self, name, protocol, my_identity_key=self
-            )
-
-    def _insert_identity_key_into_protocols(self):
-        """
-        Creates instance method versions of the protocols in
-        self.protocols. Those methods automatically pass the instance's
-        secret key as a keyword argument to streamline their usage in
-        the package's ready-made elliptic curve diffie-hellman exchange
-        protocols.
-        """
-        for name, protocol in self._server_protocols:
-            convert_static_method_to_member(
-                self, name, protocol, my_identity_key=self
-            )
-        for name, protocol in self._client_indentity_protocols:
-            convert_static_method_to_member(
-                self, name, protocol, my_identity_key=self
-            )
+    PublicKey = Curve25519.X25519PublicKey
+    SecretKey = Curve25519.X25519PrivateKey
 
     async def aimport_secret_key(self, secret_key):
         """
@@ -1442,7 +859,6 @@ class X25519(BaseEllipticCurve):
         ready-made elliptic curve diffie-hellman exchange protocols.
         """
         await super().aimport_secret_key(secret_key)
-        await self._ainsert_identity_key_into_protocols()
         return self
 
     def import_secret_key(self, secret_key):
@@ -1455,7 +871,6 @@ class X25519(BaseEllipticCurve):
         ready-made elliptic curve diffie-hellman exchange protocols.
         """
         super().import_secret_key(secret_key)
-        self._insert_identity_key_into_protocols()
         return self
 
     async def agenerate(self):
@@ -1467,7 +882,7 @@ class X25519(BaseEllipticCurve):
         returns the instance for convenience in instantiating a stateful
         object with await X25519().agenerate().
         """
-        key = await self._asymmetric.ax25519_key()
+        key = await self._Curve25519.ax25519_key()
         await self.aimport_secret_key(key)
         return self
 
@@ -1480,7 +895,7 @@ class X25519(BaseEllipticCurve):
         returns the instance for convenience in instantiating a stateful
         object with await X25519().generate().
         """
-        key = self._asymmetric.x25519_key()
+        key = self._Curve25519.x25519_key()
         self.import_secret_key(key)
         return self
 
@@ -1490,11 +905,11 @@ class X25519(BaseEllipticCurve):
         instance's secret key to do an elliptic curve diffie-hellman
         exchange & returns the resulting secret shared bytes.
         """
-        await asleep(0)
+        await asleep()
         public_key = self._process_public_key(public_key)
-        return await self._asymmetric.aexchange(
+        return await self._Curve25519.aexchange(
             self._secret_key,
-            await self._asymmetric.apublic_bytes(public_key),
+            await self._Curve25519.apublic_bytes(public_key),
         )
 
     def exchange(self, public_key):
@@ -1504,1172 +919,678 @@ class X25519(BaseEllipticCurve):
         exchange & returns the resulting secret shared bytes.
         """
         public_key = self._process_public_key(public_key)
-        return self._asymmetric.exchange(
-            self._secret_key, self._asymmetric.public_bytes(public_key)
+        return self._Curve25519.exchange(
+            self._secret_key, self._Curve25519.public_bytes(public_key)
+        )
+
+    @classmethod
+    @comprehension()
+    async def adh2_client(cls):
+        """
+        Generates an ephemeral ``X25519`` secret key which is used to
+        start a 2DH client key exchange. This key is yielded as public
+        key bytes. Then the server's two public keys should be sent into
+        this coroutine when they're received. When this coroutine
+        reaches the raise statement, a primed ``sha3_512`` kdf object
+        will be accessible from the ``aresult`` method of this generator.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        async with X25519.protocols.adh2_client() as exchange:
+            client_hello = await exchange()
+            response = internet.post(client_hello)
+            await exchange(response)
+
+        shared_key_kdf = await exchange.aresult()
+        """
+        domain = Domains.DH2
+        my_ephemeral_key = await X25519().agenerate()
+        peer_identity_key, peer_ephemeral_key = yield (
+            my_ephemeral_key.public_bytes
+        )
+        shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
+        shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
+        raise UserWarning(sha3_512(domain + shared_key_ad + shared_key_cd))
+
+    @classmethod
+    @comprehension()
+    def dh2_client(cls):
+        """
+        Generates an ephemeral ``X25519`` secret key which is used to
+        start a 2DH client key exchange. This key is yielded as public
+        key bytes. Then the server's two public keys should be sent into
+        this coroutine when they're received. When this coroutine
+        reaches the return statement, a primed ``sha3_512`` kdf object
+        will be accessible from the ``result`` method of this generator.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        with X25519.protocols.dh2_client() as exchange:
+            client_hello = exchange()
+            response = internet.post(client_hello)
+            exchange(response)
+
+        shared_key_kdf = exchange.result()
+        """
+        domain = Domains.DH2
+        my_ephemeral_key = X25519().generate()
+        peer_identity_key, peer_ephemeral_key = yield (
+            my_ephemeral_key.public_bytes
+        )
+        shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
+        shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
+        return sha3_512(domain + shared_key_ad + shared_key_cd)
+
+    @comprehension()
+    async def adh2_server(self, peer_ephemeral_key: bytes):
+        """
+        Takes in the user's ``X25519`` secret key & a peer's public key
+        bytes to enact a 2DH key exchange. This yields the user's two
+        public keys as bytes, one from the secret key which was passed
+        in as an argument, one which is ephemeral. When this coroutine
+        reaches the raise statement, a primed ``sha3_512`` kdf object
+        will be accessible from the ``aresult`` method of this generator.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        # This key may be used again as an identity for this protocol
+        ecdhe_key = await X25519().agenerate()
+
+        client_ephemeral_key = internet.receive()
+
+        async with ecdhe_key.adh2_server(client_ephemeral_key) as exchange:
+            internet.send(await exchange.aexhaust())
+
+        shared_key_kdf = await exchange.aresult()
+        """
+        domain = Domains.DH2
+        my_identity_key = self
+        my_ephemeral_key = await X25519().agenerate()
+        yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
+        shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
+        shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
+        raise UserWarning(sha3_512(domain + shared_key_ad + shared_key_cd))
+
+    @comprehension()
+    def dh2_server(self, peer_ephemeral_key: bytes):
+        """
+        Takes in the user's ``X25519`` secret key & a peer's public key
+        bytes to enact a 2DH key exchange. This yields the user's two
+        public keys as bytes, one from the secret key which was passed
+        in as an argument, one which is ephemeral. When this coroutine
+        reaches the return statement, a primed ``sha3_512`` kdf object
+        will be accessible from the ``result`` method of this generator.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        # This key may be used again as an identity for this protocol
+        ecdhe_key = X25519().generate()
+
+        client_ephemeral_key = internet.receive()
+
+        with ecdhe_key.dh2_server(client_ephemeral_key) as exchange:
+            internet.send(exchange.exhaust())
+
+        shared_key_kdf = exchange.result()
+        """
+        domain = Domains.DH2
+        my_identity_key = self
+        my_ephemeral_key = X25519().generate()
+        yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
+        shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
+        shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
+        return sha3_512(domain + shared_key_ad + shared_key_cd)
+
+    @comprehension()
+    async def adh3_client(self):
+        """
+        Takes in the user's ``X25519`` secret key to enact a 3DH key
+        exchange with a peer. This yields the user's two public keys as
+        bytes, one from the secret key which was passed in as an
+        argument, one which is ephemeral. When this coroutine reaches
+        the raise statement, a primed ``sha3_512`` kdf object will be
+        accessible from the ``aresult`` method of this generator.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        # This key may be used again as an identity for this protocol
+        ecdhe_key = await X25519().agenerate()
+
+        async with ecdhe_key.adh3_client() as exchange:
+            client_hello = await exchange()
+            response = internet.post(client_hello)
+            await exchange(response)
+
+        shared_key_kdf = await exchange.aresult()
+        """
+        domain = Domains.DH3
+        my_identity_key = self
+        my_ephemeral_key = await X25519().agenerate()
+        peer_identity_key, peer_ephemeral_key = yield (
+            my_identity_key.public_bytes,
+            my_ephemeral_key.public_bytes,
+        )
+        shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
+        shared_key_bc = await my_identity_key.aexchange(peer_ephemeral_key)
+        shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
+        raise UserWarning(
+            sha3_512(domain + shared_key_ad + shared_key_bc + shared_key_cd)
+        )
+
+    @comprehension()
+    def dh3_client(self):
+        """
+        Takes in the user's ``X25519`` secret key to enact a 3DH key
+        exchange with a peer. This yields the user's two public keys as
+        bytes, one from the secret key which was passed in as an
+        argument, one which is ephemeral. When this coroutine reaches
+        the return statement, a primed ``sha3_512`` kdf object will be
+        accessible from the ``result`` method of this generator.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        # This key may be used again as an identity for this protocol
+        ecdhe_key = X25519().generate()
+
+        with ecdhe_key.dh3_client() as exchange:
+            client_hello = exchange()
+            response = internet.post(client_hello)
+            exchange(response)
+
+        shared_key_kdf = exchange.result()
+        """
+        domain = Domains.DH3
+        my_identity_key = self
+        my_ephemeral_key = X25519().generate()
+        peer_identity_key, peer_ephemeral_key = yield (
+            my_identity_key.public_bytes,
+            my_ephemeral_key.public_bytes,
+        )
+        shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
+        shared_key_bc = my_identity_key.exchange(peer_ephemeral_key)
+        shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
+        return sha3_512(
+            domain + shared_key_ad + shared_key_bc + shared_key_cd
+        )
+
+    @comprehension()
+    async def adh3_server(
+        self, peer_identity_key: bytes, peer_ephemeral_key: bytes
+    ):
+        """
+        Takes in the user's ``X25519`` secret key & two of a peer's
+        public keys bytes to enact a 3DH deniable key exchange. This
+        yields the user's two public keys as bytes, one from the secret
+        key which was passed in as an argument, one which is ephemeral.
+        When this coroutine reaches the raise statement, a primed
+        ``sha3_512`` kdf object will be accessible from the ``aresult``
+        method of this generator.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        # This key may be used again as an identity for this protocol
+        ecdhe_key = await X25519().agenerate()
+
+        identity_key, ephemeral_key = client_keys = internet.receive()
+
+        server = ecdhe_key.adh3_server(identity_key, ephemeral_key)
+        async with server as exchange:
+            internet.send(await exchange.aexhaust())
+
+        shared_key_kdf = await exchange.aresult()
+        """
+        domain = Domains.DH3
+        my_identity_key = self
+        my_ephemeral_key = await X25519().agenerate()
+        yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
+        shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
+        shared_key_bc = await my_ephemeral_key.aexchange(peer_identity_key)
+        shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
+        raise UserWarning(
+            sha3_512(domain + shared_key_ad + shared_key_bc + shared_key_cd)
+        )
+
+    @comprehension()
+    def dh3_server(
+        self, peer_identity_key: bytes, peer_ephemeral_key: bytes
+    ):
+        """
+        Takes in the user's ``X25519`` secret key & two of a peer's
+        public keys bytes to enact a 3DH deniable key exchange. This
+        yields the user's two public keys as bytes, one from the secret
+        key which was passed in as an argument, one which is ephemeral.
+        When this coroutine reaches the raise statement, a primed
+        ``sha3_512`` kdf object will be accessible from the ``result``
+        method of this generator.
+
+        Usage Example:
+
+        from aiootp import X25519
+
+        # This key may be used again as an identity for this protocol
+        ecdhe_key = X25519().generate()
+
+        identity_key, ephemeral_key = client_keys = internet.receive()
+
+        server = ecdhe_key.dh3_server(identity_key, ephemeral_key)
+        with server as exchange:
+            internet.send(exchange.exhaust())
+
+        shared_key_kdf = exchange.result()
+        """
+        domain = Domains.DH3
+        my_identity_key = self
+        my_ephemeral_key = X25519().generate()
+        yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
+        shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
+        shared_key_bc = my_ephemeral_key.exchange(peer_identity_key)
+        shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
+        return sha3_512(
+            domain + shared_key_ad + shared_key_bc + shared_key_cd
         )
 
 
-class Ropake:
+class PackageSigner:
     """
-    Ratcheting Opaque Password Authenticated Key Exchange
+    Provides an intuitive API for users to sign their own packages.
 
-    An implementation of a password-authenticated key exchange protocol
-    for servers to securely authenticate users & users to authenticate
-    servers. User passwords aren't disclosed to the servers. They are
-    used to build persistently secure connection keys which are made
-    future & forward secure with a new elliptic curve diffie-hellman
-    shared key being used for every authentication & mixed with keys
-    established from past authentications. The protocol requires that
-    the client & server are able to securely store cryptographic
-    material, & by default this module's ``AsyncDatabase`` & ``Database``
-    classes are intended to be used for this purpose.
+    Usage Example:
 
-    Usage Examples:
+    import getpass
+    import json
+    from aiootp import PackageSigner
 
-    import aiootp
-    from aiootp import Ropake
-
-    new_account = True
-    # The arguments must contain at least one unique element for each
-    # service the client wants to authenticate with. Using unique
-    # cryptographically secure keys would be better, but this is a good
-    # alternative ->
-    tokens = aiootp.Database.generate_profile_tokens(
-        server_url,     # An unlimited number of arguments can be passed
-        email_address,  # here as additional, optional credentials.
-        username=username,
-        password=password,
-        salt=optional_salt_keyword_argument,
+    signer = PackageSigner(
+        package=__package__,
+        version=__version__,
+        author=__author__,
+        license=__license__,
     )
-    db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
-
-    if new_account:
-        client = Ropake.client_registration(db)
-    else:
-        client = Ropake.client(db)
-    client_hello = client()
-    internet.send(client_hello)
-
-    server_db = aiootp.Database("some_cryptographic_key")
-    client_hello = internet.receive()
-    if Ropake.is_registering(client_hello):
-        server = Ropake.server_registration(client_hello, server_db)
-    else:
-        server = Ropake.server(client_hello, server_db)
-    server_hello = server()
-    internet.send(server_hello)
-    try:
-        server()
-    except StopIteration:
-        shared_keys = server.result()
-
-        # The user's KEY_ID for storing account data in the server
-        # database does not need to remain secret
-        key_id = shared_keys[Ropake.KEY_ID]
-
-        # The key used during the user's next login authentication
-        server_db[key_id][Ropake.KEY] == shared_keys[Ropake.KEY]
-
-        # The key used to encrypt communication for the current session
-        server_db[key_id][Ropake.SESSION_KEY] == shared_keys[Ropake.SESSION_KEY]
-
-        # A user is authenticated if they can decrypt messages encrypted
-        # with the session key & again proves themselves on the next
-        # authentication attempt by encrypting the hello message with
-        # the Ropake.KEY & successfully reproducing the keyed password
-        # from a stored secret 512-bit salt.
-
-    server_hello = internet.receive()
-    try:
-        client(server_hello)
-    except StopIteration:
-        shared_keys = client.result()
-        # These shared keys will be the same as the one's the server
-        # derived if the registration / authentication was successful.
-    """
-
-    PUB = PUB
-    KEY = KEY
-    SALT = SALT
-    KEY_ID = KEY_ID
-    SECRET = SECRET
-    CIPHERTEXT = CIPHERTEXT
-    SHARED_KEY = SHARED_KEY
-    TIMEOUT = ROPAKE_TIMEOUT
-    SESSION_KEY = SESSION_KEY
-    SESSION_SALT = SESSION_SALT
-    REGISTRATION = REGISTRATION
-    SHARED_SECRET = SHARED_SECRET
-    PASSWORD_SALT = PASSWORD_SALT
-    AUTHENTICATION = AUTHENTICATION
-    KEYED_PASSWORD = KEYED_PASSWORD
-    NEXT_PASSWORD_SALT = NEXT_PASSWORD_SALT
-    NEXT_KEYED_PASSWORD = NEXT_KEYED_PASSWORD
-    X25519 = X25519
-    Ed25519 = Ed25519
-    generate_salt = staticmethod(csprng)
-    agenerate_salt = staticmethod(acsprng)
-
-    _KEYED_PASSWORD_TUTORIAL = f"""\
-    ``database`` needs a {KEYED_PASSWORD} entry.
-    tokens = Database.generate_profile_tokens(
-        server_url,     # An unlimited number of arguments can be passed
-        email_address,  # here as additional, optional credentials.
-        username=username,
-        password=password,
-        salt=optional_salt_value,
+    signer.connect_to_secure_database(
+        passphrase=getpass("database passphrase:\n"),
+        salt=getpass("database salt:\n"),
+        directory=getpass("secure directory:\n"),
     )
-    db = Database.generate_profile(tokens)
-    db[Ropake.PASSWORD_SALT] = salt = Ropake.generate_salt()
-    db[Ropake.KEYED_PASSWORD] = Ropake._make_commit(db._root_key, salt)
-    db[Ropake.NEXT_PASSWORD_SALT] = next_salt = Ropake.generate_salt()
-    db[Ropake.NEXT_KEYED_PASSWORD] = Ropake._make_commit(db._root_key, next_salt)
-    # client sends keyed_password to server during registration & sends
-    # Ropake._id(salt) to the server during authentication, as well as
-    # the next keyed_password to be used during the next authentication.
+
+    with open("MANIFEST.in", "r") as manifest:
+        filename_sheet = manifest.read().split("\n")
+
+    for line in filename_sheet:
+        if not line.startswith("include"):
+            continue
+        filename = line.strip().split(" ")[-1]
+        with open(filename, "rb") as source_file:
+            signer.add_file(filename, source_file.read())
+
+    signer.sign_package()
+    signer.db.save_database()
+    package_signature_summary = signer.summarize()
     """
 
-    @classmethod
-    def is_registering(cls, client_hello=None):
-        """
-        Takes a ``client_hello`` protocol packet & returns ``"Maybe""``
-        if it contains neither a KEY_ID or CIPHERTEXT element signifying
-        it may be a registration packet instead of an authentication
-        packet. Returns ``False`` if either a KEY_ID or CIPHERTEXT
-        element is present, meaning it's definitely not a compatible
-        registration packet.
-        """
-        if not isinstance(client_hello, dict) or not client_hello:
-            return False
-        elif (
-            cls.KEY_ID not in client_hello
-            and cls.CIPHERTEXT not in client_hello
-        ):
-            return "Maybe"
-        else:
-            return False
+    __slots__ = ["_db", "_scope", "files"]
+
+    _Hasher = sha512
+    _InvalidSignature = Ed25519._exceptions.InvalidSignature
+    _Signer = Ed25519
+
+    _CHECKSUM = CHECKSUM
+    _CHECKSUMS = CHECKSUMS
+    _CLASS = "PackageSigner"
+    _PUBLIC_CREDENTIALS = PUBLIC_CREDENTIALS
+    _SCOPE = SCOPE
+    _SIGNATURE = SIGNATURE
+    _SIGNING_KEY = SIGNING_KEY
+    _VERSIONS = VERSIONS
 
     @classmethod
-    def is_authenticating(cls, client_hello=None):
+    def _database_template(cls):
         """
-        Takes a ``client_hello`` protocol packet & returns ``"Maybe"``
-        if it does contain a KEY_ID & CIPHERTEXT element, signifying
-        that it may be an authentication packet instead of registration
-        packet. Returns ``False`` if the KEY_ID or CIPHERTEXT element
-        isn't present, meaning that it's definitely not a compatible
-        authentication packet.
+        Returns the default instance package database values for
+        initializing new databases.
         """
-        if not isinstance(client_hello, dict) or not client_hello:
-            return False
-        elif cls.KEY_ID in client_hello and cls.CIPHERTEXT in client_hello:
-            return "Maybe"
-        else:
-            return False
-
-    @staticmethod
-    async def _aid(key=None):
-        """
-        Returns a deterministic hmac of any arbitrary key material. This
-        is typically used to identify a particular connection between a
-        server & client which avoids personal or device identfiable
-        information being needed for authenticating parties to identify
-        each other.
-        """
-        return await asha_512_hmac(key, key=key)
-
-    @staticmethod
-    def _id(key=None):
-        """
-        Returns a deterministic hmac of any arbitrary key material. This
-        is typically used to identify a particular connection between a
-        server & client which avoids personal or device identfiable
-        information being needed for authenticating parties to identify
-        each other.
-        """
-        return sha_512_hmac(key, key=key)
-
-    @staticmethod
-    async def _aclient_message_key(key, *, label="client_hello"):
-        """
-        Hashes a ROPAKE protocol authentication ``key`` with a ``label``
-        converting it into a one-time client_hello message key. This
-        prevents replay attacks on the messages between the client &
-        server if a unique label is used per distinct key. Since the key
-        already ratchets in a future & foward secure way after each
-        authentication, the label doesn't need to change during default
-        usage of this method.
-        """
-        if key:
-            prekey = ("client", label, key)
-            return await asha_512_hmac(prekey, key=prekey)
-        else:
-            raise ValueError(
-                "Must provide ``key`` material to mix with ``label``."
-            )
-
-    @staticmethod
-    def _client_message_key(key, *, label="client_hello"):
-        """
-        Hashes a ROPAKE protocol authentication ``key`` with a ``label``
-        converting it into a one-time client_hello message key. This
-        prevents replay attacks on the messages between the client &
-        server if a unique label is used per distinct key. Since the key
-        already ratchets in a future & foward secure way after each
-        authentication, the label doesn't need to change during default
-        usage of this method.
-        """
-        if key:
-            prekey = ("client", label, key)
-            return sha_512_hmac(prekey, key=prekey)
-        else:
-            raise ValueError(
-                "Must provide ``key`` material to mix with ``label``."
-            )
-
-    @staticmethod
-    async def _aserver_message_key(key, *, label="server_hello"):
-        """
-        Hashes a ROPAKE protocol authentication ``key`` with a ``label``
-        converting it into a one-time server_hello message key. This
-        prevents replay attacks on the messages between the client &
-        server if a unique label is used per distinct key. Since the key
-        already ratchets in a future & foward secure way after each
-        authentication, the label doesn't need to change during default
-        usage of this method.
-        """
-        if key:
-            prekey = ("server", label, key)
-            return await asha_512_hmac(prekey, key=prekey)
-        else:
-            raise ValueError(
-                "Must provide ``key`` material to mix with ``label``."
-            )
-
-    @staticmethod
-    def _server_message_key(key, *, label="server_hello"):
-        """
-        Hashes a ROPAKE protocol authentication ``key`` with a ``label``
-        converting it into a one-time server_hello message key. This
-        prevents replay attacks on the messages between the client &
-        server if a unique label is used per distinct key. Since the key
-        already ratchets in a future & foward secure way after each
-        authentication, the label doesn't need to change during default
-        usage of this method.
-        """
-        if key:
-            prekey = ("server", label, key)
-            return sha_512_hmac(prekey, key=prekey)
-        else:
-            raise ValueError(
-                "Must provide ``key`` material to mix with ``label``."
-            )
+        return {
+            cls._SIGNING_KEY: "",
+            cls._VERSIONS: {},
+            cls._PUBLIC_CREDENTIALS: {},
+        }
 
     @classmethod
-    async def _aencrypt(cls, *, message_key, key_id=None, **plaintext):
+    def generate_signing_key(cls):
         """
-        A flexible pseudo-one-time-pad encryption method which turns the
-        keyword arguments passed as ``**plaintext`` into a dictionary
-        which is encrypted as a json object with the ``message_key``
-        value. If a ``key_id`` is specified, then a registration has
-        already established a shared key between the client & server,
-        so the key_id is attached to the outside of the ciphertext so
-        the other party knows which user/server is attempting to
-        communicate with them.
+        Generates a new `Ed25519` secret signing key object.
         """
-        message = await ajson_encrypt(plaintext, key=message_key)
-        if key_id:
-            return {cls.KEY_ID: key_id, **message}
-        else:
-            return message
+        return cls._Signer().generate()
 
-    @classmethod
-    def _encrypt(cls, *, message_key, key_id=None, **plaintext):
-        """
-        A flexible pseudo-one-time-pad encryption method which turns the
-        keyword arguments passed as ``**plaintext`` into a dictionary
-        which is encrypted as a json object with the ``message_key``
-        value. If a ``key_id`` is specified, then a registration has
-        already established a shared key between the client & server,
-        so the key_id is attached to the outside of the ciphertext so
-        the other party knows which user/server is attempting to
-        communicate with them.
-        """
-        message = json_encrypt(plaintext, key=message_key)
-        if key_id:
-            return {cls.KEY_ID: key_id, **message}
-        else:
-            return message
-
-    @classmethod
-    async def _adecrypt(cls, *, message_key, ciphertext, ttl=0):
-        """
-        Decrypts a pseudo-one-time-pad ``ciphertext`` of json data with
-        the ``message_key`` & returns the plaintext as well as the
-        key_id in a dictionary if it was attached to the ciphertext.
-        ``ttl`` determines the amount of seconds that the decrypted
-        message is allowed to be aged.
-        """
-        if ciphertext.get(cls.KEY_ID):
-            key_id = ciphertext.pop(cls.KEY_ID)
-            message = await ajson_decrypt(
-                data=ciphertext,
-                key=message_key,
-                ttl=ttl if ttl else cls.TIMEOUT,
-            )
-            return {cls.KEY_ID: key_id, **message}
-        else:
-            return await ajson_decrypt(
-                data=ciphertext,
-                key=message_key,
-                ttl=ttl if ttl else cls.TIMEOUT,
-            )
-
-    @classmethod
-    def _decrypt(cls, *, message_key, ciphertext, ttl=0):
-        """
-        Decrypts a pseudo-one-time-pad ``ciphertext`` of json data with
-        the ``message_key`` & returns the plaintext as well as the
-        key_id in a dictionary if it was attached to the ciphertext.
-        ``ttl`` determines the amount of seconds that the decrypted
-        message is allowed to be aged.
-        """
-        if ciphertext.get(cls.KEY_ID):
-            key_id = ciphertext.pop(cls.KEY_ID)
-            message = json_decrypt(
-                data=ciphertext,
-                key=message_key,
-                ttl=ttl if ttl else cls.TIMEOUT,
-            )
-            return {cls.KEY_ID: key_id, **message}
-        else:
-            return json_decrypt(
-                data=ciphertext,
-                key=message_key,
-                ttl=ttl if ttl else cls.TIMEOUT,
-            )
-
-    @classmethod
-    async def _amake_commit(cls, password_hash, salt):
-        """
-        Takes in a hashed password string & a secret salt then returns
-        a number which functions as a commit message between the client
-        & server during the ROPAKE protocol. This commit message is
-        shared with the server, then on the subsequent authentication
-        with the server, the client will send the hash of the secret
-        salt. This allows both parties to arrive at a common value
-        without the server ever learning brute-forceable information
-        about the password hash (if the secret salt is >= 256 bits).
-        """
-        return int(await cls._aid((password_hash, salt)), 16) ^ int(
-            await cls._aid(salt), 16
-        )
-
-    @classmethod
-    def _make_commit(cls, password_hash, salt):
-        """
-        Takes in a hashed password string & a secret salt then returns
-        a number which functions as a commit message between the client
-        & server during the ROPAKE protocol. This commit message is
-        shared with the server, then on the subsequent authentication
-        with the server, the client will send the hash of the secret
-        salt. This allows both parties to arrive at a common value
-        without the server ever learning brute-forceable information
-        about the password hash (if the secret salt is >= 256 bits).
-        """
-        return int(cls._id((password_hash, salt)), 16) ^ int(
-            cls._id(salt), 16
-        )
-
-    @classmethod
-    async def _apopulate_database(cls, database: AsyncDatabase):
-        """
-        Inserts session values into a client database for their use in
-        the registration & authentication processes.
-        """
-        db = database
-        if not db[cls.KEY]:
-            password_salt = db[cls.SALT] = await cls.agenerate_salt()
-            db[cls.KEYED_PASSWORD] = await cls._amake_commit(
-                db._root_key, password_salt
-            )
-        else:
-            password_salt = db[cls.SALT]
-            db[cls.KEYED_PASSWORD] = await cls._amake_commit(
-                db._root_key, password_salt
-            )
-            password_salt = db[cls.NEXT_PASSWORD_SALT] = cls.generate_salt()
-            db[cls.NEXT_KEYED_PASSWORD] = await cls._amake_commit(
-                db._root_key, password_salt
-            )
-
-    @classmethod
-    def _populate_database(cls, database: Database):
-        """
-        Inserts session values into a client database for their use in
-        the registration & authentication processes.
-        """
-        db = database
-        if not db[cls.KEY]:
-            password_salt = db[cls.SALT] = cls.generate_salt()
-            db[cls.KEYED_PASSWORD] = cls._make_commit(
-                db._root_key, password_salt
-            )
-        else:
-            password_salt = db[cls.SALT]
-            db[cls.KEYED_PASSWORD] = cls._make_commit(
-                db._root_key, password_salt
-            )
-            password_salt = db[cls.NEXT_PASSWORD_SALT] = cls.generate_salt()
-            db[cls.NEXT_KEYED_PASSWORD] = cls._make_commit(
-                db._root_key, password_salt
-            )
-
-    @classmethod
-    async def _ainit_protocol(cls):
-        """
-        Instatiates a ``Namespace`` object with the generic values used
-        to execute the ``Ropake`` registration & authentication protocols
-        for both the server & client, then returns it.
-        """
-        values = Namespace()
-        values.salt = await cls.agenerate_salt()
-        values.session_salt = await cls.agenerate_salt()
-        values.ecdhe_key = await X25519().agenerate()
-        values.pub = values.ecdhe_key.public_bytes
-        return values
-
-    @classmethod
-    def _init_protocol(cls):
-        """
-        Instatiates a ``Namespace`` object with the generic values used
-        to execute the ``Ropake`` registration & authentication protocols
-        for both the server & client, then returns it.
-        """
-        values = Namespace()
-        values.salt = cls.generate_salt()
-        values.session_salt = cls.generate_salt()
-        values.ecdhe_key = X25519().generate()
-        values.pub = values.ecdhe_key.public_bytes
-        return values
-
-    @classmethod
-    async def _aunpack_client_hello(
-        cls, client_hello: dict, key=None, *, ttl=0
+    def __init__(
+        self,
+        package: str,
+        version: str,
+        date: Typing.Optional[int] = None,
+        **scopes: Typing.Dict[str, Typing.JSONSerializable],
     ):
         """
-        Allows a server to quickly decrypt or unpack the client's hello
-        data into a ``Namespace`` object for efficient & more readable
-        processing of the data for authentication & registration.
+        Sets the instance's package scope attributes & default file
+        checksums container.
         """
-        if key:
-            client_hello = await cls._adecrypt(
-                ciphertext=client_hello,
-                message_key=await cls._aclient_message_key(key),
-                ttl=ttl if ttl else cls.TIMEOUT,
-            )
-        return Namespace(client_hello)
+        self.files = PackageSignerFiles()
+        self._scope = PackageSignerScope(
+            package=package,
+            version=version,
+            date=date if date else asynchs.this_day(),
+            **scopes,
+        )
 
-    @classmethod
-    def _unpack_client_hello(cls, client_hello: dict, key=None, *, ttl=0):
+    @property
+    def _public_credentials(self):
         """
-        Allows a server to quickly decrypt or unpack the client's hello
-        data into a ``Namespace`` object for efficient & more readable
-        processing of the data for authentication & registration.
+        Returns public credentials from the instance's secure database.
         """
-        if key:
-            client_hello = cls._decrypt(
-                ciphertext=client_hello,
-                message_key=cls._client_message_key(key),
-                ttl=ttl if ttl else cls.TIMEOUT,
-            )
-        return Namespace(client_hello)
+        return self.db[self._scope.package][self._PUBLIC_CREDENTIALS]
 
-    @classmethod
-    async def _afinalize(
-        cls, key: any, shared_key: any, shared_secret: any
+    @property
+    def signing_key(self):
+        """
+        Returns the package's secret signing key from the instance's
+        encrypted database in an `Ed25519` object.
+        """
+        encrypted_key = self.db[self._scope.package][self._SIGNING_KEY]
+        if not encrypted_key:
+            raise PackageSignerIssue.signing_key_hasnt_been_set()
+        key = self.db.read_token(encrypted_key)
+        return Ed25519().import_secret_key(key)
+
+    @property
+    def db(self):
+        """
+        Returns the instance's database object, or alerts the user to
+        connect to a secure database if it isn't yet set.
+        """
+        try:
+            return self._db
+        except AttributeError as error:
+            raise PackageSignerIssue.must_connect_to_secure_database()
+
+    @property
+    def _checksums(self):
+        """
+        Returns the instance's package filenames & their hexdigests in
+        a json ready dictionary.
+        """
+        return {
+            filename: hasher.hexdigest()
+            for filename, hasher in sorted(self.files.items())
+        }
+
+    @property
+    def _summary(self):
+        """
+        Collects the instance's package file checksums, names, public
+        credentials, version scopes & the package's public signing key
+        into a json-ready dictionary.
+        """
+        return {
+            self._CHECKSUMS: {
+                filename: hexdigest
+                for filename, hexdigest in self._checksums.items()
+            },
+            self._PUBLIC_CREDENTIALS: {
+                name: credential
+                for name, credential in sorted(
+                    self._public_credentials.items()
+                )
+            },
+            self._SCOPE: {
+                name: value
+                for name, value in sorted(self._scope.items())
+            },
+            self._SIGNING_KEY: self.signing_key.public_bytes.hex(),
+        }
+
+    @property
+    def _checksum(self):
+        """
+        Returns the digest of the current package summary.
+        """
+        return self._Hasher(json.dumps(self._summary).encode()).digest()
+
+    @property
+    def _signature(self):
+        """
+        Returns the stored package summary signature.
+        """
+        try:
+            versions = self.db[self._scope.package][self._VERSIONS]
+            return bytes.fromhex(versions[self._scope.version])
+        except KeyError:
+            raise PackageSignerIssue.package_hasnt_been_signed()
+
+    def connect_to_secure_database(
+        self,
+        *secret_credentials: Typing.Iterable[Typing.Any],
+        passphrase: Typing.Any,
+        salt: Typing.Any = None,
+        username: Typing.Any = None,
+        directory: Typing.Union[Path, str, None] = None,
+        **passcrypt_settings: Typing.Dict[str, int],
     ):
         """
-        Combines the current sessions' derived keys, with the keys
-        derived during the last session & the current session encryption
-        key into brand new key for the next authentication, & a new
-        session key which updates the current session's encryption key.
-        Returns a ``Namespace`` object containing these new keys.
+        Opens an encrypted database connection using the Passcrypt
+        passphrase-based key derivation function, a ``passphrase`` & any
+        available additional credentials a user may have. If a database
+        doesn't already exist, then a new one is created with default
+        values.
         """
-        key = await asha_512_hmac((key, shared_key), key=shared_secret)
-        session_key = await asha_512(key, shared_key, shared_secret)
-        return Namespace(
-            mapping={cls.KEY: key, cls.SESSION_KEY: session_key}
+        tokens = Database.generate_profile_tokens(
+            self._CLASS,
+            *secret_credentials,
+            username=username,
+            passphrase=passphrase,
+            salt=salt,
+            **passcrypt_settings,
         )
-
-    @classmethod
-    def _finalize(cls, key: any, shared_key: any, shared_secret: any):
-        """
-        Combines the current sessions' derived keys, with the keys
-        derived during the last session & the current session encryption
-        key into brand new key for the next authentication, & a new
-        session key which updates the current session's encryption key.
-        Returns a ``Namespace`` object containing these new keys.
-        """
-        key = sha_512_hmac((key, shared_key), key=shared_secret)
-        session_key = sha_512(key, shared_key, shared_secret)
-        return Namespace(
-            mapping={cls.KEY: key, cls.SESSION_KEY: session_key}
+        self._db = Database.generate_profile(
+            tokens,
+            directory=directory if directory else Database.directory,
         )
+        try:
+            self.db.query_tag(self._scope.package, cache=True)
+        except LookupError:
+            self.db[self._scope.package] = self._database_template()
 
-    @classmethod
-    async def _aintegrate_salts(
-        cls, results: Namespace, client_session_salt, server_session_salt
+    def update_scope(self, **scopes):
+        """
+        Updates the package scopes to qualify the package signature of
+        the current package version within the instance.
+        """
+        self._scope.namespace.update(scopes)
+
+    def update_public_credentials(
+        self, **credentials: Typing.Dict[str, Typing.JSONSerializable]
     ):
         """
-        Mixes in random session salts to the shared key generation
-        results of the Ropake protocol & returns the mutated results.
+        Updates the public credentials to be associated with the package
+        signature & stores them in the instance's database cache. The
+        database must be saved separately to save them to disk.
         """
-        salt = results.session_salt = await asha_512(
-            results.session_key, client_session_salt, server_session_salt
-        )
-        results.key = await asha_512(salt, results.key)
-        results.session_key = await asha_512(salt, results.session_key)
-        results.key_id = await cls._aid(results.key)
-        return results
+        package = self._scope.package
+        self.db[package][self._PUBLIC_CREDENTIALS].update(credentials)
 
-    @classmethod
-    def _integrate_salts(
-        cls, results: Namespace, client_session_salt, server_session_salt
+    def update_signing_key(self, signing_key: bytes):
+        """
+        Updates the package's secret signing key as an encrypted token
+        within the instance's database cache. The database must be saved
+        separately to save the encrypted signing key to disk.
+        """
+        if signing_key.__class__ is not bytes:
+            raise Issue.value_must_be_type("signing_key", bytes)
+        package = self._scope.package
+        self.db[package][self._SIGNING_KEY] = self.db.make_token(
+            signing_key
+        ).decode()
+
+    def add_file(self, filename: str, file_data: bytes):
+        """
+        Stores a ``filename`` & the hash object of the file's bytes type
+        contents in the instance's `files` attribute mapping.
+        """
+        self.files[filename] = self._Hasher(file_data)
+
+    def sign_package(self):
+        """
+        Signs the package summary checksum & stores it in the instance's
+        secure database cache. The database must be saved separately to
+        save the signature to disk.
+        """
+        checksum = self._checksum
+        self.db[self._scope.package][self._VERSIONS].update(
+            {self._scope.version: self.signing_key.sign(checksum).hex()}
+        )
+
+    def summarize(self):
+        """
+        Assures the stored package checksum signature matches the
+        current checksum of the package summary. If valid, the summary
+        is returned along with the package checksum & its signature in
+        a dictionary.
+        """
+        checksum = self._checksum
+        signature = self._signature
+        signing_key = self.signing_key
+        try:
+            signing_key.verify(signature, checksum)
+        except self._InvalidSignature:
+            raise PackageSignerIssue.out_of_sync_package_signature()
+        return {
+            self._CHECKSUM: checksum.hex(),
+            **self._summary,
+            self._SIGNATURE: signature.hex(),
+        }
+
+
+class PackageVerifier:
+    """
+    Provides an intuitive API for verifying package summaries produced
+    by `PackageSigner` objects.
+
+    Usage Example:
+
+    from aiootp import PackageVerifier
+
+    verifier = PackageVerifier(public_signing_key)
+    verifier.verify_summary(package_signature_summary)
+    """
+
+    __slots__ = [
+        "_checksum", "_signature", "_signing_key", "_summary_dictionary"
+    ]
+
+    _Hasher = sha512
+    _InvalidSignature = Ed25519._exceptions.InvalidSignature
+    _Signer = Ed25519
+
+    _CHECKSUM = CHECKSUM
+    _SIGNATURE = SIGNATURE
+    _SIGNING_KEY = SIGNING_KEY
+
+    def __init__(self, public_signing_key: bytes):
+        """
+        Receives the bytes type public signing key a user expects a
+        package to be signed by, & stores it within the instance.
+        """
+        if public_signing_key.__class__ is not bytes:
+            raise Issue.value_must_be_type("public signing key", bytes)
+        self._signing_key = Ed25519().import_public_key(public_signing_key)
+
+    @property
+    def _summary_bytes(self):
+        """
+        Returns the UTF-8 encoded JSON package signature summary sans
+        the package checksum & signature for hashing.
+        """
+        return json.dumps(self._summary_dictionary).encode()
+
+    def _import_summary(
+        self, summary: Typing.Dict[str, Typing.JSONSerializable]
     ):
         """
-        Mixes in random session salts to the shared key generation
-        results of the Ropake protocol & returns the mutated results.
+        Verifies the package summary checksum & stores its values within
+        the instance.
         """
-        salt = results.session_salt = sha_512(
-            results.session_key, client_session_salt, server_session_salt
-        )
-        results.key = sha_512(salt, results.key)
-        results.session_key = sha_512(salt, results.session_key)
-        results.key_id = cls._id(results.key)
-        return results
+        summary = self._summary_dictionary = {**summary}
+        self._checksum = bytes.fromhex(summary.pop(self._CHECKSUM))
+        self._signature = bytes.fromhex(summary.pop(self._SIGNATURE))
+        if self._Hasher(self._summary_bytes).digest() != self._checksum:
+            raise Issue.invalid_value("package summary checksum")
 
-    @classmethod
-    @comprehension()
-    async def aclient_registration(cls, database: AsyncDatabase = None):
+    def verify_summary(
+        self,
+        summary: Typing.Union[
+            Typing.Dict[str, Typing.JSONSerializable],
+            Typing.JSONDeserializable,
+        ],
+    ):
         """
-        This is an oblivious, one-message async password authenticated
-        key exchange registration protocol. Takes in a user database
-        opened using unique credentials for a particular service. The
-        database persists cryptographic material on the client's
-        filesystem for establishing a ratcheting verification system.
-
-        The user password is never transmitted to the server, instead
-        it's processed through the ``passcrypt`` function & the
-        database key initializer, before being hashed with a random
-        secret salt. The secret salt is stored on the user filesystem in
-        an encrypted database. The hash of the salt is xor'd with the
-        hash of the concatenated password plus salt, which is called a
-        keyed password, and is send to the server. The hash of the
-        secret is shared with the server during the next authentication
-        so a common set of keys can derived without revealing any brute-
-        forceable data to the server. Every subsequent authentication is
-        encrypted with & modified by the key produced by the prior
-        exchange in a ratcheting protocol which is resistent to man-in-
-        the-middle attacks if any prior exchange was not man-in-the-
-        middled.
-
-        Usage Example:
-
-        # The arguments must contain at least one unique element for
-        # each service the client wants to authenticate with. Using
-        # unique cryptographically secure keys would be better, but this
-        # is a good alternative ->
-
-        tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
-            server_url,     # An unlimited number of arguments can be passed
-            email_address,  # here as additional, optional credentials.
-            username=username,
-            password=password,
-            salt=optional_salt_keyword_argument,
-        )
-        db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
-
-        async with Ropake.aclient_registration(db) as client:
-            client_hello = await client()
-            internet.send(client_hello)
-            server_hello = internet.receive()
-            await client(server_hello)
-
-        shared_keys = await client.aresult()
+        Verifies the purported checksum of a package summary & the
+        signature of the checksum.
         """
-        db = database
-        await cls._apopulate_database(db)
-        values = await cls._ainit_protocol()
-        response = yield {
-            cls.PUB: values.pub.hex(),
-            cls.SALT: values.salt,
-            cls.SESSION_SALT: values.session_salt,
-            cls.KEYED_PASSWORD: await db.apop(cls.KEYED_PASSWORD),
-        }
-        shared_key = await values.ecdhe_key.aexchange(response[cls.PUB])
-        results = await cls._afinalize(
-            values.salt, response[cls.SALT], shared_key
-        )
-        await cls._aintegrate_salts(
-            results, values.session_salt, response[cls.SESSION_SALT]
-        )
-        db[cls.KEY] = results.key
-        await db.asave()
-        raise UserWarning(
-            Namespace(
-                key=results.key,
-                key_id=results.key_id,
-                session_key=results.session_key,
-            )
-        )
-
-    @classmethod
-    @comprehension()
-    def client_registration(cls, database: Database = None):
-        """
-        This is an oblivious, one-message sync password authenticated
-        key exchange registration protocol. Takes in a user database
-        opened using unique credentials for a particular service. The
-        database persists cryptographic material on the client's
-        filesystem for establishing a ratcheting verification system.
-
-        The user password is never transmitted to the server, instead
-        it's processed through the database key initializer before being
-        hashed with a random secret salt. The secret salt is stored on
-        the user filesystem in the encrypted database. The hash of the
-        salt is xor'd with the hash of the concatenated password & salt
-        then sent to the server as a keyed password verifier. The salt
-        hash is shared with the server during the next authentication so
-        a common set of authenticated keys can be derived during a ecdhe
-        without revealing any brute-forceable data to the server. Every
-        subsequent authentication is encrypted with & modified by an
-        auth key produced by the prior exchange in a ratcheting protocol
-        which is resistent to man-in-the-middle attacks.
-
-        Usage Example:
-
-        # The arguments must contain at least one unique element for
-        # each service the client wants to authenticate with. Using
-        # unique cryptographically secure keys would be better, but this
-        # is a good alternative ->
-
-        tokens = aiootp.Database.generate_profile_tokens(
-            server_url,     # An unlimited number of arguments can be passed
-            email_address,  # here as additional, optional credentials.
-            username=username,
-            password=password,
-            salt=optional_salt_keyword_argument,
-        )
-        db = aiootp.Database.generate_profile(tokens)
-
-        with Ropake.client_registration(db) as client:
-            client_hello = client()
-            internet.send(client_hello)
-            server_hello = internet.receive()
-            client(server_hello)
-
-        shared_keys = client.result()
-        """
-        db = database
-        cls._populate_database(db)
-        values = cls._init_protocol()
-        response = yield {
-            cls.PUB: values.pub.hex(),
-            cls.SALT: values.salt,
-            cls.SESSION_SALT: values.session_salt,
-            cls.KEYED_PASSWORD: db.pop(cls.KEYED_PASSWORD),
-        }
-        shared_key = values.ecdhe_key.exchange(response[cls.PUB])
-        results = cls._finalize(values.salt, response[cls.SALT], shared_key)
-        cls._integrate_salts(
-            results, values.session_salt, response[cls.SESSION_SALT]
-        )
-        db[cls.KEY] = results.key
-        db.save()
-        return Namespace(
-            key=results.key,
-            key_id=results.key_id,
-            session_key=results.session_key,
-        )
-
-    @classmethod
-    @comprehension()
-    async def aserver_registration(cls, client_hello=None, database=None):
-        """
-        This is an oblivious, one-message async password authenticated
-        key exchange registration protocol. It takes in a client's
-        hello protocol message, & an encrypted server database, to
-        retrieve & store the cryptographic values used to augment a
-        elliptic curve diffie-hellman exchange to provide authentication.
-
-        The user password is never transmitted to the server, instead
-        it's processed through the database key initializer before being
-        hashed with a random secret salt. The secret salt is stored on
-        the user filesystem in the encrypted database. The hash of the
-        salt is xor'd with the hash of the concatenated password & salt
-        then sent to the server as a keyed password verifier. The salt
-        hash is shared with the server during the next authentication so
-        a common set of authenticated keys can be derived during a ecdhe
-        without revealing any brute-forceable data to the server. Every
-        subsequent authentication is encrypted with & modified by an
-        auth key produced by the prior exchange in a ratcheting protocol
-        which is resistent to man-in-the-middle attacks.
-
-        Usage Example:
-
-        db = await AsyncDatabase("server_database_key")
-        client_hello = internet.receive()
-
-        async with Ropake.aserver_registration(client_hello, db) as server:
-            server_hello = await server()
-            internet.send(server_hello)
-            await server()
-
-        shared_keys = await server.aresult()
-        """
-        values = await cls._ainit_protocol()
-        client = await cls._aunpack_client_hello(client_hello)
-        shared_key = await values.ecdhe_key.aexchange(client.pub)
-        results = await cls._afinalize(client.salt, values.salt, shared_key)
-        await cls._aintegrate_salts(
-            results, client.session_salt, values.session_salt
-        )
-        database[results.key_id] = {
-            cls.KEY: results.key,
-            cls.KEYED_PASSWORD: client.keyed_password,
-        }
-        yield {
-            cls.PUB: values.pub,
-            cls.SALT: values.salt,
-            cls.SESSION_SALT: values.session_salt,
-        }
-        raise UserWarning(
-            Namespace(
-                key=results.key,
-                key_id=results.key_id,
-                session_key=results.session_key,
-            )
-        )
-
-    @classmethod
-    @comprehension()
-    def server_registration(cls, client_hello=None, database=None):
-        """
-        This is a one-message, ratcheting, oblivious, password
-        authenticated key exchange registration protocol. It takes in
-        a client's hello protocol message, & an encrypted server
-        database, to retrieve & store the cryptographic values used in
-        the exchange.
-
-        The user password is never transmitted to the server, instead
-        it's processed through the database key initializer before being
-        hashed with a random secret salt. The secret salt is stored on
-        the user filesystem in the encrypted database. The hash of the
-        salt is xor'd with the hash of the concatenated password & salt
-        then sent to the server as a keyed password verifier. The salt
-        hash is shared with the server during the next authentication so
-        a common set of authenticated keys can be derived during a ecdhe
-        without revealing any brute-forceable data to the server. Every
-        subsequent authentication is encrypted with & modified by an
-        auth key produced by the prior exchange in a ratcheting protocol
-        which is resistent to man-in-the-middle attacks.
-
-        Usage Example:
-
-        server_db = Database("server_database_key")
-        client_hello = internet.receive()
-
-        with Ropake.server_registration(client_hello, server_db) as server:
-            server_hello = server()
-            internet.send(server_hello)
-            server()
-
-        shared_keys = server.result()
-        """
-        values = cls._init_protocol()
-        client = cls._unpack_client_hello(client_hello)
-        shared_key = values.ecdhe_key.exchange(client.pub)
-        results = cls._finalize(client.salt, values.salt, shared_key)
-        cls._integrate_salts(
-            results, client.session_salt, values.session_salt
-        )
-        database[results.key_id] = {
-            cls.KEY: results.key,
-            cls.KEYED_PASSWORD: client.keyed_password,
-        }
-        yield {
-            cls.PUB: values.pub,
-            cls.SALT: values.salt,
-            cls.SESSION_SALT: values.session_salt,
-        }
-        return Namespace(
-            key=results.key,
-            key_id=results.key_id,
-            session_key=results.session_key,
-        )
-
-    @classmethod
-    @comprehension()
-    async def aclient(cls, database: AsyncDatabase = None, *, ttl=0):
-        """
-        This is an oblivious, one-message async password authenticated
-        key exchange authentication protocol. Takes in a user database
-        opened using unique credentials for a particular service. The
-        database persists cryptographic material on the client's
-        filesystem for establishing a ratcheting verification system.
-
-        The user password is never transmitted to the server, instead
-        it's processed through the database key initializer before being
-        hashed with a random secret salt. The secret salt is stored on
-        the user filesystem in the encrypted database. The hash of the
-        salt is xor'd with the hash of the concatenated password & salt
-        then sent to the server as a keyed password verifier. The salt
-        hash is shared with the server during the next authentication so
-        a common set of authenticated keys can be derived during a ecdhe
-        without revealing any brute-forceable data to the server. Every
-        subsequent authentication is encrypted with & modified by an
-        auth key produced by the prior exchange in a ratcheting protocol
-        which is resistent to man-in-the-middle attacks.
-
-        Usage Example:
-
-        # The arguments must contain at least one unique element for
-        # each service the client wants to authenticate with. Using
-        # unique cryptographically secure keys would be better, but this
-        # is a good alternative ->
-
-        tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
-            server_url,     # An unlimited number of arguments can be passed
-            email_address,  # here as additional, optional credentials.
-            username=username,
-            password=password,
-            salt=optional_salt_keyword_argument,
-        )
-        db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
-
-        async with Ropake.aclient(db) as client:
-            client_hello = await client()
-            server_hello = internet.post(client_hello)
-            await client(server_hello)
-
-        shared_keys = await client.aresult()
-        """
-        db = database
-        await cls._apopulate_database(db)
-        key = db[cls.KEY]
-        key_id = await cls._aid(key)
-        values = await cls._ainit_protocol()
-        password_salt = await cls._aid(db[cls.SALT])
-        encrypted_response = yield await cls._aencrypt(
-            key_id=key_id,
-            message_key=await cls._aclient_message_key(key),
-            salt=values.salt,
-            pub=values.pub.hex(),
-            password_salt=password_salt,
-            session_salt=values.session_salt,
-            keyed_password=await db.apop(cls.NEXT_KEYED_PASSWORD),
-        )
-        response = await ajson_decrypt(
-            encrypted_response,
-            key=await cls._aserver_message_key(key),
-            ttl=ttl if ttl else cls.TIMEOUT,
-        )
-        shared_key = await values.ecdhe_key.aexchange(response[cls.PUB])
-        shared_secret = await asha_512(
-            key,
-            shared_key,
-            values.salt,
-            response[cls.SALT],
-            await db.apop(cls.KEYED_PASSWORD) ^ int(password_salt, 16),
-        )
-        db[cls.SALT] = await db.apop(cls.NEXT_PASSWORD_SALT)
-        results = await cls._afinalize(key, shared_key, shared_secret)
-        await cls._aintegrate_salts(
-            results, values.session_salt, response[cls.SESSION_SALT]
-        )
-        db[cls.KEY] = results.key
-        await db.asave()
-        raise UserWarning(
-            Namespace(
-                key=results.key,
-                key_id=results.key_id,
-                session_key=results.session_key,
-            )
-        )
-
-    @classmethod
-    @comprehension()
-    def client(cls, database: Database = None, *, ttl=0):
-        """
-        This is an oblivious, one-message sync password authenticated
-        key exchange authentication protocol. Takes in a user database
-        opened using unique credentials for a particular service. The
-        database persists cryptographic material on the client's
-        filesystem for establishing a ratcheting verification system.
-
-        The user password is never transmitted to the server, instead
-        it's processed through the database key initializer before being
-        hashed with a random secret salt. The secret salt is stored on
-        the user filesystem in the encrypted database. The hash of the
-        salt is xor'd with the hash of the concatenated password & salt
-        then sent to the server as a keyed password verifier. The salt
-        hash is shared with the server during the next authentication so
-        a common set of authenticated keys can be derived during a ecdhe
-        without revealing any brute-forceable data to the server. Every
-        subsequent authentication is encrypted with & modified by an
-        auth key produced by the prior exchange in a ratcheting protocol
-        which is resistent to man-in-the-middle attacks.
-
-        Usage Example:
-
-        # The arguments must contain at least one unique element for
-        # each service the client wants to authenticate with. Using
-        # unique cryptographically secure keys would be better, but this
-        # is a good alternative ->
-
-        tokens = aiootp.Database.generate_profile_tokens(
-            server_url,     # An unlimited number of arguments can be passed
-            email_address,  # here as additional, optional credentials.
-            username=username,
-            password=password,
-            salt=optional_salt_keyword_argument,
-        )
-        db = aiootp.Database.generate_profile(tokens)
-
-        with Ropake.client(db) as client:
-            client_hello = client()
-            internet.send(client_hello)
-            server_hello = internet.receive()
-            client(server_hello)
-
-        shared_keys = client.result()
-        """
-        db = database
-        cls._populate_database(db)
-        key = db[cls.KEY]
-        key_id = cls._id(key)
-        values = cls._init_protocol()
-        password_salt = cls._id(db[cls.SALT])
-        encrypted_response = yield cls._encrypt(
-            key_id=key_id,
-            message_key=cls._client_message_key(key),
-            salt=values.salt,
-            pub=values.pub.hex(),
-            password_salt=password_salt,
-            session_salt=values.session_salt,
-            keyed_password=db.pop(cls.NEXT_KEYED_PASSWORD),
-        )
-        response = json_decrypt(
-            encrypted_response,
-            key=cls._server_message_key(key),
-            ttl=ttl if ttl else cls.TIMEOUT,
-        )
-        shared_key = values.ecdhe_key.exchange(response[cls.PUB])
-        shared_secret = sha_512(
-            key,
-            shared_key,
-            values.salt,
-            response[cls.SALT],
-            db.pop(cls.KEYED_PASSWORD) ^ int(password_salt, 16),
-        )
-        db[cls.SALT] = db.pop(cls.NEXT_PASSWORD_SALT)
-        results = cls._finalize(key, shared_key, shared_secret)
-        cls._integrate_salts(
-            results, values.session_salt, response[cls.SESSION_SALT]
-        )
-        db[cls.KEY] = results.key
-        db.save()
-        return Namespace(
-            key=results.key,
-            key_id=results.key_id,
-            session_key=results.session_key,
-        )
-
-    @classmethod
-    @comprehension()
-    async def aserver(cls, client_hello=None, database=None, *, ttl=0):
-        """
-        This is a one-message, ratcheting, oblivious, password
-        authenticated key exchange authentication protocol. It takes in
-        a client's hello protocol message, & an encrypted server
-        database, to retrieve & store the cryptographic values used in
-        the exchange.
-
-        The user password is never transmitted to the server, instead
-        it's processed through the database key initializer before being
-        hashed with a random secret salt. The secret salt is stored on
-        the user filesystem in the encrypted database. The hash of the
-        salt is xor'd with the hash of the concatenated password & salt
-        then sent to the server as a keyed password verifier. The salt
-        hash is shared with the server during the next authentication so
-        a common set of authenticated keys can be derived during a ecdhe
-        without revealing any brute-forceable data to the server. Every
-        subsequent authentication is encrypted with & modified by an
-        auth key produced by the prior exchange in a ratcheting protocol
-        which is resistent to man-in-the-middle attacks.
-
-        Usage Example:
-
-        server_db = await AsyncDatabase("server_database_key")
-        client_hello = internet.receive()
-
-        async with Ropake.aserver(client_hello, server_db) as server:
-            server_hello = await server()
-            internet.send(server_hello)
-            await server()
-
-        shared_keys = await server.aresult()
-        """
-        key = database[client_hello[cls.KEY_ID]][cls.KEY]
-        values = await cls._ainit_protocol()
-        client = await cls._aunpack_client_hello(
-            client_hello, key=key, ttl=ttl
-        )
-        shared_key = await values.ecdhe_key.aexchange(client.pub)
-        keyed_password = database[client.key_id][cls.KEYED_PASSWORD]
-        shared_secret = await asha_512(
-            key,
-            shared_key,
-            client.salt,
-            values.salt,
-            keyed_password ^ int(client.password_salt, 16),
-        )
-        results = await cls._afinalize(key, shared_key, shared_secret)
-        await cls._aintegrate_salts(
-            results, client.session_salt, values.session_salt
-        )
-        database[results.key_id] = {
-            cls.KEY: results.key,
-            cls.KEYED_PASSWORD: client.keyed_password,
-        }
-        del database[client.key_id]
-        yield await cls._aencrypt(
-            message_key=await cls._aserver_message_key(key),
-            salt=values.salt,
-            pub=values.pub.hex(),
-            session_salt=values.session_salt,
-        )
-        raise UserWarning(
-            Namespace(
-                key=results.key,
-                key_id=results.key_id,
-                session_key=results.session_key,
-            )
-        )
-
-    @classmethod
-    @comprehension()
-    def server(cls, client_hello=None, database=None, *, ttl=0):
-        """
-        This is a one-message, ratcheting, oblivious, password
-        authenticated key exchange authentication protocol. It takes in
-        a client's hello protocol message, & an encrypted server
-        database, to retrieve & store the cryptographic values used in
-        the exchange.
-
-        The user password is never transmitted to the server, instead
-        it's processed through the database key initializer before being
-        hashed with a random secret salt. The secret salt is stored on
-        the user filesystem in the encrypted database. The hash of the
-        salt is xor'd with the hash of the concatenated password & salt
-        then sent to the server as a keyed password verifier. The salt
-        hash is shared with the server during the next authentication so
-        a common set of authenticated keys can be derived during a ecdhe
-        without revealing any brute-forceable data to the server. Every
-        subsequent authentication is encrypted with & modified by an
-        auth key produced by the prior exchange in a ratcheting protocol
-        which is resistent to man-in-the-middle attacks.
-
-        Usage Example:
-
-        server_db = Database("server_database_key")
-        client_hello = internet.receive()
-
-        with Ropake.server(client_hello, server_db) as server:
-            server_hello = server()
-            internet.send(server_hello)
-            server()
-
-        shared_keys = server.result()
-        """
-        key = database[client_hello[cls.KEY_ID]][cls.KEY]
-        values = cls._init_protocol()
-        client = cls._unpack_client_hello(client_hello, key=key, ttl=ttl)
-        shared_key = values.ecdhe_key.exchange(client.pub)
-        keyed_password = database[client.key_id][cls.KEYED_PASSWORD]
-        shared_secret = sha_512(
-            key,
-            shared_key,
-            client.salt,
-            values.salt,
-            keyed_password ^ int(client.password_salt, 16),
-        )
-        results = cls._finalize(key, shared_key, shared_secret)
-        cls._integrate_salts(
-            results, client.session_salt, values.session_salt
-        )
-        database[results.key_id] = {
-            cls.KEY: results.key,
-            cls.KEYED_PASSWORD: client.keyed_password,
-        }
-        del database[client.key_id]
-        yield cls._encrypt(
-            message_key=cls._server_message_key(key),
-            salt=values.salt,
-            pub=values.pub.hex(),
-            session_salt=values.session_salt,
-        )
-        return Namespace(
-            key=results.key,
-            key_id=results.key_id,
-            session_key=results.session_key,
-        )
+        if summary.__class__ is not dict:
+            summary = json.loads(summary)
+        purported_signing_key = bytes.fromhex(summary[self._SIGNING_KEY])
+        if purported_signing_key != self._signing_key.public_bytes:
+            raise Issue.invalid_value("summary's public signing key")
+        self._import_summary(summary)
+        try:
+            self._signing_key.verify(self._signature, self._checksum)
+        except self._InvalidSignature:
+            raise Issue.invalid_value("package summary signature")
 
 
-__extras = {
-    "Asymmetric25519": Asymmetric25519,
-    "BaseEllipticCurve": BaseEllipticCurve,
-    "Ed25519": Ed25519,
-    "X25519": X25519,
-    "Ropake": Ropake,
-    "DomainKDF": DomainKDF,
-    "Passcrypt": Passcrypt,
-    "AsyncKeys": AsyncKeys,
-    "Keys": Keys,
-    "__doc__": __doc__,
-    "__main_exports__": __all__,
-    "__package__": "aiootp",
-    "_ainsert_keygens": ainsert_keygens,
-    "_insert_keygens": insert_keygens,
-    "agenerate_salt": agenerate_salt,
-    "generate_salt": generate_salt,
-    "acsprng": acsprng,
-    "csprng": csprng,
-    "acsprbg": acsprbg,
-    "csprbg": csprbg,
-    "akeys": akeys,
-    "keys": keys,
-    "abytes_keys": abytes_keys,
-    "bytes_keys": bytes_keys,
-    "amnemonic": amnemonic,
-    "mnemonic": mnemonic,
-    "apasscrypt": apasscrypt,
-    "passcrypt": passcrypt,
-    "akeypair_ratchets": akeypair_ratchets,
-    "keypair_ratchets": keypair_ratchets,
-    "apadding_key": apadding_key,
-    "padding_key": padding_key,
-    "protocols": X25519.protocols,
-    "atable_key": atable_key,
-    "table_key": table_key,
-    "atable_keystream": atable_keystream,
-    "table_keystream": table_keystream,
-    "arandom_256": arandom_256,
-    "random_256": random_256,
-    "arandom_512": arandom_512,
-    "random_512": random_512,
-}
+extras = dict(
+    AsyncKeys=AsyncKeys,
+    Curve25519=Curve25519,
+    DomainKDF=DomainKDF,
+    Ed25519=Ed25519,
+    KeyAADBundle=KeyAADBundle,
+    Keys=Keys,
+    PackageSigner=PackageSigner,
+    PackageVerifier=PackageVerifier,
+    Passcrypt=Passcrypt,
+    X25519=X25519,
+    __doc__=__doc__,
+    __main_exports__=__all__,
+    __package__=__package__,
+    abytes_keys=abytes_keys,
+    acsprng=acsprng,
+    agenerate_salt=agenerate_salt,
+    amnemonic=amnemonic,
+    arandom_256=arandom_256,
+    arandom_512=arandom_512,
+    atable_key=atable_key,
+    atable_keystream=atable_keystream,
+    bytes_keys=bytes_keys,
+    csprng=csprng,
+    generate_salt=generate_salt,
+    mnemonic=mnemonic,
+    random_256=random_256,
+    random_512=random_512,
+    table_key=table_key,
+    table_keystream=table_keystream,
+)
 
 
-keygens = Namespace.make_module("keygens", mapping=__extras)
+keygens = commons.make_module("keygens", mapping=extras)
 
