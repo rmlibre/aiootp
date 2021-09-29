@@ -43,7 +43,21 @@ professionals.
 Quick install
 -------------
 
-``pip3 install --user --upgrade aiootp``
+.. code-block:: shell
+
+  $ pip3 install --user --upgrade aiootp
+
+
+
+
+Run tests
+---------
+
+.. code-block:: shell
+
+  $ cd ~/aiootp/tests
+
+  $ coverage run --source aiootp -m pytest test_aiootp.py -vv
 
 
 
