@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -9,7 +9,7 @@
 #
 
 
-__version__ = "0.20.0"
+__version__ = "0.20.1"
 
 
 __license__ = "AGPLv3"
@@ -19,8 +19,8 @@ __author__ = "rmlibre@riseup.net"
 
 
 __doc__ = (
-    "aiootp - an asynchronous pseudo-one-time-pad based crypto and "
-    "anonymity library."
+    "aiootp - an asynchronous pseudo one-time pad based crypto and anon"
+    "ymity library."
 )
 
 
