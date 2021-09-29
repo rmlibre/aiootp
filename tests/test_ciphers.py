@@ -40,9 +40,11 @@ for variable in __all__:
     __exports.append(variable)
 
 
-from test_Ropake import *
-for variable in __all__:
-    __exports.append(variable)
+# The Ropake class has been removed from the package pending changes to
+# the protocol & its implementation.
+# from test_Ropake import *
+# for variable in __all__:
+    # __exports.append(variable)
 
 
 from test_X25519_Ed25519 import *
