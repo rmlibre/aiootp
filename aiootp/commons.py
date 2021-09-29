@@ -10,20 +10,7 @@
 
 
 __all__ = [
-    "commons",
-    "bits",
-    "primes",
-    "Namespace",
-    "WORD_LIST",
-    "ASCII_TABLE",
-    "BYTES_TABLE",
-    "BASE_36_TABLE",
-    "BASE_38_TABLE",
-    "BASE_64_TABLE",
-    "URL_SAFE_TABLE",
-    "ASCII_TABLE_128",
-    "ONION_CHAR_TABLE",
-    "ASCII_ALPHANUMERIC",
+    "commons", "Tables", "WORD_LIST", "Namespace", "OpenNamespace"
 ]
 
 
@@ -35,15 +22,128 @@ __doc__ = (
 
 import sys
 import copy
+import json
 import types
 import asyncio
-from os import linesep
+from os import linesep as sep
+from functools import lru_cache
 from .__datasets import *
-from . import DebugControl
+from ._exceptions import *
+from ._typing import Typing
+
+
+class AsyncInit(type):
+    """
+    A metaclass which allows classes to use asynchronous ``__init__``
+    methods. Inspired by David Beazley.
+    """
+
+    async def __call__(cls, *args, **kwargs):
+        self = cls.__new__(cls, *args, **kwargs)
+        await self.__init__(*args, **kwargs)
+        return self
+
+
+class DeletedAttribute:
+    """
+    Creates objects which raise the result of a callback function if the
+    object is queried for attributes.
+    """
+
+    __slots__ = ["_callback"]
+
+    def __init__(self, callback: Typing.Callable):
+        self._callback = callback
+
+    def __getattr__(self, name: str):
+        raise self._callback()
+
+
+class IterableClass(type):
+    """
+    A metaclass which allows classes, such as enums, to be iterable over
+    their non-private values. These capabilities do not extend to the
+    instance's of those classes.
+
+    Usage Example:
+
+    class Colors(metaclass=IterableClass):
+        red = "e20000"
+        green = "00e200"
+        blue = "0000e2"
+
+    assert list(Colors) == [
+        ("red", "e20000"), ("green", "00e200"), ("blue", "0000e2")
+    ]
+
+    assert {**Colors} == {
+        "red": "e20000", "green": "00e200", "blue": "0000e2"
+    }
+
+    Colors["yellow"] = "fff700"
+    assert Colors.yellow == Colors["yellow"]
+    """
+
+    async def __aiter__(cls):
+        """
+        Asynchronously iterates over a class & yields its non-private
+        variable-value pairs.
+        """
+        for variable, item in cls.__dict__.items():
+            await asleep()
+            if not variable.startswith("_") and not is_function(item):
+                yield variable, item
+
+    def __iter__(cls):
+        """
+        Iterates over a class & yields its non-private variable-value
+        pairs.
+        """
+        for variable, item in cls.__dict__.items():
+            if not variable.startswith("_") and not is_function(item):
+                yield variable, item
+
+    def __setitem__(cls, variable, value):
+        """
+        Transforms bracket item assignment into dotted assignment on the
+        Namespace's mapping.
+        """
+        setattr(cls, variable, value)
+
+    def __getitem__(cls, variable):
+        """
+        Allows the subclass's values to be extracted using the mapping
+        syntax {**subclass} or function(**subclass). Subsequently,
+        transforms bracket lookup into dotted access on the subclass'
+        values.
+        """
+        try:
+            return cls.__dict__[variable]
+        except KeyError:
+            return getattr(self, variable)
+
+    def keys(cls):
+        """
+        Allows the subclass's values to be extracted using the mapping
+        syntax {**subclass} or function(**subclass).
+        """
+        yield from (name for name, value in cls)
+
+    def values(cls):
+        """
+        Yields the subclass' values one at a time.
+        """
+        yield from (value for name, value in cls)
+
+    def items(cls):
+        """
+        Yields the subclass' variable names one at a time.
+        """
+        yield from ((name, value) for name, value in cls)
 
 
 async def aimport_namespace(
-    dictionary=None, *, mapping=None, deepcopy=False
+    dictionary: dict, *, mapping: dict, deepcopy: bool = False
 ):
     """
     Takes a ``dictionary``, such as ``globals()``, and copies the
@@ -52,11 +152,13 @@ async def aimport_namespace(
     if deepcopy == True:
         dictionary.update(copy.deepcopy(mapping))
     else:
-        dictionary.update(dict(mapping))
+        dictionary.update(mapping)
     await asyncio.sleep(0)
 
 
-def import_namespace(dictionary=None, *, mapping=None, deepcopy=False):
+def import_namespace(
+    dictionary: dict, *, mapping: dict, deepcopy: bool = False
+):
     """
     Takes a ``dictionary``, such as ``globals()``, and copies the
     key-value pairs from the ``mapping`` kwarg into it.
@@ -64,28 +166,10 @@ def import_namespace(dictionary=None, *, mapping=None, deepcopy=False):
     if deepcopy == True:
         dictionary.update(copy.deepcopy(mapping))
     else:
-        dictionary.update(dict(mapping))
+        dictionary.update(mapping)
 
 
-async def acreate_namespace(mapping=None, **kwargs):
-    """
-    Takes in a mapping of key-value pairs and returns a Namespace object
-    that allows dotted lookup & assignment on the mapping. The
-    mappings are mutated when the user mutates Namespace object values.
-    """
-    return Namespace(mapping, **kwargs)
-
-
-def create_namespace(mapping=None, **kwargs):
-    """
-    Takes in a mapping of key-value pairs and returns a Namespace object
-    that allows dotted lookup & assignment on the mapping. The
-    mappings are mutated when the user mutates Namespace object values.
-    """
-    return Namespace(mapping, **kwargs)
-
-
-async def amake_module(name=None, *, mapping=None, deepcopy=False):
+async def amake_module(name: str, *, mapping: dict, deepcopy: bool = False):
     """
     Turns a mapping into a module object version of a Namespace which is
     importable using normal python syntax.
@@ -95,10 +179,10 @@ async def amake_module(name=None, *, mapping=None, deepcopy=False):
         module.__dict__, mapping=mapping, deepcopy=deepcopy
     )
     sys.modules[name] = module
-    return Namespace(module.__dict__)
+    return OpenNamespace(module.__dict__)
 
 
-def make_module(name=None, *, mapping=None, deepcopy=False):
+def make_module(name: str, *, mapping: dict, deepcopy: bool = False):
     """
     Turns a mapping into a module object version of a Namespace which is
     importable using normal python syntax.
@@ -106,10 +190,150 @@ def make_module(name=None, *, mapping=None, deepcopy=False):
     module = types.ModuleType(name)
     import_namespace(module.__dict__, mapping=mapping, deepcopy=deepcopy)
     sys.modules[name] = module
-    return Namespace(module.__dict__)
+    return OpenNamespace(module.__dict__)
 
 
-class Namespace():
+class Slots:
+    """
+    A base class which allow subclasses to create very efficient
+    instances, with explicitly declared attributes in their `__slots__`.
+    """
+
+    __slots__ = []
+
+    def __init__(self, **kwargs):
+        """
+        Maps the user-defined kwargs to the instance attributes. If a
+        subclass defines a `__slots__` list, then only variables with
+        names in the list can be admitted to the instance. Defining
+        classes with __slots__ can greatly increase memory efficiency if
+        a system instantiates many objects of the class.
+        """
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+
+    def __bool__(self):
+        """
+        If the instance is empty then return False, otherwise True.
+        """
+        return any(self)
+
+    def __len__(self):
+        """
+        Returns the number of elements in the instance.
+        """
+        return len([*self.keys()])
+
+    def __dir__(self):
+        """
+        Returns the list of names in the instance.
+        """
+        return [*self.keys()]
+
+    def __contains__(self, variable=None):
+        """
+        Returns a bool of ``variable``'s membership in the instance.
+        """
+        return hasattr(self, variable)
+
+    def __setitem__(self, variable, value):
+        """
+        Transforms bracket item assignment into dotted assignment on the
+        instance.
+        """
+        setattr(self, variable, value)
+
+    def __getitem__(self, variable):
+        """
+        Transforms bracket lookup into dotted access on the instance.
+        """
+        return getattr(self, variable)
+
+    def __delitem__(self, variable=None):
+        """
+        Deletes the item ``variable`` from the instance.
+        """
+        delattr(self, variable)
+
+    def _repr(self, items: Typing.Generator):
+        """
+        """
+        for name, value in items:
+            yield f"{name}={repr(value)}"
+
+    def _omitted_repr(self, items: Typing.Generator):
+        """
+        """
+        for name, value in items:
+            exists = (value and "is <truthy>") or "is <falsey>"
+            omitted_value = f"{OMITTED} of {type(value)} {exists}"
+            yield f"{name}={omitted_value}"
+
+    def __repr__(self, *, new_line=sep + 4 * " ", mask: bool = True):
+        """
+        Pretty displays the instance & its attributes.
+        """
+        from .debuggers import DebugControl
+
+        cls = f"{self.__class__.__qualname__}("
+        spacer = f",{new_line}"
+        items = ((name, value) for name, value in self.items())
+        if not mask or DebugControl.is_debugging():
+            items = spacer.join(self._repr(items))
+        else:
+            items = spacer.join(self._omitted_repr(items))
+        return f"{cls}{new_line + items + f',{sep}' if items else ''})"
+
+    async def __aiter__(self):
+        """
+        Allows an instance to be unpacked with with async iteration.
+        """
+        for variable in self.__slots__:
+            if hasattr(self, variable):
+                await asyncio.sleep(0)
+                yield variable
+
+    def __iter__(self):
+        """
+        Allows an instance to be unpacked with tools like ``dict`` &
+        ``list``.
+        """
+        for variable in self.__slots__:
+            if hasattr(self, variable):
+                yield variable
+
+    def keys(self):
+        """
+        Yields the names of all items in the instance.
+        """
+        yield from (
+            name
+            for name in self.__slots__
+            if hasattr(self, name)
+        )
+
+    def values(self):
+        """
+        Yields the values of all items in the instance.
+        """
+        yield from (
+            getattr(self, name)
+            for name in self.__slots__
+            if hasattr(self, name)
+        )
+
+    def items(self):
+        """
+        Yields the name, value pairs of all items in the instance.
+        """
+        yield from (
+            (name, getattr(self, name))
+            for name in self.__slots__
+            if hasattr(self, name)
+        )
+
+
+class Namespace(Slots):
     """
     A simple wrapper for turning mappings into Namespace objects that
     allow dotted lookup and assignment on those mappings. Also, provides
@@ -117,39 +341,36 @@ class Namespace():
     mappings into stand-alone, first-class modules.
     """
 
-    amake_module = staticmethod(amake_module)
-    make_module = staticmethod(make_module)
-    acreate_namespace = staticmethod(acreate_namespace)
-    create_namespace = staticmethod(create_namespace)
-    aimport_namespace = staticmethod(aimport_namespace)
-    import_namespace = staticmethod(import_namespace)
-
     def __init__(self, mapping={}, **kwargs):
         """
         Maps the user-defined mapping & kwargs to the Namespace's
         instance dictionary.
         """
-        self.__dict__.update({**mapping, **kwargs})
+        if mapping.__class__ in {str, bytes, bytearray}:
+            mapping = json.loads(mapping)
+        self.__dict__.update(mapping)
+        self.__dict__.update(kwargs)
 
     @property
     def __all__(self):
         """
         Allows users that have turned their Namespace into a Module
         object to do a ``from namespace import *`` on the contents of
-        the namespace's mapping. This method excludes exporting dunder
-        methods.
+        the namespace's mapping. This method excludes exporting private
+        methods & attributes.
         """
         exports = {
-            var: val for var, val in self.__dict__.items()
-            if not (var.startswith("__") and var.endswith("__"))
+            var: val
+            for var, val in self.__dict__.items() if var[0] != "_"
         }
         return exports
 
-    def __len__(self):
+    @property
+    def namespace(self):
         """
-        Returns the number of elements in the Namespace's mapping.
+        Cleaner name for users to access the instance's dictionary.
         """
-        return len(self.__dict__)
+        return self.__dict__
 
     def __bool__(self):
         """
@@ -157,42 +378,31 @@ class Namespace():
         """
         return bool(self.__dict__)
 
-    def __str__(self, *, tab=4 * " "):
+    def __len__(self):
         """
-        Pretty displays the Namespace's mapping.
+        Returns the number of elements in the Namespace's mapping.
         """
-        result = self.__class__.__qualname__
-        result += f"({linesep}" + "    mapping={"
-        ending = f"{linesep}" + "    }" + f"{linesep})"
-        spacer = f"{linesep + 2 * tab}"
-        if DebugControl.is_debugging():
-            for variable, value in self:
-                result += spacer + f"{variable}:\t{repr(value)},"
-        else:
-            for variable, value in self:
-                exists = (bool(value) and "is <truthy>") or "is <falsey>"
-                omitted_value = f"{OMITTED} of {type(value)} {exists}"
-                result += spacer + f"{variable}:\t{omitted_value},"
-        return result + ending
-
-    def __repr__(self):
-        """
-        Pretty displays the Namespace's mapping.
-        """
-        return str(self)
+        return len(self.__dict__)
 
     def __dir__(self):
         """
         Returns the list of names in the Namespace's mapping.
         """
-        return list(self.__dict__.keys())
+        return [*self.__dict__]
+
+    def __contains__(self, variable=None):
+        """
+        Returns a bool of ``variable``'s membership in the instance
+        dictionary.
+        """
+        return variable in self.__dict__
 
     def __setitem__(self, variable, value):
         """
         Transforms bracket item assignment into dotted assignment on the
         Namespace's mapping.
         """
-        self.__dict__[variable] = value
+        setattr(self, variable, value)
 
     def __getitem__(self, variable):
         """
@@ -204,245 +414,346 @@ class Namespace():
         except KeyError:
             return getattr(self, variable)
 
-    def __iter__(self):
-        """
-        Allows Namespace's to be unpacked with tools like ``dict`` &
-        ``list``.
-        """
-        for variable, value in dict(self.__dict__).items():
-            yield variable, value
-
-    async def __aiter__(self):
-        """
-        Allows Namespace's to be unpacked with with async iteration.
-        """
-        for variable, value in dict(self.__dict__).items():
-            await asyncio.sleep(0)
-            yield variable, value
-
-    def __contains__(self, variable=None):
-        """
-        Returns a bool of ``variable``'s membership in the instance
-        dictionary.
-        """
-        return variable in self.__dict__
-
     def __delitem__(self, variable=None):
         """
         Deletes the item ``variable`` from the instance dictionary.
         """
         del self.__dict__[variable]
 
-    @property
-    def namespace(self):
+    def __repr__(self, *, new_line=sep + 4 * " ", mask: bool = True):
         """
-        Cleaner name for users to access the instance's dictionary.
+        Pretty displays the instance & its attributes.
         """
-        return self.__dict__
+        from .debuggers import DebugControl
+
+        cls = f"{self.__class__.__qualname__}("
+        spacer = f",{new_line}"
+        items = (
+            (name, value) for name, value in self.items()
+            if str(name)[0] != "_"
+        )
+        if not mask or DebugControl.is_debugging():
+            items = spacer.join(self._repr(items))
+        else:
+            items = spacer.join(self._omitted_repr(items))
+        return f"{cls}{new_line + items + f',{sep}' if items else ''})"
+
+    async def __aiter__(self):
+        """
+        Allows Namespace's to be unpacked with with async iteration.
+        """
+        for variable in self.__dict__:
+            await asyncio.sleep(0)
+            yield variable
+
+    def __iter__(self):
+        """
+        Allows Namespace's to be unpacked with tools like ``dict`` &
+        ``list``.
+        """
+        yield from self.__dict__
 
     def keys(self):
         """
-        Yields the names of all items in the namespace.
+        Yields the names of all items in the instance.
         """
-        yield from (name for name, value in self)
+        yield from self.__dict__
 
     def values(self):
         """
-        Yields the values of all items in the namespace.
+        Yields the values of all items in the instance.
         """
-        yield from (value for name, value in self)
+        yield from self.__dict__.values()
 
     def items(self):
         """
-        Yields the name, value pairs of all items in the namespace.
+        Yields the name, value pairs of all items in the instance.
         """
-        yield from self
+        yield from self.__dict__.items()
 
 
-__extras = {
-    # A domain-specific support namespace for networking, communications
-    # & cryptographic data processing.
-    "ACTIVE": "active_connection",
-    "ADDRESS": "address",
-    "ADMIN": "admin",
-    "AGE": "age_of_connection",
-    "ALL_BLOCKS": "all_blocks",
-    "ASCII_ALPHANUMERIC": ASCII_ALPHANUMERIC,
-    "ASCII_TABLE": ASCII_TABLE,
-    "ASCII_TABLE_128": ASCII_TABLE_128,
-    "AUTHENTICATION": "authentication",
-    "BASE_36_TABLE": BASE_36_TABLE,
-    "BASE_38_TABLE": BASE_38_TABLE,
-    "BASE_64_TABLE": BASE_64_TABLE,
-    "BLOCKSIZE": 256,
-    "BLOCK_ID": "block_id",
-    "BYTES_TABLE": BYTES_TABLE,
-    "CHANNEL": "channel",
-    "CHANNELS": "channels",
-    "CHUNKY_2048": "Chunky2048",
-    "CIPHERED_SALT": "ciphered_salt",
-    "CIPHERTEXT": "ciphertext",
-    "CIPHERTEXT_IS_NOT_BYTES": "Ciphertext is not in bytes format.",
-    "CLIENT": "client",
-    "CLIENT_ID": "client_identifier",
-    "CLIENT_INDEX": "client_database_index",
-    "CLIENT_KEY": "client_key",
-    "CLIENT_MESSAGE_KEY": "client_message_key",
-    "CLIENT_URL": "client_contact_address",
-    "CORRUPT": "corrupt_connection",
-    "DECRYPT": "decrypt",
-    "DECRYPTION": "decryption",
-    "DH2": "diffie_hellman_2x",
-    "DH3": "diffie_hellman_3x",
-    "DIGEST": "message_digest",
-    "DIRECTORY": "directory",
-    "ENCRYPT": "encrypt",
-    "ENCRYPTION": "encryption",
-    "ENTROPY": "entropy",
-    "EQUALITY": "equality",
-    "EXCEEDED_BLOCKSIZE": "Data MUST NOT exceed 256 bytes.",
-    "FAILED": "failed",
-    "STREAM_IS_EMPTY": "An emtpy stream is invalid.",
-    "FILENAME": "filename",
-    "FILE_KEY": "file_key",
-    "GUEST": "guest",
-    "HEADER": "header",
-    "HEADER_BYTES": 80,
-    "HEADER_NIBBLES": 160,
-    "HMAC": "hmac",
-    "HMAC_BYTES": 32,
-    "HMAC_NIBBLES": 64,
-    "HTTP": "http",
-    "HTTPS": "https",
-    "ID": "contact_identifier",
-    "INACTIVE": "terminated_connection",
-    "INNER_HEADER": "inner_header",
-    "INNER_HEADER_BYTES": 24,
-    "INNER_HEADER_NIBBLES": 48,
-    "INVALID_BLOCKSIZE": "The block of data isn't 256 bytes.",
-    "INVALID_CIPHERTEXT_LENGTH": "The length of ciphertext is invalid.",
-    "INVALID_DECRYPTION_VALIDATOR": (
-        "Must set `validator` for decryption or preemptive validation."
-    ),
-    "INVALID_DIGEST": "Current digest of the data stream isn't valid.",
-    "INVALID_BLOCK_ID": "Next block id of the data stream isn't valid.",
-    "INVALID_ENCRYPTION_VALIDATOR": "Must set `validator` for encryption.",
-    "UNSAFE_DETERMINISM": (
-        "Must enable dangerous determinism to use a custom salt."
-    ),
-    "INVALID_HMAC": "HMAC of the data stream isn't valid.",
-    "KDF": "key_derivation_function",
-    "KEEP_ALIVE": "keep_alive",
-    "KEY": "key",
-    "KEY_ID": "key_id",
-    "KEYSTREAM": "keystream",
-    "KEYED_PASSWORD": "keyed_password",
-    "LEFT_PAD": b"\x5c\x5c\x5c\x5c\x5c\x5c\x5c\x5c",
-    "LIST_ENCODING": "listed_ciphertext",
-    "LISTENING": "listening",
-    "MAINTAINING": "maintaining",
-    "MANIFEST": "manifest",
-    "MANUAL": "manual_mode",
-    "MAP_ENCODING": "mapped_ciphertext",
-    "MAX_INACTIVITY": "max_inactivity",
-    "MESSAGE_ID": "message_id",
-    "MESSAGE_KEY": "message_key",
-    "MESSAGE_NUMBER": "message_number",
-    "MESSAGES": "message_archive",
-    "METADATA": "metadata",
-    "METATAG": "metatag",
-    "METATAG_KEY": "metatag_key",
-    "MISSING_HMAC": "The ``hmac`` keyword argument was not given.",
-    "NEW_CONTACT": "new_contact",
-    "NEXT_KEYED_PASSWORD": "next_keyed_password",
-    "NEXT_PASSWORD_SALT": "next_password_salt",
-    "NO_PROFILE_OR_CORRUPT": "Profile doesn't exist or is corrupt.",
-    "OLD_KEY": "last_shared_key",
-    "OLD_VERIFID": "last_verification_code",
-    "OMITTED": "<omitted-data>",
-    "ONION": "onion",
-    "ONION_CHAR_TABLE": ONION_CHAR_TABLE,
-    "PADDING_KEY": "padding_key",
-    "PASSWORD": "password",
-    "PASSWORD_SALT": "password_salt",
-    "PHASE": "phase",
-    "PLAINTEXT": "plaintext",
-    "PLAINTEXT_ISNT_BYTES": "The provided ``data`` must be bytes type.",
-    "PUB": "pub",
-    "PORT": 8081,
-    "PREEMPTIVE": "preemptive_mode",
-    "RACHET": "rachet_shared_key",
-    "RECEIVING": "receiving",
-    "REGISTRATION": "registration",
-    "RETRY": "retry",
-    "RIGHT_PAD": b"\x36\x36\x36\x36\x36\x36\x36\x36",
-    "ROPAKE_TIMEOUT": 0,
-    "SALT": "salt",
-    "SALT_BYTES": 32,
-    "SALT_NIBBLES": 64,
-    "SECRET": "secret",
-    "SEED": "seed",
-    "SENDER": "sender",
-    "SENDING": "sending",
-    "SERVER": "server",
-    "SERVER_ID": "server_identifier",
-    "SERVER_INDEX": "server_database_index",
-    "SERVER_KEY": "server_key",
-    "SERVER_MESSAGE_KEY": "server_message_key",
-    "SERVER_URL": "server_contact_address",
-    "SESSION_ID": "session_identifier",
-    "SESSION_KEY": "session_key",
-    "SESSION_SALT": "session_salt",
-    "SESSION_TOKEN": "session_tracking_token",
-    "SHARED_KEY": "shared_key",
-    "SHARED_SECRET": "shared_secret",
-    "SHARED_SEED": "shared_seed",
-    "SHMAC": "stream_hmac",
-    "SIV": "synthetic_iv",
-    "SIV_BYTES": 16,
-    "SIV_NIBBLES": 32,
-    "SIV_KEY": "synthetic_iv_key",
-    "SIV_KEY_BYTES": 16,
-    "SIV_KEY_NIBBLES": 32,
-    "SMALL_MESSAGE_ISNT_PADDED": (
-        "The first block is too small & was not flagged as also the final "
-        "block."
-    ),
-    "STATUS": "status",
-    "SUCCESS": "success",
-    "TB_PORT": 9150,
-    "TIMEOUT": "timeout",
-    "TIMESTAMP": "timestamp",
-    "TIMESTAMP_BYTES": 8,
-    "TIMESTAMP_NIBBLES": 16,
-    "TOR_PORT": 9050,
-    "UniformPrimes": UniformPrimes,
-    "UNSAFE_KEY_REUSE": "Providing both a `key` & `salt` risks key reuse.",
-    "UNSENT_MESSAGES": "unsent_message_archive",
-    "URL": "url",
-    "URL_SAFE_TABLE": URL_SAFE_TABLE,
-    "UUID": "unique_user_id",
-    "VERIFICATION": "verification",
-    "VERIFID": "verification_code",
-    "WORD_LIST": WORD_LIST,
-    "Namespace": Namespace,
-    "BasePrimeGroups": BasePrimeGroups,
-    "__doc__": __doc__,
-    "__main_exports__": __all__,
-    "__package__": "aiootp",
-    "acreate_namespace": acreate_namespace,
-    "create_namespace": create_namespace,
-    "aimport_namespace": aimport_namespace,
-    "import_namespace": import_namespace,
-    "amake_module": amake_module,
-    "make_module": make_module,
-    "bits": bits,
-    "primes": primes,
-}
+class OpenNamespace(Namespace):
+    """
+    A version of the `Namespace` class which doesn't omit instance
+    repr's by default.
+    """
+
+    def __repr__(self):
+        """
+        Pretty displays the instance & its attributes.
+        """
+        return super().__repr__(mask=False)
 
 
-commons = make_module("commons", mapping=__extras, deepcopy=True)
+chunky2048_constants = OpenNamespace(
+    #  These constants control the structure of the Chunky2048 cipher
+    BLOCK_ID="block_id",
+    BLOCK_ID_BYTES=16,
+    BLOCKSIZE=256,
+    CHUNKY_2048="Chunky2048",
+    CIPHERTEXT="ciphertext",
+    DECRYPTION="decryption",
+    DIGEST="digest",
+    DIGEST_BYTES=32,
+    ENCRYPTION="encryption",
+    HEADER="header",
+    HEADER_BYTES=80,  # HMAC_BYTES + SALT_BYTES + SIV_BYTES
+    HMAC="hmac",
+    HMAC_BYTES=32,
+    INNER_HEADER="inner_header",
+    INNER_HEADER_BYTES=24,  # TIMESTAMP_BYTES + SIV_KEY_BYTES
+    KEY="key",
+    KEY_BYTES=64,
+    LEFT_PAD=8 * b"\x5c",
+    MAX_BLOCK_ID_BYTES=32,
+    MINIMUM_BLOCK_ID_BYTES=16,
+    MINIMUM_KEY_BYTES=32,
+    PADDING_KEY="padding_key",
+    PADDING_KEY_BYTES=32,
+    AAD="aad",
+    PLAINTEXT="plaintext",
+    RIGHT_PAD=8 * b"\x36",
+    SALT="salt",
+    SALT_BYTES=24,
+    SEED_PAD=16 * b"\xa1",
+    SHMAC="stream_hmac",
+    SIV="synthetic_iv",
+    SIV_BYTES=24,
+    SIV_KEY="synthetic_iv_key",
+    SIV_KEY_BYTES=16,
+    TIMESTAMP="timestamp",
+    TIMESTAMP_BYTES=8,
+)
 
 
-import_namespace(globals(), mapping=__extras)
+globals().update(chunky2048_constants.namespace)
+
+
+chunky2048_constants.namespace.update(
+    dict(
+        BLOCK_ID_NIBBLES=2 * BLOCK_ID_BYTES,
+        BLOCKSIZE_BITS=8 * BLOCKSIZE,
+        CIPHERTEXT_SLICE=slice(HEADER_BYTES, None),
+        DIGEST_NIBBLES=2 * DIGEST_BYTES,
+        HEADER_NIBBLES=2 * HEADER_BYTES,
+        HMAC_NIBBLES=2 * HMAC_BYTES,
+        HMAC_SLICE=slice(HMAC_BYTES),
+        INNER_HEADER_NIBBLES=2 * INNER_HEADER_BYTES,
+        KEY_NIBBLES=2 * KEY_BYTES,
+        MAX_BLOCK_ID_NIBBLES=2 * MAX_BLOCK_ID_BYTES,
+        MINIMUM_BLOCK_ID_NIBBLES=2 * MINIMUM_BLOCK_ID_BYTES,
+        MINIMUM_KEY_NIBBLES=2 * MINIMUM_KEY_BYTES,
+        PADDING_KEY_NIBBLES=2 * PADDING_KEY_BYTES,
+        SALT_NIBBLES=2 * SALT_BYTES,
+        SALT_SLICE=slice(HMAC_BYTES, HMAC_BYTES + SALT_BYTES),
+        SIV_NIBBLES=2 * SIV_BYTES,
+        SIV_SLICE=slice(HMAC_BYTES + SALT_BYTES, HEADER_BYTES),
+        SIV_KEY_NIBBLES=2 * SIV_KEY_BYTES,
+        SIV_KEY_SLICE=slice(TIMESTAMP_BYTES, INNER_HEADER_BYTES),
+        TIMESTAMP_NIBBLES=2 * TIMESTAMP_BYTES,
+        TIMESTAMP_SLICE=slice(TIMESTAMP_BYTES),
+    )
+)
+
+
+misc_constants = OpenNamespace(
+    ACTIVE="active_connection",
+    ADDRESS="address",
+    ADDITIONAL_AUTHENTICATED_DATA="additional_authenticated_data",
+    ADMIN="admin",
+    AGE="age_of_connection",
+    ALL_BLOCKS="all_blocks",
+    ASYNC="asynchronous",
+    AUTHENTICATION="authentication",
+    CHANNEL="channel",
+    CHANNELS="channels",
+    CHECKSUM="checksum",
+    CHECKSUMS="checksums",
+    CLIENT="client",
+    CLIENT_ID="client_identifier",
+    CLIENT_INDEX="client_database_index",
+    CLIENT_KEY="client_key",
+    CLIENT_MESSAGE_KEY="client_message_key",
+    CLIENT_URL="client_contact_address",
+    CONTROL_BITS="control_bits",
+    CORRUPT="corrupt_connection",
+    DECRYPT="decrypt",
+    DEFAULT_TIMEOUT=0,
+    DH2="diffie_hellman_2x",
+    DH3="diffie_hellman_3x",
+    DIFFIE_HELLMAN="diffie_hellman",
+    DIRECTORY="directory",
+    ENCRYPT="encrypt",
+    ENTROPY="entropy",
+    EPHEMERAL_KEY="ephemeral_key",
+    EQUALITY="equality",
+    EXTENDED_DH_EXCHANGE="extended_diffie_hellman_exchange",
+    FAILED="failed",
+    FILENAME="filename",
+    FILE_KEY="file_key",
+    GUEST="guest",
+    HTTP="http",
+    HTTPS="https",
+    ID="contact_identifier",
+    IDENTITY_KEY="identity_key",
+    INACTIVE="terminated_connection",
+    JSON_DESERIALIZABLE_TYPES={str, bytes, bytearray},
+    KDF="key_derivation_function",
+    KEEP_ALIVE="keep_alive",
+    KEY_ID="key_id",
+    KEYSTREAM="keystream",
+    LISTENING="listening",
+    MAINTAINING="maintaining",
+    MANIFEST="manifest",
+    MANUAL="manual_mode",
+    MASKING_KEY="masking_key",
+    MASKING_KEY_BYTES=32,
+    MASKING_KEY_NIBBLES=64,
+    MAX_INACTIVITY="max_inactivity",
+    MESSAGE_ID="message_id",
+    MESSAGE_ID_BYTES=32,
+    MESSAGE_ID_NIBBLES=64,
+    MESSAGE_KEY="message_key",
+    MESSAGE_NUMBER="message_number",
+    MESSAGES="message_archive",
+    METADATA="metadata",
+    METATAG="metatag",
+    METATAG_KEY="metatag_key",
+    NEW_CONTACT="new_contact",
+    OLD_KEY="last_shared_key",
+    OMITTED="<omitted-value>",
+    ONION="onion",
+    PASSCRYPT="passcrypt",
+    PASSPHRASE="passphrase",
+    PAYLOAD="payload",
+    PHASE="phase",
+    PORT=8081,
+    PREEMPTIVE="preemptive_mode",
+    PUBLIC_CREDENTIALS = "public_credentials",
+    RACHET="rachet_shared_key",
+    RECEIVING="receiving",
+    RECEIVING_COUNT="receiving_count",
+    RECEIVING_KEYS="receiving_keys",
+    RECEIVING_STREAM="receiving_stream",
+    REGISTRATION="registration",
+    RETRY="retry",
+    SCOPE="scope",
+    SECRET="secret",
+    SECRET_CREDENTIALS = "secret_credentials",
+    SECURE_CHANNEL="secure_channel",
+    SEED="seed",
+    SENDER="sender",
+    SENDING="sending",
+    SENDING_COUNT="sending_count",
+    SENDING_KEYS="sending_keys",
+    SENDING_STREAM="sending_stream",
+    SERVER="server",
+    SERVER_ID="server_identifier",
+    SERVER_INDEX="server_database_index",
+    SERVER_KEY="server_key",
+    SERVER_MESSAGE_KEY="server_message_key",
+    SERVER_URL="server_contact_address",
+    SESSION_ID="session_identifier",
+    SESSION_KEY="session_key",
+    SESSION_TOKEN="session_tracking_token",
+    SHARED_KEY="shared_key",
+    SHARED_SECRET="shared_secret",
+    SHARED_SEED="shared_seed",
+    SIGNATURE="signature",
+    SIGNING_KEY="signing_key",
+    STATUS="status",
+    SUCCESS="success",
+    SYNC="synchronous",
+    TB_PORT=9150,
+    TIMEOUT="timeout",
+    TOKEN="token",
+    TOKEN_BYTES=48,
+    TOKEN_NIBBLES=96,
+    TOR_PORT=9050,
+    UNSENT_MESSAGES="unsent_message_archive",
+    URL="url",
+    UUID="unique_user_id",
+    VERIFICATION="verification",
+    VERSIONS="versions",
+)
+
+
+passcrypt_constants = OpenNamespace(
+    DEFAULT_KB=1024,
+    DEFAULT_CPU=3,
+    DEFAULT_HARDNESS=1024,
+    KB="kb",
+    KB_BYTES=4,
+    KB_NIBBLES=8,
+    KB_SLICE=slice(4),
+    CPU="cpu",
+    CPU_BYTES=2,
+    CPU_NIBBLES=4,
+    CPU_SLICE=slice(4, 6),
+    HARDNESS="hardness",
+    HARDNESS_BYTES=4,
+    HARDNESS_NIBBLES=8,
+    HARDNESS_SLICE=slice(6, 10),
+    SALT="salt",
+    SALT_BYTES=32,
+    SALT_NIBBLES=64,
+    SALT_SLICE=slice(10, 42),
+    PASSPHRASE_HASH="passphrase_hash",
+    PASSPHRASE_HASH_BYTES=64,
+    PASSPHRASE_HASH_NIBBLES=128,
+    PASSPHRASE_HASH_SLICE=slice(42, 106),
+    PASSCRYPT_SCHEMA="passcrypt_schema",
+    PASSCRYPT_SCHEMA_BYTES=106,
+    PASSCRYPT_SCHEMA_NIBBLES=212,
+)
+
+
+ropake_constants = OpenNamespace(
+    AUTHENTICATION="authentication",
+    CIPHERTEXT="ciphertext",
+    DEFAULT_TIMEOUT=0,
+    KEY="key",
+    KEY_ID="key_id",
+    KEYED_PASSPHRASE="keyed_passphrase",
+    NEXT_KEYED_PASSPHRASE="next_keyed_passphrase",
+    NEXT_PASSPHRASE_SALT="next_passphrase_salt",
+    PASSPHRASE_SALT="passphrase_salt",
+    PUBLIC_KEY="public_key",
+    REGISTRATION="registration",
+    SALT="salt",
+    SESSION_KEY="session_key",
+    SESSION_SALT="session_salt",
+)
+
+
+extras = dict(
+    WORD_LIST=WORD_LIST,
+    AsyncInit=AsyncInit,
+    DeletedAttribute=DeletedAttribute,
+    IterableClass=IterableClass,
+    Namespace=Namespace,
+    OpenNamespace=OpenNamespace,
+    Slots=Slots,
+    Tables=Tables,
+    Typing=Typing,
+    UniformPrimes=UniformPrimes,
+    __doc__=__doc__,
+    __main_exports__=__all__,
+    __package__=__package__,
+    aimport_namespace=aimport_namespace,
+    amake_module=amake_module,
+    import_namespace=import_namespace,
+    make_module=make_module,
+    passcrypt_constants=passcrypt_constants,
+    primes=primes,
+    ropake_constants=ropake_constants,
+    **chunky2048_constants,
+    **misc_constants,
+)
+
+
+commons = make_module("commons", mapping=extras, deepcopy=True)
+
+
+import_namespace(globals(), mapping=extras)
 
