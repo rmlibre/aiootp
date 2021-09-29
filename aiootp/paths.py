@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -51,7 +51,7 @@ def PackagePath():
     return RootPath().parent
 
 
-def TorPath(*, path=None):
+def TorPath(*, path: Typing.OptionalPathStr = None):
     """
     Returns a ``pathlib.Path`` object pointing to an optional tor
     directory.
@@ -59,7 +59,7 @@ def TorPath(*, path=None):
     return (Path(path).absolute() if path else RootPath()) / "tor"
 
 
-def DatabasePath(*, path=None):
+def DatabasePath(*, path: Typing.OptionalPathStr = None):
     """
     Returns a ``pathlib.Path`` object pointing to the default directory
     encrypted databases are saved to.
@@ -67,7 +67,7 @@ def DatabasePath(*, path=None):
     return (Path(path).absolute() if path else RootPath()) / "databases"
 
 
-async def adeniable_filename(key, *, size=8):
+async def adeniable_filename(key: bytes, *, size: int = 8):
     """
     Xors subsequent bytes-type, ``size`` length segments of ``key`` with
     each other to create a condensed & variably forgeable hash. This
@@ -81,7 +81,7 @@ async def adeniable_filename(key, *, size=8):
     return (await asha3__256(await axi_mix(key, size=size)))[:60]
 
 
-def deniable_filename(key, *, size=8):
+def deniable_filename(key: bytes, *, size: int = 8):
     """
     Xors subsequent bytes-type, ``size`` length segments of ``key`` with
     each other to create a condensed & variably forgeable hash. This
@@ -95,7 +95,7 @@ def deniable_filename(key, *, size=8):
     return sha3__256(xi_mix(key, size=size))[:60]
 
 
-async def amake_salt_file(path, *, key):
+async def amake_salt_file(path: Path, *, key: bytes):
     """
     Creates & populates the ``path`` file with a sensitive cryptographic
     salt used to harden user databases. If ``key`` is specified then the
@@ -113,7 +113,7 @@ async def amake_salt_file(path, *, key):
     await aos.chmod(filepath, 0o000)
 
 
-def make_salt_file(path, *, key):
+def make_salt_file(path: Path, *, key: bytes):
     """
     Creates & populates the ``path`` file with a sensitive cryptographic
     salt used to harden user databases. If ``key`` is specified then the
@@ -131,7 +131,7 @@ def make_salt_file(path, *, key):
     os.chmod(filepath, 0o000)
 
 
-async def afind_salt_file(path, *, key):
+async def afind_salt_file(path: Path, *, key: bytes):
     """
     This returns the path of a sensitive cryptographic salt used to
     harden user databases. If ``key`` is specified, the salt filename is
@@ -141,7 +141,7 @@ async def afind_salt_file(path, *, key):
     return path / await adeniable_filename(key)
 
 
-def find_salt_file(path, *, key):
+def find_salt_file(path: Path, *, key: bytes):
     """
     This returns the path of a sensitive cryptographic salt used to
     harden user databases. If ``key`` is specified, the salt filename is
@@ -151,7 +151,7 @@ def find_salt_file(path, *, key):
     return path / deniable_filename(key)
 
 
-async def aread_salt_file(filepath):
+async def aread_salt_file(filepath: Typing.PathStr):
     """
     This returns the sensitive cryptographic salt contained within the
     file located at ``filepath``. The file has its permissions changed
@@ -161,7 +161,7 @@ async def aread_salt_file(filepath):
         await aos.chmod(filepath, 0o700)
         async with aiofiles.open(filepath, "rb") as salt_file:
             salt = await salt_file.read()
-            if salt and len(salt) >= 32:
+            if len(salt) >= 32:
                 return salt
             else:
                 raise ValueError("The salt file is empty or corrupt!")
@@ -179,7 +179,7 @@ def read_salt_file(filepath):
         os.chmod(filepath, 0o700)
         with open(filepath, "rb") as salt_file:
             salt = salt_file.read()
-            if salt and len(salt) >= 32:
+            if len(salt) >= 32:
                 return salt
             else:
                 raise ValueError("The salt file is empty or corrupt!")
@@ -187,7 +187,11 @@ def read_salt_file(filepath):
         os.chmod(filepath, 0o000)
 
 
-async def AsyncSecurePath(*, path=None, key=None):
+async def AsyncSecurePath(
+    *,
+    path: Typing.OptionalPathStr = None,
+    key: Typing.Optional[bytes] = None,
+):
     """
     This constructor returns the path of files which contain sensitive
     cryptographic salts used to harden user databases. If ``key`` is
@@ -207,7 +211,11 @@ async def AsyncSecurePath(*, path=None, key=None):
     return filepath
 
 
-def SecurePath(*, path=None, key=None):
+def SecurePath(
+    *,
+    path: Typing.OptionalPathStr = None,
+    key: Typing.Optional[bytes] = None,
+):
     """
     This constructor returns the path of files which contain sensitive
     cryptographic salts used to harden user databases. If ``key`` is
