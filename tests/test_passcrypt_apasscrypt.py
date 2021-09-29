@@ -13,8 +13,6 @@ from init_tests import *
 
 
 __all__ = [
-    "test_apasscrypt",
-    "test_passcrypt",
     "test_metadata_hashes",
     "test_passcrypts_equality",
     "test_passcrypt_generators",
@@ -76,21 +74,10 @@ def test_metadata_hashes():
     assert passcrypt_settings == {**metadata_settings}
     assert {**metadata_settings} == {**ametadata_settings}
 
-
-def test_passcrypt():
-    for passphrase in passphrases:
-        for salt in salts:
-            passcrypt_passphrases.append(
-                Passcrypt.new(passphrase, salt, **passcrypt_settings)
-            )
-
-
-def test_apasscrypt():
-    for passphrase in passphrases:
-        for salt in salts:
-            apasscrypt_passphrases.append(
-                run(Passcrypt.anew(passphrase, salt, **passcrypt_settings))
-            )
+    pcrypt.verify(metadata_hash, passphrase)
+    run(pcrypt.averify(ametadata_hash, passphrase))
+    pcrypt.verify_raw(raw_metadata_hash, passphrase)
+    run(pcrypt.averify_raw(araw_metadata_hash, passphrase))
 
 
 def test_passcrypts_equality():
