@@ -63,35 +63,6 @@ def debugger(self: Comprende, *args, **kwargs):
 
 
 @comprehension(chained=True)
-async def abytes_xor(
-    self: Comprende,*, key: Typing.AsyncKeystream, validator: StreamHMAC
-):
-    """
-    Applies an xor to each result of any underlying async `Comprende`
-    generator. ``key`` is an async `Comprende` `abytes_keys` generator.
-    The underlying ``self`` async generator needs to produce 256-byte
-    integers to be xor'd on each iteration.
-    """
-    xoring = ciphers.abytes_xor.root(self, key=key, validator=validator)
-    async for result in xoring:
-        yield result
-
-
-@comprehension(chained=True)
-def bytes_xor(
-    self: Comprende, *, key: Typing.Keystream, validator: StreamHMAC
-):
-    """
-    Applies an xor to each result of any underlying sync `Comprende`
-    generator. ``key`` is a sync `Comprende` `bytes_keys` generator. The
-    underlying ``self`` sync generator needs to produce 256-byte
-    integers to be xor'd on each iteration.
-    """
-    xoring = ciphers.bytes_xor.root(self, key=key, validator=validator)
-    yield from xoring
-
-
-@comprehension(chained=True)
 async def apasscrypt(
     self: Comprende,
     *,
@@ -134,59 +105,6 @@ def passcrypt(
             salt = generate_salt(size=Passcrypt._SALT_BYTES)
             result = pcrypt.new(self.send(got), salt)
             got = yield salt, result
-    except StopIteration:
-        pass
-
-
-@comprehension(chained=True)
-async def asum_passcrypt(
-    self: Comprende,
-    salt: Typing.EntropicRepr,
-    *,
-    kb: int = Passcrypt._DEFAULT_KB,
-    cpu: int = Passcrypt._DEFAULT_CPU,
-    hardness: int = Passcrypt._DEFAULT_HARDNESS,
-):
-    """
-    Cumulatively applies the ``apasscrypt`` algorithm to each value
-    that's yielded from the underlying Comprende async generator with
-    the previously processed result before yielding the current result.
-    """
-    got = None
-    asend = self.asend
-    pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
-    summary = await asha3__512(salt, kb, cpu, hardness, hex=False)
-    while True:
-        pre_key = await asha3__512(
-            salt, summary, await asend(got), hex=False
-        )
-        summary = await pcrypt.anew(pre_key, summary)
-        got = yield summary
-
-
-@comprehension(chained=True)
-def sum_passcrypt(
-    self: Comprende,
-    salt: Typing.EntropicRepr,
-    *,
-    kb: int = Passcrypt._DEFAULT_KB,
-    cpu: int = Passcrypt._DEFAULT_CPU,
-    hardness: int = Passcrypt._DEFAULT_HARDNESS,
-):
-    """
-    Cumulatively applies the ``passcrypt`` algorithm to each value
-    that's yielded from the underlying Comprende sync generator with
-    the previously processed result before yielding the current result.
-    """
-    got = None
-    send = self.send
-    pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
-    summary = sha3__512(salt, kb, cpu, hardness, hex=False)
-    try:
-        while True:
-            pre_key = sha3__512(salt, summary, send(got), hex=False)
-            summary = pcrypt.new(pre_key, summary)
-            got = yield summary
     except StopIteration:
         pass
 
@@ -264,7 +182,7 @@ def insert_passcrypt_methods():
     """
     Copies the addons over into the ``Comprende`` class.
     """
-    addons = {passcrypt, apasscrypt, sum_passcrypt, asum_passcrypt}
+    addons = {passcrypt, apasscrypt}
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
         Comprende.lazy_generators.add(addon.__name__)
@@ -307,21 +225,10 @@ def insert_types():
     Typing.X25519 = X25519
 
 
-def insert_xor_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = {bytes_xor, abytes_xor}
-    for addon in addons:
-        setattr(Comprende, addon.__name__, addon)
-        Comprende.lazy_generators.add(addon.__name__)
-
-
 insert_bytes_cipher_methods()
 insert_debuggers()
 insert_gentools_pointers()
 insert_passcrypt_methods()
 insert_random_sleep_methods()
 insert_types()
-insert_xor_methods()
 
