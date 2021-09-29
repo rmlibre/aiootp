@@ -43,7 +43,21 @@ professionals.
 Quick install
 -------------
 
-``pip3 install --user --upgrade aiootp``
+.. code-block:: shell
+
+  $ pip3 install --user --upgrade aiootp
+
+
+
+
+Run tests
+---------
+
+.. code-block:: shell
+
+  $ cd ~/aiootp/tests
+
+  $ coverage run --source aiootp -m pytest test_aiootp.py -vv
 
 
 
@@ -1253,14 +1267,14 @@ Major Changes
    cipher & its interfaces.
 -  The ``salt``, for use in the ``Chunky2048`` cipher & its interfaces, 
    was decreased from needing to be 32-bytes to 24-bytes.
--  The ``siv`` for use in the ``Chunky2048`` cipher & its interfaces was
-   from needing to be 16-bytes to 24-bytes.
+-  The ``siv``, for use in the ``Chunky2048`` cipher & its interfaces, was
+   increased from needing to be 16-bytes to 24-bytes.
 -  The new ``KeyAADBundle`` class was created as the primary interface
    for consuming ``key``, ``salt``, ``pid`` & ``siv`` values. This class'
    objects are the only ones that are used to pass around these values
    in low-level ``Chunky2048`` cipher functionalities. The higher-level
    cipher functions are the only public interfaces that still receive
-   these ``key``, ``salt``, & ``pid`` values.
+   these ``key``, ``salt``, & ``aad`` values.
 -  The ``KeyAADBundle`` now manages the new initial key derivation of the
    ``Chunky2048`` cipher. This new algorithm is much more efficient,
    utilizing the output of the keystream's first priming call instead of
@@ -1290,8 +1304,8 @@ Major Changes
    utilities that were previously scattered throughout the package's
    top-level namespaces.
 -  The new ``_exceptions.py`` module was created to help organize the
-   exceptions raised throughout the package, improving the readability
-   & maintainability of the package.
+   exceptions raised throughout the package, improving readability
+   & maintainability.
 -  The new ``_typing.py`` module was added to assist in the long process
    of adding functional type-hinting throughout the package. For now,
    the type hints that have been added primarily function as documentation.
@@ -1300,7 +1314,7 @@ Major Changes
    classes. The new ``_containers.py`` module was made for such classes
    for use throughout the package. And, most classes throughout the
    package were given ``__slots__`` attributes.
--  A new ``OpenNamespace`` class was added which is a subclass of ``Namespace``
+-  A new ``OpenNamespace`` class was added, which is a subclass of ``Namespace``,
    with the only difference being that instances do not omit attributes
    from their repr's.
 -  The new ``(a)bytes_are_equal`` functions, which are pointers to
@@ -1326,7 +1340,8 @@ Major Changes
    the cache for each operation.
 -  New method additions/changes to the database classes:
 
-   -  ``(a)rollback_tag``, ``(a)clear_cache``, & a ``filenames`` property.
+   -  ``(a)rollback_tag``, ``(a)clear_cache``, & a ``filenames`` property 
+      were added.
    -  ``(a)hmac`` was changed to ``(a)make_hmac``, & now returns ``bytes`` hashes.
    -  ``(a)save`` was changed to ``(a)save_database``.
    -  ``(a)query`` was changed to ``(a)query_tag``.
@@ -1365,7 +1380,7 @@ Major Changes
    were entirely moved to private namespaces not readily accessible to
    users.
 -  Most of the constants which determine the functionalities throughout
-   the package were refactored out into the ``commons.py``. This allows
+   the package were refactored out into ``commons.py``. This allows
    for easy changes to protocols & data formats.
 
 
