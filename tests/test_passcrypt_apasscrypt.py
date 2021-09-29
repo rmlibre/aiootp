@@ -24,12 +24,12 @@ __all__ = [
 
 
 def test_metadata_hashes():
-    password = "a generic password 123456"
+    passphrase = b"a generic passphrase 123456"
     pcrypt = Passcrypt(**passcrypt_settings)
-    araw_metadata_hash = run(pcrypt.ahash_password_raw(password))
-    raw_metadata_hash = pcrypt.hash_password_raw(password)
-    ametadata_hash = run(pcrypt.ahash_password(password))
-    metadata_hash = pcrypt.hash_password(password)
+    araw_metadata_hash = run(pcrypt.ahash_passphrase_raw(passphrase))
+    raw_metadata_hash = pcrypt.hash_passphrase_raw(passphrase)
+    ametadata_hash = run(pcrypt.ahash_passphrase(passphrase))
+    metadata_hash = pcrypt.hash_passphrase(passphrase)
 
     assert raw_metadata_hash != araw_metadata_hash
     assert metadata_hash != ametadata_hash
@@ -41,59 +41,60 @@ def test_metadata_hashes():
     assert len(raw_metadata_hash) == 106
     assert len(raw_metadata_hash) == len(araw_metadata_hash)
 
-    assert type(ametadata_hash) == str
+    assert type(ametadata_hash) == bytes
     assert len(ametadata_hash) == 148
     assert len(ametadata_hash) == len(ametadata_hash)
-    assert type(metadata_hash) == str
+    assert type(metadata_hash) == bytes
     assert len(metadata_hash) == 148
     assert len(metadata_hash) == len(ametadata_hash)
 
-    assert "%3D%3D" == metadata_hash[-6:]
+    table = list(Tables.URL_SAFE.encode())
+    assert b"%3D%3D" == metadata_hash[-6:]
     for char in set(metadata_hash[:-6]):
-        assert char in URL_SAFE_TABLE
+        assert char in table
 
-    assert "%3D%3D" == ametadata_hash[-6:]
+    assert b"%3D%3D" == ametadata_hash[-6:]
     for char in set(ametadata_hash[:-6]):
-        assert char in URL_SAFE_TABLE
+        assert char in table
 
     kb = int.from_bytes(raw_metadata_hash[:4], "big")
     cpu = int.from_bytes(raw_metadata_hash[4:6], "big")
     hardness = int.from_bytes(raw_metadata_hash[6:10], "big")
     metadata_settings = Namespace(kb=kb, cpu=cpu, hardness=hardness)
-    salt = raw_metadata_hash[10:42].hex()
-    hash_check = pcrypt.new(password, salt, **metadata_settings)
-    assert hash_check == raw_metadata_hash[42:].hex()
+    salt = raw_metadata_hash[10:42]
+    hash_check = pcrypt.new(passphrase, salt, **metadata_settings)
+    assert hash_check == raw_metadata_hash[42:]
 
     kb = int.from_bytes(araw_metadata_hash[:4], "big")
     cpu = int.from_bytes(araw_metadata_hash[4:6], "big")
     hardness = int.from_bytes(araw_metadata_hash[6:10], "big")
     ametadata_settings = Namespace(kb=kb, cpu=cpu, hardness=hardness)
-    salt = araw_metadata_hash[10:42].hex()
-    ahash_check = run(pcrypt.anew(password, salt, **ametadata_settings))
-    assert ahash_check == araw_metadata_hash[42:].hex()
+    salt = araw_metadata_hash[10:42]
+    ahash_check = run(pcrypt.anew(passphrase, salt, **ametadata_settings))
+    assert ahash_check == araw_metadata_hash[42:]
 
     assert passcrypt_settings == {**metadata_settings}
     assert {**metadata_settings} == {**ametadata_settings}
 
 
 def test_passcrypt():
-    for password in passwords:
+    for passphrase in passphrases:
         for salt in salts:
-            passcrypt_passwords.append(
-                passcrypt(password, salt, **passcrypt_settings)
+            passcrypt_passphrases.append(
+                Passcrypt.new(passphrase, salt, **passcrypt_settings)
             )
 
 
 def test_apasscrypt():
-    for password in passwords:
+    for passphrase in passphrases:
         for salt in salts:
-            apasscrypt_passwords.append(
-                run(apasscrypt(password, salt, **passcrypt_settings))
+            apasscrypt_passphrases.append(
+                run(Passcrypt.anew(passphrase, salt, **passcrypt_settings))
             )
 
 
 def test_passcrypts_equality():
-    assert passcrypt_passwords == apasscrypt_passwords
+    assert passcrypt_passphrases == apasscrypt_passphrases
 
 
 async def async_generator_run():
@@ -106,6 +107,6 @@ def test_apasscrypt_generators():
 
 
 def test_passcrypt_generators():
-    for _ in data(plaintext_string).passcrypt(**passcrypt_settings)[0]:
+    for _ in data(plaintext_bytes).passcrypt(**passcrypt_settings)[0]:
         pass
 
