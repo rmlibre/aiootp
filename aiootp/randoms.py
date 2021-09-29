@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -27,8 +27,8 @@ __all__ = [
 
 
 __doc__ = (
-    "A collection of functions which use & create varying levels of "
-    "entropy for end-user cryptographic applications."
+    "A collection of functions which use & create varying levels of ent"
+    "ropy for end-user cryptographic applications."
 )
 
 
@@ -48,8 +48,7 @@ from .commons import *
 from commons import *
 from .asynchs import *
 from .asynchs import asleep, asyncio, gather, sleep, time, run
-from .generics import Hasher
-from .generics import Domains
+from .generics import Domains, Hasher
 from .generics import sha3__256, asha3__256
 from .generics import sha3__512, asha3__512
 from .generics import Comprende, comprehension
