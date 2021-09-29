@@ -535,7 +535,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     hmac = await db.amake_hmac(data)
 
-    await db.atest_hmac(data, hmac=hmac)
+    await db.atest_hmac(data, hmac)
     >>> True
 
 
@@ -543,7 +543,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     altered_data = b"valiZate this data!"
 
-    await db.atest_hmac(altered_data, hmac=hmac)
+    await db.atest_hmac(altered_data, hmac)
     >>> ValueError: HMAC of the data stream isn't valid.
     
 
@@ -555,7 +555,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     hmac = await db.amake_hmac(arbitrary_data)
     
-    await db.atest_hmac(arbitrary_data, hmac=hmac)
+    await db.atest_hmac(arbitrary_data, hmac)
     >>> True
 
 
@@ -567,7 +567,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     assert order_swapped_data == arbitrary_data
     
-    await db.atest_hmac(order_swapped_data, hmac=hmac) 
+    await db.atest_hmac(order_swapped_data, hmac) 
     >>> ValueError: HMAC of the data stream isn't valid.
     
     
