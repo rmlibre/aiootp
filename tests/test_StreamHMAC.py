@@ -15,7 +15,7 @@ from init_tests import *
 __all__ = [
     "test_detection_of_ciphertext_modification",
     "test_current_digest",
-    "test_block_id",
+    "test_block_ids",
     "__all__",
 ]
 
@@ -69,7 +69,7 @@ def test_detection_of_ciphertext_modification():
         },
         amodified_ciphertext_5={
             CT: _act,
-            HMAC: _hmac[:6] + bytes([_ahmac[6] ^ a_byte()]) + _ahmac[7:],
+            HMAC: _ahmac[:6] + bytes([_ahmac[6] ^ a_byte()]) + _ahmac[7:],
             SALT: _asalt,
             SIV: _asiv,
         },
@@ -91,13 +91,13 @@ def test_detection_of_ciphertext_modification():
         amodified_ciphertext_10={
             CT: _act,
             HMAC: _ahmac,
-            SALT: _salt[:6] + bytes([_asalt[6] ^ a_byte()]) + _salt[7:],
+            SALT: _asalt[:6] + bytes([_asalt[6] ^ a_byte()]) + _asalt[7:],
             SIV: _asiv,
         },
         amodified_ciphertext_11={
             CT: _act,
             HMAC: _ahmac,
-            SALT: _salt[:-1] + bytes([_asalt[-1] ^ 0b1]),
+            SALT: _asalt[:-1] + bytes([_asalt[-1] ^ 0b1]),
             SIV: _asiv,
         },
         amodified_ciphertext_12={
@@ -299,14 +299,14 @@ def test_current_digest():
             except ValueError:
                 pass
             else:
-                raise AssertionError("Validators don't detect invalid HMACs.")
+                raise AssertionError("Validators don't detect invalid current digests.")
             try:
                 change = (digest[-1] ^ 1).to_bytes(1, "big")
                 await shmac.atest_current_digest(digest[:-1] + change)
             except ValueError:
                 pass
             else:
-                raise AssertionError("Validators don't detect invalid HMACs.")
+                raise AssertionError("Validators don't detect invalid current digests.")
 
         assert plaintext_bytes == await Padding.adepad_plaintext(
             padded_plaintext, key_bundle
@@ -334,14 +334,14 @@ def test_current_digest():
             except ValueError:
                 pass
             else:
-                raise AssertionError("Validators don't detect invalid HMACs.")
+                raise AssertionError("Validators don't detect invalid current digests.")
             try:
                 change = (digest[-1] ^ 1).to_bytes(1, "big")
                 shmac.test_current_digest(digest[:-1] + change)
             except ValueError:
                 pass
             else:
-                raise AssertionError("Validators don't detect invalid HMACs.")
+                raise AssertionError("Validators don't detect invalid current digests.")
 
         assert plaintext_bytes == Padding.depad_plaintext(
             padded_plaintext, key_bundle
@@ -351,7 +351,7 @@ def test_current_digest():
     decipher_and_test()
 
 
-def test_block_id():
+def test_block_ids():
 
     async def aciphertext_stream():
         key_bundle = await KeyAADBundle(key, aad=aad).async_mode()
@@ -417,7 +417,7 @@ def test_block_id():
             except PermissionError:
                 pass
             else:
-                raise AssertionError("A insufficient size block id was allowed!")
+                raise AssertionError("An insufficient size block id was allowed!")
             try:
                 fake_block_id = csprng()[:len(block_id)]
                 await shmac.atest_next_block_id(fake_block_id, ciphertext_block)
@@ -458,7 +458,7 @@ def test_block_id():
             except PermissionError:
                 pass
             else:
-                raise AssertionError("A insufficient size block id was allowed!")
+                raise AssertionError("An insufficient size block id was allowed!")
             try:
                 fake_block_id = csprng()[:len(block_id)]
                 shmac.test_next_block_id(fake_block_id, ciphertext_block)
