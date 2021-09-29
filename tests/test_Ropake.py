@@ -22,7 +22,7 @@ async def async_registration(async_database):
     db = async_database
     await db.ametatag("client")
     await db.ametatag("server")
-    await db.asave()
+    await db.asave_database()
     async with Ropake.aclient_registration(db.client) as client:
         server = Ropake.aserver_registration(await client(), db.server)  # client sends hello
         await client(await server.aexhaust())  # server sends hello response
@@ -37,20 +37,20 @@ async def async_registration(async_database):
     assert len(servers_keys.session_key) == 128
     assert clients_keys.namespace == servers_keys.namespace
 
-    await db.asave()
+    await db.asave_database()
     assert db.client[Ropake.KEY] == clients_keys.key
     assert (
         db.client[Ropake.KEY] == db.server[servers_keys.key_id][Ropake.KEY]
     )
     assert (
         Ropake._make_commit(db.client._root_key, db.client[Ropake.SALT])
-        == db.server[servers_keys.key_id][Ropake.KEYED_PASSWORD]
+        == db.server[servers_keys.key_id][Ropake.KEYED_PASSPHRASE]
     )
 
 
 def registration(database):
     db = database
-    db.load(manifest=True)
+    db.load_database(manifest=True)
     with Ropake.client_registration(db.client) as client:
         server = Ropake.server_registration(client(), db.server)  # client sends hello
         client(server.exhaust())  # server sends hello response
@@ -65,20 +65,20 @@ def registration(database):
     assert len(servers_keys.session_key) == 128
     assert clients_keys.namespace == servers_keys.namespace
 
-    db.save()
+    db.save_database()
     assert db.client[Ropake.KEY] == clients_keys.key
     assert (
         db.client[Ropake.KEY] == db.server[servers_keys.key_id][Ropake.KEY]
     )
     assert (
         Ropake._make_commit(db.client._root_key, db.client[Ropake.SALT])
-        == db.server[servers_keys.key_id][Ropake.KEYED_PASSWORD]
+        == db.server[servers_keys.key_id][Ropake.KEYED_PASSPHRASE]
     )
 
 
 async def async_authentication(async_database):
     db = async_database
-    await db.aload(manifest=True)
+    await db.aload_database(manifest=True)
     async with Ropake.aclient(db.client) as client:
         server = Ropake.aserver(await client(), db.server)  # client sends hello
         await client(await server.aexhaust())  # server sends hello response
@@ -93,20 +93,20 @@ async def async_authentication(async_database):
     assert len(servers_keys.session_key) == 128
     assert clients_keys.namespace == servers_keys.namespace
 
-    await db.asave()
+    await db.asave_database()
     assert db.client[Ropake.KEY] == clients_keys.key
     assert (
         db.client[Ropake.KEY] == db.server[servers_keys.key_id][Ropake.KEY]
     )
     assert (
         Ropake._make_commit(db.client._root_key, db.client[Ropake.SALT])
-        == db.server[servers_keys.key_id][Ropake.KEYED_PASSWORD]
+        == db.server[servers_keys.key_id][Ropake.KEYED_PASSPHRASE]
     )
 
 
 def authentication(database):
     db = database
-    db.load(manifest=True)
+    db.load_database(manifest=True)
     with Ropake.client(db.client) as client:
         server = Ropake.server(client(), db.server)  # client sends hello
         client(server.exhaust())  # server sends hello response
@@ -121,14 +121,14 @@ def authentication(database):
     assert len(servers_keys.session_key) == 128
     assert clients_keys.namespace == servers_keys.namespace
 
-    db.save()
+    db.save_database()
     assert db.client[Ropake.KEY] == clients_keys.key
     assert (
         db.client[Ropake.KEY] == db.server[servers_keys.key_id][Ropake.KEY]
     )
     assert (
         Ropake._make_commit(db.client._root_key, db.client[Ropake.SALT])
-        == db.server[servers_keys.key_id][Ropake.KEYED_PASSWORD]
+        == db.server[servers_keys.key_id][Ropake.KEYED_PASSPHRASE]
     )
 
 
