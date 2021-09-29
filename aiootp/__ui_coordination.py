@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -14,8 +14,8 @@ __all__ = ["gentools"]
 
 __doc__ = (
     "Coordinates some of the library's UI/UX by inserting higher-level "
-    "functionality from dependant modules into lower-level modules in "
-    "this package."
+    "functionality from dependant modules into lower-level modules in t"
+    "his package."
 )
 
 
@@ -73,7 +73,7 @@ async def apasscrypt(
     """
     Applies the `passcrypt` algorithm on a pseudo-randomly generated
     salt & each value that's yielded from the underlying `Comprende`
-    async generator. Each iteration a new salt is produced & is yield
+    async generator. Each iteration a new salt is produced & is yielded
     along with the result of the `passcrypt` operation.
     """
     got = None
@@ -95,7 +95,7 @@ def passcrypt(
     """
     Applies the `passcrypt` algorithm on a pseudo-randomly generated
     salt & each value that's yielded from the underlying `Comprende`
-    sync generator. Each iteration a new salt is produced & is yield
+    sync generator. Each iteration a new salt is produced & is yielded
     along with the result of the `passcrypt` operation.
     """
     got = None
