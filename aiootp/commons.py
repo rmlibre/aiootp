@@ -1,4 +1,4 @@
-# This file is part of aiootp, an asynchronous pseudo-one-time-pad based
+# This file is part of aiootp, an asynchronous pseudo one-time pad based
 # crypto and anonymity library.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
@@ -15,8 +15,8 @@ __all__ = [
 
 
 __doc__ = (
-    "A module used to aggregate commonly used constants & arbitrary "
-    "utilities."
+    "A module used to aggregate commonly used constants & arbitrary uti"
+    "lities."
 )
 
 
@@ -487,6 +487,7 @@ class OpenNamespace(Namespace):
 
 chunky2048_constants = OpenNamespace(
     #  These constants control the structure of the Chunky2048 cipher
+    AAD="aad",
     BLOCK_ID="block_id",
     BLOCK_ID_BYTES=16,
     BLOCKSIZE=256,
@@ -510,7 +511,6 @@ chunky2048_constants = OpenNamespace(
     MINIMUM_KEY_BYTES=32,
     PADDING_KEY="padding_key",
     PADDING_KEY_BYTES=32,
-    AAD="aad",
     PLAINTEXT="plaintext",
     RIGHT_PAD=8 * b"\x36",
     SALT="salt",
@@ -562,7 +562,6 @@ misc_constants = OpenNamespace(
     ADDITIONAL_AUTHENTICATED_DATA="additional_authenticated_data",
     ADMIN="admin",
     AGE="age_of_connection",
-    ALL_BLOCKS="all_blocks",
     ASYNC="asynchronous",
     AUTHENTICATION="authentication",
     CHANNEL="channel",
