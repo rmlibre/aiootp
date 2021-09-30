@@ -11,12 +11,12 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 6
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
-        os: [ubuntu-latest]
+
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
@@ -33,13 +33,7 @@ jobs:
         coverage run --source aiootp -m pytest tests/test_aiootp.py -vv
         coverage report
 
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      max-parallel: 6
-      matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
-        os: [macOS-latest]
+    runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
