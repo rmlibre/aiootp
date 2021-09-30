@@ -203,7 +203,7 @@ class Ciphertext(Slots):
     CIPHERTEXT_SLICE = CIPHERTEXT_SLICE
 
     def __init__(self, data: bytes):
-        size = (len(data) - HEADER_BYTES)
+        size = len(data) - HEADER_BYTES
         if size <= 0 or size % BLOCKSIZE:
             raise CiphertextIssue.invalid_ciphertext_length(len(data))
         self.hmac = data[HMAC_SLICE]
