@@ -36,6 +36,7 @@ from . import Ed25519, X25519
 from . import Processes, Threads
 from . import AsyncDatabase, Database
 from . import Namespace, OpenNamespace
+from . import PackageSigner, PackageVerifier
 from . import Domains, DomainKDF, Hasher, Passcrypt, Chunky2048
 from . import BytesIO, Padding, KeyAADBundle, StreamHMAC, Chunky2048
 
@@ -72,17 +73,16 @@ async def apasscrypt(
     hardness: int = Passcrypt._DEFAULT_HARDNESS,
 ):
     """
-    Applies the `passcrypt` algorithm on a pseudo-randomly generated
+    Applies the `Passcrypt` algorithm on a pseudo-randomly generated
     salt & each value that's yielded from the underlying `Comprende`
     async generator. Each iteration a new salt is produced & is yielded
-    along with the result of the `passcrypt` operation.
+    along with the result of the `Passcrypt` operation.
     """
     got = None
     pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
     while True:
         salt = await agenerate_salt(size=Passcrypt._SALT_BYTES)
-        result = await pcrypt.anew(await self.asend(got), salt)
-        got = yield salt, result
+        got = yield salt, await pcrypt.anew(await self.asend(got), salt)
 
 
 @comprehension(chained=True)
@@ -94,18 +94,17 @@ def passcrypt(
     hardness: int = Passcrypt._DEFAULT_HARDNESS,
 ):
     """
-    Applies the `passcrypt` algorithm on a pseudo-randomly generated
+    Applies the `Passcrypt` algorithm on a pseudo-randomly generated
     salt & each value that's yielded from the underlying `Comprende`
     sync generator. Each iteration a new salt is produced & is yielded
-    along with the result of the `passcrypt` operation.
+    along with the result of the `Passcrypt` operation.
     """
     got = None
     pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
     try:
         while True:
             salt = generate_salt(size=Passcrypt._SALT_BYTES)
-            result = pcrypt.new(self.send(got), salt)
-            got = yield salt, result
+            got = yield salt, pcrypt.new(self.send(got), salt)
     except StopIteration:
         pass
 
@@ -218,6 +217,8 @@ def insert_types():
     Typing.Keys = Keys
     Typing.Namespace = Namespace
     Typing.OpenNamespace = OpenNamespace
+    Typing.PackageSigner = PackageSigner
+    Typing.PackageVerifier = PackageVerifier
     Typing.Padding = Padding
     Typing.Passcrypt = Passcrypt
     Typing.Processes = Processes
