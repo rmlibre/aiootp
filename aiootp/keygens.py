@@ -522,7 +522,7 @@ class Curve25519:
         return secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
 
     @staticmethod
-    async def aexchange(secret_key, public_key: bytes):
+    async def aexchange(secret_key, public_key: Typing.AnyStr):
         """
         Returns the shared key bytes derived from an elliptic curve key
         exchange with the user's ``secret_key`` key, & their communicating
@@ -536,7 +536,7 @@ class Curve25519:
         )
 
     @staticmethod
-    def exchange(secret_key, public_key: bytes):
+    def exchange(secret_key, public_key: Typing.AnyStr):
         """
         Returns the shared key bytes derived from an elliptic curve key
         exchange with the user's ``secret_key`` key, & their communicating
@@ -574,9 +574,7 @@ class Base25519:
             raise Issue.no_value_specified("key material")
         elif key_material.__class__ is str:
             key_material = bytes.fromhex(key_material)
-            return key_material
-        else:
-            return key_material
+        return key_material
 
     @classmethod
     def _process_public_key(cls, public_key):
@@ -770,20 +768,22 @@ class Ed25519(Base25519):
         self.import_secret_key(key)
         return self
 
-    async def asign(self, data):
+    async def asign(self, data: bytes):
         """
         Signs some bytes ``data`` with the instance's secret key.
         """
         await asleep()
         return self.secret_key.sign(data)
 
-    def sign(self, data):
+    def sign(self, data: bytes):
         """
         Signs some bytes ``data`` with the instance's secret key.
         """
         return self.secret_key.sign(data)
 
-    async def averify(self, signature, data, *, public_key=None):
+    async def averify(
+        self, signature: bytes, data: bytes, *, public_key=None
+    ):
         """
         Receives a ``signature`` to verify data with the instance's
         public key. If the ``public_key`` keyword-only argument is
@@ -798,7 +798,7 @@ class Ed25519(Base25519):
         await asleep()
         public_key.verify(signature, data)
 
-    def verify(self, signature, data, *, public_key=None):
+    def verify(self, signature: bytes, data: bytes, *, public_key=None):
         """
         Receives a ``signature`` to verify data with the instance's
         public key. If the ``public_key`` keyword-only argument is
@@ -1321,7 +1321,7 @@ class PackageSigner:
         """
         try:
             return self._db
-        except AttributeError as error:
+        except AttributeError:
             raise PackageSignerIssue.must_connect_to_secure_database()
 
     @property
