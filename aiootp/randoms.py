@@ -528,8 +528,6 @@ try:
     run = asyncio.new_event_loop().run_until_complete
 
     #  initializing weakly entropic functions
-    _weak_entropy = WeakEntropy()
-
     random = _random.Random(token_bytes(2500))
     uniform = random.uniform
     unique_range = random.randrange
