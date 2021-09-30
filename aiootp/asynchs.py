@@ -29,6 +29,7 @@ from time import sleep
 from functools import wraps
 from functools import partial
 from threading import Thread
+from asyncio import sleep as _asleep
 from multiprocessing import Process, Manager
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import ProcessPoolExecutor
@@ -71,8 +72,9 @@ process_pool = ProcessPoolExecutor()
 
 loop = asyncio.get_event_loop
 default_loop = loop()
-new_future = asyncio.ensure_future
 gather = asyncio.gather
+new_future = asyncio.ensure_future
+asleep = lambda delay=0: _asleep(delay)
 
 
 def reset_event_loop():
@@ -89,25 +91,18 @@ def serve(*a, **kw):
     return loop().run_forever(*a, **kw)
 
 
-def run(coro, **kw):
+def run(coro):
     """
     Proxy's access to ``asyncio.get_event_loop().run_until_complete()``.
     """
-    return loop().run_until_complete(coro, **kw)
+    return loop().run_until_complete(coro)
 
 
-def new_task(coro, **kw):
+def new_task(coro):
     """
     Proxy's access to ``asyncio.get_event_loop().create_taksk()``.
     """
-    return loop().create_task(coro, **kw)
-
-
-async def asleep(delay=0, **kw):
-    """
-    Proxy's access to ``asyncio.sleep()``.
-    """
-    return await asyncio.sleep(delay, **kw)
+    return loop().create_task(coro)
 
 
 def stop():
