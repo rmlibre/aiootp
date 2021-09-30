@@ -11,6 +11,7 @@ Minor Changes
 
 -  Small fixes & improvements to documentation.
 -  Small fixes & improvements to tests.
+-  Small fixes to type-hints.
 -  Small re-organization of source file contents.
 -  Small bug fixes.
 

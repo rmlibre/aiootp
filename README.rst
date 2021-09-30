@@ -15,7 +15,7 @@ simplify data processing & cryptographic procedures in python code.
 This library's online MRAE / AEAD cipher, called ``Chunky2048``, is an 
 implementation of the **pseudo one-time pad**. The aim is to create a simple, 
 standard, efficient implementation that's indistinguishable from the 
-unbreakable one-time-pad cipher; to give users and applications access to 
+unbreakable one-time pad cipher; to give users and applications access to 
 user-friendly cryptographic tools; and, to increase the overall security, 
 privacy, and anonymity on the web, and in the digital world. Users will 
 find ``aiootp`` to be easy to write, easy to read, and fun. 
@@ -682,7 +682,7 @@ The cipher can also be used as an online cipher, handling blocks of data 256-byt
 
     key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
     
-    plaintext = b"Example plaintext..."
+    plaintext = b"example plaintext..."
     
     
     # Yields padded plaintext in chunks of 256 bytes ->
@@ -1041,9 +1041,7 @@ Async ``Comprende`` coroutines have almost exactly the same interface as synchro
         
         z = yield x + y
         
-        result = x * y * z
-        
-        raise UserWarning(result)
+        raise UserWarning(x * y * z)
         
         
     # Drive the generator forward.
@@ -1267,6 +1265,7 @@ Minor Changes
 
 -  Small fixes & improvements to documentation.
 -  Small fixes & improvements to tests.
+-  Small fixes to type-hints.
 -  Small re-organization of source file contents.
 -  Small bug fixes.
 
