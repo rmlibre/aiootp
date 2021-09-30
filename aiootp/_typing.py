@@ -47,6 +47,23 @@ class SupportsContains(Protocol):
         ...
 
 
+class _AsyncOrSyncIterableMeta(type):
+    """
+    Allows bracketed choices of types to be given to the `Iterable` &
+    `AsyncIterable` type hinters for the `AsyncOrSyncIterable` subclass.
+    """
+
+    def __getitem__(cls, obj: typing.Any):
+        return typing.Union[typing.Iterable[obj], typing.AsyncIterable[obj]]
+
+
+class AsyncOrSyncIterable(metaclass=_AsyncOrSyncIterableMeta):
+    """
+    Allows bracketed choices of types to be given to the `Iterable` &
+    `AsyncIterable` type hinters.
+    """
+
+
 Index = typing.Union[int, slice]
 OptionalIndex = typing.Union[int, slice, None]
 
@@ -96,26 +113,23 @@ JSONDeserializable = typing.Union[str, bytes, bytearray]
 
 
 class DictCiphertext(typing_extensions.TypedDict):
-    siv: str
-    salt: str
     hmac: str
+    salt: str
+    siv: str
     ciphertext: typing.List[int]
 
 
 JSONCiphertext = typing.Union[DictCiphertext, JSONDeserializable]
 
 
-SHMACHasher = sha3_256
-SHMACKeyHasher = sha3_512
-SHMACHasherOrKeyHasher = typing.Union[SHMACHasher, SHMACKeyHasher]
-
-
-AsyncOrSyncIterable = typing.Union[typing.Iterable, typing.AsyncIterable]
-
-
 Keystream = typing.Generator[bytes, typing.Optional[bytes], None]
 AsyncKeystream = typing.AsyncGenerator[bytes, typing.Optional[bytes]]
 AsyncOrSyncKeystream = typing.Union[AsyncKeystream, AsyncKeystream]
+
+
+Datastream = typing.Iterable[bytes]
+AsyncDatastream = typing.AsyncIterable[bytes]
+AsyncOrSyncDatastream = typing.Union[Datastream, AsyncDatastream]
 
 
 def _transpose_this_modules_types(class_dict: typing.Dict):

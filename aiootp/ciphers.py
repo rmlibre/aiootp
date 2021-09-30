@@ -1577,7 +1577,7 @@ class SyntheticIV:
     @classmethod
     async def avalidated_xor(
         cls,
-        datastream: Typing.AsyncIterable[bytes],
+        datastream: Typing.AsyncDatastream,
         keystream: Typing.Callable,
         validator: StreamHMAC,
     ):
@@ -1614,7 +1614,7 @@ class SyntheticIV:
     @classmethod
     def validated_xor(
         cls,
-        datastream: Typing.Iterable[bytes],
+        datastream: Typing.Datastream,
         keystream: Typing.Callable,
         validator: StreamHMAC,
     ):
@@ -1649,7 +1649,7 @@ class SyntheticIV:
 
 
 async def _axor_shortcuts(
-    data: Typing.Union[Typing.AsyncIterable[bytes], Typing.Iterable[bytes]],
+    data: Typing.AsyncOrSyncDatastream,
     key: Typing.AsyncKeystream,
     validator: StreamHMAC,
 ):
@@ -1670,7 +1670,7 @@ async def _axor_shortcuts(
 
 
 def _xor_shortcuts(
-    data: Typing.Iterable[bytes],
+    data: Typing.Datastream,
     key: Typing.Keystream,
     validator: StreamHMAC,
 ):
@@ -1692,7 +1692,7 @@ def _xor_shortcuts(
 
 @comprehension()
 async def abytes_xor(
-    data: Typing.Union[Typing.AsyncIterable[bytes], Typing.Iterable[bytes]],
+    data: Typing.AsyncOrSyncDatastream,
     *,
     key: Typing.AsyncKeystream,
     validator: StreamHMAC,
@@ -1734,7 +1734,7 @@ async def abytes_xor(
 
 @comprehension()
 def bytes_xor(
-    data: Typing.Iterable[bytes],
+    data: Typing.Datastream,
     *,
     key: Typing.Keystream,
     validator: StreamHMAC,
@@ -1819,7 +1819,7 @@ def plaintext_stream(data: bytes, key_bundle: KeyAADBundle):
 
 
 def abytes_encipher(
-    data: Typing.Union[Typing.AsyncIterable[bytes], Typing.Iterable[bytes]],
+    data: Typing.AsyncOrSyncDatastream,
     key_bundle: KeyAADBundle,
     validator: StreamHMAC,
 ):
@@ -1858,7 +1858,7 @@ def abytes_encipher(
 
 
 def bytes_encipher(
-    data: Typing.Iterable[bytes],
+    data: Typing.Datastream,
     key_bundle: KeyAADBundle,
     validator: StreamHMAC,
 ):
@@ -1897,7 +1897,7 @@ def bytes_encipher(
 
 
 def abytes_decipher(
-    data: Typing.Union[Typing.AsyncIterable[bytes], Typing.Iterable[bytes]],
+    data: Typing.AsyncOrSyncDatastream,
     key_bundle: KeyAADBundle,
     validator: StreamHMAC,
 ):
@@ -1930,7 +1930,7 @@ def abytes_decipher(
 
 
 def bytes_decipher(
-    data: Typing.Iterable[bytes],
+    data: Typing.Datastream,
     key_bundle: KeyAADBundle,
     validator: StreamHMAC,
 ):
