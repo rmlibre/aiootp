@@ -1,5 +1,5 @@
 {
-    "checksum": "83faa6b6952de7e45812f6dde756634dc39c2b91eea8d447642db2c4aa8641298976a5122e6b2be9e5445dd847093fc4d9f44cbd2176115683ee9d3db095b68f",
+    "checksum": "ee0279890719eb6663a9c5a02f1b0c8c5f9fe88347552f4a4317ae3725c59c17bcfcda59c15d1cee96d244a1595533fb2441027b77522a15583660f8b0316250",
     "checksums": {
         ".gitignore": "342c20c3e47e2ceeaf19b43040bb5be029d26a67428f5d6970967f4deb03fa29910588afb78f50be1856930b1bcbabb5c4c7dee5a9c526b8722a041fdef5ef54",
         "CHANGES.rst": "3cc6f382ef78b8b3e5aa5a13bf5db810674bef8fb76fcfd61e51ca75c356bb7e970b759a042cc33aba5720d80b124052632c70a92b73c6e697dd4d62f38081e1",
@@ -16,13 +16,13 @@
         "aiootp/_exceptions.py": "05112f085f38aad486d5d3b7f3baea51349ca6d15e2de2b65765dadc1fd8093ab20c3f34d359d4e37c34eb1b8364b458f6d7b04454919c61d6dbd54c47f3fd1c",
         "aiootp/_typing.py": "6d515335d517b0a8ffa53dd83daf72b93ecd6a2558351ce2c98cd810c52ddadb6c1e9ac92bbab127432694be028b0385e8b97f6f7f80ebd0dde30cbe946b9a65",
         "aiootp/asynchs.py": "958914c5c09cd17afd026c631263eab7d053050174c4c4d744abf8fd6951fedf4a9003a3fe223586a04ed5235c3f5532bb5ac1de5bdded9e47f5600ffbed3fb8",
-        "aiootp/ciphers.py": "f6afc8849608a85f615c177e06676493300b6ed3a9b25a7a983f8be177640d26c9a160d2e409467d0cd1358609244d3bb59c5e17d3cf02c55ca7da190c6dbaf9",
+        "aiootp/ciphers.py": "45e9267fb384286f36d38ba40d2d77c88573364e73498af2d0bd98ffa7d011cfbb6627af30fc5d1a39d025e9e0400699dce99e2fdd90629100ec6c3253920480",
         "aiootp/commons.py": "dc3ee58686f7f23676a84df9de803e6ccb8582180e7e9c3794b98518612b0d61a11cb506237112e0beca76d7de0dcabe3bc31d24822183ac2637f3e8568f0b03",
         "aiootp/databases/README_DATABASES.rst": "786952b69257c87e07b9b0b3ca92697d07e478006bb5ff19e49af361235734be4c3c2c2391c87fa25366042eb82acf51932c626af03b8f464f0cff0705762496",
         "aiootp/debuggers.py": "e210c0f832fd04b631ca9c18f78db7788e92761efea6da949b1e10cd314be47ce009c72cb9e1d6e98f402d4644ac8e8fda6492631a0a35adbc7b7946bd3f3d4a",
         "aiootp/generics.py": "f66be58c3b4d09d0e5021e0e7df8faf25f41bd266692b01853afeca8dcfd29252d66ea2822cdf829079e811d102be42fb4638fb54fae958fbbaae1e72fbdc721",
         "aiootp/gentools.py": "c279b4cd030e10ec1249b65b77bc0475b43cd57fba8692eb496e99291506384c77d285b88a821addd97e723c1efa2ebb571ff85135cdf8dd8798751823ffb73d",
-        "aiootp/keygens.py": "c9ca2ac486000450b90515958756b1ebb2d0592297becd99d25e8755c036dc5b0f6ea9a5aee95b742f796315b30fde1b9daf4a9f0f7b06abad296f3cbfff6b27",
+        "aiootp/keygens.py": "bb10a4355b52447299a43ebdcfa67c691f52cbb3345c7e93544f009336a4ea5c3e5fab34d89fc55bdeb080bef2831562154e0091ae030a027cc8dcdf38f26709",
         "aiootp/paths.py": "67d72620eada29ae9770356280a0e530be36f9c32bc0937c692a5bd4ef21350c0879c475aaaaa4379ee3b8079671a92557e920f39cb2161c6da76deb6eae1bbf",
         "aiootp/randoms.py": "f7cc8e86771692dc180392bd92f0abb322dfe5434f6151c78adfec1c6ba32b98e8d7d841380549cafdf503bad61efc4ba1abf76a3ebd97f3184181822c84f835",
         "aiootp/tor/README_TOR.rst": "d19659733dffa771d93abcf06a3148436b638591fcc5358b9678c6fc18aa94cbbf1f31c3b7401e82416caa79eeff8ef3d8170dea7e682ec2d94e46b9f3891dc6",
@@ -49,7 +49,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 5,
+        "build_number": 6,
         "date": 18900,
         "description": "aiootp - an asynchronous pseudo one-time pad based crypto and anonymity library.",
         "license": "AGPLv3",
@@ -57,5 +57,5 @@
         "version": "0.20.1"
     },
     "signing_key": "94a8ecc8e8c3b9490801579b8b68b360fa46927cfec5b9234ea0e946598e4121",
-    "signature": "88feb5d2d81c1fe74c3349468b0f21a15cf59307a0baabb242f8c4b2649289bd64daa5cc1631f37d2f6d0fde204bad223a8b3bc87c9c8b08d103066a60621609"
+    "signature": "7f2e79f35125959f55cb8f0e055e8317d521fe7c5c7daf9441555bd660d583c9653b21f8f1578e2acdd03c95f8865123cbc949b5dfabed20c22b5bdcc78d480d"
 }
