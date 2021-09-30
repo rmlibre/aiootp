@@ -541,7 +541,7 @@ class Hasher:
         Copies over the object dictionary of the ``obj`` hashing object.
         """
         self._obj = obj(data)
-        for attr in dir(obj):
+        for attr in dir(self._obj):
             if attr[:1] != "_":
                 setattr(self, attr, getattr(self._obj, attr))
 
