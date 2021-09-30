@@ -194,11 +194,10 @@ class Slots:
 
         cls = f"{self.__class__.__qualname__}("
         spacer = f",{new_line}"
-        items = ((name, value) for name, value in self.items())
         if not mask or DebugControl.is_debugging():
-            items = spacer.join(self._repr(items))
+            items = spacer.join(self._repr(self.items()))
         else:
-            items = spacer.join(self._omitted_repr(items))
+            items = spacer.join(self._omitted_repr(self.items()))
         return f"{cls}{new_line + items + f',{sep}' if items else ''})"
 
     async def __aiter__(self):
@@ -476,10 +475,10 @@ chunky2048_constants.namespace.update(
 misc_constants = OpenNamespace(
     ACTIVE="active_connection",
     ADDRESS="address",
-    ADDITIONAL_AUTHENTICATED_DATA="additional_authenticated_data",
     ADMIN="admin",
     AGE="age_of_connection",
     ASYNC="asynchronous",
+    AUTHENTICATED_ASSOCIATED_DATA="authenticated_associated_data",
     AUTHENTICATION="authentication",
     CHANNEL="channel",
     CHANNELS="channels",

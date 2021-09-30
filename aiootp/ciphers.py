@@ -217,7 +217,7 @@ class KeyAADBundle:
             along with the ciphertext.
 
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     """
@@ -661,7 +661,7 @@ class StreamHMAC:
     This class is used as an inline validator for ciphertext streams as
     they are being created & decrypted. Its design was inspired by AES-GCM,
     but uses a sha3_256 hash function instead of Galois multiplication,
-    the additional authenticated data is used within key derivation, &
+    the authenticated associated data is used within key derivation, &
     an SIV is derived from the first block of ciphertext.
     """
 
@@ -761,7 +761,7 @@ class StreamHMAC:
 
         from aiootp import StreamHMAC, KeyAADBundle, gentools
 
-        aad = b"known additional data"
+        aad = b"known associated data"
         key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
         shmac = StreamHMAC(key_bundle).for_encryption()
         cipher = gentools.plaintext_stream(
@@ -801,7 +801,7 @@ class StreamHMAC:
 
         salt = message["salt"]
         siv = message["synthetic_iv"]
-        aad = b"known additional data"
+        aad = b"known associated data"
         key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
         shmac = StreamHMAC(key_bundle.sync_mode()).for_decryption()
         decipher = gentools.unpack(message["ciphertext"]).bytes_decipher
@@ -1228,7 +1228,7 @@ class StreamHMAC:
 
         async def acipher_stream():
             plaintext_bytes = b"Example plaintext..."
-            aad = b"known additional data"
+            aad = b"known associated data"
             key_bundle = await KeyAADBundle(key, aad=aad).async_mode()
             shmac = StreamHMAC(key_bundle).for_encryption()
 
@@ -1251,7 +1251,7 @@ class StreamHMAC:
         from aiootp import StreamHMAC, KeyAADBundle, Padding, gentools
 
         cipherstream = acipher_stream()
-        aad = b"known additional data"
+        aad = b"known associated data"
         salt, siv = await cipherstream.asend(None)
         key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
         shmac = StreamHMAC(await key_bundle.async_mode()).for_decryption()
@@ -1298,7 +1298,7 @@ class StreamHMAC:
 
         def cipher_stream():
             plaintext_bytes = b"Example plaintext..."
-            aad = b"known additional data"
+            aad = b"known associated data"
             key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
             shmac = StreamHMAC(key_bundle).for_encryption()
 
@@ -1322,7 +1322,7 @@ class StreamHMAC:
         from aiootp import StreamHMAC, KeyAADBundle, Padding, gentools
 
         cipherstream = cipher_stream()
-        aad = b"known additional data"
+        aad = b"known associated data"
         salt, siv = cipherstream.send(None)
         key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
         shmac = StreamHMAC(key_bundle.sync_mode()).for_decryption()
@@ -1987,7 +1987,7 @@ async def ajson_encrypt(
             ONCE for each encryption. This value is sent in the clear
             along with the ciphertext.
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     """
@@ -2021,7 +2021,7 @@ def json_encrypt(
             ONCE for each encryption. This value is sent in the clear
             along with the ciphertext.
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     """
@@ -2048,7 +2048,7 @@ async def ajson_decrypt(
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform, 64-byte value.
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     ``ttl``: An amount of seconds that dictate the allowable age of
@@ -2075,7 +2075,7 @@ def json_decrypt(
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform, 64-byte value.
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     ``ttl``: An amount of seconds that dictate the allowable age of
@@ -2109,7 +2109,7 @@ async def abytes_encrypt(
             ONCE for each encryption. This value is sent in the clear
             along with the ciphertext.
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     """
@@ -2153,7 +2153,7 @@ def bytes_encrypt(
             ONCE for each encryption. This value is sent in the clear
             along with the ciphertext.
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     """
@@ -2189,7 +2189,7 @@ async def abytes_decrypt(
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform, 64-byte value.
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     ``ttl``: An amount of seconds that dictate the allowable age of
@@ -2226,7 +2226,7 @@ def bytes_decrypt(
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform, 64-byte value.
     ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as additional data & safely
+            keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
             permutation of ``key`` & ``salt``.
     ``ttl``: An amount of seconds that dictate the allowable age of
@@ -2309,7 +2309,7 @@ class Chunky2048:
         `Chunky2048` cipher.
 
         ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
-        authenticated additional data which also permutes the cipher's
+        authenticated associated data which also permutes the cipher's
         internal derived keys.
         """
         return await ajson_encrypt(data, key=self.key, salt=salt, aad=aad)
@@ -2326,7 +2326,7 @@ class Chunky2048:
         `Chunky2048` cipher.
 
         ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
-        authenticated additional data which also permutes the cipher's
+        authenticated associated data which also permutes the cipher's
         internal derived keys.
         """
         return json_encrypt(data, key=self.key, salt=salt, aad=aad)
@@ -2341,7 +2341,7 @@ class Chunky2048:
         ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
         be allowed during validation. The age in measured from a
         timestamp that is removed from the plaintext data. ``aad`` is
-        authenticated additional data which also permutes the cipher's
+        authenticated associated data which also permutes the cipher's
         internal derived keys.
         """
         return await ajson_decrypt(data, key=self.key, aad=aad, ttl=ttl)
@@ -2356,7 +2356,7 @@ class Chunky2048:
         ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
         be allowed during validation. The age in measured from a
         timestamp that is removed from the plaintext data. ``aad`` is
-        authenticated additional data which also permutes the cipher's
+        authenticated associated data which also permutes the cipher's
         internal derived keys.
         """
         return json_decrypt(data, key=self.key, aad=aad, ttl=ttl)
@@ -2373,7 +2373,7 @@ class Chunky2048:
         `Chunky2048` cipher.
 
         ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
-        authenticated additional data which also permutes the cipher's
+        authenticated associated data which also permutes the cipher's
         internal derived keys.
         """
         return await abytes_encrypt(data, key=self.key, salt=salt, aad=aad)
@@ -2390,7 +2390,7 @@ class Chunky2048:
         `Chunky2048` cipher.
 
         ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
-        authenticated additional data which also permutes the cipher's
+        authenticated associated data which also permutes the cipher's
         internal derived keys.
         """
         return bytes_encrypt(data, key=self.key, salt=salt, aad=aad)
@@ -2405,7 +2405,7 @@ class Chunky2048:
         ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
         be allowed during validation. The age in measured from a
         timestamp that is removed from the plaintext data. ``aad`` is
-        authenticated additional data which also permutes the  cipher's
+        authenticated associated data which also permutes the  cipher's
         internal derived keys.
         """
         return await abytes_decrypt(data, key=self.key, aad=aad, ttl=ttl)
@@ -2420,7 +2420,7 @@ class Chunky2048:
         ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
         be allowed during validation. The age in measured from a
         timestamp that is removed from the plaintext data. ``aad`` is
-        authenticated additional data which also permutes the  cipher's
+        authenticated associated data which also permutes the  cipher's
         internal derived keys.
         """
         return bytes_decrypt(data, key=self.key, aad=aad, ttl=ttl)
@@ -2431,7 +2431,7 @@ class Chunky2048:
         `Chunky2048` cipher.
 
         Encrypts ``data`` with the instance key & returns a urlsafe
-        encoded ciphertext token. ``aad`` is authenticated additional
+        encoded ciphertext token. ``aad`` is authenticated associated
         data which also permutes the cipher's internal derived keys.
         """
         if data.__class__ is not bytes:
@@ -2445,7 +2445,7 @@ class Chunky2048:
         `Chunky2048` cipher.
 
         Encrypts ``data`` with the instance key & returns a urlsafe
-        encoded ciphertext token. ``aad`` is authenticated additional
+        encoded ciphertext token. ``aad`` is authenticated associated
         data which also permutes the cipher's internal derived keys.
         """
         if data.__class__ is not bytes:
@@ -2468,7 +2468,7 @@ class Chunky2048:
         ``ttl`` is the maximum age of a token, in seconds, that will
         be allowed during the token's validation. The age in measured
         from a timestamp that is removed from the plaintext token data.
-        ``aad`` is authenticated additional data which also permutes the
+        ``aad`` is authenticated associated data which also permutes the
         cipher's internal derived keys.
         """
         if token.__class__ is not bytes:
@@ -2491,7 +2491,7 @@ class Chunky2048:
         ``ttl`` is the maximum age of a token, in seconds, that will
         be allowed during the token's validation. The age in measured
         from a timestamp that is removed from the plaintext token data.
-        ``aad`` is authenticated additional data which also permutes the
+        ``aad`` is authenticated associated data which also permutes the
         cipher's internal derived keys.
         """
         if token.__class__ is not bytes:
