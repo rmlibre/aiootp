@@ -43,6 +43,7 @@ if getpass("sign package? y/N\n").lower().strip().startswith("y"):
         author=__author__,
         license=__license__,
         description=__doc__,
+        build_number=int(getpass("build number:\n")),
     )
     signer.connect_to_secure_database(
         passphrase=getpass("database key:\n"),
