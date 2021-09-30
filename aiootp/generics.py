@@ -3685,7 +3685,7 @@ class Comprende(BaseComprende):
     del method
 
 
-class Domains(metaclass=IterableClass):
+class Domains:
     """
     A collection of encoded constants which can augment function inputs
     to make their outputs domain specific.

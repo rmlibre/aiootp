@@ -59,89 +59,6 @@ class DeletedAttribute:
         raise self._callback()
 
 
-class IterableClass(type):
-    """
-    A metaclass which allows classes, such as enums, to be iterable over
-    their non-private values. These capabilities do not extend to the
-    instance's of those classes.
-
-    Usage Example:
-
-    class Colors(metaclass=IterableClass):
-        red = "e20000"
-        green = "00e200"
-        blue = "0000e2"
-
-    assert list(Colors) == [
-        ("red", "e20000"), ("green", "00e200"), ("blue", "0000e2")
-    ]
-
-    assert {**Colors} == {
-        "red": "e20000", "green": "00e200", "blue": "0000e2"
-    }
-
-    Colors["yellow"] = "fff700"
-    assert Colors.yellow == Colors["yellow"]
-    """
-
-    async def __aiter__(cls):
-        """
-        Asynchronously iterates over a class & yields its non-private
-        variable-value pairs.
-        """
-        for variable, item in cls.__dict__.items():
-            await asleep()
-            if not variable.startswith("_") and not is_function(item):
-                yield variable, item
-
-    def __iter__(cls):
-        """
-        Iterates over a class & yields its non-private variable-value
-        pairs.
-        """
-        for variable, item in cls.__dict__.items():
-            if not variable.startswith("_") and not is_function(item):
-                yield variable, item
-
-    def __setitem__(cls, variable, value):
-        """
-        Transforms bracket item assignment into dotted assignment on the
-        Namespace's mapping.
-        """
-        setattr(cls, variable, value)
-
-    def __getitem__(cls, variable):
-        """
-        Allows the subclass's values to be extracted using the mapping
-        syntax {**subclass} or function(**subclass). Subsequently,
-        transforms bracket lookup into dotted access on the subclass'
-        values.
-        """
-        try:
-            return cls.__dict__[variable]
-        except KeyError:
-            return getattr(self, variable)
-
-    def keys(cls):
-        """
-        Allows the subclass's values to be extracted using the mapping
-        syntax {**subclass} or function(**subclass).
-        """
-        yield from (name for name, value in cls)
-
-    def values(cls):
-        """
-        Yields the subclass' values one at a time.
-        """
-        yield from (value for name, value in cls)
-
-    def items(cls):
-        """
-        Yields the subclass' variable names one at a time.
-        """
-        yield from ((name, value) for name, value in cls)
-
-
 async def aimport_namespace(
     dictionary: dict, *, mapping: dict, deepcopy: bool = False
 ):
@@ -729,7 +646,6 @@ extras = dict(
     WORD_LIST=WORD_LIST,
     AsyncInit=AsyncInit,
     DeletedAttribute=DeletedAttribute,
-    IterableClass=IterableClass,
     Namespace=Namespace,
     OpenNamespace=OpenNamespace,
     Slots=Slots,
