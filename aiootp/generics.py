@@ -3694,7 +3694,7 @@ class Domains(metaclass=IterableClass):
     __slots__ = []
 
     @staticmethod
-    async def aencode_constant(constant: Typing.DeterministicRepr):
+    async def aencode_constant(constant: Typing.AnyStr):
         """
         Receives a bytes-type ``constant``, hashes it under a domain which
         is specific to this function, & returns a compressed 8-byte value.
@@ -3710,12 +3710,12 @@ class Domains(metaclass=IterableClass):
         """
         await asleep()
         if constant.__class__ is not bytes:
-            constant = str(constant).encode()
+            constant = constant.encode()
         hashed_constant = await ahash_bytes(b"encoded_constant:", constant)
         return await axi_mix(hashed_constant, size=8)
 
     @staticmethod
-    def encode_constant(constant: Typing.DeterministicRepr):
+    def encode_constant(constant: Typing.AnyStr):
         """
         Receives a bytes-type ``constant``, hashes it under a domain which
         is specific to this function, & returns a compressed 8-byte value.
@@ -3730,7 +3730,7 @@ class Domains(metaclass=IterableClass):
         domain-specific.
         """
         if constant.__class__ is not bytes:
-            constant = str(constant).encode()
+            constant = constant.encode()
         hashed_constant = hash_bytes(b"encoded_constant:", constant)
         return xi_mix(hashed_constant, size=8)
 

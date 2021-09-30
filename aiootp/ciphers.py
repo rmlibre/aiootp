@@ -1212,7 +1212,7 @@ class StreamHMAC:
         return block_id.digest()[:size]
 
     async def acurrent_digest(
-        self, *, obj: Typing.SHMACHasherOrKeyHasher = _type
+        self, *, obj: Typing.Union[sha3_256, sha3_512] = _type
     ):
         """
         Returns a secure digest that authenticates the ciphertext up to
@@ -1281,7 +1281,9 @@ class StreamHMAC:
         )
         return obj(b"".join(payload)).digest()
 
-    def current_digest(self, *, obj: Typing.SHMACHasherOrKeyHasher = _type):
+    def current_digest(
+        self, *, obj: Typing.Union[sha3_256, sha3_512] = _type
+    ):
         """
         Returns a secure digest that authenticates the ciphertext up to
         the current point of execution of the StreamHMAC algorithm. It

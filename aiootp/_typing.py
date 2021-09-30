@@ -79,8 +79,6 @@ DeterministicRepr = typing.Union[
     None,
     typing.Any,
 ]
-EntropicRepr = typing.Union[bytes, bytearray, str, int, typing.Any]
-OptionalEntropicRepr = typing.Optional[EntropicRepr]
 
 
 _JSONSerializableNonContainerTypes = typing.Union[
@@ -115,8 +113,8 @@ SHMACHasherOrKeyHasher = typing.Union[SHMACHasher, SHMACKeyHasher]
 AsyncOrSyncIterable = typing.Union[typing.Iterable, typing.AsyncIterable]
 
 
-Keystream = typing.Generator[str, OptionalEntropicRepr, None]
-AsyncKeystream = typing.AsyncGenerator[str, OptionalEntropicRepr]
+Keystream = typing.Generator[bytes, typing.Optional[bytes], None]
+AsyncKeystream = typing.AsyncGenerator[bytes, typing.Optional[bytes]]
 AsyncOrSyncKeystream = typing.Union[AsyncKeystream, AsyncKeystream]
 
 
