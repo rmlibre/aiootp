@@ -99,7 +99,7 @@ async def atable_keystream(
     characters with ordinal values in set(range(32, 127)). It contains
     95 unique, printable characters.
 
-    Usage Examples:
+    Usage Example:
 
     key = b"smellycaaaat, smelly caaaaat!"
 
@@ -182,8 +182,7 @@ async def atable_key(
     The size parameter determines the number of elements the output key
     will contain.
 
-
-    Usage Examples:
+    Usage Example:
 
     key = b"smellycaaaat, smelly caaaaat!"
 
@@ -220,8 +219,7 @@ def table_key(
     The size parameter determines the number of elements the output key
     will contain.
 
-
-    Usage Examples:
+    Usage Example:
 
     key = b"smellycaaaat, smelly caaaaat!"
 

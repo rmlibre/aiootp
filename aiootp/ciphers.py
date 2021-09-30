@@ -3510,7 +3510,7 @@ class AsyncDatabase(metaclass=AsyncInit):
     library's pseudo one-time pad cipher implementation called
     `Chunky2048`.
 
-    Usage Examples:
+    Usage Example:
 
     key = await aiootp.acsprng()
     db = await AsyncDatabase(key)
@@ -4592,7 +4592,7 @@ class Database:
     transparent encryption / decryption using the library's pseudo one-
     time pad cipher implementation called `Chunky2048`.
 
-    Usage Examples:
+    Usage Example:
 
     key = aiootp.csprng()
     db = Database(key)
