@@ -9,7 +9,7 @@
 #
 
 
-__all__ = ["gentools"]
+__all__ = ["_typing", "gentools"]
 
 
 __doc__ = (
@@ -30,6 +30,7 @@ from .ciphers import plaintext_stream, aplaintext_stream
 from .ciphers import bytes_encipher, abytes_encipher
 from .ciphers import bytes_decipher, abytes_decipher
 from . import *
+from . import _typing
 from . import AsyncKeys, Keys
 from . import Ed25519, X25519
 from . import Processes, Threads
@@ -225,10 +226,27 @@ def insert_types():
     Typing.X25519 = X25519
 
 
+def overwrite_typing_module():
+    """
+    Overwrites the package's `_typing.py` variable which will then be
+    accessible to the user.
+    """
+    global _typing
+
+    _typing = OpenNamespace(
+        Typing=_typing.Typing,
+        __all__=_typing.__all__,
+        __doc__=_typing.__doc__,
+        __package__=_typing.__package__,
+    )
+    _typing = commons.make_module("_typing", mapping=_typing)
+
+
 insert_bytes_cipher_methods()
 insert_debuggers()
 insert_gentools_pointers()
 insert_passcrypt_methods()
 insert_random_sleep_methods()
 insert_types()
+overwrite_typing_module()
 
