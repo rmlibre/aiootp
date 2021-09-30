@@ -51,9 +51,7 @@ class KeySaltAAD(Slots):
 
     __slots__ = [KEY, SALT, AAD]
 
-    def __init__(
-        self, key: Typing.EntropicRepr, salt: bytes, aad: Typing.Any
-    ):
+    def __init__(self, key: bytes, salt: bytes, aad: bytes):
         self.key = key
         self.salt = salt
         self.aad = aad
@@ -70,7 +68,7 @@ class NoRegisters(Slots):
     def __init__(self):
         pass
 
-    def register(self, name, value):
+    def register(self, name: str, value: Typing.Any):
         pass
 
 
@@ -86,7 +84,7 @@ class KeyAADBundleRegisters(Slots):
     def __init__(self):
         pass
 
-    def register(self, name, value):
+    def register(self, name: str, value: Typing.Any):
         setattr(self, name, value)
 
 
@@ -262,8 +260,8 @@ class PlaintextMeasurements(Slots):
         length: int,
         remainder: int,
         padding_size: int,
-        no_padding_required: int,
-        padding_sentinel_fits_in_block: int,
+        no_padding_required: bool,
+        padding_sentinel_fits_in_block: bool,
     ):
         self.length = length
         self.remainder = remainder
