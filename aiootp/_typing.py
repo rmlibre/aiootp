@@ -28,7 +28,7 @@ from ._exceptions import Issue as _Issue
 try:
     import typing_extensions
 except ModuleNotFoundError:
-    typing_extensions = None
+    typing_extensions = typing
 
 
 try:
@@ -188,7 +188,10 @@ class Typing:
     OptionalAnyStr = typing.Optional[AnyStr]
 
     overload = typing.overload
-    extensions = typing_extensions
+    if hasattr(typing, "TypedDict"):
+        extensions = typing
+    else:
+        extensions = typing_extensions
 
     @classmethod
     def _test_type_name(cls, name: str):
