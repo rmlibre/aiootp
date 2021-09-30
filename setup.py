@@ -52,12 +52,13 @@ if getpass("sign package? y/N\n").lower().strip().startswith("y"):
     )
 
     with open("MANIFEST.in", "r") as manifest:
-        filename_sheet = manifest.read().split(linesep)
+        filename_sheet = manifest.read().strip().split("\n")
 
     for line in filename_sheet:
+        line = line.strip()
         if "SIGNATURE" in line or not line.startswith("include"):
             continue
-        filename = line.strip().split(" ")[-1]
+        filename = line.split(" ")[-1]
         with open(filename, "rb") as source_file:
             signer.add_file(filename, source_file.read())
 
