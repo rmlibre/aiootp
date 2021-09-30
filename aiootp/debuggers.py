@@ -21,7 +21,6 @@ import inspect
 import datetime
 from time import time
 from functools import wraps
-from inspect import isasyncgenfunction
 from ._exceptions import *
 from ._typing import Typing
 from .commons import commons

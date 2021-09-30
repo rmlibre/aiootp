@@ -29,12 +29,7 @@ __doc__ = (
 )
 
 
-import hmac
 import json
-import math
-from collections import deque
-from functools import partial
-from functools import lru_cache
 import cryptography
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import (
@@ -52,17 +47,11 @@ from .asynchs import asleep
 from .commons import *
 from .commons import ropake_constants
 from commons import *  # import the module's constants
-from .paths import Path
-from .generics import Hasher, BytesIO, Domains
+from .generics import Domains
 from .generics import azip
-from .generics import arange
-from .generics import is_iterable
 from .generics import comprehension
-from .generics import reader, areader
-from .generics import xi_mix, axi_mix
 from .generics import sha3__256, asha3__256
 from .generics import sha3__512, asha3__512
-from .generics import bytes_range, abytes_range
 from .generics import sha3__256_hmac, asha3__256_hmac
 from .generics import sha3__512_hmac, asha3__512_hmac
 from .generics import bytes_are_equal, abytes_are_equal
@@ -74,11 +63,7 @@ from .ciphers import Database
 from .ciphers import DomainKDF
 from .ciphers import Passcrypt
 from .ciphers import KeyAADBundle
-from .ciphers import AsyncDatabase
 from .ciphers import bytes_keys, abytes_keys
-from .ciphers import json_encrypt, ajson_encrypt
-from .ciphers import json_decrypt, ajson_decrypt
-from .ciphers import keypair_ratchets, akeypair_ratchets
 
 
 @comprehension()
@@ -1382,7 +1367,7 @@ class PackageSigner:
         passphrase: Typing.Any,
         salt: Typing.Any = None,
         username: Typing.Any = None,
-        directory: Typing.Union[Path, str, None] = None,
+        directory: Typing.OptionalPathStr = None,
         **passcrypt_settings: Typing.Dict[str, int],
     ):
         """

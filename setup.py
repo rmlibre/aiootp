@@ -10,7 +10,6 @@
 
 
 import json
-from os import linesep
 from getpass import getpass
 from setuptools import setup, find_packages
 

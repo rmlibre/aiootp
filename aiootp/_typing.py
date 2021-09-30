@@ -21,9 +21,14 @@ __doc__ = (
 import types
 import typing
 import pathlib
-import typing_extensions
 from hashlib import sha3_256, sha3_512
 from ._exceptions import Issue as _Issue
+
+
+try:
+    import typing_extensions
+except ModuleNotFoundError:
+    typing_extensions = None
 
 
 try:
