@@ -511,7 +511,7 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
     assert groceries == await db.ajson_decrypt(ciphertext, filename=filename)
     
     await db.ajson_decrypt(ciphertext, filename="wrong filename")
-    >>> ValueError: Invalid HMAC of data stream!
+    >>> "ValueError: Invalid HMAC of data stream!"
 
 
     # Time-based expiration of ciphertexts is also available for all 
@@ -524,13 +524,13 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
     await asleep(6)
 
     await db.ajson_decrypt(json_ciphertext, ttl=1)
-    >>> TimeoutError: Timestamp expired by <5> seconds.
+    >>> "TimeoutError: Timestamp expired by <5> seconds."
 
     await db.abytes_decrypt(bytes_ciphertext, ttl=1)
-    >>> TimeoutError: Timestamp expired by <5> seconds.
+    >>> "TimeoutError: Timestamp expired by <5> seconds."
 
     await db.aread_token(token_ciphertext, ttl=1)
-    >>> TimeoutError: Timestamp expired by <5> seconds.
+    >>> "TimeoutError: Timestamp expired by <5> seconds."
 
 
     # The number of seconds that are exceeded may be helpful to know. In
@@ -568,7 +568,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
     altered_data = b"valiZate this data!"
 
     await db.atest_hmac(altered_data, hmac)
-    >>> ValueError: HMAC of the data stream isn't valid.
+    >>> "ValueError: HMAC of the data stream isn't valid."
     
 
     # Any type of data can be run thorugh the function, it's the repr
@@ -592,7 +592,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
     assert order_swapped_data == arbitrary_data
     
     await db.atest_hmac(order_swapped_data, hmac) 
-    >>> ValueError: HMAC of the data stream isn't valid.
+    >>> "ValueError: HMAC of the data stream isn't valid."
     
     
     #
