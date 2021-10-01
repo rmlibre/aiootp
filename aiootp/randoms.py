@@ -188,6 +188,38 @@ def random_sleep(span: Typing.PositiveRealNumber = 2):
     return sleep(span * uniform(0, 1))
 
 
+async def atoken_bits(size: int):
+    """
+    Returns ``size`` number of bits from `secrets.randbits`.
+    """
+    await asleep()
+    return token_bits(size)
+
+
+async def atoken_bytes(size: int):
+    """
+    Returns ``size`` bytes of `secrets.token_bytes` entropy.
+    """
+    await asleep()
+    return token_bytes(size)
+
+
+async def atoken_number(size: int):
+    """
+    Returns ``size`` bytes of `secrets.token_bytes` entropy as an
+    integer.
+    """
+    return int.from_bytes(await atoken_bytes(size), "big")
+
+
+def token_number(size: int):
+    """
+    Returns ``size`` bytes of `secrets.token_bytes` entropy as an
+    integer.
+    """
+    return int.from_bytes(token_bytes(size), "big")
+
+
 async def atoken_hash(size: int):
     """
     Feeds ``size`` bytes of `secrets.token_bytes` entropy into a
@@ -215,52 +247,6 @@ def token_hash(size: int):
     return _entropy.hash(domain, token_bytes(size)).hex()
 
 
-async def atoken_number(size: int):
-    """
-    Returns ``size`` bytes of `secrets.token_bytes` entropy as an
-    integer.
-    """
-    return int.from_bytes(await atoken_bytes(size), "big")
-
-
-def token_number(size: int):
-    """
-    Returns ``size`` bytes of `secrets.token_bytes` entropy as an
-    integer.
-    """
-    return int.from_bytes(token_bytes(size), "big")
-
-
-async def atoken_bytes(size: int):
-    """
-    Returns ``size`` bytes of `secrets.token_bytes` entropy.
-    """
-    await asleep()
-    return token_bytes(size)
-
-
-async def atoken_bits(size: int):
-    """
-    Returns ``size`` number of bits from `secrets.randbits`.
-    """
-    await asleep()
-    return token_bits(size)
-
-
-async def _aunique_integer():
-    """
-    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
-    """
-    return int(await _aunique_hash(), 16)
-
-
-def _unique_integer():
-    """
-    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
-    """
-    return int(_unique_hash(), 16)
-
-
 async def _aunique_hash():
     """
     Returns a ``hashlib.sha3_512`` string hash of an integer which is
@@ -278,6 +264,20 @@ def _unique_hash():
     """
     number = _unique_big_int()
     return _entropy.hash(number.to_bytes(576, "big")).hex()
+
+
+async def _aunique_integer():
+    """
+    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
+    """
+    return int(await _aunique_hash(), 16)
+
+
+def _unique_integer():
+    """
+    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
+    """
+    return int(_unique_hash(), 16)
 
 
 async def _aunique_big_int():
@@ -354,12 +354,7 @@ async def _atemplate_unique_number(number: int):
     A pseudo-random number generator helper function. An alternative
     method of constructing unique numbers. The length of the number
     argument will be the same as the length of the number that's
-    returned. This function is used to produce pseudo-random numbers for
-    the ranges passed to random.randrange. We assume that, alone, the
-    output of random.randrange can be determined by an attacker using
-    several known or unknown attack vectors. So this function is to be
-    used in conjunction with other, vigorous methods of producing
-    cryptographically secure pseudo-random numbers.
+    returned.
     """
     seed = await _asalt()
     number = int(number)  # throw if not a number
@@ -373,12 +368,7 @@ def _template_unique_number(number: int):
     A pseudo-random number generator helper function. An alternative
     method of constructing unique numbers. The length of the number
     argument will be the same as the length of the number that's
-    returned. This function is used to produce pseudo-random numbers for
-    the ranges passed to random.randrange. We assume that, alone, the
-    output of random.randrange can be determined by an attacker using
-    several known or unknown attack vectors. So this function is to be
-    used in conjunction with other, vigorous methods of producing
-    cryptographically secure pseudo-random numbers.
+    returned.
     """
     seed = _salt()
     number = int(number)  # throw if not a number
@@ -744,122 +734,6 @@ def _salt(*, _entropy: deque = _initial_entropy):
     return _salt_multiply(*_entropy)
 
 
-async def arandom_256(
-    entropy: Typing.Any = sha3__512(_salt(), hex=False),
-    *,
-    refresh: bool = False,
-    rounds: int = 0,
-):
-    """
-    A high-level public interface to simultaneously retreive from, &
-    seed new user-defined amounts of entropy into the package's internal
-    random number generator. This function then returns 32 random bytes.
-
-    Users can pass any ``entropy`` they have access to into the function.
-    If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``rounds`` number of times
-    over its internal entropy pools & generators, cranking more entropy
-    into the package the higher the number. Generating new entropy can
-    be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26, which fully replaces the contexts of
-    one of the package's entropy pools.
-    """
-    return sha3_256(
-        Domains.ENTROPY
-        + bytes.fromhex(await atoken_hash(64))
-        + await arandom_number_generator(
-            entropy=entropy, rounds=rounds, refresh=refresh
-        )
-    ).digest()
-
-
-def random_256(
-    entropy: Typing.Any = sha3__512(_salt(), hex=False),
-    *,
-    refresh: bool = False,
-    rounds: int = 0,
-):
-    """
-    A high-level public interface to simultaneously retreive from &,
-    seed new user-defined amounts of entropy into the package's internal
-    random number generator. This function then returns 32 random bytes.
-
-    Users can pass any ``entropy`` they have access to into the function.
-    If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``rounds`` number of times
-    over its internal entropy pools & generators, cranking more entropy
-    into the package the higher the number. Generating new entropy can
-    be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26, which fully replaces the contexts of
-    one of the package's entropy pools.
-    """
-    return sha3_256(
-        Domains.ENTROPY
-        + bytes.fromhex(token_hash(64))
-        + random_number_generator(
-            entropy=entropy, rounds=rounds, refresh=refresh
-        )
-    ).digest()
-
-
-async def arandom_512(
-    entropy: Typing.Any = sha3__512(_salt(), hex=False),
-    *,
-    refresh: bool = False,
-    rounds: int = 0,
-):
-    """
-    A high-level public interface to simultaneously retreive from &,
-    seed new user-defined amounts of entropy into the package's internal
-    random number generator. This function then returns 64 random bytes.
-
-    Users can pass any ``entropy`` they have access to into the function.
-    If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``rounds`` number of times
-    over its internal entropy pools & generators, cranking more entropy
-    into the package the higher the number. Generating new entropy can
-    be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26, which fully replaces the contexts of
-    one of the package's entropy pools.
-    """
-    return sha3_512(
-        Domains.ENTROPY
-        + bytes.fromhex(await atoken_hash(64))
-        + await arandom_number_generator(
-            entropy=entropy, rounds=rounds, refresh=refresh
-        )
-    ).digest()
-
-
-def random_512(
-    entropy: Typing.Any = sha3__512(_salt(), hex=False),
-    *,
-    refresh: bool = False,
-    rounds: int = 0,
-):
-    """
-    A high-level public interface to simultaneously retreive from &,
-    seed new user-defined amounts of entropy into the package's internal
-    random number generator. This function then returns 64 random bytes.
-
-    Users can pass any ``entropy`` they have access to into the function.
-    If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``rounds`` number of times
-    over its internal entropy pools & generators, cranking more entropy
-    into the package the higher the number. Generating new entropy can
-    be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26, which fully replaces the contexts of
-    one of the package's entropy pools.
-    """
-    return sha3_512(
-        Domains.ENTROPY
-        + bytes.fromhex(token_hash(64))
-        + random_number_generator(
-            entropy=entropy, rounds=rounds, refresh=refresh
-        )
-    ).digest()
-
-
 async def arandom_number_generator(
     entropy: Typing.Any = sha3__512(_salt(), hex=False),
     *,
@@ -1118,6 +992,122 @@ def random_number_generator(
     return _entropy.hash(domain, token_bytes(32), entropy, *_pool)
 
 
+async def arandom_256(
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
+):
+    """
+    A high-level public interface to simultaneously retreive from, &
+    seed new user-defined amounts of entropy into the package's internal
+    random number generator. This function then returns 32 random bytes.
+
+    Users can pass any ``entropy`` they have access to into the function.
+    If a user sets ``refresh`` to a truthy value, then the package's
+    `random_number_generator` will iterate ``rounds`` number of times
+    over its internal entropy pools & generators, cranking more entropy
+    into the package the higher the number. Generating new entropy can
+    be quite slow, so by default ``refresh`` is set to ``False``, &
+    ``rounds`` is only set to 26, which fully replaces the contexts of
+    one of the package's entropy pools.
+    """
+    return sha3_256(
+        Domains.ENTROPY
+        + bytes.fromhex(await atoken_hash(64))
+        + await arandom_number_generator(
+            entropy=entropy, rounds=rounds, refresh=refresh
+        )
+    ).digest()
+
+
+def random_256(
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
+):
+    """
+    A high-level public interface to simultaneously retreive from &,
+    seed new user-defined amounts of entropy into the package's internal
+    random number generator. This function then returns 32 random bytes.
+
+    Users can pass any ``entropy`` they have access to into the function.
+    If a user sets ``refresh`` to a truthy value, then the package's
+    `random_number_generator` will iterate ``rounds`` number of times
+    over its internal entropy pools & generators, cranking more entropy
+    into the package the higher the number. Generating new entropy can
+    be quite slow, so by default ``refresh`` is set to ``False``, &
+    ``rounds`` is only set to 26, which fully replaces the contexts of
+    one of the package's entropy pools.
+    """
+    return sha3_256(
+        Domains.ENTROPY
+        + bytes.fromhex(token_hash(64))
+        + random_number_generator(
+            entropy=entropy, rounds=rounds, refresh=refresh
+        )
+    ).digest()
+
+
+async def arandom_512(
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
+):
+    """
+    A high-level public interface to simultaneously retreive from &,
+    seed new user-defined amounts of entropy into the package's internal
+    random number generator. This function then returns 64 random bytes.
+
+    Users can pass any ``entropy`` they have access to into the function.
+    If a user sets ``refresh`` to a truthy value, then the package's
+    `random_number_generator` will iterate ``rounds`` number of times
+    over its internal entropy pools & generators, cranking more entropy
+    into the package the higher the number. Generating new entropy can
+    be quite slow, so by default ``refresh`` is set to ``False``, &
+    ``rounds`` is only set to 26, which fully replaces the contexts of
+    one of the package's entropy pools.
+    """
+    return sha3_512(
+        Domains.ENTROPY
+        + bytes.fromhex(await atoken_hash(64))
+        + await arandom_number_generator(
+            entropy=entropy, rounds=rounds, refresh=refresh
+        )
+    ).digest()
+
+
+def random_512(
+    entropy: Typing.Any = sha3__512(_salt(), hex=False),
+    *,
+    refresh: bool = False,
+    rounds: int = 0,
+):
+    """
+    A high-level public interface to simultaneously retreive from &,
+    seed new user-defined amounts of entropy into the package's internal
+    random number generator. This function then returns 64 random bytes.
+
+    Users can pass any ``entropy`` they have access to into the function.
+    If a user sets ``refresh`` to a truthy value, then the package's
+    `random_number_generator` will iterate ``rounds`` number of times
+    over its internal entropy pools & generators, cranking more entropy
+    into the package the higher the number. Generating new entropy can
+    be quite slow, so by default ``refresh`` is set to ``False``, &
+    ``rounds`` is only set to 26, which fully replaces the contexts of
+    one of the package's entropy pools.
+    """
+    return sha3_512(
+        Domains.ENTROPY
+        + bytes.fromhex(token_hash(64))
+        + random_number_generator(
+            entropy=entropy, rounds=rounds, refresh=refresh
+        )
+    ).digest()
+
+
 async def _asymmetric_keypair( # misnomer: asynchronous symmetric keypair!
     entropy: Typing.Any = sha3__512(_salt(), hex=False),
     refresh: bool = False,
@@ -1294,8 +1284,8 @@ def generate_salt(
 async def acsprng(entropy: Typing.Any = sha3__512(_salt(), hex=False)):
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
-    return a 512-bit cryptographically secure pseudo-random bytes value.
-    This function also restarts the package's CSPRNG if it stalls, which,
+    return a 64-byte cryptographically secure pseudo-random value. This
+    function also restarts the package's CSPRNG if it stalls, which,
     for example, can happen when CTRL-Cing in the middle of the
     generator's runtime. This makes sure the whole package doesn't come
     crashing down for users when the generator is halted unexpectedly.
@@ -1311,8 +1301,8 @@ async def acsprng(entropy: Typing.Any = sha3__512(_salt(), hex=False)):
 def csprng(entropy: Typing.Any = sha3__512(_salt(), hex=False)):
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
-    return a 512-bit cryptographically secure pseudo-random bytes value.
-    This function also restarts the package's CSPRNG if it stalls, which,
+    return a 64-byte cryptographically secure pseudo-random value. This
+    function also restarts the package's CSPRNG if it stalls, which,
     for example, can happen when CTRL-Cing in the middle of the
     generator's runtime. This makes sure the whole package doesn't come
     crashing down for users when the generator is halted unexpectedly.
