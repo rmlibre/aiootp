@@ -699,7 +699,7 @@ The cipher can also be used as an online cipher, handling blocks of data 256-byt
     
     key = csprng()  # <---Must be known by the decrypting party
     
-    aad = b"any additional data"  # <---Must be known by the decrypting party
+    aad = b"any associated data"  # <---Must be known by the decrypting party
 
     key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
     
@@ -711,7 +711,7 @@ The cipher can also be used as an online cipher, handling blocks of data 256-byt
     stream = gentools.plaintext_stream(plaintext, key_bundle)
     
     
-    # This is used to authenticate the ciphertext & additional data ->
+    # This is used to authenticate the ciphertext & associated data ->
     
     shmac = StreamHMAC(key_bundle).for_encryption()
     
@@ -829,7 +829,7 @@ Let's take a deep dive into the low-level xor procedure used to implement the ``
             
             yield validated_xor(block, key_chunk)
 
-This is a very efficient, online-AEAD, salt-reuse/misuse resistant, pseudo-one-time-pad cipher algorithm. Being built on generators makes it simple to grok & compose with additional funcitonality. It's backed by an infinite stream of non-repeating key material, efficiently produced from a finite-sized key, an ephemeral salt, additional authenticated data, message content, & SHA3 hashing.
+This is a very efficient, online-AEAD, salt-reuse/misuse resistant, pseudo-one-time-pad cipher algorithm. Being built on generators makes it simple to grok & compose with additional funcitonality. It's backed by an infinite stream of non-repeating key material, efficiently produced from a finite-sized key, an ephemeral salt, authenticated associated data, message content, & SHA3 hashing.
 
 
 
@@ -1275,6 +1275,31 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
+
+
+Changes for version 0.20.2
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Changed the ``Padding`` class' ``(a)check_timestamp`` methods to
+   ``(a)test_timestamp``, to better match the naming convention in the 
+   rest of the package.
+-  Removed the ``(a)sum_sha_(256/512)`` chainable generator methods from
+   the ``Comprende`` class.
+-  Removed the ``os.urandom`` based functions in the ``randoms.py`` module.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Fixes & improvements to out of date documentation.
+-  Small fixes to type-hints.
+-  Small refactorings.
+
+
 
 
 Changes for version 0.20.1

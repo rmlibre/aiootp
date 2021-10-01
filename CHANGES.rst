@@ -2,6 +2,31 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+Changes for version 0.20.2
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Changed the ``Padding`` class' ``(a)check_timestamp`` methods to
+   ``(a)test_timestamp``, to better match the naming convention in the 
+   rest of the package.
+-  Removed the ``(a)sum_sha_(256/512)`` chainable generator methods from
+   the ``Comprende`` class.
+-  Removed the ``os.urandom`` based functions in the ``randoms.py`` module.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Fixes & improvements to out of date documentation.
+-  Small fixes to type-hints.
+-  Small refactorings.
+
+
+
+
 Changes for version 0.20.1
 --------------------------
 

@@ -230,7 +230,7 @@ class KeyAADBundle:
     @staticmethod
     def _test_siv(siv):
         """
-        Assures the ``siv`` is a bytes value & is 24-bytes long.
+        Assures the ``siv`` is a bytes value & is 24-bytes.
         """
         if siv.__class__ is not bytes:
             raise Issue.value_must_be_type("siv", bytes)
@@ -269,7 +269,7 @@ class KeyAADBundle:
         correct lengths of the ``key``, ``salt``, ``aad`` & ``siv``
         values. This is useful for when the coroutines are needed as
         cryptographically secure pseudo-random number generators outside
-        of the context of `Chunky2048` cipher.
+        of the context of the `Chunky2048` cipher.
 
         WARNING: This initializer SHOULD NOT be used within the
         `Chunky2048` cipher's interfaces which expect a `key_bundle`.
@@ -495,10 +495,11 @@ class KeyAADBundle:
 
 async def akeypair_ratchets(key_bundle: KeyAADBundle):
     """
-    Returns a 64-byte seed value & three ``hashlib.sha3_512`` objects
-    that have been primed in different ways with the hashes of values
-    passed in as arguments to the function. The returned values can be
-    used to construct a keypair ratchet algorithm of the user's choosing.
+    Returns a 64-byte seed value & the method pointers of three
+    ``hashlib.sha3_512`` objects that have been primed in different ways
+    with the hashes of the ``key_bundle``'s `key`, `salt` & `aad` values.
+    The returned values can be used to construct a symmetric keypair
+    ratchet algorithm.
     """
     await asleep()
     keys, seed_0, seed_1 = key_bundle._keys
@@ -521,10 +522,11 @@ async def akeypair_ratchets(key_bundle: KeyAADBundle):
 
 def keypair_ratchets(key_bundle: KeyAADBundle):
     """
-    Returns a 64-byte seed value & three ``hashlib.sha3_512`` objects
-    that have been primed in different ways with the hashes of values
-    passed in as arguments to the function. The returned values can be
-    used to construct a keypair ratchet algorithm of the user's choosing.
+    Returns a 64-byte seed value & the method pointers of three
+    ``hashlib.sha3_512`` objects that have been primed in different ways
+    with the hashes of the ``key_bundle``'s `key`, `salt` & `aad` values.
+    The returned values can be used to construct a symmetric keypair
+    ratchet algorithm.
     """
     keys, seed_0, seed_1 = key_bundle._keys
     domain = Domains.CHUNKY_2048
@@ -731,8 +733,7 @@ class StreamHMAC:
         Returns the instance's synthetic IV, which is used as a seed to
         the encryption key stream algorithm. It's derived from the first
         block of plaintext during the padding phase. The ``siv`` is
-        attached to the ciphertext so it's available to this method
-        during decryption.
+        attached to the ciphertext.
         """
         return self._siv
 
@@ -764,13 +765,13 @@ class StreamHMAC:
         aad = b"known associated data"
         key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
         shmac = StreamHMAC(key_bundle).for_encryption()
-        cipher = gentools.plaintext_stream(
-            b"some bytes of plaintext", key_bundle
-        ).bytes_encipher
+        stream = gentools.plaintext_stream(
+            b"some bytes of plaintext...", key_bundle
+        )
 
-        with cipher(key_bundle, validator=shmac) as ciphering:
+        with stream.bytes_encipher(key_bundle, shmac) as ciphering:
             return {
-                "ciphertext": ciphering.list(),
+                "ciphertext": ciphering.join(b""),
                 "hmac": shmac.finalize(),
                 "salt": key_bundle.salt,
                 "synthetic_iv": key_bundle.siv,
@@ -804,12 +805,12 @@ class StreamHMAC:
         aad = b"known associated data"
         key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
         shmac = StreamHMAC(key_bundle.sync_mode()).for_decryption()
-        decipher = gentools.unpack(message["ciphertext"]).bytes_decipher
+        stream = gentools.unpack(message["ciphertext"])
 
-        with decipher(key_bundle, validator=shmac) as deciphering:
+        with stream.bytes_decipher(key_bundle, shmac) as deciphering:
             padded_plaintext = deciphering.join(b"")
             shmac.finalize()
-            shmac.test_hmac(bytes.fromhex(message["hmac"]))
+            shmac.test_hmac(message["hmac"])
 
         plaintext = Padding.depad_plaintext(
             padded_plaintext, key_bundle, ttl=60
@@ -830,40 +831,36 @@ class StreamHMAC:
 
     async def aupdate_key(self, entropic_material: bytes):
         """
-        This method provides a public interface for updating the HMAC
+        This method provides a public interface for updating the SHMAC
         key during validation of the stream of ciphertext. This allows
-        users to ratchet their encryption ``key`` & have the validator
-        track when the key changes & validate the change. The ``salt``
-        & ``aad`` for this method are optional since their original
-        values are already incorporated in the validator during instance
-        initialization. Although, new ``salt``, ``aad`` & ``siv`` values
-        may be passed in to be authenticated.
+        users to ratchet their authentication key & have the validator
+        track when the key changes & validate the change.
         """
         if self._finalized:
             raise SHMACIssue.already_finalized()
         await asleep()
-        domain = Domains.KDF
+        payload = (
+            Domains.KDF, self._encoded_key, entropic_material
+        )
         kdf = self._key_bundle._kdf
-        kdf.update(domain + self._encoded_key + entropic_material)
+        kdf.update(b"".join(payload))
         self._encoded_key = kdf.digest()
         return self
 
     def update_key(self, entropic_material: bytes):
         """
-        This method provides a public interface for updating the HMAC
+        This method provides a public interface for updating the SHMAC
         key during validation of the stream of ciphertext. This allows
-        users to ratchet their encryption ``key`` & have the validator
-        track when the key changes & validate the change. The ``salt``
-        & ``aad`` for this method are optional since their original
-        values are already incorporated in the validator during instance
-        initialization. Although, new ``salt``, ``aad`` & ``siv`` values
-        may be passed in to be authenticated.
+        users to ratchet their authentication key & have the validator
+        track when the key changes & validate the change.
         """
         if self._finalized:
             raise SHMACIssue.already_finalized()
-        domain = Domains.KDF
+        payload = (
+            Domains.KDF, self._encoded_key, entropic_material
+        )
         kdf = self._key_bundle._kdf
-        kdf.update(domain + self._encoded_key + entropic_material)
+        kdf.update(b"".join(payload))
         self._encoded_key = kdf.digest()
         return self
 
@@ -888,9 +885,9 @@ class StreamHMAC:
     async def _aupdate_mac(self, ciphertext_block: bytes):
         """
         This method is called automatically when an instance is passed
-        into an encipher or decipher generator as a `validator`. It
-        increments the ciphertext block counter & updates the hashing
-        object with the bytes type ``ciphertext_block``.
+        into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
+        generators as a `validator`. It updates the instance's mac
+        object with the ``ciphertext_block``.
         """
         self._last_digest = self._mac.digest()
         self._mac.update(ciphertext_block)
@@ -899,9 +896,9 @@ class StreamHMAC:
     def _update_mac(self, ciphertext_block: bytes):
         """
         This method is called automatically when an instance is passed
-        into an encipher or decipher generator as a `validator`. It
-        increments the ciphertext block counter & updates the hashing
-        object with the bytes type ``ciphertext_block``.
+        into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
+        generators as a `validator`. It updates the instance's mac
+        object with the ``ciphertext_block``.
         """
         self._last_digest = self._mac.digest()
         self._mac.update(ciphertext_block)
@@ -918,9 +915,9 @@ class StreamHMAC:
         This method is inserted as the instance's `_avalidated_xor`
         method after the user chooses the encryption mode. The mode is
         chosen by calling the `for_encryption` method. It receives a
-        plaintext block & key chunk, & xors them into a 256-byte
-        ciphertext block used to update the instance's validation hash
-        object before being returned.
+        ``plaintext_block`` & ``key_chunk``, & xors them into a 256-byte
+        ``ciphertext_block`` used to update the instance's mac object
+        before being returned.
         """
         try:
             ciphertext_block = (
@@ -940,12 +937,12 @@ class StreamHMAC:
         _from_bytes: Typing.Callable = int.from_bytes,
     ):
         """
-        This method is inserted as the instance's `_validated_xor`
+        This method is inserted as the instance's `_avalidated_xor`
         method after the user chooses the encryption mode. The mode is
         chosen by calling the `for_encryption` method. It receives a
-        plaintext block & key chunk, & xors them into a 256-byte
-        ciphertext block used to update the instance's validation hash
-        object before being returned.
+        ``plaintext_block`` & ``key_chunk``, & xors them into a 256-byte
+        ``ciphertext_block`` used to update the instance's mac object
+        before being returned.
         """
         try:
             ciphertext_block = (
@@ -968,9 +965,9 @@ class StreamHMAC:
         This method is inserted as the instance's `_avalidated_xor`
         method after the user chooses the decryption mode. The mode is
         chosen by calling the `for_decryption` method. It receives a
-        ciphertext block & key chunk, uses the ciphertext to update the
-        instance's validation hash object, then returns the 256-byte xor
-        of them.
+        ``ciphertext_block``` & ``key_chunk``, uses the ciphertext to
+        update the instance's mac object, then returns the 256-byte
+        plaintext.
         """
         try:
             await self._aupdate(ciphertext_block)
@@ -989,12 +986,12 @@ class StreamHMAC:
         _from_bytes: Typing.Callable = int.from_bytes,
     ):
         """
-        This method is inserted as the instance's `_validated_xor`
+        This method is inserted as the instance's `_avalidated_xor`
         method after the user chooses the decryption mode. The mode is
         chosen by calling the `for_decryption` method. It receives a
-        ciphertext block & key chunk, uses the ciphertext to update the
-        instance's validation hash object, then returns the 256-byte xor
-        of them.
+        ``ciphertext_block``` & ``key_chunk``, uses the ciphertext to
+        update the instance's mac object, then returns the 256-byte
+        plaintext.
         """
         try:
             self._update(ciphertext_block)
@@ -1080,7 +1077,7 @@ class StreamHMAC:
         from aiootp import StreamHMAC, KeyAADBundle, gentools
 
         async def aciphertext_stream():
-            plaintext_bytes = b"Example plaintext..."
+            plaintext_bytes = b"example plaintext..."
             key_bundle = await KeyAADBundle(key, aad=aad).async_mode()
             shmac = StreamHMAC(key_bundle).for_encryption()
             datastream = gentools.aplaintext_stream(
@@ -1089,7 +1086,7 @@ class StreamHMAC:
             cipherstream = datastream.abytes_encipher(key_bundle, shmac)
 
             first_ciphertext_block = await cipherstream()
-            yield key_bundle.salt, shmac.siv
+            yield key_bundle.salt, key_bundle.siv
             yield (
                 await shmac.anext_block_id(first_ciphertext_block),
                 first_ciphertext_block,
@@ -1105,7 +1102,7 @@ class StreamHMAC:
                                     # shared
 
         from collections import deque
-        from aiootp import StreamHMAC, KeyAADBundle, Padding, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
 
         cipherstream = aciphertext_stream()
         salt, siv = await cipherstream.asend(None)
@@ -1154,7 +1151,7 @@ class StreamHMAC:
         from aiootp import StreamHMAC, KeyAADBundle, gentools
 
         def ciphertext_stream():
-            plaintext_bytes = b"Example plaintext..."
+            plaintext_bytes = b"example plaintext..."
             key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
             shmac = StreamHMAC(key_bundle).for_encryption()
             datastream = gentools.plaintext_stream(
@@ -1163,7 +1160,7 @@ class StreamHMAC:
             cipherstream = datastream.bytes_encipher(key_bundle, shmac)
 
             first_ciphertext_block = cipherstream()
-            yield key_bundle.salt, shmac.siv
+            yield key_bundle.salt, key_bundle.siv
             yield (
                 shmac.next_block_id(first_ciphertext_block),
                 first_ciphertext_block,
@@ -1179,7 +1176,7 @@ class StreamHMAC:
                                     # shared
 
         from collections import deque
-        from aiootp import StreamHMAC, KeyAADBundle, Padding, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
 
         cipherstream = ciphertext_stream()
         salt, siv = cipherstream.asend(None)
@@ -1224,10 +1221,10 @@ class StreamHMAC:
         Usage Example (Encryption): # when the `key` & `aad` are already
                                     # shared
         import aiootp
-        from aiootp import StreamHMAC, KeyAADBundle, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle
 
         async def acipher_stream():
-            plaintext_bytes = b"Example plaintext..."
+            plaintext_bytes = b"example plaintext..."
             aad = b"known associated data"
             key_bundle = await KeyAADBundle(key, aad=aad).async_mode()
             shmac = StreamHMAC(key_bundle).for_encryption()
@@ -1268,7 +1265,7 @@ class StreamHMAC:
             await shmac.atest_current_digest(digest)
             padded_plaintext += plaintext_chunk
 
-        assert b"Example plaintext..." == await Padding.adepad_plaintext(
+        assert b"example plaintext..." == await Padding.adepad_plaintext(
             padded_plaintext, key_bundle, ttl=60
         )
         """
@@ -1294,10 +1291,10 @@ class StreamHMAC:
         Usage Example (Encryption): # when the `key` & `aad` are already
                                     # shared
         import aiootp
-        from aiootp import StreamHMAC, KeyAADBundle, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle
 
         def cipher_stream():
-            plaintext_bytes = b"Example plaintext..."
+            plaintext_bytes = b"example plaintext..."
             aad = b"known associated data"
             key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
             shmac = StreamHMAC(key_bundle).for_encryption()
@@ -1339,7 +1336,7 @@ class StreamHMAC:
             shmac.test_current_digest(digest)
             padded_plaintext += plaintext_chunk
 
-        assert b"Example plaintext..." == Padding.depad_plaintext(
+        assert b"example plaintext..." == Padding.depad_plaintext(
             padded_plaintext, key_bundle, ttl=60
         )
         """
@@ -1467,11 +1464,10 @@ class StreamHMAC:
 
     async def atest_current_digest(self, untrusted_digest: bytes):
         """
-        Does a non-constant-time, but instead a safe randomized-time
-        comparison of a supplied ``untrusted_digest`` with the output
-        of the instance's current digest of an unfinished stream of
-        ciphertext. Raises `ValueError` if the instance's current digest
-        doesn't match.
+        Does a time-safe comparison of a supplied ``untrusted_digest``
+        with the output of the instance's current digest of an
+        unfinished stream of ciphertext. Raises `ValueError` if the
+        instance's current digest doesn't match.
         """
         if untrusted_digest.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_digest", bytes)
@@ -1484,11 +1480,10 @@ class StreamHMAC:
 
     def test_current_digest(self, untrusted_digest: bytes):
         """
-        Does a non-constant-time, but instead a safe randomized-time
-        comparison of a supplied ``untrusted_digest`` with the output
-        of the instance's current digest of an unfinished stream of
-        ciphertext. Raises `ValueError` if the instance's current digest
-        doesn't match.
+        Does a time-safe comparison of a supplied ``untrusted_digest``
+        with the output of the instance's current digest of an
+        unfinished stream of ciphertext. Raises `ValueError` if the
+        instance's current digest doesn't match.
         """
         if untrusted_digest.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_digest", bytes)
@@ -1499,9 +1494,9 @@ class StreamHMAC:
 
     async def atest_hmac(self, untrusted_hmac: bytes):
         """
-        Does a non-constant-time, but instead a safe randomized-time
-        comparison of a supplied ``untrusted_hmac`` with the instance's
-        final result hmac. Raises `ValueError` if the hmac doesn't match.
+        Does a time-safe comparison of a supplied ``untrusted_hmac``
+        with the instance's final result hmac. Raises `ValueError` if
+        the hmac doesn't match.
         """
         if untrusted_hmac.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_hmac", bytes)
@@ -1512,9 +1507,9 @@ class StreamHMAC:
 
     def test_hmac(self, untrusted_hmac: bytes):
         """
-        Does a non-constant-time, but instead a safe randomized-time
-        comparison of a supplied ``untrusted_hmac`` with the instance's
-        final result hmac. Raises `ValueError` if the hmac doesn't match.
+        Does a time-safe comparison of a supplied ``untrusted_hmac``
+        with the instance's final result hmac. Raises `ValueError` if
+        the hmac doesn't match.
         """
         if untrusted_hmac.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_hmac", bytes)
@@ -1528,7 +1523,7 @@ class SyntheticIV:
     """
     Manages the derivation & application of synthetic IVs which improve
     the salt reuse / misuse resistance of the package's online AEAD
-    cipher. This class is handled automatically within the xor
+    cipher. This class is handled automatically within the `(a)bytes_xor`
     generators & the `StreamHMAC` class. The required plaintext padding
     is handled within the `Padding` class.
     """
@@ -1785,11 +1780,11 @@ async def aplaintext_stream(data: bytes, key_bundle: KeyAADBundle):
     which is derived from it, globally unique. This allows the cipher to
     be both online & be strongly salt-reuse/misuse resistant, counter to
     the findings in https://eprint.iacr.org/2015/189.pdf.
-        Second, the ``key``, ``salt`` & ``aad`` are used to derive 32
-    pseudo-random padding bytes which are appended to the plaintext.
-    Then random padding bytes are appended to make the resulting
-    plaintext a multiple of the 256-byte blocksize. The details can be
-    found in the `Padding` class.
+        Second, the `key`, `salt` & `aad` that are stored in the
+    ``key_bundle`` are used to derive 32 pseudo-random padding bytes
+    which are appended to the plaintext. Then random padding bytes are
+    appended to make the resulting plaintext a multiple of the 256-byte
+    blocksize. The details can be found in the `Padding` class.
     """
     plaintext = await Padding.apad_plaintext(data, key_bundle)
     async for chunk in adata.root(plaintext):
@@ -1807,11 +1802,11 @@ def plaintext_stream(data: bytes, key_bundle: KeyAADBundle):
     which is derived from it, globally unique. This allows the cipher to
     be both online & be strongly salt-reuse/misuse resistant, counter to
     the findings in https://eprint.iacr.org/2015/189.pdf.
-        Second, the ``key``, ``salt`` & ``aad`` are used to derive 32
-    pseudo-random padding bytes which are appended to the plaintext.
-    Then random padding bytes are appended to make the resulting
-    plaintext a multiple of the 256-byte blocksize. The details can be
-    found in the `Padding` class.
+        Second, the `key`, `salt` & `aad` that are stored in the
+    ``key_bundle`` are used to derive 32 pseudo-random padding bytes
+    which are appended to the plaintext. Then random padding bytes are
+    appended to make the resulting plaintext a multiple of the 256-byte
+    blocksize. The details can be found in the `Padding` class.
     """
     plaintext = Padding.pad_plaintext(data, key_bundle)
     for chunk in gentools.data.root(plaintext):
@@ -1843,7 +1838,7 @@ def abytes_encipher(
     decrypted. Then the final HMAC is available from the `aresult`
     & `result` methods, & can be tested against untrusted HMACs
     with the `atest_hmac` & `test_hmac` methods. The validator also
-    has `current_digest` & `acurrent_digest` methods that can be
+    has `(a)current_digest` & `(a)next_block_id` methods that can be
     used to authenticate unfinished streams of cipehrtext.
     """
     if validator.mode != ENCRYPTION:
@@ -1874,15 +1869,15 @@ def bytes_encipher(
 
     WARNING: The generator does not provide authentication of the
     ciphertexts or associated data it handles. Nor does it do any
-    message padding or checking of inputs for adequacy. Those are
-    functionalities which must be obtained through other means. Just
+    message padding or sufficient checking of inputs for adequacy. Those
+    are functionalities which must be obtained through other means. Just
     passing in a ``validator`` will not authenticate ciphertext
     itself. The `finalize` or `afinalize` methods must be called on
     the ``validator`` once all of the cipehrtext has been created /
     decrypted. Then the final HMAC is available from the `aresult`
     & `result` methods, & can be tested against untrusted HMACs
     with the `atest_hmac` & `test_hmac` methods. The validator also
-    has `current_digest` & `acurrent_digest` methods that can be
+    has `(a)current_digest` & `(a)next_block_id` methods that can be
     used to authenticate unfinished streams of cipehrtext.
     """
     if validator.mode != ENCRYPTION:
@@ -1907,16 +1902,16 @@ def abytes_decipher(
 
     WARNING: The generator does not provide authentication of the
     ciphertexts or associated data it handles. Nor does it do any
-    message padding or checking of inputs for adequacy. Those are
-    functionalities which must be obtained through other means. Just
+    message padding or sufficient checking of inputs for adequacy. Those
+    are functionalities which must be obtained through other means. Just
     passing in a ``validator`` will not authenticate ciphertext
     itself. The `finalize` or `afinalize` methods must be called on
     the ``validator`` once all of the cipehrtext has been created /
     decrypted. Then the final HMAC is available from the `aresult`
     & `result` methods, & can be tested against untrusted HMACs
-    with the `atest_hmac` & `test_hmac` methods. The validator
-    also has `current_digest` & `acurrent_digest` methods that can
-    be used to authenticate unfinished streams of cipehrtext.
+    with the `atest_hmac` & `test_hmac` methods. The validator also
+    has `(a)current_digest` & `(a)next_block_id` methods that can be
+    used to authenticate unfinished streams of cipehrtext.
     """
     if validator.mode != DECRYPTION:
         raise Issue.must_set_value("validator", DECRYPTION)
@@ -1940,16 +1935,16 @@ def bytes_decipher(
 
     WARNING: The generator does not provide authentication of the
     ciphertexts or associated data it handles. Nor does it do any
-    message padding or checking of inputs for adequacy. Those are
-    functionalities which must be obtained through other means. Just
+    message padding or sufficient checking of inputs for adequacy. Those
+    are functionalities which must be obtained through other means. Just
     passing in a ``validator`` will not authenticate ciphertext
     itself. The `finalize` or `afinalize` methods must be called on
     the ``validator`` once all of the cipehrtext has been created /
     decrypted. Then the final HMAC is available from the `aresult`
     & `result` methods, & can be tested against untrusted HMACs
-    with the `atest_hmac` & `test_hmac` methods. The validator
-    also has `current_digest` & `acurrent_digest` methods that can
-    be used to authenticate unfinished streams of cipehrtext.
+    with the `atest_hmac` & `test_hmac` methods. The validator also
+    has `(a)current_digest` & `(a)next_block_id` methods that can be
+    used to authenticate unfinished streams of cipehrtext.
     """
     if validator.mode != DECRYPTION:
         raise Issue.must_set_value("validator", DECRYPTION)
@@ -2280,8 +2275,7 @@ class Chunky2048:
     __slots__ = ["_key"]
 
     _CONSTANTS = chunky2048_constants
-
-    _IO: type = BytesIO
+    _IO = BytesIO
 
     def __init__(self, key: Typing.Optional[bytes] = None):
         """

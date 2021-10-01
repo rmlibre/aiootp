@@ -1193,8 +1193,8 @@ class PackageSigner:
 
     Usage Example:
 
-    import getpass
     import json
+    from getpass import getpass
     from aiootp import PackageSigner
 
     signer = PackageSigner(

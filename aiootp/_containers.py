@@ -111,12 +111,6 @@ class KeyAADMode(Slots):
         """
         return self.mode == mode
 
-    def validate(self):
-        """
-        Procs an error if the mode has not been set, else returns `True`.
-        """
-        return self.mode and True
-
     @property
     def mode(self):
         """
@@ -139,6 +133,12 @@ class KeyAADMode(Slots):
         Sets the object's mode to signal sync key derivation is needed.
         """
         self._mode = SYNC
+
+    def validate(self):
+        """
+        Procs an error if the mode has not been set, else returns `True`.
+        """
+        return self.mode and True
 
 
 class Chunky2048Keys(Slots):

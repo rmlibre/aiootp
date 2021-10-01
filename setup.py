@@ -136,7 +136,7 @@ setup(
             "db database store",
             "user uuid unique",
             "transparent encryption decryption",
-            "chunky chunky2048 Chunky2048 indistinguishable",
+            "Chunky2048 indistinguishable",
             "pseudo one time pad onetimepad",
             "domain-specific kdf separation",
             "bits 256 512 1024 2048 4096",
