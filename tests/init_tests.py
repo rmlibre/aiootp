@@ -48,11 +48,11 @@ passcrypt_passphrases = []
 apasscrypt_passphrases = []
 
 passphrase_0 = csprng()
-passphrase_1 = randoms.urandom_bytes(32)
+passphrase_1 = randoms.token_bytes(32)
 passphrases = [passphrase_0, passphrase_1]
 
 salt_0 = csprng()
-salt_1 = randoms.urandom_bytes(32)
+salt_1 = randoms.token_bytes(32)
 salts = [salt_0, salt_1]
 
 passcrypt_settings = dict(kb=256, cpu=2, hardness=256)
@@ -69,7 +69,7 @@ PROFILE = dict(username=username, passphrase=passphrase, salt=salt)
 LOW_PASSCRYPT_SETTINGS = dict(kb=256, cpu=2, hardness=256)
 PROFILE_AND_SETTINGS = {**PROFILE, **LOW_PASSCRYPT_SETTINGS}
 
-plaintext_bytes = b"!" + randoms.urandom_bytes(512)
+plaintext_bytes = b"!" + randoms.token_bytes(512)
 plaintext_string = 32 * "testing..."
 # Testing json encrypt of these dictionaries may fail because the order
 # of their elements may change

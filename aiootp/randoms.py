@@ -35,7 +35,6 @@ __doc__ = (
 import math
 import base64
 from os import getpid
-from os import urandom as urandom_bytes
 import random as _random
 from collections import deque
 from hashlib import sha3_256, sha3_512, shake_256
@@ -189,55 +188,6 @@ def random_sleep(span: Typing.PositiveRealNumber = 2):
     return sleep(span * uniform(0, 1))
 
 
-async def aurandom_hash(size: int):
-    """
-    Feeds ``size`` bytes of `os.urandom` entropy into a `sha3_512`
-    object that carries one of the package's entropy pools & returns the
-    hash. If ``size`` is smaller than 64 (bytes), then 64 is used
-    instead. This ensures the entropy object receives at least its
-    bitrate of 72 on each call.
-    """
-    domain = Domains.ENTROPY  # 8 bytes
-    size = size if size >= 64 else 64  # at least the sha3_512 bitrate
-    result = await _entropy.ahash(domain, await aurandom_bytes(size))
-    return result.hex()
-
-
-def urandom_hash(size: int):
-    """
-    Feeds ``size`` bytes of `os.urandom` entropy into a `sha3_512`
-    object that carries one of the package's entropy pools & returns the
-    hash. If ``size`` is smaller than 64 (bytes), then 64 is used
-    instead. This ensures the entropy object receives at least its
-    bitrate of 72 on each call.
-    """
-    domain = Domains.ENTROPY  # 8 bytes
-    size = size if size >= 64 else 64  # at least the sha3_512 bitrate
-    return _entropy.hash(domain, urandom_bytes(size)).hex()
-
-
-async def aurandom_number(size: int):
-    """
-    Returns ``size`` bytes of `os.urandom` entropy as an integer.
-    """
-    return int.from_bytes(await aurandom_bytes(size), "big")
-
-
-def urandom_number(size: int):
-    """
-    Returns ``size`` bytes of `os.urandom` entropy as an integer.
-    """
-    return int.from_bytes(urandom_bytes(size), "big")
-
-
-async def aurandom_bytes(size: int):
-    """
-    Returns ``size`` bytes of `os.urandom` entropy.
-    """
-    await asleep()
-    return urandom_bytes(size)
-
-
 async def atoken_hash(size: int):
     """
     Feeds ``size`` bytes of `secrets.token_bytes` entropy into a
@@ -295,6 +245,226 @@ async def atoken_bits(size: int):
     """
     await asleep()
     return token_bits(size)
+
+
+async def _aunique_integer():
+    """
+    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
+    """
+    return int(await _aunique_hash(), 16)
+
+
+def _unique_integer():
+    """
+    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
+    """
+    return int(_unique_hash(), 16)
+
+
+async def _aunique_hash():
+    """
+    Returns a ``hashlib.sha3_512`` string hash of an integer which is
+    greater than a 512-bit number by many orders of magnitude.
+    """
+    number = await _aunique_big_int()
+    hashed_number = await _entropy.ahash(number.to_bytes(576, "big"))
+    return hashed_number.hex()
+
+
+def _unique_hash():
+    """
+    Returns a ``hashlib.sha3_512`` string hash of an integer which is
+    greater than a 512-bit number by many orders of magnitude.
+    """
+    number = _unique_big_int()
+    return _entropy.hash(number.to_bytes(576, "big")).hex()
+
+
+async def _aunique_big_int():
+    """
+    Uses unique lower & upper bound integers to feed into the standard
+    library's ``randrange`` function & returns the result.
+    """
+    upper_bound = _aunique_upper_bound()
+    lower_bound = _aunique_lower_bound()
+    ranges = [await lower_bound, await upper_bound]
+    return await aunique_range(*ranges) ^ await atoken_number(32)
+
+
+def _unique_big_int():
+    """
+    Uses unique lower & upper bound integers to feed into the standard
+    library's ``randrange`` function & returns the result.
+    """
+    upper_bound = _unique_upper_bound()
+    lower_bound = _unique_lower_bound()
+    return unique_range(lower_bound, upper_bound) ^ token_number(32)
+
+
+async def _aunique_lower_bound():
+    """
+    Returns a unique number where 2**1536 < number < 2**2048 from a pair
+    of global, semi-constant 256-bit - 512-bit seeds.
+    """
+    global SMALL_UPPER_BOUND
+    global SMALL_LOWER_BOUND
+    number_0 = await aunique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
+    number_1 = await aunique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
+    return await _asalt_multiply(number_0, number_1)
+
+
+def _unique_lower_bound():
+    """
+    Returns a unique number where 2**1536 < number < 2**2048 from a pair
+    of global, semi-constant 256-bit - 512-bit seeds.
+    """
+    global SMALL_UPPER_BOUND
+    global SMALL_LOWER_BOUND
+    number_0 = unique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
+    number_1 = unique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
+    return _salt_multiply(number_0, number_1)
+
+
+async def _aunique_upper_bound():
+    """
+    Returns a unique number where 2**4096 < number < 2**4608 from a pair
+    of global, semi-constant 1536-bit - 2048-bit seeds.
+    """
+    global BIG_UPPER_BOUND
+    global BIG_LOWER_BOUND
+    number_0 = await aunique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
+    number_1 = await aunique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
+    return await _asalt_multiply(number_0, number_1)
+
+
+def _unique_upper_bound():
+    """
+    Returns a unique number where 2**4096 < number < 2**4608 from a pair
+    of global, semi-constant 1536-bit - 2048-bit seeds.
+    """
+    global BIG_UPPER_BOUND
+    global BIG_LOWER_BOUND
+    number_0 = unique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
+    number_1 = unique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
+    return _salt_multiply(number_0, number_1)
+
+
+async def _atemplate_unique_number(number: int):
+    """
+    A pseudo-random number generator helper function. An alternative
+    method of constructing unique numbers. The length of the number
+    argument will be the same as the length of the number that's
+    returned. This function is used to produce pseudo-random numbers for
+    the ranges passed to random.randrange. We assume that, alone, the
+    output of random.randrange can be determined by an attacker using
+    several known or unknown attack vectors. So this function is to be
+    used in conjunction with other, vigorous methods of producing
+    cryptographically secure pseudo-random numbers.
+    """
+    seed = await _asalt()
+    number = int(number)  # throw if not a number
+    while seed < number:
+        seed *= await _asalt()
+    return int(str(seed)[: len(str(number))])
+
+
+def _template_unique_number(number: int):
+    """
+    A pseudo-random number generator helper function. An alternative
+    method of constructing unique numbers. The length of the number
+    argument will be the same as the length of the number that's
+    returned. This function is used to produce pseudo-random numbers for
+    the ranges passed to random.randrange. We assume that, alone, the
+    output of random.randrange can be determined by an attacker using
+    several known or unknown attack vectors. So this function is to be
+    used in conjunction with other, vigorous methods of producing
+    cryptographically secure pseudo-random numbers.
+    """
+    seed = _salt()
+    number = int(number)  # throw if not a number
+    while seed < number:
+        seed *= _salt()
+    return int(str(seed)[: len(str(number))])
+
+
+async def _agenerate_small_range_bounds():
+    """
+    Generates a pair of unique global, semi-constant seeds which feed
+    uniqueness into the lower bound of ``random.randrange``, with the
+    consideration that guessing its output is aided by knowing what its
+    inputs were. Making its inputs unknown should then help keep its
+    outputs unknown.
+    """
+    global SMALL_UPPER_BOUND
+    global SMALL_LOWER_BOUND
+    SMALL_UPPER_BOUND = await _atemplate_unique_number(1 << 512)
+    SMALL_LOWER_BOUND = await _atemplate_unique_number(1 << 256)
+
+
+def _generate_small_range_bounds():
+    """
+    Generates a pair of unique global, semi-constant seeds which feed
+    uniqueness into the lower bound of ``random.randrange``, with the
+    consideration that guessing its output is aided by knowing what its
+    inputs were. Making its inputs unknown should then help keep its
+    outputs unknown.
+    """
+    global SMALL_UPPER_BOUND
+    global SMALL_LOWER_BOUND
+    SMALL_UPPER_BOUND = _template_unique_number(1 << 512)
+    SMALL_LOWER_BOUND = _template_unique_number(1 << 256)
+
+
+async def _agenerate_big_range_bounds():
+    """
+    Generates a pair of unique global, semi-constant seeds which feed
+    uniqueness into the upper bound of ``random.randrange``, with the
+    consideration that guessing its output is aided by knowing what its
+    inputs were. Making its inputs unknown should then help keep its
+    outputs unknown.
+    """
+    global BIG_UPPER_BOUND
+    global BIG_LOWER_BOUND
+    BIG_UPPER_BOUND = await _atemplate_unique_number(1 << 2048)
+    BIG_LOWER_BOUND = await _atemplate_unique_number(1 << 1536)
+
+
+def _generate_big_range_bounds():
+    """
+    Generates a pair of unique global, semi-constant seeds which feed
+    uniqueness into the upper bound of ``random.randrange``, with the
+    consideration that guessing its output is aided by knowing what its
+    inputs were. Making its inputs unknown should then help keep its
+    outputs unknown.
+    """
+    global BIG_UPPER_BOUND
+    global BIG_LOWER_BOUND
+    BIG_UPPER_BOUND = _template_unique_number(1 << 2048)
+    BIG_LOWER_BOUND = _template_unique_number(1 << 1536)
+
+
+async def _agenerate_unique_range_bounds():
+    """
+    Generates two pairs of unique global, semi-constant seeds which
+    feed uniqueness into ``random.randrange``, with the consideration
+    that guessing its output is aided by knowing what its inputs were.
+    Making its inputs unknown should then help keep its outputs unknown.
+    """
+    random.seed(token_bytes(2500))
+    await _agenerate_small_range_bounds()
+    await _agenerate_big_range_bounds()
+
+
+def _generate_unique_range_bounds():
+    """
+    Generates two pairs of unique global, semi-constant seeds which
+    feed uniqueness into ``random.randrange``, with the consideration
+    that guessing its output is aided by knowing what its inputs were.
+    Making its inputs unknown should then help keep its outputs unknown.
+    """
+    random.seed(token_bytes(2500))
+    _generate_small_range_bounds()
+    _generate_big_range_bounds()
 
 
 async def _asalt_multiply(*numbers: Typing.Iterable[int]):
@@ -591,7 +761,8 @@ async def arandom_256(
     over its internal entropy pools & generators, cranking more entropy
     into the package the higher the number. Generating new entropy can
     be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26.
+    ``rounds`` is only set to 26, which fully replaces the contexts of
+    one of the package's entropy pools.
     """
     return sha3_256(
         Domains.ENTROPY
@@ -619,7 +790,8 @@ def random_256(
     over its internal entropy pools & generators, cranking more entropy
     into the package the higher the number. Generating new entropy can
     be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26.
+    ``rounds`` is only set to 26, which fully replaces the contexts of
+    one of the package's entropy pools.
     """
     return sha3_256(
         Domains.ENTROPY
@@ -647,7 +819,8 @@ async def arandom_512(
     over its internal entropy pools & generators, cranking more entropy
     into the package the higher the number. Generating new entropy can
     be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26.
+    ``rounds`` is only set to 26, which fully replaces the contexts of
+    one of the package's entropy pools.
     """
     return sha3_512(
         Domains.ENTROPY
@@ -675,7 +848,8 @@ def random_512(
     over its internal entropy pools & generators, cranking more entropy
     into the package the higher the number. Generating new entropy can
     be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26.
+    ``rounds`` is only set to 26, which fully replaces the contexts of
+    one of the package's entropy pools.
     """
     return sha3_512(
         Domains.ENTROPY
@@ -745,6 +919,11 @@ async def arandom_number_generator(
     that only 1-bit of entropy is produced. Then, by initializing up to
     a cache of 256 ratcheting states then the ``random_number_generator``
     algorithm here would have at least 256-bits of entropy.
+
+    10. Use a background thread which continuously hashes & updates two
+    of the package's entropy pools with new entropic material & their
+    internal states. This adds unpredictable alterations to the pools
+    concurrently with the running of the package.
 
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     Our implementation analysis is NOT rigorous or conclusive, though
@@ -871,6 +1050,11 @@ def random_number_generator(
     a cache of 256 ratcheting states then the ``random_number_generator``
     algorithm here would have at least 256-bits of entropy.
 
+    10. Use a background thread which continuously hashes & updates two
+    of the package's entropy pools with new entropic material & their
+    internal states. This adds unpredictable alterations to the pools
+    concurrently with the running of the package.
+
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     Our implementation analysis is NOT rigorous or conclusive, though
     soley based on the constraints stated above, our assumptions of
@@ -934,227 +1118,7 @@ def random_number_generator(
     return _entropy.hash(domain, token_bytes(32), entropy, *_pool)
 
 
-async def _aunique_integer():
-    """
-    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
-    """
-    return int(await _aunique_hash(), 16)
-
-
-def _unique_integer():
-    """
-    Returns an ``int(hex_hash, 16)`` value of a unique hexadecimal hash.
-    """
-    return int(_unique_hash(), 16)
-
-
-async def _aunique_hash():
-    """
-    Returns a ``hashlib.sha3_512`` string hash of an integer which is
-    greater than a 512-bit number by many orders of magnitude.
-    """
-    number = await _aunique_big_int()
-    hashed_number = await _entropy.ahash(number.to_bytes(576, "big"))
-    return hashed_number.hex()
-
-
-def _unique_hash():
-    """
-    Returns a ``hashlib.sha3_512`` string hash of an integer which is
-    greater than a 512-bit number by many orders of magnitude.
-    """
-    number = _unique_big_int()
-    return _entropy.hash(number.to_bytes(576, "big")).hex()
-
-
-async def _aunique_big_int():
-    """
-    Uses unique lower & upper bound integers to feed into the standard
-    library's ``randrange`` function & returns the result.
-    """
-    upper_bound = _aunique_upper_bound()
-    lower_bound = _aunique_lower_bound()
-    ranges = [await lower_bound, await upper_bound]
-    return await aunique_range(*ranges) ^ await atoken_number(32)
-
-
-def _unique_big_int():
-    """
-    Uses unique lower & upper bound integers to feed into the standard
-    library's ``randrange`` function & returns the result.
-    """
-    upper_bound = _unique_upper_bound()
-    lower_bound = _unique_lower_bound()
-    return unique_range(lower_bound, upper_bound) ^ token_number(32)
-
-
-async def _aunique_lower_bound():
-    """
-    Returns a unique number where 2**1536 < number < 2**2048 from a pair
-    of global, semi-constant 256-bit - 512-bit seeds.
-    """
-    global SMALL_UPPER_BOUND
-    global SMALL_LOWER_BOUND
-    number_0 = await aunique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
-    number_1 = await aunique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
-    return await _asalt_multiply(number_0, number_1)
-
-
-def _unique_lower_bound():
-    """
-    Returns a unique number where 2**1536 < number < 2**2048 from a pair
-    of global, semi-constant 256-bit - 512-bit seeds.
-    """
-    global SMALL_UPPER_BOUND
-    global SMALL_LOWER_BOUND
-    number_0 = unique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
-    number_1 = unique_range(SMALL_LOWER_BOUND, SMALL_UPPER_BOUND)
-    return _salt_multiply(number_0, number_1)
-
-
-async def _aunique_upper_bound():
-    """
-    Returns a unique number where 2**4096 < number < 2**4608 from a pair
-    of global, semi-constant 1536-bit - 2048-bit seeds.
-    """
-    global BIG_UPPER_BOUND
-    global BIG_LOWER_BOUND
-    number_0 = await aunique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
-    number_1 = await aunique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
-    return await _asalt_multiply(number_0, number_1)
-
-
-def _unique_upper_bound():
-    """
-    Returns a unique number where 2**4096 < number < 2**4608 from a pair
-    of global, semi-constant 1536-bit - 2048-bit seeds.
-    """
-    global BIG_UPPER_BOUND
-    global BIG_LOWER_BOUND
-    number_0 = unique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
-    number_1 = unique_range(BIG_LOWER_BOUND, BIG_UPPER_BOUND)
-    return _salt_multiply(number_0, number_1)
-
-
-async def _atemplate_unique_number(number: int):
-    """
-    A pseudo-random number generator helper function. An alternative
-    method of constructing unique numbers. The length of the number
-    argument will be the same as the length of the number that's
-    returned. This function is used to produce pseudo-random numbers for
-    the ranges passed to random.randrange. We assume that, alone, the
-    output of random.randrange can be determined by an attacker using
-    several known or unknown attack vectors. So this function is to be
-    used in conjunction with other, vigorous methods of producing
-    cryptographically secure pseudo-random numbers.
-    """
-    seed = await _asalt()
-    number = int(number)  # throw if not a number
-    while seed < number:
-        seed *= await _asalt()
-    return int(str(seed)[: len(str(number))])
-
-
-def _template_unique_number(number: int):
-    """
-    A pseudo-random number generator helper function. An alternative
-    method of constructing unique numbers. The length of the number
-    argument will be the same as the length of the number that's
-    returned. This function is used to produce pseudo-random numbers for
-    the ranges passed to random.randrange. We assume that, alone, the
-    output of random.randrange can be determined by an attacker using
-    several known or unknown attack vectors. So this function is to be
-    used in conjunction with other, vigorous methods of producing
-    cryptographically secure pseudo-random numbers.
-    """
-    seed = _salt()
-    number = int(number)  # throw if not a number
-    while seed < number:
-        seed *= _salt()
-    return int(str(seed)[: len(str(number))])
-
-
-async def _agenerate_small_range_bounds():
-    """
-    Generates a pair of unique global, semi-constant seeds which feed
-    uniqueness into the lower bound of ``random.randrange``, with the
-    consideration that guessing its output is aided by knowing what its
-    inputs were. Making its inputs unknown should then help keep its
-    outputs unknown.
-    """
-    global SMALL_UPPER_BOUND
-    global SMALL_LOWER_BOUND
-    SMALL_UPPER_BOUND = await _atemplate_unique_number(1 << 512)
-    SMALL_LOWER_BOUND = await _atemplate_unique_number(1 << 256)
-
-
-def _generate_small_range_bounds():
-    """
-    Generates a pair of unique global, semi-constant seeds which feed
-    uniqueness into the lower bound of ``random.randrange``, with the
-    consideration that guessing its output is aided by knowing what its
-    inputs were. Making its inputs unknown should then help keep its
-    outputs unknown.
-    """
-    global SMALL_UPPER_BOUND
-    global SMALL_LOWER_BOUND
-    SMALL_UPPER_BOUND = _template_unique_number(1 << 512)
-    SMALL_LOWER_BOUND = _template_unique_number(1 << 256)
-
-
-async def _agenerate_big_range_bounds():
-    """
-    Generates a pair of unique global, semi-constant seeds which feed
-    uniqueness into the upper bound of ``random.randrange``, with the
-    consideration that guessing its output is aided by knowing what its
-    inputs were. Making its inputs unknown should then help keep its
-    outputs unknown.
-    """
-    global BIG_UPPER_BOUND
-    global BIG_LOWER_BOUND
-    BIG_UPPER_BOUND = await _atemplate_unique_number(1 << 2048)
-    BIG_LOWER_BOUND = await _atemplate_unique_number(1 << 1536)
-
-
-def _generate_big_range_bounds():
-    """
-    Generates a pair of unique global, semi-constant seeds which feed
-    uniqueness into the upper bound of ``random.randrange``, with the
-    consideration that guessing its output is aided by knowing what its
-    inputs were. Making its inputs unknown should then help keep its
-    outputs unknown.
-    """
-    global BIG_UPPER_BOUND
-    global BIG_LOWER_BOUND
-    BIG_UPPER_BOUND = _template_unique_number(1 << 2048)
-    BIG_LOWER_BOUND = _template_unique_number(1 << 1536)
-
-
-async def _agenerate_unique_range_bounds():
-    """
-    Generates two pairs of unique global, semi-constant seeds which
-    feed uniqueness into ``random.randrange``, with the consideration
-    that guessing its output is aided by knowing what its inputs were.
-    Making its inputs unknown should then help keep its outputs unknown.
-    """
-    random.seed(token_bytes(2500))
-    await _agenerate_small_range_bounds()
-    await _agenerate_big_range_bounds()
-
-
-def _generate_unique_range_bounds():
-    """
-    Generates two pairs of unique global, semi-constant seeds which
-    feed uniqueness into ``random.randrange``, with the consideration
-    that guessing its output is aided by knowing what its inputs were.
-    Making its inputs unknown should then help keep its outputs unknown.
-    """
-    random.seed(token_bytes(2500))
-    _generate_small_range_bounds()
-    _generate_big_range_bounds()
-
-
-async def asymmetric_keypair( # misnomer: asynchronous symmetric keypair!
+async def _asymmetric_keypair( # misnomer: asynchronous symmetric keypair!
     entropy: Typing.Any = sha3__512(_salt(), hex=False),
     refresh: bool = False,
     rounds: int = 0,
@@ -1184,7 +1148,7 @@ async def asymmetric_keypair( # misnomer: asynchronous symmetric keypair!
     return seed, seed_key
 
 
-def symmetric_keypair(
+def _symmetric_keypair(
     entropy: Typing.Any = sha3__512(_salt(), hex=False),
     refresh: bool = False,
     rounds: int = 0,
@@ -1246,7 +1210,7 @@ async def abytes_seeder(
     """
     domain = Domains.ENTROPY
     # misnomer: asynchronous symmetric keypair!
-    seed, seed_key = await asymmetric_keypair(entropy, refresh, rounds)
+    seed, seed_key = await _asymmetric_keypair(entropy, refresh, rounds)
     output = sha3_512(domain + seed_key + seed).digest()
     rotation_key = await asha3__256(seed, seed_key, entropy, hex=False)
     while True:
@@ -1291,7 +1255,7 @@ def bytes_seeder(
     seed = csprng(entropy)  # &/or entropy can be added here
     """
     domain = Domains.ENTROPY
-    seed, seed_key = symmetric_keypair(entropy, refresh, rounds)
+    seed, seed_key = _symmetric_keypair(entropy, refresh, rounds)
     output = sha3_512(domain + seed_key + seed).digest()
     rotation_key = sha3__256(seed, seed_key, entropy, hex=False)
     while True:
@@ -1301,40 +1265,6 @@ def bytes_seeder(
             entropy = repr(entropy).encode()
         output = _entropy.hash(domain, token_bytes(32), entropy, output)
         entropy = yield output
-
-
-@comprehension()
-async def amake_uuids(*, size: int = 24, salt: Typing.Any = None):
-    """
-    Creates deterministic, ``size``-byte unique user ids from a ``salt``
-    & a ``stamp`` sent into coroutine.
-    """
-    stamp = None
-    salt = salt if salt else (await agenerate_salt(size=32)).hex()
-    UUID = await asha3__512(Domains.UUID.hex(), salt)
-    async with Comprende.aclass_relay(salt):
-        while True:
-            uuid = b""
-            while len(uuid) < size:
-                uuid += await asha3__512(UUID, salt, uuid, stamp, hex=False)
-            stamp = yield base64.urlsafe_b64encode(uuid)[:size]
-
-
-@comprehension()
-def make_uuids(*, size: int = 24, salt: Typing.Any = None):
-    """
-    Creates deterministic, ``size``-byte unique user ids from a ``salt``
-    & a ``stamp`` sent into coroutine.
-    """
-    stamp = None
-    salt = salt if salt else generate_salt(size=32).hex()
-    UUID = sha3__512(Domains.UUID.hex(), salt)
-    with Comprende.class_relay(salt):
-        while True:
-            uuid = b""
-            while len(uuid) < size:
-                uuid += sha3__512(UUID, salt, uuid, stamp, hex=False)
-            stamp = yield base64.urlsafe_b64encode(uuid)[:size]
 
 
 async def agenerate_salt(
@@ -1395,6 +1325,40 @@ def csprng(entropy: Typing.Any = sha3__512(_salt(), hex=False)):
         return _csprng(None)
 
 
+@comprehension()
+async def amake_uuids(*, size: int = 24, salt: Typing.Any = None):
+    """
+    Creates deterministic, ``size``-byte unique user ids from a ``salt``
+    & a ``stamp`` sent into coroutine.
+    """
+    stamp = None
+    salt = salt if salt else (await agenerate_salt(size=32)).hex()
+    UUID = await asha3__512(Domains.UUID.hex(), salt)
+    async with Comprende.aclass_relay(salt):
+        while True:
+            uuid = b""
+            while len(uuid) < size:
+                uuid += await asha3__512(UUID, salt, uuid, stamp, hex=False)
+            stamp = yield base64.urlsafe_b64encode(uuid)[:size]
+
+
+@comprehension()
+def make_uuids(*, size: int = 24, salt: Typing.Any = None):
+    """
+    Creates deterministic, ``size``-byte unique user ids from a ``salt``
+    & a ``stamp`` sent into coroutine.
+    """
+    stamp = None
+    salt = salt if salt else generate_salt(size=32).hex()
+    UUID = sha3__512(Domains.UUID.hex(), salt)
+    with Comprende.class_relay(salt):
+        while True:
+            uuid = b""
+            while len(uuid) < size:
+                uuid += sha3__512(UUID, salt, uuid, stamp, hex=False)
+            stamp = yield base64.urlsafe_b64encode(uuid)[:size]
+
+
 try:
     # Initalize package entropy pool & cryptographically secure pseudo-
     # random number generators.
@@ -1434,9 +1398,6 @@ extras = dict(
     atoken_number=atoken_number,
     auniform=auniform,
     aunique_range=aunique_range,
-    aurandom_bytes=aurandom_bytes,
-    aurandom_hash=aurandom_hash,
-    aurandom_number=aurandom_number,
     bytes_seeder=bytes_seeder,
     choice=choice,
     csprng=csprng,
@@ -1452,9 +1413,6 @@ extras = dict(
     token_number=token_number,
     uniform=uniform,
     unique_range=unique_range,
-    urandom_bytes=urandom_bytes,
-    urandom_hash=urandom_hash,
-    urandom_number=urandom_number,
 )
 
 
