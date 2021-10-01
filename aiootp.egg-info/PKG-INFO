@@ -50,7 +50,26 @@ Description: .. image:: https://raw.githubusercontent.com/rmlibre/aiootp/master/
         extensively by the programming and cryptography communities to 
         ensure its implementations are sound. We provide no guarantees. 
         This software hasn't yet been audited by third-party security 
-        professionals. 
+        professionals.
+        
+        
+        
+        
+        .. image:: https://img.shields.io/pypi/v/aiootp
+            :target: https://img.shields.io/pypi/v/aiootp
+            :alt: version
+        
+        .. image:: https://github.com/rmlibre/aiootp/actions/workflows/python-app.yml/badge.svg
+            :target: https://github.com/rmlibre/aiootp/actions/workflows/python-app.yml/badge.svg
+            :alt: build-status
+        
+        .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
+            :target: https://img.shields.io/badge/License-AGPL%20v3-red.svg
+            :alt: license
+        
+        .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+            :target: https://img.shields.io/badge/code%20style-black-000000.svg
+            :alt: code-style
         
         
         

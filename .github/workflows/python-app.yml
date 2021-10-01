@@ -1,6 +1,6 @@
 
 
-name: python application on ubuntu
+name: build
 
 on:
   push:
