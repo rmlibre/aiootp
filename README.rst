@@ -64,6 +64,8 @@ Quick install
 
 .. code-block:: shell
 
+  $ sudo apt-get install python3-cryptography
+
   $ pip3 install --user --upgrade aiootp
 
 

@@ -79,6 +79,8 @@ Description: .. image:: https://raw.githubusercontent.com/rmlibre/aiootp/master/
         
         .. code-block:: shell
         
+          $ sudo apt-get install python3-cryptography
+        
           $ pip3 install --user --upgrade aiootp
         
         
