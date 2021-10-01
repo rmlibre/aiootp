@@ -16,6 +16,7 @@ jobs:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
 
+    name: ubuntu_test
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -33,6 +34,7 @@ jobs:
         coverage run --source aiootp -m pytest tests/test_aiootp.py -vv
         coverage report
 
+    name: macOS_test
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
