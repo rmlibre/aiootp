@@ -210,7 +210,12 @@ def from_base64(base_64: Typing.AnyStr, encoding: str = "utf-8"):
     return base64.standard_b64decode(base_64)
 
 
-async def abase_to_int(string, base, *, table=Tables.ASCII_95):
+async def abase_to_int(
+    string: str,
+    base: int,
+    *,
+    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
+):
     """
     Convert ``string`` in numerical ``base`` into decimal integer.
     """
@@ -227,7 +232,12 @@ async def abase_to_int(string, base, *, table=Tables.ASCII_95):
     return result
 
 
-def base_to_int(string, base, *, table=Tables.ASCII_95):
+def base_to_int(
+    string: str,
+    base: int,
+    *,
+    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
+):
     """
     Convert ``string`` in numerical ``base`` into decimal integer.
     """
@@ -242,7 +252,12 @@ def base_to_int(string, base, *, table=Tables.ASCII_95):
     return result
 
 
-async def aint_to_base(number, base, *, table=Tables.ASCII_95):
+async def aint_to_base(
+    number: int,
+    base: int,
+    *,
+    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
+):
     """
     Convert an ``number`` back into a string in numerical ``base``.
     """
@@ -260,7 +275,12 @@ async def aint_to_base(number, base, *, table=Tables.ASCII_95):
         return table[:1]
 
 
-def int_to_base(number, base, *, table=Tables.ASCII_95):
+def int_to_base(
+    number: int,
+    base: int,
+    *,
+    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
+):
     """
     Convert an ``number`` back into a string in numerical ``base``.
     """
@@ -1464,10 +1484,6 @@ class BaseComprende:
     to, from & in between sync & async coroutines.
     """
 
-    decorator = comprehension
-
-    _cached = {}
-
     __slots__ = [
         "__call__",
         "_areturn_cache",
@@ -1485,25 +1501,10 @@ class BaseComprende:
         "asend",
     ]
 
+    _ASYNC_GEN_DONE = "async generator raised StopAsyncIteration"
+
+    _cached = {}
     _generators = {"__aiter__", "__iter__"}
-
-    lazy_methods = {"asend", "send"}
-
-    eager_methods = {
-        "alist",
-        "list",
-        "adeque",
-        "deque",
-        "aset",
-        "set",
-        "adict",
-        "dict",
-        "ajoin",
-        "join",
-        "aexhaust",
-        "exhaust",
-    }
-
     _methods = {
         "athrow",
         "throw",
@@ -1528,12 +1529,26 @@ class BaseComprende:
         "_aauto_cache",
         "_auto_cache",
     }
-
     _properties = {"_precomputed", "messages"}
 
-    _ASYNC_GEN_DONE = "async generator raised StopAsyncIteration"
+    lazy_methods = {"asend", "send"}
+    eager_methods = {
+        "alist",
+        "list",
+        "adeque",
+        "deque",
+        "aset",
+        "set",
+        "adict",
+        "dict",
+        "ajoin",
+        "join",
+        "aexhaust",
+        "exhaust",
+    }
+    decorator = comprehension
 
-    def __init__(self, func=None, *a, chained=False, **kw):
+    def __init__(self, func, *a, chained: bool = False, **kw):
         """
         Establishes async / sync properties of new objects & copies
         over wrapped functions' signatures.
@@ -2010,7 +2025,7 @@ class BaseComprende:
 
         @lru_cache(maxsize=1)
         def _return_cache(cache_index=None):
-            return [result for result in self]
+            return [*self]
 
         self._return_cache = _return_cache
         self._cache_index = self._make_cache_index()
@@ -2363,9 +2378,10 @@ class Comprende(BaseComprende):
     coroutines.
     """
 
-    _cached = {}
-
     __slots__ = []
+
+    _cached = {}
+    _methods = BaseComprende._methods.union({"__getitem__"})
 
     lazy_generators = {
         "_agetitem",
@@ -2440,16 +2456,11 @@ class Comprende(BaseComprende):
         "sha3__512",
         "asha3__512_hmac",
         "sha3__512_hmac",
-        "asum_sha3__512",
-        "sum_sha3__512",
         "asha3__256",
         "sha3__256",
         "asha3__256_hmac",
         "sha3__256_hmac",
-        "asum_sha3__256",
-        "sum_sha3__256",
     }
-
     eager_generators = {
         "aheappop",
         "heappop",
@@ -2458,8 +2469,6 @@ class Comprende(BaseComprende):
         "asort",
         "sort",
     }
-
-    _methods = BaseComprende._methods.union({"__getitem__"})
 
     @staticmethod
     def _interpret_index(index: int):
@@ -3069,33 +3078,6 @@ class Comprende(BaseComprende):
         except StopIteration:
             pass
 
-    async def asum_sha3__512(self, *, salt: Typing.Any = None):
-        """
-        Cumulatively applies a ``hashlib.sha3_512()`` to each value
-        that's yielded from the underlying Comprende async generator
-        with the results of prior hashing before yielding the result.
-        """
-        got = None
-        summary = await asha3__512(salt)
-        while True:
-            summary = await asha3__512(salt, summary, await self(got))
-            got = yield summary
-
-    def sum_sha3__512(self, *, salt: Typing.Any = None):
-        """
-        Cumulatively applies a ``hashlib.sha3_512()`` to each value
-        that's yielded from the underlying Comprende sync generator with
-        the results of prior hashing before yielding the result.
-        """
-        got = None
-        summary = sha3__512(salt)
-        try:
-            while True:
-                summary = sha3__512(salt, summary, self(got))
-                got = yield summary
-        except StopIteration:
-            pass
-
     async def asha3__256(self, *, salt: Typing.Any = None):
         """
         Applies ``hashlib.sha3_256()`` to each value that's yielded
@@ -3159,33 +3141,6 @@ class Comprende(BaseComprende):
             else:
                 while True:
                     got = yield sha3__256_hmac(self(got), key=key)
-        except StopIteration:
-            pass
-
-    async def asum_sha3__256(self, *, salt: Typing.Any = None):
-        """
-        Cumulatively applies a ``hashlib.sha3_256()`` to each value
-        that's yielded from the underlying Comprende async generator
-        with the results of prior hashing before yielding the result.
-        """
-        got = None
-        summary = await asha3__256(salt)
-        while True:
-            summary = await asha3__256(salt, summary, await self(got))
-            got = yield summary
-
-    def sum_sha3__256(self, *, salt: Typing.Any = None):
-        """
-        Cumulatively applies a ``hashlib.sha3_256()`` to each value
-        that's yielded from the underlying Comprende sync generator with
-        the results of prior hashing before yielding the result.
-        """
-        got = None
-        summary = sha3__256(salt)
-        try:
-            while True:
-                summary = sha3__256(salt, summary, self(got))
-                got = yield summary
         except StopIteration:
             pass
 
@@ -3821,7 +3776,7 @@ def timestamp_ttl_delta(timestamp: bytes, ttl: int):
     return delta - ttl
 
 
-async def acheck_timestamp(timestamp: bytes, ttl: int):
+async def atest_timestamp(timestamp: bytes, ttl: int):
     """
     Raises ``ValueError`` if ``timestamp`` is more than ``ttl`` seconds
     from the current time.
@@ -3840,7 +3795,7 @@ async def acheck_timestamp(timestamp: bytes, ttl: int):
         raise error
 
 
-def check_timestamp(timestamp: bytes, ttl: int):
+def test_timestamp(timestamp: bytes, ttl: int):
     """
     Raises ``ValueError`` if ``timestamp`` is more than ``ttl`` seconds
     from the current time.
@@ -3911,10 +3866,10 @@ class Padding:
     _INNER_HEADER_BYTES = INNER_HEADER_BYTES
     _INNER_HEADER_NIBBLES = INNER_HEADER_NIBBLES
 
-    acheck_timestamp = staticmethod(acheck_timestamp)
     amake_timestamp = staticmethod(amake_timestamp)
-    check_timestamp = staticmethod(check_timestamp)
+    atest_timestamp = staticmethod(atest_timestamp)
     make_timestamp = staticmethod(make_timestamp)
+    test_timestamp = staticmethod(test_timestamp)
 
     @classmethod
     async def amake_siv_key(cls):
@@ -4118,7 +4073,7 @@ class Padding:
         - The prepended 8-byte timestamp.
         - The prepended 16 byte SIV-key.
         """
-        await acheck_timestamp(data[:cls._TIMESTAMP_BYTES], ttl)
+        await atest_timestamp(data[:cls._TIMESTAMP_BYTES], ttl)
         return cls._INNER_HEADER_BYTES
 
     @classmethod
@@ -4129,7 +4084,7 @@ class Padding:
         - The prepended 8-byte timestamp.
         - The prepended 16 byte SIV-key.
         """
-        check_timestamp(data[:cls._TIMESTAMP_BYTES], ttl)
+        test_timestamp(data[:cls._TIMESTAMP_BYTES], ttl)
         return cls._INNER_HEADER_BYTES
 
     @classmethod
@@ -4408,30 +4363,24 @@ class BytesIO:
         return urlsafe_token.replace(b"=", cls._EQUAL_SIGN)
 
     @classmethod
-    async def aurlsafe_to_bytes(cls, token: Typing.AnyStr):
+    async def aurlsafe_to_bytes(cls, token: bytes):
         """
         Turns a url safe ``token`` into a bytes type string.
         """
         await asleep()
-        return base64.urlsafe_b64decode(
-            token.encode().replace(cls._EQUAL_SIGN, b"=")
-            if token.__class__ is str
-            else token.replace(cls._EQUAL_SIGN, b"=")
-        )
+        EQUAL_SIGN = cls._EQUAL_SIGN
+        return base64.urlsafe_b64decode(token.replace(EQUAL_SIGN, b"="))
 
     @classmethod
-    def urlsafe_to_bytes(cls, token: Typing.AnyStr):
+    def urlsafe_to_bytes(cls, token: bytes):
         """
         Turns a url safe ``token`` into a bytes type string.
         """
-        return base64.urlsafe_b64decode(
-            token.encode().replace(cls._EQUAL_SIGN, b"=")
-            if token.__class__ is str
-            else token.replace(cls._EQUAL_SIGN, b"=")
-        )
+        EQUAL_SIGN = cls._EQUAL_SIGN
+        return base64.urlsafe_b64decode(token.replace(EQUAL_SIGN, b"="))
 
     @classmethod
-    async def aread(cls, path: Typing.Union[str, Path]):
+    async def aread(cls, path: Typing.PathStr):
         """
         Reads the bytes ciphertext file at ``path``.
         """
@@ -4439,7 +4388,7 @@ class BytesIO:
             return await f.read()
 
     @classmethod
-    def read(cls, path: Typing.Union[str, Path]):
+    def read(cls, path: Typing.PathStr):
         """
         Reads the bytes ciphertext file at ``path``.
         """
@@ -4447,7 +4396,7 @@ class BytesIO:
             return f.read()
 
     @classmethod
-    async def awrite(cls, path: Typing.Union[str, Path], ciphertext: bytes):
+    async def awrite(cls, path: Typing.PathStr, ciphertext: bytes):
         """
         Writes bytes ``ciphertext`` to a bytes file at ``path``.
         """
@@ -4455,7 +4404,7 @@ class BytesIO:
             await f.write(ciphertext)
 
     @classmethod
-    def write(cls, path: Typing.Union[str, Path], ciphertext: bytes):
+    def write(cls, path: Typing.PathStr, ciphertext: bytes):
         """
         Writes bytes ``ciphertext`` to a bytes file at ``path``.
         """
