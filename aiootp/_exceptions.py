@@ -144,14 +144,15 @@ class KeyAADIssue:
         "KeyAADBundle objects need to be set to either sync or async mo"
         "des prior to querying their derived keys."
     )
-    _KEYSTREAM_ALREADY_REGISTERED: str = (
-        "This KeyAADBundle object was registered for use by another key"
-        "stream. Create a new bundle with fresh randomness instead."
-    )
     _VALIDATOR_ALREADY_REGISTERED: str = (
         "This KeyAADBundle object was registered for use by another val"
         "idator object. Create a new bundle with fresh randomness inste"
         "ad."
+    )
+    _KEYSTREAM_ALREADY_REGISTERED: str = (
+        "This KeyAADBundle object was already registered for use by ano"
+        "ther keystream. Create a new bundle with fresh randomness inst"
+        "ead."
     )
     _MUST_CREATE_A_NEW_OBJECT_EXPLICITLY: str = (
         "Cipher contexts are more safely changed by explicitly creating"
@@ -176,12 +177,12 @@ class KeyAADIssue:
         return RuntimeError(cls._NO_KDF_MODE_DECLARED)
 
     @classmethod
-    def keystream_already_registered(cls):
-        return PermissionError(cls._KEYSTREAM_ALREADY_REGISTERED)
-
-    @classmethod
     def validator_already_registered(cls):
         return PermissionError(cls._VALIDATOR_ALREADY_REGISTERED)
+
+    @classmethod
+    def keystream_already_registered(cls):
+        return PermissionError(cls._KEYSTREAM_ALREADY_REGISTERED)
 
     @classmethod
     def must_create_a_new_object_explicitly(cls, name: str):
@@ -208,7 +209,7 @@ class SHMACIssue:
     )
     _INVALID_SIV_USAGE: str = (
         "The ``siv`` must be manually passed into the validator during "
-        "*decryption*."
+        "*decryption*, & only during decryption."
     )
     _BLOCK_ID_IS_TOO_BIG: str = (
         "A block id of SIZE bytes is too big. It can be at most MAX byt"
