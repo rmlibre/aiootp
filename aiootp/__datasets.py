@@ -45,9 +45,9 @@ class Tables:
 
 class UniformPrimes:
     """
-    A collection of randomly generated primes, organized by bit length,
-    with no other expectation than starting with `0xff` & containing
-    uniformly distributed bits.
+    A collection of static randomly generated primes, organized by bit
+    length, with no other expectation than starting with `0xff` &
+    containing uniformly distributed bits.
     """
 
     __slots__ = []
