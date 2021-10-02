@@ -65,7 +65,7 @@ from .ciphers import Database, DomainKDF, Passcrypt, KeyAADBundle
 from .ciphers import bytes_keys, abytes_keys
 
 
-async def agenerate_key(*, size=64):
+async def agenerate_key(*, size: int = 64):
     """
     Returns a ``size``-byte cryptographically secure key >= 32 bytes.
     """
@@ -75,7 +75,7 @@ async def agenerate_key(*, size=64):
     return b"".join([part async for part in key])[:size]
 
 
-def generate_key(*, size=64):
+def generate_key(*, size: int = 64):
     """
     Returns a ``size``-byte cryptographically secure key >= 32 bytes.
     """
