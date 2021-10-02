@@ -1005,11 +1005,6 @@ _`Synchronous Generators` ......................... `Table Of Contents`_
     assert product_of_x_y_z == 10
     
     
-    # The ``example`` variable is actually a ``Comprende`` object, which
-
-    # redirects values to the wrapped generator's ``send()`` method.
-    
-    
     # Here's another example ->
     
     @comprehension()
