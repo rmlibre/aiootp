@@ -669,7 +669,7 @@ class StreamHMAC:
 
     __slots__ = [
         "_aupdate",
-        "_encoded_key",
+        "_auth_key",
         "_finalized",
         "_key_bundle",
         "_last_digest",
@@ -716,7 +716,7 @@ class StreamHMAC:
         key_bundle._register_validator(self)
         self._mac = key_bundle._shmac_mac
         self._last_digest = self._mac.digest()
-        self._encoded_key = key_bundle._shmac_key
+        self._auth_key = key_bundle._shmac_key
         self.siv = key_bundle.siv
 
     @property
@@ -760,7 +760,7 @@ class StreamHMAC:
 
         Usage Example:
 
-        from aiootp import StreamHMAC, KeyAADBundle, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle
 
         aad = b"known associated data"
         key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
@@ -798,14 +798,14 @@ class StreamHMAC:
 
         Usage Example:
 
-        from aiootp import StreamHMAC, KeyAADBundle, Padding, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
 
         salt = message["salt"]
         siv = message["synthetic_iv"]
         aad = b"known associated data"
         key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
         shmac = StreamHMAC(key_bundle.sync_mode()).for_decryption()
-        stream = gentools.unpack(message["ciphertext"])
+        stream = gentools.data(message["ciphertext"])
 
         with stream.bytes_decipher(key_bundle, shmac) as deciphering:
             padded_plaintext = deciphering.join(b"")
@@ -839,12 +839,10 @@ class StreamHMAC:
         if self._finalized:
             raise SHMACIssue.already_finalized()
         await asleep()
-        payload = (
-            Domains.KDF, self._encoded_key, entropic_material
-        )
+        payload = (Domains.KDF, self._auth_key, entropic_material)
         kdf = self._key_bundle._kdf
         kdf.update(b"".join(payload))
-        self._encoded_key = kdf.digest()
+        self._auth_key = kdf.digest()
         return self
 
     def update_key(self, entropic_material: bytes):
@@ -856,12 +854,10 @@ class StreamHMAC:
         """
         if self._finalized:
             raise SHMACIssue.already_finalized()
-        payload = (
-            Domains.KDF, self._encoded_key, entropic_material
-        )
+        payload = (Domains.KDF, self._auth_key, entropic_material)
         kdf = self._key_bundle._kdf
         kdf.update(b"".join(payload))
-        self._encoded_key = kdf.digest()
+        self._auth_key = kdf.digest()
         return self
 
     async def _aplaceholder_update(self, *a, **kw):
@@ -1127,7 +1123,7 @@ class StreamHMAC:
         payload = (
             Domains.BLOCK_ID,
             await self._ablock_id_metadata(next_block, size),
-            self._encoded_key,
+            self._auth_key,
             await self._aget_block_id_mac(),
             next_block,
         )
@@ -1201,7 +1197,7 @@ class StreamHMAC:
         payload = (
             Domains.BLOCK_ID,
             self._block_id_metadata(next_block, size),
-            self._encoded_key,
+            self._auth_key,
             self._get_block_id_mac(),
             next_block,
         )
@@ -1272,7 +1268,7 @@ class StreamHMAC:
         await asleep()
         payload = (
             Domains.DIGEST,
-            self._encoded_key,
+            self._auth_key,
             self._mac.digest(),
             self._last_digest,
         )
@@ -1342,7 +1338,7 @@ class StreamHMAC:
         """
         payload = (
             Domains.DIGEST,
-            self._encoded_key,
+            self._auth_key,
             self._mac.digest(),
             self._last_digest,
         )
@@ -1355,7 +1351,7 @@ class StreamHMAC:
         the end of a stream of data that can be validated with the
         current instance.
         """
-        key = Domains.SHMAC + self._encoded_key
+        key = Domains.SHMAC + self._auth_key
         await self._aupdate(key)
         payload = self._last_digest + self._mac.digest()
         self._result = hmac.new(key, payload, self._type).digest()
@@ -1367,7 +1363,7 @@ class StreamHMAC:
         the end of a stream of data that can be validated with the
         current instance.
         """
-        key = Domains.SHMAC + self._encoded_key
+        key = Domains.SHMAC + self._auth_key
         self._update(key)
         payload = self._last_digest + self._mac.digest()
         self._result = hmac.new(key, payload, self._type).digest()
@@ -1547,7 +1543,7 @@ class SyntheticIV:
         payload = (
             Domains.SIV,
             Domains.SIV_KEY,
-            validator._encoded_key,
+            validator._auth_key,
             validator._mac.digest(),
             plaintext_block,
         )
@@ -1563,7 +1559,7 @@ class SyntheticIV:
         payload = (
             Domains.SIV,
             Domains.SIV_KEY,
-            validator._encoded_key,
+            validator._auth_key,
             validator._mac.digest(),
             plaintext_block,
         )
