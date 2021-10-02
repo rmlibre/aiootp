@@ -4103,17 +4103,23 @@ class AsyncDatabase(metaclass=AsyncInit):
         payload = self.__root_salt + salt + filename.encode()
         return await DomainKDF(domain, payload, key=key).asha3_512()
 
-    async def abytes_encrypt(self, plaintext: bytes, *, filename: str = ""):
+    async def abytes_encrypt(
+        self, plaintext: bytes, *, filename: str = "", aad: bytes = b"aad"
+    ):
         """
         Encrypts the ``plaintext`` bytes with keys specific to the
         ``filename`` value & returns the ciphertext bytes.
         """
         salt = await agenerate_salt(size=SALT_BYTES)
         key = await self._aencryption_key(filename, salt)
-        return await abytes_encrypt(plaintext, key, salt=salt)
+        return await abytes_encrypt(plaintext, key, salt=salt, aad=aad)
 
     async def ajson_encrypt(
-        self, plaintext: Typing.JSONSerializable, *, filename: str = ""
+        self,
+        plaintext: Typing.JSONSerializable,
+        *,
+        filename: str = "",
+        aad: bytes = b"aad",
     ):
         """
         Encrypts the JSON serializable ``plaintext`` object with keys
@@ -4122,19 +4128,26 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         salt = await agenerate_salt(size=SALT_BYTES)
         key = await self._aencryption_key(filename, salt)
-        return await ajson_encrypt(plaintext, key, salt=salt)
+        return await ajson_encrypt(plaintext, key, salt=salt, aad=aad)
 
-    async def amake_token(self, plaintext: bytes, *, filename: str = ""):
+    async def amake_token(
+        self, plaintext: bytes, *, filename: str = "", aad: bytes = b"aad"
+    ):
         """
         Encrypts the ``plaintext`` bytes with keys specific to the
         ``filename`` value & base64 encodes the resulting ciphertext
         bytes.
         """
         key = await self._aencryption_key(filename, self._TOKEN)
-        return await Chunky2048(key).amake_token(plaintext)
+        return await Chunky2048(key).amake_token(plaintext, aad=aad)
 
     async def abytes_decrypt(
-        self, ciphertext: bytes, *, filename: str = "", ttl: int = 0
+        self,
+        ciphertext: bytes,
+        *,
+        filename: str = "",
+        aad: bytes = b"aad",
+        ttl: int = 0,
     ):
         """
         Decrypts the ``ciphertext`` bytes with keys specific to the
@@ -4144,10 +4157,15 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         salt = ciphertext[SALT_SLICE]
         key = await self._aencryption_key(filename, salt)
-        return await abytes_decrypt(ciphertext, key, ttl=ttl)
+        return await abytes_decrypt(ciphertext, key, aad=aad, ttl=ttl)
 
     async def ajson_decrypt(
-        self, ciphertext: bytes, *, filename: str = "", ttl: int = 0
+        self,
+        ciphertext: bytes,
+        *,
+        filename: str = "",
+        aad: bytes = b"aad",
+        ttl: int = 0,
     ):
         """
         Decrypts the ``ciphertext`` bytes with keys specific to the
@@ -4157,13 +4175,14 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         salt = ciphertext[SALT_SLICE]
         key = await self._aencryption_key(filename, salt)
-        return await ajson_decrypt(ciphertext, key, ttl=ttl)
+        return await ajson_decrypt(ciphertext, key, aad=aad, ttl=ttl)
 
     async def aread_token(
         self,
         token: Typing.Base64URLSafe,
         *,
         filename: str = "",
+        aad: bytes = b"aad",
         ttl: int = 0,
     ):
         """
@@ -4173,7 +4192,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         decrypted message.
         """
         key = await self._aencryption_key(filename, self._TOKEN)
-        return await Chunky2048(key).aread_token(token, ttl=ttl)
+        return await Chunky2048(key).aread_token(token, aad=aad, ttl=ttl)
 
     async def _asave_ciphertext(self, filename: str, ciphertext: bytes):
         """
@@ -5134,17 +5153,23 @@ class Database:
         payload = self.__root_salt + salt + filename.encode()
         return DomainKDF(domain, payload, key=key).sha3_512()
 
-    def bytes_encrypt(self, plaintext: bytes, *, filename: str = ""):
+    def bytes_encrypt(
+        self, plaintext: bytes, *, filename: str = "", aad: bytes = b"aad"
+    ):
         """
         Encrypts the ``plaintext`` bytes with keys specific to the
         ``filename`` value & returns the ciphertext bytes.
         """
         salt = generate_salt(size=SALT_BYTES)
         key = self._encryption_key(filename, salt)
-        return bytes_encrypt(plaintext, key, salt=salt)
+        return bytes_encrypt(plaintext, key, salt=salt, aad=aad)
 
     def json_encrypt(
-        self, plaintext: Typing.JSONSerializable, *, filename: str = ""
+        self,
+        plaintext: Typing.JSONSerializable,
+        *,
+        filename: str = "",
+        aad: bytes = b"aad",
     ):
         """
         Encrypts the JSON serializable ``plaintext`` object with keys
@@ -5153,19 +5178,26 @@ class Database:
         """
         salt = generate_salt(size=SALT_BYTES)
         key = self._encryption_key(filename, salt)
-        return json_encrypt(plaintext, key, salt=salt)
+        return json_encrypt(plaintext, key, salt=salt, aad=aad)
 
-    def make_token(self, plaintext: bytes, *, filename: str = ""):
+    def make_token(
+        self, plaintext: bytes, *, filename: str = "", aad: bytes = b"aad"
+    ):
         """
         Encrypts the ``plaintext`` bytes with keys specific to the
         ``filename`` value & base64 encodes the resulting ciphertext
         bytes.
         """
         key = self._encryption_key(filename, self._TOKEN)
-        return Chunky2048(key).make_token(plaintext)
+        return Chunky2048(key).make_token(plaintext, aad=aad)
 
     def bytes_decrypt(
-        self, ciphertext: bytes, *, filename: str = "", ttl: int = 0
+        self,
+        ciphertext: bytes,
+        *,
+        filename: str = "",
+        aad: bytes = b"aad",
+        ttl: int = 0
     ):
         """
         Decrypts the ``ciphertext`` bytes with keys specific to the
@@ -5175,10 +5207,15 @@ class Database:
         """
         salt = ciphertext[SALT_SLICE]
         key = self._encryption_key(filename, salt)
-        return bytes_decrypt(ciphertext, key, ttl=ttl)
+        return bytes_decrypt(ciphertext, key, aad=aad, ttl=ttl)
 
     def json_decrypt(
-        self, ciphertext: bytes, *, filename: str = "", ttl: int = 0
+        self,
+        ciphertext: bytes,
+        *,
+        filename: str = "",
+        aad: bytes = b"aad",
+        ttl: int = 0
     ):
         """
         Decrypts the ``ciphertext`` bytes with keys specific to the
@@ -5188,13 +5225,14 @@ class Database:
         """
         salt = ciphertext[SALT_SLICE]
         key = self._encryption_key(filename, salt)
-        return json_decrypt(ciphertext, key=key, ttl=ttl)
+        return json_decrypt(ciphertext, key=key, aad=aad, ttl=ttl)
 
     def read_token(
         self,
         token: Typing.Base64URLSafe,
         *,
         filename: str = "",
+        aad: bytes = b"aad",
         ttl: int = 0,
     ):
         """
@@ -5204,7 +5242,7 @@ class Database:
         decrypted message.
         """
         key = self._encryption_key(filename, self._TOKEN)
-        return Chunky2048(key).read_token(token, ttl=ttl)
+        return Chunky2048(key).read_token(token, aad=aad, ttl=ttl)
 
     def _save_ciphertext(self, filename: str, ciphertext: bytes):
         """

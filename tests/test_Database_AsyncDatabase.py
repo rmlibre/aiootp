@@ -13,15 +13,14 @@ from init_tests import *
 
 
 __all__ = [
+    "__all__",
     "database",
     "async_database",
     "test_tags_metatags",
     "test_Database_instance",
     "test_AsyncDatabase_instance",
-    "test_Database_cipher",
-    "test_AsyncDatabase_cipher",
+    "test_database_ciphers",
     "test_user_profiles",
-    "__all__",
 ]
 
 
@@ -51,11 +50,11 @@ def test_AsyncDatabase_instance(database):
     assert run(db._ametatag_key(tag)) == database._metatag_key(tag)
 
 
-def test_Database_cipher(database):
+def database_ciphers(database):
     db = database
     filename = db.filename(tag)
 
-    encrypted_data = db.json_encrypt(test_data, filename=filename)
+    encrypted_data = db.json_encrypt(test_data, filename=filename, aad=b"aad")
 
     db[tag] = test_data
     db.save_database()
@@ -63,24 +62,63 @@ def test_Database_cipher(database):
 
     assert encrypted_file != encrypted_data
     assert encrypted_file[SALT_SLICE] != encrypted_data[SALT_SLICE]
-    assert db.json_decrypt(encrypted_file, filename=filename) == test_data
-    assert db.json_decrypt(encrypted_data, filename=filename) == test_data
+    assert db.json_decrypt(encrypted_file, filename=filename, aad=b"aad") == test_data
+    assert db.json_decrypt(encrypted_data, filename=filename, aad=b"aad") == test_data
 
 
-def test_AsyncDatabase_cipher(database, async_database):
+    encrypted_binary_data = db.bytes_encrypt(plaintext_bytes, aad=b"test")
+    decrypted_binary_data = db.bytes_decrypt(
+        encrypted_binary_data, aad=b"test", ttl=30
+    )
+
+    assert decrypted_binary_data == plaintext_bytes
+
+
+    encrypted_token_data = db.make_token(plaintext_bytes, aad=b"test")
+    decrypted_token_data = db.read_token(
+        encrypted_token_data, aad=b"test", ttl=3600
+    )
+
+    assert decrypted_token_data == plaintext_bytes
+
+
+async def async_database_ciphers(async_database):
     db = async_database
-    filename = run(db.afilename(tag))
+    filename = await db.afilename(tag)
 
-    encrypted_data = run(db.ajson_encrypt(test_data, filename=filename))
+    encrypted_data = await db.ajson_encrypt(test_data, filename=filename, aad=b"aad")
 
     db[tag] = test_data
-    run(db.asave_database())
-    encrypted_file = run(db._aquery_ciphertext(filename))
+    await db.asave_database()
+    encrypted_file = await db._aquery_ciphertext(filename)
 
     assert encrypted_file != encrypted_data
     assert encrypted_file[SALT_SLICE] != encrypted_data[SALT_SLICE]
-    assert run(db.ajson_decrypt(encrypted_file, filename=filename)) == test_data
-    assert run(db.ajson_decrypt(encrypted_data, filename=filename)) == test_data
+    assert await db.ajson_decrypt(encrypted_file, filename=filename, aad=b"aad") == test_data
+    assert await db.ajson_decrypt(encrypted_data, filename=filename, aad=b"aad") == test_data
+
+
+    encrypted_binary_data = await db.abytes_encrypt(
+        plaintext_bytes, aad=b"test"
+    )
+    decrypted_binary_data = await db.abytes_decrypt(
+        encrypted_binary_data, aad=b"test", ttl=30
+    )
+
+    assert decrypted_binary_data == plaintext_bytes
+
+
+    encrypted_token_data = await db.amake_token(plaintext_bytes, aad=b"test")
+    decrypted_token_data = await db.aread_token(
+        encrypted_token_data, aad=b"test", ttl=3600
+    )
+
+    assert decrypted_token_data == plaintext_bytes
+
+
+def test_database_ciphers(database, async_database):
+    profile = database_ciphers(database)
+    aprofile = run(async_database_ciphers(async_database))
 
 
 def metatag_isnt_ametatag_but_equal(child, achild, db, adb):
