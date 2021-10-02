@@ -69,7 +69,7 @@ async def agenerate_key(*, size=64):
     """
     Returns a ``size``-byte cryptographically secure key >= 32 bytes.
     """
-    if size < MINIMUM_KEY_BYTES or size.__class__ != int:
+    if size < MINIMUM_KEY_BYTES or size.__class__ is not int:
         raise Issue.invalid_value("size", "integer >= 32")
     key = (await acsprng() for _ in range((size - 1) // KEY_BYTES + 1))
     return b"".join([part async for part in key])[:size]
@@ -79,7 +79,7 @@ def generate_key(*, size=64):
     """
     Returns a ``size``-byte cryptographically secure key >= 32 bytes.
     """
-    if size < MINIMUM_KEY_BYTES or size.__class__ != int:
+    if size < MINIMUM_KEY_BYTES or size.__class__ is not int:
         raise Issue.invalid_value("size", "integer >= 32")
     key = (csprng() for _ in range((size - 1) // KEY_BYTES + 1))
     return b"".join(key)[:size]
