@@ -60,8 +60,8 @@ professionals.
     :target: https://img.shields.io/badge/code%20style-black-000000.svg
     :alt: code-style
 
-.. image:: https://img.shields.io/twitter/follow/aiootp?style=social
-    :target: https://img.shields.io/twitter/follow/aiootp?style=social
+.. image:: https://img.shields.io/twitter/follow/aiootp?style=plastic
+    :target: https://img.shields.io/twitter/follow/aiootp?style=plastic
     :alt: twitter-follow
 
 
