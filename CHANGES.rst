@@ -164,7 +164,7 @@ Major Changes
       ``convert_static_method_to_member``, ``(a)xor``, ``(a)padding_key``,
       ``(a)prime_table``, ``(a)unique_range_gen``, ``(a)non_0_digits``,
       ``(a)bytes_digits``, ``(a)digits``, ``(a)permute``, ``(a)shuffle``,
-      ``(a)unshuffle``, ``(a)create_namespace``, ``(a)time_safe_equality``,
+      ``(a)unshuffle``, ``(a)create_namespace``,
       (``(a)depad_plaintext``, ``(a)pad_plaintext`` & their generator forms.
       Only the non-generator forms remain in the ``Padding`` class), (The
       ``(a)passcrypt``, ``(a)uuids``, ``(a)into_namespace`` methods from the
