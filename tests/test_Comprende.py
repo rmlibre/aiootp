@@ -242,15 +242,17 @@ async def Comprende_chainable_methods():
     assert time_elapsed < time_limit + 0.02
 
     # Check halt / ahalt
-    sentinel = csprng()[:1]
-    chars = bytes_keys(key_bundle)
-    achars = abytes_keys(key_bundle)
+    sentinel = csprng()
+    start_of_data = csprng() + csprng()
+    chars = data(start_of_data + sentinel + csprng())
+    achars = adata(start_of_data + sentinel + csprng())
     result = b""
     aresult = b""
-    for index, val in chars.resize(1).halt(sentinel).tag():
+    for index, val in chars.resize(64).halt(sentinel).tag():
         result += val
-    async for aindex, aval in achars.aresize(1).ahalt(sentinel).atag():
+    async for aindex, aval in achars.aresize(64).ahalt(sentinel).atag():
         aresult += aval
+    assert result == aresult
     assert index == aindex
     assert val == aval
     assert sentinel not in val
