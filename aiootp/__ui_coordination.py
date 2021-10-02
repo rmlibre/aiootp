@@ -37,7 +37,7 @@ from . import Processes, Threads
 from . import AsyncDatabase, Database
 from . import Namespace, OpenNamespace
 from . import PackageSigner, PackageVerifier
-from . import Domains, DomainKDF, Hasher, Passcrypt, Chunky2048
+from . import Domains, DomainKDF, Hasher, Passcrypt
 from . import BytesIO, Padding, KeyAADBundle, StreamHMAC, Chunky2048
 
 

@@ -61,18 +61,15 @@ from .randoms import csprng, acsprng
 from .randoms import random_256, arandom_256
 from .randoms import random_512, arandom_512
 from .randoms import generate_salt, agenerate_salt
-from .ciphers import Database
-from .ciphers import DomainKDF
-from .ciphers import Passcrypt
-from .ciphers import KeyAADBundle
+from .ciphers import Database, DomainKDF, Passcrypt, KeyAADBundle
 from .ciphers import bytes_keys, abytes_keys
 
 
 async def agenerate_key(*, size=64):
     """
-    Returns a ``size``-byte key >= 32 bytes.
+    Returns a ``size``-byte cryptographically secure key >= 32 bytes.
     """
-    if size < 32 or size.__class__ != int:
+    if size < MINIMUM_KEY_BYTES or size.__class__ != int:
         raise Issue.invalid_value("size", "integer >= 32")
     key = (await acsprng() for _ in range((size - 1) // KEY_BYTES + 1))
     return b"".join([part async for part in key])[:size]
@@ -80,13 +77,12 @@ async def agenerate_key(*, size=64):
 
 def generate_key(*, size=64):
     """
-    Returns a ``size``-byte key >= 32 bytes.
+    Returns a ``size``-byte cryptographically secure key >= 32 bytes.
     """
-    if size < 32 or size.__class__ != int:
+    if size < MINIMUM_KEY_BYTES or size.__class__ != int:
         raise Issue.invalid_value("size", "integer >= 32")
     key = (csprng() for _ in range((size - 1) // KEY_BYTES + 1))
     return b"".join(key)[:size]
-
 
 
 @comprehension()

@@ -1020,7 +1020,7 @@ _`Synchronous Generators` ......................... `Table Of Contents`_
     
     base64_data = one_byte_numbers().int_to_bytes(1).to_base64().list()
     
-    # This converted each number to bytes then base64 encoded them.
+    # This converted each number to bytes then base64 encoded them into a list.
 
 
     # We can wrap other iterables to add functionality to them ->

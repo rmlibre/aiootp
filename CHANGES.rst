@@ -1824,15 +1824,15 @@ _`Known Issues` ................................... `Table Of Contents`_
 -  The test suite for this software is under construction, & what tests
    have been published are currently inadequate to the needs of
    cryptography software.
--  None of the hash functions in the public facing part of the library
-   are to spec. This is because all inputs to the hash functions from
-   the generics.py module are put into a tuple & stringified before
-   hashing for user-friendliness, speed, readibility & the power of 
-   being to hash any python object that has a repr. This behaviour is 
-   purposeful, but can still be an issue.
--  This package is currently in beta testing & active development. 
-   Contributions are welcome. Send us a message if you spot a bug or 
-   security vulnerability:
+-  The ``(a)sha__(256/512)`` hash functions aren't to spec. This is 
+   because their inputs aren't required to be bytes, are contained in
+   a tuple & are stringified before hashing. This is purposeful, giving
+   the power to hash any collection python objects which have reprs, but 
+   this can still be an issue.
+-  This package is currently in beta testing & active development, 
+   meaning major changes are still possible when there are really good
+   reasons to do so. Contributions are welcome. Send us a message if 
+   you spot a bug or security vulnerability:
    
    -  < gonzo.development@protonmail.ch >
    -  < 31FD CC4F 9961 AFAC 522A 9D41 AE2B 47FA 1EF4 4F0A >
