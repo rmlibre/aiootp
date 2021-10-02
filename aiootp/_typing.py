@@ -48,7 +48,7 @@ class SupportsPopleft(Protocol):
 
 
 class SupportsContains(Protocol):
-    def __contains__(self, value: typing.Any) -> typing.Any:
+    def __contains__(self, value: typing.Any) -> bool:
         ...
 
 
@@ -129,15 +129,17 @@ JSONCiphertext = typing.Union[DictCiphertext, JSONDeserializable]
 
 Keystream = typing.Generator[bytes, typing.Optional[bytes], None]
 AsyncKeystream = typing.AsyncGenerator[bytes, typing.Optional[bytes]]
-AsyncOrSyncKeystream = typing.Union[AsyncKeystream, AsyncKeystream]
+AsyncOrSyncKeystream = typing.Union[AsyncKeystream, Keystream]
 
 
 Datastream = typing.Iterable[bytes]
 AsyncDatastream = typing.AsyncIterable[bytes]
-AsyncOrSyncDatastream = typing.Union[Datastream, AsyncDatastream]
+AsyncOrSyncDatastream = typing.Union[AsyncDatastream, Datastream]
 
 
-def _transpose_this_modules_types(class_dict: typing.Dict):
+def _transpose_this_modules_types(
+    class_dict: typing.Dict[str, typing.Any]
+):
     """
     Inserts the types from this module's global namespace.
     """
@@ -148,7 +150,9 @@ def _transpose_this_modules_types(class_dict: typing.Dict):
     class_dict.update(this_modules_types)
 
 
-def _transpose_types_modules_types(class_dict: typing.Dict):
+def _transpose_types_modules_types(
+    class_dict: typing.Dict[str, typing.Any]
+):
     """
     Inserts the types from the standard library's `types` module.
     """
@@ -159,7 +163,9 @@ def _transpose_types_modules_types(class_dict: typing.Dict):
     class_dict.update(types_modules_types)
 
 
-def _transpose_typing_modules_types(class_dict: typing.Dict):
+def _transpose_typing_modules_types(
+    class_dict: typing.Dict[str, typing.Any]
+):
     """
     Inserts the types from the standard library's `typing` module.
     """
