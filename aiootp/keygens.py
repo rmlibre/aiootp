@@ -18,7 +18,9 @@ __all__ = [
     "PackageSigner",
     "PackageVerifier",
     "X25519",
+    "agenerate_key",
     "amnemonic",
+    "generate_key",
     "mnemonic",
 ]
 
@@ -64,6 +66,27 @@ from .ciphers import DomainKDF
 from .ciphers import Passcrypt
 from .ciphers import KeyAADBundle
 from .ciphers import bytes_keys, abytes_keys
+
+
+async def agenerate_key(*, size=64):
+    """
+    Returns a ``size``-byte key >= 32 bytes.
+    """
+    if size < 32 or size.__class__ != int:
+        raise Issue.invalid_value("size", "integer >= 32")
+    key = (await acsprng() for _ in range((size - 1) // KEY_BYTES + 1))
+    return b"".join([part async for part in key])[:size]
+
+
+def generate_key(*, size=64):
+    """
+    Returns a ``size``-byte key >= 32 bytes.
+    """
+    if size < 32 or size.__class__ != int:
+        raise Issue.invalid_value("size", "integer >= 32")
+    key = (csprng() for _ in range((size - 1) // KEY_BYTES + 1))
+    return b"".join(key)[:size]
+
 
 
 @comprehension()
@@ -291,6 +314,7 @@ class AsyncKeys:
 
     abytes_keys = staticmethod(abytes_keys)
     acsprng = staticmethod(acsprng)
+    agenerate_key = staticmethod(agenerate_key)
     agenerate_salt = staticmethod(agenerate_salt)
     amnemonic = staticmethod(amnemonic)
     arandom_256 = staticmethod(arandom_256)
@@ -351,6 +375,7 @@ class Keys:
 
     bytes_keys = staticmethod(bytes_keys)
     csprng = staticmethod(csprng)
+    generate_key = staticmethod(generate_key)
     generate_salt = staticmethod(generate_salt)
     mnemonic = staticmethod(mnemonic)
     random_256 = staticmethod(random_256)
@@ -1558,6 +1583,7 @@ extras = dict(
     __package__=__package__,
     abytes_keys=abytes_keys,
     acsprng=acsprng,
+    agenerate_key=agenerate_key,
     agenerate_salt=agenerate_salt,
     amnemonic=amnemonic,
     arandom_256=arandom_256,
@@ -1566,6 +1592,7 @@ extras = dict(
     atable_keystream=atable_keystream,
     bytes_keys=bytes_keys,
     csprng=csprng,
+    generate_key=generate_key,
     generate_salt=generate_salt,
     mnemonic=mnemonic,
     random_256=random_256,
