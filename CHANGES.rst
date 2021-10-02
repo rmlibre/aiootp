@@ -23,6 +23,8 @@ Minor Changes
 -  Fixes & improvements to out of date documentation.
 -  Small fixes to type-hints.
 -  Small refactorings.
+-  Add ``(a)generate_key`` functions to the package & ``(Async)Keys`` classes.
+-  Fix some exception messages.
 
 
 
