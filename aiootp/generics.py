@@ -1898,7 +1898,7 @@ class BaseComprende:
             raise UserWarning(source.result(exit=True))
 
     @async_contextmanager
-    async def arelay(self, result=None, source=None):
+    async def arelay(self, result=None, *, source=None):
         """
         This is a lower level context manager for users who've created
         async generators that need to propagate results up to calling
@@ -1915,7 +1915,7 @@ class BaseComprende:
             raise UserWarning(await source.aresult(exit=True))
 
     @contextmanager
-    def relay(self, result=None, source=None):
+    def relay(self, result=None, *, source=None):
         """
         This is a lower level context manager for users who've created
         sync generators that need to propagate results up to calling
