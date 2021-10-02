@@ -250,7 +250,7 @@ def token_hash(size: int):
 async def _aunique_hash():
     """
     Returns a ``hashlib.sha3_512`` string hash of an integer which is
-    greater than a 512-bit number by many orders of magnitude.
+    greater than a 64-byte number by many orders of magnitude.
     """
     number = await _aunique_big_int()
     hashed_number = await _entropy.ahash(number.to_bytes(576, "big"))
@@ -260,7 +260,7 @@ async def _aunique_hash():
 def _unique_hash():
     """
     Returns a ``hashlib.sha3_512`` string hash of an integer which is
-    greater than a 512-bit number by many orders of magnitude.
+    greater than a 64-byte number by many orders of magnitude.
     """
     number = _unique_big_int()
     return _entropy.hash(number.to_bytes(576, "big")).hex()
@@ -789,7 +789,7 @@ async def arandom_number_generator(
     the malicious analysis of memory by an adversary.
 
     9. Iterate and interleave all these methods enough times such that,
-    if we assume each time the CSPRNG produces a 512-bit internal state,
+    if we assume each time the CSPRNG produces a 64-byte internal state,
     that only 1-bit of entropy is produced. Then, by initializing up to
     a cache of 256 ratcheting states then the ``random_number_generator``
     algorithm here would have at least 256-bits of entropy.
@@ -919,7 +919,7 @@ def random_number_generator(
     the malicious analysis of memory by an adversary.
 
     9. Iterate and interleave all these methods enough times such that,
-    if we assume each time the CSPRNG produces a 512-bit internal state,
+    if we assume each time the CSPRNG produces a 64-byte internal state,
     that only 1-bit of entropy is produced. Then, by initializing up to
     a cache of 256 ratcheting states then the ``random_number_generator``
     algorithm here would have at least 256-bits of entropy.
@@ -1116,7 +1116,7 @@ async def _asymmetric_keypair( # misnomer: asynchronous symmetric keypair!
     """
     Returns two 64-byte symmetric keys. This function updates the
     package's static random seeds before & after deriving the returned
-    key pair.
+    key pair. It also ratchets & pulls from the module's RNG.
     """
     global global_seed
     global global_seed_key
@@ -1146,7 +1146,7 @@ def _symmetric_keypair(
     """
     Returns two 64-byte symmetric keys. This function updates the
     package's static random seeds before & after deriving the returned
-    key pair.
+    key pair. It also ratchets & pulls from the module's RNG.
     """
     global global_seed
     global global_seed_key
@@ -1186,7 +1186,7 @@ async def abytes_seeder(
 
     # In async for loops ->
     async for seed in abytes_seeder():
-        # do something with `seed`, a strong pseudo-random 512-bit hash
+        # do something with `seed`, a strong pseudo-random 64-byte hash
 
     # By awaiting next ->
     acsprng = abytes_seeder()
@@ -1232,7 +1232,7 @@ def bytes_seeder(
 
     # In for loops ->
     for seed in bytes_seeder():
-        # do something with `seed`, a strong pseudo-random 512-bit hash
+        # do something with `seed`, a strong pseudo-random 64-byte hash
 
     # By calling next ->
     csprng = bytes_seeder()
