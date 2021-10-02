@@ -84,7 +84,7 @@ setup(
     maintainer_email="gonzo.development@protonmail.ch",
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.6, >=3.7, >=3.8, >=3.9",
+    python_requires=">=3.6",
     tests_require=["pytest>=6.2.2"],
     install_requires=[
         "sympy>=1.7.1",
