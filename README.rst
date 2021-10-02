@@ -1346,7 +1346,7 @@ Major Changes
 -  The ``siv``, for use in the ``Chunky2048`` cipher & its interfaces, was
    increased from needing to be 16-bytes to 24-bytes.
 -  The new ``KeyAADBundle`` class was created as the primary interface
-   for consuming ``key``, ``salt``, ``pid`` & ``siv`` values. This class'
+   for consuming ``key``, ``salt``, ``aad`` & ``siv`` values. This class'
    objects are the only ones that are used to pass around these values
    in low-level ``Chunky2048`` cipher functionalities. The higher-level
    cipher functions are the only public interfaces that still receive
@@ -1397,7 +1397,7 @@ Major Changes
    ``hmac.compare_digest`` from the standard library, have replaced the
    ``(a)time_safe_equality`` functions.
 -  The ``(a)sha_256(_hmac)`` & ``(a)sha_512(_hmac)`` functions have had
-   their names changed to ``(a)sha3__256(_hmac)`` & ``(a)sha3__256(_hmac)``.
+   their names changed to ``(a)sha3__256(_hmac)`` & ``(a)sha3__512(_hmac)``.
    This was done to communicate that they are actually SHA3 functions,
    but the double underscore is to keep them differentiable from the
    standard library's ``hashlib`` objects. They can now also return
