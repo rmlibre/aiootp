@@ -1598,7 +1598,7 @@ class BaseComprende:
         """
         while True:
             got = yield
-            if issubclass(got.__class__, UserWarning):
+            if got.__class__ is UserWarning:
                 if any(got.args):
                     self._thrown.append(got.args[0])
                 await gen.athrow(got)
@@ -1610,13 +1610,14 @@ class BaseComprende:
         return the exception's value.
         """
         gen = self._func(*self._args, **self._kwargs)
-        catch_UserWarning = self.__aexamine_sent_exceptions(gen)
-        await catch_UserWarning.asend(None)
+        catch_UserWarning = self.__aexamine_sent_exceptions(gen).asend
+        await catch_UserWarning(None)
+        asend = gen.asend
         async with self.acatch():
             got = None
             while True:
-                got = yield await gen.asend(got)
-                await catch_UserWarning.asend(got)
+                got = yield await asend(got)
+                await catch_UserWarning(got)
 
     def __set_async(self):
         """
@@ -1636,7 +1637,7 @@ class BaseComprende:
         """
         while True:
             got = yield
-            if issubclass(got.__class__, UserWarning):
+            if got.__class__ is UserWarning:
                 if any(got.args):
                     self._thrown.append(got.args[0])
                 gen.throw(got)
@@ -1648,13 +1649,14 @@ class BaseComprende:
         return the exception's value.
         """
         gen = self._func(*self._args, **self._kwargs)
-        catch_UserWarning = self.__examine_sent_exceptions(gen)
-        catch_UserWarning.send(None)
+        catch_UserWarning = self.__examine_sent_exceptions(gen).send
+        catch_UserWarning(None)
+        send = gen.send
         with self.catch():
             got = None
             while True:
-                got = yield gen.send(got)
-                catch_UserWarning.send(got)
+                got = yield send(got)
+                catch_UserWarning(got)
 
     def __set_sync(self):
         """
