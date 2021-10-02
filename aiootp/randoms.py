@@ -1004,13 +1004,13 @@ async def arandom_256(
     random number generator. This function then returns 32 random bytes.
 
     Users can pass any ``entropy`` they have access to into the function.
-    If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``rounds`` number of times
-    over its internal entropy pools & generators, cranking more entropy
-    into the package the higher the number. Generating new entropy can
-    be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26, which fully replaces the contexts of
-    one of the package's entropy pools.
+    If a user sets ``refresh`` or ``rounds`` to a truthy value, then the
+    package's `random_number_generator` will iterate ``rounds`` number
+    of times over its internal entropy pools & generators, cranking more
+    entropy into the package the higher the number. Generating new
+    entropy can be quite slow, so by default ``refresh`` is set to
+    ``False``, & ``rounds`` is only set to 26, which fully replaces the
+    contents of one of the package's entropy pools.
     """
     return sha3_256(
         Domains.ENTROPY
@@ -1033,13 +1033,13 @@ def random_256(
     random number generator. This function then returns 32 random bytes.
 
     Users can pass any ``entropy`` they have access to into the function.
-    If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``rounds`` number of times
-    over its internal entropy pools & generators, cranking more entropy
-    into the package the higher the number. Generating new entropy can
-    be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26, which fully replaces the contexts of
-    one of the package's entropy pools.
+    If a user sets ``refresh`` or ``rounds`` to a truthy value, then the
+    package's `random_number_generator` will iterate ``rounds`` number
+    of times over its internal entropy pools & generators, cranking more
+    entropy into the package the higher the number. Generating new
+    entropy can be quite slow, so by default ``refresh`` is set to
+    ``False``, & ``rounds`` is only set to 26, which fully replaces the
+    contents of one of the package's entropy pools.
     """
     return sha3_256(
         Domains.ENTROPY
@@ -1062,13 +1062,13 @@ async def arandom_512(
     random number generator. This function then returns 64 random bytes.
 
     Users can pass any ``entropy`` they have access to into the function.
-    If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``rounds`` number of times
-    over its internal entropy pools & generators, cranking more entropy
-    into the package the higher the number. Generating new entropy can
-    be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26, which fully replaces the contexts of
-    one of the package's entropy pools.
+    If a user sets ``refresh`` or ``rounds`` to a truthy value, then the
+    package's `random_number_generator` will iterate ``rounds`` number
+    of times over its internal entropy pools & generators, cranking more
+    entropy into the package the higher the number. Generating new
+    entropy can be quite slow, so by default ``refresh`` is set to
+    ``False``, & ``rounds`` is only set to 26, which fully replaces the
+    contents of one of the package's entropy pools.
     """
     return sha3_512(
         Domains.ENTROPY
@@ -1091,13 +1091,13 @@ def random_512(
     random number generator. This function then returns 64 random bytes.
 
     Users can pass any ``entropy`` they have access to into the function.
-    If a user sets ``refresh`` to a truthy value, then the package's
-    `random_number_generator` will iterate ``rounds`` number of times
-    over its internal entropy pools & generators, cranking more entropy
-    into the package the higher the number. Generating new entropy can
-    be quite slow, so by default ``refresh`` is set to ``False``, &
-    ``rounds`` is only set to 26, which fully replaces the contexts of
-    one of the package's entropy pools.
+    If a user sets ``refresh`` or ``rounds`` to a truthy value, then the
+    package's `random_number_generator` will iterate ``rounds`` number
+    of times over its internal entropy pools & generators, cranking more
+    entropy into the package the higher the number. Generating new
+    entropy can be quite slow, so by default ``refresh`` is set to
+    ``False``, & ``rounds`` is only set to 26, which fully replaces the
+    contents of one of the package's entropy pools.
     """
     return sha3_512(
         Domains.ENTROPY
