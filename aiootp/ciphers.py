@@ -670,6 +670,7 @@ class StreamHMAC:
     __slots__ = [
         "_aupdate",
         "_auth_key",
+        "_avalidated_xor",
         "_finalized",
         "_key_bundle",
         "_last_digest",
@@ -679,7 +680,6 @@ class StreamHMAC:
         "_result_is_ready",
         "_siv",
         "_update",
-        "_avalidated_xor",
         "_validated_xor",
     ]
 
@@ -912,7 +912,7 @@ class StreamHMAC:
         method after the user chooses the encryption mode. The mode is
         chosen by calling the `for_encryption` method. It receives a
         ``plaintext_block`` & ``key_chunk``, & xors them into a 256-byte
-        ``ciphertext_block`` used to update the instance's mac object
+        `ciphertext_block` used to update the instance's mac object
         before being returned.
         """
         try:
@@ -933,11 +933,11 @@ class StreamHMAC:
         _from_bytes: Typing.Callable = int.from_bytes,
     ):
         """
-        This method is inserted as the instance's `_avalidated_xor`
+        This method is inserted as the instance's `_validated_xor`
         method after the user chooses the encryption mode. The mode is
         chosen by calling the `for_encryption` method. It receives a
         ``plaintext_block`` & ``key_chunk``, & xors them into a 256-byte
-        ``ciphertext_block`` used to update the instance's mac object
+        `ciphertext_block` used to update the instance's mac object
         before being returned.
         """
         try:
@@ -961,7 +961,7 @@ class StreamHMAC:
         This method is inserted as the instance's `_avalidated_xor`
         method after the user chooses the decryption mode. The mode is
         chosen by calling the `for_decryption` method. It receives a
-        ``ciphertext_block``` & ``key_chunk``, uses the ciphertext to
+        ``ciphertext_block`` & ``key_chunk``, uses the ciphertext to
         update the instance's mac object, then returns the 256-byte
         plaintext.
         """
@@ -982,10 +982,10 @@ class StreamHMAC:
         _from_bytes: Typing.Callable = int.from_bytes,
     ):
         """
-        This method is inserted as the instance's `_avalidated_xor`
+        This method is inserted as the instance's `_validated_xor`
         method after the user chooses the decryption mode. The mode is
         chosen by calling the `for_decryption` method. It receives a
-        ``ciphertext_block``` & ``key_chunk``, uses the ciphertext to
+        ``ciphertext_block`` & ``key_chunk``, uses the ciphertext to
         update the instance's mac object, then returns the 256-byte
         plaintext.
         """
@@ -1070,7 +1070,7 @@ class StreamHMAC:
         Usage Example (Encryption): # when the `key` & `aad` are already
                                     # shared
 
-        from aiootp import StreamHMAC, KeyAADBundle, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle
 
         async def aciphertext_stream():
             plaintext_bytes = b"example plaintext..."
@@ -1144,7 +1144,7 @@ class StreamHMAC:
         Usage Example (Encryption): # when the `key` & `aad` are already
                                     # shared
 
-        from aiootp import StreamHMAC, KeyAADBundle, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle
 
         def ciphertext_stream():
             plaintext_bytes = b"example plaintext..."
@@ -1241,7 +1241,7 @@ class StreamHMAC:
                                     # shared
         from collections import deque
         import aiootp
-        from aiootp import StreamHMAC, KeyAADBundle, Padding, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
 
         cipherstream = acipher_stream()
         aad = b"known associated data"
@@ -1312,7 +1312,7 @@ class StreamHMAC:
 
         from collections import deque
         import aiootp
-        from aiootp import StreamHMAC, KeyAADBundle, Padding, gentools
+        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
 
         cipherstream = cipher_stream()
         aad = b"known associated data"
@@ -1783,8 +1783,8 @@ async def aplaintext_stream(data: bytes, key_bundle: KeyAADBundle):
     blocksize. The details can be found in the `Padding` class.
     """
     plaintext = await Padding.apad_plaintext(data, key_bundle)
-    async for chunk in adata.root(plaintext):
-        yield chunk
+    async for block in adata.root(plaintext):
+        yield block
 
 
 @comprehension()
@@ -1805,8 +1805,8 @@ def plaintext_stream(data: bytes, key_bundle: KeyAADBundle):
     blocksize. The details can be found in the `Padding` class.
     """
     plaintext = Padding.pad_plaintext(data, key_bundle)
-    for chunk in gentools.data.root(plaintext):
-        yield chunk
+    for block in gentools.data.root(plaintext):
+        yield block
 
 
 def abytes_encipher(
@@ -2509,18 +2509,18 @@ class Chunky2048:
         `Padding` class in order to add salt reuse / misuse resistance
         (MRAE) to the cipher.
 
-        WARNING: This generator does not provide authentication of the
+        WARNING: The generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator also
-        has `current_digest` & `acurrent_digest` methods that can be
-        used to authenticate unfinished streams of cipehrtext.
+        message padding or sufficient checking of inputs for adequacy.
+        Those are functionalities which must be obtained through other
+        means. Just passing in a ``validator`` will not authenticate
+        ciphertext itself. The `finalize` or `afinalize` methods must be
+        called on the ``validator`` once all of the cipehrtext has been
+        created / decrypted. Then the final HMAC is available from the
+        `aresult` & `result` methods, & can be tested against untrusted
+        HMACs with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `(a)current_digest` & `(a)next_block_id` methods that
+        can be used to authenticate unfinished streams of cipehrtext.
         """
         async for block in abytes_encipher(
             data=self, key_bundle=key_bundle, validator=validator
@@ -2547,18 +2547,18 @@ class Chunky2048:
         `Padding` class in order to add salt reuse / misuse resistance
         (MRAE) to the cipher.
 
-        WARNING: This generator does not provide authentication of the
+        WARNING: The generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
+        message padding or sufficient checking of inputs for adequacy.
+        Those are functionalities which must be obtained through other
+        means. Just passing in a ``validator`` will not authenticate
+        ciphertext itself. The `finalize` or `afinalize` methods must be
+        called on the ``validator`` once all of the cipehrtext has been
+        created / decrypted. Then the final HMAC is available from the
+        `aresult` & `result` methods, & can be tested against untrusted
+        HMACs with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `(a)current_digest` & `(a)next_block_id` methods that
+        can be used to authenticate unfinished streams of cipehrtext.
         """
         yield from bytes_encipher(
             data=self, key_bundle=key_bundle, validator=validator
@@ -2578,18 +2578,18 @@ class Chunky2048:
         are decorated with `comprehension` can decrypt valid ciphertext
         byte streams.
 
-        WARNING: This generator does not provide authentication of the
+        WARNING: The generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
+        message padding or sufficient checking of inputs for adequacy.
+        Those are functionalities which must be obtained through other
+        means. Just passing in a ``validator`` will not authenticate
+        ciphertext itself. The `finalize` or `afinalize` methods must be
+        called on the ``validator`` once all of the cipehrtext has been
+        created / decrypted. Then the final HMAC is available from the
+        `aresult` & `result` methods, & can be tested against untrusted
+        HMACs with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `(a)current_digest` & `(a)next_block_id` methods that
+        can be used to authenticate unfinished streams of cipehrtext.
         """
         async for block in abytes_decipher(
             data=self, key_bundle=key_bundle, validator=validator
@@ -2610,18 +2610,18 @@ class Chunky2048:
         are decorated with `comprehension` can decrypt valid ciphertext
         byte streams.
 
-        WARNING: This generator does not provide authentication of the
+        WARNING: The generator does not provide authentication of the
         ciphertexts or associated data it handles. Nor does it do any
-        message padding or checking of inputs for adequacy. Those are
-        functionalities which must be obtained through other means. Just
-        passing in a ``validator`` will not authenticate ciphertext
-        itself. The `finalize` or `afinalize` methods must be called on
-        the ``validator`` once all of the cipehrtext has been created /
-        decrypted. Then the final HMAC is available from the `aresult`
-        & `result` methods, & can be tested against untrusted HMACs
-        with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `current_digest` & `acurrent_digest` methods that can
-        be used to authenticate unfinished streams of cipehrtext.
+        message padding or sufficient checking of inputs for adequacy.
+        Those are functionalities which must be obtained through other
+        means. Just passing in a ``validator`` will not authenticate
+        ciphertext itself. The `finalize` or `afinalize` methods must be
+        called on the ``validator`` once all of the cipehrtext has been
+        created / decrypted. Then the final HMAC is available from the
+        `aresult` & `result` methods, & can be tested against untrusted
+        HMACs with the `atest_hmac` & `test_hmac` methods. The validator
+        also has `(a)current_digest` & `(a)next_block_id` methods that
+        can be used to authenticate unfinished streams of cipehrtext.
         """
         yield from bytes_decipher(
             data=self, key_bundle=key_bundle, validator=validator
