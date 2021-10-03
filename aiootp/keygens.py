@@ -853,30 +853,6 @@ class X25519(Base25519):
     PublicKey = Curve25519.X25519PublicKey
     SecretKey = Curve25519.X25519PrivateKey
 
-    async def aimport_secret_key(self, secret_key):
-        """
-        Populates an instance from the received ``secret_key`` that is
-        of either hex, bytes or a ``X25519PrivateKey`` type. Creates
-        instance method versions of the protocols in self.protocols.
-        Those methods automatically pass the instance's secret key as a
-        keyword argument to streamline their usage in the package's
-        ready-made elliptic curve diffie-hellman exchange protocols.
-        """
-        await super().aimport_secret_key(secret_key)
-        return self
-
-    def import_secret_key(self, secret_key):
-        """
-        Populates an instance from the received ``secret_key`` that is
-        of either hex, bytes or a ``X25519PrivateKey`` type. Creates
-        instance method versions of the protocols in self.protocols.
-        Those methods automatically pass the instance's secret key as a
-        keyword argument to streamline their usage in the package's
-        ready-made elliptic curve diffie-hellman exchange protocols.
-        """
-        super().import_secret_key(secret_key)
-        return self
-
     async def agenerate(self):
         """
         Generates a new secret key used for a single elliptic curve
