@@ -1274,6 +1274,13 @@ class PackageSigner:
             **scopes,
         )
 
+    def __repr__(self):
+        """
+        Displays the instance's declared scope.
+        """
+        cls = self.__class__.__qualname__
+        return str(f"{cls}({self._scope})")
+
     @property
     def _public_credentials(self):
         """
