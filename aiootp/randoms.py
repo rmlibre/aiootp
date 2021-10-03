@@ -532,7 +532,7 @@ class WeakEntropy:
         yield self._make_timestamp()
         yield self._make_pid()
         yield salt
-        yield _entropy.hash(_pool[0], Domains.SEED)
+        yield _entropy.hash(Domains.SEED, _pool[0])
         yield self._raw_seed
 
     async def atoken_bytes(self, output_size: int):
@@ -558,8 +558,9 @@ class EntropyDaemon:
     Creates & manages a background thread which asynchronously extracts
     from & seeds new entropy into this module's entropy pools. Mixing
     background threading, asynchrony, pseudo random sleeps & sha3_512
-    hashing results in highly unpredictable & non-deterministic effects
-    on entropy generation for the whole package.
+    hashing with a single, shared global object results in highly
+    unpredictable & non-deterministic effects on entropy generation for
+    the whole package.
     """
 
     __slots__ = [
@@ -568,26 +569,31 @@ class EntropyDaemon:
         "_daemon",
         "_frequency",
         "_initial_frequency",
+        "_pool",
     ]
 
-    @classmethod
-    async def _anew_snapshot(cls):
-        """
-        Feeds a an entropy pool with os pseudo-randomness & returns a
-        hash digest from it & three selections from another entropy
-        pool all concatenated together.
-        """
-        await asleep()
-        return await atoken_bytes(32) + _pool[0] + _pool[-1][:48]
-
-    def __init__(self, *, frequency: Typing.PositiveRealNumber = 1):
+    def __init__(
+        self,
+        entropy_pool: Typing.SupportsAppendleft,
+        *,
+        frequency: Typing.PositiveRealNumber = 1,
+    ):
         """
         Prepares an instance to safely start a background thread.
         """
+        self._pool = entropy_pool
         self._daemon = None
         self._cancel = False
         self._currently_mutating_frequency = False
         self.set_frequency(frequency)
+
+    async def _anew_snapshot(self):
+        """
+        Returns 144-bytes of pseudo-random values from the instance's
+        entropy pool & the `secrets.token_bytes` function.
+        """
+        await asleep()
+        return await atoken_bytes(32) + self._pool[0] + self._pool[-1][:48]
 
     def _set_temporary_frequency(
         self,
@@ -631,7 +637,7 @@ class EntropyDaemon:
         Sets the maximum number of seconds a started entropy daemon will
         pseudo-randomly sleep in-between each iteration. Setting the
         ``frequency`` to smaller numbers will cause more cpu power &
-        time to be consumed by the background daemon thread.
+        to be consumed by the background daemon thread.
         """
         self._frequency = frequency
         self._initial_frequency = frequency
@@ -646,9 +652,9 @@ class EntropyDaemon:
         """
         while True:
             seed = await self._anew_snapshot()
-            _pool.appendleft(await _entropy.ahash(seed))
+            self._pool.appendleft(await _entropy.ahash(seed))
             await arandom_sleep(self._frequency)
-            _pool.appendleft(await _entropy.ahash(seed))
+            self._pool.appendleft(await _entropy.ahash(seed))
             if self._cancel:
                 break
 
@@ -706,7 +712,7 @@ try:
     )
 
     # begin the entropy gathering daemon
-    _entropy_daemon = EntropyDaemon().start()
+    _entropy_daemon = EntropyDaemon(_pool).start()
     _entropy_daemon.set_temporary_frequency(0.001, duration=2)
 except RuntimeError as error:
     problem = f"{__package__}'s random seed initialization failed, "
@@ -1368,6 +1374,7 @@ except RuntimeError as error:
 
 
 extras = dict(
+    EntropyDaemon=EntropyDaemon,
     PrimeTools=PrimeTools,
     WeakEntropy=WeakEntropy,
     __doc__=__doc__,
