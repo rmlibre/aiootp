@@ -37,6 +37,16 @@ except AttributeError:
     Protocol = typing_extensions.Protocol  # type: ignore
 
 
+class SupportsAppend(Protocol):
+    def appendleft(self, value: typing.Any) -> None:
+        ...
+
+
+class SupportsAppendleft(Protocol):
+    def appendleft(self, value: typing.Any) -> None:
+        ...
+
+
 class SupportsPop(Protocol):
     def pop(self) -> typing.Any:
         ...
