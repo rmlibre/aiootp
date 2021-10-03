@@ -36,6 +36,11 @@ with open("README.rst", "w+") as readme:
 
 if getpass("sign package? y/N\n").lower().strip().startswith("y"):
 
+    with open("SIGNATURE.txt", "r") as sig:
+        scope = json.loads(sig.read())[PackageSigner._SCOPE]
+        print("current version:", __version__)
+        print(f"current build: {scope['build_number']}\n")
+
     signer = PackageSigner(
         package=__package__,
         version=__version__,
