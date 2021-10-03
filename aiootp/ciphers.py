@@ -3465,12 +3465,10 @@ class DomainKDF:
         Runs the instance's state through the passcrypt algorithm &
         returns the resulting hash as bytes.
         """
-        await asleep()
         domain = Domains.PASSCRYPT
         value = await self.asha3_512(context=domain + context + salt)
         settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-        result = await Passcrypt.anew(value, salt=salt, **settings)
-        return result
+        return await Passcrypt.anew(value, salt=salt, **settings)
 
     def passcrypt(
         self,
@@ -3488,8 +3486,7 @@ class DomainKDF:
         domain = Domains.PASSCRYPT
         value = self.sha3_512(context=domain + context + salt)
         settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-        result = Passcrypt.new(value, salt=salt, **settings)
-        return result
+        return Passcrypt.new(value, salt=salt, **settings)
 
 
 class AsyncDatabase(metaclass=AsyncInit):
