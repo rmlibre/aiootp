@@ -845,11 +845,7 @@ class Enumerate:
 
 
 @comprehension()
-async def azip(
-    *iterables: Typing.Union[
-        Typing.AsyncIterable[Typing.Any], Typing.Iterable[Typing.Any]
-    ]
-):
+async def azip(*iterables: Typing.AsyncOrSyncIterable[Typing.Any]):
     """
     Creates an asynchronous version of the ``builtins.zip`` function
     which is wrapped by the ``Comprende`` class.
@@ -874,11 +870,7 @@ def _zip(*iterables: Typing.Iterable[Typing.Any]):
 
 
 @comprehension()
-async def aunpack(
-    iterable: Typing.Union[
-        Typing.AsyncIterable[Typing.Any], Typing.Iterable[Typing.Any]
-    ]
-):
+async def aunpack(iterable: Typing.AsyncOrSyncIterable[Typing.Any]):
     """
     Runs through an iterable &/or async iterable & yields elements one
     at a time.
@@ -948,11 +940,7 @@ def echo(initial_value: Typing.Any = None):
 
 
 @comprehension()
-async def acycle(
-    iterable: Typing.Union[
-        Typing.AsyncIterable[Typing.Any], Typing.Iterable[Typing.Any]
-    ]
-):
+async def acycle(iterable: Typing.AsyncOrSyncIterable[Typing.Any]):
     """
     Unendingly cycles in order over the elements of an async iterable.
     """
@@ -1040,7 +1028,7 @@ def count(start: int = 0):
 async def abirth(base: Typing.Any, *, stop: bool = True):
     """
     Yields ``base`` in its entirety once by default. If ``stop`` is set
-    `Falsey` then it's yielded unendingly. Useful for spawning a value
+    falsey then it's yielded unendingly. Useful for spawning a value
     into chainable ``Comprende`` generators.
     """
     if stop:
@@ -1055,7 +1043,7 @@ async def abirth(base: Typing.Any, *, stop: bool = True):
 def birth(base: Typing.Any, *, stop: bool = True):
     """
     Yields ``base`` in its entirety once by default. If ``stop`` is set
-    `Falsey` then it's yielded unendingly. Useful for spawning a value
+    falsey then it's yielded unendingly. Useful for spawning a value
     into chainable ``Comprende`` generators.
     """
     if stop:
@@ -1204,7 +1192,9 @@ def reader(
 
 
 @comprehension()
-async def aorder(*iterables: Typing.Iterable[Typing.AsyncOrSyncIterable]):
+async def aorder(
+    *iterables: Typing.Iterable[Typing.AsyncOrSyncIterable[Typing.Any]]
+):
     """
     Takes a collection of iterables &/or async iterables & exhausts them
     one at a time from left to right.
@@ -1220,7 +1210,7 @@ async def aorder(*iterables: Typing.Iterable[Typing.AsyncOrSyncIterable]):
 
 
 @comprehension()
-def order(*iterables: Typing.Iterable[Typing.Iterable]):
+def order(*iterables: Typing.Iterable[Typing.Iterable[Typing.Any]]):
     """
     Takes a collection of iterables & exhausts them one at a time from
     left to right.
@@ -1231,7 +1221,9 @@ def order(*iterables: Typing.Iterable[Typing.Iterable]):
 
 
 @comprehension()
-async def askip(iterable: Typing.Iterable, steps: int = 1):
+async def askip(
+    iterable: Typing.AsyncOrSyncIterable[Typing.Any], steps: int = 1
+):
     """
     An async generator that produces the values yielded from ``iterable``
     once every ``steps`` number of iterations, otherwise produces
@@ -1253,7 +1245,7 @@ async def askip(iterable: Typing.Iterable, steps: int = 1):
 
 
 @comprehension()
-def skip(iterable: Typing.Iterable, steps: int = 1):
+def skip(iterable: Typing.Iterable[Typing.Any], steps: int = 1):
     """
     A sync generator that produces the values yielded from ``iterable``
     once every ``steps`` number of iterations, otherwise produces
@@ -1267,7 +1259,7 @@ def skip(iterable: Typing.Iterable, steps: int = 1):
 
 @comprehension()
 async def acompact(
-    iterable: Typing.Iterable[Typing.Any], batch_size: int = 1
+    iterable: Typing.AsyncOrSyncIterable[Typing.Any], batch_size: int = 1
 ):
     """
     An async generator that yields ``batch_size`` number of elements
@@ -1355,10 +1347,7 @@ def pop(queue: Typing.SupportsPop):
 
 @comprehension()
 async def apick(
-    names: Typing.Union[
-        Typing.Iterable[Typing.Hashable],
-        Typing.AsyncIterable[Typing.Hashable],
-    ],
+    names: Typing.AsyncOrSyncIterable[Typing.Hashable],
     mapping: Typing.Union[
         Typing.Sequence, Typing.Mapping[Typing.Hashable, Typing.Any]
     ],
@@ -1393,7 +1382,7 @@ def pick(
 
 @comprehension()
 async def await_on(
-    queue: Typing.Container,
+    queue: Typing.Container[Typing.Any],
     *,
     probe_frequency: Typing.PositiveRealNumber = 0.0001,
     timeout: Typing.PositiveRealNumber = 1,
@@ -1415,7 +1404,7 @@ async def await_on(
 
 @comprehension()
 def wait_on(
-    queue: Typing.Container,
+    queue: Typing.Container[Typing.Any],
     *,
     probe_frequency: Typing.PositiveRealNumber = 0.0001,
     timeout: Typing.PositiveRealNumber = 1,
@@ -1532,7 +1521,7 @@ class BaseComprende:
     }
     _properties = {"_precomputed", "messages"}
 
-    lazy_methods = {"asend", "send"}
+    decorator = comprehension
     eager_methods = {
         "alist",
         "list",
@@ -1547,7 +1536,7 @@ class BaseComprende:
         "aexhaust",
         "exhaust",
     }
-    decorator = comprehension
+    lazy_methods = {"asend", "send"}
 
     def __init__(self, func, *a, chained: bool = False, **kw):
         """
@@ -2386,6 +2375,14 @@ class Comprende(BaseComprende):
     _cached = {}
     _methods = BaseComprende._methods.union({"__getitem__"})
 
+    eager_generators = {
+        "aheappop",
+        "heappop",
+        "areversed",
+        "reversed",
+        "asort",
+        "sort",
+    }
     lazy_generators = {
         "_agetitem",
         "_getitem",
@@ -2464,48 +2461,30 @@ class Comprende(BaseComprende):
         "asha3__256_hmac",
         "sha3__256_hmac",
     }
-    eager_generators = {
-        "aheappop",
-        "heappop",
-        "areversed",
-        "reversed",
-        "asort",
-        "sort",
-    }
-
-    @staticmethod
-    def _interpret_index(index: int):
-        """
-        Converts an integer index into `start`, `stop` & `step` values.
-        """
-        start = index
-        stop = index + 1
-        step = 1
-        return start, stop, step
 
     @staticmethod
     def _unpack_slice(index: Typing.Index, _max: int = 1 << 128):
         """
         Returns the `start`, `stop` & `step` values from a slice object.
         """
-        start = index.start if index.start.__class__ is int else 0
-        stop = index.stop if index.stop.__class__ is int else _max
-        step = index.step if index.step.__class__ is int else 1
-        return start, stop, step
+        if index.__class__ is int:
+            return index, index + 1, 1
+        return (
+            index.start if index.start.__class__ is int else 0,
+            index.stop if index.stop.__class__ is int else _max,
+            index.step if index.step.__class__ is int else 1,
+        )
 
     def _set_index(self, index: Typing.Index):
         """
         Interprets the slice or int passed into __getitem__ into an
         iterable of a range object.
         """
-        if index.__class__ is int:
-            start, stop, step = self._interpret_index(index)
-        else:
-            start, stop, step = self._unpack_slice(index)
-        for value in [start, stop, step]:
-            if value < 0:
+        index = self._unpack_slice(index)
+        for value in index:
+            if value.__class__ is int and value < 0:
                 raise Issue.value_must_be_value("index", "positive int")
-        return iter(range(start, stop, step)).__next__
+        return iter(range(*index)).__next__
 
     async def _agetitem(self, index: Typing.Index):
         """
@@ -2707,7 +2686,7 @@ class Comprende(BaseComprende):
         self,
         sentinel: Typing.Any = "",
         *,
-        sentinels: Typing.SupportsContains=(),
+        sentinels: Typing.SupportsContains = (),
     ):
         """
         Takes a ``sentinel`` or iterable of ``sentinels`` & halts the
@@ -2729,7 +2708,7 @@ class Comprende(BaseComprende):
         self,
         sentinel: Typing.Any = "",
         *,
-        sentinels: Typing.SupportsContains=(),
+        sentinels: Typing.SupportsContains = (),
     ):
         """
         Takes a ``sentinel`` or iterable of ``sentinels`` & halts the
