@@ -2721,16 +2721,18 @@ class Passcrypt:
         Stores a dict of user-defined settings which are automatically
         passed into instance methods when they are called.
         """
-        self._validate_args(kb=kb, cpu=cpu, hardness=hardness)
+        self._validate_settings(kb=kb, cpu=cpu, hardness=hardness)
         self._settings = dict(kb=kb, cpu=cpu, hardness=hardness)
         instance = self.__dict__
         for method in self._instance_methods:
             method = method.__func__
             name = method.__name__
-            instance[name] = partial(method, self, **self._settings)
+            instance[name] = wraps(method)(
+                partial(method, self, **self._settings)
+            )
 
     @staticmethod
-    def _check_inputs(passphrase: bytes, salt: bytes):
+    def _validate_inputs(passphrase: bytes, salt: bytes):
         """
         Makes sure ``passphrase`` & ``salt`` are truthy. Throws
         `ValueError` if not.
@@ -2745,7 +2747,7 @@ class Passcrypt:
             raise Issue.no_value_specified("salt")
 
     @staticmethod
-    def _validate_args(kb: int, cpu: int, hardness: int):
+    def _validate_settings(kb: int, cpu: int, hardness: int):
         """
         Ensures the values ``kb``, ``cpu`` and ``hardness`` passed into
         this module's Argon2id-like, passphrase-based key derivation
@@ -2787,7 +2789,7 @@ class Passcrypt:
         width = (1024 * kb) // (128 * (cpu + 1))
         width = (8 * kb) // (cpu + 1)
         """
-        cls._validate_args(kb, cpu, hardness)
+        cls._validate_settings(kb, cpu, hardness)
         width = int((8 * kb) / (cpu + 1))
         return width if width >= hardness else hardness
 
@@ -2800,34 +2802,13 @@ class Passcrypt:
         passes over the memory cache with a pseudo-random selection
         algorithm which makes the scheme hybrid data-dependent /
         independent. It ensures an attacker attempting to crack a
-        passphrase hash must have the entirety of the cache in memory &
-        compute the algorithm sequentially.
+        passphrase hash cannot complete the algorithm substantially
+        faster by storing more memory than what is already necessary, or
+        substantially less memory intensive by dropping cache entries
+        without drastically increasing the computational cost.
         """
 
         def keyed_scanner():
-            """
-            Combines sequential passes over the memory cache with a
-            pseudo-random selection algorithm which makes this scheme
-            hybrid data-dependent/independent.
-
-            The ``proof`` argument is a ``sha3_512`` object that has
-            been primed with the last element in the cache of keys & the
-            hash of the arguments passed into the algorithm. For each
-            element in the cache, it passes over the cache ``cpu`` times,
-            updating itself with a pseudo-random selection from the
-            cache & the current indexed item, then the item of the
-            reflected index, & sequentially adds ``proof``'s digests
-            to the cache at every index & reflected index.
-
-            More updating of the proof per element is done if more cpu
-            usage is specified with the ``cpu`` argument. This algorithm
-            further ensures the whole cache is processed sequentially &
-            is held in memory in its entirety for the duration of the
-            computation of proofs. Even if a side-channel attack on the
-            pseudo-random selection is performed, the memory savings at
-            the mid-way point of the last pass are upper bounded by the
-            the size of the last layer which is = total/(2*(cpu+1)).
-            """
             nonlocal digest
 
             for _ in range(cpu):
@@ -2864,7 +2845,7 @@ class Passcrypt:
         """
         An implementation of an Argon2id-like passphrase-based key
         derivation function that's designed to be resistant to cache-
-        timing side- channel attacks & time-memory trade-offs.
+        timing side-channel attacks & time-memory trade-offs.
 
         It's hybrid data dependant / independant. The algorithm requires
         a tunable amount of memory (in kilobytes) & cpu time to compute.
@@ -2893,7 +2874,6 @@ class Passcrypt:
         rows == 2 * (`cpu` + 1)
         columns == `kb` / (128 * (`cpu` + 1))
         """
-        cls._check_inputs(passphrase, salt)
         cache_width = cls.cache_width(kb, cpu, hardness)
         args = sha3__512(passphrase, salt, kb, cpu, hardness, hex=False)
 
@@ -2921,7 +2901,7 @@ class Passcrypt:
         """
         An implementation of an Argon2id-like passphrase-based key
         derivation function that's designed to be resistant to cache-
-        timing side- channel attacks & time-memory trade-offs.
+        timing side-channel attacks & time-memory trade-offs.
 
         It's hybrid data dependant / independant. The algorithm requires
         a tunable amount of memory (in kilobytes) & cpu time to compute.
@@ -2950,7 +2930,6 @@ class Passcrypt:
         rows == 2 * (`cpu` + 1)
         columns == `kb` / (128 * (`cpu` + 1))
         """
-        cls._check_inputs(passphrase, salt)
         cache_width = cls.cache_width(kb, cpu, hardness)
         args = sha3__512(passphrase, salt, kb, cpu, hardness, hex=False)
 
@@ -2978,14 +2957,14 @@ class Passcrypt:
         Returns just the 64-byte passcrypt hash of the ``passphrase``
         when mixed with the given ``salt`` & difficulty settings.
 
-        The passcrypt algorithm can be highly memory intensive. These
-        resources may not be freed up, & often are not, because of
-        python quirks around memory management. This is a huge problem.
-        So to force the release of those resources, we run the function
-        in another process which is guaranteed to release them.
+        NOTICE: The passcrypt algorithm can be highly memory intensive.
+        These resources may not be freed up, & often are not, because of
+        python quirks around memory management. To force the release of
+        these resources, we run the function in another process which
+        guarantees the release.
         """
-        cls._check_inputs(passphrase, salt)
-        cls._validate_args(kb, cpu, hardness)
+        cls._validate_inputs(passphrase, salt)
+        cls._validate_settings(kb, cpu, hardness)
         return await Processes.anew(
             cls._passcrypt,
             passphrase,
@@ -3010,14 +2989,14 @@ class Passcrypt:
         Returns just the 64-byte passcrypt hash of the ``passphrase``
         when mixed with the given ``salt`` & difficulty settings.
 
-        The passcrypt algorithm can be highly memory intensive. These
-        resources may not be freed up, & often are not, because of
-        python quirks around memory management. This is a huge problem.
-        So to force the release of those resources, we run the function
-        in another process which is guaranteed to release them.
+        NOTICE: The passcrypt algorithm can be highly memory intensive.
+        These resources may not be freed up, & often are not, because of
+        python quirks around memory management. To force the release of
+        these resources, we run the function in another process which
+        guarantees the release.
         """
-        cls._check_inputs(passphrase, salt)
-        cls._validate_args(kb, cpu, hardness)
+        cls._validate_inputs(passphrase, salt)
+        cls._validate_settings(kb, cpu, hardness)
         return Processes.new(
             cls._passcrypt,
             passphrase,
