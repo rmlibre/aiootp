@@ -1,6 +1,4 @@
-
-
-name: build
+name: mac-build
 
 on:
   push:
@@ -12,23 +10,22 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 6
+      max-parallel: 4
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9]
-        os: [ubuntu-20.04, ubuntu-18.04]
+        os: [macos-latest]
     steps:
     - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: setup python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+      with: python-version: ${{ matrix.python-version }}
+    - name: install dependencies
       run: |
-        sudo apt-get install --fix-missing --fix-broken python-cryptography
-        python3 -m pip install --upgrade pip pytest coverage
+        sudo brew install openssl python3
+        python3 -m ensurepip --upgrade
+        python3 -m pip install --upgrade pytest coverage
         python3 -m pip install --upgrade -r aiootp.egg-info/requires.txt
-    - name: Test with pytest
+    - name: test with pytest
       run: |
         coverage run --source aiootp -m pytest tests/test_aiootp.py -vv
         coverage report
-
