@@ -79,18 +79,19 @@ class DebugTools:
     """
 
     __slots__ = (
-        "arg_tuple",
-        "kw_dict",
+        "args",
+        "func",
+        "kwargs",
         "log_entry",
         "return_value",
         "time_after",
-        "time_average",
         "time_before",
         "time_elapsed",
-        "timed_func",
+        "time_total",
+        "timer_average",
+        "timer_standard_deviation",
+        "timer_variance_sum",
         "times_run",
-        "timer_sum",
-        "variance_sum",
     )
 
     def __init__(self):
@@ -98,20 +99,20 @@ class DebugTools:
         Sets timing variables.
         """
         self.times_run = 0
-        self.timer_sum = 0.0
-        self.variance_sum = 0
+        self.time_total = 0.0
+        self.timer_variance_sum = 0
         self.return_value = None
 
-    def initiate_timer_func(self, *a, **kw):
+    def initialize_run(self, func, *a, **kw):
         """
         Captures the parameters to a wrapped sync function & displays
         the incremented call number for the function.
         """
-        self.times_run += 1
-        self.arg_tuple = a
-        self.kw_dict = kw
+        self.args = a
+        self.kwargs = kw
+        self.func = func
 
-    def print_times_used(self):
+    def _output_times_used(self):
         """
         Displays the number of times the wrapped sync function has been
         run.
@@ -119,117 +120,118 @@ class DebugTools:
         return f"Test #{self.times_run}"
 
     @staticmethod
-    def print_time_start():
+    def _output_time_start():
         """
         Displays the datetime of when the function has been called.
         """
         return f"Time Start:    {datetime.datetime.now()}"
 
-    def print_happening_now(self, decorated_func):
+    def _output_happening_now(self):
         """
         Displays the currently running wrapped sync function.
         """
-        self.timed_func = decorated_func
-        current_func = f"Function:      {decorated_func.__name__}\n"
-        current_func += f"{repr(decorated_func)}"
+        current_func = f"Function:      {self.func.__name__}\n"
+        current_func += f"{repr(self.func)}"
         return current_func
 
-    def print_arguments(self):
+    def _output_arguments(self):
         """
         Displays the wrapped sync function's supplied parameters.
         """
-        for arg in self.arg_tuple:
+        for arg in self.args:
             yield f"Argument:      {repr(arg)}"
-        for kwarg in self.kw_dict.items():
+        for kwarg in self.kwargs.items():
             yield f"KW Argument:   {str(kwarg)}"
 
-    def time_the_function(self):
+    def _time_the_function(self):
         """
         Captures the runtime of an sync function.
         """
         self.time_before = time()
-        self.return_value = self.timed_func(
-            *self.arg_tuple, **self.kw_dict
+        self.return_value = self.func(
+            *self.args, **self.kwargs
         )
         self.time_after = time()
 
-    def print_time_elapsed(self):
+    def _output_time_elapsed(self):
         """
         Displays the captured runtime of the wrapped sync funciton.
         """
         self.time_elapsed = self.time_after - self.time_before
-        elapsed = f"{self.timed_func.__name__}\n"
+        elapsed = f"{self.func.__name__}\n"
         elapsed += "Time Elapsed:         "
         elapsed += f"{self.time_elapsed} seconds."
         return elapsed
 
-    def start_the_timer(self, decorated_func):
+    def _start_timer(self):
         """
         Runs the wrapped sync function & displays some runtime stats.
         """
+        self.times_run += 1
         self.log_entry = [
-            self.print_times_used(),
-            self.print_time_start(),
-            self.print_happening_now(decorated_func),
-            *self.print_arguments(),
+            self._output_times_used(),
+            self._output_time_start(),
+            self._output_happening_now(),
+            *self._output_arguments(),
         ]
-        self.time_the_function()
-        self.log_entry.append(self.print_time_elapsed())
+        self._time_the_function()
+        self.log_entry.append(self._output_time_elapsed())
 
-    def sum_runtimes(self):
+    def _sum_runtimes(self):
         """
         Add the runtime of the current wrapped sync function's call.
         """
-        self.timer_sum += self.time_after - self.time_before
+        self.time_total += self.time_after - self.time_before
 
-    def print_average_runtime(self):
+    def _output_average_runtime(self):
         """
         Calculates & displays the average runtime of the wrapped sync
         function.
         """
-        self.time_average = self.timer_sum / float(self.times_run)
-        return f"Average Elapsed Time: {self.time_average} seconds."
+        self.timer_average = self.time_total / float(self.times_run)
+        return f"Average Elapsed Time: {self.timer_average} seconds."
 
-    def sum_of_variances(self):
+    def _sum_of_variances(self):
         """
         Adds the current runtime variance to the aggregated sum.
         """
-        self.variance_sum += (
-            self.time_elapsed - self.time_average
+        self.timer_variance_sum += (
+            self.time_elapsed - self.timer_average
         ) ** 2
-        return self.variance_sum
+        return self.timer_variance_sum
 
-    def average_variance(self):
+    def _average_variance(self):
         """
         Calculates the variance of runtimes of the wrapped sync
         function.
         """
-        return self.sum_of_variances() / self.times_run
+        return self._sum_of_variances() / self.times_run
 
-    def standard_deviation(self):
+    def _standard_deviation(self):
         """
         Calculates the standard deviation of runtimes of the wrapped
         sync function.
         """
-        return self.average_variance() ** 0.5
+        return self._average_variance() ** 0.5
 
-    def print_standard_deviation(self):
+    def _output_standard_deviation(self):
         """
         Calculates & displays the standard deviation of runtimes of the
         wrapped sync function.
         """
+        self.timer_standard_deviation = self._standard_deviation()
         std_deviation = "Standard Deviation:   "
-        std_deviation += f"{self.standard_deviation()} seconds."
+        std_deviation += f"{self.timer_standard_deviation} seconds."
         return std_deviation
 
-    def print_return_value(self, return_value):
+    def _output_return_value(self, return_value):
         """
         Displays the return value of the wrapped sync function.
         """
         return f"Return Value:  {repr(return_value)}"
 
     @staticmethod
-    def print_trace_call():
+    def _output_trace_call():
         """
         Displays the name of the function which has called the wrapped
         function in user code by inspecting the stack.
@@ -237,48 +239,69 @@ class DebugTools:
         calling_function = inspect.stack()[2][3]
         return f"Calling Function: {calling_function}\n\n"
 
-    def close_timer(self):
+    def _close_timer(self):
         """
         Does final calculations on the aggregate runtime statistics of
         the wrapped sync function & displays the results.
         """
-        self.sum_runtimes()
+        self._sum_runtimes()
         self.log_entry += [
-            self.print_average_runtime(),
-            self.print_standard_deviation(),
-            self.print_return_value(self.return_value),
-            self.print_trace_call(),
+            self._output_average_runtime(),
+            self._output_standard_deviation(),
+            self._output_return_value(self.return_value),
+            self._output_trace_call(),
         ]
         add_to_log("\n".join(self.log_entry))
 
+    def run(self):
+        """
+        Runs the timer.
+        """
+        self._start_timer()
+        self._close_timer()
 
-class AsyncDebugTools(DebugTools):
+
+class AsyncDebugTools:
     """
     A simple class used for displaying & calculating runtime statistics
     on asynchronous functions.
     """
 
-    __slots__ = ()
+    __slots__ = (
+        "args",
+        "func",
+        "kwargs",
+        "log_entry",
+        "return_value",
+        "time_after",
+        "time_before",
+        "time_elapsed",
+        "time_total",
+        "timer_average",
+        "timer_standard_deviation",
+        "timer_variance_sum",
+        "times_run",
+    )
 
     def __init__(self):
         """
         Sets timing variables.
         """
         self.times_run = 0
-        self.timer_sum = 0.0
-        self.variance_sum = 0
+        self.time_total = 0.0
+        self.timer_variance_sum = 0
         self.return_value = None
 
-    async def ainitiate_timer_func(self, *a, **kw):
+    async def ainitialize_run(self, func, *a, **kw):
         """
         Captures the parameters to a wrapped async function & displays
         the incremented call number for the function.
         """
-        self.times_run += 1
-        self.arg_tuple = a
-        self.kw_dict = kw
+        self.args = a
+        self.kwargs = kw
+        self.func = func
 
-    async def aprint_times_used(self):
+    async def _aoutput_times_used(self):
         """
         Displays the number of times the wrapped async function has been
         run.
@@ -286,118 +309,118 @@ class AsyncDebugTools(DebugTools):
         return f"Test #{self.times_run}"
 
     @staticmethod
-    async def aprint_time_start():
+    async def _aoutput_time_start():
         """
         Displays the datetime of when the function has been called.
         """
         return f"Time Start:\t{datetime.datetime.now()}"
 
-    async def aprint_happening_now(self, decorated_func):
+    async def _aoutput_happening_now(self):
         """
         Displays the currently running wrapped async function.
         """
-        self.timed_func = decorated_func
-        current_func = f"Function:\t{decorated_func.__qualname__}\n"
-        current_func += f"{repr(decorated_func)}"
+        current_func = f"Function:      {self.func.__qualname__}\n"
+        current_func += f"{repr(self.func)}"
         return current_func
 
-    async def aprint_arguments(self):
+    async def _aoutput_arguments(self):
         """
         Displays the wrapped async function's supplied parameters.
         """
-        for arg in self.arg_tuple:
+        for arg in self.args:
             yield f"Argument:      {repr(arg)}"
-        for kwarg in self.kw_dict.items():
+        for kwarg in self.kwargs.items():
             yield f"KW Argument:   {str(kwarg)}"
 
-    async def atime_the_function(self):
+    async def _atime_the_function(self):
         """
         Captures the runtime of an async function.
         """
         self.time_before = time()
-        self.return_value = await self.timed_func(
-            *self.arg_tuple, **self.kw_dict
+        self.return_value = await self.func(
+            *self.args, **self.kwargs
         )
         self.time_after = time()
 
-    async def aprint_time_elapsed(self):
+    async def _aoutput_time_elapsed(self):
         """
         Displays the captured runtime of the wrapped async funciton.
         """
         self.time_elapsed = self.time_after - self.time_before
-        elapsed = f"{self.timed_func.__qualname__}\n"
+        elapsed = f"{self.func.__qualname__}\n"
         elapsed += "Time Elapsed:         "
         elapsed += f"{self.time_elapsed} seconds."
         return elapsed
 
-    async def astart_the_timer(self, decorated_func):
+    async def _astart_timer(self):
         """
         Runs the wrapped async function & displays some runtime stats.
         """
+        self.times_run += 1
         self.log_entry = [
-            await self.aprint_times_used(),
-            await self.aprint_time_start(),
-            await self.aprint_happening_now(decorated_func),
-            *[arg async for arg in self.aprint_arguments()],
+            await self._aoutput_times_used(),
+            await self._aoutput_time_start(),
+            await self._aoutput_happening_now(),
+            *[arg async for arg in self._aoutput_arguments()],
         ]
-        await self.atime_the_function()
-        self.log_entry.append(await self.aprint_time_elapsed())
+        await self._atime_the_function()
+        self.log_entry.append(await self._aoutput_time_elapsed())
 
-    async def asum_runtimes(self):
+    async def _asum_runtimes(self):
         """
         Add the runtime of the current wrapped async function's call.
         """
-        self.timer_sum += self.time_after - self.time_before
+        self.time_total += self.time_after - self.time_before
 
-    async def aprint_average_runtime(self):
+    async def _aoutput_average_runtime(self):
         """
         Calculates & displays the average runtime of the wrapped async
         function.
         """
-        self.time_average = self.timer_sum / float(self.times_run)
-        return f"Average Elapsed Time: {self.time_average} seconds."
+        self.timer_average = self.time_total / float(self.times_run)
+        return f"Average Elapsed Time: {self.timer_average} seconds."
 
-    async def asum_of_variances(self):
+    async def _asum_of_variances(self):
         """
         Adds the current runtime variance to the aggregated sum.
         """
-        self.variance_sum += (
-            self.time_elapsed - self.time_average
+        self.timer_variance_sum += (
+            self.time_elapsed - self.timer_average
         ) ** 2
-        return self.variance_sum
+        return self.timer_variance_sum
 
-    async def aaverage_variance(self):
+    async def _aaverage_variance(self):
         """
         Calculates the variance of runtimes of the wrapped async
         function.
         """
-        return await self.asum_of_variances() / self.times_run
+        return await self._asum_of_variances() / self.times_run
 
-    async def astandard_deviation(self):
+    async def _astandard_deviation(self):
         """
         Calculates the standard deviation of runtimes of the wrapped
         async function.
         """
-        return await self.aaverage_variance() ** 0.5
+        return await self._aaverage_variance() ** 0.5
 
-    async def aprint_standard_deviation(self):
+    async def _aoutput_standard_deviation(self):
         """
         Calculates & displays the standard deviation of runtimes of the
         wrapped async function.
         """
-        value = await self.astandard_deviation()
+        self.timer_standard_deviation = await self._astandard_deviation()
         std_deviation = "Standard Deviation:   "
-        std_deviation += f"{value} seconds."
+        std_deviation += f"{self.timer_standard_deviation} seconds."
         return std_deviation
 
-    async def aprint_return_value(self, return_value):
+    async def _aoutput_return_value(self, return_value):
         """
         Displays the return value of the wrapped async function.
         """
         return f"Return Value:  {repr(return_value)}"
 
     @staticmethod
-    async def aprint_trace_call():
+    async def _aoutput_trace_call():
         """
         Displays the name of the function which has called the wrapped
         async function in user code by inspecting the stack.
@@ -405,22 +428,29 @@ class AsyncDebugTools(DebugTools):
         calling_function = inspect.stack()[2][3]
         return f"Calling Function: {calling_function}\n\n"
 
-    async def aclose_timer(self):
+    async def _aclose_timer(self):
         """
         Does final calculations on the aggregate runtime statistics of
         the wrapped async function & displays the results.
         """
-        await self.asum_runtimes()
+        await self._asum_runtimes()
         self.log_entry += [
-            await self.aprint_average_runtime(),
-            await self.aprint_standard_deviation(),
-            await self.aprint_return_value(self.return_value),
-            await self.aprint_trace_call(),
+            await self._aoutput_average_runtime(),
+            await self._aoutput_standard_deviation(),
+            await self._aoutput_return_value(self.return_value),
+            await self._aoutput_trace_call(),
         ]
         add_to_log("\n".join(self.log_entry))
 
+    async def arun(self):
+        """
+        Runs the timer.
+        """
+        await self._astart_timer()
+        await self._aclose_timer()
 
-class AsyncGenDebugTools(AsyncDebugTools):
+
+class _AsyncGenDebugTools(AsyncDebugTools):
 
     __slots__ = ("generator",)
 
@@ -441,24 +471,15 @@ class AsyncGenDebugTools(AsyncDebugTools):
             """
             while True:
                 try:
-                    await self.ainitiate_timer_func(*a, **kw)
-                    await self.astart_the_timer(self.timed_func)
-                    await self.aclose_timer()
+                    await self.ainitialize_run(self.func, *a, **kw)
+                    await self.arun()
                     yield self.return_value
                 except StopAsyncIteration:
                     break
 
         return _agen
 
-    async def aprint_happening_now(self, decorated_func):
-        """
-        Displays the currently running wrapped async generator.
-        """
-        current_func = f"Function:\t{decorated_func.__qualname__}\n"
-        current_func += f"{repr(decorated_func)}"
-        return current_func
-
-    async def atime_the_function(self):
+    async def _atime_the_function(self):
         """
         Captures the runtime of an async generator iteration.
         """
@@ -474,7 +495,7 @@ class AsyncGenDebugTools(AsyncDebugTools):
             self.time_after = time()
 
     @staticmethod
-    async def aprint_trace_call():
+    async def _aoutput_trace_call():
         """
         Displays the name of the function which has called the wrapped
         async function in user code by inspecting the stack.
@@ -483,7 +504,7 @@ class AsyncGenDebugTools(AsyncDebugTools):
         return f"Calling Function: {calling_function}\n\n"
 
 
-class GenDebugTools(DebugTools):
+class _GenDebugTools(DebugTools):
 
     __slots__ = ("generator",)
 
@@ -504,24 +525,15 @@ class GenDebugTools(DebugTools):
             """
             while True:
                 try:
-                    self.initiate_timer_func(*a, **kw)
-                    self.start_the_timer(self.timed_func)
-                    self.close_timer()
+                    self.initialize_run(self.func, *a, **kw)
+                    self.run()
                     yield self.return_value
                 except StopIteration:
                     break
 
         return _gen
 
-    def print_happening_now(self, decorated_func):
-        """
-        Displays the currently running wrapped generator.
-        """
-        current_func = f"Function:\t{decorated_func.__qualname__}\n"
-        current_func += f"{repr(decorated_func)}"
-        return current_func
-
-    def time_the_function(self):
+    def _time_the_function(self):
         """
         Captures the runtime of a generator iteration.
         """
@@ -537,7 +549,7 @@ class GenDebugTools(DebugTools):
             self.time_after = time()
 
     @staticmethod
-    def print_trace_call():
+    def _output_trace_call():
         """
         Displays the name of the function which has called the wrapped
         async function in user code by inspecting the stack.
@@ -563,12 +575,39 @@ def agen_timer(decorated_func):
         # will now be gathered and printed to the screen.
         pass
     """
-    debugger = AsyncGenDebugTools()
+    debugger = _AsyncGenDebugTools()
 
     def wrapped_generator_func(*a, **kw):
-        debugger.timed_func = decorated_func
+        debugger.func = decorated_func
         debugger.generator = decorated_func(*a, **kw)
         return wraps(decorated_func)(debugger._agen_wrapper(*a, **kw))()
+
+    return wrapped_generator_func
+
+
+def gen_timer(decorated_func):
+    """
+    A simple timer decorator that can get timings from per-iteration
+    readings over a sync generator.
+
+    Usage Example:
+
+    @gen_timer
+    def loop(times=10):
+        for time in range(times):
+            yield f"This is loop #{time}"
+
+    for notice in loop():
+        # Performance statistics & debug info for the generator will now
+        # be gathered and printed to the screen.
+        pass
+    """
+    debugger = _GenDebugTools()
+
+    def wrapped_generator_func(*a, **kw):
+        debugger.func = decorated_func
+        debugger.generator = decorated_func(*a, **kw)
+        return wraps(decorated_func)(debugger._gen_wrapper(*a, **kw))()
 
     return wrapped_generator_func
 
@@ -592,39 +631,11 @@ def afunc_timer(decorated_func):
 
     @wraps(decorated_func)
     async def decorated_func_timed(*a, **kw):
-        await debugger.ainitiate_timer_func(*a, **kw)
-        await debugger.astart_the_timer(decorated_func)
-        await debugger.aclose_timer()
+        await debugger.ainitialize_run(decorated_func, *a, **kw)
+        await debugger.arun()
         return debugger.return_value
 
     return decorated_func_timed
-
-
-def gen_timer(decorated_func):
-    """
-    A simple timer decorator that can get timings from per-iteration
-    readings over a sync generator.
-
-    Usage Example:
-
-    @gen_timer
-    def loop(times=10):
-        for time in range(times):
-            yield f"This is loop #{time}"
-
-    for notice in loop():
-        # Performance statistics & debug info for the generator will now
-        # be gathered and printed to the screen.
-        pass
-    """
-    debugger = GenDebugTools()
-
-    def wrapped_generator_func(*a, **kw):
-        debugger.timed_func = decorated_func
-        debugger.generator = decorated_func(*a, **kw)
-        return wraps(decorated_func)(debugger._gen_wrapper(*a, **kw))()
-
-    return wrapped_generator_func
 
 
 def func_timer(decorated_func):
@@ -646,44 +657,25 @@ def func_timer(decorated_func):
 
     @wraps(decorated_func)
     def decorated_func_timed(*a, **kw):
-        debugger.initiate_timer_func(*a, **kw)
-        debugger.start_the_timer(decorated_func)
-        debugger.close_timer()
+        debugger.initialize_run(decorated_func, *a, **kw)
+        debugger.run()
         return debugger.return_value
 
     return decorated_func_timed
 
 
-async_timers = dict(
-    agen_timer=agen_timer, afunc_timer=afunc_timer
-)
-
-
-sync_timers = dict(
-    gen_timer=gen_timer, func_timer=func_timer
-)
-
-
-for name, method in  async_timers.items():
-    setattr(AsyncDebugTools, name, method)
-
-
-for name, method in  sync_timers.items():
-    setattr(DebugTools, name, method)
-
-
 extras = dict(
-    AsyncDebugGenTools=AsyncGenDebugTools,
     AsyncDebugTools=AsyncDebugTools,
     DebugControl=DebugControl,
-    DebugGenTools=GenDebugTools,
     DebugTools=DebugTools,
     __doc__=__doc__,
     __main_exports__=__all__,
     __package__=__package__,
     add_to_log=print,
-    **async_timers,
-    **sync_timers,
+    afunc_timer=afunc_timer,
+    agen_timer=agen_timer,
+    func_timer=func_timer,
+    gen_timer=gen_timer,
 )
 
 
