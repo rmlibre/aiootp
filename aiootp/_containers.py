@@ -49,7 +49,7 @@ class KeySaltAAD(Slots):
     Creates efficient containers for key, salt & aad value bundles.
     """
 
-    __slots__ = [KEY, SALT, AAD]
+    __slots__ = (KEY, SALT, AAD)
 
     def __init__(self, key: bytes, salt: bytes, aad: bytes):
         self.key = key
@@ -63,7 +63,7 @@ class NoRegisters(Slots):
     doesn't do anything on that call.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     def __init__(self):
         pass
@@ -79,7 +79,7 @@ class KeyAADBundleRegisters(Slots):
     round.
     """
 
-    __slots__ = ["keystream", "validator"]
+    __slots__ = ("keystream", "validator")
 
     def __init__(self):
         pass
@@ -95,7 +95,7 @@ class KeyAADMode(Slots):
     sync key derivation modes when using them in those contexts.
     """
 
-    __slots__ = ["_mode"]
+    __slots__ = ("_mode",)
 
     def __repr__(self):
         """
@@ -146,7 +146,7 @@ class Chunky2048Keys(Slots):
     Efficiently stores & gives acces to `KeyAADBundle` keys & KDFs.
     """
 
-    __slots__ = [
+    __slots__ = (
         "kdf",
         "seed_0",
         "seed_1",
@@ -158,7 +158,7 @@ class Chunky2048Keys(Slots):
         "shmac_mac",
         "shmac_key",
         "padding_key",
-    ]
+    )
 
     def __init__(self):
         pass
@@ -195,7 +195,7 @@ class Ciphertext(Slots):
     attributes.
     """
 
-    __slots__ = [HMAC, SALT, SIV, CIPHERTEXT]
+    __slots__ = (HMAC, SALT, SIV, CIPHERTEXT)
 
     HMAC_SLICE = HMAC_SLICE
     SALT_SLICE = SALT_SLICE
@@ -224,7 +224,7 @@ class JSONCiphertext(Slots):
     attributes.
     """
 
-    __slots__ = [HMAC, SALT, SIV, CIPHERTEXT]
+    __slots__ = (HMAC, SALT, SIV, CIPHERTEXT)
 
     def __init__(self, data: Typing.JSONCiphertext):
         if data.__class__ in JSON_DESERIALIZABLE_TYPES:
@@ -247,13 +247,13 @@ class PlaintextMeasurements(Slots):
     which are used to determine the padding that's needed.
     """
 
-    __slots__ = [
+    __slots__ = (
         "length",
         "remainder",
         "padding_size",
         "no_padding_required",
         "padding_sentinel_fits_in_block",
-    ]
+    )
 
     def __init__(
         self,
@@ -276,7 +276,7 @@ class PasscryptHash(Slots):
     attached metadata & organizes its values by instance attributes.
     """
 
-    __slots__ = ["kb", "cpu", "hardness", "salt", "passphrase_hash"]
+    __slots__ = ("kb", "cpu", "hardness", "salt", "passphrase_hash")
 
     KB_SLICE = passcrypt_constants.KB_SLICE
     CPU_SLICE = passcrypt_constants.CPU_SLICE
@@ -300,14 +300,14 @@ class ProfileTokens(Slots):
     low entropy passphrases.
     """
 
-    __slots__ = [
+    __slots__ = (
         "_bytes_key",
         "_salt",
         "_salt_path",
         "_uuid",
         "login_key",
         "profile",
-    ]
+    )
 
     def __init__(self, bytes_key: bytes, uuid: bytes):
         self._bytes_key = bytes_key

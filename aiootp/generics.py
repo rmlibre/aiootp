@@ -318,6 +318,7 @@ def sha3__256(*data: Typing.Iterable, hex: bool = True):
     else:
         return sha3_256(str(data).encode()).digest()
 
+
 async def asha3__256_hmac(
     data: Typing.Union[bytes, Typing.Any],
     *,
@@ -466,7 +467,7 @@ class Hasher:
     hashing object passed in during initialization.
     """
 
-    __slots__ = [
+    __slots__ = (
         "_obj",
         "block_size",
         "copy",
@@ -475,7 +476,7 @@ class Hasher:
         "hexdigest",
         "name",
         "update",
-    ]
+    )
 
     _MOD: int = PrimeGroups.MOD_512
     _BASE: int = UniformPrimes.PRIME_256
@@ -622,7 +623,7 @@ class ExampleException(Exception):
     Empty, unused placeholder exception.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
 
 class AsyncRelayExceptions:
@@ -631,7 +632,7 @@ class AsyncRelayExceptions:
     an exception or at the end of a context.
     """
 
-    __slots__ = ["aexcept_code", "afinally_code"]
+    __slots__ = ("aexcept_code", "afinally_code")
 
     read_me = f"""
     Overwrite {__slots__} methods with custom async functions.
@@ -659,7 +660,7 @@ class RelayExceptions:
     an exception or at the end of a context.
     """
 
-    __slots__ = ["except_code", "finally_code"]
+    __slots__ = ("except_code", "finally_code")
 
     read_me = f"""
     Overwrite {__slots__} methods with custom functions.
@@ -811,7 +812,7 @@ class Enumerate:
     An ``enumerate`` variant that supports sync & async generators.
     """
 
-    __slots__ = ["gen", "start"]
+    __slots__ = ("gen", "start")
 
     def __init__(self, gen, start=0):
         self.gen = gen
@@ -1484,7 +1485,7 @@ class BaseComprende:
     to, from & in between sync & async coroutines.
     """
 
-    __slots__ = [
+    __slots__ = (
         "__call__",
         "_areturn_cache",
         "_args",
@@ -1499,7 +1500,7 @@ class BaseComprende:
         "_thrown",
         "send",
         "asend",
-    ]
+    )
 
     _ASYNC_GEN_DONE = "async generator raised StopAsyncIteration"
 
@@ -2380,7 +2381,7 @@ class Comprende(BaseComprende):
     coroutines.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _cached = {}
     _methods = BaseComprende._methods.union({"__getitem__"})
@@ -3648,7 +3649,7 @@ class Domains:
     to make their outputs domain specific.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     @staticmethod
     async def aencode_constant(constant: Typing.AnyStr):
@@ -3854,7 +3855,7 @@ class Padding:
         dependant, unique, pseudo-random, searchable bytes.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _BLOCKSIZE = BLOCKSIZE
     _TWO_BLOCKS = 2 * BLOCKSIZE
@@ -4209,7 +4210,7 @@ class BytesIO:
     algorithm used by the package.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _SIV: str = SIV
     _HMAC: str = HMAC

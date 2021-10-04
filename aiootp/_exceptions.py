@@ -36,7 +36,7 @@ class Issue:
     more precise error messages for users.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _INVALID_VALUE: str = "Invalid NAME!"
     _INVALID_LENGTH: str = "len(NAME) != LENGTH."
@@ -133,7 +133,7 @@ class KeyAADIssue:
     messages for users.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _INVALID_KEY: str = "The ``key`` must be at least 32 bytes."
     _INVALID_SALT: str = "The ``salt`` must be a 24-byte value."
@@ -197,7 +197,7 @@ class SHMACIssue:
     users.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _NO_CIPHER_MODE_DECLARED: str = "No cipher mode has been declared."
     _ALREADY_FINALIZED: str = "The validator has already been finalized."
@@ -261,7 +261,7 @@ class CiphertextIssue:
     processing & validating ciphertexts.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _INVALID_CIPHERTEXT_LENGTH: str = (
         "The given ciphertext of length SIZE is not a multiple of the b"
@@ -280,7 +280,7 @@ class PlaintextIssue:
     processing & validating plaintexts.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _TIMESTAMP_EXPIRED: str = "Timestamp expired by <SECONDS> seconds."
     _INVALID_TIMESTAMP_FORMAT: str = (
@@ -304,7 +304,7 @@ class PasscryptIssue:
     users.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _INVALID_KB: str = "kb:KB must be int >= 256 and < 2**32"
     _INVALID_CPU: str = "cpu:CPU must be int >= 2 and < 65536"
@@ -333,7 +333,7 @@ class DatabaseIssue:
     error messages for users.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _INVALID_WRITE_ATTEMPT: str = "Invalid write attempted."
     _FILE_NOT_FOUND: str = "The NAME filename was not located."
@@ -382,7 +382,7 @@ class PackageSignerIssue:
     for users.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _PACKAGE_HASNT_BEEN_SIGNED: str = (
         "The package must be signed before querying its signature."

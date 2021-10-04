@@ -29,7 +29,7 @@ class Tables:
     Conversion tables that are made available throughout the package.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     ASCII_95 = "".join(chr(val) for val in range(32, 127))
     ASCII_128 = "".join(chr(val) for val in range(128))
@@ -50,7 +50,7 @@ class UniformPrimes:
     containing uniformly distributed bits.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     PRIME_32: int = 0xffe0a5b3
     PRIME_64: int = 0xff7a83e357b995c9
@@ -68,7 +68,7 @@ class PrimeGroups:
     smallest primitive roots organized by bit length.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     GENERATOR_32: int = 2
     GENERATOR_40: int = 3

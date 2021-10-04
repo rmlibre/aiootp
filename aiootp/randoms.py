@@ -135,7 +135,7 @@ class PrimeTools(PrimeGroups):
     primitive roots organized by bit length.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     UniformPrimes = UniformPrimes
 
@@ -509,7 +509,7 @@ class WeakEntropy:
     entropic bytes using a fast, but not very strong PRNG.
     """
 
-    __slots__ = ["_raw_seed", "_prng"]
+    __slots__ = ("_raw_seed", "_prng")
 
     _make_pid = staticmethod(lambda: getpid().to_bytes(6, "big"))
     _make_timestamp = staticmethod(
@@ -563,14 +563,14 @@ class EntropyDaemon:
     the whole package.
     """
 
-    __slots__ = [
+    __slots__ = (
         "_cancel",
         "_currently_mutating_frequency",
         "_daemon",
         "_frequency",
         "_initial_frequency",
         "_pool",
-    ]
+    )
 
     def __init__(
         self,

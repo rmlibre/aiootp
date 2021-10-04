@@ -50,7 +50,7 @@ class DeletedAttribute:
     object is queried for attributes.
     """
 
-    __slots__ = ["_callback"]
+    __slots__ = ("_callback",)
 
     def __init__(self, callback: Typing.Callable):
         self._callback = callback
@@ -116,7 +116,7 @@ class Slots:
     instances, with explicitly declared attributes in their `__slots__`.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     def __init__(self, **kwargs):
         """
@@ -256,6 +256,8 @@ class Namespace(Slots):
     utilities for copying mappings into other containers, & turning
     mappings into stand-alone, first-class modules.
     """
+
+    __slots__ = ("__dict__",)
 
     def __init__(self, mapping={}, **kwargs):
         """

@@ -176,6 +176,8 @@ class Processes:
     from the `multiprocessing` & `concurrent.futures` packages.
     """
 
+    __slots__ = ()
+
     _type = Process
     _pool = process_pool
     _state_machine = Manager
@@ -351,6 +353,8 @@ class Threads(Processes):
     `ThreadPoolExecutor` objects with an interface over these types from
     the `threading` & `concurrent.futures` packages.
     """
+
+    __slots__ = ()
 
     class _Manager:
         """

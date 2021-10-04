@@ -302,7 +302,7 @@ class AsyncKeys:
     creation, derivation & HMAC validation of data.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     DomainKDF = DomainKDF
     Passcrypt = Passcrypt
@@ -363,7 +363,7 @@ class Keys:
     creation, derivation & HMAC validation of data.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     DomainKDF = DomainKDF
     Passcrypt = Passcrypt
@@ -425,7 +425,7 @@ class Curve25519:
     the cryptography library.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _PUBLIC_BYTES_ENUM = {
         "encoding": serialization.Encoding.Raw,
@@ -559,7 +559,7 @@ class Base25519:
     classes.
     """
 
-    __slots__ = ["_public_key", "_secret_key"]
+    __slots__ = ("_public_key", "_secret_key")
 
     _Curve25519 = Curve25519
 
@@ -744,7 +744,7 @@ class Ed25519(Base25519):
     # was signed by Alice.
     """
 
-    __slots__ = ["_public_key", "_secret_key"]
+    __slots__ = ("_public_key", "_secret_key")
 
     InvalidSignature = Base25519._exceptions.InvalidSignature
     PublicKey = Curve25519.Ed25519PublicKey
@@ -848,7 +848,7 @@ class X25519(Base25519):
     Bob. Each public key should only be used once.
     """
 
-    __slots__ = ["_public_key", "_secret_key"]
+    __slots__ = ("_public_key", "_secret_key")
 
     PublicKey = Curve25519.X25519PublicKey
     SecretKey = Curve25519.X25519PrivateKey
@@ -1221,7 +1221,7 @@ class PackageSigner:
     package_signature_summary = signer.summarize()
     """
 
-    __slots__ = ["_db", "_scope", "files"]
+    __slots__ = ("_db", "_scope", "files")
 
     _Hasher = sha512
     _InvalidSignature = Ed25519._exceptions.InvalidSignature
@@ -1481,9 +1481,9 @@ class PackageVerifier:
     verifier.verify_summary(package_signature_summary)
     """
 
-    __slots__ = [
+    __slots__ = (
         "_checksum", "_signature", "_signing_key", "_summary_dictionary"
-    ]
+    )
 
     _Hasher = sha512
     _InvalidSignature = Ed25519._exceptions.InvalidSignature

@@ -194,7 +194,7 @@ class Typing:
     A container for type-hinting variables.
     """
 
-    __slots__ = []
+    __slots__ = ()
 
     _transpose_this_modules_types(class_dict=vars())
     _transpose_types_modules_types(class_dict=vars())

@@ -222,7 +222,7 @@ class KeyAADBundle:
             permutation of ``key`` & ``salt``.
     """
 
-    __slots__ = ["__keys", "_mode", "_bundle", "_siv", "_registers"]
+    __slots__ = ("__keys", "_mode", "_bundle", "_siv", "_registers")
 
     _generate_bundle: Typing.Callable = staticmethod(single_use_key)
     _agenerate_bundle: Typing.Callable = staticmethod(asingle_use_key)
@@ -667,7 +667,7 @@ class StreamHMAC:
     an SIV is derived from the first block of ciphertext.
     """
 
-    __slots__ = [
+    __slots__ = (
         "_aupdate",
         "_auth_key",
         "_avalidated_xor",
@@ -681,7 +681,7 @@ class StreamHMAC:
         "_siv",
         "_update",
         "_validated_xor",
-    ]
+    )
 
     _DECRYPTION: str = DECRYPTION
     _ENCRYPTION: str = ENCRYPTION
@@ -2268,7 +2268,7 @@ class Chunky2048:
     assert b"binary data" == cipher.read_token(token)
     """
 
-    __slots__ = ["_key"]
+    __slots__ = ("_key",)
 
     _CONSTANTS = chunky2048_constants
     _IO = BytesIO
@@ -3320,7 +3320,7 @@ class DomainKDF:
     Creates objects able to derive domain & payload-specific HMAC hashes.
     """
 
-    __slots__ = ["_domain", "_key", "_payload"]
+    __slots__ = ("_domain", "_key", "_payload")
 
     _hmac: Typing.Callable = staticmethod(hmac.new)
     _sha3_256: type = sha3_256

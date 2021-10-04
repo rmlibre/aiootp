@@ -43,8 +43,12 @@ class DebugControl:
     Enabling debugging reveals omitted values in object ``repr``s &
     turns on asyncio's debugging.
     """
-    _switches = []
+
+    __slots__ = ()
+
     _DEBUG_MODE = False
+
+    _switches = []
 
     @classmethod
     def is_debugging(cls):
@@ -73,6 +77,20 @@ class DebugTools:
     A simple class used for displaying & calculating runtime statistics
     on synchronous functions.
     """
+
+    __slots__ = (
+        "arg_tuple",
+        "kw_dict",
+        "return_value",
+        "time_after",
+        "time_average",
+        "time_before",
+        "time_elapsed",
+        "timed_func",
+        "times_run",
+        "timer_sum",
+        "variance_sum",
+    )
 
     def __init__(self):
         """
@@ -240,6 +258,8 @@ class AsyncDebugTools(DebugTools):
     on asynchronous functions.
     """
 
+    __slots__ = ()
+
     def __init__(self):
         """
         Sets timing variables.
@@ -402,6 +422,9 @@ class AsyncDebugTools(DebugTools):
 
 
 class AsyncGenDebugTools(AsyncDebugTools):
+
+    __slots__ = ("generator",)
+
     _async_non_none_error = (
         "can't send non-None value to a just-started async generator"
     )
@@ -463,6 +486,9 @@ class AsyncGenDebugTools(AsyncDebugTools):
 
 
 class GenDebugTools(DebugTools):
+
+    __slots__ = ("generator",)
+
     _sync_non_none_error = (
         "can't send non-None value to a just-started generator"
     )

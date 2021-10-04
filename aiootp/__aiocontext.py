@@ -39,6 +39,9 @@ __all__ = ['async_contextmanager']
 
 
 class _AsyncContextManager(object):
+
+    __slots__ = ("async_generator",)
+
     def __init__(self, func, args, kwargs):
         if not inspect.isasyncgenfunction(func):
             raise TypeError('%s is not async generator function' % func)
