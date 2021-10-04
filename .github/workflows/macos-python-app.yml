@@ -22,7 +22,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: install dependencies
       run: |
-        sudo brew install openssl python3
+        brew install openssl python3
         python3 -m ensurepip --upgrade
         python3 -m pip install --upgrade pytest coverage
         python3 -m pip install --upgrade -r aiootp.egg-info/requires.txt
