@@ -144,12 +144,12 @@ def insert_bytes_cipher_methods():
     """
     Copies the addons over into the ``Comprende`` class.
     """
-    addons = {
+    addons = (
         Chunky2048._bytes_encipher,
         Chunky2048._bytes_decipher,
         Chunky2048._abytes_encipher,
         Chunky2048._abytes_decipher,
-    }
+    )
     for addon in addons:
         name = addon.__name__[1:]
         setattr(Comprende, name, addon)
@@ -160,7 +160,7 @@ def insert_debuggers():
     """
     Copies the addons over into the ``Comprende`` class.
     """
-    addons = {debugger, adebugger}
+    addons = (debugger, adebugger)
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
         Comprende.lazy_generators.add(addon.__name__)
@@ -182,7 +182,7 @@ def insert_passcrypt_methods():
     """
     Copies the addons over into the ``Comprende`` class.
     """
-    addons = {passcrypt, apasscrypt}
+    addons = (passcrypt, apasscrypt)
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
         Comprende.lazy_generators.add(addon.__name__)
@@ -192,7 +192,7 @@ def insert_random_sleep_methods():
     """
     Copies the addons over into the ``Comprende`` class.
     """
-    addons = {random_sleep, arandom_sleep}
+    addons = (random_sleep, arandom_sleep)
     for addon in addons:
         setattr(Comprende, addon.__name__, addon)
         Comprende.lazy_generators.add(addon.__name__)
