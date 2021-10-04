@@ -3301,10 +3301,10 @@ class DomainKDF:
 
     __slots__ = ("_domain", "_key", "_payload")
 
-    _hmac: Typing.Callable = staticmethod(hmac.new)
-    _sha3_256: type = sha3_256
-    _sha3_512: type = sha3_512
-    _shake_256: type = shake_256
+    _hmac = staticmethod(hmac.new)
+    _sha3_256 = sha3_256
+    _sha3_512 = sha3_512
+    _shake_256 = shake_256
 
     @staticmethod
     def _type_check(domain: bytes, payload: bytes, key: bytes):
