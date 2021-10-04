@@ -1,6 +1,6 @@
-.. image:: https://raw.githubusercontent.com/rmlibre/aiootp/master/logo.png
-    :target: https://raw.githubusercontent.com/rmlibre/aiootp/master/logo.png
-    :alt: logo for python package named aiootp
+.. image:: https://raw.githubusercontent.com/rmlibre/aiootp/main/logo.png
+    :target: https://raw.githubusercontent.com/rmlibre/aiootp/main/logo.png
+    :alt: aiootp python package logo
 
 
 
@@ -46,10 +46,10 @@ professionals.
 
 .. image:: https://img.shields.io/pypi/pyversions/aiootp?color=black
     :target: https://img.shields.io/pypi/pyversions/aiootp?color=black
-    :alt: license
+    :alt: python-versions
 
-.. image:: https://github.com/rmlibre/aiootp/actions/workflows/python-app.yml/badge.svg
-    :target: https://github.com/rmlibre/aiootp/actions/workflows/python-app.yml/badge.svg
+.. image:: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
+    :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
     :alt: build-status
 
 .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
@@ -60,26 +60,22 @@ professionals.
     :target: https://img.shields.io/badge/code%20style-black-000000.svg
     :alt: code-style
 
-.. image:: https://img.shields.io/twitter/follow/aiootp?style=plastic
-    :target: https://img.shields.io/twitter/follow/aiootp?style=plastic
-    :alt: twitter-follow
 
 
 
-
-Quick install
+Quick Install
 -------------
 
 .. code-block:: shell
 
-  $ sudo apt-get install python3-cryptography
+  $ sudo apt-get install python3-setuptools python3-cryptography
 
   $ pip3 install --user --upgrade aiootp
 
 
 
 
-Run tests
+Run Tests
 ---------
 
 .. code-block:: shell

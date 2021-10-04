@@ -1,6 +1,6 @@
-.. image:: https://raw.githubusercontent.com/rmlibre/aiootp/master/logo.png
-    :target: https://raw.githubusercontent.com/rmlibre/aiootp/master/logo.png
-    :alt: logo for python package named aiootp
+.. image:: https://raw.githubusercontent.com/rmlibre/aiootp/main/logo.png
+    :target: https://raw.githubusercontent.com/rmlibre/aiootp/main/logo.png
+    :alt: aiootp python package logo
 
 
 
@@ -46,10 +46,10 @@ professionals.
 
 .. image:: https://img.shields.io/pypi/pyversions/aiootp?color=black
     :target: https://img.shields.io/pypi/pyversions/aiootp?color=black
-    :alt: license
+    :alt: python-versions
 
-.. image:: https://github.com/rmlibre/aiootp/actions/workflows/python-app.yml/badge.svg
-    :target: https://github.com/rmlibre/aiootp/actions/workflows/python-app.yml/badge.svg
+.. image:: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
+    :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
     :alt: build-status
 
 .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
@@ -60,26 +60,22 @@ professionals.
     :target: https://img.shields.io/badge/code%20style-black-000000.svg
     :alt: code-style
 
-.. image:: https://img.shields.io/twitter/follow/aiootp?style=plastic
-    :target: https://img.shields.io/twitter/follow/aiootp?style=plastic
-    :alt: twitter-follow
 
 
 
-
-Quick install
+Quick Install
 -------------
 
 .. code-block:: shell
 
-  $ sudo apt-get install python3-cryptography
+  $ sudo apt-get install python3-setuptools python3-cryptography
 
   $ pip3 install --user --upgrade aiootp
 
 
 
 
-Run tests
+Run Tests
 ---------
 
 .. code-block:: shell
@@ -1280,6 +1276,20 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+Changes for version 0.20.3
+--------------------------
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Small refactorings.
+-  Documentation updates.
+-  Type-hinting updates.
+
+
+
+
 Changes for version 0.20.2
 --------------------------
 
@@ -1290,7 +1300,7 @@ Major Changes
 -  Changed the ``Padding`` class' ``(a)check_timestamp`` methods to
    ``(a)test_timestamp``, to better match the naming convention in the 
    rest of the package.
--  Removed the ``(a)sum_sha_(256/512)`` chainable generator methods from
+-  Removed the ``(a)sum_sha3__(256/512)`` chainable generator methods from
    the ``Comprende`` class.
 -  Removed the ``os.urandom`` based functions in the ``randoms.py`` module.
 
