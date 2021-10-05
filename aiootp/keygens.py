@@ -67,20 +67,20 @@ from .ciphers import bytes_keys, abytes_keys
 
 async def agenerate_key(*, size: int = 64):
     """
-    Returns a ``size``-byte cryptographically secure key >= 32 bytes.
+    Returns a ``size``-byte cryptographically secure key >= 64 bytes.
     """
     if size < MINIMUM_KEY_BYTES or size.__class__ is not int:
-        raise Issue.invalid_value("size", "integer >= 32")
+        raise Issue.invalid_value("size", "integer >= 64")
     key = (await acsprng() for _ in range((size - 1) // KEY_BYTES + 1))
     return b"".join([part async for part in key])[:size]
 
 
 def generate_key(*, size: int = 64):
     """
-    Returns a ``size``-byte cryptographically secure key >= 32 bytes.
+    Returns a ``size``-byte cryptographically secure key >= 64 bytes.
     """
     if size < MINIMUM_KEY_BYTES or size.__class__ is not int:
-        raise Issue.invalid_value("size", "integer >= 32")
+        raise Issue.invalid_value("size", "integer >= 64")
     key = (csprng() for _ in range((size - 1) // KEY_BYTES + 1))
     return b"".join(key)[:size]
 

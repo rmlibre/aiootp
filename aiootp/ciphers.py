@@ -207,10 +207,10 @@ class KeyAADBundle:
     used for more than one encryption, then the security of the
     `Chunky2048` cipher may be greatly damaged.
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
 
     ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
             ONCE for each encryption. This value is sent in the clear
@@ -1970,10 +1970,10 @@ async def ajson_encrypt(
     ciphertext & the values used to create it. The key stream is derived
     from permutations of these values:
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
     ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
             ONCE for each encryption. This value is sent in the clear
             along with the ciphertext.
@@ -2004,10 +2004,10 @@ def json_encrypt(
     ciphertext & the values used to create it. The key stream is derived
     from permutations of these values:
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
     ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
             ONCE for each encryption. This value is sent in the clear
             along with the ciphertext.
@@ -2034,10 +2034,10 @@ async def ajson_decrypt(
     authenticity of the ciphertext & the values used to create it. The
     keystream is derived from permutations of these values:
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
@@ -2061,10 +2061,10 @@ def json_decrypt(
     authenticity of the ciphertext & the values used to create it. The
     keystream is derived from permutations of these values:
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
@@ -2092,10 +2092,10 @@ async def abytes_encrypt(
     ciphertext & the values used to create it. The key stream is derived
     from permutations of these values:
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
     ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
             ONCE for each encryption. This value is sent in the clear
             along with the ciphertext.
@@ -2136,10 +2136,10 @@ def bytes_encrypt(
     ciphertext & the values used to create it. The key stream is derived
     from permutations of these values:
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
     ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
             ONCE for each encryption. This value is sent in the clear
             along with the ciphertext.
@@ -2175,10 +2175,10 @@ async def abytes_decrypt(
     ciphertext & the values used to create it. The keystream is derived
     from permutations of these values:
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
@@ -2212,10 +2212,10 @@ def bytes_decrypt(
     ciphertext & the values used to create it. The keystream is derived
     from permutations of these values:
 
-    ``key``: A greater than 32-byte entropic value that contains the
+    ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
-            is ideally a uniform, 64-byte value.
+            is ideally a uniform value.
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each

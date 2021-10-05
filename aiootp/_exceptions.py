@@ -135,7 +135,7 @@ class KeyAADIssue:
 
     __slots__ = ()
 
-    _INVALID_KEY: str = "The ``key`` must be at least 32 bytes."
+    _INVALID_KEY: str = "The ``key`` must be at least 64 bytes."
     _INVALID_SALT: str = "The ``salt`` must be a 24-byte value."
     _MODE_ISNT_CORRECT: str = (
         "The KDF mode must be set to MODE to use MODE key derivation."
