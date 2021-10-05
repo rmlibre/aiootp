@@ -50,7 +50,7 @@ professionals.
 
 .. image:: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
     :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
-    :alt: build-status
+    :alt: linux-build-status
 
 .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
     :target: https://img.shields.io/badge/License-AGPL%20v3-red.svg

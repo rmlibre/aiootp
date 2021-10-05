@@ -102,6 +102,7 @@ setup(
         "Natural Language :: English",
         "Development Status :: 4 - Beta",
         "Operating System :: Unix",
+        "Operating System :: MacOS",
         "Operating System :: POSIX",
         "Operating System :: POSIX :: Linux",
         "Operating System :: OS Independent",

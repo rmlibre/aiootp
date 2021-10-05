@@ -65,7 +65,7 @@ Description: .. image:: https://raw.githubusercontent.com/rmlibre/aiootp/main/lo
         
         .. image:: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
             :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
-            :alt: build-status
+            :alt: linux-build-status
         
         .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
             :target: https://img.shields.io/badge/License-AGPL%20v3-red.svg
@@ -3150,6 +3150,7 @@ Classifier: Framework :: AsyncIO
 Classifier: Natural Language :: English
 Classifier: Development Status :: 4 - Beta
 Classifier: Operating System :: Unix
+Classifier: Operating System :: MacOS
 Classifier: Operating System :: POSIX
 Classifier: Operating System :: POSIX :: Linux
 Classifier: Operating System :: OS Independent
