@@ -222,10 +222,10 @@ class KeyAADBundle:
             permutation of ``key`` & ``salt``.
     """
 
-    __slots__ = ("__keys", "_mode", "_bundle", "_siv", "_registers")
+    __slots__ = ("__keys", "_bundle", "_mode", "_registers", "_siv")
 
-    _generate_bundle: Typing.Callable = staticmethod(single_use_key)
-    _agenerate_bundle: Typing.Callable = staticmethod(asingle_use_key)
+    _generate_bundle = staticmethod(single_use_key)
+    _agenerate_bundle = staticmethod(asingle_use_key)
 
     @staticmethod
     def _test_siv(siv):
@@ -686,8 +686,8 @@ class StreamHMAC:
     _DECRYPTION: str = DECRYPTION
     _ENCRYPTION: str = ENCRYPTION
 
-    _key_type: type = sha3_512
-    _type: type = sha3_256
+    _key_type = sha3_512
+    _type = sha3_256
 
     def __init__(self, key_bundle: KeyAADBundle):
         """

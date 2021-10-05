@@ -482,8 +482,8 @@ class Hasher:
     _BASE: int = UniformPrimes.PRIME_256
     _MASK: int = UniformPrimes.PRIME_512
 
-    xi_mix: Typing.Callable = xi_mix
-    axi_mix: Typing.Coroutine = axi_mix
+    xi_mix = xi_mix
+    axi_mix = axi_mix
 
     @classmethod
     async def amask_byte_order(
@@ -3836,17 +3836,17 @@ class Padding:
 
     __slots__ = ()
 
-    _BLOCKSIZE = BLOCKSIZE
-    _TWO_BLOCKS = 2 * BLOCKSIZE
-    _EXTRA_PADDING_BYTES = BLOCKSIZE
-    _PADDING_KEY_BYTES = PADDING_KEY_BYTES
-    _PADDING_KEY_NIBBLES = PADDING_KEY_NIBBLES
-    _SIV_KEY_BYTES = SIV_KEY_BYTES
-    _SIV_KEY_NIBBLES = SIV_KEY_NIBBLES
-    _TIMESTAMP_BYTES = TIMESTAMP_BYTES
-    _TIMESTAMP_NIBBLES = TIMESTAMP_NIBBLES
-    _INNER_HEADER_BYTES = INNER_HEADER_BYTES
-    _INNER_HEADER_NIBBLES = INNER_HEADER_NIBBLES
+    _BLOCKSIZE: int = BLOCKSIZE
+    _TWO_BLOCKS: int = 2 * BLOCKSIZE
+    _EXTRA_PADDING_BYTES: int = BLOCKSIZE
+    _PADDING_KEY_BYTES: int = PADDING_KEY_BYTES
+    _PADDING_KEY_NIBBLES: int = PADDING_KEY_NIBBLES
+    _SIV_KEY_BYTES: int = SIV_KEY_BYTES
+    _SIV_KEY_NIBBLES: int = SIV_KEY_NIBBLES
+    _TIMESTAMP_BYTES: int = TIMESTAMP_BYTES
+    _TIMESTAMP_NIBBLES: int = TIMESTAMP_NIBBLES
+    _INNER_HEADER_BYTES: int = INNER_HEADER_BYTES
+    _INNER_HEADER_NIBBLES: int = INNER_HEADER_NIBBLES
 
     amake_timestamp = staticmethod(amake_timestamp)
     atest_timestamp = staticmethod(atest_timestamp)
@@ -4191,13 +4191,13 @@ class BytesIO:
 
     __slots__ = ()
 
-    _SIV: str = SIV
+    _CIPHERTEXT: str = CIPHERTEXT
     _HMAC: str = HMAC
     _SALT: str = SALT
+    _SIV: str = SIV
     _EQUAL_SIGN: bytes = b"%3D"
     _BLOCKSIZE: int = BLOCKSIZE
     _SIV_BYTES: int = SIV_BYTES
-    _CIPHERTEXT: str = CIPHERTEXT
     _HMAC_BYTES: int = HMAC_BYTES
     _SALT_BYTES: int = SALT_BYTES
     _HEADER_BYTES: int = HEADER_BYTES
