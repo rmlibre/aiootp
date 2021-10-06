@@ -839,10 +839,12 @@ class StreamHMAC:
         if self._finalized:
             raise SHMACIssue.already_finalized()
         await asleep()
-        payload = (Domains.KDF, self._auth_key, entropic_material)
+        mac = self._mac.digest()
+        payload = (Domains.KDF, self._auth_key, entropic_material, mac)
         kdf = self._key_bundle._kdf
         kdf.update(b"".join(payload))
-        self._auth_key = kdf.digest()
+        self._auth_key = key = kdf.digest()
+        self._mac.update(key)
         return self
 
     def update_key(self, entropic_material: bytes):
@@ -854,10 +856,12 @@ class StreamHMAC:
         """
         if self._finalized:
             raise SHMACIssue.already_finalized()
-        payload = (Domains.KDF, self._auth_key, entropic_material)
+        mac = self._mac.digest()
+        payload = (Domains.KDF, self._auth_key, entropic_material, mac)
         kdf = self._key_bundle._kdf
         kdf.update(b"".join(payload))
-        self._auth_key = kdf.digest()
+        self._auth_key = key = kdf.digest()
+        self._mac.update(key)
         return self
 
     async def _aplaceholder_update(self, *a, **kw):
