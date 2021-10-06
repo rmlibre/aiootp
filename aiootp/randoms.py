@@ -100,8 +100,7 @@ async def acreate_prime(bits: int = 2048):
     Asynchronous wrapper around a `sympy.randprime` abstraction which
     locates primes based on a user-defined amount of ``bits``.
     """
-    await asleep()
-    return unique_prime(1 << (bits - 1), 1 << bits)
+    return await aunique_prime(1 << (bits - 1), 1 << bits)
 
 
 def create_prime(bits: int = 2048):
@@ -204,22 +203,6 @@ async def atoken_bytes(size: int):
     return token_bytes(size)
 
 
-async def atoken_number(size: int):
-    """
-    Returns ``size`` bytes of `secrets.token_bytes` entropy as an
-    integer.
-    """
-    return int.from_bytes(await atoken_bytes(size), "big")
-
-
-def token_number(size: int):
-    """
-    Returns ``size`` bytes of `secrets.token_bytes` entropy as an
-    integer.
-    """
-    return int.from_bytes(token_bytes(size), "big")
-
-
 async def atoken_hash(size: int):
     """
     Feeds ``size`` bytes of `secrets.token_bytes` entropy into a
@@ -288,7 +271,7 @@ async def _aunique_big_int():
     upper_bound = _aunique_upper_bound()
     lower_bound = _aunique_lower_bound()
     ranges = [await lower_bound, await upper_bound]
-    return await aunique_range(*ranges) ^ await atoken_number(32)
+    return await aunique_range(*ranges) ^ await atoken_bits(256)
 
 
 def _unique_big_int():
@@ -298,7 +281,7 @@ def _unique_big_int():
     """
     upper_bound = _unique_upper_bound()
     lower_bound = _unique_lower_bound()
-    return unique_range(lower_bound, upper_bound) ^ token_number(32)
+    return unique_range(lower_bound, upper_bound) ^ token_bits(256)
 
 
 async def _aunique_lower_bound():
@@ -535,22 +518,17 @@ class WeakEntropy:
         yield _entropy.hash(Domains.SEED, _pool[0])
         yield self._raw_seed
 
-    async def atoken_bytes(self, output_size: int):
+    async def atoken_bytes(self, size: int):
         """
         Returns ``output_size`` number of pseudo-random bytes.
         """
-        await asleep()
-        try:
-            return self.token_bytes(output_size)
-        finally:
-            await asleep()
+        return await self._prng.ahash(*self._seed(), size=size)
 
-    def token_bytes(self, output_size: int):
+    def token_bytes(self, size: int):
         """
         Returns ``output_size`` number of pseudo-random bytes.
         """
-        self._prng.update(b"".join(self._seed()))
-        return self._prng.digest(output_size)
+        return self._prng.hash(*self._seed(), size=size)
 
 
 class EntropyDaemon:
@@ -683,43 +661,36 @@ class EntropyDaemon:
         return self
 
 
-try:
-    #  initialize a global entropy pool
-    _pool = deque([token_bytes(64), token_bytes(64)], maxlen=256)
+#  initialize a global entropy pool
+_pool = deque([token_bytes(64), token_bytes(64)], maxlen=256)
 
-    #  initialize the global hashing object that also collects entropy
-    _entropy = Hasher(token_bytes(304) + b"".join(_pool))
+#  initialize the global hashing object that also collects entropy
+_entropy = Hasher(token_bytes(304) + b"".join(_pool))
 
-    #  avert event loop clashes
-    run = asyncio.new_event_loop().run_until_complete
+#  avert event loop clashes
+run = asyncio.new_event_loop().run_until_complete
 
-    #  initializing weakly entropic functions
-    random = _random.Random(token_bytes(2500))
-    uniform = random.uniform
-    unique_range = random.randrange
+#  initializing weakly entropic functions
+random = _random.Random(token_bytes(2500))
+uniform = random.uniform
+unique_range = random.randrange
 
-    _mod = primes[256][-1]
-    _offset = token_bits(256)
-    _mix = int(sha3__256(token_hash(64), _mod, _offset), 16)
-    _seed = int(sha3__256(token_hash(64), _mix, _offset), 16)
-    _numbers = (_mix, _seed, _offset)
+_mod = primes[256][-1]
+_offset = token_bits(256)
+_mix = int(sha3__256(token_hash(64), _mod, _offset), 16)
+_seed = int(sha3__256(token_hash(64), _mix, _offset), 16)
+_numbers = (_mix, _seed, _offset)
 
-    _ = _salt_multiply(*_numbers)
-    run(_asalt_multiply(_, *_numbers))
+_ = _salt_multiply(*_numbers)
+run(_asalt_multiply(_, *_numbers))
 
-    _initial_entropy = deque(
-        [token_number(128), token_number(128)], maxlen=2
-    )
+_initial_entropy = deque(
+    [token_bits(1024), token_bits(1024)], maxlen=2
+)
 
-    # begin the entropy gathering daemon
-    _entropy_daemon = EntropyDaemon(_pool).start()
-    _entropy_daemon.set_temporary_frequency(0.001, duration=2)
-except RuntimeError as error:
-    problem = f"{__package__}'s random seed initialization failed, "
-    location = f"likely because {__name__} "
-    reason = f"was imported from within an async event loop."
-    failure = RuntimeError(problem + location + reason)
-    raise failure from error
+# begin the entropy gathering daemon
+_entropy_daemon = EntropyDaemon(_pool).start()
+_entropy_daemon.set_temporary_frequency(0.001, duration=2)
 
 
 async def _asalt(*, _entropy: deque = _initial_entropy):
@@ -851,12 +822,12 @@ async def arandom_number_generator(
 
         async def create_unique_multiple(seed: int):
             return await _asalt_multiply(
-                seed, await _aunique_integer(), await atoken_number(32)
+                seed, await _aunique_integer(), await atoken_bits(256)
             )
 
         async def big_modulation(*args):
             return await _asalt_multiply(
-                *args, await atoken_number(32)
+                *args, await atoken_bits(256)
             ) % await achoice([primes[512][-1], primes[513][0]])
 
         await _agenerate_unique_range_bounds()
@@ -981,12 +952,12 @@ def random_number_generator(
 
         async def create_unique_multiple(seed: int):
             return await _asalt_multiply(
-                seed, await _aunique_integer(), await atoken_number(32)
+                seed, await _aunique_integer(), await atoken_bits(256)
             )
 
         async def big_modulation(*args):
             return await _asalt_multiply(
-                *args, await atoken_number(32)
+                *args, await atoken_bits(256)
             ) % await achoice([primes[512][-1], primes[513][0]])
 
         _generate_unique_range_bounds()
@@ -1355,22 +1326,13 @@ def make_uuids(*, size: int = 24, salt: Typing.Any = None):
             stamp = yield base64.urlsafe_b64encode(uuid)[:size]
 
 
-try:
-    # Initalize package entropy pool & cryptographically secure pseudo-
-    # random number generators.
-    global_seed_key = random_512(entropy=sha3__512(_salt(), hex=False))
-    global_seed = run(arandom_512(entropy=global_seed_key))
-    _csprng = bytes_seeder.root(global_seed).send
-    _acsprng = abytes_seeder.root(_csprng(None)).asend
-    global_seed_key = run(_acsprng(None))
-    global_seed = _csprng(global_seed_key)
-    run(_acsprng(global_seed))
-except RuntimeError as error:
-    problem = f"{__package__}'s random seed initialization failed, "
-    location = f"likely because {__name__} "
-    reason = f"was imported from within an async event loop."
-    failure = RuntimeError(problem + location + reason)
-    raise failure from error
+global_seed_key = random_512(entropy=sha3__512(_salt(), hex=False))
+global_seed = run(arandom_512(entropy=global_seed_key))
+_csprng = bytes_seeder.root(global_seed).send
+_acsprng = abytes_seeder.root(_csprng(None)).asend
+global_seed_key = run(_acsprng(None))
+global_seed = _csprng(global_seed_key)
+run(_acsprng(global_seed))
 
 
 extras = dict(
@@ -1392,7 +1354,6 @@ extras = dict(
     atoken_bits=atoken_bits,
     atoken_bytes=atoken_bytes,
     atoken_hash=atoken_hash,
-    atoken_number=atoken_number,
     auniform=auniform,
     aunique_range=aunique_range,
     bytes_seeder=bytes_seeder,
@@ -1407,7 +1368,6 @@ extras = dict(
     token_bits=token_bits,
     token_bytes=token_bytes,
     token_hash=token_hash,
-    token_number=token_number,
     uniform=uniform,
     unique_range=unique_range,
 )
