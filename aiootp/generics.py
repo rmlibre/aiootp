@@ -566,20 +566,11 @@ class Hasher:
             if attr[:1] != "_":
                 setattr(self, attr, getattr(self._obj, attr))
 
-    def __call__(self, data: bytes = b""):
-        """
-        Allows objects of the class to accept new input data in the
-        same way the class of the mimmicked hashing object does during
-        initialization.
-        """
-        self.update(data)
-        return self
-
     async def ahash(
         self,
         *data: Typing.Iterable[bytes],
         on: bytes = b"",
-        output_size: int = None,
+        size: int = None,
     ):
         """
         Receives any number of arguments of bytes type ``data`` &
@@ -588,23 +579,23 @@ class Hasher:
         await asleep()
         self.update(on.join(data))
         await asleep()
-        if output_size:
-            return self.digest(output_size)
+        if size:
+            return self.digest(size)
         return self.digest()
 
     def hash(
         self,
         *data: Typing.Iterable[bytes],
         on: bytes = b"",
-        output_size: int = None,
+        size: int = None,
     ):
         """
         Receives any number of arguments of bytes type ``data`` &
         updates the instance with them all sequentially.
         """
         self.update(on.join(data))
-        if output_size:
-            return self.digest(output_size)
+        if size:
+            return self.digest(size)
         return self.digest()
 
 
