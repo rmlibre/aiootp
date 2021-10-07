@@ -1301,6 +1301,7 @@ Description: .. image:: https://raw.githubusercontent.com/rmlibre/aiootp/main/lo
         -  Small refactorings.
         -  Documentation updates.
         -  Type-hinting updates.
+        -  Additional tests.
         
         
         

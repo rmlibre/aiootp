@@ -12,6 +12,7 @@ Minor Changes
 -  Small refactorings.
 -  Documentation updates.
 -  Type-hinting updates.
+-  Additional tests.
 
 
 
