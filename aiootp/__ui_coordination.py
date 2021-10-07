@@ -9,7 +9,7 @@
 #
 
 
-__all__ = ["_typing", "gentools"]
+__all__ = ["_containers", "_exceptions", "_typing", "gentools"]
 
 
 __doc__ = (
@@ -30,7 +30,7 @@ from .ciphers import plaintext_stream, aplaintext_stream
 from .ciphers import bytes_encipher, abytes_encipher
 from .ciphers import bytes_decipher, abytes_decipher
 from . import *
-from . import _typing
+from . import _typing, _containers, _exceptions
 from . import AsyncKeys, Keys
 from . import Ed25519, X25519
 from . import Processes, Threads
@@ -227,6 +227,48 @@ def insert_types():
     Typing.X25519 = X25519
 
 
+def overwrite_containers_module():
+    """
+    Overwrites the package's `_containers.py` variable which will then
+    be accessible to the user.
+    """
+    global _containers
+
+    exports = _containers.__main_exports__
+    mapping = OpenNamespace(
+        **{
+            name: obj
+            for name, obj in _containers.__dict__.items()
+            if name in exports
+        },
+        __all__=_containers.__main_exports__,
+        __doc__=_containers.__doc__,
+        __package__=_containers.__package__,
+    )
+    _containers = commons.make_module("_containers", mapping=mapping)
+
+
+def overwrite_exceptions_module():
+    """
+    Overwrites the package's `_exceptions.py` variable which will then
+    be accessible to the user.
+    """
+    global _exceptions
+
+    exports = _exceptions.__all__
+    mapping = OpenNamespace(
+        **{
+            name: obj
+            for name, obj in _exceptions.__dict__.items()
+            if name in exports
+        },
+        __all__=_exceptions.__all__,
+        __doc__=_exceptions.__doc__,
+        __package__=_exceptions.__package__,
+    )
+    _exceptions = commons.make_module("_exceptions", mapping=mapping)
+
+
 def overwrite_typing_module():
     """
     Overwrites the package's `_typing.py` variable which will then be
@@ -234,13 +276,13 @@ def overwrite_typing_module():
     """
     global _typing
 
-    _typing = OpenNamespace(
+    mapping = OpenNamespace(
         Typing=_typing.Typing,
         __all__=_typing.__all__,
         __doc__=_typing.__doc__,
         __package__=_typing.__package__,
     )
-    _typing = commons.make_module("_typing", mapping=_typing)
+    _typing = commons.make_module("_typing", mapping=mapping)
 
 
 insert_bytes_cipher_methods()
@@ -249,5 +291,7 @@ insert_gentools_pointers()
 insert_passcrypt_methods()
 insert_random_sleep_methods()
 insert_types()
+overwrite_containers_module()
+overwrite_exceptions_module()
 overwrite_typing_module()
 
