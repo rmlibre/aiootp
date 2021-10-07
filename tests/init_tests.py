@@ -119,6 +119,7 @@ __all__ = [
     "Path",
     "PACKAGE_PATH",
     "aiootp",
+    "randoms",
     "_containers",
     "asleep",
     "run",

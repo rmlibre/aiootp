@@ -55,4 +55,6 @@ tests/test_generics.py
 tests/test_high_level_encryption.py
 tests/test_misc_in_ciphers.py
 tests/test_misc_in_generics.py
+tests/test_misc_in_randoms.py
 tests/test_passcrypt_apasscrypt.py
+tests/test_randoms.py

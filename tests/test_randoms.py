@@ -10,7 +10,19 @@
 
 
 from init_tests import *
-from test_generics import *
-from test_ciphers import *
-from test_randoms import *
+
+
+__exports = []
+
+
+from test_misc_in_randoms import *
+for variable in __all__:
+    __exports.append(variable)
+
+
+__all__ = __exports
+__exports = set(__exports)
+
+
+assert not __exports.difference(__all__), "duplicated tests!!!"
 

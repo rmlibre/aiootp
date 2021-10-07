@@ -32,18 +32,20 @@ include aiootp/tor/README_TOR.rst
 include aiootp/databases/README_DATABASES.rst
 include tests/init_tests.py
 include tests/test_aiootp.py
-include tests/test_Ropake.py
-include tests/test_BytesIO.py
-include tests/test_ciphers.py
 include tests/test_generics.py
+include tests/test_BytesIO.py
 include tests/test_Comprende.py
+include tests/test_misc_in_generics.py
+include tests/test_randoms.py
+include tests/test_misc_in_randoms.py
+include tests/test_ciphers.py
+include tests/test_Database_AsyncDatabase.py
+include tests/test_Ropake.py
 include tests/test_StreamHMAC.py
 include tests/test_X25519_Ed25519.py
-include tests/test_misc_in_ciphers.py
-include tests/test_misc_in_generics.py
-include tests/test_passcrypt_apasscrypt.py
 include tests/test_high_level_encryption.py
-include tests/test_Database_AsyncDatabase.py
+include tests/test_misc_in_ciphers.py
+include tests/test_passcrypt_apasscrypt.py
 recursive-exclude docs *
 recursive-exclude tests/htmlcov *
 
