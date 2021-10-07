@@ -172,14 +172,22 @@ class Slots:
         """
         delattr(self, variable)
 
-    def _repr(self, items: Typing.Generator):
+    @staticmethod
+    def _repr(items: Typing.Iterable[Typing.Tuple[Typing.Any, Typing.Any]]):
         """
+        Individually wraps the produced ``items`` values in a visible
+        string for an instance's repr.
         """
         for name, value in items:
             yield f"{name}={repr(value)}"
 
-    def _omitted_repr(self, items: Typing.Generator):
+    @staticmethod
+    def _omitted_repr(
+        items: Typing.Iterable[Typing.Tuple[Typing.Any, Typing.Any]]
+    ):
         """
+        Individually wraps the produced ``items`` values in a masked
+        string for an instance's repr.
         """
         for name, value in items:
             exists = (value and "is <truthy>") or "is <falsey>"
@@ -198,7 +206,7 @@ class Slots:
             items = spacer.join(self._repr(self.items()))
         else:
             items = spacer.join(self._omitted_repr(self.items()))
-        return f"{cls}{new_line + items + f',{sep}' if items else ''})"
+        return f"{cls}{f'{new_line}{items},{sep}' if items else ''})"
 
     async def __aiter__(self):
         """
@@ -354,7 +362,7 @@ class Namespace(Slots):
             items = spacer.join(self._repr(items))
         else:
             items = spacer.join(self._omitted_repr(items))
-        return f"{cls}{new_line + items + f',{sep}' if items else ''})"
+        return f"{cls}{f'{new_line}{items},{sep}' if items else ''})"
 
     async def __aiter__(self):
         """
