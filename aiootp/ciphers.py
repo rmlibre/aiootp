@@ -1809,8 +1809,7 @@ def plaintext_stream(data: bytes, key_bundle: KeyAADBundle):
     blocksize. The details can be found in the `Padding` class.
     """
     plaintext = Padding.pad_plaintext(data, key_bundle)
-    for block in gentools.data.root(plaintext):
-        yield block
+    yield from gentools.data.root(plaintext)
 
 
 def abytes_encipher(
