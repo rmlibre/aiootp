@@ -22,7 +22,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: install dependencies
       run: |
-        sudo apt-get install --fix-missing --fix-broken python-cryptography
         python3 -m pip install --upgrade pip pytest coverage
         python3 -m pip install --upgrade -r aiootp.egg-info/requires.txt
     - name: test with pytest
