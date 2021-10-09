@@ -4065,7 +4065,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         keys & a timing-safe comparison.
         """
         if not hmac:
-            raise Issue.no_value_specified("hmac")
+            raise Issue.no_value_specified("untrusted_hmac")
         true_hmac = await self.amake_hmac(data)
         if await abytes_are_equal(untrusted_hmac, true_hmac):
             return True
@@ -5116,7 +5116,7 @@ class Database:
         keys & a timing-safe comparison.
         """
         if not hmac:
-            raise Issue.no_value_specified("hmac")
+            raise Issue.no_value_specified("untrusted_hmac")
         true_hmac = self.make_hmac(data)
         if bytes_are_equal(untrusted_hmac, true_hmac):
             return True

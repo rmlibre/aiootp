@@ -349,7 +349,7 @@ class AsyncKeys:
         default SHA3_256_HMAC.
         """
         if not untrusted_hmac:
-            raise Issue.no_value_specified("hmac")
+            raise Issue.no_value_specified("untrusted_hmac")
         true_hmac = await cls.amake_hmac(data, key=key, hasher=hasher)
         if await abytes_are_equal(untrusted_hmac, true_hmac):
             return True
@@ -410,7 +410,7 @@ class Keys:
         default SHA3_256_HMAC.
         """
         if not untrusted_hmac:
-            raise Issue.no_value_specified("hmac")
+            raise Issue.no_value_specified("untrusted_hmac")
         true_hmac = cls.make_hmac(data, key=key, hasher=hasher)
         if bytes_are_equal(untrusted_hmac, true_hmac):
             return True
