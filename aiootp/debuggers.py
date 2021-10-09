@@ -319,7 +319,7 @@ class DebugTools:
         """
         Displays the currently running wrapped sync function.
         """
-        current_func = f"Function:      {self.func.__name__}\n"
+        current_func = f"Function:      {self.func.__qualname__}\n"
         current_func += f"{repr(self.func)}"
         return current_func
 
@@ -347,7 +347,7 @@ class DebugTools:
         Displays the captured runtime of the wrapped sync funciton.
         """
         self.time_elapsed = self.time_after - self.time_before
-        elapsed = f"{self.func.__name__}\n"
+        elapsed = f"{self.func.__qualname__}\n"
         elapsed += "Time Elapsed:         "
         elapsed += f"{self.time_elapsed} seconds."
         return elapsed
