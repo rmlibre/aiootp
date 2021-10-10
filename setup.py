@@ -92,10 +92,7 @@ setup(
     python_requires=">=3.6",
     tests_require=["pytest>=6.2.2"],
     install_requires=[
-        "sympy>=1.7.1",
-        "aiofiles>=0.6.0",
-        "async_lru>=1.0.2",
-        "cryptography>=3.4.6",
+        "sympy>=1.7.1", "aiofiles>=0.6.0", "cryptography>=3.4.6"
     ],
     classifiers=[
         "Framework :: AsyncIO",

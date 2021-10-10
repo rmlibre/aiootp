@@ -49,7 +49,6 @@ from os import linesep
 from sys import getsizeof
 from functools import wraps
 from functools import lru_cache
-from async_lru import alru_cache
 from types import GeneratorType
 from types import AsyncGeneratorType
 from contextlib import contextmanager
@@ -65,6 +64,7 @@ from inspect import isawaitable as is_awaitable
 from inspect import iscoroutinefunction as is_async_function
 from inspect import isasyncgenfunction as is_async_gen_function
 from inspect import isgeneratorfunction as is_generator_function
+from .__async_lru import alru_cache
 from .__aiocontext import async_contextmanager
 from ._exceptions import *
 from ._typing import Typing
@@ -4429,6 +4429,7 @@ extras = dict(
     ahash_bytes=ahash_bytes,
     aignore=aignore,
     aint_to_base=aint_to_base,
+    alru_cache=alru_cache,
     amake_timestamp=amake_timestamp,
     anext=anext,
     arightmost_bit=arightmost_bit,
@@ -4458,6 +4459,7 @@ extras = dict(
     is_iterable=is_iterable,
     is_iterator=is_iterator,
     json=json,
+    lru_cache=lru_cache,
     make_timestamp=make_timestamp,
     rightmost_bit=rightmost_bit,
     sha3__256=sha3__256,

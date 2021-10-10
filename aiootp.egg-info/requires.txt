@@ -1,4 +1,0 @@
-sympy>=1.7.1
-aiofiles>=0.6.0
-async_lru>=1.0.2
-cryptography>=3.4.6

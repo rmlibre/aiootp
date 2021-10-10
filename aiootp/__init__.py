@@ -48,6 +48,7 @@ __all__ = [
 
 
 del __datasets
+del __async_lru
 del __aiocontext
 del __ui_coordination
 
