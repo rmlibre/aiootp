@@ -1276,6 +1276,41 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+Changes for version 0.20.5
+--------------------------
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Include the missing changelog entries for ``v0.20.4``.
+
+
+
+
+Changes for version 0.20.4
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Add ``python3.10`` support by copying the ``async_lru`` package's main module
+   from their more up-to-date github repository instead of from PyPI.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Small refactorings & code cleanups.
+-  Documentation updates.
+-  Type-hinting updates.
+-  Cleanups to the package's module API.
+-  Improve CI & extend to ``python3.10``.
+
+
+
+
 Changes for version 0.20.3
 --------------------------
 

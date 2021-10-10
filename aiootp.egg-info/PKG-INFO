@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: aiootp
-Version: 0.20.4
+Version: 0.20.5
 Summary: aiootp - an asynchronous pseudo one-time pad based crypto and anonymity library.
 Home-page: https://twitter.com/aiootp
 Author: Gonzo Investigative Journalism Agency, LLC
@@ -1289,6 +1289,41 @@ Description: .. image:: https://raw.githubusercontent.com/rmlibre/aiootp/main/lo
         
         _`Changelog` ...................................... `Table Of Contents`_
         ========================================================================
+        
+        
+        Changes for version 0.20.5
+        --------------------------
+        
+        
+        Minor Changes
+        ^^^^^^^^^^^^^
+        
+        -  Include the missing changelog entries for ``v0.20.4``.
+        
+        
+        
+        
+        Changes for version 0.20.4
+        --------------------------
+        
+        
+        Major Changes
+        ^^^^^^^^^^^^^
+        
+        -  Add ``python3.10`` support by copying the ``async_lru`` package's main module
+           from their more up-to-date github repository instead of from PyPI.
+        
+        
+        Minor Changes
+        ^^^^^^^^^^^^^
+        
+        -  Small refactorings & code cleanups.
+        -  Documentation updates.
+        -  Type-hinting updates.
+        -  Cleanups to the package's module API.
+        -  Improve CI & extend to ``python3.10``.
+        
+        
         
         
         Changes for version 0.20.3
