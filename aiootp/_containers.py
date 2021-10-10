@@ -252,7 +252,7 @@ class PlaintextMeasurements(Slots):
         "remainder",
         "padding_size",
         "no_padding_required",
-        "padding_sentinel_fits_in_block",
+        "padding_sentinel_fits",
     )
 
     def __init__(
@@ -261,13 +261,13 @@ class PlaintextMeasurements(Slots):
         remainder: int,
         padding_size: int,
         no_padding_required: bool,
-        padding_sentinel_fits_in_block: bool,
+        padding_sentinel_fits: bool,
     ):
         self.length = length
         self.remainder = remainder
         self.padding_size = padding_size
         self.no_padding_required = no_padding_required
-        self.padding_sentinel_fits_in_block = padding_sentinel_fits_in_block
+        self.padding_sentinel_fits = padding_sentinel_fits
 
 
 class PasscryptHash(Slots):

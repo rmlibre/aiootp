@@ -3804,9 +3804,9 @@ class Padding:
     ``SIV-key``: A 16-byte ephemeral & random key which aids in salt
         reuse / misuse resistance.
 
-    ``padding``: `Y` pseudo-random bytes derived from a cipher rounds'
-        particular `key`, `salt` & `aad` using sha3_256 as well as OS
-        randomness. Y has four categories of potential values:
+    ``Footer``: 32 pseudo-random bytes derived from a cipher rounds'
+        particular `key`, `salt` & `aad` as well as OS randomness. Y has
+        four categories of potential sizes:
         When Y == 0-bytes:
             Y can be 0-bytes if the inner-header + body is exactly a
             multiple of the 256-byte blocksize.
@@ -3831,13 +3831,10 @@ class Padding:
     _TWO_BLOCKS: int = 2 * BLOCKSIZE
     _EXTRA_PADDING_BYTES: int = BLOCKSIZE
     _PADDING_KEY_BYTES: int = PADDING_KEY_BYTES
-    _PADDING_KEY_NIBBLES: int = PADDING_KEY_NIBBLES
     _SIV_KEY_BYTES: int = SIV_KEY_BYTES
-    _SIV_KEY_NIBBLES: int = SIV_KEY_NIBBLES
     _TIMESTAMP_BYTES: int = TIMESTAMP_BYTES
-    _TIMESTAMP_NIBBLES: int = TIMESTAMP_NIBBLES
     _INNER_HEADER_BYTES: int = INNER_HEADER_BYTES
-    _INNER_HEADER_NIBBLES: int = INNER_HEADER_NIBBLES
+    _INNER_HEADER_SLICE: int = INNER_HEADER_SLICE
 
     amake_timestamp = staticmethod(amake_timestamp)
     atest_timestamp = staticmethod(atest_timestamp)
@@ -3905,15 +3902,12 @@ class Padding:
         await asleep()
         remainder = (length + cls._INNER_HEADER_BYTES) % cls._BLOCKSIZE
         padding_size = cls._BLOCKSIZE - remainder
-        no_padding_required = data and not remainder
-        padding_sentinel_fits_in_block = padding_size >= 32
-        await asleep()
         return PlaintextMeasurements(
             length=length,
             remainder=remainder,
             padding_size=padding_size,
-            no_padding_required=no_padding_required,
-            padding_sentinel_fits_in_block=padding_sentinel_fits_in_block,
+            no_padding_required=data and not remainder,
+            padding_sentinel_fits=padding_size >= 32,
         )
 
     @classmethod
@@ -3925,14 +3919,12 @@ class Padding:
         """
         remainder = (length + cls._INNER_HEADER_BYTES) % cls._BLOCKSIZE
         padding_size = cls._BLOCKSIZE - remainder
-        no_padding_required = data and not remainder
-        padding_sentinel_fits_in_block = padding_size >= 32
         return PlaintextMeasurements(
             length=length,
             remainder=remainder,
             padding_size=padding_size,
-            no_padding_required=no_padding_required,
-            padding_sentinel_fits_in_block=padding_sentinel_fits_in_block,
+            no_padding_required=data and not remainder,
+            padding_sentinel_fits=padding_size >= 32,
         )
 
     @classmethod
@@ -4010,7 +4002,7 @@ class Padding:
         padding = await cls._amake_end_padding(key_bundle)
         if report.no_padding_required:
             padding_slice = slice(0)
-        elif report.padding_sentinel_fits_in_block:
+        elif report.padding_sentinel_fits:
             padding_slice = slice(report.padding_size)
         else:
             padding_slice = slice(report.padding_size + cls._BLOCKSIZE)
@@ -4032,7 +4024,7 @@ class Padding:
         padding = cls._make_end_padding(key_bundle)
         if report.no_padding_required:
             padding_slice = slice(0)
-        elif report.padding_sentinel_fits_in_block:
+        elif report.padding_sentinel_fits:
             padding_slice = slice(report.padding_size)
         else:
             padding_slice = slice(report.padding_size + cls._BLOCKSIZE)
@@ -4046,7 +4038,7 @@ class Padding:
         - The prepended 8-byte timestamp.
         - The prepended 16 byte SIV-key.
         """
-        await atest_timestamp(data[:cls._TIMESTAMP_BYTES], ttl)
+        await atest_timestamp(data[TIMESTAMP_SLICE], ttl)
         return cls._INNER_HEADER_BYTES
 
     @classmethod
@@ -4057,7 +4049,7 @@ class Padding:
         - The prepended 8-byte timestamp.
         - The prepended 16 byte SIV-key.
         """
-        test_timestamp(data[:cls._TIMESTAMP_BYTES], ttl)
+        test_timestamp(data[TIMESTAMP_SLICE], ttl)
         return cls._INNER_HEADER_BYTES
 
     @classmethod
@@ -4188,13 +4180,7 @@ class BytesIO:
     _SIV: str = SIV
     _EQUAL_SIGN: bytes = b"%3D"
     _BLOCKSIZE: int = BLOCKSIZE
-    _SIV_BYTES: int = SIV_BYTES
-    _HMAC_BYTES: int = HMAC_BYTES
-    _SALT_BYTES: int = SALT_BYTES
     _HEADER_BYTES: int = HEADER_BYTES
-    _SIV_KEY_BYTES: int = SIV_KEY_BYTES
-    _TIMESTAMP_BYTES: int = TIMESTAMP_BYTES
-    _INNER_HEADER_BYTES: int = INNER_HEADER_BYTES
 
     @classmethod
     def _validate_ciphertext(cls, ciphertext: bytes):
@@ -4312,7 +4298,7 @@ class BytesIO:
             cls._HMAC: data.send(None),
             cls._SALT: data.send(None),
             cls._SIV: data.send(None),
-            cls._CIPHERTEXT: [block for block in data],
+            cls._CIPHERTEXT: [*data],
         }
 
     @classmethod
