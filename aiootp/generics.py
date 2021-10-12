@@ -4057,8 +4057,8 @@ class Padding:
         """
         Returns an end index which is used to slice off the following
         values from some plaintext ``data``:
-        - The appended 32-byte `padding_key`.
-        - The random padding bytes appended after the `padding_key`.
+        - The appended 32-byte padding key.
+        - The random padding bytes appended after the padding key.
         """
         key_bundle._mode.validate()
         key = key_bundle._padding_key
@@ -4073,8 +4073,8 @@ class Padding:
         """
         Returns an end index which is used to slice off the following
         values from some plaintext ``data``:
-        - The appended 32-byte `padding_key`.
-        - The random padding bytes appended after the `padding_key`.
+        - The appended 32-byte padding key.
+        - The random padding bytes appended after the padding key.
         """
         key_bundle._mode.validate()
         key = key_bundle._padding_key
@@ -4100,7 +4100,7 @@ class Padding:
         & resulting ciphertext globally unique & salt reuse / misuse
         resistant.
 
-        Also, appends 32-byte `padding_key`. The padding key is derived
+        Also, appends 32-byte padding key. The padding key is derived
         from a hash of the `key`, `salt` & `aad` values. An amount of
         additional random padding will be appended to make the plaintext
         a multiple of 256 bytes.
@@ -4125,7 +4125,7 @@ class Padding:
         & resulting ciphertext globally unique & salt reuse / misuse
         resistant.
 
-        Also, appends 32-byte `padding_key`. The padding key is derived
+        Also, appends 32-byte padding key. The padding key is derived
         from a hash of the `key`, `salt` & `aad` values. An amount of
         additional random padding will be appended to make the plaintext
         a multiple of 256 bytes.
@@ -4142,7 +4142,7 @@ class Padding:
         Returns ``data`` after these values are removed:
         - The prepended 8-byte timestamp.
         - The prepended 16-byte SIV-key.
-        - The appended 32-byte `padding_key`.
+        - The appended 32-byte padding key.
         - The appended 0-255-byte random padding.
         """
         start_index = await cls.adepadding_start_index(data, ttl=ttl)
@@ -4155,7 +4155,7 @@ class Padding:
         Returns ``data`` after these values are removed:
         - The prepended 8-byte timestamp.
         - The prepended 16-byte SIV-key.
-        - The appended 32-byte `padding_key`.
+        - The appended 32-byte padding key.
         - The appended 0-255-byte random padding.
         """
         start_index = cls.depadding_start_index(data, ttl=ttl)

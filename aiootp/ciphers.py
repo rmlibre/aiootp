@@ -1847,7 +1847,7 @@ def abytes_encipher(
     elif key_bundle._mode != ASYNC:
         raise KeyAADIssue.mode_isnt_correct(ASYNC)
     return abytes_xor.root(
-        data=data, key=key_bundle._keystream, validator=validator
+        data, key=key_bundle._keystream, validator=validator
     )
 
 
@@ -1886,7 +1886,7 @@ def bytes_encipher(
     elif key_bundle._mode != SYNC:
         raise KeyAADIssue.mode_isnt_correct(SYNC)
     return bytes_xor.root(
-        data=data, key=key_bundle._keystream, validator=validator
+        data, key=key_bundle._keystream, validator=validator
     )
 
 
@@ -1919,7 +1919,7 @@ def abytes_decipher(
     elif key_bundle._mode != ASYNC:
         raise KeyAADIssue.mode_isnt_correct(ASYNC)
     return abytes_xor.root(
-        data=data, key=key_bundle._keystream, validator=validator
+        data, key=key_bundle._keystream, validator=validator
     )
 
 
@@ -1952,7 +1952,7 @@ def bytes_decipher(
     elif key_bundle._mode != SYNC:
         raise KeyAADIssue.mode_isnt_correct(SYNC)
     return bytes_xor.root(
-        data=data, key=key_bundle._keystream, validator=validator
+        data, key=key_bundle._keystream, validator=validator
     )
 
 
@@ -1970,8 +1970,7 @@ async def ajson_encrypt(
     Returns the `Chunky2048` ciphertext of any json serializable ``data``.
     The returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV,
     & a 32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it. The key stream is derived
-    from permutations of these values:
+    ciphertext & the values used to create it.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
@@ -2004,8 +2003,7 @@ def json_encrypt(
     Returns the `Chunky2048` ciphertext of any json serializable ``data``.
     The returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV,
     & a 32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it. The key stream is derived
-    from permutations of these values:
+    ciphertext & the values used to create it.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
@@ -2034,8 +2032,7 @@ async def ajson_decrypt(
     Returns the loaded plaintext json object from the bytes ciphertext
     ``data``. The ``data`` bytes contain a 24-byte ephemeral salt, a
     24-byte SIV & a 32-byte HMAC used to verify the integrity &
-    authenticity of the ciphertext & the values used to create it. The
-    keystream is derived from permutations of these values:
+    authenticity of the ciphertext & the values used to create it.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
@@ -2061,8 +2058,7 @@ def json_decrypt(
     Returns the loaded plaintext json object from the bytes ciphertext
     ``data``. The ``data`` bytes contain a 24-byte ephemeral salt, a
     24-byte SIV & a 32-byte HMAC used to verify the integrity &
-    authenticity of the ciphertext & the values used to create it. The
-    keystream is derived from permutations of these values:
+    authenticity of the ciphertext & the values used to create it.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
@@ -2092,8 +2088,7 @@ async def abytes_encrypt(
     Returns the `Chunky2048` ciphertext of any bytes type ``data``. The
     returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV, &
     a 32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it. The key stream is derived
-    from permutations of these values:
+    ciphertext & the values used to create it.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
@@ -2136,8 +2131,7 @@ def bytes_encrypt(
     Returns the `Chunky2048` ciphertext of any bytes type ``data``. The
     returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV, &
     a 32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it. The key stream is derived
-    from permutations of these values:
+    ciphertext & the values used to create it.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
@@ -2175,8 +2169,7 @@ async def abytes_decrypt(
     Returns the plaintext bytes from the bytes ciphertext ``data``. The
     ``data`` bytes contain a 24-byte ephemeral salt, a 24-byte SIV & a
     32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it. The keystream is derived
-    from permutations of these values:
+    ciphertext & the values used to create it.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
@@ -2212,8 +2205,7 @@ def bytes_decrypt(
     Returns the plaintext bytes from the bytes ciphertext ``data``. The
     ``data`` bytes contain a 24-byte ephemeral salt, a 24-byte SIV & a
     32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it. The keystream is derived
-    from permutations of these values:
+    ciphertext & the values used to create it.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
@@ -2429,7 +2421,7 @@ class Chunky2048:
         """
         if data.__class__ is not bytes:
             raise Issue.value_must_be_type("plaintext ``data``", bytes)
-        ciphertext = await self.abytes_encrypt(data=data, aad=aad)
+        ciphertext = await self.abytes_encrypt(data, aad=aad)
         return await self._IO.abytes_to_urlsafe(ciphertext)
 
     def make_token(self, data: bytes, *, aad: bytes = b"aad"):
@@ -2443,7 +2435,7 @@ class Chunky2048:
         """
         if data.__class__ is not bytes:
             raise Issue.value_must_be_type("plaintext ``data``", bytes)
-        ciphertext = self.bytes_encrypt(data=data, aad=aad)
+        ciphertext = self.bytes_encrypt(data, aad=aad)
         return self._IO.bytes_to_urlsafe(ciphertext)
 
     async def aread_token(
