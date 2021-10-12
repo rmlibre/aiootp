@@ -3003,7 +3003,7 @@ class Passcrypt:
         )
 
     @classmethod
-    async def _acompose_passphrase_hash(
+    async def _acompose_passcrypt_hash(
         cls,
         passphrase_hash: bytes,
         salt: bytes,
@@ -3017,17 +3017,17 @@ class Passcrypt:
         of the passphrase.
         """
         await asleep()
-        passphrase_hash = (
+        passcrypt_hash = (
             kb.to_bytes(cls._KB_BYTES, "big"),
             cpu.to_bytes(cls._CPU_BYTES, "big"),
             hardness.to_bytes(cls._HARDNESS_BYTES, "big"),
             salt[: cls._SALT_BYTES],
             passphrase_hash[: cls._PASSPHRASE_HASH_BYTES],
         )
-        return b"".join(passphrase_hash)
+        return b"".join(passcrypt_hash)
 
     @classmethod
-    def _compose_passphrase_hash(
+    def _compose_passcrypt_hash(
         cls,
         passphrase_hash: bytes,
         salt: bytes,
@@ -3040,37 +3040,37 @@ class Passcrypt:
         Attaches the difficulty settings & salt to the passcrypt hash
         of the passphrase.
         """
-        passphrase_hash = (
+        passcrypt_hash = (
             kb.to_bytes(cls._KB_BYTES, "big"),
             cpu.to_bytes(cls._CPU_BYTES, "big"),
             hardness.to_bytes(cls._HARDNESS_BYTES, "big"),
             salt[: cls._SALT_BYTES],
             passphrase_hash[: cls._PASSPHRASE_HASH_BYTES],
         )
-        return b"".join(passphrase_hash)
+        return b"".join(passcrypt_hash)
 
     @classmethod
-    async def _adecompose_passphrase_hash(cls, raw_passphrase_hash: bytes):
+    async def _adecompose_passcrypt_hash(cls, raw_passcrypt_hash: bytes):
         """
         Separates the passcrypt hash, salt & difficulty settings &
         returns them in a namespace object available by dotted lookup.
         """
         await asleep()
         SCHEMA_BYTES = cls._PASSCRYPT_SCHEMA_BYTES
-        if len(raw_passphrase_hash) != SCHEMA_BYTES:
+        if len(raw_passcrypt_hash) != SCHEMA_BYTES:
             raise Issue.invalid_length("passcrypt hash", SCHEMA_BYTES)
-        return PasscryptHash(raw_passphrase_hash)
+        return PasscryptHash(raw_passcrypt_hash)
 
     @classmethod
-    def _decompose_passphrase_hash(cls, raw_passphrase_hash: bytes):
+    def _decompose_passcrypt_hash(cls, raw_passcrypt_hash: bytes):
         """
         Separates the passcrypt hash, salt & difficulty settings &
         returns them in a namespace object available by dotted lookup.
         """
         SCHEMA_BYTES = cls._PASSCRYPT_SCHEMA_BYTES
-        if len(raw_passphrase_hash) != SCHEMA_BYTES:
+        if len(raw_passcrypt_hash) != SCHEMA_BYTES:
             raise Issue.invalid_length("passcrypt hash", SCHEMA_BYTES)
-        return PasscryptHash(raw_passphrase_hash)
+        return PasscryptHash(raw_passcrypt_hash)
 
     @classmethod
     async def ahash_passphrase_raw(
@@ -3094,7 +3094,7 @@ class Passcrypt:
         passphrase_hash = await cls.anew(
             passphrase, salt, kb=kb, cpu=cpu, hardness=hardness
         )
-        return await cls._acompose_passphrase_hash(
+        return await cls._acompose_passcrypt_hash(
             passphrase_hash, salt, kb=kb, cpu=cpu, hardness=hardness
         )
 
@@ -3120,7 +3120,7 @@ class Passcrypt:
         passphrase_hash = cls.new(
             passphrase, salt, kb=kb, cpu=cpu, hardness=hardness
         )
-        return cls._compose_passphrase_hash(
+        return cls._compose_passcrypt_hash(
             passphrase_hash, salt, kb=kb, cpu=cpu, hardness=hardness
         )
 
@@ -3142,10 +3142,10 @@ class Passcrypt:
         4-bytes - 2-bytes - 4-bytes - 32-bytes - 64-bytes
           kb        cpu     hardness    salt       hash
         """
-        raw_passphrase_hash = await cls.ahash_passphrase_raw(
+        raw_passcrypt_hash = await cls.ahash_passphrase_raw(
             passphrase, kb=kb, cpu=cpu, hardness=hardness
         )
-        return await BytesIO.abytes_to_urlsafe(raw_passphrase_hash)
+        return await BytesIO.abytes_to_urlsafe(raw_passcrypt_hash)
 
     @classmethod
     def hash_passphrase(
@@ -3165,28 +3165,28 @@ class Passcrypt:
         4-bytes - 2-bytes - 4-bytes - 32-bytes - 64-bytes
           kb        cpu     hardness    salt       hash
         """
-        raw_passphrase_hash = cls.hash_passphrase_raw(
+        raw_passcrypt_hash = cls.hash_passphrase_raw(
             passphrase, kb=kb, cpu=cpu, hardness=hardness
         )
-        return BytesIO.bytes_to_urlsafe(raw_passphrase_hash)
+        return BytesIO.bytes_to_urlsafe(raw_passcrypt_hash)
 
     @classmethod
     async def averify_raw(
-        cls, composed_passphrase_hash: bytes, passphrase: bytes
+        cls, composed_passcrypt_hash: bytes, passphrase: bytes
     ):
         """
         Verifies that a supplied ``passphrase`` was indeed used to build
-        the ``composed_passphrase_hash``.
+        the ``composed_passcrypt_hash``.
 
         Runs the passcrypt algorithm on the ``passphrase`` with the
-        parameters specified in the ``composed_passphrase_hash`` value's
+        parameters specified in the ``composed_passcrypt_hash`` value's
         attached metadata. If the result doesn't match the hash in
-        ``composed_passphrase_hash`` then `ValueError` is raised. The
-        ``composed_passphrase_hash`` passed into this method must be
+        ``composed_passcrypt_hash`` then `ValueError` is raised. The
+        ``composed_passcrypt_hash`` passed into this method must be
         raw bytes.
         """
-        parts = await cls._adecompose_passphrase_hash(
-            composed_passphrase_hash
+        parts = await cls._adecompose_passcrypt_hash(
+            composed_passcrypt_hash
         )
         untrusted_hash = await cls.anew(
             passphrase,
@@ -3203,19 +3203,19 @@ class Passcrypt:
         return True
 
     @classmethod
-    def verify_raw(cls, composed_passphrase_hash: bytes, passphrase: bytes):
+    def verify_raw(cls, composed_passcrypt_hash: bytes, passphrase: bytes):
         """
         Verifies that a supplied ``passphrase`` was indeed used to build
-        the ``composed_passphrase_hash``.
+        the ``composed_passcrypt_hash``.
 
         Runs the passcrypt algorithm on the ``passphrase`` with the
-        parameters specified in the ``composed_passphrase_hash`` value's
+        parameters specified in the ``composed_passcrypt_hash`` value's
         attached metadata. If the result doesn't match the hash in
-        ``composed_passphrase_hash`` then `ValueError` is raised. The
-        ``composed_passphrase_hash`` passed into this method must be
+        ``composed_passcrypt_hash`` then `ValueError` is raised. The
+        ``composed_passcrypt_hash`` passed into this method must be
         raw bytes.
         """
-        parts = cls._decompose_passphrase_hash(composed_passphrase_hash)
+        parts = cls._decompose_passcrypt_hash(composed_passcrypt_hash)
         untrusted_hash = cls.new(
             passphrase,
             parts.salt,
@@ -3233,48 +3233,48 @@ class Passcrypt:
     @classmethod
     async def averify(
         cls,
-        composed_passphrase_hash: Typing.Base64URLSafe,
+        composed_passcrypt_hash: Typing.Base64URLSafe,
         passphrase: bytes,
     ):
         """
         Verifies that a supplied ``passphrase`` was indeed used to build
-        the ``composed_passphrase_hash``.
+        the ``composed_passcrypt_hash``.
 
         Runs the passcrypt algorithm on the ``passphrase`` with the
-        parameters specified in the ``composed_passphrase_hash`` value's
+        parameters specified in the ``composed_passcrypt_hash`` value's
         attached metadata. If the result doesn't match the hash in
-        ``composed_passphrase_hash`` then `ValueError` is raised. The
-        ``composed_passphrase_hash`` passed into this method must be
+        ``composed_passcrypt_hash`` then `ValueError` is raised. The
+        ``composed_passcrypt_hash`` passed into this method must be
         urlsafe base64 encoded.
         """
-        if composed_passphrase_hash.__class__ is str:
-            composed_passphrase_hash = composed_passphrase_hash.encode()
+        if composed_passcrypt_hash.__class__ is str:
+            composed_passcrypt_hash = composed_passcrypt_hash.encode()
         return await cls.averify_raw(
-            await BytesIO.aurlsafe_to_bytes(composed_passphrase_hash),
+            await BytesIO.aurlsafe_to_bytes(composed_passcrypt_hash),
             passphrase,
         )
 
     @classmethod
     def verify(
         cls,
-        composed_passphrase_hash: Typing.Base64URLSafe,
+        composed_passcrypt_hash: Typing.Base64URLSafe,
         passphrase: bytes,
     ):
         """
         Verifies that a supplied ``passphrase`` was indeed used to build
-        the ``composed_passphrase_hash``.
+        the ``composed_passcrypt_hash``.
 
         Runs the passcrypt algorithm on the ``passphrase`` with the
-        parameters specified in the ``composed_passphrase_hash`` value's
+        parameters specified in the ``composed_passcrypt_hash`` value's
         attached metadata. If the result doesn't match the hash in
-        ``composed_passphrase_hash`` then `ValueError` is raised. The
-        ``composed_passphrase_hash`` passed into this method must be
+        ``composed_passcrypt_hash`` then `ValueError` is raised. The
+        ``composed_passcrypt_hash`` passed into this method must be
         urlsafe base64 encoded.
         """
-        if composed_passphrase_hash.__class__ is str:
-            composed_passphrase_hash = composed_passphrase_hash.encode()
+        if composed_passcrypt_hash.__class__ is str:
+            composed_passcrypt_hash = composed_passcrypt_hash.encode()
         return cls.verify_raw(
-            BytesIO.urlsafe_to_bytes(composed_passphrase_hash), passphrase
+            BytesIO.urlsafe_to_bytes(composed_passcrypt_hash), passphrase
         )
 
     _instance_methods = {
