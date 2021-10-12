@@ -38,7 +38,8 @@ from functools import _CacheInfo, _make_key, partial, wraps
 
 __version__ = "1.0.2"
 
-__all__ = ("alru_cache",)
+
+__all__ = ["alru_cache"]
 
 
 def unpartial(fn):
