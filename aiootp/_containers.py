@@ -197,11 +197,6 @@ class Ciphertext(Slots):
 
     __slots__ = (HMAC, SALT, SIV, CIPHERTEXT)
 
-    HMAC_SLICE = HMAC_SLICE
-    SALT_SLICE = SALT_SLICE
-    SIV_SLICE = SIV_SLICE
-    CIPHERTEXT_SLICE = CIPHERTEXT_SLICE
-
     def __init__(self, data: bytes):
         size = len(data) - HEADER_BYTES
         if size <= 0 or size % BLOCKSIZE:
