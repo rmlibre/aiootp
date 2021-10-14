@@ -752,7 +752,7 @@ async def arandom_number_generator(
 
     6. Persist & use a sha3_512 hashing object for hidden &/or internal
     procedures across the module for the automatic & non-deterministic
-    collection entropy throughout normal use of the module.
+    collection of entropy throughout normal use of the module.
 
     7. Further frustrate an attacker by necessitating that they perform
     an order prediction attack on the results of the CSPRNG's component
@@ -794,21 +794,15 @@ async def arandom_number_generator(
 
     if refresh or not _pool:
 
-        async def start_generator(rounds, tasks=deque()):
-            for _ in range(rounds):
-                await asleep()
-                tasks.appendleft(modular_multiplication())
-                for _ in range(10):
-                    tasks.appendleft(add_to_pool())
-            await gather(
-                *sorted(tasks, key=lambda val: token_bytes(16)),
-                return_exceptions=True,
+        async def create_unique_multiple(seed: int):
+            return await _asalt_multiply(
+                seed, await _aunique_integer(), await atoken_bits(256)
             )
 
-        async def add_to_pool():
-            seed = await atoken_bytes(32)
-            await arandom_sleep(0.003)
-            _pool.appendleft(await _entropy.ahash(domain, entropy, seed))
+        async def big_modulation(*args):
+            return await _asalt_multiply(
+                *args, await atoken_bits(256)
+            ) % await achoice([primes[512][-1], primes[513][0]])
 
         async def modular_multiplication():
             seed = await _asalt() % await achoice(primes[512])
@@ -820,15 +814,21 @@ async def arandom_number_generator(
                 domain, result.to_bytes(64, "big"), seed.to_bytes(64, "big")
             )
 
-        async def create_unique_multiple(seed: int):
-            return await _asalt_multiply(
-                seed, await _aunique_integer(), await atoken_bits(256)
-            )
+        async def add_to_pool():
+            seed = await atoken_bytes(32)
+            await arandom_sleep(0.003)
+            _pool.appendleft(await _entropy.ahash(domain, entropy, seed))
 
-        async def big_modulation(*args):
-            return await _asalt_multiply(
-                *args, await atoken_bits(256)
-            ) % await achoice([primes[512][-1], primes[513][0]])
+        async def start_generator(rounds, tasks=deque()):
+            for _ in range(rounds):
+                await asleep()
+                tasks.appendleft(modular_multiplication())
+                for _ in range(10):
+                    tasks.appendleft(add_to_pool())
+            await gather(
+                *sorted(tasks, key=lambda val: token_bytes(16)),
+                return_exceptions=True,
+            )
 
         await _agenerate_unique_range_bounds()
         await start_generator(rounds)
@@ -882,7 +882,7 @@ def random_number_generator(
 
     6. Persist & use a sha3_512 hashing object for hidden &/or internal
     procedures across the module for the automatic & non-deterministic
-    collection entropy throughout normal use of the module.
+    collection of entropy throughout normal use of the module.
 
     7. Further frustrate an attacker by necessitating that they perform
     an order prediction attack on the results of the CSPRNG's component
@@ -924,21 +924,15 @@ def random_number_generator(
 
     if refresh or not _pool:
 
-        async def start_generator(rounds: int, tasks=deque()):
-            for _ in range(rounds):
-                await asleep()
-                tasks.appendleft(modular_multiplication())
-                for _ in range(10):
-                    tasks.appendleft(add_to_pool())
-            await gather(
-                *sorted(tasks, key=lambda val: token_bytes(16)),
-                return_exceptions=True,
+        async def create_unique_multiple(seed: int):
+            return await _asalt_multiply(
+                seed, await _aunique_integer(), await atoken_bits(256)
             )
 
-        async def add_to_pool():
-            seed = await atoken_bytes(32)
-            await arandom_sleep(0.003)
-            _pool.appendleft(await _entropy.ahash(domain, entropy, seed))
+        async def big_modulation(*args):
+            return await _asalt_multiply(
+                *args, await atoken_bits(256)
+            ) % await achoice([primes[512][-1], primes[513][0]])
 
         async def modular_multiplication():
             seed = await _asalt() % await achoice(primes[512])
@@ -950,15 +944,21 @@ def random_number_generator(
                 domain, result.to_bytes(64, "big"), seed.to_bytes(64, "big")
             )
 
-        async def create_unique_multiple(seed: int):
-            return await _asalt_multiply(
-                seed, await _aunique_integer(), await atoken_bits(256)
-            )
+        async def add_to_pool():
+            seed = await atoken_bytes(32)
+            await arandom_sleep(0.003)
+            _pool.appendleft(await _entropy.ahash(domain, entropy, seed))
 
-        async def big_modulation(*args):
-            return await _asalt_multiply(
-                *args, await atoken_bits(256)
-            ) % await achoice([primes[512][-1], primes[513][0]])
+        async def start_generator(rounds, tasks=deque()):
+            for _ in range(rounds):
+                await asleep()
+                tasks.appendleft(modular_multiplication())
+                for _ in range(10):
+                    tasks.appendleft(add_to_pool())
+            await gather(
+                *sorted(tasks, key=lambda val: token_bytes(16)),
+                return_exceptions=True,
+            )
 
         _generate_unique_range_bounds()
         run(start_generator(rounds))  # <- RuntimeError in event loops
