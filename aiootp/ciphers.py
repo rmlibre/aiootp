@@ -3730,7 +3730,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         self._corrupted_files = {}
         self._cache = Namespace()
         self._manifest = Namespace()
-        self.directory = Path(directory).absolute()
+        self.directory = await self._aformat_directory(directory)
         self._is_metatag = True if metatag else False
         self._root_key, self._root_hash, self._root_filename = (
             await self._ainitialize_keys(key, depth)
@@ -3738,6 +3738,17 @@ class AsyncDatabase(metaclass=AsyncInit):
         await self._aload_manifest()
         await self._ainitialize_metatags()
         await self.aload_database(silent=silent, preload=preload)
+
+    @classmethod
+    async def _aformat_directory(cls, path: Typing.OptionalPathStr):
+        """
+        Returns a `pathlib.Path` object to the user-specified ``path``
+        if given, else returns a copy of the default database directory
+        `Path` object.
+        """
+        if path == None:
+            return Path(cls.directory).absolute()
+        return Path(path).absolute()
 
     @classmethod
     async def _aderive_root_key(cls, key: bytes, depth: int):
@@ -4818,7 +4829,7 @@ class Database:
         self._corrupted_files = {}
         self._cache = Namespace()
         self._manifest = Namespace()
-        self.directory = Path(directory).absolute()
+        self.directory = self._format_directory(directory)
         self._is_metatag = True if metatag else False
         self._root_key, self._root_hash, self._root_filename = self._initialize_keys(
             key, depth
@@ -4826,6 +4837,17 @@ class Database:
         self._load_manifest()
         self._initialize_metatags()
         self.load_database(silent=silent, preload=preload)
+
+    @classmethod
+    def _format_directory(cls, path: Typing.OptionalPathStr):
+        """
+        Returns a `pathlib.Path` object to the user-specified ``path``
+        if given, else returns a copy of the default database directory
+        `Path` object.
+        """
+        if path == None:
+            return Path(cls.directory).absolute()
+        return Path(path).absolute()
 
     @classmethod
     def _derive_root_key(cls, key: bytes, depth: int):

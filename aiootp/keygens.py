@@ -1389,10 +1389,7 @@ class PackageSigner:
             salt=salt,
             **passcrypt_settings,
         )
-        self._db = Database.generate_profile(
-            tokens,
-            directory=directory if directory else Database.directory,
-        )
+        self._db = Database.generate_profile(tokens, directory=directory)
         try:
             self.db.query_tag(self._scope.package, cache=True)
         except LookupError:
