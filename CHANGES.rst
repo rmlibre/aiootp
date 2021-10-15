@@ -2,6 +2,38 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+Changes for version 0.20.6
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  The ``(Async)Database`` classes now support storing raw ``bytes`` type
+   tag entries! This is a huge boon to time/space efficiency when needing
+   to store large binary files, since they don't need to be converted to 
+   & from base64. This feature was made possible with only very minor 
+   changes to the classes, & they're fully backwards-compatible! Older 
+   versions will not be able handle raw ``bytes`` entries, but old JSON 
+   serializable entries work the same way they did.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Docfixes.
+-  Small refactorings.
+-  Add new tests & make existing tests complete faster.
+-  Support empty strings to be passed to the ``(Async)Database`` constructors'
+   ``directory`` kwarg, signifying the current directory. Now ``None`` is
+   the only falsey value which triggers the constructors to use the default
+   database directory.
+-  Fixed a bug in the ``AsyncDatabase`` class' ``aset_tag`` method, which 
+   would throw an attribute error when passed the ``cache=False`` flag.
+
+
+
+
 Changes for version 0.20.5
 --------------------------
 
