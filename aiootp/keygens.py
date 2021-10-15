@@ -1315,7 +1315,7 @@ class PackageSigner:
     def _checksums(self):
         """
         Returns the instance's package filenames & their hexdigests in
-        a json ready dictionary.
+        a JSON ready dictionary.
         """
         return {
             filename: hasher.hexdigest()
