@@ -103,6 +103,7 @@ setup(
         "Operating System :: POSIX",
         "Operating System :: POSIX :: Linux",
         "Operating System :: OS Independent",
+        "Operating System :: Microsoft :: Windows",
         "Topic :: Internet",
         "Topic :: Security",
         "Topic :: Database",
