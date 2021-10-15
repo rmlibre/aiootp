@@ -1967,7 +1967,7 @@ async def ajson_encrypt(
     A high-level public interface to the package's MRAE / AEAD
     `Chunky2048` cipher.
 
-    Returns the `Chunky2048` ciphertext of any json serializable ``data``.
+    Returns the `Chunky2048` ciphertext of any JSON serializable ``data``.
     The returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV,
     & a 32-byte HMAC used to verify the integrity & authenticity of the
     ciphertext & the values used to create it.
@@ -2000,7 +2000,7 @@ def json_encrypt(
     A high-level public interface to the package's MRAE / AEAD
     `Chunky2048` cipher.
 
-    Returns the `Chunky2048` ciphertext of any json serializable ``data``.
+    Returns the `Chunky2048` ciphertext of any JSON serializable ``data``.
     The returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV,
     & a 32-byte HMAC used to verify the integrity & authenticity of the
     ciphertext & the values used to create it.
@@ -2029,7 +2029,7 @@ async def ajson_decrypt(
     A high-level public interface to the package's MRAE / AEAD
     `Chunky2048` cipher.
 
-    Returns the loaded plaintext json object from the bytes ciphertext
+    Returns the loaded plaintext JSON object from the bytes ciphertext
     ``data``. The ``data`` bytes contain a 24-byte ephemeral salt, a
     24-byte SIV & a 32-byte HMAC used to verify the integrity &
     authenticity of the ciphertext & the values used to create it.
@@ -2055,7 +2055,7 @@ def json_decrypt(
     A high-level public interface to the package's MRAE / AEAD
     `Chunky2048` cipher.
 
-    Returns the loaded plaintext json object from the bytes ciphertext
+    Returns the loaded plaintext JSON object from the bytes ciphertext
     ``data``. The ``data`` bytes contain a 24-byte ephemeral salt, a
     24-byte SIV & a 32-byte HMAC used to verify the integrity &
     authenticity of the ciphertext & the values used to create it.
@@ -2245,10 +2245,10 @@ class Chunky2048:
     decrypted = cipher.bytes_decrypt(encrypted)
     assert decrypted == b"binary data"
 
-    encrypted = cipher.json_encrypt({"any": "json serializable object"})
+    encrypted = cipher.json_encrypt({"any": "JSON serializable object"})
     assert isinstance(encrypted, bytes)
     decrypted = cipher.json_decrypt(encrypted)
-    assert decrypted == {"any": "json serializable object"}
+    assert decrypted == {"any": "JSON serializable object"}
 
     # Encrypted & authenticated urlsafe tokens can be created too ->
     token = cipher.make_token(b"binary data")
@@ -3466,10 +3466,9 @@ class DomainKDF:
 class AsyncDatabase(metaclass=AsyncInit):
     """
     This class creates databases which enable the disk persistence of
-    any json serializable, native python data-types, with fully
+    any bytes or JSON serializable native python data-types, with fully
     transparent, asynchronous encryption / decryption using the
-    library's pseudo one-time pad cipher implementation called
-    `Chunky2048`.
+    library's `Chunky2048` cipher.
 
     Usage Example:
 
@@ -3479,9 +3478,12 @@ class AsyncDatabase(metaclass=AsyncInit):
     # Elements in a database are organized by user-defined tags ->
     db["income"] = 32000
 
-    # Databases can store any json serializable data ->
+    # Databases can store any JSON serializable data ->
     db["dict"] = {0: 1, 2: 3, 4: 5}
     db["lists"] = ["juice", ["nested juice"]]
+
+    # As well as raw bytes ->
+    db["bytes"] = b"value..."
 
     # Retrieve items by their tags ->
     db["dict"]
@@ -3503,7 +3505,7 @@ class AsyncDatabase(metaclass=AsyncInit):
     await db.adelete_database()
     """
 
-    IO: BytesIO = BytesIO
+    IO = BytesIO
 
     directory: Typing.Path = DatabasePath()
 
@@ -3523,9 +3525,7 @@ class AsyncDatabase(metaclass=AsyncInit):
     @classmethod
     async def abase64_encode(cls, byte_sequence: bytes):
         """
-        Encodes a raw ``bytes_sequence`` into a urlsafe base64 string
-        that can be stored in a database, since they only accept json
-        serializable data.
+        Encodes a raw ``bytes_sequence`` into a urlsafe base64 string.
         """
         await asleep()
         return base64.urlsafe_b64encode(byte_sequence).decode()
@@ -4195,8 +4195,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         setattr(self._cache, filename, data)
         setattr(self._manifest, filename, tag)
         if not cache:
-            await self.asave_tag(tag)
-            delattr(self._cache, filename)
+            await self.asave_tag(tag, drop_cache=True)
 
     async def _aquery_ciphertext(
         self, filename: str, *, silent: bool = False
@@ -4226,7 +4225,11 @@ class AsyncDatabase(metaclass=AsyncInit):
         ciphertext = await self._aquery_ciphertext(filename, silent=silent)
         if not ciphertext:
             return
-        result = await self.ajson_decrypt(ciphertext, filename=filename)
+        result = await self.abytes_decrypt(ciphertext, filename=filename)
+        try:
+            result = json.loads(result)
+        except Errors.json_decode_errors():
+            result = result[len(BYTES_FLAG):]  # Remove bytes value flag
         if cache:
             setattr(self._cache, filename, result)
         return result
@@ -4432,9 +4435,14 @@ class AsyncDatabase(metaclass=AsyncInit):
         Writes the cached value for a user-specified ``filename`` to the
         user filesystem.
         """
-        ciphertext = await self.ajson_encrypt(
-            getattr(self._cache, filename), filename=filename
-        )
+        value = getattr(self._cache, filename)
+        try:
+            value = json.dumps(value).encode()
+        except TypeError:
+            if value.__class__ is not bytes:
+                raise DatabaseIssue.invalid_entry_type()
+            value = BYTES_FLAG + value  # Assure not reloaded as JSON
+        ciphertext = await self.abytes_encrypt(value, filename=filename)
         await self._asave_ciphertext(filename, ciphertext)
 
     async def _asave_tags(self):
@@ -4454,7 +4462,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         await gather(*saves, return_exceptions=True)
 
     async def asave_tag(
-        self, tag: str, *, admin: bool = False, drop_cache: bool = True
+        self, tag: str, *, admin: bool = False, drop_cache: bool = False
     ):
         """
         Writes the cached value for a user-specified ``tag`` to the user
@@ -4463,7 +4471,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         filename = await self.afilename(tag)
         try:
             await self._asave_file(filename, admin=admin)
-            if drop_cache:
+            if drop_cache and hasattr(self._cache, filename):
                 delattr(self._cache, filename)
         except AttributeError:
             raise DatabaseIssue.tag_file_doesnt_exist(tag)
@@ -4579,9 +4587,9 @@ class AsyncDatabase(metaclass=AsyncInit):
 class Database:
     """
     This class creates databases which enable the disk persistence of
-    any json serializable, native python data-types, with fully
-    transparent encryption / decryption using the library's pseudo one-
-    time pad cipher implementation called `Chunky2048`.
+    any bytes or JSON serializable native python data-types, with fully
+    transparent encryption / decryption using the library's `Chunky2048`
+    cipher.
 
     Usage Example:
 
@@ -4591,9 +4599,12 @@ class Database:
     # Elements in a database are organized by user-defined tags ->
     db["income"] = 32000
 
-    # Databases can store any json serializable data ->
+    # Databases can store any JSON serializable data ->
     db["dict"] = {0: 1, 2: 3, 4: 5}
     db["lists"] = ["juice", ["nested juice"]]
+
+    # As well as raw bytes ->
+    db["bytes"] = b"value..."
 
     # Retrieve items by their tags ->
     db["dict"]
@@ -4615,7 +4626,7 @@ class Database:
     db.delete_database()
     """
 
-    IO: BytesIO = BytesIO
+    IO = BytesIO
 
     directory: Typing.Path = DatabasePath()
 
@@ -4636,9 +4647,7 @@ class Database:
     @classmethod
     def base64_encode(cls, byte_sequence: bytes):
         """
-        Encodes a raw ``bytes_sequence`` into a urlsafe base64 string
-        that can be stored in a database, since they only accept json
-        serializable data.
+        Encodes a raw ``bytes_sequence`` into a urlsafe base64 string.
         """
         return base64.urlsafe_b64encode(byte_sequence).decode()
 
@@ -5256,8 +5265,7 @@ class Database:
         setattr(self._cache, filename, data)
         setattr(self._manifest, filename, tag)
         if not cache:
-            self.save_tag(tag)
-            delattr(self._cache, filename)
+            self.save_tag(tag, drop_cache=True)
 
     def _query_ciphertext(self, filename: str, *, silent: bool = False):
         """
@@ -5285,7 +5293,11 @@ class Database:
         ciphertext = self._query_ciphertext(filename, silent=silent)
         if not ciphertext:
             return
-        result = self.json_decrypt(ciphertext, filename=filename)
+        result = self.bytes_decrypt(ciphertext, filename=filename)
+        try:
+            result = json.loads(result)
+        except Errors.json_decode_errors():
+            result = result[len(BYTES_FLAG):]  # Remove bytes value flag
         if cache:
             setattr(self._cache, filename, result)
         return result
@@ -5485,9 +5497,14 @@ class Database:
         Writes the cached value for a user-specified ``filename`` to the
         user filesystem.
         """
-        ciphertext = self.json_encrypt(
-            getattr(self._cache, filename), filename=filename
-        )
+        value = getattr(self._cache, filename)
+        try:
+            value = json.dumps(value).encode()
+        except TypeError:
+            if value.__class__ is not bytes:
+                raise DatabaseIssue.invalid_entry_type()
+            value = BYTES_FLAG + value  # Assure not reloaded as JSON
+        ciphertext = self.bytes_encrypt(value, filename=filename)
         self._save_ciphertext(filename, ciphertext)
 
     def _save_tags(self):
@@ -5515,7 +5532,7 @@ class Database:
         filename = self.filename(tag)
         try:
             self._save_file(filename, admin=admin)
-            if drop_cache:
+            if drop_cache and hasattr(self._cache, filename):
                 delattr(self._cache, filename)
         except AttributeError:
             raise DatabaseIssue.tag_file_doesnt_exist(tag)
