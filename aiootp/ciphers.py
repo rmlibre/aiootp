@@ -4226,9 +4226,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         if not ciphertext:
             return
         result = await self.abytes_decrypt(ciphertext, filename=filename)
-        try:
+        if result[:len(BYTES_FLAG)] != BYTES_FLAG:
             result = json.loads(result)
-        except Errors.json_decode_errors():
+        else:
             result = result[len(BYTES_FLAG):]  # Remove bytes value flag
         if cache:
             setattr(self._cache, filename, result)
@@ -4436,12 +4436,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         user filesystem.
         """
         value = getattr(self._cache, filename)
-        try:
-            value = json.dumps(value).encode()
-        except TypeError:
-            if value.__class__ is not bytes:
-                raise DatabaseIssue.invalid_entry_type()
+        if value.__class__ is bytes:
             value = BYTES_FLAG + value  # Assure not reloaded as JSON
+        else:
+            value = json.dumps(value).encode()
         ciphertext = await self.abytes_encrypt(value, filename=filename)
         await self._asave_ciphertext(filename, ciphertext)
 
@@ -5294,9 +5292,9 @@ class Database:
         if not ciphertext:
             return
         result = self.bytes_decrypt(ciphertext, filename=filename)
-        try:
+        if result[:len(BYTES_FLAG)] != BYTES_FLAG:
             result = json.loads(result)
-        except Errors.json_decode_errors():
+        else:
             result = result[len(BYTES_FLAG):]  # Remove bytes value flag
         if cache:
             setattr(self._cache, filename, result)
@@ -5498,12 +5496,10 @@ class Database:
         user filesystem.
         """
         value = getattr(self._cache, filename)
-        try:
-            value = json.dumps(value).encode()
-        except TypeError:
-            if value.__class__ is not bytes:
-                raise DatabaseIssue.invalid_entry_type()
+        if value.__class__ is bytes:
             value = BYTES_FLAG + value  # Assure not reloaded as JSON
+        else:
+            value = json.dumps(value).encode()
         ciphertext = self.bytes_encrypt(value, filename=filename)
         self._save_ciphertext(filename, ciphertext)
 
