@@ -67,17 +67,3 @@ def test_token_functions():
     assert plaintext_of_bytes == run(cipher.aread_token(ciphertext_of_bytes, aad=aad))
     assert plaintext_bytes == plaintext_of_bytes
 
-    asynchs.sleep(2)
-    try:
-        cipher.read_token(ciphertext_of_bytes, aad=aad, ttl=1)
-    except TimeoutError:
-        pass
-    else:
-        raise AssertionError("Life-time for tokens is malfunctioning.")
-    try:
-        run(cipher.aread_token(ciphertext_of_bytes, aad=aad, ttl=1))
-    except TimeoutError:
-        pass
-    else:
-        raise AssertionError("Life-time for tokens is malfunctioning.")
-

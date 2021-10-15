@@ -87,6 +87,13 @@ atest_data = {
 }
 
 
+test_json_ciphertext = cipher.json_encrypt(test_data, aad=aad)
+atest_json_ciphertext = run(cipher.ajson_encrypt(atest_data, aad=aad))
+test_token_ciphertext = cipher.make_token(plaintext_bytes, aad=aad)
+atest_token_ciphertext = run(cipher.amake_token(plaintext_bytes, aad=aad))
+time_start = asynchs.time()
+
+
 @pytest.fixture(scope="session")
 def database():
     print("setup".center(15, "-"))
@@ -151,6 +158,11 @@ __all__ = [
     "plaintext_string",
     "test_data",
     "atest_data",
+    "test_json_ciphertext",
+    "atest_json_ciphertext",
+    "test_token_ciphertext",
+    "atest_token_ciphertext",
+    "time_start",
     "database",
     "async_database",
 ]

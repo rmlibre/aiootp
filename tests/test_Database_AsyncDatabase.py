@@ -157,6 +157,11 @@ def test_tags_metatags():
     achild = run(async_database.ametatag(ametatag, preload=True))
     databases_share_metatags(database, async_database, child, achild)
 
+    database.set_tag("bytes", plaintext_bytes, cache=False)
+    database.query_tag("bytes") == plaintext_bytes
+    run(async_database.aset_tag("bytes", plaintext_bytes, cache=False))
+    run(async_database.aquery_tag("bytes")) == plaintext_bytes
+
     child[tag] = test_data
     achild[atag] = atest_data
     metatag_isnt_ametatag_but_equal(child, achild, database, async_database)
