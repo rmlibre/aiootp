@@ -1319,6 +1319,7 @@ Description: .. image:: https://raw.githubusercontent.com/rmlibre/aiootp/main/lo
            database directory.
         -  Fixed a bug in the ``AsyncDatabase`` class' ``aset_tag`` method, which 
            would throw an attribute error when passed the ``cache=False`` flag.
+        -  Add Windows support to the CI tests.
         
         
         
@@ -3222,6 +3223,7 @@ Classifier: Operating System :: MacOS
 Classifier: Operating System :: POSIX
 Classifier: Operating System :: POSIX :: Linux
 Classifier: Operating System :: OS Independent
+Classifier: Operating System :: Microsoft :: Windows
 Classifier: Topic :: Internet
 Classifier: Topic :: Security
 Classifier: Topic :: Database

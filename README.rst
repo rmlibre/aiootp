@@ -1304,6 +1304,7 @@ Minor Changes
    database directory.
 -  Fixed a bug in the ``AsyncDatabase`` class' ``aset_tag`` method, which 
    would throw an attribute error when passed the ``cache=False`` flag.
+-  Add Windows support to the CI tests.
 
 
 
