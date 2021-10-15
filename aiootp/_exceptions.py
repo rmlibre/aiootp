@@ -12,6 +12,7 @@
 __all__ = [
     "CiphertextIssue",
     "DatabaseIssue",
+    "Errors",
     "Issue",
     "KeyAADIssue",
     "PackageSignerIssue",
@@ -27,6 +28,7 @@ __doc__ = (
 )
 
 
+import json
 import typing
 
 
@@ -342,6 +344,9 @@ class DatabaseIssue:
     _TAG_FILE_DOESNT_EXIST: str = "The TAG tag file doesn't exist."
     _KEY_HAS_BEEN_DELETED: str = "The database keys have been deleted."
     _CANT_DELETE_MAINTENANCE_FILES: str = "Can't delete maintenance files."
+    _INVALID_ENTRY_TYPE: str = (
+        "Database entries must be JSON serializable or bytes types."
+    )
 
     @classmethod
     def invalid_write_attempt(cls):
@@ -373,6 +378,10 @@ class DatabaseIssue:
     @classmethod
     def cant_delete_maintenance_files(cls):
         return PermissionError(cls._CANT_DELETE_MAINTENANCE_FILES)
+
+    @classmethod
+    def invalid_entry_type(cls):
+        return TypeError(cls._INVALID_ENTRY_TYPE)
 
 
 class PackageSignerIssue:
@@ -414,4 +423,20 @@ class PackageSignerIssue:
     @classmethod
     def signing_key_hasnt_been_set(cls):
         return LookupError(cls._SIGNING_KEY_HASNT_BEEN_SET)
+
+
+class Errors:
+    """
+    A utility for organizing values brought up by errors.
+    """
+
+    __slots__ = ()
+
+    _JSON_DECODE_ERRORS: tuple = (
+        TypeError, UnicodeDecodeError, json.JSONDecodeError
+    )
+
+    @classmethod
+    def json_decode_errors(cls):
+        return cls._JSON_DECODE_ERRORS
 
