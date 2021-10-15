@@ -4165,11 +4165,9 @@ class Padding:
 
 class BytesIO:
     """
-    A utility class for converting json/dict ciphertext to & from bytes
-    objects. Also, provides an interface for transparently writing
-    ciphertext as bytes files & reading bytes ciphertext files as json
-    dictionaries. This class also has access to the plaintext padding
-    algorithm used by the package.
+    A utility class for converting bytes ciphertext to & from different
+    formats & provides an interface for reading/writing bytes ciphertext
+    to & from files.
     """
 
     __slots__ = ()
@@ -4183,7 +4181,7 @@ class BytesIO:
     _HEADER_BYTES: int = HEADER_BYTES
 
     @classmethod
-    def _validate_ciphertext(cls, ciphertext: bytes):
+    def _validate_ciphertext_length(cls, ciphertext: bytes):
         """
         Measures the length of a blob of bytes ciphertext that has its
         salt & hmac attached. If it doesn't conform to the standard then
@@ -4228,21 +4226,21 @@ class BytesIO:
     @classmethod
     async def ajson_to_bytes(cls, data: Typing.JSONCiphertext):
         """
-        Converts json ``data`` of listed ciphertext into a bytes object.
+        Converts JSON ``data`` of dict ciphertext into a bytes object.
         """
         data = b"".join(
             [block async for block in cls._aprocess_json_to_bytes(data)]
         )
-        cls._validate_ciphertext(data)
+        cls._validate_ciphertext_length(data)
         return data
 
     @classmethod
     def json_to_bytes(cls, data: Typing.JSONCiphertext):
         """
-        Converts json ``data`` of listed ciphertext into a bytes object.
+        Converts JSON ``data`` of dict ciphertext into a bytes object.
         """
         data = b"".join(cls._process_json_to_bytes(data))
-        cls._validate_ciphertext(data)
+        cls._validate_ciphertext_length(data)
         return data
 
     @classmethod
@@ -4252,7 +4250,7 @@ class BytesIO:
         namespace populated with the discovered ciphertext values.
         """
         to_int = int.from_bytes
-        cls._validate_ciphertext(data)
+        cls._validate_ciphertext_length(data)
         yield data[HMAC_SLICE].hex()
         yield data[SALT_SLICE].hex()
         yield data[SIV_SLICE].hex()
@@ -4266,7 +4264,7 @@ class BytesIO:
         namespace populated with the discovered ciphertext values.
         """
         to_int = int.from_bytes
-        cls._validate_ciphertext(data)
+        cls._validate_ciphertext_length(data)
         yield data[HMAC_SLICE].hex()
         yield data[SALT_SLICE].hex()
         yield data[SIV_SLICE].hex()
@@ -4276,8 +4274,7 @@ class BytesIO:
     @classmethod
     async def abytes_to_json(cls, data: bytes):
         """
-        Converts bytes ``data`` of listed ciphertext back into a json
-        dictionary.
+        Converts bytes ``data`` ciphertext into a JSON ready dictionary.
         """
         data = cls._aprocess_bytes_to_json(data)
         return {
@@ -4290,8 +4287,7 @@ class BytesIO:
     @classmethod
     def bytes_to_json(cls, data: bytes):
         """
-        Converts bytes ``data`` of listed ciphertext back into a json
-        dictionary.
+        Converts bytes ``data`` ciphertext into a JSON ready dictionary.
         """
         data = cls._process_bytes_to_json(data)
         return {
