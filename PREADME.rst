@@ -151,7 +151,7 @@ _`Table Of Contents`
 _`Transparently Encrypted Databases` .............. `Table Of Contents`_
 ------------------------------------------------------------------------
 
-The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any json serializable objects. They're designed to seamlessly bring encrypted bytes at rest to users as dynamic objects in use.
+The package's ``AsyncDatabase`` & ``Database`` classes are very powerful data persistence utilities. They automatically handle encryption & decryption of user data & metadata, providing a pythonic interface for storing & retrieving any bytes or JSON serializable objects. They're designed to seamlessly bring encrypted bytes at rest to users as dynamic objects in use.
 
 
 _`Ideal Initialization` ........................... `Table Of Contents`_
@@ -201,7 +201,7 @@ With User Profiles, passphrases may be used instead to open a database. Often, p
 _`Tags` ........................................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Data within databases are primarily organized by Tags. Tags are simply string labels, and the data stored under them can be any json serializable objects.
+Data within databases are primarily organized by Tags. Tags are simply string labels, and the data stored under them can be any bytes or JSON serializable objects.
 
 .. code-block:: python
 
@@ -209,9 +209,9 @@ Data within databases are primarily organized by Tags. Tags are simply string la
     
         # Using bracketed assignment adds tags to the cache
     
-        db["tag"] = {"data": "can be any json serializable object"}
+        db["tag"] = {"data": "can be any JSON serializable object"}
         
-        db["hobby"] = await db.abase64_encode(b"fash smasher")
+        db["hobby"] = b"fash smasher"
         
         db["bitcoin"] = "0bb6eee10d2f8f45f8a"
         
@@ -497,9 +497,9 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
 
 .. code-block:: python
 
-    # Either json serializable or bytes-type data can be encrypted ->
+    # Either JSON serializable or bytes-type data can be encrypted ->
 
-    json_plaintext = {"some": "json data can go here..."}
+    json_plaintext = {"some": "JSON data can go here..."}
     
     bytes_plaintext = b"some bytes plaintext goes here..."
     
@@ -644,7 +644,7 @@ These premade recipes allow for the easiest usage of the cipher.
     cipher = aiootp.Chunky2048(key)
     
     
-    # Symmetric encryption of json data ->
+    # Symmetric encryption of JSON data ->
     
     json_data = {"account": 33817, "names": ["queen b"], "id": None}
     
