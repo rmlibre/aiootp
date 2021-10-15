@@ -492,6 +492,7 @@ misc_constants = OpenNamespace(
     ASYNC="asynchronous",
     AUTHENTICATED_ASSOCIATED_DATA="authenticated_associated_data",
     AUTHENTICATION="authentication",
+    BYTES_FLAG=b"\x01\x02",
     CHANNEL="channel",
     CHANNELS="channels",
     CHECKSUM="checksum",
