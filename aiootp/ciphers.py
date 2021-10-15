@@ -4226,10 +4226,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         if not ciphertext:
             return
         result = await self.abytes_decrypt(ciphertext, filename=filename)
-        if result[:len(BYTES_FLAG)] != BYTES_FLAG:
-            result = json.loads(result)
+        if result[:BYTES_FLAG_SIZE] == BYTES_FLAG:
+            result = result[BYTES_FLAG_SIZE:]  # Remove bytes value flag
         else:
-            result = result[len(BYTES_FLAG):]  # Remove bytes value flag
+            result = json.loads(result)
         if cache:
             setattr(self._cache, filename, result)
         return result
@@ -5292,10 +5292,10 @@ class Database:
         if not ciphertext:
             return
         result = self.bytes_decrypt(ciphertext, filename=filename)
-        if result[:len(BYTES_FLAG)] != BYTES_FLAG:
-            result = json.loads(result)
+        if result[:BYTES_FLAG_SIZE] == BYTES_FLAG:
+            result = result[BYTES_FLAG_SIZE:]  # Remove bytes value flag
         else:
-            result = result[len(BYTES_FLAG):]  # Remove bytes value flag
+            result = json.loads(result)
         if cache:
             setattr(self._cache, filename, result)
         return result
