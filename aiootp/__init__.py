@@ -9,7 +9,7 @@
 #
 
 
-__version__ = "0.20.6"
+__version__ = "0.20.7"
 
 
 __license__ = "AGPLv3"
