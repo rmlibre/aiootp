@@ -351,9 +351,7 @@ class AsyncKeys:
         if not untrusted_hmac:
             raise Issue.no_value_specified("untrusted_hmac")
         true_hmac = await cls.amake_hmac(data, key=key, hasher=hasher)
-        if await abytes_are_equal(untrusted_hmac, true_hmac):
-            return True
-        else:
+        if not await abytes_are_equal(untrusted_hmac, true_hmac):
             raise Issue.invalid_value("HMAC of data stream")
 
 
@@ -412,9 +410,7 @@ class Keys:
         if not untrusted_hmac:
             raise Issue.no_value_specified("untrusted_hmac")
         true_hmac = cls.make_hmac(data, key=key, hasher=hasher)
-        if bytes_are_equal(untrusted_hmac, true_hmac):
-            return True
-        else:
+        if not bytes_are_equal(untrusted_hmac, true_hmac):
             raise Issue.invalid_value("HMAC of data stream")
 
 

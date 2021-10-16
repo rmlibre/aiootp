@@ -236,7 +236,6 @@ class KeyAADBundle:
             raise Issue.value_must_be_type("siv", bytes)
         elif len(siv) != SIV_BYTES:
             raise Issue.invalid_length("siv", SIV_BYTES)
-        return True
 
     @classmethod
     async def aunsafe(
@@ -1436,9 +1435,7 @@ class StreamHMAC:
             raise Issue.value_must_be_type("untrusted_block_id", bytes)
         size = len(untrusted_block_id)
         block_id = await self.anext_block_id(next_block, size=size)
-        if await abytes_are_equal(untrusted_block_id, block_id):
-            return True
-        else:
+        if not await abytes_are_equal(untrusted_block_id, block_id):
             raise Issue.invalid_value("next_block_id")
 
     def test_next_block_id(
@@ -1457,9 +1454,7 @@ class StreamHMAC:
             raise Issue.value_must_be_type("untrusted_block_id", bytes)
         size = len(untrusted_block_id)
         block_id = self.next_block_id(next_block, size=size)
-        if bytes_are_equal(untrusted_block_id, block_id):
-            return True
-        else:
+        if not bytes_are_equal(untrusted_block_id, block_id):
             raise Issue.invalid_value("next_block_id")
 
     async def atest_current_digest(self, untrusted_digest: bytes):
@@ -1471,11 +1466,9 @@ class StreamHMAC:
         """
         if untrusted_digest.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_digest", bytes)
-        if await abytes_are_equal(
+        if not await abytes_are_equal(
             untrusted_digest, await self.acurrent_digest()
         ):
-            return True
-        else:
             raise Issue.invalid_value("current_digest")
 
     def test_current_digest(self, untrusted_digest: bytes):
@@ -1487,9 +1480,7 @@ class StreamHMAC:
         """
         if untrusted_digest.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_digest", bytes)
-        if bytes_are_equal(untrusted_digest, self.current_digest()):
-            return True
-        else:
+        if not bytes_are_equal(untrusted_digest, self.current_digest()):
             raise Issue.invalid_value("current_digest")
 
     async def atest_hmac(self, untrusted_hmac: bytes):
@@ -1500,9 +1491,9 @@ class StreamHMAC:
         """
         if untrusted_hmac.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_hmac", bytes)
-        elif await abytes_are_equal(untrusted_hmac, await self.aresult()):
-            return True
-        else:
+        elif not await abytes_are_equal(
+            untrusted_hmac, await self.aresult()
+        ):
             raise Issue.invalid_value("HMAC of data stream")
 
     def test_hmac(self, untrusted_hmac: bytes):
@@ -1513,9 +1504,7 @@ class StreamHMAC:
         """
         if untrusted_hmac.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_hmac", bytes)
-        elif bytes_are_equal(untrusted_hmac, self.result()):
-            return True
-        else:
+        elif not bytes_are_equal(untrusted_hmac, self.result()):
             raise Issue.invalid_value("HMAC of data stream")
 
 
@@ -3200,7 +3189,6 @@ class Passcrypt:
             parts.passphrase_hash,
         ):
             raise Issue.invalid_value("passphrase")
-        return True
 
     @classmethod
     def verify_raw(cls, composed_passcrypt_hash: bytes, passphrase: bytes):
@@ -3228,7 +3216,6 @@ class Passcrypt:
             parts.passphrase_hash,
         ):
             raise Issue.invalid_value("passphrase")
-        return True
 
     @classmethod
     async def averify(
@@ -3249,7 +3236,7 @@ class Passcrypt:
         """
         if composed_passcrypt_hash.__class__ is str:
             composed_passcrypt_hash = composed_passcrypt_hash.encode()
-        return await cls.averify_raw(
+        await cls.averify_raw(
             await BytesIO.aurlsafe_to_bytes(composed_passcrypt_hash),
             passphrase,
         )
@@ -3273,7 +3260,7 @@ class Passcrypt:
         """
         if composed_passcrypt_hash.__class__ is str:
             composed_passcrypt_hash = composed_passcrypt_hash.encode()
-        return cls.verify_raw(
+        cls.verify_raw(
             BytesIO.urlsafe_to_bytes(composed_passcrypt_hash), passphrase
         )
 
@@ -4069,9 +4056,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         if not hmac:
             raise Issue.no_value_specified("untrusted_hmac")
         true_hmac = await self.amake_hmac(data)
-        if await abytes_are_equal(untrusted_hmac, true_hmac):
-            return True
-        else:
+        if not await abytes_are_equal(untrusted_hmac, true_hmac):
             raise Issue.invalid_value("HMAC of data stream")
 
     async def _aencryption_key(self, filename: str, salt: bytes):
@@ -5138,9 +5123,7 @@ class Database:
         if not hmac:
             raise Issue.no_value_specified("untrusted_hmac")
         true_hmac = self.make_hmac(data)
-        if bytes_are_equal(untrusted_hmac, true_hmac):
-            return True
-        else:
+        if not bytes_are_equal(untrusted_hmac, true_hmac):
             raise Issue.invalid_value("HMAC of data stream")
 
     def _encryption_key(self, filename: str, salt: bytes):
