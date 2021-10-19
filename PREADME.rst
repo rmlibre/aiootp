@@ -584,8 +584,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     hmac = await db.amake_hmac(data)
 
-    await db.atest_hmac(data, hmac)
-    >>> True
+    await db.atest_hmac(data, hmac)  # Runs without incident
 
 
     # Data that is not the same, or is altered, will be caught ->
@@ -604,8 +603,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     hmac = await db.amake_hmac(arbitrary_data)
     
-    await db.atest_hmac(arbitrary_data, hmac)
-    >>> True
+    await db.atest_hmac(arbitrary_data, hmac)  # Runs without incident
 
 
     # Beware: Datatypes where order of values is not preserved may fail 
