@@ -2,6 +2,35 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+Changes for version 0.20.7
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Changed the way the ``Padding.(a)end_padding`` methods calculate the
+   required padding length. The change causes the methods to now assume 
+   that the plaintext has already been prepended with the start padding.
+-  The various ``test_*`` & ``verify_*`` functions/methods throughout the
+   package have been changed to return ``None`` on successful validation
+   instead of ``True``, which more closely matches the convention for
+   exception-raising validators.
+-  The default ``block_id`` length was changed from 16-bytes to 24-bytes.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Make the ``(a)end_padding`` methods of the ``Padding`` class assume the 
+   supplied data has already been prepended with the start padding. This 
+   better integrates with streams of plaintext (online usage).
+-  Small internal refactorings.
+-  Documentation fixes.
+
+
+
+
 Changes for version 0.20.6
 --------------------------
 
