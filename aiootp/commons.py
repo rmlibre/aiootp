@@ -415,7 +415,7 @@ chunky2048_constants = OpenNamespace(
     #  These constants control the structure of the Chunky2048 cipher
     AAD="aad",
     BLOCK_ID="block_id",
-    BLOCK_ID_BYTES=16,
+    BLOCK_ID_BYTES=24,
     BLOCKSIZE=256,
     CHUNKY_2048="Chunky2048",
     CIPHERTEXT="ciphertext",
