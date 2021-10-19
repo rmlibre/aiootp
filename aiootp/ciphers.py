@@ -670,7 +670,7 @@ class StreamHMAC:
         "_aupdate",
         "_auth_key",
         "_avalidated_xor",
-        "_finalized",
+        "_is_finalized",
         "_key_bundle",
         "_last_digest",
         "_mac",
@@ -697,7 +697,7 @@ class StreamHMAC:
         if not issubclass(key_bundle.__class__, KeyAADBundle):
             raise Issue.value_must_be_type("key_bundle", KeyAADBundle)
         self._mode = None
-        self._finalized = False
+        self._is_finalized = False
         self._result_is_ready = False
         self._register_key_bundle(key_bundle)
         self._update = self._placeholder_update
@@ -778,7 +778,7 @@ class StreamHMAC:
         """
         if self._mode:
             raise Issue.value_already_set("validator", self._mode)
-        elif self._finalized:
+        elif self._is_finalized:
             raise SHMACIssue.already_finalized()
         elif self._siv:
             raise SHMACIssue.invalid_siv_usage()
@@ -817,7 +817,7 @@ class StreamHMAC:
         """
         if self._mode:
             raise Issue.value_already_set("validator", self._mode)
-        elif self._finalized:
+        elif self._is_finalized:
             raise SHMACIssue.already_finalized()
         elif not self._siv:
             raise SHMACIssue.invalid_siv_usage()
@@ -835,7 +835,7 @@ class StreamHMAC:
         users to ratchet their authentication key & have the validator
         track when the key changes & validate the change.
         """
-        if self._finalized:
+        if self._is_finalized:
             raise SHMACIssue.already_finalized()
         await asleep()
         mac = self._mac.digest()
@@ -853,7 +853,7 @@ class StreamHMAC:
         users to ratchet their authentication key & have the validator
         track when the key changes & validate the change.
         """
-        if self._finalized:
+        if self._is_finalized:
             raise SHMACIssue.already_finalized()
         mac = self._mac.digest()
         payload = (Domains.KDF, self._auth_key, entropic_material, mac)
@@ -1378,9 +1378,9 @@ class StreamHMAC:
         the end of a stream of data that can be validated with the
         current instance.
         """
-        if self._finalized:
+        if self._is_finalized:
             raise SHMACIssue.already_finalized()
-        self._finalized = True
+        self._is_finalized = True
         await self._aset_final_result()
         self._result_is_ready = True
         self._mac = DeletedAttribute(SHMACIssue.already_finalized)
@@ -1393,9 +1393,9 @@ class StreamHMAC:
         the end of a stream of data that can be validated with the
         current instance.
         """
-        if self._finalized:
+        if self._is_finalized:
             raise SHMACIssue.already_finalized()
-        self._finalized = True
+        self._is_finalized = True
         self._set_final_result()
         self._result_is_ready = True
         self._mac = DeletedAttribute(SHMACIssue.already_finalized)
@@ -1466,9 +1466,8 @@ class StreamHMAC:
         """
         if untrusted_digest.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_digest", bytes)
-        if not await abytes_are_equal(
-            untrusted_digest, await self.acurrent_digest()
-        ):
+        digest = await self.acurrent_digest()
+        if not await abytes_are_equal(untrusted_digest, digest):
             raise Issue.invalid_value("current_digest")
 
     def test_current_digest(self, untrusted_digest: bytes):
@@ -1480,7 +1479,8 @@ class StreamHMAC:
         """
         if untrusted_digest.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_digest", bytes)
-        if not bytes_are_equal(untrusted_digest, self.current_digest()):
+        digest = self.current_digest()
+        if not bytes_are_equal(untrusted_digest, digest):
             raise Issue.invalid_value("current_digest")
 
     async def atest_hmac(self, untrusted_hmac: bytes):
@@ -1491,9 +1491,8 @@ class StreamHMAC:
         """
         if untrusted_hmac.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_hmac", bytes)
-        elif not await abytes_are_equal(
-            untrusted_hmac, await self.aresult()
-        ):
+        hmac = await self.aresult()
+        if not await abytes_are_equal(untrusted_hmac, hmac):
             raise Issue.invalid_value("HMAC of data stream")
 
     def test_hmac(self, untrusted_hmac: bytes):
@@ -1504,7 +1503,8 @@ class StreamHMAC:
         """
         if untrusted_hmac.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_hmac", bytes)
-        elif not bytes_are_equal(untrusted_hmac, self.result()):
+        hmac = self.result()
+        if not bytes_are_equal(untrusted_hmac, hmac):
             raise Issue.invalid_value("HMAC of data stream")
 
 
@@ -2632,8 +2632,8 @@ class Passcrypt:
     dynamically to reach the specified memory cost considering the ``cpu``
     cost also sequentially adds 128 bytes of sha3_512 digests to the
     cache ``cpu`` * columns number of times. The effect is that, hashing
-    the bytes in a column, is same as a proving knowledge of the state
-    of that column for all past passes over the cache.
+    the bytes in a column, is the same as a proving knowledge of the
+    state of that column for all past passes over the cache.
 
     The sequential passes involve a current column index, the index of
     the current index's reflection across the cache, & an index chosen
@@ -2686,7 +2686,7 @@ class Passcrypt:
     rows == 2 * (`cpu` + 1)
     columns == `kb` / (128 * (`cpu` + 1))
 
-    proof = sha3_512(initial_memory_cache[-1] + H(args))
+    proof = sha3_512(DOMAIN + initial_memory_cache[-1] + H(args))
     The ``proof`` hashing object is used to do all hashing in the
     algorithm, which helps assure the algorithm must be run sequentially.
     """
@@ -2718,8 +2718,8 @@ class Passcrypt:
     @staticmethod
     def _validate_inputs(passphrase: bytes, salt: bytes):
         """
-        Makes sure ``passphrase`` & ``salt`` are truthy. Throws
-        `ValueError` if not.
+        Makes sure ``passphrase`` & ``salt`` are truthy bytes. Throws
+        `ValueError` or `TypeError` if not.
         """
         if passphrase.__class__ is not bytes:
             raise Issue.value_must_be_type("passphrase", bytes)
@@ -2738,9 +2738,9 @@ class Passcrypt:
         function are within acceptable bounds & types. Then performs a
         calculation to determine how many iterations of the ``bytes_keys``
         generator will sum to the desired number of kilobytes, taking
-        into account that for every element in that cache, 2 * ``cpu``
-        number of extra sha3_512 hashes will be added to the cache as
-        proofs of memory & work.
+        into account that for every initial column in that cache, 2 *
+        ``cpu`` number of extra sha3_512 hashes will be added to the
+        cache as proofs of memory & work.
         """
         if (
             hardness < 256
@@ -2763,8 +2763,7 @@ class Passcrypt:
         for their applications.
 
         Explanation:
-        user_input = kb
-        desired_bytes = 1024 * user_input
+        desired_bytes = 1024 * kb
         build_size = 128 * build_iterations
         proof_size = (64 + 64) * build_iterations * cpu
         desired_bytes == build_size + proof_size
@@ -2782,13 +2781,13 @@ class Passcrypt:
         proof: sha3_512, ram: Typing.List[bytes], cpu: int
     ):
         """
-        Returns the key scanning function which combines sequential
+        Returns the keyed scanning function which combines sequential
         passes over the memory cache with a pseudo-random selection
         algorithm which makes the scheme hybrid data-dependent /
         independent. It ensures an attacker attempting to crack a
         passphrase hash cannot complete the algorithm substantially
         faster by storing more memory than what is already necessary, or
-        substantially less memory intensive by dropping cache entries
+        substantially less memory intensively by dropping cache entries
         without drastically increasing the computational cost.
         """
 
@@ -2938,8 +2937,8 @@ class Passcrypt:
         hardness: int = _DEFAULT_HARDNESS,
     ):
         """
-        Returns just the 64-byte passcrypt hash of the ``passphrase``
-        when mixed with the given ``salt`` & difficulty settings.
+        Returns just the 64-byte hash of the ``passphrase`` when mixed
+        with the given ``salt`` & difficulty settings.
 
         NOTICE: The passcrypt algorithm can be highly memory intensive.
         These resources may not be freed up, & often are not, because of
@@ -2970,8 +2969,8 @@ class Passcrypt:
         hardness: int = _DEFAULT_HARDNESS,
     ):
         """
-        Returns just the 64-byte passcrypt hash of the ``passphrase``
-        when mixed with the given ``salt`` & difficulty settings.
+        Returns just the 64-byte hash of the ``passphrase`` when mixed
+        with the given ``salt`` & difficulty settings.
 
         NOTICE: The passcrypt algorithm can be highly memory intensive.
         These resources may not be freed up, & often are not, because of
@@ -3002,8 +3001,8 @@ class Passcrypt:
         hardness: int,
     ):
         """
-        Attaches the difficulty settings & salt to the passcrypt hash
-        of the passphrase.
+        Attaches the difficulty settings & salt to the hash of the
+        passphrase.
         """
         await asleep()
         passcrypt_hash = (
@@ -3026,8 +3025,8 @@ class Passcrypt:
         hardness: int,
     ):
         """
-        Attaches the difficulty settings & salt to the passcrypt hash
-        of the passphrase.
+        Attaches the difficulty settings & salt to the hash of the
+        passphrase.
         """
         passcrypt_hash = (
             kb.to_bytes(cls._KB_BYTES, "big"),
@@ -3041,7 +3040,7 @@ class Passcrypt:
     @classmethod
     async def _adecompose_passcrypt_hash(cls, raw_passcrypt_hash: bytes):
         """
-        Separates the passcrypt hash, salt & difficulty settings &
+        Separates the passphrase hash, salt & difficulty settings &
         returns them in a namespace object available by dotted lookup.
         """
         await asleep()
@@ -3053,7 +3052,7 @@ class Passcrypt:
     @classmethod
     def _decompose_passcrypt_hash(cls, raw_passcrypt_hash: bytes):
         """
-        Separates the passcrypt hash, salt & difficulty settings &
+        Separates the passphrase hash, salt & difficulty settings &
         returns them in a namespace object available by dotted lookup.
         """
         SCHEMA_BYTES = cls._PASSCRYPT_SCHEMA_BYTES
