@@ -3900,7 +3900,7 @@ class Padding:
         usage.
         """
         await asleep()
-        remainder = (length + cls._INNER_HEADER_BYTES) % cls._BLOCKSIZE
+        remainder = length % cls._BLOCKSIZE
         padding_size = cls._BLOCKSIZE - remainder
         return PlaintextMeasurements(
             length=length,
@@ -3917,7 +3917,7 @@ class Padding:
         unpadded data & stores the findings in an object for convenient
         usage.
         """
-        remainder = (length + cls._INNER_HEADER_BYTES) % cls._BLOCKSIZE
+        remainder = length % cls._BLOCKSIZE
         padding_size = cls._BLOCKSIZE - remainder
         return PlaintextMeasurements(
             length=length,
@@ -4105,9 +4105,9 @@ class Padding:
         additional random padding will be appended to make the plaintext
         a multiple of 256 bytes.
         """
-        start_padding = await cls.astart_padding()
+        data = await cls.astart_padding() + data
         end_padding = await cls.aend_padding(data, key_bundle)
-        return b"".join((start_padding, data, end_padding))
+        return b"".join((data, end_padding))
 
     @classmethod
     def pad_plaintext(cls, data: bytes, key_bundle):
@@ -4130,9 +4130,9 @@ class Padding:
         additional random padding will be appended to make the plaintext
         a multiple of 256 bytes.
         """
-        start_padding = cls.start_padding()
+        data = cls.start_padding() + data
         end_padding = cls.end_padding(data, key_bundle)
-        return b"".join((start_padding, data, end_padding))
+        return b"".join((data, end_padding))
 
     @classmethod
     async def adepad_plaintext(
