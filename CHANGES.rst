@@ -2,6 +2,41 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+Changes for version 0.21.0
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Non-backwards compatible changes:
+-  Altered the ``Chunky2048`` cipher's key derivation to continuously extract
+   entropy from users' main encryption key. The design goal of the cipher
+   is to be as close as possible to a one-time pad, but because we use 
+   key derivations to mix together all the relevant values used by the 
+   cipher, there's a limited amount of entropy that can be extracted 
+   from the main key no matter how large it is. The changes feed the 
+   main key into the internal seed KDF multiple times when creating the 
+   cipher's initial seeds, & once on every iteration of the ``(a)bytes_keys``
+   generators. 
+-  Merged two internal KDFs used by the cipher into the one seed KDF. This
+   also now means that using the ``(a)update_key`` methods of the ``StreamHMAC``
+   class updates the KDF used to ratchet the encryption keystream.
+-  Use ``sha3_512`` instead of ``sha3_256`` for the ``StreamHMAC`` final HMAC
+   & slice the first bytes designated by the package's ``commons.py`` module.
+   This allows the HMAC length to be specified & changed easily. It's 
+   **highly discouraged** to use anything less than 32-bytes.
+   
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Internal refactorings.
+-  Updates to tests.
+
+
+
+
 Changes for version 0.20.7
 --------------------------
 
