@@ -584,8 +584,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     hmac = await db.amake_hmac(data)
 
-    await db.atest_hmac(data, hmac)
-    >>> True
+    await db.atest_hmac(data, hmac)  # Runs without incident
 
 
     # Data that is not the same, or is altered, will be caught ->
@@ -604,8 +603,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     hmac = await db.amake_hmac(arbitrary_data)
     
-    await db.atest_hmac(arbitrary_data, hmac)
-    >>> True
+    await db.atest_hmac(arbitrary_data, hmac)  # Runs without incident
 
 
     # Beware: Datatypes where order of values is not preserved may fail 
@@ -1274,6 +1272,70 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
+
+
+Changes for version 0.21.0
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Non-backwards compatible changes:
+-  Altered the ``Chunky2048`` cipher's key derivation to continuously extract
+   entropy from users' main encryption key. The design goal of the cipher
+   is to be as close as possible to a one-time pad, but because we use 
+   key derivations to mix together all the relevant values used by the 
+   cipher, there's a limited amount of entropy that can be extracted 
+   from the main key no matter how large it is. The changes feed the 
+   main key into the internal seed KDF multiple times when creating the 
+   cipher's initial seeds, & once on every iteration of the ``(a)bytes_keys``
+   generators. 
+-  Merged two internal KDFs used by the cipher into the one seed KDF. This
+   also now means that using the ``(a)update_key`` methods of the ``StreamHMAC``
+   class updates the KDF used to ratchet the encryption keystream.
+-  Use ``sha3_512`` instead of ``sha3_256`` for the ``StreamHMAC`` final HMAC
+   & slice the first bytes designated by the package's ``commons.py`` module.
+   This allows the HMAC length to be specified & changed easily. It's 
+   **highly discouraged** to use anything less than 32-bytes.
+   
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Internal refactorings.
+-  Updates to tests.
+
+
+
+
+Changes for version 0.20.7
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Changed the way the ``Padding.(a)end_padding`` methods calculate the
+   required padding length. The change causes the methods to now assume 
+   that the plaintext has already been prepended with the start padding.
+-  The various ``test_*`` & ``verify_*`` functions/methods throughout the
+   package have been changed to return ``None`` on successful validation
+   instead of ``True``, which more closely matches the convention for
+   exception-raising validators.
+-  The default ``block_id`` length was changed from 16-bytes to 24-bytes.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Make the ``(a)end_padding`` methods of the ``Padding`` class assume the 
+   supplied data has already been prepended with the start padding. This 
+   better integrates with streams of plaintext (online usage).
+-  Small internal refactorings.
+-  Documentation fixes.
+
+
 
 
 Changes for version 0.20.6
