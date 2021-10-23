@@ -147,7 +147,6 @@ class Chunky2048Keys(Slots):
     """
 
     __slots__ = (
-        "kdf",
         "seed_0",
         "seed_1",
         "keystream",
@@ -177,14 +176,11 @@ class Chunky2048Keys(Slots):
         yield self.seed_0
         yield self.seed_1
 
-    def add_keystream_kdfs(
-        self, seed_kdf: sha3_512, left_kdf: sha3_512, right_kdf: sha3_512
-    ):
+    def add_keystream_kdfs(self, left_kdf: sha3_512, right_kdf: sha3_512):
         """
         Stores the main internal KDFs of the `Chunky2048` cipher's
         keystream.
         """
-        self.seed_kdf = seed_kdf
         self.left_kdf = left_kdf
         self.right_kdf = right_kdf
 
