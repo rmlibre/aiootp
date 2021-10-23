@@ -259,11 +259,14 @@ async def Comprende_chainable_methods():
     assert sentinel not in aval
 
     # Check feed / afeed
-    mock_keys = bytes_keys(key_bundle)
+    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
+    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_keys = bytes_keys(mock_kb)
     mock_food = order([None], bytes_range(4))
-    async with abytes_keys(key_bundle).afeed(abytes_range(5)) as altered_keys:
+    async with abytes_keys(akb).afeed(abytes_range(5)) as altered_keys:
         first_loop = True
-        for original_key in bytes_keys(key_bundle):
+        for original_key in bytes_keys(kb):
             altered_key = await altered_keys()
             if first_loop:
                 first_loop = False
@@ -273,11 +276,14 @@ async def Comprende_chainable_methods():
             with generics.ignore(StopIteration):
                 assert mock_keys(mock_food()) == altered_key
 
-    mock_keys = bytes_keys(key_bundle)
+    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
+    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_keys = bytes_keys(mock_kb)
     mock_food = order([None], bytes_range(4))
-    with bytes_keys(key_bundle).feed(bytes_range(5)) as altered_keys:
+    with bytes_keys(kb).feed(bytes_range(5)) as altered_keys:
         first_loop = True
-        async for original_key in abytes_keys(key_bundle):
+        async for original_key in abytes_keys(akb):
             altered_key = altered_keys()
             if first_loop:
                 first_loop = False
@@ -288,10 +294,13 @@ async def Comprende_chainable_methods():
                 assert mock_keys(mock_food()) == altered_key
 
     # Check feed_self / afeed_self
-    mock_keys = bytes_keys(key_bundle)
-    async with abytes_keys(key_bundle).afeed_self()[:5] as altered_keys:
+    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
+    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_keys = bytes_keys(mock_kb)
+    async with abytes_keys(akb).afeed_self()[:5] as altered_keys:
         first_loop = True
-        for original_key in bytes_keys(key_bundle):
+        for original_key in bytes_keys(kb):
             altered_key = await altered_keys()
             if first_loop:
                 food = None
@@ -303,10 +312,13 @@ async def Comprende_chainable_methods():
                 food = mock_keys(food)
                 assert food == altered_key
 
-    mock_keys = bytes_keys(key_bundle)
-    with bytes_keys(key_bundle).feed_self()[:5] as altered_keys:
+    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
+    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_keys = bytes_keys(mock_kb)
+    with bytes_keys(kb).feed_self()[:5] as altered_keys:
         first_loop = True
-        async for original_key in abytes_keys(key_bundle):
+        async for original_key in abytes_keys(akb):
             altered_key = altered_keys()
             if first_loop:
                 food = None
@@ -319,14 +331,18 @@ async def Comprende_chainable_methods():
                 assert food == altered_key
 
     # Check heappop / aheappop
-    mock_keys = await abytes_keys(key_bundle)[:16].alist()
-    keys = await abytes_keys(key_bundle).aheappop(16).alist()
+    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
+    amock_kb = await KeyAADBundle.unsafe(key, salt).async_mode()
+    mock_keys = await abytes_keys(amock_kb)[:16].alist()
+    keys = await abytes_keys(akb).aheappop(16).alist()
     assert keys != mock_keys
     mock_keys.sort()
     assert keys == mock_keys
 
-    mock_keys = bytes_keys(key_bundle)[:16].list()
-    keys = bytes_keys(key_bundle).heappop(16).list()
+    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
+    mock_keys = bytes_keys(mock_kb)[:16].list()
+    keys = bytes_keys(kb).heappop(16).list()
     assert keys != mock_keys
     mock_keys.sort()
     assert keys == mock_keys
