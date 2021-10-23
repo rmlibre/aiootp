@@ -325,15 +325,15 @@ class KeyAADBundle:
         """
         Sets up standardized seeds for the `Chunky2048` cipher's KDFs.
         """
-        self.__keys = Chunky2048Keys()
+        self.__keys = keys = Chunky2048Keys()
         # main kdf
-        domain = Domains.KDF + Domains.SEED
-        summary = b"||".join(self)
-        self.__keys.kdf = kdf = sha3_512(domain + summary)
+        summary = Domains.KDF + Domains.SEED + b"||".join(self)
+        keys.seed_kdf = kdf = sha3_512(summary)
         # seeds
-        self.__keys.seed_0 = seed_0 = kdf.digest()
-        kdf.update(domain + seed_0)
-        self.__keys.seed_1 = kdf.digest()
+        keys.seed_0 = kdf.digest()
+        kdf.update(summary)
+        keys.seed_1 = kdf.digest()
+        kdf.update(summary)
 
     async def _agenerate_algorithm_keys(self):
         """
@@ -341,16 +341,16 @@ class KeyAADBundle:
         uses its first 128-byte output to derive the keys & sha3_256 MAC
         object needed by the algorithm.
         """
+        keys = self.__keys
         # init keystream
-        self.__keys.keystream = keystream = abytes_keys.root(self)
-        self.__keys.primer_key = primer_key = await keystream.asend(None)
+        keys.keystream = keystream = abytes_keys.root(self)
+        keys.primer_key = primer_key = await keystream.asend(None)
         # init stream hmac
         domain = Domains.SHMAC
-        self.__keys.shmac_mac = sha3_256(primer_key + domain)  # Update with 136 bytes
-        self.__keys.shmac_key = primer_key[:KEY_BYTES]
+        keys.shmac_mac = sha3_256(primer_key + domain)  # Update with 136 bytes
+        keys.shmac_key = primer_key[:KEY_BYTES]
         # init padding key
-        self.__keys.padding_key = primer_key[-PADDING_KEY_BYTES:]
-        await self._mode.aset_async_mode()
+        keys.padding_key = primer_key[-PADDING_KEY_BYTES:]
 
     def _generate_algorithm_keys(self):
         """
@@ -358,22 +358,23 @@ class KeyAADBundle:
         uses its first 128-byte output to derive the keys & sha3_256 MAC
         object needed by the algorithm.
         """
+        keys = self.__keys
         # init keystream
-        self.__keys.keystream = keystream = bytes_keys.root(self)
-        self.__keys.primer_key = primer_key = keystream.send(None)
+        keys.keystream = keystream = bytes_keys.root(self)
+        keys.primer_key = primer_key = keystream.send(None)
         # init stream hmac
         domain = Domains.SHMAC
-        self.__keys.shmac_mac = sha3_256(primer_key + domain)  # Update with 136 bytes
-        self.__keys.shmac_key = primer_key[:KEY_BYTES]
+        keys.shmac_mac = sha3_256(primer_key + domain)  # Update with 136 bytes
+        keys.shmac_key = primer_key[:KEY_BYTES]
         # init padding key
-        self.__keys.padding_key = primer_key[-PADDING_KEY_BYTES:]
-        self._mode.set_sync_mode()
+        keys.padding_key = primer_key[-PADDING_KEY_BYTES:]
 
     async def async_mode(self):
         """
         Sets the instance up to run async key derivation.
         """
         await self._agenerate_algorithm_keys()
+        await self._mode.aset_async_mode()
         return self
 
     def sync_mode(self):
@@ -381,6 +382,7 @@ class KeyAADBundle:
         Sets the instance up to run sync key derivation.
         """
         self._generate_algorithm_keys()
+        self._mode.set_sync_mode()
         return self
 
     def _register_validator(self, validator):
@@ -417,15 +419,7 @@ class KeyAADBundle:
         """
         Returns the private KDF the instance used to create its seeds.
         """
-        return self.__keys.kdf
-
-    @property
-    def _seed(self):
-        """
-        Returns the private seed the instance produces for use within
-        the `(a)bytes_keys` coroutine generators.
-        """
-        return self.__keys.seed_1
+        return self.__keys.seed_kdf
 
     @property
     def _padding_key(self):
@@ -494,22 +488,22 @@ class KeyAADBundle:
 
 async def akeypair_ratchets(key_bundle: KeyAADBundle):
     """
-    Returns a 64-byte seed value & the method pointers of three
+    Returns the user's key value & the method pointers of three
     ``hashlib.sha3_512`` objects that have been primed in different ways
     with the hashes of the ``key_bundle``'s `key`, `salt` & `aad` values.
-    The returned values can be used to construct a symmetric keypair
+    The returned values are used to construct a symmetric keypair
     ratchet algorithm.
     """
     await asleep()
     keys, seed_0, seed_1 = key_bundle._keys
     domain = Domains.CHUNKY_2048
-    seed_kdf = sha3_512(seed_1 + domain + seed_0 + Domains.SEED)
-    left_kdf = sha3_512(seed_kdf.digest() + domain + seed_0 + LEFT_PAD)
+    seed_kdf = keys.seed_kdf
+    left_kdf = sha3_512(seed_1 + domain + seed_0 + LEFT_PAD)
     right_kdf = sha3_512(left_kdf.digest() + domain + seed_0 + RIGHT_PAD)
-    keys.add_keystream_kdfs(seed_kdf, left_kdf, right_kdf)
+    keys.add_keystream_kdfs(left_kdf, right_kdf)
     await asleep()
     return (
-        seed_1,
+        key_bundle.key,
         seed_kdf.update,
         seed_kdf.digest,
         left_kdf.update,
@@ -521,20 +515,20 @@ async def akeypair_ratchets(key_bundle: KeyAADBundle):
 
 def keypair_ratchets(key_bundle: KeyAADBundle):
     """
-    Returns a 64-byte seed value & the method pointers of three
+    Returns the user's key value & the method pointers of three
     ``hashlib.sha3_512`` objects that have been primed in different ways
     with the hashes of the ``key_bundle``'s `key`, `salt` & `aad` values.
-    The returned values can be used to construct a symmetric keypair
+    The returned values are used to construct a symmetric keypair
     ratchet algorithm.
     """
     keys, seed_0, seed_1 = key_bundle._keys
     domain = Domains.CHUNKY_2048
-    seed_kdf = sha3_512(seed_1 + domain + seed_0 + Domains.SEED)
-    left_kdf = sha3_512(seed_kdf.digest() + domain + seed_0 + LEFT_PAD)
+    seed_kdf = keys.seed_kdf
+    left_kdf = sha3_512(seed_1 + domain + seed_0 + LEFT_PAD)
     right_kdf = sha3_512(left_kdf.digest() + domain + seed_0 + RIGHT_PAD)
-    keys.add_keystream_kdfs(seed_kdf, left_kdf, right_kdf)
+    keys.add_keystream_kdfs(left_kdf, right_kdf)
     return (
-        seed_1,
+        key_bundle.key,
         seed_kdf.update,
         seed_kdf.digest,
         left_kdf.update,
@@ -589,7 +583,7 @@ async def abytes_keys(key_bundle: KeyAADBundle):
     placement of the 64 bytes which will become the output key (O).
     """
     key_bundle._register_keystream()
-    seed, s_update, s_digest, l_update, l_digest, r_update, r_digest = (
+    key, s_update, s_digest, l_update, l_digest, r_update, r_digest = (
         await akeypair_ratchets(key_bundle)
     )
     while True:
@@ -598,7 +592,7 @@ async def abytes_keys(key_bundle: KeyAADBundle):
         r_update(ratchet_key + RIGHT_PAD)  # update with 72-bytes
         entropy = yield l_digest() + r_digest()
         await asleep()
-        s_update(seed + entropy if entropy else SEED_PAD + ratchet_key)
+        s_update(key + entropy if entropy else SEED_PAD + ratchet_key)
 
 
 @comprehension()
@@ -646,7 +640,7 @@ def bytes_keys(key_bundle: KeyAADBundle):
     placement of the 64 bytes which will become the output key (O).
     """
     key_bundle._register_keystream()
-    seed, s_update, s_digest, l_update, l_digest, r_update, r_digest = (
+    key, s_update, s_digest, l_update, l_digest, r_update, r_digest = (
         keypair_ratchets(key_bundle)
     )
     while True:
@@ -654,7 +648,7 @@ def bytes_keys(key_bundle: KeyAADBundle):
         l_update(ratchet_key + LEFT_PAD)  # update with 72-bytes
         r_update(ratchet_key + RIGHT_PAD)  # update with 72-bytes
         entropy = yield l_digest() + r_digest()
-        s_update(seed + entropy if entropy else SEED_PAD + ratchet_key)
+        s_update(key + entropy if entropy else SEED_PAD + ratchet_key)
 
 
 class StreamHMAC:
@@ -832,8 +826,8 @@ class StreamHMAC:
         """
         This method provides a public interface for updating the SHMAC
         key during validation of the stream of ciphertext. This allows
-        users to ratchet their authentication key & have the validator
-        track when the key changes & validate the change.
+        users to ratchet their authentication key, the keystream, & have
+        the validator track when the key changes & validate the change.
         """
         if self._is_finalized:
             raise SHMACIssue.already_finalized()
@@ -850,8 +844,8 @@ class StreamHMAC:
         """
         This method provides a public interface for updating the SHMAC
         key during validation of the stream of ciphertext. This allows
-        users to ratchet their authentication key & have the validator
-        track when the key changes & validate the change.
+        users to ratchet their authentication key, the keystream, & have
+        the validator track when the key changes & validate the change.
         """
         if self._is_finalized:
             raise SHMACIssue.already_finalized()
