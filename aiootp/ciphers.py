@@ -1351,7 +1351,8 @@ class StreamHMAC:
         key = Domains.SHMAC + self._auth_key
         await self._aupdate(key)
         payload = self._last_digest + self._mac.digest()
-        self._result = hmac.new(key, payload, self._type).digest()
+        result = hmac.new(key, payload, self._key_type)
+        self._result = result.digest()[:HMAC_BYTES]
 
     def _set_final_result(self):
         """
@@ -1363,7 +1364,8 @@ class StreamHMAC:
         key = Domains.SHMAC + self._auth_key
         self._update(key)
         payload = self._last_digest + self._mac.digest()
-        self._result = hmac.new(key, payload, self._type).digest()
+        result = hmac.new(key, payload, self._key_type)
+        self._result = result.digest()[:HMAC_BYTES]
 
     async def afinalize(self):
         """
