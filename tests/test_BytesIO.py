@@ -39,16 +39,15 @@ def test_json_conversion_functions():
     akey_bundle = run(KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).async_mode())
 
     xpadded_plaintext = Padding.pad_plaintext(plaintext_bytes, xkey_bundle)
-    padded_plaintext = Padding.pad_plaintext(plaintext_bytes, key_bundle)
-    apadded_plaintext = run(Padding.apad_plaintext(plaintext_bytes, akey_bundle))
+    padded_plaintext = apadded_plaintext = Padding.pad_plaintext(plaintext_bytes, key_bundle)
 
     xshmac = StreamHMAC(xkey_bundle).for_encryption()
     shmac = StreamHMAC(key_bundle).for_encryption()
     ashmac = StreamHMAC(akey_bundle).for_encryption()
 
-    xencipher = data(padded_plaintext).bytes_encipher(xkey_bundle, xshmac)
+    xencipher = data(xpadded_plaintext).bytes_encipher(xkey_bundle, xshmac)
     encipher = data(padded_plaintext).bytes_encipher(key_bundle, shmac)
-    aencipher = adata(padded_plaintext).abytes_encipher(akey_bundle, ashmac)
+    aencipher = adata(apadded_plaintext).abytes_encipher(akey_bundle, ashmac)
 
     xciphertext = {
         CIPHERTEXT: xencipher.bytes_to_int().list(),
@@ -72,7 +71,9 @@ def test_json_conversion_functions():
     assert ciphertext == aciphertext
     assert ciphertext != xciphertext
 
-    for json_message in [ciphertext, aciphertext]:
+    aads = [b"wrong", aad, aad]
+    ciphertexts = [xciphertext, ciphertext, aciphertext]
+    for _aad, json_message in zip(aads, ciphertexts):
         message = BytesIO.json_to_bytes(json_message)
-        assert plaintext_bytes == cipher.bytes_decrypt(message, aad=aad)
+        assert plaintext_bytes == cipher.bytes_decrypt(message, aad=_aad)
 
