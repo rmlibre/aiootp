@@ -1289,6 +1289,18 @@ Description: .. image:: https://raw.githubusercontent.com/rmlibre/aiootp/main/lo
         ========================================================================
         
         
+        Changes for version 0.21.1
+        --------------------------
+        
+        
+        Minor Changes
+        ^^^^^^^^^^^^^
+        
+        -  Fix usage of the wrong package signing key.
+        
+        
+        
+        
         Changes for version 0.21.0
         --------------------------
         
