@@ -404,8 +404,7 @@ class KeyAADBundle:
         """
         if hasattr(self._registers, "keystream"):
             raise KeyAADIssue.keystream_already_registered()
-        else:
-            self._registers.register("keystream", True)
+        self._registers.register("keystream", True)
 
     @property
     def _keys(self):
