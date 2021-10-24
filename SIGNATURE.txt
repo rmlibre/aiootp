@@ -1,5 +1,5 @@
 {
-    "checksum": "f208168fb7d13043e9f5e22b5b51d298396d5d661a31553297462d381e84e528b039b51e75f7b2ff887d0622ab98224d733f60f067576a6bc78e4b625427aa30",
+    "checksum": "85fd8826cc1b3d5740041732b515c4f48d7646e4ce386618d1612de50745b2323b87d27748a36cad05c6a2ee4e2a6365c9dd6533f1ca1c2ca5af0ea164779d39",
     "checksums": {
         ".gitignore": "342c20c3e47e2ceeaf19b43040bb5be029d26a67428f5d6970967f4deb03fa29910588afb78f50be1856930b1bcbabb5c4c7dee5a9c526b8722a041fdef5ef54",
         "CHANGES.rst": "cd522465a7232b7da27609b24815bb502e38dda9bd3b14c14d4a24932e7f6204ef210cf3d5b873c54086e9ab56b9e5bf5cffa45f03148aafde2776aee61d3734",
@@ -52,13 +52,13 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 1,
+        "build_number": 2,
         "date": 18924,
         "description": "aiootp - an asynchronous pseudo one-time pad based crypto and anonymity library.",
         "license": "AGPLv3",
         "package": "aiootp",
         "version": "0.21.0"
     },
-    "signing_key": "5c025d6bfafefe433cba0d54fbeb05f6b3afdead6a2d3c71d16507aecf7bc1af",
-    "signature": "cde3a9799331ba988b9039e4c35c76e4c39eb7fa6d247fa5f653f849f545fff48c3593a1641ffe92fcfcbe4dd1a5a5305780c5c1094fc1305dd076aa923fc803"
+    "signing_key": "94a8ecc8e8c3b9490801579b8b68b360fa46927cfec5b9234ea0e946598e4121",
+    "signature": "f0c5a8f5baf4414be0fdd23f436bb546fc90db23de97edb2c713c3c7c67d7ce34977a378048fa508fcbeca1a27314a88377f1c1152f461fec298856a68d82d04"
 }
