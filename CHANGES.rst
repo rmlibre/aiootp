@@ -2,6 +2,18 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+Changes for version 0.21.1
+--------------------------
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  Fix usage of the wrong package signing key.
+
+
+
+
 Changes for version 0.21.0
 --------------------------
 
