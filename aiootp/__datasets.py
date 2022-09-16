@@ -9,13 +9,7 @@
 #
 
 
-__all__ = [
-    "primes",
-    "Tables",
-    "WORD_LIST",
-    "PrimeGroups",
-    "UniformPrimes",
-]
+__all__ = ["primes", "Tables", "WORD_LIST", "PrimeGroups", "UniformPrimes"]
 
 
 __doc__ = (

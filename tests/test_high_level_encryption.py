@@ -13,10 +13,10 @@ from init_tests import *
 
 
 __all__ = [
+    "__all__",
     "test_json_functions",
     "test_bytes_functions",
     "test_token_functions",
-    "__all__",
 ]
 
 

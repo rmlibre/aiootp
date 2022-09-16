@@ -12,10 +12,7 @@
 from init_tests import *
 
 
-__all__ = [
-    "__all__",
-    "test_Ropake_exchanges",
-]
+__all__ = ["__all__", "test_Ropake_exchanges"]
 
 
 async def async_registration(async_database):

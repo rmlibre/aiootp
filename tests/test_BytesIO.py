@@ -9,10 +9,7 @@
 #
 
 
-__all__ = [
-    "__all__",
-    "test_json_conversion_functions",
-]
+__all__ = ["__all__", "test_json_conversion_functions"]
 
 
 from init_tests import *
@@ -71,8 +68,8 @@ def test_json_conversion_functions():
     assert ciphertext == aciphertext
     assert ciphertext != xciphertext
 
-    aads = [b"wrong", aad, aad]
-    ciphertexts = [xciphertext, ciphertext, aciphertext]
+    aads = (b"wrong", aad, aad)
+    ciphertexts = (xciphertext, ciphertext, aciphertext)
     for _aad, json_message in zip(aads, ciphertexts):
         message = BytesIO.json_to_bytes(json_message)
         assert plaintext_bytes == cipher.bytes_decrypt(message, aad=_aad)

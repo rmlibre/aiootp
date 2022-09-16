@@ -13,11 +13,11 @@ from init_tests import *
 
 
 __all__ = [
+    "__all__",
     "test_metadata_hashes",
     "test_passcrypts_equality",
     "test_passcrypt_generators",
     "test_apasscrypt_generators",
-    "__all__",
 ]
 
 

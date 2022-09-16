@@ -68,9 +68,9 @@ Quick Install
 
 .. code-block:: shell
 
-  $ sudo apt-get install python3-setuptools python3-cryptography
+  $ sudo apt-get install python3-setuptools python3-pip
 
-  $ pip3 install --user --upgrade aiootp
+  $ pip3 install --user --upgrade pip typing aiootp
 
 
 
@@ -228,7 +228,7 @@ Data within databases are primarily organized by Tags. Tags are simply string la
     >>> {'tag', 'hobby', 'bitcoin', 'lawyer', 'safehouses'}
 
 
-    # View the filenames of an instance's tags ->
+    # View the filenames that locate the data for each tag ->
     
     db.filenames
     >>> {'0z0l10btu_yd-n4quc8tsj9baqu8xmrxz87ix',
@@ -275,7 +275,7 @@ Data within databases are primarily organized by Tags. Tags are simply string la
     tag_path.is_file()
     >>> False
 
-Access to data is open to the user, so care must be taken not to let external api calls touch the database without accounting for how that can go wrong.
+Access to data is open to the user, so care must be taken not to let external API calls touch the database without accounting for how that can go wrong.
 
 
 _`Metatags` ....................................... `Table Of Contents`_

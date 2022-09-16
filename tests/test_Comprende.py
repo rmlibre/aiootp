@@ -13,11 +13,11 @@ from init_tests import *
 
 
 __all__ = [
+    "__all__",
     "test_comprehension_context",
     "test_comprehension_iter",
     "test_chainable_methods",
     "test_comprehension",
-    "__all__",
 ]
 
 

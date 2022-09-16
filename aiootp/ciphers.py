@@ -112,7 +112,7 @@ def test_key_salt_aad(key: bytes, salt: bytes, aad: bytes):
         raise Issue.value_must_be_type("aad", bytes)
 
 
-async def amake_salt_non_deterministic(
+async def amake_non_deterministic_salt(
     salt: bytes, *, disable: bool = False
 ):
     """
@@ -128,7 +128,7 @@ async def amake_salt_non_deterministic(
         return await agenerate_salt(size=SALT_BYTES)
 
 
-def make_salt_non_deterministic(salt: bytes, *, disable: bool = False):
+def make_non_deterministic_salt(salt: bytes, *, disable: bool = False):
     """
     Prevents a deterministic salt from being used for an encryption
     procedure without explicitly passing the appropriate flag to do so.
@@ -142,7 +142,7 @@ def make_salt_non_deterministic(salt: bytes, *, disable: bool = False):
         return generate_salt(size=SALT_BYTES)
 
 
-async def asingle_use_key(
+async def asingle_use_key_bundle(
     key: Typing.Optional[bytes] = None,
     *,
     salt: Typing.Optional[bytes] = None,
@@ -164,14 +164,14 @@ async def asingle_use_key(
     """
     key_and_salt = key and salt
     key = key if key else await acsprng()
-    salt = await amake_salt_non_deterministic(
+    salt = await amake_non_deterministic_salt(
         salt, disable=allow_dangerous_determinism or not key_and_salt
     )
     await atest_key_salt_aad(key, salt, aad)
     return KeySaltAAD(key, salt, aad)
 
 
-def single_use_key(
+def single_use_key_bundle(
     key: Typing.Optional[bytes] = None,
     *,
     salt: Typing.Optional[bytes] = None,
@@ -193,7 +193,7 @@ def single_use_key(
     """
     key_and_salt = key and salt
     key = key if key else csprng()
-    salt = make_salt_non_deterministic(
+    salt = make_non_deterministic_salt(
         salt, disable=allow_dangerous_determinism or not key_and_salt
     )
     test_key_salt_aad(key, salt, aad)
@@ -224,8 +224,8 @@ class KeyAADBundle:
 
     __slots__ = ("__keys", "_bundle", "_mode", "_registers", "_siv")
 
-    _generate_bundle = staticmethod(single_use_key)
-    _agenerate_bundle = staticmethod(asingle_use_key)
+    _generate_bundle = staticmethod(single_use_key_bundle)
+    _agenerate_bundle = staticmethod(asingle_use_key_bundle)
 
     @staticmethod
     def _test_siv(siv):
@@ -573,7 +573,7 @@ async def abytes_keys(key_bundle: KeyAADBundle):
               |
               O
 
-                    seed_kdf.update(seed║mac_or_user_entropy║R)
+                    seed_kdf.update(key║mac_or_user_entropy║R)
                     R = seed_kdf.digest()
 
     Do this procedure for the left & right kdfs, concatenate & retrieve
@@ -630,7 +630,7 @@ def bytes_keys(key_bundle: KeyAADBundle):
               |
               O
 
-                    seed_kdf.update(seed║mac_or_user_entropy║R)
+                    seed_kdf.update(key║mac_or_user_entropy║R)
                     R = seed_kdf.digest()
 
     Do this procedure for the left & right kdfs, concatenate & retrieve
@@ -653,10 +653,10 @@ def bytes_keys(key_bundle: KeyAADBundle):
 class StreamHMAC:
     """
     This class is used as an inline validator for ciphertext streams as
-    they are being created & decrypted. Its design was inspired by AES-GCM,
-    but uses a sha3_256 hash function instead of Galois multiplication,
-    the authenticated associated data is used within key derivation, &
-    an SIV is derived from the first block of ciphertext.
+    they are being created & decrypted. Its design was inspired by AES-
+    GCM, but it's key committing, uses SHA3 for ciphertext validation,
+    feeds its state at each step into the keystream generator, & is used
+    to derive an SIV from the first block of ciphertext.
     """
 
     __slots__ = (
@@ -5600,11 +5600,11 @@ extras = dict(
     __package__=__package__,
     _abytes_xor=abytes_xor,
     _akeypair_ratchets=akeypair_ratchets,
-    _asingle_use_key=asingle_use_key,
+    _asingle_use_key_bundle=asingle_use_key_bundle,
     _atest_key_salt_aad=atest_key_salt_aad,
     _bytes_xor=bytes_xor,
     _keypair_ratchets=keypair_ratchets,
-    _single_use_key=single_use_key,
+    _single_use_key_bundle=single_use_key_bundle,
     _test_key_salt_aad=test_key_salt_aad,
     abytes_decipher=abytes_decipher,
     abytes_decrypt=abytes_decrypt,

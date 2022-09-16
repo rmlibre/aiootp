@@ -13,10 +13,10 @@ from init_tests import *
 
 
 __all__ = [
+    "__all__",
     "test_detection_of_ciphertext_modification",
     "test_current_digest",
     "test_block_ids",
-    "__all__",
 ]
 
 

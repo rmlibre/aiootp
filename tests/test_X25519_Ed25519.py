@@ -12,11 +12,7 @@
 from init_tests import *
 
 
-__all__ = [
-    "__all__",
-    "test_X25519",
-    "test_Ed25519",
-]
+__all__ = ["__all__", "test_X25519", "test_Ed25519"]
 
 
 async def basic_async_tests(tested_class):

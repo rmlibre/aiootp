@@ -9,9 +9,7 @@
 #
 
 
-__all__ = [
-    "commons", "Tables", "WORD_LIST", "Namespace", "OpenNamespace"
-]
+__all__ = ["commons", "Tables", "WORD_LIST", "Namespace", "OpenNamespace"]
 
 
 __doc__ = (
