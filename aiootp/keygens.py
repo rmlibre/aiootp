@@ -922,7 +922,7 @@ class X25519(Base25519):
         shared_key_kdf = await exchange.aresult()
         """
         domain = Domains.DH2
-        my_ephemeral_key = await X25519().agenerate()
+        my_ephemeral_key = await cls().agenerate()
         peer_identity_key, peer_ephemeral_key = yield (
             my_ephemeral_key.public_bytes
         )
@@ -953,7 +953,7 @@ class X25519(Base25519):
         shared_key_kdf = exchange.result()
         """
         domain = Domains.DH2
-        my_ephemeral_key = X25519().generate()
+        my_ephemeral_key = cls().generate()
         peer_identity_key, peer_ephemeral_key = yield (
             my_ephemeral_key.public_bytes
         )
@@ -987,7 +987,7 @@ class X25519(Base25519):
         """
         domain = Domains.DH2
         my_identity_key = self
-        my_ephemeral_key = await X25519().agenerate()
+        my_ephemeral_key = await cls().agenerate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
@@ -1019,7 +1019,7 @@ class X25519(Base25519):
         """
         domain = Domains.DH2
         my_identity_key = self
-        my_ephemeral_key = X25519().generate()
+        my_ephemeral_key = cls().generate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
@@ -1051,7 +1051,7 @@ class X25519(Base25519):
         """
         domain = Domains.DH3
         my_identity_key = self
-        my_ephemeral_key = await X25519().agenerate()
+        my_ephemeral_key = await cls().agenerate()
         peer_identity_key, peer_ephemeral_key = yield (
             my_identity_key.public_bytes,
             my_ephemeral_key.public_bytes,
@@ -1089,7 +1089,7 @@ class X25519(Base25519):
         """
         domain = Domains.DH3
         my_identity_key = self
-        my_ephemeral_key = X25519().generate()
+        my_ephemeral_key = cls().generate()
         peer_identity_key, peer_ephemeral_key = yield (
             my_identity_key.public_bytes,
             my_ephemeral_key.public_bytes,
@@ -1131,7 +1131,7 @@ class X25519(Base25519):
         """
         domain = Domains.DH3
         my_identity_key = self
-        my_ephemeral_key = await X25519().agenerate()
+        my_ephemeral_key = await cls().agenerate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_bc = await my_ephemeral_key.aexchange(peer_identity_key)
@@ -1170,7 +1170,7 @@ class X25519(Base25519):
         """
         domain = Domains.DH3
         my_identity_key = self
-        my_ephemeral_key = X25519().generate()
+        my_ephemeral_key = cls().generate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_bc = my_ephemeral_key.exchange(peer_identity_key)

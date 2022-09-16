@@ -656,7 +656,7 @@ class StreamHMAC:
     they are being created & decrypted. Its design was inspired by AES-
     GCM, but it's key committing, uses SHA3 for ciphertext validation,
     feeds its state at each step into the keystream generator, & is used
-    to derive an SIV from the first block of ciphertext.
+    to derive an SIV from the first block of plaintext.
     """
 
     __slots__ = (
