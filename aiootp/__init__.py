@@ -4,12 +4,12 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-__version__ = "0.21.2"
+__version__ = "0.21.3"
 
 
 __license__ = "AGPLv3"
