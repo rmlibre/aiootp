@@ -4,217 +4,360 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-from init_tests import *
-
-
-__all__ = [
-    "__all__",
-    "database",
-    "async_database",
-    "test_tags_metatags",
-    "test_Database_instance",
-    "test_AsyncDatabase_instance",
-    "test_database_ciphers",
-    "test_user_profiles",
-]
+from test_initialization import *
 
 
 def test_Database_instance(database):
-    db = Database(key=key, depth=depth, preload=True)
+    db = Database(key=key, preload=True)
 
-    assert db._root_key == database._root_key
-    assert db._root_hash == database._root_hash
+    # basic database functionalities work the same across reloads
+    assert db._Database__root_kdf.sha3_256() == database._Database__root_kdf.sha3_256()
+    assert db._Database__kdf.sha3_256() == database._Database__kdf.sha3_256()
+    assert db._Database__root_kdf.sha3_256() != database._Database__kdf.sha3_256()
     assert db._Database__root_salt == database._Database__root_salt
-    assert db._root_seed == database._root_seed
     assert db._root_filename == database._root_filename
-    assert db.make_hmac(tag) == database.make_hmac(tag)
-    assert db.filename(tag) == database.filename(tag)
-    assert db._metatag_key(tag) == database._metatag_key(tag)
+    assert db._root_salt_filename == database._root_salt_filename
+    assert db.make_hmac(atag.encode()) == database.make_hmac(atag.encode())
+    assert db.filename(atag) == database.filename(atag)
+    assert db._metatag_key(atag) == database._metatag_key(atag)
 
 
-def test_AsyncDatabase_instance(database):
-    db = run(AsyncDatabase(key=key, depth=depth, preload=True))
+async def test_AsyncDatabase_instance(database):
+    db = await AsyncDatabase(key=key, preload=True)
 
-    assert db._root_key == database._root_key
-    assert db._root_hash == database._root_hash
+    # basic async database functionalities work the same across reloads
+    assert db._AsyncDatabase__root_kdf.sha3_256() == database._Database__root_kdf.sha3_256()
+    assert db._AsyncDatabase__kdf.sha3_256() == database._Database__kdf.sha3_256()
+    assert db._AsyncDatabase__root_kdf.sha3_256() != database._Database__kdf.sha3_256()
     assert db._AsyncDatabase__root_salt == database._Database__root_salt
-    assert db._root_seed == database._root_seed
     assert db._root_filename == database._root_filename
-    assert run(db.amake_hmac(tag)) == database.make_hmac(tag)
-    assert run(db.afilename(tag)) == database.filename(tag)
-    assert run(db._ametatag_key(tag)) == database._metatag_key(tag)
+    assert db._root_salt_filename == database._root_salt_filename
+    assert await db.amake_hmac(tag.encode()) == database.make_hmac(tag.encode())
+    assert await db.afilename(tag) == database.filename(tag)
+    assert await db._ametatag_key(tag) == database._metatag_key(tag)
 
 
-def database_ciphers(database):
+def test_Database_user_kdf(database):
+    db = Database(key=key, preload=False)
+
+    context = "empty kdf updates were allowed!"
+    with ignore(ValueError, if_else=violation(context)):
+        db.kdf.update()
+
+    assert db.kdf.sha3_256() == database.kdf.sha3_256()
+    assert db.kdf.sha3_512() == database.kdf.sha3_512()
+    assert db.kdf.shake_128(32) == database.kdf.shake_128(32)
+    assert db.kdf.shake_256(32) == database.kdf.shake_256(32)
+
+
+async def test_AsyncDatabase_user_kdf(async_database):
+    db = await AsyncDatabase(key=key, preload=False)
+
+    context = "empty kdf updates were allowed!"
+    with ignore(ValueError, if_else=violation(context)):
+        await db.kdf.aupdate()
+
+    assert await db.kdf.asha3_256() == await async_database.kdf.asha3_256()
+    assert await db.kdf.asha3_512() == await async_database.kdf.asha3_512()
+    assert await db.kdf.ashake_128(32) == await async_database.kdf.ashake_128(32)
+    assert await db.kdf.ashake_256(32) == await async_database.kdf.ashake_256(32)
+
+
+def test_database_ciphers(database):
+    # database ciphertexts are unique
     db = database
     filename = db.filename(tag)
-
-    encrypted_data = db.json_encrypt(test_data, filename=filename, aad=b"aad")
-
+    encrypted_data = db.json_encrypt(test_data, filename=filename, aad=DEFAULT_AAD)
     db[tag] = test_data
     db.save_database()
     encrypted_file = db._query_ciphertext(filename)
-
     assert encrypted_file != encrypted_data
+    assert encrypted_file[SHMAC_SLICE] != encrypted_data[SHMAC_SLICE]
     assert encrypted_file[SALT_SLICE] != encrypted_data[SALT_SLICE]
-    assert db.json_decrypt(encrypted_file, filename=filename, aad=b"aad") == test_data
-    assert db.json_decrypt(encrypted_data, filename=filename, aad=b"aad") == test_data
+    assert encrypted_file[IV_SLICE] != encrypted_data[IV_SLICE]
+    assert encrypted_file[CIPHERTEXT_SLICE] != encrypted_data[CIPHERTEXT_SLICE]
 
+    # database ciphers recover json data correctly
+    assert test_data == db.json_decrypt(encrypted_file, filename=filename, aad=DEFAULT_AAD)
+    assert test_data == db.json_decrypt(encrypted_data, filename=filename, aad=DEFAULT_AAD)
+    assert type(test_data) is dict
 
+    # database ciphers recover bytes data correctly
     encrypted_binary_data = db.bytes_encrypt(plaintext_bytes, aad=b"test")
     decrypted_binary_data = db.bytes_decrypt(
         encrypted_binary_data, aad=b"test", ttl=30
     )
-
     assert decrypted_binary_data == plaintext_bytes
+    assert type(encrypted_binary_data) is bytes
+    assert type(decrypted_binary_data) is bytes
 
-
+    # database ciphers recover token data correctly
     encrypted_token_data = db.make_token(plaintext_bytes, aad=b"test")
     decrypted_token_data = db.read_token(
         encrypted_token_data, aad=b"test", ttl=3600
     )
-
     assert decrypted_token_data == plaintext_bytes
+    assert type(encrypted_token_data) is bytes
+    assert type(decrypted_token_data) is bytes
+    assert (
+        set(Tables.URL_SAFE.encode()).union(encrypted_token_data + b"%")
+        == set(Tables.URL_SAFE.encode()).union(b"%")
+    )
 
 
-async def async_database_ciphers(async_database):
+async def test_async_database_ciphers(async_database):
+    # async database ciphertexts are unique
     db = async_database
     filename = await db.afilename(tag)
-
-    encrypted_data = await db.ajson_encrypt(test_data, filename=filename, aad=b"aad")
-
+    encrypted_data = await db.ajson_encrypt(test_data, filename=filename, aad=DEFAULT_AAD)
     db[tag] = test_data
     await db.asave_database()
     encrypted_file = await db._aquery_ciphertext(filename)
-
     assert encrypted_file != encrypted_data
+    assert encrypted_file[SHMAC_SLICE] != encrypted_data[SHMAC_SLICE]
     assert encrypted_file[SALT_SLICE] != encrypted_data[SALT_SLICE]
-    assert await db.ajson_decrypt(encrypted_file, filename=filename, aad=b"aad") == test_data
-    assert await db.ajson_decrypt(encrypted_data, filename=filename, aad=b"aad") == test_data
+    assert encrypted_file[IV_SLICE] != encrypted_data[IV_SLICE]
 
+    # async database ciphers recover json data correctly
+    assert test_data == await db.ajson_decrypt(encrypted_file, filename=filename, aad=DEFAULT_AAD)
+    assert test_data == await db.ajson_decrypt(encrypted_data, filename=filename, aad=DEFAULT_AAD)
 
+    # async database ciphers recover bytes data correctly
     encrypted_binary_data = await db.abytes_encrypt(
         plaintext_bytes, aad=b"test"
     )
     decrypted_binary_data = await db.abytes_decrypt(
         encrypted_binary_data, aad=b"test", ttl=30
     )
-
     assert decrypted_binary_data == plaintext_bytes
+    assert type(encrypted_binary_data) is bytes
 
-
+    # async database ciphers recover token data correctly
     encrypted_token_data = await db.amake_token(plaintext_bytes, aad=b"test")
     decrypted_token_data = await db.aread_token(
         encrypted_token_data, aad=b"test", ttl=3600
     )
-
     assert decrypted_token_data == plaintext_bytes
+    assert type(encrypted_token_data) is bytes
+    assert (
+        set(Tables.URL_SAFE.encode()).union(encrypted_token_data + b"%")
+        == set(Tables.URL_SAFE.encode()).union(b"%")
+    )
 
 
-def test_database_ciphers(database, async_database):
-    profile = database_ciphers(database)
-    aprofile = run(async_database_ciphers(async_database))
+async def test_async_tags_metatags():
+    async_database = await AsyncDatabase(key * 2, preload=True)
+    achild = await async_database.ametatag(ametatag, preload=True)
 
+    # async databases retrieve their stored data uncorrupted
+    await async_database.aset_tag("bytes", plaintext_bytes, cache=False)
+    assert await async_database.aquery_tag("bytes") == plaintext_bytes
 
-def metatag_isnt_ametatag_but_equal(child, achild, db, adb):
-    assert child is db.clients
-    assert achild is adb.aclients
-
-    assert child[tag] is db.clients[tag]
-    assert achild[atag] is adb.aclients[atag]
-
-    assert db.clients[tag] == adb.aclients[atag]
-    assert db.clients[tag] is not adb.aclients[atag]
-
-
-def databases_save_metatag_files(db, adb, filename, afilename):
-    assert not (db.directory / filename).exists()
-    assert not (adb.directory / afilename).exists()
-    with db:
-        pass
-    run(adb.__aenter__())
-    run(adb.__aexit__())
-    assert (db.directory / filename).exists()
-    assert (adb.directory / afilename).exists()
-    assert db.clients[tag] == adb.aclients[atag]
-    assert db.clients[tag] is not adb.aclients[atag]
-
-
-def databases_share_metatags(db, adb, child, achild):
-    assert child is db.clients
-    assert achild is adb.aclients
-
-
-def test_tags_metatags():
-    database = Database(key * 2, depth=depth, preload=True)
-    async_database = run(AsyncDatabase(key * 2, depth=depth, preload=True))
-    child = database.metatag(metatag, preload=True)
-    achild = run(async_database.ametatag(ametatag, preload=True))
-    databases_share_metatags(database, async_database, child, achild)
-
-    database.set_tag("bytes", plaintext_bytes, cache=False)
-    database.query_tag("bytes") == plaintext_bytes
-    run(async_database.aset_tag("bytes", plaintext_bytes, cache=False))
-    run(async_database.aquery_tag("bytes")) == plaintext_bytes
-
-    child[tag] = test_data
+    # metatag references stored as parent attributes are identical to
+    # the references returned by their (a)metatag methods
     achild[atag] = atest_data
-    metatag_isnt_ametatag_but_equal(child, achild, database, async_database)
+    assert achild is async_database.aclients
+    assert achild[atag] is async_database.aclients[atag]
 
+    # exiting an async database's async context manager saves their
+    # childrens' files to disk
+    afilename = await achild.afilename(atag)
+    assert not (achild.path / afilename).exists()
+    async with async_database:
+        pass
+    assert (achild.path / afilename).exists()
+
+    # metatags of equivalent but not identical database instances
+    # contain equivalent but not identical stored data
+    adb = await AsyncDatabase(key * 2, preload=True)
+    assert async_database.aclients[atag] == adb.aclients[atag]
+    assert async_database.aclients[atag] is not adb.aclients[atag]
+
+    # all databases create children from the keys returned by their
+    # _ametatag_key methods
+    ametatag_key = await async_database._ametatag_key(ametatag)
+    achild = await AsyncDatabase(ametatag_key, metatag=True, preload=True)
+    assert achild[atag]
+    assert achild[atag].__class__ is dict
+    assert achild[atag] == async_database.aclients[atag]
+    assert achild[atag] is not async_database.aclients[atag]
+
+    await async_database.adelete_database()
+
+
+def test_sync_tags_metatags():
+    database = Database(key * 2, preload=True)
+    child = database.metatag(metatag, preload=True)
+
+    # databases retrieve their stored data uncorrupted
+    database.set_tag("bytes", plaintext_bytes, cache=False)
+    assert database.query_tag("bytes") == plaintext_bytes
+
+    # metatag references stored as parent attributes are identical to
+    # the references returned by their (a)metatag methods
+    child[tag] = test_data
+    assert child is database.clients
+    assert child[tag] is database.clients[tag]
+
+    # exiting database's context manager saves their childrens' files to
+    # disk
     filename = child.filename(tag)
-    afilename = run(achild.afilename(atag))
-    databases_save_metatag_files(database, async_database, filename, afilename)
+    assert not (child.path / filename).exists()
+    with database:
+        pass
+    assert (child.path / filename).exists()
 
+    # metatags of equivalent but not identical database instances
+    # contain equivalent but not identical stored data
+    db = Database(key * 2, preload=True)
+    assert database.clients[tag] == db.clients[tag]
+    assert database.clients[tag] is not db.clients[tag]
+
+    # all databases create children from the keys returned by their
+    # _metatag_key methods
     metatag_key = database._metatag_key(metatag)
-    ametatag_key = run(async_database._ametatag_key(ametatag))
-    db = Database(metatag_key, metatag=True, preload=True)
-    adb = run(AsyncDatabase(ametatag_key, metatag=True, preload=True))
-    assert db[tag] == adb[atag]
-    assert db[tag] == database.clients[tag]
-    assert adb[atag] == async_database.aclients[atag]
+    child = Database(metatag_key, metatag=True, preload=True)
+    assert child[tag]
+    assert child[tag].__class__ is dict
+    assert child[tag] == database.clients[tag]
+    assert child[tag] is not database.clients[tag]
 
     database.delete_database()
-    run(async_database.adelete_database())
 
 
-async def async_user_profiles(async_database):
+async def test_async_user_profiles(async_database):
     adb = async_database
-    tokens = await adb.agenerate_profile_tokens(**PROFILE_AND_SETTINGS)
-    user = await adb.agenerate_profile(tokens)
+    user = await adb.agenerate_profile(**PROFILE_AND_SETTINGS)
 
     async with user:
         user[atag] = atest_data
 
-    user_copy = await adb.aload_profile(tokens, preload=True)
+    # equivalent async profiles contain their own copies of stored data
+    user_copy = await adb.agenerate_profile(**PROFILE_AND_SETTINGS, preload=True)
+    assert user[atag] == user_copy[atag]
+    assert user.tags == user_copy.tags
+    assert user[atag]
+    assert user[atag] == atest_data
+    assert user[atag].__class__ is dict
     assert user[atag] == user_copy[atag]
     assert user[atag] is not user_copy[atag]
 
-    await adb.adelete_profile(tokens)
-    return user_copy
+    # async profiles are automatically saved to disk when initialized
+    assert user_copy._root_path.is_file()
+    assert user_copy._profile_tokens._salt_path.is_file()
+    assert (user_copy.path / await user_copy.afilename(atag)).is_file()
+
+    # async & sync profile contructors are equivalent
+    sync_user = Database.generate_profile(**PROFILE_AND_SETTINGS, preload=True)
+    assert sync_user[atag] == user[atag]
+    assert sync_user.tags == user.tags
+    assert sync_user[atag]
+    assert sync_user[atag] == atest_data
+    assert sync_user[atag].__class__ is dict
+    assert sync_user[atag] is not user[atag]
+
+    # deleting an async profile removes its files from the filesystem
+    await user.adelete_database()
+    assert not user_copy._root_path.is_file()
+    assert not user_copy._profile_tokens._salt_path.is_file()
+    assert not (user_copy.path / await user_copy.afilename(atag)).is_file()
 
 
-def user_profiles(database):
+async def test_user_profiles(database):
     db = database
-    tokens = db.generate_profile_tokens(**PROFILE_AND_SETTINGS)
-    user = db.generate_profile(tokens)
+    user = db.generate_profile(**PROFILE_AND_SETTINGS)
 
     with user:
         user[tag] = test_data
 
-    user_copy = db.load_profile(tokens, preload=True)
+    # equivalent profiles contain their own copies of stored data
+    user_copy = db.generate_profile(**PROFILE_AND_SETTINGS, preload=True)
+    assert user[tag] == user_copy[tag]
+    assert user.tags == user_copy.tags
+    assert user[tag]
+    assert user[tag] == atest_data
+    assert user[tag].__class__ is dict
     assert user[tag] == user_copy[tag]
     assert user[tag] is not user_copy[tag]
 
-    db.delete_profile(tokens)
-    return user_copy
+    # profiles are automatically saved to disk when initialized
+    assert user_copy._root_path.is_file()
+    assert user_copy._profile_tokens._salt_path.is_file()
+    assert (user_copy.path / user_copy.filename(tag)).is_file()
+
+    # async & sync profile contructors are equivalent
+    async_user = await AsyncDatabase.agenerate_profile(**PROFILE_AND_SETTINGS, preload=True)
+    assert async_user[tag] == user[tag]
+    assert async_user.tags == user.tags
+    assert async_user[tag]
+    assert async_user[tag] == test_data
+    assert async_user[tag].__class__ is dict
+    assert async_user[tag] is not user[tag]
+
+    # deleting a profile removes its files from the filesystem
+    user.delete_database()
+    assert not user_copy._root_path.is_file()
+    assert not user_copy._profile_tokens._salt_path.is_file()
+    assert not (user_copy.path / user_copy.filename(tag)).is_file()
 
 
-def test_user_profiles(database, async_database):
-    profile = user_profiles(database)
-    aprofile = run(async_user_profiles(async_database))
+async def test_hmac_methods(database, async_database):
+    inputs = token_bytes(32)
+    ainputs = token_bytes(32)
+
+    tag = database.make_hmac(inputs)
+    atag = await async_database.amake_hmac(ainputs)
+
+    # validation doesn't fail
+    database.test_hmac(tag, inputs)
+    await async_database.atest_hmac(atag, ainputs)
+
+    # sync hmac tags fail when inputs type is altered
+    context = "Data type alteration not caught!"
+    with ignore(TypeError, if_else=violation(context)):
+        database.test_hmac(tag, str(inputs))
+
+    # sync hmac tags fail when inputs are altered
+    iinputs = int.from_bytes(inputs, BYTE_ORDER)
+    context = "Data value alteration not caught!"
+    for bit in range(iinputs.bit_length()):
+        with ignore(database.InvalidHMAC, if_else=violation(context)):
+            database.test_hmac(tag, (iinputs ^ (1 << bit)).to_bytes(32, BYTE_ORDER))
+
+    # sync hmac tags fail when they are altered
+    itag = int.from_bytes(tag, BYTE_ORDER)
+    context = "Tag alteration not caught!"
+    for bit in range(itag.bit_length()):
+        with ignore(database.InvalidHMAC, if_else=violation(context)):
+            altered_tag = (itag ^ (1 << bit)).to_bytes(32, BYTE_ORDER)
+            database.test_hmac(altered_tag, inputs)
+
+    ######
+    ###### async hmac tags fail when inputs type is altered
+    context = "Async data type alteration not caught!"
+    with ignore(TypeError, if_else=violation(context)):
+        await async_database.atest_hmac(atag, str(ainputs))
+
+    # async hmac tags fail when inputs are altered
+    aiinputs = int.from_bytes(ainputs, BYTE_ORDER)
+    context = "Async data value alteration not caught!"
+    for bit in range(aiinputs.bit_length()):
+        with ignore(database.InvalidHMAC, if_else=violation(context)):
+            await async_database.atest_hmac(atag, (aiinputs ^ (1 << bit)).to_bytes(32, BYTE_ORDER))
+
+    # async hmac tags fail when they are altered
+    aitag = int.from_bytes(atag, BYTE_ORDER)
+    context = "Async tag alteration not caught!"
+    for abit in range(aitag.bit_length()):
+        with ignore(database.InvalidHMAC, if_else=violation(context)):
+            altered_tag = (aitag ^ (1 << abit)).to_bytes(32, BYTE_ORDER)
+            await async_database.atest_hmac(altered_tag, ainputs)
+
+
+__all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 

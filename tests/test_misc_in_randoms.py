@@ -4,81 +4,160 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-__all__ = ["__all__", "test_misc_functionality"]
+from test_initialization import *
 
 
-from init_tests import *
-
-
-async def async_tests():
-    entropy = await arandom_512(rounds=1)
+async def test_acsprng():
+    entropy = await randoms.arandom_number_generator(entropy=test_data, freshness=1)
     assert len(entropy) == 64
     assert entropy.__class__ is bytes
 
-    entropy = await arandom_256(entropy="test", rounds=1)
-    assert len(entropy) == 32
+    entropy = await randoms.arandom_number_generator(128, freshness=0)
+    assert len(entropy) == 128
     assert entropy.__class__ is bytes
 
-    assert len(await acsprng(None)) == 64
-    assert len(await acsprng("test")) == 64
-
-    prime = await randoms.PrimeTools.acreate_prime(128)
-    assert prime.bit_length() == 128
-    assert randoms.PrimeTools.is_prime(prime)
-
-    prng = randoms.WeakEntropy()
-    weak_entropy = await prng.atoken_bytes(128)
-    assert len(weak_entropy) == 128
-    assert weak_entropy.__class__ is bytes
-
-    uuid_salt = await agenerate_key(size=64)
-    uuids = await amake_uuids(size=32, salt=uuid_salt).aprime()
-    uuid = await uuids("test@user.org")
-    assert uuid == await uuids("test@user.org")
-    assert uuid != await uuids("test2@user.org")
-    assert len(uuid) == 32
-    assert uuid.__class__ is bytes
-    assert uuid_salt == await uuids.aresult(exit=True)
-
-
-def sync_tests():
-    entropy = random_512(rounds=1)
+    entropy = await acsprng(b"")
     assert len(entropy) == 64
     assert entropy.__class__ is bytes
 
-    entropy = random_256(entropy="test", rounds=1)
-    assert len(entropy) == 32
+    entropy = await acsprng("test")
+    assert len(entropy) == 64
     assert entropy.__class__ is bytes
 
-    assert len(csprng(None)) == 64
-    assert len(csprng("test")) == 64
+    key = await agenerate_key(freshness=0)
+    assert len(key) == KEY_BYTES
+    assert key.__class__ is bytes
 
-    prime = randoms.PrimeTools.create_prime(128)
-    assert prime.bit_length() == 128
-    assert randoms.PrimeTools.is_prime(prime)
-    assert randoms.PrimeTools.next_prime(prime) > prime
-    assert randoms.PrimeTools.prev_prime(prime) < prime
+    context = f"Allowed to generate a key less than {MIN_KEY_BYTES}"
+    async with aignore(ValueError, if_else=aviolation(context)):
+        key = await agenerate_key(size=MIN_KEY_BYTES - 1, freshness=0)
 
-    prng = randoms.WeakEntropy()
-    weak_entropy = prng.token_bytes(128)
-    assert len(weak_entropy) == 128
-    assert weak_entropy.__class__ is bytes
+    async def try_to_make_duplicate_readouts():
+        """
+        The async csprng doesn't produce duplicate outputs when run in
+        a multithreaded environment.
+        """
+        for i in range(32):
+            await arandom_sleep(0.00001)
+            entropy = await acsprng()
 
-    uuid_salt = generate_key(size=64)
-    uuids = make_uuids(size=32, salt=uuid_salt).prime()
-    uuid = uuids("test@user.org")
-    assert uuid == uuids("test@user.org")
-    assert uuid != uuids("test2@user.org")
-    assert len(uuid) == 32
-    assert uuid_salt == uuids.result(exit=True)
+            assert entropy not in entropy_pool
+
+            entropy_pool.appendleft(entropy)
+
+            assert entropy in entropy_pool
+
+    entropy_pool = deque(maxlen=1024)
+    await Threads.agather(
+        *[try_to_make_duplicate_readouts for _ in range(32)]
+    )
 
 
-def test_misc_functionality():
-    run(async_tests())
-    sync_tests()
+def test_csprng():
+    entropy = randoms.random_number_generator(entropy=test_data, freshness=1)
+    assert len(entropy) == 64
+    assert entropy.__class__ is bytes
+
+    entropy = randoms.random_number_generator(128, freshness=0)
+    assert len(entropy) == 128
+    assert entropy.__class__ is bytes
+
+    entropy = csprng(b"")
+    assert len(entropy) == 64
+    assert entropy.__class__ is bytes
+
+    entropy = csprng("test")
+    assert len(entropy) == 64
+    assert entropy.__class__ is bytes
+
+    key = generate_key(freshness=0)
+    assert len(key) == KEY_BYTES
+    assert key.__class__ is bytes
+
+    context = f"Allowed to generate a key less than {MIN_KEY_BYTES}"
+    with ignore(ValueError, if_else=violation(context)):
+        key = generate_key(size=MIN_KEY_BYTES - 1, freshness=0)
+
+
+    def try_to_make_duplicate_readouts():
+        """
+        The async csprng doesn't produce duplicate outputs when run in
+        a multithreaded environment.
+        """
+        for i in range(32):
+            random_sleep(0.00001)
+            entropy = csprng()
+
+            assert entropy not in entropy_pool
+
+            entropy_pool.appendleft(entropy)
+
+            assert entropy in entropy_pool
+
+    entropy_pool = deque(maxlen=1024)
+    Threads.gather(
+        *[try_to_make_duplicate_readouts for _ in range(32)]
+    )
+
+
+async def test_guids():
+    assert 16 == len(GUID().new())
+    assert 16 == len(await GUID().anew())
+
+    # simulate the monotonic nature of a timestamp to test the uniqueness
+    # of the algorithm outputs for all inputs between two multiples of
+    # the prime used for that size category
+
+    def guid_simulator():
+        nonlocal i
+
+        i += 1
+        return i
+
+    # lowering the default minimum size to be able to efficiently do a
+    # complete search of a salt space & the impacts of each possible
+    # change in salt on uniqueness of outputs
+    GUID._MIN_SIZE = 1
+
+    # testing all the combinations is impossible, in general, but even
+    # testing all two byte combinations is prohibitively slow. However,
+    # these variables can be customized to run extended tests
+    MIN_TEST_BYTES = 1
+    MAX_TEST_BYTES = 1
+
+    # change to `True` if a random location within each search space is
+    # desired
+    start_at_random_location: bool = False
+
+    for size in range(MIN_TEST_BYTES, MAX_TEST_BYTES + 1):
+        start = token_bits(8 * size) if start_at_random_location else 0
+        for salt_test in bytes_range.root(start, 256**size, size=size):
+            i = 0
+
+            guid = GUID(salt=salt_test, size=size)
+            _size, gen, prime, domain = guid._session_configuration
+            assert size == _size
+            isalt, osalt = guid._encode_salt(guid._salt, prime)
+
+            ring_element = lambda: (isalt * guid_simulator()) % prime
+            _key = lambda: ((osalt + ring_element()) % prime).to_bytes(size, BYTE_ORDER)
+
+            history = set()
+            for j in range(prime):
+                result = _key()
+                assert result not in history, (
+                    f"{salt_test=}--{isalt=}--{osalt=}--{size=}--{j=}--"
+                    f"{i=}--{result=}"
+                )
+                history.add(result)
+
+    GUID._MIN_SIZE = MIN_GUID_BYTES
+
+
+__all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 

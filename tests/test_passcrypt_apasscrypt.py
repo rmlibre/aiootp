@@ -4,96 +4,360 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-from init_tests import *
+from test_initialization import *
 
 
-__all__ = [
-    "__all__",
-    "test_metadata_hashes",
-    "test_passcrypts_equality",
-    "test_passcrypt_generators",
-    "test_apasscrypt_generators",
-]
-
-
-def test_metadata_hashes():
+async def test_metadata_hashes():
     passphrase = b"a generic passphrase 123456"
     pcrypt = Passcrypt(**passcrypt_settings)
-    araw_metadata_hash = run(pcrypt.ahash_passphrase_raw(passphrase))
-    raw_metadata_hash = pcrypt.hash_passphrase_raw(passphrase)
-    ametadata_hash = run(pcrypt.ahash_passphrase(passphrase))
+    ametadata_hash = await pcrypt.ahash_passphrase(passphrase)
     metadata_hash = pcrypt.hash_passphrase(passphrase)
 
-    assert raw_metadata_hash != araw_metadata_hash
+
+    # unique hashes are created
     assert metadata_hash != ametadata_hash
 
-    assert type(araw_metadata_hash) == bytes
-    assert len(araw_metadata_hash) == 106
-    assert len(araw_metadata_hash) == len(araw_metadata_hash)
-    assert type(raw_metadata_hash) == bytes
-    assert len(raw_metadata_hash) == 106
-    assert len(raw_metadata_hash) == len(araw_metadata_hash)
 
+    # bytes are produced
     assert type(ametadata_hash) == bytes
-    assert len(ametadata_hash) == 148
-    assert len(ametadata_hash) == len(ametadata_hash)
     assert type(metadata_hash) == bytes
-    assert len(metadata_hash) == 148
+
+
+    # no difference in length between async & sync
+    assert len(ametadata_hash) == len(ametadata_hash)
     assert len(metadata_hash) == len(ametadata_hash)
 
-    table = list(Tables.URL_SAFE.encode())
-    assert b"%3D%3D" == metadata_hash[-6:]
-    for char in set(metadata_hash[:-6]):
-        assert char in table
 
-    assert b"%3D%3D" == ametadata_hash[-6:]
-    for char in set(ametadata_hash[:-6]):
-        assert char in table
+    # reconstructing a hash from specification works in sync
+    pcrypt_hash = PasscryptHash().import_hash(metadata_hash)
+    hash_check = Passcrypt.new(
+        passphrase,
+        pcrypt_hash.salt,
+        aad=pcrypt_hash.timestamp,
+        mb=pcrypt_hash.mb,
+        cpu=pcrypt_hash.cpu,
+        cores=pcrypt_hash.cores,
+        tag_size=pcrypt_hash.tag_size,
+    )
+    assert pcrypt_hash.tag_size == len(hash_check)
+    assert hash_check == metadata_hash[-pcrypt_hash.tag_size:]
+    assert hash_check == await Passcrypt.anew(
+        passphrase,
+        pcrypt_hash.salt,
+        aad=pcrypt_hash.timestamp,
+        mb=pcrypt_hash.mb,
+        cpu=pcrypt_hash.cpu,
+        cores=pcrypt_hash.cores,
+        tag_size=pcrypt_hash.tag_size,
+    )
 
-    kb = int.from_bytes(raw_metadata_hash[:4], "big")
-    cpu = int.from_bytes(raw_metadata_hash[4:6], "big")
-    hardness = int.from_bytes(raw_metadata_hash[6:10], "big")
-    metadata_settings = Namespace(kb=kb, cpu=cpu, hardness=hardness)
-    salt = raw_metadata_hash[10:42]
-    hash_check = pcrypt.new(passphrase, salt, **metadata_settings)
-    assert hash_check == raw_metadata_hash[42:]
 
-    kb = int.from_bytes(araw_metadata_hash[:4], "big")
-    cpu = int.from_bytes(araw_metadata_hash[4:6], "big")
-    hardness = int.from_bytes(araw_metadata_hash[6:10], "big")
-    ametadata_settings = Namespace(kb=kb, cpu=cpu, hardness=hardness)
-    salt = araw_metadata_hash[10:42]
-    ahash_check = run(pcrypt.anew(passphrase, salt, **ametadata_settings))
-    assert ahash_check == araw_metadata_hash[42:]
+    # reconstructing a hash from specification works in async
+    apcrypt_hash = PasscryptHash().import_hash(ametadata_hash)
+    ahash_check = await Passcrypt.anew(
+        passphrase,
+        apcrypt_hash.salt,
+        aad=apcrypt_hash.timestamp,
+        mb=apcrypt_hash.mb,
+        cpu=apcrypt_hash.cpu,
+        cores=apcrypt_hash.cores,
+        tag_size=apcrypt_hash.tag_size,
+    )
+    assert apcrypt_hash.tag_size == len(ahash_check)
+    assert ahash_check == ametadata_hash[-apcrypt_hash.tag_size:]
+    assert ahash_check == Passcrypt.new(
+        passphrase,
+        apcrypt_hash.salt,
+        aad=apcrypt_hash.timestamp,
+        mb=apcrypt_hash.mb,
+        cpu=apcrypt_hash.cpu,
+        cores=apcrypt_hash.cores,
+        tag_size=apcrypt_hash.tag_size,
+    )
 
-    assert passcrypt_settings == {**metadata_settings}
-    assert {**metadata_settings} == {**ametadata_settings}
 
+    # verification passes
     pcrypt.verify(metadata_hash, passphrase)
-    run(pcrypt.averify(ametadata_hash, passphrase))
-    pcrypt.verify_raw(raw_metadata_hash, passphrase)
-    run(pcrypt.averify_raw(araw_metadata_hash, passphrase))
+    await pcrypt.averify(ametadata_hash, passphrase)
 
 
-def test_passcrypts_equality():
-    assert passcrypt_passphrases == apasscrypt_passphrases
+    # verification fails given a different passphrase
+    context = "An invalid passphrase passed sync verification!"
+    with ignore(Passcrypt.InvalidPassphrase, if_else=violation(context)):
+        pcrypt.verify(metadata_hash, passphrase + b"\x00")
+
+    context = "An invalid passphrase passed async verification!"
+    with ignore(Passcrypt.InvalidPassphrase, if_else=violation(context)):
+        await pcrypt.averify(ametadata_hash, passphrase + b"\x00")
 
 
-async def async_generator_run():
-    async for _ in adata(plaintext_bytes).apasscrypt(**passcrypt_settings)[0]:
-        pass
+    # mb resource limits are respected
+    mb_allowed = passcrypt_settings.mb
+    context = f"The `mb` was allowed to exceed the resource limit of {mb_allowed - 1}"
+    with ignore(ResourceWarning, if_else=violation(context)):
+        pcrypt.verify(metadata_hash, passphrase, mb_allowed=range(1, mb_allowed - 1))
+
+    context = f"The `mb` was allowed to fall below the resource limit of {mb_allowed + 1}"
+    with ignore(ResourceWarning, if_else=violation(context)):
+        pcrypt.verify(metadata_hash, passphrase, mb_allowed=range(mb_allowed + 1, mb_allowed + 2))
 
 
-def test_apasscrypt_generators():
-    run(async_generator_run())
+    # cpu resource limits are respected
+    cpu_allowed = passcrypt_settings.cpu
+    context = f"The `cpu` was allowed to exceed the resource limit of {cpu_allowed - 1}"
+    with ignore(ResourceWarning, if_else=violation(context)):
+        pcrypt.verify(metadata_hash, passphrase, cpu_allowed=range(256, cpu_allowed - 1))
+
+    context = f"The `cpu` was allowed to fall below the resource limit of {cpu_allowed + 1}"
+    with ignore(ResourceWarning, if_else=violation(context)):
+        pcrypt.verify(metadata_hash, passphrase, cpu_allowed=range(cpu_allowed + 1, 257))
 
 
-def test_passcrypt_generators():
-    for _ in data(plaintext_bytes).passcrypt(**passcrypt_settings)[0]:
-        pass
+    # cores resource limits are respected
+    cores_allowed = passcrypt_settings.cores
+    context = f"The `cores` was allowed to exceed the resource limit of {cores_allowed - 1}"
+    with ignore(ResourceWarning, if_else=violation(context)):
+        pcrypt.verify(metadata_hash, passphrase, cores_allowed=range(256, cores_allowed - 1))
+
+    context = f"The `cores` was allowed to fall below the resource limit of {cores_allowed + 1}"
+    with ignore(ResourceWarning, if_else=violation(context)):
+        pcrypt.verify(metadata_hash, passphrase, cores_allowed=range(cores_allowed + 1, 257))
+
+
+    # test vectors are recreated correctly
+    # test vector #0
+    assert passcrypt_test_vector_0.hash_passphrase_result == (
+        passcrypt_test_vector_0.timestamp
+        + (passcrypt_test_vector_0.mb - 1).to_bytes(MB_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_0.cpu - 1).to_bytes(CPU_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_0.cores - 1).to_bytes(CORES_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_0.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BYTE_ORDER)
+        + passcrypt_test_vector_0.salt
+        + passcrypt_test_vector_0.tag
+    )
+    assert passcrypt_test_vector_0.tag == Passcrypt.new(
+        passcrypt_test_vector_0.passphrase,
+        passcrypt_test_vector_0.salt,
+        aad=passcrypt_test_vector_0.timestamp,
+        mb=passcrypt_test_vector_0.mb,
+        cpu=passcrypt_test_vector_0.cpu,
+        cores=passcrypt_test_vector_0.cores,
+        tag_size=passcrypt_test_vector_0.tag_size,
+    )
+    Passcrypt.verify(
+        passcrypt_test_vector_0.hash_passphrase_result,
+        passcrypt_test_vector_0.passphrase,
+    )
+
+    # test vector #1
+    assert passcrypt_test_vector_1.hash_passphrase_result == (
+        passcrypt_test_vector_1.timestamp
+        + (passcrypt_test_vector_1.mb - 1).to_bytes(MB_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_1.cpu - 1).to_bytes(CPU_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_1.cores - 1).to_bytes(CORES_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_1.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BYTE_ORDER)
+        + passcrypt_test_vector_1.salt
+        + passcrypt_test_vector_1.tag
+    )
+    assert passcrypt_test_vector_1.tag == Passcrypt.new(
+        passcrypt_test_vector_1.passphrase,
+        passcrypt_test_vector_1.salt,
+        aad=passcrypt_test_vector_1.timestamp + passcrypt_test_vector_1.aad,
+        mb=passcrypt_test_vector_1.mb,
+        cpu=passcrypt_test_vector_1.cpu,
+        cores=passcrypt_test_vector_1.cores,
+        tag_size=passcrypt_test_vector_1.tag_size,
+    )
+    Passcrypt.verify(
+        passcrypt_test_vector_1.hash_passphrase_result,
+        passcrypt_test_vector_1.passphrase,
+        aad=passcrypt_test_vector_1.aad,
+    )
+
+    # test vector #2
+    assert passcrypt_test_vector_2.hash_passphrase_result == (
+        passcrypt_test_vector_2.timestamp
+        + (passcrypt_test_vector_2.mb - 1).to_bytes(MB_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_2.cpu - 1).to_bytes(CPU_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_2.cores - 1).to_bytes(CORES_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_2.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BYTE_ORDER)
+        + passcrypt_test_vector_2.salt
+        + passcrypt_test_vector_2.tag
+    )
+    assert passcrypt_test_vector_2.tag == Passcrypt.new(
+        passcrypt_test_vector_2.passphrase,
+        passcrypt_test_vector_2.salt,
+        aad=passcrypt_test_vector_2.timestamp + passcrypt_test_vector_2.aad,
+        mb=passcrypt_test_vector_2.mb,
+        cpu=passcrypt_test_vector_2.cpu,
+        cores=passcrypt_test_vector_2.cores,
+        tag_size=passcrypt_test_vector_2.tag_size,
+    )
+    Passcrypt.verify(
+        passcrypt_test_vector_2.hash_passphrase_result,
+        passcrypt_test_vector_2.passphrase,
+        aad=passcrypt_test_vector_2.aad,
+    )
+
+    # test vector #3
+    assert passcrypt_test_vector_3.hash_passphrase_result == (
+        passcrypt_test_vector_3.timestamp
+        + (passcrypt_test_vector_3.mb - 1).to_bytes(MB_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_3.cpu - 1).to_bytes(CPU_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_3.cores - 1).to_bytes(CORES_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_3.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BYTE_ORDER)
+        + passcrypt_test_vector_3.salt
+        + passcrypt_test_vector_3.tag
+    )
+    assert passcrypt_test_vector_3.tag == Passcrypt.new(
+        passcrypt_test_vector_3.passphrase,
+        passcrypt_test_vector_3.salt,
+        aad=passcrypt_test_vector_3.timestamp + passcrypt_test_vector_3.aad,
+        mb=passcrypt_test_vector_3.mb,
+        cpu=passcrypt_test_vector_3.cpu,
+        cores=passcrypt_test_vector_3.cores,
+        tag_size=passcrypt_test_vector_3.tag_size,
+    )
+    Passcrypt.verify(
+        passcrypt_test_vector_3.hash_passphrase_result,
+        passcrypt_test_vector_3.passphrase,
+        aad=passcrypt_test_vector_3.aad,
+    )
+
+
+async def test_missing_passcrypt_lines():
+    s = dict(aad=b"", mb=MIN_MB, cpu=MIN_CPU, cores=MIN_CORES, tag_size=MIN_TAG_SIZE)
+    PasscryptSession = Passcrypt._passcrypt.__annotations__["session"]
+
+
+    # empty passphrase byte-strings are not allowed
+    context = "Empty passphrase was allowed."
+    with ignore(ValueError, if_else=violation(context)):
+        PasscryptSession(b"", salt, **s)
+
+    with ignore(ValueError, if_else=violation(context)):
+        Passcrypt.new(b"", salt, **s)
+
+    async with aignore(ValueError, if_else=aviolation(context)):
+        await Passcrypt.anew(b"", salt, **s)
+
+
+    # passphrases below the minimum length are not allowed
+    context = "A below minimum length passphrase was allowed."
+    with ignore(ValueError, if_else=violation(context)):
+        PasscryptSession((MIN_PASSPHRASE_BYTES - 1) * b"p", salt, **s)
+
+    with ignore(ValueError, if_else=violation(context)):
+        Passcrypt.new((MIN_PASSPHRASE_BYTES - 1) * b"p", salt, **s)
+
+    async with aignore(ValueError, if_else=aviolation(context)):
+        await Passcrypt.anew((MIN_PASSPHRASE_BYTES - 1) * b"p", salt, **s)
+
+
+    # passphrases must be bytes
+    context = "Non-bytes passphrase was allowed."
+    with ignore(TypeError, if_else=violation(context)):
+        PasscryptSession("a string passphrase", salt, **s)
+
+    with ignore(TypeError, if_else=violation(context)):
+        Passcrypt.new("a string passphrase", salt, **s)
+
+    async with aignore(TypeError, if_else=aviolation(context)):
+        await Passcrypt.anew("a string passphrase", salt, **s)
+
+
+    # falsey salts are not allowed in methods which do not auto-generate
+    # salts
+    context = "Empty salt was allowed."
+    with ignore(ValueError, if_else=violation(context)):
+        PasscryptSession(key, salt=b"", **s)
+
+    with ignore(ValueError, if_else=violation(context)):
+        Passcrypt.new(key, salt=b"", **s)
+
+    async with aignore(ValueError, if_else=aviolation(context)):
+        await Passcrypt.anew(key, salt=b"", **s)
+
+
+    # salts must be bytes
+    context = "Non-bytes salt was allowed."
+    with ignore(TypeError, if_else=violation(context)):
+        PasscryptSession(key, "a string salt here", **s)
+
+    with ignore(TypeError, if_else=violation(context)):
+        Passcrypt.new(key, "a string salt here", **s)
+
+    async with aignore(TypeError, if_else=aviolation(context)):
+        await Passcrypt.anew(key, "a string salt here", **s)
+
+
+    # aad values must be bytes
+    context = "A non-bytes type `aad` was allowed."
+    with ignore(TypeError, if_else=violation(context)):
+        PasscryptSession(key, salt, **{**s, "aad": "some string aad"})
+
+    with ignore(TypeError, if_else=violation(context)):
+        Passcrypt.new(key, salt, **{**s, "aad": None})
+
+    async with aignore(TypeError, if_else=aviolation(context)):
+        await Passcrypt.anew(key, salt, **{**s, "aad": "some string aad"})
+
+
+    # the mb cost must be at least the default minimum
+    context = "A `mb` cost below the minimum was allowed."
+    with ignore(ValueError, if_else=violation(context)):
+        PasscryptSession(key, salt, **{**s, "mb": MIN_MB - 1})
+
+    with ignore(ValueError, if_else=violation(context)):
+        Passcrypt.new(key, salt, **{**s, "mb": MIN_MB - 1})
+
+    async with aignore(ValueError, if_else=aviolation(context)):
+        await Passcrypt.anew(key, salt, **{**s, "mb": MIN_MB - 1})
+
+
+    # the cpu cost must be at least the default minimum
+    context = "A `cpu` cost below the minimum was allowed."
+    with ignore(ValueError, if_else=violation(context)):
+        PasscryptSession(key, salt, **{**s, "cpu": MIN_CPU - 1})
+
+    with ignore(ValueError, if_else=violation(context)):
+        Passcrypt.new(key, salt, **{**s, "cpu": MIN_CPU - 1})
+
+    async with aignore(ValueError, if_else=aviolation(context)):
+        await Passcrypt.anew(key, salt, **{**s, "cpu": MIN_CPU - 1})
+
+
+    # the cores cost must be at least the default minimum
+    context = "A `cores` cost below the minimum was allowed."
+    with ignore(ValueError, if_else=violation(context)):
+        PasscryptSession(key, salt, **{**s, "cores": MIN_CORES - 1})
+
+    with ignore(ValueError, if_else=violation(context)):
+        Passcrypt.new(key, salt, **{**s, "cores": MIN_CORES - 1})
+
+    async with aignore(ValueError, if_else=aviolation(context)):
+        await Passcrypt.anew(key, salt, **{**s, "cores": MIN_CORES - 1})
+
+
+    # the tag_size must be at least the default minimum
+    context = "A `tag_size` below the minimum was allowed."
+    with ignore(ValueError, if_else=violation(context)):
+        PasscryptSession(key, salt, **{**s, "tag_size": MIN_TAG_SIZE - 1})
+
+    with ignore(ValueError, if_else=violation(context)):
+        Passcrypt.new(key, salt, **{**s, "tag_size": MIN_TAG_SIZE - 1})
+
+    async with aignore(ValueError, if_else=aviolation(context)):
+        await Passcrypt.anew(key, salt, **{**s, "tag_size": MIN_TAG_SIZE - 1})
+
+
+    assert len(Passcrypt._passcrypt(PasscryptSession(key, salt, **s))) == MIN_TAG_SIZE
+
+
+__all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 

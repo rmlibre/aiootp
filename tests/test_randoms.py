@@ -4,25 +4,15 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2021 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-from init_tests import *
-
-
-__exports = []
-
-
+from test_initialization import *
+from test_SequenceID import *
 from test_misc_in_randoms import *
-for variable in __all__:
-    __exports.append(variable)
 
 
-__all__ = __exports
-__exports = set(__exports)
-
-
-assert not __exports.difference(__all__), "duplicated tests!!!"
+__all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 

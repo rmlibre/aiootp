@@ -10,14 +10,7 @@
 
 
 from test_initialization import *
-from test_commons import *
-from test_gentools import *
-from test_generics import *
-from test_randoms import *
-from test_ciphers import *
-from test_keygens import *
-from test_databases import *
-from test_time_to_live import *
+from test_Database_AsyncDatabase import *
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
