@@ -12,12 +12,12 @@ jobs:
     strategy:
       max-parallel: 5
       matrix:
-        python-version: ["3.6.x", "3.7.x", "3.8.x", "3.9.x", "3.10.x"]
+        python-version: ["3.7.x", "3.8.x", "3.9.x", "3.10.x", "3.11.x"]
         os: [macos-latest]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: setup python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: install dependencies
@@ -26,5 +26,5 @@ jobs:
         python3 -m pip install --upgrade -r aiootp.egg-info/requires.txt
     - name: test with pytest
       run: |
-        coverage run --source aiootp -m pytest tests/test_aiootp.py -vv
+        coverage run --source aiootp -m pytest -vv tests/test_aiootp.py
         coverage report
