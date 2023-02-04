@@ -30,6 +30,10 @@ async def basic_async_tests(tested_class):
     async with aignore(TypeError, if_else=aviolation(context)):
         await secret_key_a._Curve25519.asecret_bytes(secret_key_a.public_key)
 
+    context = "an invalid type was allowed to be used to extract secret bytes"
+    async with aignore(TypeError, if_else=aviolation(context)):
+        await secret_key_a._Curve25519.asecret_bytes(secret_key_a)
+
     context = "an invalid type was allowed to be used to extract public bytes"
     async with aignore(TypeError, if_else=aviolation(context)):
         await secret_key_a._Curve25519.apublic_bytes(secret_key_a)
@@ -44,12 +48,24 @@ async def basic_async_tests(tested_class):
     key_a_from_public_hex = await tested_class().aimport_public_key(secret_key_a.public_bytes.hex())
 
     context = "a falsey value secret key import didn't fail!"
-    async with aignore(ValueError, if_else=aviolation(context)):
-        await tested_class().aimport_secret_key(None)
+    for falsey_value in (None, b"", ""):
+        async with aignore(ValueError, if_else=aviolation(context)):
+            await tested_class().aimport_secret_key(falsey_value)
+
+    context = "an invalid length secret key import didn't fail!"
+    for invalid_length in (1, 16, 31, 33, 48, 64):
+        async with aignore(ValueError, if_else=aviolation(context)):
+            await tested_class().aimport_secret_key(token_bytes(invalid_length))
 
     context = "a falsey value public key import didn't fail!"
-    async with aignore(ValueError, if_else=aviolation(context)):
-        await tested_class().aimport_public_key(None)
+    for falsey_value in (None, b"", ""):
+        async with aignore(ValueError, if_else=aviolation(context)):
+            await tested_class().aimport_public_key(falsey_value)
+
+    context = "an invalid length public key import didn't fail!"
+    for invalid_length in (1, 16, 31, 33, 48, 64):
+        async with aignore(ValueError, if_else=aviolation(context)):
+            await tested_class().aimport_public_key(token_bytes(invalid_length))
 
     assert len(secret_key_a.public_bytes) == 32
     assert len(secret_key_a.secret_bytes) == 32
@@ -111,6 +127,10 @@ def basic_sync_tests(tested_class):
     with ignore(TypeError, if_else=violation(context)):
         secret_key_b._Curve25519.secret_bytes(secret_key_b.public_key)
 
+    context = "an invalid type was allowed to be used to extract secret bytes"
+    with ignore(TypeError, if_else=violation(context)):
+        secret_key_b._Curve25519.secret_bytes(secret_key_b)
+
     context = "an invalid type was allowed to be used to extract public bytes"
     with ignore(TypeError, if_else=violation(context)):
         secret_key_b._Curve25519.public_bytes(secret_key_b)
@@ -125,12 +145,24 @@ def basic_sync_tests(tested_class):
     key_b_from_public_hex = tested_class().import_public_key(secret_key_b.public_bytes.hex())
 
     context = "a falsey value secret key import didn't fail!"
-    with ignore(ValueError, if_else=violation(context)):
-        tested_class().import_secret_key(None)
+    for falsey_value in (None, b"", ""):
+        with ignore(ValueError, if_else=violation(context)):
+            tested_class().import_secret_key(falsey_value)
+
+    context = "an invalid length secret key import didn't fail!"
+    for invalid_length in (1, 16, 31, 33, 48, 64):
+        with ignore(ValueError, if_else=violation(context)):
+            tested_class().import_secret_key(token_bytes(invalid_length))
 
     context = "a falsey value public key import didn't fail!"
-    with ignore(ValueError, if_else=violation(context)):
-        tested_class().import_public_key(None)
+    for falsey_value in (None, b"", ""):
+        with ignore(ValueError, if_else=violation(context)):
+            tested_class().import_public_key(falsey_value)
+
+    context = "an invalid length public key import didn't fail!"
+    for invalid_length in (1, 16, 31, 33, 48, 64):
+        with ignore(ValueError, if_else=violation(context)):
+            tested_class().import_public_key(token_bytes(invalid_length))
 
     assert len(secret_key_b.public_bytes) == 32
     assert len(secret_key_b.secret_bytes) == 32

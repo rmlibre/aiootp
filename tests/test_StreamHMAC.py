@@ -251,7 +251,7 @@ def test_sync_cipher_decipher_streams():
 async def test_async_cipher_decipher_streams():
     # buffering protocol works for varying sizes
     for i in range(0, 512 - INNER_HEADER_BYTES - 1, unique_range(1, 64)):
-        stream_enc = await AsyncCipherStream(key)
+        stream_enc = await AsyncCipherStream(key, salt=salt, aad=aad)
         pt_enc = i * b"a"
         await stream_enc.abuffer(pt_enc)
 
@@ -275,7 +275,7 @@ async def test_async_cipher_decipher_streams():
 
 async def test_async_encipher_sync_decipher_interop():
     # inter-op between async encryption & sync decryption doesn't fail
-    stream_enc = await AsyncCipherStream(key)
+    stream_enc = await AsyncCipherStream(key, salt=salt, aad=aad)
     pt_enc = plaintext_bytes
     await stream_enc.abuffer(pt_enc)
 

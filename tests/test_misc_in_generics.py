@@ -46,7 +46,7 @@ async def test_canonical_packs():
 
     for inputs in test_inputs:
         # similar inputs do no produce the same output
-        for int_bytes, hasher, key in zip(test_int_bytes, HASHERS, TEST_KEYS):
+        for int_bytes, hasher in zip(test_int_bytes, HASHERS):
             result = canonical_pack(*inputs)
             aresult = await acanonical_pack(*inputs, int_bytes=int_bytes)
             assert result != aresult
@@ -54,7 +54,7 @@ async def test_canonical_packs():
             # but the items are still packed correctly & interoperably
             assert inputs == list(canonical_unpack(aresult, int_bytes=int_bytes))
             assert inputs == list(await acanonical_unpack(result))
-        for blocksize, hasher, key in zip(test_blocksizes, HASHERS, TEST_KEYS):
+        for blocksize, hasher in zip(test_blocksizes, HASHERS):
             result = canonical_pack(*inputs)
             aresult = await acanonical_pack(*inputs, blocksize=blocksize)
             assert result != aresult
@@ -105,7 +105,7 @@ async def test_canonical_packs():
                 assert obj.digest(64) == await ahash_bytes(*inputs, pad=pad, hasher=hasher, size=64)
 
         # the same inputs produce the same outputs
-        for int_bytes, hasher, key in zip(test_int_bytes, HASHERS, TEST_KEYS):
+        for int_bytes in test_int_bytes:
             result = canonical_pack(*inputs, int_bytes=int_bytes)
             aresult = await acanonical_pack(*inputs, int_bytes=int_bytes)
             assert result == aresult
@@ -114,11 +114,11 @@ async def test_canonical_packs():
             # dependent on the size of integers used to represent item
             # lengths
             assert result[4 * int_bytes] == DEFAULT_PAD[0]
-        for blocksize, hasher, key in zip(test_blocksizes, HASHERS, TEST_KEYS):
+        for blocksize in test_blocksizes:
             result = canonical_pack(*inputs, blocksize=blocksize)
             aresult = await acanonical_pack(*inputs, blocksize=blocksize)
             assert result == aresult
-        for pad, hasher, key in zip(test_pads, HASHERS, TEST_KEYS):
+        for pad in test_pads:
             result = canonical_pack(*inputs, pad=pad)
             aresult = await acanonical_pack(*inputs, pad=pad)
             assert result == aresult
