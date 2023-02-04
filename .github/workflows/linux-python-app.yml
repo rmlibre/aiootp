@@ -26,5 +26,5 @@ jobs:
         python3 -m pip install --upgrade -r aiootp.egg-info/requires.txt
     - name: test with pytest
       run: |
-        coverage run --source aiootp -m pytest -vv --full-trace tests/test_aiootp.py
+        coverage run --source aiootp -m pytest -vv tests/test_aiootp.py
         coverage report
