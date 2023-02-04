@@ -1,11 +1,13 @@
 .pytest_cache
 __pycache__
 .coverage
+.pyc
 htmlcov
 build
 dist
 venv
 env
+/aiootp.egg-info/*
 /aiootp/databases/*
 /aiootp/tor/*
 /docs/*
