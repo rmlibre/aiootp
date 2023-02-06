@@ -108,7 +108,7 @@ async def test_guids():
     # of the algorithm outputs for all inputs between two multiples of
     # the prime used for that size category
 
-    def guid_simulator():
+    def raw_guid_simulator():
         nonlocal i
 
         i += 1
@@ -120,6 +120,7 @@ async def test_guids():
     GUID._MIN_SIZE = 1
     GUID._MIN_RAW_SIZE = 0
     GUID._MIN_SALT_SIZE = 1
+    GUID._COUNTER_BYTES = 0
 
     # testing all the combinations is impossible, in general, but even
     # testing all two byte combinations is prohibitively slow. However,
@@ -133,10 +134,16 @@ async def test_guids():
 
     previous_salts = []
 
+    # these values do not change in the tests, but are displayed to
+    # visually declare where their byte values are located in relation
+    # to the raw guid which contains the timestamp & random bytes
+    node_number = 0
+    counter = 0
+
     for size in range(MIN_TEST_BYTES, MAX_TEST_BYTES + 1):
         start = token_bits(8 * size) if start_at_random_location else 0
         for salt_test in bytes_range.root(start, 256**size, size=size):
-            i = 0
+            i = -1
 
             guid = GUID(salt=salt_test, size=size)
             _size, gen, prime, subprime = guid._session_configuration
@@ -144,18 +151,20 @@ async def test_guids():
 
             isalt, osalt, xsalt = guid._encode_salt(guid._salt, prime, size)
             assert previous_salts != [isalt, osalt, xsalt]
+            assert all([isalt, osalt])
 
-            inner_product = lambda: (isalt * guid_simulator())
+            #                    |--------------- `size`-bytes ---------------|
+            inner_guid = lambda: (node_number + raw_guid_simulator() + counter)
             _key = lambda: (
-                xsalt ^ ((osalt + inner_product()) % prime)
+                xsalt ^ ((isalt * inner_guid() + osalt) % prime)
             ).to_bytes(size, BYTE_ORDER)
 
             history = set()
             for j in range(prime):
                 result = _key()
                 assert result not in history, (
-                    f"{salt_test=}--{isalt=}--{osalt=}--{size=}--{j=}--"
-                    f"{i=}--{result=}"
+                    f"{salt_test=}--{isalt=}--{osalt=}--{xsalt=}--"
+                    f"{size=}--{j=}--{i=}--{result=}"
                 )
                 history.add(result)
 
@@ -164,6 +173,7 @@ async def test_guids():
     GUID._MIN_SIZE = MIN_GUID_BYTES
     GUID._MIN_RAW_SIZE = MIN_RAW_GUID_BYTES
     GUID._MIN_SALT_SIZE = 16
+    GUID._COUNTER_BYTES = 1
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
