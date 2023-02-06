@@ -48,11 +48,9 @@ async def test_acsprng():
 
             assert entropy not in entropy_pool
 
-            entropy_pool.appendleft(entropy)
+            entropy_pool.add(entropy)
 
-            assert entropy in entropy_pool
-
-    entropy_pool = deque(maxlen=1024)
+    entropy_pool = set()
     await Threads.agather(
         *[try_to_make_duplicate_readouts for _ in range(32)]
     )
@@ -79,10 +77,9 @@ def test_csprng():
     assert len(key) == KEY_BYTES
     assert key.__class__ is bytes
 
-    context = f"Allowed to generate a key less than {MIN_KEY_BYTES}"
+    context = f"Allowed to generate a key less than {MIN_KEY_BYTES} bytes."
     with ignore(ValueError, if_else=violation(context)):
         key = generate_key(size=MIN_KEY_BYTES - 1, freshness=0)
-
 
     def try_to_make_duplicate_readouts():
         """
@@ -95,11 +92,9 @@ def test_csprng():
 
             assert entropy not in entropy_pool
 
-            entropy_pool.appendleft(entropy)
+            entropy_pool.add(entropy)
 
-            assert entropy in entropy_pool
-
-    entropy_pool = deque(maxlen=1024)
+    entropy_pool = set()
     Threads.gather(
         *[try_to_make_duplicate_readouts for _ in range(32)]
     )
@@ -123,6 +118,8 @@ async def test_guids():
     # complete search of a salt space & the impacts of each possible
     # change in salt on uniqueness of outputs
     GUID._MIN_SIZE = 1
+    GUID._MIN_RAW_SIZE = 0
+    GUID._MIN_SALT_SIZE = 1
 
     # testing all the combinations is impossible, in general, but even
     # testing all two byte combinations is prohibitively slow. However,
@@ -134,18 +131,24 @@ async def test_guids():
     # desired
     start_at_random_location: bool = False
 
+    previous_salts = []
+
     for size in range(MIN_TEST_BYTES, MAX_TEST_BYTES + 1):
         start = token_bits(8 * size) if start_at_random_location else 0
         for salt_test in bytes_range.root(start, 256**size, size=size):
             i = 0
 
             guid = GUID(salt=salt_test, size=size)
-            _size, gen, prime, domain = guid._session_configuration
+            _size, gen, prime, subprime = guid._session_configuration
             assert size == _size
-            isalt, osalt = guid._encode_salt(guid._salt, prime)
 
-            ring_element = lambda: (isalt * guid_simulator()) % prime
-            _key = lambda: ((osalt + ring_element()) % prime).to_bytes(size, BYTE_ORDER)
+            isalt, osalt, xsalt = guid._encode_salt(guid._salt, prime, size)
+            assert previous_salts != [isalt, osalt, xsalt]
+
+            inner_product = lambda: (isalt * guid_simulator())
+            _key = lambda: (
+                xsalt ^ ((osalt + inner_product()) % prime)
+            ).to_bytes(size, BYTE_ORDER)
 
             history = set()
             for j in range(prime):
@@ -156,7 +159,11 @@ async def test_guids():
                 )
                 history.add(result)
 
+            previous_salts = [isalt, osalt, xsalt]
+
     GUID._MIN_SIZE = MIN_GUID_BYTES
+    GUID._MIN_RAW_SIZE = MIN_RAW_GUID_BYTES
+    GUID._MIN_SALT_SIZE = 16
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

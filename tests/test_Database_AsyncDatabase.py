@@ -12,6 +12,114 @@
 from test_initialization import *
 
 
+class TestDatabaseCacheSystem:
+    async def test_async_clear_cache_clears_metatags_when_instructed(
+        self, async_database
+    ):
+        """
+        Setup: 1) a metatag exists AND both the metatag & its parent
+        have tags in their caches & saved on the filesystem.
+
+        Test: 2) clearing a database's cache clears its metatags' caches
+        when instructed.
+
+        Test: 3) clearing a database's cache doesn't clear its metatags'
+        caches when instructed not to.
+        """
+        # 1
+        child = await async_database.ametatag(metatag)
+        child[tag] = plaintext_bytes
+        async_database[tag] = test_data
+        test_data_copy = test_data.copy()
+        await async_database.asave_database()
+
+        assert plaintext_bytes
+        assert plaintext_bytes.__class__ is bytes
+        assert child[tag] == plaintext_bytes
+        assert test_data
+        assert test_data.__class__ is dict
+        assert async_database[tag] == test_data
+
+        # 2
+        await async_database.aclear_cache(metatags=True)
+        assert plaintext_bytes
+        assert plaintext_bytes.__class__ is bytes
+        assert child[tag] != plaintext_bytes
+        assert child[tag] == None
+        assert test_data_copy == test_data
+        assert test_data.__class__ is dict
+        assert async_database[tag] != test_data
+        assert async_database[tag] == None
+
+        # 3
+        await async_database.aquery_tag(tag, cache=True)
+        assert async_database[tag] == test_data
+
+        await child.aquery_tag(tag, cache=True)
+        assert child[tag] == plaintext_bytes
+
+        await async_database.aclear_cache(metatags=False)
+        assert plaintext_bytes
+        assert plaintext_bytes.__class__ is bytes
+        assert child[tag] == plaintext_bytes
+        assert test_data_copy == test_data
+        assert test_data.__class__ is dict
+        assert async_database[tag] != test_data
+        assert async_database[tag] == None
+
+    def test_clear_cache_clears_metatags_when_instructed(self, database):
+        """
+        Setup: 1) a metatag exists AND both the metatag & its parent
+        have tags in their caches & saved on the filesystem.
+
+        Test: 2) clearing a database's cache clears its metatags' caches
+        when instructed.
+
+        Test: 3) clearing a database's cache doesn't clear its metatags'
+        caches when instructed not to.
+        """
+        # 1
+        child = database.metatag(metatag)
+        child[tag] = plaintext_bytes
+        database[tag] = test_data
+        test_data_copy = test_data.copy()
+        database.save_database()
+
+        assert plaintext_bytes
+        assert plaintext_bytes.__class__ is bytes
+        assert child[tag] == plaintext_bytes
+        assert test_data
+        assert test_data.__class__ is dict
+        assert database[tag] == test_data
+
+        # 2
+        database.clear_cache(metatags=True)
+        assert plaintext_bytes
+        assert plaintext_bytes.__class__ is bytes
+        assert child[tag] != plaintext_bytes
+        assert child[tag] == None
+        assert test_data_copy == test_data
+        assert test_data.__class__ is dict
+        assert database[tag] != test_data
+        assert database[tag] == None
+
+        # 3
+        database.query_tag(tag, cache=True)
+        assert database[tag] == test_data
+
+        child.query_tag(tag, cache=True)
+        assert child[tag] == plaintext_bytes
+
+        database.clear_cache(metatags=False)
+        assert plaintext_bytes
+        assert plaintext_bytes.__class__ is bytes
+        assert child[tag] == plaintext_bytes
+        assert test_data_copy == test_data
+        assert test_data.__class__ is dict
+        assert database[tag] != test_data
+        assert database[tag] == None
+
+
 def test_Database_instance(database):
     db = Database(key=key, preload=True)
 
@@ -306,57 +414,66 @@ async def test_user_profiles(database):
     assert not (user_copy.path / user_copy.filename(tag)).is_file()
 
 
-async def test_hmac_methods(database, async_database):
-    inputs = token_bytes(32)
-    ainputs = token_bytes(32)
+class TestHMACMethods:
+    def test_sync_hmac_methods_are_sound(self, database):
+        """
+        Sync HMAC methods provide soundness of data validation.
+        """
+        inputs = token_bytes(32)
+        tag = database.make_hmac(inputs)
 
-    tag = database.make_hmac(inputs)
-    atag = await async_database.amake_hmac(ainputs)
+        # sync validation doesn't fail
+        database.test_hmac(tag, inputs)
 
-    # validation doesn't fail
-    database.test_hmac(tag, inputs)
-    await async_database.atest_hmac(atag, ainputs)
+        # sync hmac tags fail when inputs type is altered
+        context = "Data type alteration not caught!"
+        with ignore(TypeError, if_else=violation(context)):
+            database.test_hmac(tag, str(inputs))
 
-    # sync hmac tags fail when inputs type is altered
-    context = "Data type alteration not caught!"
-    with ignore(TypeError, if_else=violation(context)):
-        database.test_hmac(tag, str(inputs))
+        # sync hmac tags fail when inputs are altered
+        iinputs = int.from_bytes(inputs, BYTE_ORDER)
+        context = "Data value alteration not caught!"
+        for bit in range(iinputs.bit_length()):
+            with ignore(database.InvalidHMAC, if_else=violation(context)):
+                database.test_hmac(tag, (iinputs ^ (1 << bit)).to_bytes(32, BYTE_ORDER))
 
-    # sync hmac tags fail when inputs are altered
-    iinputs = int.from_bytes(inputs, BYTE_ORDER)
-    context = "Data value alteration not caught!"
-    for bit in range(iinputs.bit_length()):
-        with ignore(database.InvalidHMAC, if_else=violation(context)):
-            database.test_hmac(tag, (iinputs ^ (1 << bit)).to_bytes(32, BYTE_ORDER))
+        # sync hmac tags fail when they are altered
+        itag = int.from_bytes(tag, BYTE_ORDER)
+        context = "Tag alteration not caught!"
+        for bit in range(itag.bit_length()):
+            with ignore(database.InvalidHMAC, if_else=violation(context)):
+                altered_tag = (itag ^ (1 << bit)).to_bytes(32, BYTE_ORDER)
+                database.test_hmac(altered_tag, inputs)
 
-    # sync hmac tags fail when they are altered
-    itag = int.from_bytes(tag, BYTE_ORDER)
-    context = "Tag alteration not caught!"
-    for bit in range(itag.bit_length()):
-        with ignore(database.InvalidHMAC, if_else=violation(context)):
-            altered_tag = (itag ^ (1 << bit)).to_bytes(32, BYTE_ORDER)
-            database.test_hmac(altered_tag, inputs)
+    async def test_async_hmac_methods_are_sound(self, async_database):
+        """
+        Async HMAC methods provide soundness of data validation.
+        """
+        ainputs = token_bytes(32)
+        atag = await async_database.amake_hmac(ainputs)
 
-    ######
-    ###### async hmac tags fail when inputs type is altered
-    context = "Async data type alteration not caught!"
-    with ignore(TypeError, if_else=violation(context)):
-        await async_database.atest_hmac(atag, str(ainputs))
+        # async validation doesn't fail
+        await async_database.atest_hmac(atag, ainputs)
 
-    # async hmac tags fail when inputs are altered
-    aiinputs = int.from_bytes(ainputs, BYTE_ORDER)
-    context = "Async data value alteration not caught!"
-    for bit in range(aiinputs.bit_length()):
-        with ignore(database.InvalidHMAC, if_else=violation(context)):
-            await async_database.atest_hmac(atag, (aiinputs ^ (1 << bit)).to_bytes(32, BYTE_ORDER))
+        # async hmac tags fail when inputs type is altered
+        context = "Async data type alteration not caught!"
+        async with aignore(TypeError, if_else=aviolation(context)):
+            await async_database.atest_hmac(atag, str(ainputs))
 
-    # async hmac tags fail when they are altered
-    aitag = int.from_bytes(atag, BYTE_ORDER)
-    context = "Async tag alteration not caught!"
-    for abit in range(aitag.bit_length()):
-        with ignore(database.InvalidHMAC, if_else=violation(context)):
-            altered_tag = (aitag ^ (1 << abit)).to_bytes(32, BYTE_ORDER)
-            await async_database.atest_hmac(altered_tag, ainputs)
+        # async hmac tags fail when inputs are altered
+        aiinputs = int.from_bytes(ainputs, BYTE_ORDER)
+        context = "Async data value alteration not caught!"
+        for bit in range(aiinputs.bit_length()):
+            async with aignore(async_database.InvalidHMAC, if_else=aviolation(context)):
+                await async_database.atest_hmac(atag, (aiinputs ^ (1 << bit)).to_bytes(32, BYTE_ORDER))
+
+        # async hmac tags fail when they are altered
+        aitag = int.from_bytes(atag, BYTE_ORDER)
+        context = "Async tag alteration not caught!"
+        for abit in range(aitag.bit_length()):
+            async with aignore(async_database.InvalidHMAC, if_else=aviolation(context)):
+                altered_tag = (aitag ^ (1 << abit)).to_bytes(32, BYTE_ORDER)
+                await async_database.atest_hmac(altered_tag, ainputs)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
