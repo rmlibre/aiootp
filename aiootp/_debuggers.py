@@ -4,12 +4,14 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-__all__ = ["debuggers"]
+__all__ = [
+    "DebugControl", "afunc_timer", "agen_timer", "func_timer", "gen_timer"
+]
 
 
 __doc__ = (
@@ -23,7 +25,7 @@ from time import time
 from functools import wraps
 from ._exceptions import *
 from ._typing import Typing
-from .commons import commons
+from .commons import make_module
 
 
 # Instead of printing, a user can define a custom way to log debugging
@@ -34,8 +36,8 @@ from .commons import commons
 # import aiootp
 #
 # log = []
-# aiootp.debuggers.add_to_log = lambda entry: log.append(entry)
-add_to_log = lambda entry: debuggers.add_to_log(entry)
+# aiootp._debuggers.add_to_log = lambda entry: log.append(entry)
+add_to_log = lambda entry: _debuggers.add_to_log(entry)
 
 
 class DebugControl:
@@ -567,7 +569,10 @@ def agen_timer(func):
     A simple timer decorator that can get timings from per-iteration
     readings over an async generator.
 
-    Usage Example:
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
 
     @agen_timer
     async def loop(times=10):
@@ -592,7 +597,10 @@ def gen_timer(func):
     A simple timer decorator that can get timings from per-iteration
     readings over a sync generator.
 
-    Usage Example:
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
 
     @gen_timer
     def loop(times=10):
@@ -617,7 +625,10 @@ def afunc_timer(func):
     A simple decorator for async functions which calculates & displays
     running statistics & introspection details to stdout.
 
-    Usage Example:
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
 
     @afunc_timer
     async def add(x=4, y=6):
@@ -643,7 +654,10 @@ def func_timer(func):
     A simple decorator for sync functions which calculates & displays
     running statistics & introspection details to stdout.
 
-    Usage Example:
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
 
     @func_timer
     def add(x=4, y=6):
@@ -668,8 +682,8 @@ extras = dict(
     AsyncDebugTools=AsyncDebugTools,
     DebugControl=DebugControl,
     DebugTools=DebugTools,
+    __all__=__all__,
     __doc__=__doc__,
-    __main_exports__=__all__,
     __package__=__package__,
     add_to_log=print,
     afunc_timer=afunc_timer,
@@ -679,5 +693,5 @@ extras = dict(
 )
 
 
-debuggers = commons.make_module("debuggers", mapping=extras)
+_debuggers = make_module("_debuggers", mapping=extras)
 
