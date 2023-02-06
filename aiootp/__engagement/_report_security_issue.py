@@ -17,31 +17,30 @@ from misc import *
 import sys
 import json
 from getpass import getpass
+from collections import deque
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 
-def report_security_issue():
+def report_security_issue() -> None:
     # allow the user to configure aiootp to report a bug, but not be
     # obligated to.
-    want_to_report_a_bug: bytes = input("want to report a security issue? (y/N) ")
-    if not want_to_report_a_bug.lower().strip().startswith("y"):
-        want_to_report_a_bug = False
+    if not input("want to report a security issue? (y/N) ").lower().strip().startswith("y"):
         return
 
     # generate an ephemeral X25519 key & exchange it with the aiootp
     # public key
-    your_public_key = X25519().generate()
-    aiootp_public_key = bytes.fromhex(aiootp.__PUBLIC_X25519_KEY__)
-    raw_shared_key = your_public_key.exchange(aiootp_public_key)
+    your_public_key: X25519 = X25519().generate()
+    aiootp_public_key: bytes = bytes.fromhex(aiootp.__PUBLIC_X25519_KEY__)
+    raw_shared_key: bytes = your_public_key.exchange(aiootp_public_key)
 
-    # get credentials from user to created an encrypted database
+    # get credentials from user to create an encrypted database
     print(
         "\nwe'll ask for your email address & a passphrase to encrypt"
         "\nthe keys, that will be generated automatically, locally on"
         "\nyour device."
     )
 
-    mb = input(
+    mb: str = input(
         "\nhow much RAM, in Mibibytes (1 MiB == 1024*1024 B), would you"
         "\nlike to use to hash this passphrase?"
         "\n1024 Mibibytes (1 GiB) is recommended, but choose according"
@@ -54,7 +53,7 @@ def report_security_issue():
     # hashing algorithm
     while True:
         try:
-            mb = max([int(mb), 1])
+            mb: int = max([int(mb), 1])
             if input(
                 f"\nare you sure you'd like to use {mb} MiB of RAM to hash this"
                 "\npassphrase? (Y/n) "
@@ -65,12 +64,12 @@ def report_security_issue():
             print(f"Try again, {mb} is not a valid number.")
         except PermissionError:
             print("Ok, let's try again.")
-        mb = input(
+        mb: str = input(
             "\nhow much RAM, in Mibibytes (1 MiB == 1024*1024 B), would "
             "\nyou like to use to hash this passphrase? "
         )
 
-    your_email_address = input("your email address: ").encode()
+    your_email_address: bytes = input("your email address: ").encode()
     PASSPHRASE_PROMPT: str = (
         "your passphrase to continue the conversation (hidden): "
     )
@@ -78,7 +77,7 @@ def report_security_issue():
     # open a local encrypted database for the user to store the keys
     # generated to encrypt the report. this allows us to continue the
     # conversation with authentication
-    db = Database.generate_profile(
+    db: Database = Database.generate_profile(
         username=your_email_address,
         passphrase=getpass(PASSPHRASE_PROMPT).encode(),
         salt=aiootp_public_key,
@@ -90,6 +89,7 @@ def report_security_issue():
     with db:
         if not db[CONVERSATION]:
             db[CONVERSATION] = {PERIOD_KEYS: []}
+        db[CONVERSATION][PERIOD_KEYS] = list(deque(db[CONVERSATION][PERIOD_KEYS], maxlen=3))
         db[CONVERSATION][PERIOD_KEYS].append(db.make_token(
             your_public_key.secret_bytes, aad=PERIOD_KEY.encode()
         ).decode())
@@ -108,27 +108,26 @@ def report_security_issue():
         "\nplease type or paste your message here. hit CTRL-D (or "
         "\nCTRL-Z on Windows) to finish the message:\n"
     )
-    message = b"".join(line.encode() for line in sys.stdin)
+    message: bytes = b"".join(line.encode() for line in sys.stdin)
 
     # derive the report's keys
-    date = generics.Clock("days").make_timestamp(size=4)
-    guid = GUID(size=12).new()
-    shared_kdf = DomainKDF(
+    date: bytes = generics.Clock("days").make_timestamp(size=4)
+    guid: bytes = GUID(size=12).new()
+    shared_kdf: DomainKDF = DomainKDF(
         Domains.USER,
         date,
         guid,
-        your_email_address,
         your_public_key.public_bytes,
         aiootp_public_key,
         key=raw_shared_key,
     )
-    key = shared_kdf.sha3_256(context=b"user_encryption_key")
+    key: bytes = shared_kdf.sha3_256(context=b"user_encryption_key")
 
     # encrypt the message payload
-    encrypted_message = ChaCha20Poly1305(key).encrypt(
+    encrypted_message: bytes = ChaCha20Poly1305(key).encrypt(
         nonce=guid,
-        data=generics.Padding.pad_plaintext(message),
-        associated_data=your_email_address,
+        data=generics.Padding.pad_plaintext(generics.canonical_pack(your_email_address, message)),
+        associated_data=your_public_key.public_bytes,
     )
 
     # display ciphertext payload, what to expect & thank yous
@@ -136,7 +135,6 @@ def report_security_issue():
     print(json.dumps(dict(
         date=generics.BytesIO.bytes_to_urlsafe(date).decode(),
         guid=generics.BytesIO.bytes_to_urlsafe(guid).decode(),
-        email_address=your_email_address.decode(),
         public_key=generics.BytesIO.bytes_to_urlsafe(your_public_key.public_bytes).decode(),
         encrypted_message=generics.BytesIO.bytes_to_urlsafe(encrypted_message).decode(),
     ), indent=4))
