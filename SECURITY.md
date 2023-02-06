@@ -25,11 +25,11 @@ For reference, here is our X25519 public key:
 4457276dbcae91cc5b69f1aed4384b9eb6f933343bb44d9ed8a80e2ce438a450
 
 
-```bash
+```console
 
-$ ipython3
-
+user@name:~$ python3
 ```
+
 
 ```python
 >>> import aiootp
@@ -71,7 +71,6 @@ excellent! here's the json message you can email to us:
 {
     "date": "AAAAHw",
     "guid": "_Q1e3epWumnPwFfA",
-    "email_address": "example@email.address",
     "public_key": "cpbZ_QeZiUVNVH7EFA53UBV1LXtG1bLTIt1GKGPUiTs",
     "encrypted_message": "sURARqMZOFY2-grwJcfUuf1OEr9Z8k9wskmfd6CgVEeRdvf2gVIR5c3_qxp8rBSyWJyR2Y-qwj8BV1RTIh4V5XapDM8zDlRhxgZjQmRthUe_9KeaTfmxhdQ64YesDsQ6XotEfBN7VLYlWGvc3agnr8BhRAf54erH3b562OXVvcHZIGJy0IN6qM5JJobESopCzQLsDoXNRcdiArnRxZGiIYDTsF5F3i_EElVZopv1TI4FCCqsMq8Q-GTVTd9z628-IjWjq_-7hWKJ-_ZEVc-cEZn90BfJfZ3FhfwgPg3FYpM1iALr8Iq1oDzx_oSPa-uzEE5IWWxLwM5rCA-bkhmnlevQ0O3XNZxpvLhGBN4uwCA"
 }
