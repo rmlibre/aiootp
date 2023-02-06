@@ -159,6 +159,48 @@ class PrimeGroups(SimpleNamespace):
     p312: int = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff35
     p320: int = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff3b
 
+    # Primes previous to the primes above
+    o8: int = 0xf1
+    o16: int = 0xffef
+    o24: int = 0xffffef
+    o32: int = 0xffffffef
+    o40: int = 0xffffffff59
+    o48: int = 0xffffffffffbf
+    o56: int = 0xffffffffffffe5
+    o64: int = 0xffffffffffffffad
+    o72: int = 0xffffffffffffffff95
+    o80: int = 0xffffffffffffffffffa3
+    o88: int = 0xfffffffffffffffffffe39
+    o96: int = 0xffffffffffffffffffffffa9
+    o104: int = 0xffffffffffffffffffffffffe3
+    o112: int = 0xffffffffffffffffffffffffff43
+    o120: int = 0xfffffffffffffffffffffffffffe75
+    o128: int = 0xffffffffffffffffffffffffffffff53
+    o136: int = 0xffffffffffffffffffffffffffffffff0d
+    o144: int = 0xffffffffffffffffffffffffffffffffff59
+    o152: int = 0xffffffffffffffffffffffffffffffffffffe9
+    o160: int = 0xffffffffffffffffffffffffffffffffffffffc7
+    o168: int = 0xfffffffffffffffffffffffffffffffffffffffdb7
+    o176: int = 0xfffffffffffffffffffffffffffffffffffffffffeb9
+    o184: int = 0xffffffffffffffffffffffffffffffffffffffffffffc5
+    o192: int = 0xfffffffffffffffffffffffffffffffffffffffffffffeb3
+    o200: int = 0xffffffffffffffffffffffffffffffffffffffffffffffff8b
+    o208: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffe59
+    o216: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffe21
+    o224: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffe95
+    o232: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffd67
+    o240: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffce3
+    o248: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe7d
+    o256: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe9b
+    o264: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe95
+    o272: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffee1
+    o280: int = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff97
+    o288: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffdf3
+    o296: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffcef
+    o304: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa85
+    o312: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd4f
+    o320: int = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd19
+
 
 PRIMES = {
     # A static table of primes for efficient and/or deterministic

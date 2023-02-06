@@ -37,6 +37,8 @@ FILENAME_HASH_BYTES = 24
 GUID_BYTES = 16
 MIN_GUID_BYTES = 12
 MAX_GUID_BYTES = 64
+MIN_RAW_GUID_BYTES = 10
+NODE_NUMBER_BYTES = 1
 
 JSON_DESERIALIZABLE_TYPES = {str, bytes, bytearray}
 
@@ -98,6 +100,7 @@ DH2 = "diffie_hellman_2x"
 DH3 = "diffie_hellman_3x"
 DIFFIE_HELLMAN = "diffie_hellman"
 DIRECTORY = "directory"
+ECDHE = "elliptic_curve_diffie_hellman"
 EMAIL_ADDRESS = "email_address"
 ENCRYPT = "encrypt"
 ENTROPY = "entropy"
