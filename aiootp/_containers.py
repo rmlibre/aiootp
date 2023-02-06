@@ -4,15 +4,13 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-__all__ = ["_containers"]
-
-
-__main_exports__ = [
+__all__ = [
+    "AuthFail",
     "Chunky2048Keys",
     "Ciphertext",
     "JSONCiphertext",
@@ -23,8 +21,11 @@ __main_exports__ = [
     "PackageSignerFiles",
     "PackageSignerScope",
     "PasscryptHash",
+    "PasscryptResources",
+    "PasscryptSettings",
     "PlaintextMeasurements",
     "ProfileTokens",
+    "UnmaskedGUID",
 ]
 
 
@@ -35,13 +36,39 @@ __doc__ = (
 
 
 import json
+import math
+from io import BytesIO
 from hashlib import sha3_256, sha3_512
-from ._typing import Typing
+from .__constants import *
 from ._exceptions import *
+from ._typing import Typing as t
 from .asynchs import asleep
-from .commons import *
-from commons import *
+from .commons import Slots, OpenNamespace
+from .commons import make_module
 from .paths import Path
+
+
+class AuthFail(Slots):
+    """
+    Creates efficient containers for data lost in a buffer during
+    authentication failure of a block ID in (Async)DecipherStream
+    objects.
+    """
+
+    __slots__ = ("block_id", "block", "buffer")
+
+    def __init__(
+        self, block_id: bytes, block: bytes, buffer: t.Callable
+    ) -> "self":
+        self.block_id = block_id
+        self.block = block
+        self.buffer = buffer
+
+    def __repr__(self) -> str:
+        """
+        Returns a repr string without the instance's values being masked.
+        """
+        return super().__repr__(mask=False)
 
 
 class KeySaltAAD(Slots):
@@ -51,7 +78,7 @@ class KeySaltAAD(Slots):
 
     __slots__ = (KEY, SALT, AAD)
 
-    def __init__(self, key: bytes, salt: bytes, aad: bytes):
+    def __init__(self, key: bytes, salt: bytes, aad: bytes) -> "self":
         self.key = key
         self.salt = salt
         self.aad = aad
@@ -65,10 +92,7 @@ class NoRegisters(Slots):
 
     __slots__ = ()
 
-    def __init__(self):
-        pass
-
-    def register(self, name: str, value: Typing.Any):
+    def register(self, name: str, value: t.Any) -> None:
         pass
 
 
@@ -79,12 +103,9 @@ class KeyAADBundleRegisters(Slots):
     round.
     """
 
-    __slots__ = ("keystream", "validator")
+    __slots__ = (KEYSTREAM, SHMAC)
 
-    def __init__(self):
-        pass
-
-    def register(self, name: str, value: Typing.Any):
+    def register(self, name: str, value: t.Any) -> None:
         setattr(self, name, value)
 
 
@@ -97,13 +118,13 @@ class KeyAADMode(Slots):
 
     __slots__ = ("_mode",)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Returns a repr string without the instance's values being masked.
         """
         return super().__repr__(mask=False)
 
-    def __eq__(self, mode: str):
+    def __eq__(self, mode: str) -> bool:
         """
         The object can directly be compared to the string ``mode`` from
         within the runtime of an async & sync contexts. Procs an error
@@ -112,7 +133,7 @@ class KeyAADMode(Slots):
         return self.mode == mode
 
     @property
-    def mode(self):
+    def mode(self) -> str:
         """
         Procs an error if the mode has not been set.
         """
@@ -121,68 +142,52 @@ class KeyAADMode(Slots):
         except AttributeError as error:
             raise KeyAADIssue.no_kdf_mode_declared() from error
 
-    async def aset_async_mode(self):
+    def set_async_mode(self) -> None:
         """
         Sets the object's mode to signal async key derivation is needed.
         """
-        await asleep()
         self._mode = ASYNC
 
-    def set_sync_mode(self):
+    def set_sync_mode(self) -> None:
         """
         Sets the object's mode to signal sync key derivation is needed.
         """
         self._mode = SYNC
 
-    def validate(self):
+    def validate(self) -> None:
         """
-        Procs an error if the mode has not been set, else returns `True`.
+        Procs an error if the mode has not been set, else returns `None`.
         """
-        return self.mode and True
+        return self.mode and None
 
 
 class Chunky2048Keys(Slots):
     """
-    Efficiently stores & gives acces to `KeyAADBundle` keys & KDFs.
+    Efficiently stores & gives access to `KeyAADBundle` keys & KDFs.
     """
 
     __slots__ = (
-        "seed_0",
-        "seed_1",
         "keystream",
         "seed_kdf",
         "left_kdf",
         "right_kdf",
         "primer_key",
         "shmac_mac",
-        "shmac_key",
-        "padding_key",
     )
 
-    def __init__(self):
-        pass
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Blocks the viewing of instance values.
         """
         return f"{self.__class__.__qualname__}()"
 
-    def __iter__(self):
+    def __iter__(self) -> SHAKE_128_TYPE:
         """
-        An api for retrieving the instance & its key seeds.
+        An api for retrieving the instance's keystream kdfs.
         """
-        yield self
-        yield self.seed_0
-        yield self.seed_1
-
-    def add_keystream_kdfs(self, left_kdf: sha3_512, right_kdf: sha3_512):
-        """
-        Stores the main internal KDFs of the `Chunky2048` cipher's
-        keystream.
-        """
-        self.left_kdf = left_kdf
-        self.right_kdf = right_kdf
+        yield self.seed_kdf
+        yield self.left_kdf
+        yield self.right_kdf
 
 
 class Ciphertext(Slots):
@@ -191,18 +196,24 @@ class Ciphertext(Slots):
     attributes.
     """
 
-    __slots__ = (HMAC, SALT, SIV, CIPHERTEXT)
+    __slots__ = (SHMAC, SALT, IV, CIPHERTEXT)
 
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes) -> "self":
+        """
+        Decomposes a blob of ciphertext ``data`` bytes into an organized
+        instance where the `shmac` auth tag, `salt` & `iv` randomizers &
+        the body of `ciphertext` are queriable through dotted attribute
+        lookup.
+        """
         size = len(data) - HEADER_BYTES
         if size <= 0 or size % BLOCKSIZE:
-            raise CiphertextIssue.invalid_ciphertext_length(len(data))
-        self.hmac = data[HMAC_SLICE]
+            raise CiphertextIssue.invalid_ciphertext_size(len(data))
+        self.shmac = data[SHMAC_SLICE]
         self.salt = data[SALT_SLICE]
-        self.synthetic_iv = data[SIV_SLICE]
+        self.iv = data[IV_SLICE]
         self.ciphertext = data[CIPHERTEXT_SLICE]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Returns a repr string without the instance's values being masked.
         """
@@ -215,17 +226,21 @@ class JSONCiphertext(Slots):
     attributes.
     """
 
-    __slots__ = (HMAC, SALT, SIV, CIPHERTEXT)
+    __slots__ = (SHMAC, SALT, IV, CIPHERTEXT)
 
-    def __init__(self, data: Typing.JSONCiphertext):
+    def __init__(self, data: t.JSONCiphertext) -> "self":
+        """
+        Efficiently stores JSON / dict type ciphertext organized by
+        instance attributes.
+        """
         if data.__class__ in JSON_DESERIALIZABLE_TYPES:
             data = json.loads(data)
-        self.hmac = data[HMAC]
+        self.shmac = data[SHMAC]
         self.salt = data[SALT]
-        self.synthetic_iv = data[SIV]
+        self.iv = data[IV]
         self.ciphertext = data[CIPHERTEXT]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Returns a repr string without the instance's values being masked.
         """
@@ -238,50 +253,230 @@ class PlaintextMeasurements(Slots):
     which are used to determine the padding that's needed.
     """
 
-    __slots__ = (
-        "length",
-        "remainder",
-        "padding_size",
-        "no_padding_required",
-        "padding_sentinel_fits",
-    )
+    __slots__ = ("padding_size", "pad_sentinel")
+
+    def __init__(self, padding_size: int, pad_sentinel: bytes) -> "self":
+        self.padding_size = padding_size
+        self.pad_sentinel = pad_sentinel
+
+
+class UnmaskedGUID(Slots):
+    """
+    Efficiently stores the de-obfuscated values used to generate a guid.
+    """
+
+    __slots__ = ("node_number", "timestamp", "entropy", "counter")
+
+    def __init__(self, guid: bytes, node_number_bytes: int) -> "self":
+        read = BytesIO(guid).read
+        self.node_number = read(node_number_bytes)
+        self.timestamp = read(SAFE_TIMESTAMP_BYTES)
+        tail = read()
+        self.entropy = tail[:-1]
+        self.counter = tail[-1:]
+
+    def __repr__(self) -> str:
+        """
+        Allows the instance state to be viewed.
+        """
+        return super().__repr__(mask=False)
+
+    def __hash__(self) -> int:
+        return int.from_bytes(b"".join(self.values()), BYTE_ORDER)
+
+    def __eq__(self, other: "cls") -> bool:
+        return self.sort_key == other.sort_key
+
+    def __gt__(self, other: "cls") -> bool:
+        return self.sort_key > other.sort_key
+
+    def __lt__(self, other: "cls") -> bool:
+        return self.sort_key < other.sort_key
+
+    @property
+    def sort_key(self) -> bytes:
+        return self.timestamp + self.node_number + self.counter
+
+
+class PasscryptResources(Slots):
+    """
+    Efficiently stores the resource values located in the header of a
+    `Passcrypt` hash.
+    """
+
+    __slots__ = ("mb", "cpu", "cores")
+
+    def __init__(self, mb: int, cpu: int, cores: int) -> "self":
+        self.mb = mb
+        self.cpu = cpu
+        self.cores = cores
+
+    def __repr__(self) -> str:
+        """
+        Allows instance state to be viewed.
+        """
+        return super().__repr__(mask=False)
+
+
+class PasscryptSettings(Slots):
+    """
+    Efficiently stores the resource values located in the header of a
+    `Passcrypt` hash.
+    """
+
+    __slots__ = ("mb", "cpu", "cores", "tag_size", "salt_size")
 
     def __init__(
-        self,
-        length: int,
-        remainder: int,
-        padding_size: int,
-        no_padding_required: bool,
-        padding_sentinel_fits: bool,
-    ):
-        self.length = length
-        self.remainder = remainder
-        self.padding_size = padding_size
-        self.no_padding_required = no_padding_required
-        self.padding_sentinel_fits = padding_sentinel_fits
+        self, mb: int, cpu: int, cores: int, tag_size: int, salt_size: int
+    ) -> "self" :
+        self.mb = mb
+        self.cpu = cpu
+        self.cores = cores
+        self.tag_size = tag_size
+        self.salt_size = salt_size
+
+    def __repr__(self) -> str:
+        """
+        Allows instance state to be viewed.
+        """
+        return super().__repr__(mask=False)
 
 
 class PasscryptHash(Slots):
     """
-    Efficiently stores & formats the bytes type passcrypt hash that has
-    attached metadata & organizes its values by instance attributes.
+    Efficiently stores `Passcrypt` session values to be encoded into &
+    decoded from formatted `Passcrypt` hashes. Does NOT check that
+    provided values follow the specification.
     """
 
-    __slots__ = ("kb", "cpu", "hardness", "salt", "passphrase_hash")
+    __slots__ = ("timestamp", "mb", "cpu", "cores", "salt", "tag")
 
-    KB_SLICE = passcrypt_constants.KB_SLICE
-    CPU_SLICE = passcrypt_constants.CPU_SLICE
-    HARDNESS_SLICE = passcrypt_constants.HARDNESS_SLICE
-    SALT_SLICE = passcrypt_constants.SALT_SLICE
-    PASSPHRASE_HASH_SLICE = passcrypt_constants.PASSPHRASE_HASH_SLICE
+    vars().update({var: passcrypt[var] for var in passcrypt.__all__})
 
-    def __init__(self, passcrypt_hash: bytes):
-        _int = int.from_bytes
-        self.kb = _int(passcrypt_hash[self.KB_SLICE], "big")
-        self.cpu = _int(passcrypt_hash[self.CPU_SLICE], "big")
-        self.hardness = _int(passcrypt_hash[self.HARDNESS_SLICE], "big")
-        self.salt = passcrypt_hash[self.SALT_SLICE]
-        self.passphrase_hash = passcrypt_hash[self.PASSPHRASE_HASH_SLICE]
+    def __init__(
+        self,
+        *,
+        timestamp: t.Optional[bytes] = None,
+        mb: t.Optional[int] = None,
+        cpu: t.Optional[int] = None,
+        cores: t.Optional[int] = None,
+        salt: t.Optional[bytes] = None,
+        tag: t.Optional[bytes] = None,
+    ) -> "self":
+        """
+        Populates the instance state from the provided session values
+        which are composable into a `Passcrypt` hash.
+        """
+        self.timestamp = timestamp
+        self.mb = mb
+        self.cpu = cpu
+        self.cores = cores
+        self.salt = salt
+        self.tag = tag
+
+    @property
+    def salt_size(self) -> t.Optional[int]:
+        """
+        Returns the length of the `salt` value stored in the instance
+        state. If the `salt` has not been set, returns `None`.
+        """
+        salt = getattr(self, "salt", None)
+        return len(salt) if salt else None
+
+    @property
+    def tag_size(self) -> t.Optional[int]:
+        """
+        Returns the length of the `tag` value stored in the instance
+        state. If the `tag` has not been set, returns `None`.
+        """
+        tag = getattr(self, "tag", None)
+        return len(tag) if tag else None
+
+    def import_hash(self, passcrypt_hash: bytes) -> "self":
+        """
+        Populates the instance state from the decoded values represented
+        in the bytes-type ``passcrypt_hash``. These hashes contain the
+        inputs & parameters of a `Passcrypt` session. Does NOT check
+        that decoded values follow the specification.
+        """
+        to_int = int.from_bytes
+        read = BytesIO(passcrypt_hash).read
+
+        self.timestamp = read(self.TIMESTAMP_BYTES)
+        self.mb = to_int(read(self.MB_BYTES), BYTE_ORDER) + 1
+        self.cpu = to_int(read(self.CPU_BYTES), BYTE_ORDER) + 1
+        self.cores = to_int(read(self.CORES_BYTES), BYTE_ORDER) + 1
+        salt_size = to_int(read(self.SALT_SIZE_BYTES), BYTE_ORDER) + 1
+        self.salt = read(salt_size)
+        self.tag = read()
+        if not all(self.values()):
+            raise PasscryptIssue.decoding_failed("premature termination")
+        return self
+
+    def export_hash(self) -> bytes:
+        """
+        Returns the composed `Passcrypt` hash from the instance state.
+        Does NOT check that the instance state values follow the
+        specification.
+        """
+        passcrypt_hash = (
+            self.timestamp,
+            (self.mb - 1).to_bytes(self.MB_BYTES, BYTE_ORDER),
+            (self.cpu - 1).to_bytes(self.CPU_BYTES, BYTE_ORDER),
+            (self.cores - 1).to_bytes(self.CORES_BYTES, BYTE_ORDER),
+            (self.salt_size - 1).to_bytes(self.SALT_SIZE_BYTES, BYTE_ORDER),
+            self.salt,
+            self.tag,
+        )
+        return b"".join(passcrypt_hash)
+
+    def in_allowed_ranges(
+        self, mb_allowed: range, cpu_allowed: range, cores_allowed: range
+    ) -> bool:
+        """
+        Procs a `ResourceWarning` exception if any of the range objects
+        passed into the method do not contain the value which is set for
+        its specified difficulty setting.
+
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
+
+        from aiootp import Passcrypt
+
+        allowed_resource_consumption = dict(
+            mb_allowed=range(16, 256),  # Less than 256 MiB allowed
+            cpu_allowed=range(2, 8),    # Less than 8 complexity allowed
+            cores_allowed=range(1, 5),  # Less than 5 processes allowed
+        )
+
+        try:
+            Passcrypt.verify(hashed_pw, pw, **allowed_resource_consumption)
+        except ResourceWarning as danger:
+            admin.log(danger)
+            hard_limits_exceeded = (
+                danger.requested_resources.mb > 512
+                or danger.requested_resources.cpu > 11
+                or danger.requested_resources.cores > 8
+            )
+            below_security_guidelines = (
+                danger.requested_resources.mb < 16
+                or danger.requested_resources.cpu < 2
+            )
+            if hard_limits_exceeded:
+                raise danger
+            elif below_security_guidelines:
+                raise PermissionError("Minimum hash difficulty unmet.")
+            Passcrypt.verify(hashed_pw, pw)
+        """
+        proc = raise_exception
+        exc = PasscryptIssue.untrusted_resource_consumption
+        header = PasscryptResources(self.mb, self.cpu, self.cores)
+        self.mb in mb_allowed or proc(exc(self.MB, header))
+        self.cpu in cpu_allowed or proc(exc(self.CPU, header))
+        self.cores in cores_allowed or proc(exc(self.CORES, header))
+        return True
 
 
 class ProfileTokens(Slots):
@@ -292,17 +487,17 @@ class ProfileTokens(Slots):
     """
 
     __slots__ = (
-        "_bytes_key",
+        "_gist",
         "_salt",
         "_salt_path",
-        "_uuid",
+        "_tmp_key",
         "login_key",
         "profile",
     )
 
-    def __init__(self, bytes_key: bytes, uuid: bytes):
-        self._bytes_key = bytes_key
-        self._uuid = uuid
+    def __init__(self, tmp_key: bytes, gist: bytes) -> "self":
+        self._tmp_key = tmp_key
+        self._gist = gist
 
 
 class PackageSignerScope(OpenNamespace):
@@ -316,8 +511,8 @@ class PackageSignerScope(OpenNamespace):
         package: str,
         version: str,
         date: int,
-        **extras: Typing.Dict[str, Typing.JSONSerializable],
-    ):
+        **extras: t.Dict[str, t.JSONSerializable],
+    ) -> "self":
         self.__dict__.update(extras)
         self.package = package
         self.version = version
@@ -331,7 +526,8 @@ class PackageSignerFiles(OpenNamespace):
     """
 
 
-extras = OpenNamespace(
+extras = dict(
+    AuthFail=AuthFail,
     Chunky2048Keys=Chunky2048Keys,
     Ciphertext=Ciphertext,
     JSONCiphertext=JSONCiphertext,
@@ -342,13 +538,15 @@ extras = OpenNamespace(
     PackageSignerFiles=PackageSignerFiles,
     PackageSignerScope=PackageSignerScope,
     PasscryptHash=PasscryptHash,
+    PasscryptResources=PasscryptResources,
+    PasscryptSettings=PasscryptSettings,
     PlaintextMeasurements=PlaintextMeasurements,
     ProfileTokens=ProfileTokens,
-    __all__=__main_exports__,
+    UnmaskedGUID=UnmaskedGUID,
     __doc__=__doc__,
     __package__=__package__,
 )
 
 
-_containers = commons.make_module("_containers", mapping=extras)
+_containers = make_module("_containers", mapping=extras)
 
