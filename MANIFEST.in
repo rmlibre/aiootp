@@ -1,6 +1,9 @@
 recursive-include licenses *
+recursive-exclude docs *
 recursive-exclude aiootp/tor *
 recursive-exclude aiootp/databases *
+recursive-exclude aiootp/__constants *
+recursive-exclude tests/htmlcov *
 include LICENSE
 include setup.py
 include setup.cfg
@@ -11,42 +14,60 @@ include README.rst
 include PREADME.rst
 include CHANGES.rst
 include MANIFEST.in
+include SECURITY.md
 include SIGNATURE.txt
+include aiootp/__constants/__init__.py
+include aiootp/__constants/misc.py
+include aiootp/__constants/datasets.py
+include aiootp/__constants/passcrypt.py
+include aiootp/__constants/chunky2048.py
+include aiootp/__dependencies/__init__.py
+include aiootp/__dependencies/aiocontext.py
+include aiootp/__dependencies/async_lru.py
+include aiootp/__engagement/__init__.py
+include aiootp/__engagement/_report_security_issue.py
 include aiootp/__ui_coordination.py
-include aiootp/__aiocontext.py
-include aiootp/__async_lru.py
-include aiootp/__datasets.py
 include aiootp/__init__.py
 include aiootp/_containers.py
+include aiootp/_debuggers.py
 include aiootp/_exceptions.py
 include aiootp/_typing.py
 include aiootp/commons.py
 include aiootp/asynchs.py
 include aiootp/paths.py
-include aiootp/debuggers.py
-include aiootp/generics.py
 include aiootp/gentools.py
+include aiootp/generics.py
 include aiootp/randoms.py
 include aiootp/ciphers.py
 include aiootp/keygens.py
+include aiootp/databases.py
 include aiootp/tor/README_TOR.rst
 include aiootp/databases/README_DATABASES.rst
-include tests/init_tests.py
+include tests/pytest.ini
+include tests/test_initialization.py
 include tests/test_aiootp.py
+include tests/test_commons.py
 include tests/test_generics.py
+include tests/test_gentools.py
+include tests/test_randoms.py
+include tests/test_ciphers.py
+include tests/test_keygens.py
+include tests/test_databases.py
 include tests/test_BytesIO.py
 include tests/test_Comprende.py
-include tests/test_misc_in_generics.py
-include tests/test_randoms.py
-include tests/test_misc_in_randoms.py
-include tests/test_ciphers.py
 include tests/test_Database_AsyncDatabase.py
-include tests/test_Ropake.py
-include tests/test_StreamHMAC.py
-include tests/test_X25519_Ed25519.py
 include tests/test_high_level_encryption.py
 include tests/test_misc_in_ciphers.py
+include tests/test_misc_in_generics.py
+include tests/test_misc_in_gentools.py
+include tests/test_misc_in_keygens.py
+include tests/test_misc_in_randoms.py
+include tests/test_namespace_classes.py
+include tests/test_PackageSigner.py
+include tests/test_Padding.py
 include tests/test_passcrypt_apasscrypt.py
-recursive-exclude docs *
-recursive-exclude tests/htmlcov *
+include tests/test_SequenceID.py
+include tests/test_StreamHMAC.py
+include tests/test_time_to_live.py
+include tests/test_X25519_Ed25519.py
 
