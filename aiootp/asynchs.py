@@ -4,12 +4,12 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-__all__ = ["asynchs", "Processes", "Threads"]
+__all__ = []
 
 
 __doc__ = (
@@ -17,102 +17,114 @@ __doc__ = (
     " standard usage in this package. This module can be used to replac"
     "e the default event loop policy, for instance, to run uvloop or ch"
     "ange async frameworks. The default asyncio loop is available in ``"
-    "default_loop``."
+    "default_event_loop``."
 )
 
 
 import os
 import asyncio
 import aiofiles
-from time import time
 from time import sleep
-from functools import wraps
-from functools import partial
+from time import time as s_time
+from time import time_ns as ns_time
+from time import perf_counter as s_counter
+from time import perf_counter_ns as ns_counter
 from threading import Thread
+from functools import wraps, partial
 from asyncio import sleep as _asleep
 from multiprocessing import Process, Manager
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import ProcessPoolExecutor
+import concurrent.futures.thread as thread
+import concurrent.futures.process as process
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from inspect import isawaitable as is_awaitable
 from inspect import iscoroutinefunction as is_async_function
 from ._exceptions import *
 from ._typing import Typing
-from .debuggers import DebugControl
-from .commons import commons
+from ._debuggers import DebugControl
+from .commons import OpenNamespace, amake_module
 
 
 # Can toggle asyncio's debug mode using DebugControl.enable_debugging()
 # WARNING: This will also reveal potentially sensitive values in object
 # repr's that are omitted by default.
 DebugControl._switches.append(
-    lambda: loop().set_debug(DebugControl.is_debugging())
+    lambda: event_loop().set_debug(DebugControl.is_debugging())
 )
 
 
-_ONE_MICROSECOND = 1_000_000
-_ONE_MILLISECOND = 1_000
-_ONE_SECOND = 1
-_ONE_MINUTE = _ONE_SECOND * 60
-_ONE_HOUR = _ONE_MINUTE * 60
-_ONE_DAY = _ONE_HOUR * 24
-_ONE_YEAR = _ONE_DAY * 365
+_ONE_NANOSECOND: int = 1
+_ONE_MICROSECOND: int = 1_000
+_ONE_MILLISECOND: int = 1_000_000
+_ONE_SECOND: int = 1_000_000_000
+_ONE_MINUTE: int = 60 * _ONE_SECOND
+_ONE_HOUR: int = 60 * _ONE_MINUTE
+_ONE_DAY: int = 24 * _ONE_HOUR
+_ONE_MONTH: int = 30 * _ONE_DAY
+_ONE_YEAR: int = 12 * _ONE_MONTH
 
 
-this_microsecond = lambda: int(time() * _ONE_MICROSECOND)
-this_millisecond = lambda: int(time() * _ONE_MILLISECOND)
-this_second = lambda: int(time())
-this_minute = lambda: int(time() / _ONE_MINUTE)
-this_hour = lambda: int(time() / _ONE_HOUR)
-this_day = lambda: int(time() / _ONE_DAY)
-this_year = lambda: int(time() / _ONE_YEAR)
+this_nanosecond = this_ns = lambda epoch=0: (
+    ns_time() - (int(epoch) if epoch else 0)
+)
+this_microsecond = lambda epoch=0: this_ns(epoch) // _ONE_MICROSECOND
+this_millisecond = lambda epoch=0: this_ns(epoch) // _ONE_MILLISECOND
+this_second = lambda epoch=0: this_ns(epoch) // _ONE_SECOND
+this_minute = lambda epoch=0: this_ns(epoch) // _ONE_MINUTE
+this_hour = lambda epoch=0: this_ns(epoch) // _ONE_HOUR
+this_day = lambda epoch=0: this_ns(epoch) // _ONE_DAY
+this_month = lambda epoch=0: this_ns(epoch) // _ONE_MONTH
+this_year = lambda epoch=0: this_ns(epoch) // _ONE_YEAR
 
 
 thread_pool = ThreadPoolExecutor()
 process_pool = ProcessPoolExecutor()
 
 
-loop = asyncio.get_event_loop
-default_loop = loop()
+event_loop = asyncio.get_event_loop
+default_event_loop = event_loop()
 gather = asyncio.gather
 new_future = asyncio.ensure_future
 asleep = lambda delay=0: _asleep(delay)
 
 
-def reset_event_loop():
+def reset_event_loop() -> None:
     """
     Sets a new event loops for asyncio.
     """
     asyncio.set_event_loop(asyncio.new_event_loop())
 
 
-def serve(*a, **kw):
+def serve(*a, **kw) -> None:
     """
     Proxy's access to ``asyncio.get_event_loop().run_forever()``.
     """
-    return loop().run_forever(*a, **kw)
+    return event_loop().run_forever(*a, **kw)
 
 
-def run(coro):
+def run(coro) -> Typing.Any:
     """
     Proxy's access to ``asyncio.get_event_loop().run_until_complete()``.
     """
-    return loop().run_until_complete(coro)
+    return event_loop().run_until_complete(coro)
 
 
-def new_task(coro):
+def new_task(coro) -> asyncio.Task:
     """
     Proxy's access to ``asyncio.get_event_loop().create_taksk()``.
     """
-    return loop().create_task(coro)
+    return event_loop().create_task(coro)
 
 
-def stop():
+def stop() -> None:
     """
     Stops the currently running event loop.
     """
-    return loop().stop()
+    event_loop().stop()
 
 
-def wrap_in_executor(function):
+def wrap_in_executor(
+    function
+) -> Typing.Coroutine[Typing.Any, Typing.Any, Typing.Any]:
     """
     A decorator that wraps synchronous blocking IO functions so they
     will run in an executor. This was adapted from the ``aiofiles``
@@ -127,14 +139,14 @@ def wrap_in_executor(function):
     @wraps(function)
     async def runner(*args, **kwargs):
         partial_function = partial(function, *args, **kwargs)
-        return await loop().run_in_executor(
+        return await event_loop().run_in_executor(
             executor=None, func=partial_function
         )
 
     return runner
 
 
-def make_os_async(namespace=None):
+def make_os_async(namespace=None) -> Typing.Mapping[str, Typing.Coroutine]:
     """
     Wraps file operations from the ``os`` module in a decorator that
     runs those methods in an async executor. This was adapted from the
@@ -147,7 +159,7 @@ def make_os_async(namespace=None):
     http://www.apache.org/licenses/LICENSE-2.0
     """
     if namespace == None:
-        namespace = commons.OpenNamespace()
+        namespace = OpenNamespace()
     attrs = [
         "chmod",
         "chown",
@@ -169,6 +181,18 @@ def make_os_async(namespace=None):
 aos = make_os_async()
 
 
+class AsyncInit(type):
+    """
+    A metaclass which allows classes to use asynchronous ``__init__``
+    methods. Inspired by David Beazley.
+    """
+
+    async def __call__(cls, *args, **kwargs):
+        self = cls.__new__(cls, *args, **kwargs)
+        await self.__init__(*args, **kwargs)
+        return self
+
+
 class Processes:
     """
     Simplifies spawning & returning the values procuded by `Process` &
@@ -183,6 +207,8 @@ class Processes:
     _state_machine = Manager
     _default_probe_frequency = 0.005
 
+    BrokenPool = process.BrokenProcessPool
+
     @staticmethod
     def _return_state(runner, func=None, _state=None, *args, **kwargs):
         """
@@ -193,7 +219,7 @@ class Processes:
         return _state.pop()
 
     @staticmethod
-    def _run_async_func(func=None, *args, _state=None, **kwargs):
+    def _run_async_func(func=None, *args, _state=None, **kwargs) -> None:
         """
         Used by the class to handle retreiving return values from new
         processes spawned, even if the target function is async.
@@ -205,7 +231,7 @@ class Processes:
             _state.append(func(*args, **kwargs))
 
     @staticmethod
-    def _run_func(func=None, *args, _state=None, **kwargs):
+    def _run_func(func=None, *args, _state=None, **kwargs) -> None:
         """
         Used by the class to handle retreiving return values from new
         processes spawned.
@@ -372,40 +398,40 @@ class Threads(Processes):
     _state_machine = _Manager
     _default_probe_frequency = 0.001
 
+    BrokenPool = thread.BrokenThreadPool
+
 
 extras = dict(
+    AsyncInit=AsyncInit,
     Processes=Processes,
     Threads=Threads,
     __doc__=__doc__,
-    __main_exports__=__all__,
     __package__=__package__,
     aiofiles=aiofiles,
     aos=aos,
     asleep=asleep,
     asyncio=asyncio,
-    default_loop=default_loop,
+    default_event_loop=default_event_loop,
     gather=gather,
-    loop=loop,
+    is_async_function=is_async_function,
+    is_awaitable=is_awaitable,
+    event_loop=event_loop,
     new_future=new_future,
     new_task=new_task,
-    process_pool=process_pool,
+    ns_counter=ns_counter,
+    ns_time=ns_time,
     reset_event_loop=reset_event_loop,
     run=run,
     serve=serve,
     sleep=sleep,
     stop=stop,
-    this_day=this_day,
-    this_hour=this_hour,
-    this_microsecond=this_microsecond,
-    this_millisecond=this_millisecond,
-    this_minute=this_minute,
-    this_second=this_second,
-    this_year=this_year,
-    time=time,
-    thread_pool=thread_pool,
+    s_counter=s_counter,
+    s_time=s_time,
     wrap_in_executor=wrap_in_executor,
 )
 
 
-asynchs = commons.make_module("asynchs", mapping=extras)
+asynchs = asyncio.new_event_loop().run_until_complete(
+    amake_module("asynchs", mapping=extras)
+)
 
