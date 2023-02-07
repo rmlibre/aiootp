@@ -985,7 +985,7 @@ By being secret-independent, ``Passcrypt`` is resistant to side-channel attacks.
 
 .. code-block:: python
 
-    """
+    #
            ___________________ # of rows ___________________
           |                                                 |
           |              initial memory cache               |
@@ -1042,6 +1042,9 @@ By being secret-independent, ``Passcrypt`` is resistant to side-channel attacks.
                   H(cache)
 
           tag = H.digest(tag_size)
+
+    #
+
 
 
 
@@ -1533,7 +1536,7 @@ Major Changes
 
       .. code-block:: python
 
-        """
+        #
          _____________________________________
         |                                     |
         |    Algorithm Diagram: Encryption    |
@@ -1599,7 +1602,7 @@ Major Changes
         |  4-bytes  |  16-bytes  |               236-bytes                 |    #
          ------------------------------------------------------------------     #
                                                                                 
-        """
+        #
 
    -  The ``Padding`` class has seen some changes. Firstly, the 8-byte timestamp in the inner-header was reduced to 4-bytes. Furthermore, to get the full 136 years out of the 4-byte timestamps, the epoch used to calculate them was changed to unix timestamp `1672531200` (Sun, 01 Jan 2023 00:00:00 UTC). This is the new default `0` date for the package's timestamps. This saves some space & aims to provided fewer bits of confirmable attestation & correlation in proof games which simulate attacks on the key-deniability of the cipher. To explain: the plaintext padding includes random padding. That padding is intended to leave an adversary which attempts to brute force a ciphertext's encryption `key`, even with unbounded computational resources, in a state where it cannot decide with better accuracy than random chance between the exponentially large number of keys which create the same `shmac` tag (the variable `keyspace` is much larger than the 32-byte tag) with their accompanying exponentially large number of `plausible` plaintexts (any `reasonable` plaintext with any variable length random padding between 16 & 272 bytes), & the actual user `key` & plaintext.
 
@@ -1607,7 +1610,7 @@ Major Changes
 
 -  New ``(Async)CipherStream`` & ``(Async)DecipherStream`` classes were introduced which allow users to utilize the online nature of the ``Chunky2048`` cipher, ciphering & deciphering data in bufferable chunks, without needing to know about or instantiate all of the low-level classes. They automatically handle the required plaintext padding, ciphertext authentication, & detection of out-of-order message blocks. This greatly simplifies the safe usage of ``Chunky2048`` in online mode, provides robustness, & gets rid of the need for users to worry about the dangers of release of unverified plaintexts.
 
--  The ``Passcrypt`` algorithm was redesigned to be data-independent, more efficiently acheive its security goals, & allow for more compact hashes which include its difficulty settings metadata. The `kb` parameter was changed to `mb`, & now measures Mibibytes (MiB). A new `cores` parallelization parameter was added, which indicates the number of parallel processes to use to complete the procedure. And the `cpu` parameter now measures the number of iterations over the memory cache that are done, as well as the computational complexity of the algorithm. ``Passcrypt`` now uses ``shake_128`` instead of ``sha3_512`` internally. This also allows for users to specify a ``tag_size`` number of bytes to produce as an output tag. A ``salt_size`` parameter can now also be supplied to the ``(a)hash_passphrase`` methods. The ``(a)verify`` methods now produce raw-bytes outputs & the ``(a)verfiy_raw`` methods were removed. They now also accept ``range``-type objects as ``mb_allowed``, ``cpu_allowed``, & ``cores_allowed`` keyword argument inputs. These range objects can be used to specify the exact amount of resources which the user allows for difficulty settings, which can mitigate adversarial (or unintentional) DOS attacks on machines doing hash verification.
+-  The ``Passcrypt`` algorithm was redesigned to be data-independent, more efficiently acheive its security goals, & allow for more compact hashes which include its difficulty settings metadata. The `kb` parameter was changed to `mb`, & now measures Mibibytes (MiB). A new `cores` parallelization parameter was added, which indicates the number of parallel processes to use to complete the procedure. And the `cpu` parameter now measures the number of iterations over the memory cache that are done, as well as the computational complexity of the algorithm. ``Passcrypt`` now uses ``shake_128`` instead of ``sha3_512`` internally. This also allows for users to specify a ``tag_size`` number of bytes to produce as an output tag. A ``salt_size`` parameter can now also be supplied to the ``(a)hash_passphrase`` methods. The ``(a)hash_passphrase`` methods now produce raw-bytes outputs & the ``(a)hash_passphrase_raw`` & ``(a)verify_raw`` methods were removed. ``(a)verify`` methods now also accept ``range``-type objects as ``mb_allowed``, ``cpu_allowed``, & ``cores_allowed`` keyword argument inputs. These range objects can be used to specify the exact amount of resources which the user allows for difficulty settings, which can mitigate adversarial (or unintentional) DOS attacks on machines doing hash verification.
 
 -  Type annotations were added to most of the library, including return types, which were completely neglected in prior versions. They are still not functioning with mypy, & are serving right now as documentation & auto-complete helpers.
 

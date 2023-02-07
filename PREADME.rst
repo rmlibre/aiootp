@@ -985,7 +985,7 @@ By being secret-independent, ``Passcrypt`` is resistant to side-channel attacks.
 
 .. code-block:: python
 
-    """
+    #
            ___________________ # of rows ___________________
           |                                                 |
           |              initial memory cache               |
@@ -1042,6 +1042,9 @@ By being secret-independent, ``Passcrypt`` is resistant to side-channel attacks.
                   H(cache)
 
           tag = H.digest(tag_size)
+
+    #
+
 
 
 

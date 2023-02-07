@@ -1,14 +1,14 @@
 {
-    "checksum": "6349a851de792cbb34a24f5a5dca6fa1b44c87ab9d7ef2ca836489f8a72a79e553587d5317acfb51d94fc84fde8e6d30",
+    "checksum": "ba66e91babef6fe0919fccbc55974ca2c5b45cce91649fd3559611200d2ccb31e467e14b19a9160eace81e5e830f70e3",
     "checksums": {
         ".gitignore": "c5f44ba6b593c951db72ada8dfe2ac33a565dbb8bca2b57f435e732dc2c8960caf9c19c226aa2767e5412a6202ad730e",
-        "CHANGES.rst": "ecff1cf7d294b77ebcdda2fcb27ab4e58406f076f1b5a8e02b0aeecec2b8317020e8b17619a74f3c91f18f0759e3ba85",
+        "CHANGES.rst": "b28ea49a9b93b19b20f011e84f2ae9f98d01cd3c4264df46265effb14a0e20910c56a471addfe58023043f0a63e42199",
         "FAQ.rst": "72503150a23340ea271f70912669b10bcc5f1595ed1fa666a16c6f2ab6ef008df203854fd5dac58cd16b6791d8b4646e",
         "LICENSE": "e0e586053c01120278544f198d3abe0190b956c4790cc38ac19012bcda10531652848a48379a58df0e6cff2ca58713b3",
         "MANIFEST.in": "9752db1b81167230abf8523f16927ac88b452f8e4825e12131ac939f9e17280f84d74a67e155094f3c314c92dfff738c",
-        "PREADME.rst": "83a483f382fc8bd2e94b72f70db1f2e719556c042c1c0fe3cc052049ba752c13ed84a1524008f7a92c3d74484a28e744",
-        "README.rst": "f53337cbd3ed3e875ab85b055fdc4d07b3d1ad1a5e64430e6935441aa975746e063945b00b46ec6d759d7f8ed6788474",
-        "SECURITY.md": "ba8a93b7759a2e5365f790927273a28e1c4c53346f468a6851745f2e46a9b3c6050932c7ee52b24213975e1d57ceea6b",
+        "PREADME.rst": "27fd9da57845cb8fbd80dc114a4c3776783a745f26533474332884ea3eca2c1eb2e10e2b2916f1dbaefdc4252b96a818",
+        "README.rst": "a866e9784e5233bca8d2a140e429e4860a830345a33eacce9cc1dc1a88f6f93b8f53251e7b05142d9f65fe4c124da1df",
+        "SECURITY.md": "81b26fdcca93d7df21e608d678284c2746cbb90285a1eb0bf228d76542f78f70ecc0922016eb3409459312e18020d788",
         "aiootp/__constants/__init__.py": "77a726bb8c0a6aca0acb2bea7df90b5699c67208fbef0d2793beaaa3e1a6b3a2cd67a235258b9c927540b97675154edc",
         "aiootp/__constants/chunky2048.py": "aca221dd5759911f7b3ed0a65852731f4d5ad6ad9f25fd55ce2bd16080223e579b46203dd4d8513956f8ae0e754cc5c0",
         "aiootp/__constants/datasets.py": "26f2a5619ab3c6d98688ecee492595ef8e9478ddff10716f4af263ccc02234b406b1e18b1a5d2baf9aa432d72e38f2be",
@@ -72,7 +72,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 4,
+        "build_number": 5,
         "date": 19395,
         "description": "aiootp - an asynchronous pseudo one-time pad based crypto and anonymity library.",
         "license": "AGPLv3",
@@ -80,5 +80,5 @@
         "version": "0.22.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "91dfa56c9302fb35ff572bdd4ba05151cbb030ce12d4374578f71f125bc38da18628d25b23e01af9d079c39214f885c6f5d9aa1136eb355a15bd473adf72fe05"
+    "signature": "d7dc0ec6552b81ba51f10f06fd8b4a5abaa7d61e45ef8f0715ec88b4b142fb64d39420d50766ee121adee84634c0e56332909a9f7f60342e84a7ab2c49948306"
 }
