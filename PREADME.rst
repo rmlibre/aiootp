@@ -49,6 +49,10 @@ professionals.
     :target: https://img.shields.io/pypi/pyversions/aiootp?color=black
     :alt: python-versions
 
+.. image:: https://img.shields.io/pypi/wheel/aiootp
+    :target: https://img.shields.io/pypi/wheel/aiootp
+    :alt: python-wheel-availability
+
 .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
     :target: https://img.shields.io/badge/License-AGPL%20v3-red.svg
     :alt: license
