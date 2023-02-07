@@ -1,5 +1,5 @@
 {
-    "checksum": "36e78f5d904b0264752523ab663e9ec1c224a0d0a41c3b91df6a1400ca0f6e094e9c4c645a519006002321222096538d",
+    "checksum": "6349a851de792cbb34a24f5a5dca6fa1b44c87ab9d7ef2ca836489f8a72a79e553587d5317acfb51d94fc84fde8e6d30",
     "checksums": {
         ".gitignore": "c5f44ba6b593c951db72ada8dfe2ac33a565dbb8bca2b57f435e732dc2c8960caf9c19c226aa2767e5412a6202ad730e",
         "CHANGES.rst": "ecff1cf7d294b77ebcdda2fcb27ab4e58406f076f1b5a8e02b0aeecec2b8317020e8b17619a74f3c91f18f0759e3ba85",
@@ -43,7 +43,7 @@
         "tests/test_BytesIO.py": "08665682425b62d3bb9912ad31cdfe8f3ddebdc4a174e448117849f97cc80857b5dbc9b4ba03f80f71e8ffb86a241635",
         "tests/test_Comprende.py": "30dfcd4c328869fee207535456cc2ee65cc3dede26326e79ed2198c9b74cd32fba3c4fa4828129baed7508ca1dec3f5d",
         "tests/test_Database_AsyncDatabase.py": "da4d49f56bb8fe4c93da131e571da538a104dc4f9e957bc8103f2f304a6ee15806c570e0f70d7d566bbe01f8339bc3f6",
-        "tests/test_PackageSigner.py": "fe22fa93328b0ddce917e9bd569b9fc100af547e4073eef7b97d6b3f95d694675da6828a249f604d5242375608070142",
+        "tests/test_PackageSigner.py": "db3d0ef50fe972aa6e21b286c6f8a3d72b7032e7f9d1232f0f2c0c32611f06414598aa0922b6b2540e6646d0d2c4a938",
         "tests/test_Padding.py": "d8a274c4d630bcd23404bd9ef71e007ceed535029a0dd859c8f8819531b708dbdaab8626d4d182fca71b1766f2e1c825",
         "tests/test_SequenceID.py": "0c52ce37249b50c304c41511a98a08edec0f676ab7f4f2346bae628a3d112cc5d6a37157ef5afb786d4eb201b9a18ee8",
         "tests/test_StreamHMAC.py": "118787f82a4d53d22b70124cc7f8a8e6d9d948e8fa7082df650413dd3639d414d14a53d0326d69b08e41b749acc24bc0",
@@ -72,7 +72,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 3,
+        "build_number": 4,
         "date": 19395,
         "description": "aiootp - an asynchronous pseudo one-time pad based crypto and anonymity library.",
         "license": "AGPLv3",
@@ -80,5 +80,5 @@
         "version": "0.22.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "3e1f11948a38028e1a953077c3a49628a6162f2393bcc3df841ad0ea36713fc077561f39ee7df4f5673d15cf5504c346aa1daff2a5cea0a81446d3dd2550bd09"
+    "signature": "91dfa56c9302fb35ff572bdd4ba05151cbb030ce12d4374578f71f125bc38da18628d25b23e01af9d079c39214f885c6f5d9aa1136eb355a15bd473adf72fe05"
 }
