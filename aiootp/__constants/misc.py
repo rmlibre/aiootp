@@ -15,6 +15,7 @@ __doc__ = (
 )
 
 
+import hashlib
 from hashlib import sha3_256, sha3_512, shake_128, shake_256
 
 
@@ -54,6 +55,12 @@ PORT = 8081
 TB_PORT = 9150
 TOR_PORT = 9050
 
+HASHER_TYPES = {
+    str(name): value
+    for name, value
+    in hashlib.__dict__.items()
+    if str(name) in hashlib.algorithms_available
+}
 SHA3_256_BLOCKSIZE = sha3_256().block_size
 SHA3_256_TYPE = type(sha3_256())
 SHA3_512_BLOCKSIZE = sha3_512().block_size

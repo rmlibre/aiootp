@@ -973,7 +973,7 @@ class Hasher:
         """
         Allows the user to create a copy instance of the hashing object.
         """
-        new_self = self.__class__(obj=self._obj.__class__)
+        new_self = self.__class__(obj=HASHER_TYPES[self._obj.name])
         new_self._obj = self._obj.copy()
         return new_self
 
