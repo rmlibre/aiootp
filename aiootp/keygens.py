@@ -4,19 +4,17 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
 __all__ = [
-    "keygens",
-    "AsyncKeys",
+    "DomainKDF",
     "Ed25519",
-    "Keys",
-    "KeyAADBundle",
     "PackageSigner",
     "PackageVerifier",
+    "Passcrypt",
     "X25519",
     "agenerate_key",
     "amnemonic",
@@ -32,386 +30,1519 @@ __doc__ = (
 
 
 import json
+import math
 import cryptography
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import (
-    X25519PublicKey, X25519PrivateKey
+    X25519PublicKey,
+    X25519PrivateKey,
 )
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PublicKey, Ed25519PrivateKey
+    Ed25519PublicKey,
+    Ed25519PrivateKey,
 )
-from hashlib import sha512, sha3_256, sha3_512
+from pathlib import Path
+from secrets import token_bytes
+from functools import wraps, partial
+from hashlib import sha384, sha3_256, sha3_512, shake_128, shake_256
+from .__constants import *
 from ._exceptions import *
-from ._typing import Typing
+from ._typing import Typing as t
+from ._containers import PasscryptHash, PasscryptSettings
 from ._containers import PackageSignerFiles, PackageSignerScope
-from .asynchs import *
-from .asynchs import asleep
-from .commons import *
-from .commons import ropake_constants
-from commons import *  # import the module's constants
-from .generics import Domains
-from .generics import azip
-from .generics import comprehension
-from .generics import sha3__256, asha3__256
-from .generics import sha3__512, asha3__512
-from .generics import sha3__256_hmac, asha3__256_hmac
-from .generics import sha3__512_hmac, asha3__512_hmac
+from .asynchs import sleep, asleep, Processes
+from .commons import Slots, OpenNamespace
+from .commons import make_module
+from .gentools import Comprende, comprehension
+from .gentools import data, adata
+from .gentools import bytes_range, abytes_range
+from .generics import Domains, Clock
+from .generics import xi_mix, axi_mix
+from .generics import encode_key, aencode_key
+from .generics import hash_bytes, ahash_bytes
+from .generics import int_as_bytes, bytes_as_int
+from .generics import canonical_pack, acanonical_pack
 from .generics import bytes_are_equal, abytes_are_equal
 from .randoms import csprng, acsprng
-from .randoms import random_256, arandom_256
-from .randoms import random_512, arandom_512
+from .randoms import generate_key, agenerate_key
 from .randoms import generate_salt, agenerate_salt
-from .ciphers import Database, DomainKDF, Passcrypt, KeyAADBundle
+from .ciphers import KeyAADBundle
 from .ciphers import bytes_keys, abytes_keys
 
 
-async def agenerate_key(*, size: int = 64):
-    """
-    Returns a ``size``-byte cryptographically secure key >= 64 bytes.
-    """
-    if size < MINIMUM_KEY_BYTES or size.__class__ is not int:
-        raise Issue.invalid_value("size", "integer < 64")
-    key = [await acsprng() for _ in range((size - 1) // KEY_BYTES + 1)]
-    return b"".join(key)[:size]
+ns_clock = Clock(NANOSECONDS)
+day_clock = Clock(DAYS, epoch=0)
 
 
-def generate_key(*, size: int = 64):
+class DomainKDF:
     """
-    Returns a ``size``-byte cryptographically secure key >= 64 bytes.
-    """
-    if size < MINIMUM_KEY_BYTES or size.__class__ is not int:
-        raise Issue.invalid_value("size", "integer < 64")
-    key = (csprng() for _ in range((size - 1) // KEY_BYTES + 1))
-    return b"".join(key)[:size]
+    Creates objects able to derive domain & payload-specific keyed
+    hashes. Payload updates are automatically canonicalized.
+
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
+
+    from aiootp import DomainKDF
 
 
-@comprehension()
-async def atable_keystream(
-    key: Typing.Optional[bytes] = None,
+    kdf = DomainKDF(b"ecdhe", session.transcript, key=session.key)
+
+    auth_key = kdf.sha3_512(context=b"auth-key")
+    encryption_key = kdf.sha3_512(context=b"encryption-key")
+
+    """
+
+    __slots__ = ("_domain", "_key", "_payload")
+
+    _key_size: int = 0  # for subclasses which use an XOF for keygen
+    _key_type: t.Callable = sha3_512
+    _type: t.Callable = shake_256
+
+    _KEY_TYPE_BLOCKSIZE: int = _key_type().block_size
+    _TYPE_BLOCKSIZE: int = _type().block_size
+
+    def _initialize_payload(self, payload: t.Iterable[bytes]) -> None:
+        """
+        Canonically encodes the key & first batch of input data to
+        prepare a hashing object which will process all additional
+        payload.
+        """
+        payload_key = encode_key(self._key, self._TYPE_BLOCKSIZE)
+        payload = (
+            canonical_pack(*payload, blocksize=self._TYPE_BLOCKSIZE)
+            if payload
+            else b""
+        )
+        self._payload = self._type(payload_key + payload)
+
+    def __init__(
+        self, domain: bytes, *payload: t.Iterable[bytes], key: bytes
+    ) -> "self":
+        """
+        Initializes a ``domain``-specific key & a keyed-mac object to
+        incorporate an arbitrary amount of ``payload`` data, which is
+        canonically encoded by the class, in key derivation.
+        """
+        self._domain = domain
+        self._key = key
+        self.update_key(key)
+        self._initialize_payload(payload)
+
+    def copy(self) -> "cls":
+        """
+        Copies the instance state into a new object which can be updated
+        separately in differing contexts.
+        """
+        kdf = self.__class__.__new__(self.__class__)
+        kdf._key = self._key
+        kdf._domain = self._domain
+        kdf._payload = self._payload.copy()
+        return kdf
+
+    async def aupdate(self, *payload: t.Iterable[bytes]) -> "self":
+        """
+        Canonically update the payload object with the additional
+        arguments passed in as ``payload``. This allows large amounts of
+        data to be used for key derivation without a large in-memory
+        cost. Also, mitigates canonicalization attacks. Update calls,
+        input data & the order of both must match exactly to create the
+        same KDF state with two different objects.
+        """
+        if not payload:
+            raise Issue.value_must("update payload", "not be empty")
+        self._payload.update(
+            await acanonical_pack(*payload, blocksize=self._TYPE_BLOCKSIZE)
+        )
+        return self
+
+    def update(self, *payload: t.Iterable[bytes]) -> "self":
+        """
+        Canonically update the payload object with the additional
+        arguments passed in as ``payload``. This allows large amounts of
+        data to be used for key derivation without a large in-memory
+        cost. Also, mitigates canonicalization attacks. Update calls,
+        input data & the order of both must match exactly to create the
+        same KDF state with two different objects.
+        """
+        if not payload:
+            raise Issue.value_must("update payload", "not be empty")
+        self._payload.update(
+            canonical_pack(*payload, blocksize=self._TYPE_BLOCKSIZE)
+        )
+        return self
+
+    async def aupdate_key(self, entropy: bytes) -> "self":
+        """
+        Derive's a new instance key from the its domain, current key &
+        the provided ``entropy``.
+        """
+        self._key = await ahash_bytes(
+            Domains.KDF,
+            self._domain,
+            entropy,
+            key=self._key + entropy,
+            hasher=self._key_type,
+            size=self._key_size,
+        )
+        return self
+
+    def update_key(self, entropy: bytes) -> "self":
+        """
+        Derive's a new instance key from the its domain, current key &
+        the provided ``entropy``.
+        """
+        self._key = hash_bytes(
+            Domains.KDF,
+            self._domain,
+            entropy,
+            key=self._key + entropy,
+            hasher=self._key_type,
+            size=self._key_size,
+        )
+        return self
+
+    async def asha3_256(self, *, context: bytes = b"") -> bytes:
+        """
+        Return the keyed sha3_256 hash of the instance's state.
+        """
+        return await ahash_bytes(
+            self._domain,
+            context,
+            self._payload.digest(SHA3_256_BLOCKSIZE),
+            key=self._key + context,
+            hasher=SHA3_256_TYPE,
+        )
+
+    def sha3_256(self, *, context: bytes = b"") -> bytes:
+        """
+        Return the keyed sha3_256 hash of the instance's state.
+        """
+        return hash_bytes(
+            self._domain,
+            context,
+            self._payload.digest(SHA3_256_BLOCKSIZE),
+            key=self._key + context,
+            hasher=SHA3_256_TYPE,
+        )
+
+    async def asha3_512(self, *, context: bytes = b"") -> bytes:
+        """
+        Return the keyed sha3_512 hash of the instance's state.
+        """
+        return await ahash_bytes(
+            self._domain,
+            context,
+            self._payload.digest(SHA3_512_BLOCKSIZE),
+            key=self._key + context,
+            hasher=SHA3_512_TYPE,
+        )
+
+    def sha3_512(self, *, context: bytes = b"") -> bytes:
+        """
+        Return the keyed sha3_512 hash of the instance's state.
+        """
+        return hash_bytes(
+            self._domain,
+            context,
+            self._payload.digest(SHA3_512_BLOCKSIZE),
+            key=self._key + context,
+            hasher=SHA3_512_TYPE,
+        )
+
+    async def ashake_128(self, size: int, *, context: bytes = b"") -> bytes:
+        """
+        Return the keyed shake_128 hash of the instance's state.
+        """
+        return await ahash_bytes(
+            self._domain,
+            context,
+            self._payload.digest(SHAKE_128_BLOCKSIZE),
+            size=size,
+            key=self._key + context,
+            hasher=SHAKE_128_TYPE,
+        )
+
+    def shake_128(self, size: int, *, context: bytes = b"") -> bytes:
+        """
+        Return the keyed shake_128 hash of the instance's state.
+        """
+        return hash_bytes(
+            self._domain,
+            context,
+            self._payload.digest(SHAKE_128_BLOCKSIZE),
+            size=size,
+            key=self._key + context,
+            hasher=SHAKE_128_TYPE,
+        )
+
+    async def ashake_256(self, size: int, *, context: bytes = b"") -> bytes:
+        """
+        Return the keyed shake_256 hash of the instance's state.
+        """
+        return await ahash_bytes(
+            self._domain,
+            context,
+            self._payload.digest(SHAKE_256_BLOCKSIZE),
+            size=size,
+            key=self._key + context,
+            hasher=SHAKE_256_TYPE,
+        )
+
+    def shake_256(self, size: int, *, context: bytes = b"") -> bytes:
+        """
+        Return the keyed shake_256 hash of the instance's state.
+        """
+        return hash_bytes(
+            self._domain,
+            context,
+            self._payload.digest(SHAKE_256_BLOCKSIZE),
+            size=size,
+            key=self._key + context,
+            hasher=SHAKE_256_TYPE,
+        )
+
+
+async def akeyed_choices(
+    choices: t.Sequence[t.Any],
+    selection_size: int,
     *,
-    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
-):
+    domain: bytes = b"",
+    key: bytes,
+) -> t.AsyncGenerator[None, t.Any]:
     """
-    This is an infinite key generator function that pseudo-randomly
-    yields a single element from a supplied `table` on each iteration.
-    The pseudo-random function used to make element choices is the
-    Chunky2048 cipher's keystream algorithm. This keystream is either
-    derived from a user-supplied `key`, or a random 64-byte key that's
-    automatically generated.
-
-    The ASCII_95 table that's provided as a default, is the set of ascii
-    characters with ordinal values in set(range(32, 127)). It contains
-    95 unique, printable characters.
-
-    Usage Example:
-
-    key = b"smellycaaaat, smelly caaaaat!"
-
-    await atable_keystream(key)[:32].ajoin()
-    >>> J=Gci8WMpRR9SQlN8t0~oj95ZK<k+&HW
+    Makes ``selection_size`` number of selections from an indexable
+    sequence of ``choices`` using subkeys derived from a provided
+    ``domain`` & ``key``. Yields each selection one at a time.
     """
-    table_size = len(table)
-    if table_size > 256:
-        raise Issue.value_must("table", "contain at most 256 elements")
-    elif not key:
+    total_choices = len(choices)
+    key = await DomainKDF(
+        domain,
+        int_as_bytes(total_choices),
+        int_as_bytes(selection_size),
+        key=key,
+    ).ashake_256(16 * selection_size, context=Domains.PRNG)
+    async for index in adata.root(key, size=16):
+        yield choices[bytes_as_int(index) % total_choices]
+
+
+def keyed_choices(
+    choices: t.Sequence[t.Any],
+    selection_size: int,
+    *,
+    domain: bytes = b"",
+    key: bytes,
+) -> t.Generator[None, t.Any, None]:
+    """
+    Makes ``selection_size`` number of selections from an indexable
+    sequence of ``choices`` using subkeys derived from a provided
+    ``domain`` & ``key``. Yields each selection one at a time.
+    """
+    total_choices = len(choices)
+    key = DomainKDF(
+        domain,
+        int_as_bytes(total_choices),
+        int_as_bytes(selection_size),
+        key=key,
+    ).shake_256(16 * selection_size, context=Domains.PRNG)
+    for index in data.root(key, size=16):
+        yield choices[bytes_as_int(index) % total_choices]
+
+
+async def amnemonic(
+    passphrase: bytes = b"",
+    size: int = 8,
+    *,
+    salt: t.Optional[bytes] = b"",
+    words: t.Optional[t.Sequence[t.Any]] = None,
+    **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+) -> t.List[bytes]:
+    """
+    Creates list of ``size`` number of words for a mnemonic key from a
+    user ``passphrase`` & an optional ``salt``. If no ``passphrase`` is
+    supplied, then a random value is used to derive a unique mnemonic.
+    The ``words`` used for the mnemonic can be passed, but by default
+    are a word-list of 2048 unique, all lowercase english words.
+    """
+    domain = Domains.MNEMONIC
+    words = words if words else WORD_LIST
+    salt = (salt + domain) if salt else domain
+    if passphrase:
+        key = await Passcrypt.anew(passphrase, salt, **passcrypt_settings)
+    elif passcrypt_settings:
+        raise Issue.unused_parameters(
+            "passcrypt_settings", "generating a random mnemonic key"
+        )
+    else:
         key = await acsprng()
-    keystream = abytes_keys.root(await KeyAADBundle.aunsafe(key, key))
-    if table_size % 256:
-        async for key in keystream:
-            for byte in key:
-                if byte < table_size:
-                    yield table[byte]
-    else:
-        async for key in keystream:
-            for byte in key:
-                yield table[byte % table_size]
+    return [
+        word
+        async for word in akeyed_choices(
+            words, size, domain=domain, key=key
+        )
+    ]
 
 
-@comprehension()
-def table_keystream(
-    key: Typing.Optional[bytes] = None,
+def mnemonic(
+    passphrase: bytes = b"",
+    size: int = 8,
     *,
-    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
-):
+    salt: t.Optional[bytes] = b"",
+    words: t.Optional[t.Sequence[t.Any]] = None,
+    **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+) -> t.List[bytes]:
     """
-    This is an infinite key generator function that pseudo-randomly
-    yields a single element from a supplied `table` on each iteration.
-    The pseudo-random function used to make element choices is the
-    Chunky2048 cipher's keystream algorithm. This keystream is either
-    derived from a user-supplied `key`, or a random 64-byte key that's
-    automatically generated.
-
-    The ASCII_95 table that's provided as a default, is the set of ascii
-    characters with ordinal values in set(range(32, 127)). It contains
-    95 unique, printable characters.
-
-    Usage Example:
-
-    key = b"smellycaaaat, smelly caaaaat!"
-
-    "".join(table_keystream(key)[:32])
-    >>> J=Gci8WMpRR9SQlN8t0~oj95ZK<k+&HW
+    Creates list of ``size`` number of words for a mnemonic key from a
+    user ``passphrase`` & an optional ``salt``. If no ``passphrase`` is
+    supplied, then a random value is used to derive a unique mnemonic.
+    The ``words`` used for the mnemonic can be passed, but by default
+    are a word-list of 2048 unique, all lowercase english words.
     """
-    table_size = len(table)
-    if table_size > 256:
-        raise Issue.value_must("table", "contain at most 256 elements")
-    elif not key:
+    domain = Domains.MNEMONIC
+    words = words if words else WORD_LIST
+    salt = (salt + domain) if salt else domain
+    if passphrase:
+        key = Passcrypt.new(passphrase, salt, **passcrypt_settings)
+    elif passcrypt_settings:
+        raise Issue.unused_parameters(
+            "passcrypt_settings", "generating a random mnemonic key"
+        )
+    else:
         key = csprng()
-    keystream = bytes_keys.root(KeyAADBundle.unsafe(key, key))
-    if table_size % 256:
-        for key in keystream:
-            yield from (table[byte] for byte in key if byte < table_size)
-    else:
-        for key in keystream:
-            yield from (table[byte % table_size] for byte in key)
+    return [*keyed_choices(words, size, domain=domain, key=key)]
 
 
-async def atable_key(
-    key: Typing.Optional[bytes] = None,
-    *,
-    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
-    size: int = 64,
-):
+class PasscryptSession(Slots):
     """
-    This is an key generation function that builds keys pseudo-randomly
-    from elements in a supplied `table`. The pseudo-random function used
-    to make element choices is the Chunky2048 cipher's keystream
-    algorithm. This keystream is either derived from a user-supplied
-    `key`, or a random 64-byte key that's automatically generated.
-
-    The ASCII_95 table that's provided as a default, is the set of ascii
-    characters with ordinal values in set(range(32, 127)). It contains
-    95 unique, printable characters.
-
-    The size parameter determines the number of elements the output key
-    will contain.
-
-    Usage Example:
-
-    key = b"smellycaaaat, smelly caaaaat!"
-
-    table_key(key=key, table="0123456789abcdef")
-    >>> b6558225d702851463a7c9b82d23365d20e28a9b7020fa83c03b0140decdc225
-
-    table_key(key, size=32)
-    >>> J=Gci8WMpRR9SQlN8t0~oj95ZK<k+&HW
+    Hanldes the initialization of running the `Passcrypt` hashing
+    algorithm with sets of given user parameters.
     """
-    on = table[0][:0]
-    stream = atable_keystream.root(key=key, table=table)
-    return on.join(
-        [char async for _, char in azip.root(range(size), stream)]
+
+    __slots__ = (
+        "passphrase",
+        "salt",
+        "aad",
+        "mb",
+        "cpu",
+        "cores",
+        "tag_size",
+        "row_size",
+        "rows",
+        "total_size",
+        "ram",
+        "proof",
     )
 
+    vars().update({var: passcrypt[var] for var in passcrypt})
 
-def table_key(
-    key: Typing.Optional[bytes] = None,
-    *,
-    table: Typing.Sequence[Typing.AnyStr] = Tables.ASCII_95,
-    size: int = 64,
-):
+    _PASSCRYPT_KDF_SALT: bytes = Domains.encode_constant(
+        b"passcrypt_kdf_salt", size=SHAKE_128_BLOCKSIZE
+    )
+
+    _new_passcrypt_proof_kdf: callable = shake_128(_PASSCRYPT_KDF_SALT).copy
+
+    specification: OpenNamespace = OpenNamespace(
+        is_passphrase=lambda passphrase: (
+            len(passphrase) >= passcrypt.MIN_PASSPHRASE_BYTES
+            and passphrase.__class__ is bytes
+        ),
+        is_salt=lambda salt: (
+            len(salt)
+            in range(passcrypt.MIN_SALT_SIZE, passcrypt.MAX_SALT_SIZE + 1)
+            and salt.__class__ is bytes
+        ),
+        is_aad=lambda aad: aad.__class__ is bytes,
+        is_mb=lambda mb: (
+            mb in range(passcrypt.MIN_MB, passcrypt.MAX_MB + 1)
+            and mb.__class__ is int
+        ),
+        is_cpu=lambda cpu: (
+            cpu in range(passcrypt.MIN_CPU, passcrypt.MAX_CPU + 1)
+            and cpu.__class__ is int
+        ),
+        is_cores=lambda cores: (
+            cores in range(passcrypt.MIN_CORES, passcrypt.MAX_CORES + 1)
+            and cores.__class__ is int
+        ),
+        is_tag_size=lambda tag_size: (
+            tag_size >= passcrypt.MIN_TAG_SIZE and tag_size.__class__ is int
+        ),
+        is_salt_size=lambda salt_size: (
+            salt_size
+            in range(passcrypt.MIN_SALT_SIZE, passcrypt.MAX_SALT_SIZE + 1)
+            and salt_size.__class__ is int
+        ),
+    )
+
+    @classmethod
+    def _validate_inputs(
+        cls, passphrase: bytes, salt: bytes, aad: bytes
+    ) -> None:
+        """
+        Makes sure ``passphrase``, ``salt`` & ``aad`` are to the
+        ``Passcrypt`` specification. Throws `ValueError` or `TypeError`
+        accordingly.
+        """
+        if not cls.specification.is_passphrase(passphrase):
+            raise PasscryptIssue.improper_passphrase(Metadata(passphrase))
+        elif not cls.specification.is_salt(salt):
+            raise PasscryptIssue.improper_salt(Metadata(salt))
+        elif not cls.specification.is_aad(aad):
+            raise PasscryptIssue.improper_aad()
+
+    @classmethod
+    def _validate_settings(
+        cls,
+        mb: int,
+        cpu: int,
+        cores: int,
+        tag_size: int,
+        salt_size: int = passcrypt.MIN_SALT_SIZE,
+    ) -> None:
+        """
+        Ensures the values ``mb``, ``cpu``, ``cores`` & ``tag_size``
+        passed into this package's Argon2i-like, passphrase-based key
+        derivation function are within acceptable bounds & types. The
+        ``salt_size`` can be validated as well. Since it's not used in
+        all interfaces, it's optional here.
+        """
+        if not cls.specification.is_mb(mb):
+            raise PasscryptIssue.invalid_mb(mb)
+        elif not cls.specification.is_cpu(cpu):
+            raise PasscryptIssue.invalid_cpu(cpu)
+        elif not cls.specification.is_cores(cores):
+            raise PasscryptIssue.invalid_cores(cores)
+        elif not cls.specification.is_tag_size(tag_size):
+            raise PasscryptIssue.invalid_tag_size(tag_size)
+        elif not cls.specification.is_salt_size(salt_size):
+            raise PasscryptIssue.invalid_salt_size(salt_size)
+
+    def __init__(
+        self,
+        passphrase: bytes,
+        salt: bytes,
+        *,
+        aad: bytes,
+        mb: int,
+        cpu: int,
+        cores: int,
+        tag_size: int,
+    ) -> "self":
+        """
+        Efficiently stores user parameters.
+        """
+        self._validate_inputs(passphrase, salt, aad=aad)
+        self._validate_settings(mb, cpu, cores, tag_size)
+        self.passphrase = passphrase
+        self.salt = salt
+        self.aad = aad
+        self.mb = mb
+        self.cpu = cpu
+        self.cores = cores
+        self.tag_size = tag_size
+
+    def __iter__(
+        self,
+    ) -> t.Generator[None, t.Union[bytearray, t.Callable, int], None]:
+        """
+        Dumps the set of relevant parameters & function pointers for the
+        `Passcrypt` worker. Gives the session a cleaner interface.
+        """
+        yield from (
+            self.ram,
+            self.proof.update,
+            self.proof.digest,
+            self.row_size,
+            self.total_size,
+        )
+
+    def _hash_session_parameters(self) -> bytes:
+        """
+        Returns a 336-byte hash of the session's canonically encoded
+        parameters.
+        """
+        return hash_bytes(
+            Domains.PASSCRYPT,
+            self.salt,
+            self.aad,
+            int_as_bytes(self.mb),
+            int_as_bytes(self.cpu),
+            int_as_bytes(self.cores),
+            int_as_bytes(self.tag_size),
+            key=self.passphrase + self.salt + self.aad,
+            hasher=shake_128,
+            size=336,
+            pad=self.PASSCRYPT_PAD,
+        )
+
+    def prepare_session(self) -> "self":
+        """
+        Canonically hash the parameters to the function & calculate the
+        dimensionality of the cache from the given settings.
+        """
+        rounds = max(
+            (1, self.cpu // self.CPU_TO_DIGEST_PAIRS_PER_ROW_RATIO)
+        )
+        self.rows = math.ceil((B_TO_MB_RATIO * self.mb) / (336 * rounds))
+        self.row_size = 336 * rounds
+        self.total_size = self.row_size * self.rows
+        parameters = self._hash_session_parameters()
+        self.proof = self._new_passcrypt_proof_kdf()
+        self.proof.update(parameters)
+        return self
+
+    def allocate_ram(self) -> "self":
+        """
+        Builds a virtual 2d memory cache out of a 1d bytearray to do
+        efficient & in-place memory overwrites of segments of the cache
+        with new proofs-of-work as the `Passcrypt` algorithm runs to
+        completion.
+
+        The bytearray is traversed to simulate the dimensionality of a
+        columns=2*rounds, rows=ceil((1024*1024*mb) / (2*168*rounds)),
+        2d array, where the unit measure for the width of one column is
+        168-bytes (one digest from the `shake_128` `proof` object), &
+        rounds=max([1, cpu // 2]).
+
+        This procedure is designed to build the initial cache as fast as
+        possible using the C implementation of `hashlib.shake_128` to
+        better equalize the execution time between users & their
+        adversaries. Quickly building the initial cache to the full size
+        of the desired `mb` memory cost is also intended to reduce the
+        inefficiencies of doing any resizing of the cache once the
+        algorithm begins. This too is the main motivating factor for the
+        size of each row being an equal multiple of 336, as it allows
+        cache traversal & insertions without needing to plan separately
+        for how to treat insertions once the end of a row is reached.
+        """
+        self.ram = bytearray()
+        size = self.total_size
+        max_size = (B_TO_MB_RATIO * 512) - 1  # 512MiB, max digest size
+        while size > max_size:                # of shake_128 in python
+            self.ram.extend(self.proof.digest(max_size))
+            self.proof.update(self.ram[-168:])
+            size -= max_size
+        if size:
+            self.ram.extend(self.proof.digest(size))
+            self.proof.update(self.ram[-168:])
+        return self
+
+
+class Passcrypt:
     """
-    This is an key generation function that builds keys pseudo-randomly
-    from elements in a supplied `table`. The pseudo-random function used
-    to make element choices is the Chunky2048 cipher's keystream
-    algorithm. This keystream is either derived from a user-supplied
-    `key`, or a random 64-byte key that's automatically generated.
+    This class is used to implement an Argon2i-like passphrase-based
+    key derivation function that's designed to be resistant to cache-
+    timing side-channel attacks & time-memory trade-offs.
 
-    The ASCII_95 table that's provided as a default, is the set of ascii
-    characters with ordinal values in set(range(32, 127)). It contains
-    95 unique, printable characters.
+    It uses a passphrase-keyed scanning function which sequentially
+    passes over unique memory caches requiring a tunable amount of
+    difficulty, which is designed here to be very intuitive.
 
-    The size parameter determines the number of elements the output key
-    will contain.
+    This scheme is secret independent with regard to how it chooses to
+    pass over memory. Through proofs of work & memory, it ensures an
+    attacker attempting to crack a passphrase hash cannot complete the
+    algorithm substantially faster by storing more memory than what's
+    already necessary, or with substantially less memory, by dropping
+    cache entries, without drastically increasing the computational
+    cost.
 
-    Usage Example:
+    The algorithm initializes all of the columns for the cache using a
+    single `shake_128` object after being fed the passphrase, salt, aad
+    & all of the parameters. The number of columns is computed
+    dynamically to reach the specified memory cost considering that each
+    row will hold 2 * max([1, cpu // 2]) digests of 168-bytes. This
+    allows the cache to be efficiently allocated up front, benefiting
+    further by not needing to resize the memory cache throughout the
+    running of the algorithm.
 
-    key = b"smellycaaaat, smelly caaaaat!"
+    The sequential passes involve a current row index, the index of the
+    row which is the reflection of the first across the cache, & a
+    current offset into a row which are multiples of 336 (two digests).
+    The index & reflection pointers interleave each other, hashing rows
+    with the same object as they scan, & overwriting the 168-byte digest
+    / piece of cache at the offset they're pointing to after each hash.
 
-    table_key(key, table="0123456789abcdef")
-    >>> b6558225d702851463a7c9b82d23365d20e28a9b7020fa83c03b0140decdc225
+     _____________________________________
+    |                                     |
+    |    Algorithm Diagram: Side-View     |
+    |_____________________________________|
 
-    table_key(key, size=32)
-    >>> J=Gci8WMpRR9SQlN8t0~oj95ZK<k+&HW
-    """
-    on = table[0][:0]
-    stream = table_keystream.root(key=key, table=table)
-    return on.join(char for _, char in zip(range(size), stream))
-
-
-@comprehension()
-async def amnemonic(
-    key: bytes,
-    *,
-    salt: Typing.Optional[bytes] = None,
-    words: Typing.Optional[Typing.Sequence[Typing.Any]] = None,
-    **passcrypt_settings,
-):
-    """
-    Creates a stream of words for a mnemonic key from a user passphrase
-    ``key`` & random salt. If a salt isn't passed, then a random salt is
-    generated & is available by calling ``result(exit=True)`` on the
-    generator object. The ``words`` used for the mnemonic can be passed
-    in, but by default are a 2048 word list of unique, all lowercase
-    english words.
-    """
-    keystream_shift = None
-    words = words if words else WORD_LIST
-    length = len(words)
-    salt = salt if salt else await agenerate_salt(size=32)
-    key = await Passcrypt.anew(key, salt, **passcrypt_settings)
-    keystream = abytes_keys(await KeyAADBundle.aunsafe(key, salt, key))
-    async with keystream.abytes_to_int().arelay(salt) as indexes:
-        while True:
-            if keystream_shift:
-                await keystream.asend(keystream_shift)
-            keystream_shift = yield words[await indexes() % length]
-
-
-@comprehension()
-def mnemonic(
-    key: bytes,
-    *,
-    salt: Typing.Optional[bytes] = None,
-    words: Typing.Optional[Typing.Sequence[Typing.Any]] = None,
-    **passcrypt_settings,
-):
-    """
-    Creates a stream of words for a mnemonic key from a user passphrase
-    ``key`` & random salt. If a salt isn't passed, then a random salt is
-    generated & is available by calling ``result(exit=True)`` on the
-    generator object. The ``words`` used for the mnemonic can be passed
-    in, but by default are a 2048 word list of unique, all lowercase
-    english words.
-    """
-    keystream_shift = None
-    words = words if words else WORD_LIST
-    length = len(words)
-    salt = salt if salt else generate_salt(size=32)
-    key = Passcrypt.new(key, salt, **passcrypt_settings)
-    keystream = bytes_keys(KeyAADBundle.unsafe(key, salt, key))
-    with keystream.bytes_to_int().relay(salt) as indexes:
-        while True:
-            if keystream_shift:
-                keystream.send(keystream_shift)
-            keystream_shift = yield words[indexes() % length]
+           ___________________ # of rows ___________________
+          |                                                 |
+          |              initial memory cache               |
+          |  row  # of columns == 2 * max([1, cpu // 2])    |
+          |   |   # of rows == ⌈1024*1024*mb/168*columns⌉   |
+          v   v                                             v
+    column|---'-----------------------------------------'---| the initial cache
+    column|---'-----------------------------------------'---| of size ~`mb` is
+    column|---'-----------------------------------------'---| built very quickly
+    column|---'-----------------------------------------'---| using SHAKE-128.
+    column|---'-----------------------------------------'---| each (row, column)
+    column|---'-----------------------------------------'---| coordinate holds
+    column|---'-----------------------------------------'---| one element of
+    column|---'-----------------------------------------'---| 168-bytes.
+                                                        ^
+                                                        |
+                           reflection                  row
+                          <-   |
+          |--------------------'-------'--------------------| each row is
+          |--------------------'-------'--------------------| hashed then has
+          |--------------------'-------'--------------------| a new 168-byte
+          |--------------------'-------'--------------------| digest overwrite
+          |--------------------'-------'--------------------| the current pointer
+          |--------------------'-------'--------------------| in an alternating
+          |--------------------Xxxxxxxx'xxxxxxxxxxxxxxxxxxxx| sequence, first at
+          |oooooooooooooooooooo'oooooooO--------------------| the index, then at
+                                       |   ->                 its reflection.
+                                     index
 
 
-class AsyncKeys:
-    """
-    This simple class is a high-level interface for symmetric key
-    creation, derivation & HMAC validation of data.
+          |--'-------------------------------------------'--| this continues
+          |--'-------------------------------------------'--| until the entire
+          |--'-------------------------------------------Xxx| cache has been
+          |ooO-------------------------------------------'--| overwritten.
+          |xx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'xx| a single `shake_128`
+          |oo'ooooooooooooooooooooooooooooooooooooooooooo'oo| object (H) is used
+          |xx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'xx| to do all of the
+          |oo'ooooooooooooooooooooooooooooooooooooooooooo'oo| hashing.
+             |   ->                                 <-   |
+           index                                     reflection
+
+
+          |xxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| finally, the whole
+          |ooooooooooo'ooooooooooooooooooooooooooooooooooooo| cache is quickly
+          |xxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| hashed `cpu` + 2
+          |ooooooooooo'ooooooooooooooooooooooooooooooooooooo| number of times.
+          |Fxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| after each pass an
+          |foooooooooo'ooooooooooooooooooooooooooooooooooooo| 84-byte digest is
+          |fxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| inserted into the
+          |foooooooooo'ooooooooooooooooooooooooooooooooooooo| cache, ruling out
+                      |   ->                                  hashing state cycles.
+                      | hash cpu + 2 # of times               Then a `tag_size`-
+                      v                                       byte tag is output.
+                  H(cache)
+
+          tag = H.digest(tag_size)
+
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
+
+    from aiootp import Passcrypt, Domains
+    from getpass import getpass
+
+
+    Passcrypt.PEPPER = bytes.fromhex(app.application_pepper)
+
+    # registration ->
+
+    un = getpass("username: ").encode() + Domains.USERNAME
+    pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+    pw_hash = Passcrypt.hash_passphrase(pw, aad=un, mb=128)
+
+
+    # a login attempt ->
+
+    un = getpass("username: ").encode() + Domains.USERNAME
+    pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+    try:
+        Passcrypt.verify(pw_hash, pw, aad=un, ttl=24 * 3600)
+    except Passcrypt.InvalidPassphrase as auth_fail:
+        app.post_mortem(error=auth_fail)
+    except Passcrypt.TimestampExpired as expired_hash:
+        # 24-hour registration expired
+        app.post_mortem(error=expired_hash)
+
     """
 
     __slots__ = ()
 
-    DomainKDF = DomainKDF
-    Passcrypt = Passcrypt
-    KeyAADBundle = KeyAADBundle
+    vars().update({f"_{var}": passcrypt[var] for var in passcrypt})
 
-    abytes_keys = staticmethod(abytes_keys)
-    acsprng = staticmethod(acsprng)
-    agenerate_key = staticmethod(agenerate_key)
-    agenerate_salt = staticmethod(agenerate_salt)
-    amnemonic = staticmethod(amnemonic)
-    arandom_256 = staticmethod(arandom_256)
-    arandom_512 = staticmethod(arandom_512)
-    atable_key = staticmethod(atable_key)
-    atable_keystream = staticmethod(atable_keystream)
+    # An operator of a passphrase database may add a static secret value
+    # to the class, referred to as a `pepper`. That value can be set in
+    # this variable & will then augment all hashes produced by the class
+    # with that additional secret entropy. The operator is in charge of
+    # storing this value securely so it can be reused when the program
+    # restarts. This value SHOULD NOT be stored in the same database
+    # where the hashes are stored.
+    PEPPER: bytes = b""
+
+    TimestampExpired = TimestampExpired
+    InvalidPassphrase = InvalidPassphrase
+    ImproperPassphrase = ImproperPassphrase
+
+    def __new__(
+        cls,
+        mb: int = _DEFAULT_MB,
+        cpu: int = _DEFAULT_CPU,
+        cores: int = _DEFAULT_CORES,
+        tag_size: int = _DEFAULT_SCHEMA_TAG_SIZE,
+        salt_size: int = _DEFAULT_SCHEMA_SALT_SIZE,
+    ) -> "self":
+        """
+        Stores user-defined settings within an object so that they can
+        automatically be passed into mirrored calls to the class'
+        methods, simulating the behavior of instance methods.
+        """
+        return PasscryptInstance(
+            mb=mb,
+            cpu=cpu,
+            cores=cores,
+            tag_size=tag_size,
+            salt_size=salt_size,
+        )
 
     @staticmethod
-    async def amake_hmac(
-        data: Typing.DeterministicRepr,
-        *,
-        key: bytes,
-        hasher: Typing.Callable = asha3__256_hmac,
-    ):
+    def _work_memory_prover(session: PasscryptSession) -> bytes:
         """
-        Creates an HMAC code of ``data`` using the supplied ``key`` &
-        the hashing function ``hasher``. Any async ``hasher`` function
-        can be specified as the HMAC function, which is by default
-        SHA3_256_HMAC.
+        Returns the digest of a keyed scanning function. It sequentially
+        passes over a memory cache with an intuitive & tunable amount of
+        difficulty. This scheme is secret independent with regard to how
+        it chooses to pass over memory.
+
+        Through proofs of work & memory, it ensures an attacker
+        attempting to crack a passphrase hash cannot complete the
+        algorithm substantially faster by storing more memory than
+        what's already necessary, or with substantially less memory, by
+        dropping cache entries, without drastically increasing the
+        computational cost.
         """
-        return await hasher(data, key=key, hex=False)
+        ram, update, digest, row_size, total_size = session
+        assert total_size == len(ram)
+        column_start_indexes = range(0, row_size, 336)
+        row_start_indexes = [*range(0, total_size, row_size)]
+        for column_start in column_start_indexes:
+            for row_start in row_start_indexes:
+                index = row_start + column_start
+                ref_row_start = -row_start - row_size
+                reflection = ref_row_start + column_start + 168
+                ref_end = reflection + 168
+                ref_end = ref_end if ref_end < 0 else None
+
+                update(ram[row_start : row_start + row_size])
+                ram[index : index + 168] = digest(168)
+
+                update(ram[ref_row_start : ref_row_start + row_size])
+                ram[reflection:ref_end] = digest(168)
+        for iteration in range(session.cpu + 2):
+            seek = 168 * iteration
+            ram[seek : seek + 84] = digest(84)
+            update(ram)
+        return digest(session.tag_size)
 
     @classmethod
-    async def atest_hmac(
-        cls,
-        data: Typing.DeterministicRepr,
-        untrusted_hmac: bytes,
-        *,
-        key: bytes,
-        hasher: Typing.Callable = asha3__256_hmac,
-    ):
+    def _passcrypt(cls, session: PasscryptSession) -> bytes:
         """
-        Tests if the given ``hmac`` of some ``data`` is valid with a
-        time-safe comparison with a derived HMAC. Any async ``hasher``
-        function can be specified as the HMAC function, which is by
-        default SHA3_256_HMAC.
+        This method implements an Argon2i-like passphrase-based key
+        derivation function that's designed to be resistant to cache-
+        timing side-channel attacks & time-memory trade-offs.
         """
-        if not untrusted_hmac:
-            raise Issue.no_value_specified("untrusted_hmac")
-        true_hmac = await cls.amake_hmac(data, key=key, hasher=hasher)
-        if not await abytes_are_equal(untrusted_hmac, true_hmac):
-            raise Issue.invalid_value("HMAC of data stream")
-
-
-class Keys:
-    """
-    This simple class is a high-level interface for symmetric key
-    creation, derivation & HMAC validation of data.
-    """
-
-    __slots__ = ()
-
-    DomainKDF = DomainKDF
-    Passcrypt = Passcrypt
-    KeyAADBundle = KeyAADBundle
-
-    bytes_keys = staticmethod(bytes_keys)
-    csprng = staticmethod(csprng)
-    generate_key = staticmethod(generate_key)
-    generate_salt = staticmethod(generate_salt)
-    mnemonic = staticmethod(mnemonic)
-    random_256 = staticmethod(random_256)
-    random_512 = staticmethod(random_512)
-    table_key = staticmethod(table_key)
-    table_keystream = staticmethod(table_keystream)
-
-    @staticmethod
-    def make_hmac(
-        data: Typing.DeterministicRepr,
-        *,
-        key: bytes,
-        hasher: Typing.Callable = sha3__256_hmac,
-    ):
-        """
-        Creates an HMAC code of ``data`` using the supplied ``key`` &
-        the hashing function ``hasher``. Any sync ``hasher`` function
-        can be specified as the HMAC function, which is by default
-        SHA3_256_HMAC.
-        """
-        return hasher(data, key=key, hex=False)
+        session.prepare_session().allocate_ram()
+        return cls._work_memory_prover(session)
 
     @classmethod
-    def test_hmac(
+    async def anew(
         cls,
-        data: Typing.DeterministicRepr,
-        untrusted_hmac: bytes,
+        passphrase: bytes,
+        salt: bytes,
         *,
-        key: bytes,
-        hasher: Typing.Callable = sha3__256_hmac,
-    ):
+        aad: bytes = _DEFAULT_AAD,
+        mb: int = _DEFAULT_MB,
+        cpu: int = _DEFAULT_CPU,
+        cores: int = _DEFAULT_CORES,
+        tag_size: int = _DEFAULT_TAG_SIZE,
+    ) -> bytes:
         """
-        Tests if the given ``hmac`` of some ``data`` is valid with a
-        time-safe comparison with a derived HMAC. Any sync ``hasher``
-        function can be specified as the HMAC function, which is by
-        default SHA3_256_HMAC.
+        Returns just the ``tag_size``-byte hash of the ``passphrase``
+        when processed with the given ``salt``, ``aad`` & difficulty
+        settings.
+
+        ``passphrase``: A 12-byte or greater entropic value that
+                contains the user's desired entropy & cryptographic
+                strength. A passphrase is ideally a compilation of
+                words, symbols & numbers which are easy for the user to
+                remember, but difficult for anyone else to guess even if
+                they know precise details about who the user is & their
+                characteristics / tendencies.
+
+        ``salt``: An ephemeral, uniform 8-byte or greater entropic
+                value. SHOULD BE RANDOMLY GENERATED, its main purpose
+                is to be unpredictable.
+
+        ``aad``: An arbitrary bytes value a user decides to categorize
+                the hash with. It is authenticated as associated data &
+                safely permutes hashes created with different ``aad``.
+
+        ``mb``: The int number of Mibibytes (MiB) the user desires for
+                this run of the algorithm to cost to compute.
+
+        ``cpu``: The int number of iterations over the entire memory
+                cache that are executed for this run of the algorithm.
+                The size & computational cost of each row of the memory
+                cache is also linearly proportional to this parameter.
+
+        ``cores``: The int number of separate processes that will be
+                pooled to compute this run of the algorithm.
+
+        ``tag_size``: The int length of the hash that will be output at
+                the end of this run of the algorithm.
+
+        NOTICE: The passcrypt algorithm can be highly memory intensive.
+        These resources may not be freed up, & often are not, because of
+        python quirks around memory management. To force the release of
+        these resources, we run the function in another process which
+        guarantees the release.
         """
-        if not untrusted_hmac:
-            raise Issue.no_value_specified("untrusted_hmac")
-        true_hmac = cls.make_hmac(data, key=key, hasher=hasher)
-        if not bytes_are_equal(untrusted_hmac, true_hmac):
-            raise Issue.invalid_value("HMAC of data stream")
+        if not PasscryptSession.specification.is_cores(cores):
+            raise PasscryptIssue.invalid_cores(cores)
+        try:
+            sessions = []
+            total_mb = int_as_bytes(mb)
+            core_mb = math.ceil(mb / cores)
+            async for core in abytes_range.root(cores):
+                core_aad = canonical_pack(cls.PEPPER, aad, core, total_mb)
+                session = PasscryptSession(
+                    passphrase,
+                    salt,
+                    aad=core_aad,
+                    mb=core_mb,
+                    cpu=cpu,
+                    cores=cores,
+                    tag_size=tag_size,
+                )
+                kw = dict(session=session, probe_frequency=0.001)
+                sessions.append(
+                    await Processes.asubmit(cls._passcrypt, **kw)
+                )
+            for core, session in enumerate(sessions):
+                sessions[core] = await session.aresult()
+            return await axi_mix(b"".join(sessions), size=tag_size)
+        except Exception as error:
+            if Processes._pool._broken:
+                Processes.reset_pool()
+                raise Issue.broken_pool_restarted() from error
+            raise error
+
+    @classmethod
+    def new(
+        cls,
+        passphrase: bytes,
+        salt: bytes,
+        *,
+        aad: bytes = _DEFAULT_AAD,
+        mb: int = _DEFAULT_MB,
+        cpu: int = _DEFAULT_CPU,
+        cores: int = _DEFAULT_CORES,
+        tag_size: int = _DEFAULT_TAG_SIZE,
+    ) -> bytes:
+        """
+        Returns just the ``tag_size``-byte hash of the ``passphrase``
+        when processed with the given ``salt``, ``aad`` & difficulty
+        settings.
+
+        ``passphrase``: A 12-byte or greater entropic value that
+                contains the user's desired entropy & cryptographic
+                strength. A passphrase is ideally a compilation of
+                words, symbols & numbers which are easy for the user to
+                remember, but difficult for anyone else to guess even if
+                they know precise details about who the user is & their
+                characteristics / tendencies.
+
+        ``salt``: An ephemeral, uniform 8-byte or greater entropic
+                value. SHOULD BE RANDOMLY GENERATED, its main purpose
+                is to be unpredictable.
+
+        ``aad``: An arbitrary bytes value a user decides to categorize
+                the hash with. It is authenticated as associated data &
+                safely permutes hashes created with different ``aad``.
+
+        ``mb``: The int number of Mibibytes (MiB) the user desires for
+                this run of the algorithm to cost to compute.
+
+        ``cpu``: The int number of iterations over the entire memory
+                cache that are executed for this run of the algorithm.
+                The size & computational cost of each row of the memory
+                cache is also linearly proportional to this parameter.
+
+        ``cores``: The int number of separate processes that will be
+                pooled to compute this run of the algorithm.
+
+        ``tag_size``: The int length of the hash that will be output at
+                the end of this run of the algorithm.
+
+        NOTICE: The passcrypt algorithm can be highly memory intensive.
+        These resources may not be freed up, & often are not, because of
+        python quirks around memory management. To force the release of
+        these resources, we run the function in another process which
+        guarantees the release.
+        """
+        if not PasscryptSession.specification.is_cores(cores):
+            raise PasscryptIssue.invalid_cores(cores)
+        try:
+            sessions = []
+            total_mb = int_as_bytes(mb)
+            core_mb = math.ceil(mb / cores)
+            for core in bytes_range.root(cores):
+                core_aad = canonical_pack(cls.PEPPER, aad, core, total_mb)
+                session = PasscryptSession(
+                    passphrase,
+                    salt,
+                    aad=core_aad,
+                    mb=core_mb,
+                    cpu=cpu,
+                    cores=cores,
+                    tag_size=tag_size,
+                )
+                kw = dict(session=session, probe_frequency=0.001)
+                sessions.append(Processes.submit(cls._passcrypt, **kw))
+            for core, session in enumerate(sessions):
+                sessions[core] = session.result()
+            return xi_mix(b"".join(sessions), size=tag_size)
+        except Exception as error:
+            if Processes._pool._broken:
+                Processes.reset_pool()
+                raise Issue.broken_pool_restarted() from error
+            raise error
+
+    @classmethod
+    async def ahash_passphrase(
+        cls,
+        passphrase: bytes,
+        *,
+        aad: bytes = _DEFAULT_AAD,
+        mb: int = _DEFAULT_MB,
+        cpu: int = _DEFAULT_CPU,
+        cores: int = _DEFAULT_CORES,
+        tag_size: int = _DEFAULT_SCHEMA_TAG_SIZE,
+        salt_size: int = _DEFAULT_SCHEMA_SALT_SIZE,
+    ) -> bytes:
+        """
+        Returns the passcrypt difficulty settings, salt & hash of the
+        ``passphrase`` in a single raw bytes sequence for convenient
+        storage. The salt here is automatically generated.
+
+        ``passphrase``: A 12-byte or greater entropic value that
+                contains the user's desired entropy & cryptographic
+                strength. A passphrase is ideally a compilation of
+                words, symbols & numbers which are easy for the user to
+                remember, but difficult for anyone else to guess even if
+                they know precise details about who the user is & their
+                characteristics / tendencies.
+
+        ``aad``: An arbitrary bytes value a user decides to categorize
+                the hash with. It is authenticated as associated data &
+                safely permutes hashes created with different ``aad``.
+
+        ``mb``: The int number of Mibibytes (MiB) the user desires for
+                this run of the algorithm to cost to compute.
+
+        ``cpu``: The int number of iterations over the entire memory
+                cache that are executed for this run of the algorithm.
+                The size & computational cost of each row of the memory
+                cache is also linearly proportional to this parameter.
+
+        ``cores``: The int number of separate processes that will be
+                pooled to compute this run of the algorithm.
+
+        ``tag_size``: The int length of the hash that will be output at
+                the end of this run of the algorithm.
+
+        ``salt_size``: The int length of the salt that will be generated
+                & attached to the hash for this run of the algorithm.
+
+         _____________________________________
+        |                                     |
+        |   Format Diagram: Passcrypt Hash    |
+        |_____________________________________|
+         ______________________________________________________________
+        |                                    |                         |
+        |               Header               |          Body           |
+        |-------|-------|------|------|------|--------|----------------|
+        | time  |  mb   | cpu  | cores| Slen |  salt  |      tag       |
+        |  8-   |  3-   |  1-  |  1-  |  1-  |  Slen- |      >=16-     |
+        | bytes | bytes | byte | byte | byte |  bytes |     bytes      |
+        |_______|_______|______|______|______|________|________________|
+        |                                                              |
+        |                          >=34-bytes                          |
+        |______________________________________________________________|
+
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
+
+        from aiootp import Passcrypt, Domains
+        from getpass import getpass
+
+
+        Passcrypt.PEPPER = bytes.fromhex(getpass("hexidecimal pepper: "))
+
+        # registration ->
+
+        un = getpass("username: ").encode() + Domains.USERNAME
+        pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+        pw_hash = await Passcrypt.ahash_passphrase(pw, aad=un, mb=128)
+
+
+        # a login attempt ->
+
+        un = getpass("username: ").encode() + Domains.USERNAME
+        pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+        try:
+            await Passcrypt.averify(pw_hash, pw, aad=un, ttl=24 * 3600)
+        except Passcrypt.InvalidPassphrase as auth_fail:
+            app.post_mortem(error=auth_fail)
+        except Passcrypt.TimestampExpired as expired_hash:
+            # 24-hour registration expired
+            app.post_mortem(error=expired_hash)
+
+        """
+        timestamp = await ns_clock.amake_timestamp()
+        salt = token_bytes(salt_size)
+        tag = await cls.anew(
+            passphrase,
+            salt,
+            aad=timestamp + aad,
+            mb=mb,
+            cpu=cpu,
+            cores=cores,
+            tag_size=tag_size,
+        )
+        return PasscryptHash(
+            timestamp=timestamp,
+            mb=mb,
+            cpu=cpu,
+            cores=cores,
+            salt=salt,
+            tag=tag,
+        ).export_hash()
+
+    @classmethod
+    def hash_passphrase(
+        cls,
+        passphrase: bytes,
+        *,
+        aad: bytes = _DEFAULT_AAD,
+        mb: int = _DEFAULT_MB,
+        cpu: int = _DEFAULT_CPU,
+        cores: int = _DEFAULT_CORES,
+        tag_size: int = _DEFAULT_SCHEMA_TAG_SIZE,
+        salt_size: int = _DEFAULT_SCHEMA_SALT_SIZE,
+    ) -> bytes:
+        """
+        Returns the passcrypt difficulty settings, salt & hash of the
+        ``passphrase`` in a single raw bytes sequence for convenient
+        storage. The salt here is automatically generated.
+
+        ``passphrase``: A 12-byte or greater entropic value that
+                contains the user's desired entropy & cryptographic
+                strength. A passphrase is ideally a compilation of
+                words, symbols & numbers which are easy for the user to
+                remember, but difficult for anyone else to guess even if
+                they know precise details about who the user is & their
+                characteristics / tendencies.
+
+        ``aad``: An arbitrary bytes value a user decides to categorize
+                the hash with. It is authenticated as associated data &
+                safely permutes hashes created with different ``aad``.
+
+        ``mb``: The int number of Mibibytes (MiB) the user desires for
+                this run of the algorithm to cost to compute.
+
+        ``cpu``: The int number of iterations over the entire memory
+                cache that are executed for this run of the algorithm.
+                The size & computational cost of each row of the memory
+                cache is also linearly proportional to this parameter.
+
+        ``cores``: The int number of separate processes that will be
+                pooled to compute this run of the algorithm.
+
+        ``tag_size``: The int length of the hash that will be output at
+                the end of this run of the algorithm.
+
+        ``salt_size``: The int length of the salt that will be generated
+                & attached to the hash for this run of the algorithm.
+
+         _____________________________________
+        |                                     |
+        |   Format Diagram: Passcrypt Hash    |
+        |_____________________________________|
+         ______________________________________________________________
+        |                                    |                         |
+        |               Header               |          Body           |
+        |-------|-------|------|------|------|--------|----------------|
+        | time  |  mb   | cpu  | cores| Slen |  salt  |      tag       |
+        |  8-   |  3-   |  1-  |  1-  |  1-  |  Slen- |      >=16-     |
+        | bytes | bytes | byte | byte | byte |  bytes |     bytes      |
+        |_______|_______|______|______|______|________|________________|
+        |                                                              |
+        |                          >=34-bytes                          |
+        |______________________________________________________________|
+
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
+
+        from aiootp import Passcrypt, Domains
+        from getpass import getpass
+
+
+        Passcrypt.PEPPER = bytes.fromhex(getpass("hexidecimal pepper: "))
+
+        # registration ->
+
+        un = getpass("username: ").encode() + Domains.USERNAME
+        pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+        pw_hash = Passcrypt.hash_passphrase(pw, aad=un, mb=128)
+
+
+        # a login attempt ->
+
+        un = getpass("username: ").encode() + Domains.USERNAME
+        pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+        try:
+            Passcrypt.verify(pw_hash, pw, aad=un, ttl=24 * 3600)
+        except Passcrypt.InvalidPassphrase as auth_fail:
+            app.post_mortem(error=auth_fail)
+        except Passcrypt.TimestampExpired as expired_hash:
+            # 24-hour registration expired
+            app.post_mortem(error=expired_hash)
+
+        """
+        timestamp = ns_clock.make_timestamp()
+        salt = token_bytes(salt_size)
+        tag = cls.new(
+            passphrase,
+            salt,
+            aad=timestamp + aad,
+            mb=mb,
+            cpu=cpu,
+            cores=cores,
+            tag_size=tag_size,
+        )
+        return PasscryptHash(
+            timestamp=timestamp,
+            mb=mb,
+            cpu=cpu,
+            cores=cores,
+            salt=salt,
+            tag=tag,
+        ).export_hash()
+
+    @classmethod
+    async def averify(
+        cls,
+        composed_passcrypt_hash: bytes,
+        passphrase: bytes,
+        *,
+        aad: bytes = _DEFAULT_AAD,
+        ttl: int = DEFAULT_TTL,
+        mb_allowed: range = _MB_RESOURCE_SAFETY_RANGE,
+        cpu_allowed: range = _CPU_RESOURCE_SAFETY_RANGE,
+        cores_allowed: range = _CORES_RESOURCE_SAFETY_RANGE,
+    ) -> None:
+        """
+        Verifies that a supplied ``passphrase`` was indeed used to build
+        the ``composed_passcrypt_hash``.
+
+        Runs the passcrypt algorithm on the ``passphrase`` with the
+        parameters specified in the ``composed_passcrypt_hash`` value's
+        attached metadata. If the result doesn't match the hash in
+        ``composed_passcrypt_hash`` then `Passcrypt.InvalidPassphrase`
+        is raised. The ``composed_passcrypt_hash`` passed into this
+        method must be raw bytes.
+
+        ``aad``: An arbitrary bytes value a user decides to categorize
+                the hash with. It is authenticated as associated data &
+                safely permutes hashes created with different ``aad``.
+
+        ``ttl``: An amount of seconds which dictate the allowable age of
+                a ``composed_passcrypt_hash``. The associated timestamp,
+                which is attached to the hash, helps ensure the tag is
+                unique by separating each tag created across time into
+                distinct domains.
+
+        ``mb_allowed``: A `builtins.range` object which includes all
+                allowable values for the `mb` (Mibibyte) resource cost.
+                Raises `ResourceWarning` if the `mb` specified in the
+                provided hash falls outside of that range.
+
+        ``cpu_allowed``: A `builtins.range` object which includes all
+                allowable values for the `cpu` resource cost. Raises
+                `ResourceWarning` if the `cpu` specified in the provided
+                hash falls outside of that range.
+
+        ``cores_allowed``: A `builtins.range` object which includes all
+                allowable values for the `cores` resource cost. Raises
+                `ResourceWarning` if the `cores` specified in the
+                provided hash falls outside of that range.
+
+         _____________________________________
+        |                                     |
+        |   Format Diagram: Passcrypt Hash    |
+        |_____________________________________|
+         ______________________________________________________________
+        |                                    |                         |
+        |               Header               |          Body           |
+        |-------|-------|------|------|------|--------|----------------|
+        | time  |  mb   | cpu  | cores| Slen |  salt  |      tag       |
+        |  8-   |  3-   |  1-  |  1-  |  1-  |  Slen- |      >=16-     |
+        | bytes | bytes | byte | byte | byte |  bytes |     bytes      |
+        |_______|_______|______|______|______|________|________________|
+        |                                                              |
+        |                          >=34-bytes                          |
+        |______________________________________________________________|
+
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
+
+        from aiootp import Passcrypt, Domains
+        from getpass import getpass
+
+
+        Passcrypt.PEPPER = bytes.fromhex(getpass("hexidecimal pepper: "))
+
+        # registration ->
+
+        un = getpass("username: ").encode() + Domains.USERNAME
+        pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+        pw_hash = await Passcrypt.ahash_passphrase(pw, aad=un, mb=128)
+
+
+        # a login attempt ->
+
+        un = getpass("username: ").encode() + Domains.USERNAME
+        pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+        try:
+            await Passcrypt.averify(pw_hash, pw, aad=un, ttl=24 * 3600)
+        except Passcrypt.InvalidPassphrase as auth_fail:
+            app.post_mortem(error=auth_fail)
+        except Passcrypt.TimestampExpired as expired_hash:
+            # 24-hour registration expired
+            app.post_mortem(error=expired_hash)
+
+        """
+        parts = PasscryptHash().import_hash(composed_passcrypt_hash)
+        await ns_clock.atest_timestamp(parts.timestamp, ttl * NS_TO_S_RATIO)
+        parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
+        untrusted_hash = await cls.anew(
+            passphrase,
+            parts.salt,
+            aad=parts.timestamp + aad,
+            mb=parts.mb,
+            cpu=parts.cpu,
+            cores=parts.cores,
+            tag_size=parts.tag_size,
+        )
+        if not bytes_are_equal(untrusted_hash, parts.tag):
+            raise PasscryptIssue.verification_failed()
+
+    @classmethod
+    def verify(
+        cls,
+        composed_passcrypt_hash: bytes,
+        passphrase: bytes,
+        *,
+        aad: bytes = _DEFAULT_AAD,
+        ttl: int = DEFAULT_TTL,
+        mb_allowed: range = _MB_RESOURCE_SAFETY_RANGE,
+        cpu_allowed: range = _CPU_RESOURCE_SAFETY_RANGE,
+        cores_allowed: range = _CORES_RESOURCE_SAFETY_RANGE,
+    ) -> None:
+        """
+        Verifies that a supplied ``passphrase`` was indeed used to build
+        the ``composed_passcrypt_hash``.
+
+        Runs the passcrypt algorithm on the ``passphrase`` with the
+        parameters specified in the ``composed_passcrypt_hash`` value's
+        attached metadata. If the result doesn't match the hash in
+        ``composed_passcrypt_hash`` then `Passcrypt.InvalidPassphrase`
+        is raised. The ``composed_passcrypt_hash`` passed into this
+        method must be raw bytes.
+
+        ``aad``: An arbitrary bytes value a user decides to categorize
+                the hash with. It is authenticated as associated data &
+                safely permutes hashes created with different ``aad``.
+
+        ``ttl``: An amount of seconds which dictate the allowable age of
+                a ``composed_passcrypt_hash``. The associated timestamp,
+                which is attached to the hash, helps ensure the tag is
+                unique by separating each tag created across time into
+                distinct domains.
+
+        ``mb_allowed``: A `builtins.range` object which includes all
+                allowable values for the `mb` (Mibibyte) resource cost.
+                Raises `ResourceWarning` if the `mb` specified in the
+                provided hash falls outside of that range.
+
+        ``cpu_allowed``: A `builtins.range` object which includes all
+                allowable values for the `cpu` resource cost. Raises
+                `ResourceWarning` if the `cpu` specified in the provided
+                hash falls outside of that range.
+
+        ``cores_allowed``: A `builtins.range` object which includes all
+                allowable values for the `cores` resource cost. Raises
+                `ResourceWarning` if the `cores` specified in the
+                provided hash falls outside of that range.
+
+         _____________________________________
+        |                                     |
+        |   Format Diagram: Passcrypt Hash    |
+        |_____________________________________|
+         ______________________________________________________________
+        |                                    |                         |
+        |               Header               |          Body           |
+        |-------|-------|------|------|------|--------|----------------|
+        | time  |  mb   | cpu  | cores| Slen |  salt  |      tag       |
+        |  8-   |  3-   |  1-  |  1-  |  1-  |  Slen- |      >=16-     |
+        | bytes | bytes | byte | byte | byte |  bytes |     bytes      |
+        |_______|_______|______|______|______|________|________________|
+        |                                                              |
+        |                          >=34-bytes                          |
+        |______________________________________________________________|
+
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
+
+        from aiootp import Passcrypt, Domains
+        from getpass import getpass
+
+
+        Passcrypt.PEPPER = bytes.fromhex(getpass("hexidecimal pepper: "))
+
+        # registration ->
+
+        un = getpass("username: ").encode() + Domains.USERNAME
+        pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+
+        pw_hash = Passcrypt.hash_passphrase(pw, aad=un, mb=128)
+
+        # a login attempt ->
+
+        un = getpass("username: ").encode() + Domains.USERNAME
+        pw = getpass("passphrase: ").encode() + Domains.PASSPHRASE
+
+        try:
+            Passcrypt.verify(pw_hash, pw, aad=un, ttl=24 * 3600)
+        except Passcrypt.InvalidPassphrase as auth_fail:
+            app.post_mortem(error=auth_fail)
+        except Passcrypt.TimestampExpired as expired_hash:
+            # 24-hour registration expired
+            app.post_mortem(error=expired_hash)
+
+        """
+        parts = PasscryptHash().import_hash(composed_passcrypt_hash)
+        ns_clock.test_timestamp(parts.timestamp, ttl * NS_TO_S_RATIO)
+        parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
+        untrusted_hash = cls.new(
+            passphrase,
+            parts.salt,
+            aad=parts.timestamp + aad,
+            mb=parts.mb,
+            cpu=parts.cpu,
+            cores=parts.cores,
+            tag_size=parts.tag_size,
+        )
+        if not bytes_are_equal(untrusted_hash, parts.tag):
+            raise PasscryptIssue.verification_failed()
+
+
+class PasscryptInstance:
+    """
+    Gives the user objects which mirrors calls to `Passcrypt` methods
+    with automated passing of instance settings.
+    """
+
+    __slots__ = ("_settings",)
+
+    TimestampExpired = TimestampExpired
+    InvalidPassphrase = InvalidPassphrase
+    ImproperPassphrase = ImproperPassphrase
+
+    def __init__(
+        self, mb: int, cpu: int, cores: int, tag_size: int, salt_size: int
+    ) -> "self":
+        """
+        Stores user-defined settings so they can automatically be passed
+        into `Passcrypt` methods when they are called.
+        """
+        self._settings = PasscryptSettings(
+            mb=mb,
+            cpu=cpu,
+            cores=cores,
+            tag_size=tag_size,
+            salt_size=salt_size,
+        )
+        PasscryptSession._validate_settings(**self._settings)
+
+    @wraps(Passcrypt.ahash_passphrase.__func__)
+    async def ahash_passphrase(
+        self,
+        *args: t.Iterable[bytes],
+        **kwargs: t.Dict[str, t.Union[bytes, int]],
+    ) -> bytes:
+        """
+        Forwards calls to the `Passcrypt.ahash_passphrase` method with
+        the instance settings & the specified ``args`` & ``kwargs``.
+        """
+        return await Passcrypt.ahash_passphrase(
+            *args, **{**self._settings, **kwargs}
+        )
+
+    @wraps(Passcrypt.hash_passphrase.__func__)
+    def hash_passphrase(
+        self,
+        *args: t.Iterable[bytes],
+        **kwargs: t.Dict[str, t.Union[bytes, int]],
+    ) -> bytes:
+        """
+        Forwards calls to the `Passcrypt.hash_passphrase` method with
+        the instance settings & the specified ``args`` & ``kwargs``.
+        """
+        return Passcrypt.hash_passphrase(
+            *args, **{**self._settings, **kwargs}
+        )
+
+    @wraps(Passcrypt.averify.__func__)
+    async def averify(
+        self,
+        *args: t.Iterable[bytes],
+        **kwargs: t.Dict[str, t.Union[bytes, int, range]],
+    ) -> None:
+        """
+        Forwards calls to the `Passcrypt.averify` method with the
+        specified ``args`` & ``kwargs``.
+        """
+        await Passcrypt.averify(*args, **kwargs)
+
+    @wraps(Passcrypt.verify.__func__)
+    def verify(
+        self,
+        *args: t.Iterable[bytes],
+        **kwargs: t.Dict[str, t.Union[bytes, int, range]],
+    ) -> None:
+        """
+        Forwards calls to the `Passcrypt.verify` method with the
+        specified ``args`` & ``kwargs``.
+        """
+        Passcrypt.verify(*args, **kwargs)
 
 
 class Curve25519:
@@ -444,7 +1575,7 @@ class Curve25519:
     serialization = serialization
 
     @staticmethod
-    async def aed25519_key():
+    async def aed25519_key() -> Ed25519PrivateKey:
         """
         Returns an ``Ed25519PrivateKey`` from the cryptography package
         used to make elliptic curve signatures of data.
@@ -453,7 +1584,7 @@ class Curve25519:
         return Ed25519PrivateKey.generate()
 
     @staticmethod
-    def ed25519_key():
+    def ed25519_key() -> Ed25519PrivateKey:
         """
         Returns an ``Ed25519PrivateKey`` from the cryptography package
         used to make elliptic curve signatures of data.
@@ -461,7 +1592,7 @@ class Curve25519:
         return Ed25519PrivateKey.generate()
 
     @staticmethod
-    async def ax25519_key():
+    async def ax25519_key() -> X25519PrivateKey:
         """
         Returns a ``X25519PrivateKey`` from the cryptography package for
         use in an elliptic curve diffie-hellman exchange.
@@ -470,7 +1601,7 @@ class Curve25519:
         return X25519PrivateKey.generate()
 
     @staticmethod
-    def x25519_key():
+    def x25519_key() -> X25519PrivateKey:
         """
         Returns a ``X25519PrivateKey`` from the cryptography package for
         use in an elliptic curve diffie-hellman exchange.
@@ -478,72 +1609,112 @@ class Curve25519:
         return X25519PrivateKey.generate()
 
     @classmethod
-    async def apublic_bytes(cls, key):
+    async def apublic_bytes(
+        cls,
+        key: t.Union[
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
+        ],
+    ) -> bytes:
         """
         Returns the public key bytes of either an ``X25519PrivateKey``,
         ``X25519PublicKey``, ``Ed25519PublicKey`` or ``Ed25519PrivateKey``
         object from the cryptography package.
         """
         await asleep()
-        if hasattr(key, "public_key"):
+        key_types = (
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
+        )
+        if not issubclass(key.__class__, key_types):
+            raise Issue.value_must_be_type("key", key_types)
+        elif hasattr(key, "public_key"):
             public_key = key.public_key()
         else:
             public_key = key
         return public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
 
     @classmethod
-    def public_bytes(cls, key):
+    def public_bytes(
+        cls,
+        key: t.Union[
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
+        ],
+    ) -> bytes:
         """
         Returns the public key bytes of either an ``X25519PrivateKey``,
         ``X25519PublicKey``, ``Ed25519PublicKey`` or ``Ed25519PrivateKey``
         object from the cryptography package.
         """
-        if hasattr(key, "public_key"):
+        key_types = (
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
+        )
+        if not issubclass(key.__class__, key_types):
+            raise Issue.value_must_be_type("key", key_types)
+        elif hasattr(key, "public_key"):
             public_key = key.public_key()
         else:
             public_key = key
         return public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
 
     @classmethod
-    async def asecret_bytes(cls, secret_key):
+    async def asecret_bytes(
+        cls, secret_key: t.Union[X25519PrivateKey, Ed25519PrivateKey]
+    ) -> bytes:
         """
         Returns the secret key bytes of either an ``X25519PrivateKey``
         or ``Ed25519PrivateKey`` from the cryptography package.
         """
         await asleep()
+        key_types = (X25519PrivateKey, Ed25519PrivateKey)
+        if not issubclass(secret_key.__class__, key_types):
+            raise Issue.value_must_be_type("secret_key", key_types)
         return secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
 
     @classmethod
-    def secret_bytes(cls, secret_key):
+    def secret_bytes(
+        cls, secret_key: t.Union[X25519PrivateKey, Ed25519PrivateKey]
+    ) -> bytes:
         """
         Returns the secret key bytes of either an ``X25519PrivateKey``
         or ``Ed25519PrivateKey`` from the cryptography package.
         """
+        key_types = (X25519PrivateKey, Ed25519PrivateKey)
+        if not issubclass(secret_key.__class__, key_types):
+            raise Issue.value_must_be_type("secret_key", key_types)
         return secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
 
     @staticmethod
-    async def aexchange(secret_key, public_key: Typing.AnyStr):
+    async def aexchange(
+        secret_key: X25519PrivateKey, public_key: bytes
+    ) -> bytes:
         """
         Returns the shared key bytes derived from an elliptic curve key
         exchange with the user's ``secret_key`` key, & their communicating
         peer's ``public_key`` public key's bytes or hex value.
         """
         await asleep()
-        if public_key.__class__ is not bytes:
-            public_key = bytes.fromhex(public_key)
         return secret_key.exchange(
             X25519PublicKey.from_public_bytes(public_key)
         )
 
     @staticmethod
-    def exchange(secret_key, public_key: Typing.AnyStr):
+    def exchange(secret_key: X25519PrivateKey, public_key: bytes) -> bytes:
         """
         Returns the shared key bytes derived from an elliptic curve key
         exchange with the user's ``secret_key`` key, & their communicating
         peer's ``public_key`` public key's bytes or hex value.
         """
-        if public_key.__class__ is not bytes:
-            public_key = bytes.fromhex(public_key)
         return secret_key.exchange(
             X25519PublicKey.from_public_bytes(public_key)
         )
@@ -565,86 +1736,127 @@ class Base25519:
     SecretKey = None
 
     @classmethod
-    def _preprocess_key(cls, key_material):
-        """
-        Converts to bytes if ``key_material`` is hex, otherwise returns
-        it unaltered only if is truthy.
-        """
-        if not key_material:
-            raise Issue.no_value_specified("key material")
-        elif key_material.__class__ is str:
-            key_material = bytes.fromhex(key_material)
-        return key_material
-
-    @classmethod
-    def _process_public_key(cls, public_key):
+    def _process_public_key(
+        cls,
+        public_key: t.Union[
+            str,
+            bytes,
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
+        ],
+    ) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
         """
         Accepts a ``public_key`` in either hex, bytes, ``X25519PublicKey``,
         ``X25519PrivateKey``, ``Ed25519PublicKey`` or ``Ed25519PrivateKey``
         format. Returns an instantiaed public key associated with the
         subclass inhereting this method.
         """
-        public_key = cls._preprocess_key(public_key)
-        if public_key.__class__ is not bytes:
+        if not public_key:
+            raise Issue.no_value_specified("public key")
+        elif public_key.__class__ is str:
+            public_key = bytes.fromhex(public_key)
+        elif public_key.__class__ is not bytes:
             public_key = cls._Curve25519.public_bytes(public_key)
         return cls.PublicKey.from_public_bytes(public_key)
 
     @classmethod
-    def _process_secret_key(cls, secret_key):
+    def _process_secret_key(
+        cls,
+        secret_key: t.Union[
+            str, bytes, X25519PrivateKey, Ed25519PrivateKey
+        ],
+    ) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
         """
         Accepts a ``secret_key`` in either hex, bytes, ``X25519PrivateKey``
         or ``Ed25519PrivateKey`` format. Returns an instantiaed secret
         key associated with the subclass inhereting this method.
         """
-        secret_key = cls._preprocess_key(secret_key)
-        if secret_key.__class__ is not bytes:
+        if not secret_key:
+            raise Issue.no_value_specified("secret key")
+        elif secret_key.__class__ is str:
+            secret_key = bytes.fromhex(secret_key)
+        elif secret_key.__class__ is not bytes:
             secret_key = cls._Curve25519.secret_bytes(secret_key)
         return cls.SecretKey.from_private_bytes(secret_key)
 
-    async def aimport_public_key(self, public_key):
+    async def aimport_public_key(
+        self,
+        public_key: t.Union[
+            str,
+            bytes,
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
+        ],
+    ) -> "self":
         """
         Populates an instance from the received ``public_key`` that is
         of either hex, bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
         ``Ed25519PublicKey`` or ``Ed25519PrivateKey`` type.
         """
         await asleep()
+        if hasattr(self, "_public_key"):
+            raise Issue.value_already_set("public key", "the instance")
         self._public_key = self._process_public_key(public_key)
         return self
 
-    def import_public_key(self, public_key):
+    def import_public_key(
+        self,
+        public_key: t.Union[
+            str,
+            bytes,
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
+        ],
+    ) -> "self":
         """
         Populates an instance from the received ``public_key`` that is
         of either hex, bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
         ``Ed25519PublicKey`` or ``Ed25519PrivateKey`` type.
         """
+        if hasattr(self, "_public_key"):
+            raise Issue.value_already_set("public key", "the instance")
         self._public_key = self._process_public_key(public_key)
         return self
 
-    async def aimport_secret_key(self, secret_key):
+    async def aimport_secret_key(
+        self,
+        secret_key: t.Union[
+            str, bytes, X25519PrivateKey, Ed25519PrivateKey
+        ],
+    ) -> "self":
         """
         Populates an instance from the received ``secret_key`` that is
         of either hex, bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
         type.
         """
         await asleep()
-        if hasattr(self, "_secret_key"):
-            cls = self.__class__.__qualname__
-            raise Issue.value_already_set(f"{cls} instance key")
+        if hasattr(self, "_public_key") or hasattr(self, "_secret_key"):
+            raise Issue.value_already_set(f"key", "the instance")
         self._secret_key = self._process_secret_key(secret_key)
         self._public_key = self.PublicKey.from_public_bytes(
             await self._Curve25519.apublic_bytes(self._secret_key)
         )
         return self
 
-    def import_secret_key(self, secret_key):
+    def import_secret_key(
+        self,
+        secret_key: t.Union[
+            str, bytes, X25519PrivateKey, Ed25519PrivateKey
+        ],
+    ) -> "self":
         """
         Populates an instance from the received ``secret_key`` that is
         of either hex, bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
         type.
         """
-        if hasattr(self, "_secret_key"):
-            cls = self.__class__.__qualname__
-            raise Issue.value_already_set(f"{cls} instance key")
+        if hasattr(self, "_public_key") or hasattr(self, "_secret_key"):
+            raise Issue.value_already_set(f"key", "the instance")
         self._secret_key = self._process_secret_key(secret_key)
         self._public_key = self.PublicKey.from_public_bytes(
             self._Curve25519.public_bytes(self._secret_key)
@@ -652,7 +1864,7 @@ class Base25519:
         return self
 
     @property
-    def secret_key(self):
+    def secret_key(self) -> t.Union[X25519PrivateKey, Ed25519PrivateKey]:
         """
         Returns the instantiated & populated SecretKey of the associated
         sublass inhereting this method.
@@ -660,7 +1872,7 @@ class Base25519:
         return self._secret_key
 
     @property
-    def public_key(self):
+    def public_key(self) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
         """
         Returns the instantiated & populated PublicKey of the associated
         sublass inhereting this method.
@@ -668,7 +1880,7 @@ class Base25519:
         return self._public_key
 
     @property
-    def secret_bytes(self):
+    def secret_bytes(self) -> bytes:
         """
         Returns the secret bytes of the instance's instantiated &
         populated SecretKey of the associated sublass inhereting this
@@ -677,7 +1889,7 @@ class Base25519:
         return self._Curve25519.secret_bytes(self._secret_key)
 
     @property
-    def public_bytes(self):
+    def public_bytes(self) -> bytes:
         """
         Returns the public bytes of the instance's instantiated &
         populated PublicKey of the associated sublass inhereting this
@@ -685,13 +1897,13 @@ class Base25519:
         """
         return self._Curve25519.public_bytes(self._public_key)
 
-    def is_secret_key(self):
+    def has_secret_key(self) -> bool:
         """
         Returns a boolean of whether the instance contains a secret key.
         """
         return hasattr(self, "_secret_key")
 
-    def is_public_key(self):
+    def has_public_key(self) -> bool:
         """
         Returns a boolean of whether the instance contains a public key.
         """
@@ -703,7 +1915,10 @@ class Ed25519(Base25519):
     This class is used to create stateful objects that simplify usage of
     the cryptography library's ed25519 protocol.
 
-    Usage Example:
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
 
     from aiootp import Ed25519
 
@@ -746,7 +1961,7 @@ class Ed25519(Base25519):
     PublicKey = Curve25519.Ed25519PublicKey
     SecretKey = Curve25519.Ed25519PrivateKey
 
-    async def agenerate(self):
+    async def agenerate(self) -> "self":
         """
         Generates a new secret key used for signing bytes data &
         populates the instance with it & its associated public key. This
@@ -757,7 +1972,7 @@ class Ed25519(Base25519):
         await self.aimport_secret_key(key)
         return self
 
-    def generate(self):
+    def generate(self) -> "self":
         """
         Generates a new secret key used for signing bytes data &
         populates the instance with it & its associated public key. This
@@ -768,22 +1983,26 @@ class Ed25519(Base25519):
         self.import_secret_key(key)
         return self
 
-    async def asign(self, data: bytes):
+    async def asign(self, data: bytes) -> bytes:
         """
         Signs some bytes ``data`` with the instance's secret key.
         """
         await asleep()
         return self.secret_key.sign(data)
 
-    def sign(self, data: bytes):
+    def sign(self, data: bytes) -> bytes:
         """
         Signs some bytes ``data`` with the instance's secret key.
         """
         return self.secret_key.sign(data)
 
     async def averify(
-        self, signature: bytes, data: bytes, *, public_key=None
-    ):
+        self,
+        signature: bytes,
+        data: bytes,
+        *,
+        public_key: t.Union[None, str, bytes, Ed25519PublicKey] = None,
+    ) -> None:
         """
         Receives a ``signature`` to verify data with the instance's
         public key. If the ``public_key`` keyword-only argument is
@@ -798,7 +2017,13 @@ class Ed25519(Base25519):
         await asleep()
         public_key.verify(signature, data)
 
-    def verify(self, signature: bytes, data: bytes, *, public_key=None):
+    def verify(
+        self,
+        signature: bytes,
+        data: bytes,
+        *,
+        public_key: t.Union[None, str, bytes, Ed25519PublicKey] = None,
+    ) -> None:
         """
         Receives a ``signature`` to verify data with the instance's
         public key. If the ``public_key`` keyword-only argument is
@@ -817,7 +2042,10 @@ class X25519(Base25519):
     This class is used to create stateful objects that simplify usage of
     the cryptography library's x25519 protocol.
 
-    Usage Example:
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
 
     user_alice = X25519().generate()
     # Alice wants to create a shared key with Bob. So, Alice sends the
@@ -849,7 +2077,7 @@ class X25519(Base25519):
     PublicKey = Curve25519.X25519PublicKey
     SecretKey = Curve25519.X25519PrivateKey
 
-    async def agenerate(self):
+    async def agenerate(self) -> "self":
         """
         Generates a new secret key used for a single elliptic curve
         diffie-hellman exchange, or as an argument to one of the 3dh or
@@ -862,7 +2090,7 @@ class X25519(Base25519):
         await self.aimport_secret_key(key)
         return self
 
-    def generate(self):
+    def generate(self) -> "self":
         """
         Generates a new secret key used for a single elliptic curve
         diffie-hellman exchange, or as an argument to one of the 3dh or
@@ -875,7 +2103,9 @@ class X25519(Base25519):
         self.import_secret_key(key)
         return self
 
-    async def aexchange(self, public_key):
+    async def aexchange(
+        self, public_key: t.Union[X25519PublicKey, bytes, str]
+    ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the
         instance's secret key to do an elliptic curve diffie-hellman
@@ -888,7 +2118,9 @@ class X25519(Base25519):
             await self._Curve25519.apublic_bytes(public_key),
         )
 
-    def exchange(self, public_key):
+    def exchange(
+        self, public_key: t.Union[X25519PublicKey, bytes, str]
+    ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the
         instance's secret key to do an elliptic curve diffie-hellman
@@ -901,7 +2133,7 @@ class X25519(Base25519):
 
     @classmethod
     @comprehension()
-    async def adh2_client(cls):
+    async def adh2_client(cls) -> Comprende:
         """
         Generates an ephemeral ``X25519`` secret key which is used to
         start a 2DH client key exchange. This key is yielded as public
@@ -910,7 +2142,10 @@ class X25519(Base25519):
         reaches the raise statement, a primed ``sha3_512`` kdf object
         will be accessible from the ``aresult`` method of this generator.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         from aiootp import X25519
 
@@ -928,11 +2163,19 @@ class X25519(Base25519):
         )
         shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(sha3_512(domain + shared_key_ad + shared_key_cd))
+        raise Comprende.ReturnValue(
+            DomainKDF(
+                domain,
+                my_ephemeral_key.public_bytes,
+                peer_identity_key,
+                peer_ephemeral_key,
+                key=shared_key_ad + shared_key_cd,
+            )
+        )
 
     @classmethod
     @comprehension()
-    def dh2_client(cls):
+    def dh2_client(cls) -> Comprende:
         """
         Generates an ephemeral ``X25519`` secret key which is used to
         start a 2DH client key exchange. This key is yielded as public
@@ -941,7 +2184,10 @@ class X25519(Base25519):
         reaches the return statement, a primed ``sha3_512`` kdf object
         will be accessible from the ``result`` method of this generator.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         from aiootp import X25519
 
@@ -959,10 +2205,16 @@ class X25519(Base25519):
         )
         shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(domain + shared_key_ad + shared_key_cd)
+        return DomainKDF(
+            domain,
+            my_ephemeral_key.public_bytes,
+            peer_identity_key,
+            peer_ephemeral_key,
+            key=shared_key_ad + shared_key_cd,
+        )
 
     @comprehension()
-    async def adh2_server(self, peer_ephemeral_key: bytes):
+    async def adh2_server(self, peer_ephemeral_key: bytes) -> Comprende:
         """
         Takes in the user's ``X25519`` secret key & a peer's public key
         bytes to enact a 2DH key exchange. This yields the user's two
@@ -971,7 +2223,10 @@ class X25519(Base25519):
         reaches the raise statement, a primed ``sha3_512`` kdf object
         will be accessible from the ``aresult`` method of this generator.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         from aiootp import X25519
 
@@ -987,14 +2242,22 @@ class X25519(Base25519):
         """
         domain = Domains.DH2
         my_identity_key = self
-        my_ephemeral_key = await cls().agenerate()
+        my_ephemeral_key = await self.__class__().agenerate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(sha3_512(domain + shared_key_ad + shared_key_cd))
+        raise Comprende.ReturnValue(
+            DomainKDF(
+                domain,
+                peer_ephemeral_key,
+                my_identity_key.public_bytes,
+                my_ephemeral_key.public_bytes,
+                key=shared_key_ad + shared_key_cd,
+            )
+        )
 
     @comprehension()
-    def dh2_server(self, peer_ephemeral_key: bytes):
+    def dh2_server(self, peer_ephemeral_key: bytes) -> Comprende:
         """
         Takes in the user's ``X25519`` secret key & a peer's public key
         bytes to enact a 2DH key exchange. This yields the user's two
@@ -1003,7 +2266,10 @@ class X25519(Base25519):
         reaches the return statement, a primed ``sha3_512`` kdf object
         will be accessible from the ``result`` method of this generator.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         from aiootp import X25519
 
@@ -1019,23 +2285,32 @@ class X25519(Base25519):
         """
         domain = Domains.DH2
         my_identity_key = self
-        my_ephemeral_key = cls().generate()
+        my_ephemeral_key = self.__class__().generate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(domain + shared_key_ad + shared_key_cd)
+        return DomainKDF(
+            domain,
+            peer_ephemeral_key,
+            my_identity_key.public_bytes,
+            my_ephemeral_key.public_bytes,
+            key=shared_key_ad + shared_key_cd,
+        )
 
     @comprehension()
-    async def adh3_client(self):
+    async def adh3_client(self) -> Comprende:
         """
         Takes in the user's ``X25519`` secret key to enact a 3DH key
         exchange with a peer. This yields the user's two public keys as
         bytes, one from the secret key which was passed in as an
         argument, one which is ephemeral. When this coroutine reaches
-        the raise statement, a primed ``sha3_512`` kdf object will be
+        the raise statement, a primed ``DomainKDF`` object will be
         accessible from the ``aresult`` method of this generator.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         from aiootp import X25519
 
@@ -1051,7 +2326,7 @@ class X25519(Base25519):
         """
         domain = Domains.DH3
         my_identity_key = self
-        my_ephemeral_key = await cls().agenerate()
+        my_ephemeral_key = await self.__class__().agenerate()
         peer_identity_key, peer_ephemeral_key = yield (
             my_identity_key.public_bytes,
             my_ephemeral_key.public_bytes,
@@ -1059,21 +2334,31 @@ class X25519(Base25519):
         shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
         shared_key_bc = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(
-            sha3_512(domain + shared_key_ad + shared_key_bc + shared_key_cd)
+        raise Comprende.ReturnValue(
+            DomainKDF(
+                domain,
+                my_identity_key.public_bytes,
+                my_ephemeral_key.public_bytes,
+                peer_identity_key,
+                peer_ephemeral_key,
+                key=shared_key_ad + shared_key_bc + shared_key_cd,
+            )
         )
 
     @comprehension()
-    def dh3_client(self):
+    def dh3_client(self) -> Comprende:
         """
         Takes in the user's ``X25519`` secret key to enact a 3DH key
         exchange with a peer. This yields the user's two public keys as
         bytes, one from the secret key which was passed in as an
         argument, one which is ephemeral. When this coroutine reaches
-        the return statement, a primed ``sha3_512`` kdf object will be
+        the return statement, a primed ``DomainKDF`` object will be
         accessible from the ``result`` method of this generator.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         from aiootp import X25519
 
@@ -1089,7 +2374,7 @@ class X25519(Base25519):
         """
         domain = Domains.DH3
         my_identity_key = self
-        my_ephemeral_key = cls().generate()
+        my_ephemeral_key = self.__class__().generate()
         peer_identity_key, peer_ephemeral_key = yield (
             my_identity_key.public_bytes,
             my_ephemeral_key.public_bytes,
@@ -1097,24 +2382,32 @@ class X25519(Base25519):
         shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
         shared_key_bc = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(
-            domain + shared_key_ad + shared_key_bc + shared_key_cd
+        return DomainKDF(
+            domain,
+            my_identity_key.public_bytes,
+            my_ephemeral_key.public_bytes,
+            peer_identity_key,
+            peer_ephemeral_key,
+            key=shared_key_ad + shared_key_bc + shared_key_cd,
         )
 
     @comprehension()
     async def adh3_server(
         self, peer_identity_key: bytes, peer_ephemeral_key: bytes
-    ):
+    ) -> Comprende:
         """
         Takes in the user's ``X25519`` secret key & two of a peer's
         public keys bytes to enact a 3DH deniable key exchange. This
         yields the user's two public keys as bytes, one from the secret
         key which was passed in as an argument, one which is ephemeral.
         When this coroutine reaches the raise statement, a primed
-        ``sha3_512`` kdf object will be accessible from the ``aresult``
+        ``DomainKDF`` object will be accessible from the ``aresult``
         method of this generator.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         from aiootp import X25519
 
@@ -1131,29 +2424,39 @@ class X25519(Base25519):
         """
         domain = Domains.DH3
         my_identity_key = self
-        my_ephemeral_key = await cls().agenerate()
+        my_ephemeral_key = await self.__class__().agenerate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_bc = await my_ephemeral_key.aexchange(peer_identity_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
-        raise UserWarning(
-            sha3_512(domain + shared_key_ad + shared_key_bc + shared_key_cd)
+        raise Comprende.ReturnValue(
+            DomainKDF(
+                domain,
+                peer_identity_key,
+                peer_ephemeral_key,
+                my_identity_key.public_bytes,
+                my_ephemeral_key.public_bytes,
+                key=shared_key_ad + shared_key_bc + shared_key_cd,
+            )
         )
 
     @comprehension()
     def dh3_server(
         self, peer_identity_key: bytes, peer_ephemeral_key: bytes
-    ):
+    ) -> Comprende:
         """
         Takes in the user's ``X25519`` secret key & two of a peer's
         public keys bytes to enact a 3DH deniable key exchange. This
         yields the user's two public keys as bytes, one from the secret
         key which was passed in as an argument, one which is ephemeral.
         When this coroutine reaches the raise statement, a primed
-        ``sha3_512`` kdf object will be accessible from the ``result``
+        ``DomainKDF`` object will be accessible from the ``result``
         method of this generator.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         from aiootp import X25519
 
@@ -1170,13 +2473,18 @@ class X25519(Base25519):
         """
         domain = Domains.DH3
         my_identity_key = self
-        my_ephemeral_key = cls().generate()
+        my_ephemeral_key = self.__class__().generate()
         yield my_identity_key.public_bytes, my_ephemeral_key.public_bytes
         shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_bc = my_ephemeral_key.exchange(peer_identity_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
-        return sha3_512(
-            domain + shared_key_ad + shared_key_bc + shared_key_cd
+        return DomainKDF(
+            domain,
+            peer_identity_key,
+            peer_ephemeral_key,
+            my_identity_key.public_bytes,
+            my_ephemeral_key.public_bytes,
+            key=shared_key_ad + shared_key_bc + shared_key_cd,
         )
 
 
@@ -1184,7 +2492,10 @@ class PackageSigner:
     """
     Provides an intuitive API for users to sign their own packages.
 
-    Usage Example:
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
 
     import json
     from getpass import getpass
@@ -1199,7 +2510,7 @@ class PackageSigner:
     signer.connect_to_secure_database(
         passphrase=getpass("database passphrase:\n"),
         salt=getpass("database salt:\n"),
-        directory=getpass("secure directory:\n"),
+        path=getpass("secure directory:\n"),
     )
 
     with open("MANIFEST.in", "r") as manifest:
@@ -1219,8 +2530,7 @@ class PackageSigner:
 
     __slots__ = ("_db", "_scope", "files")
 
-    _Hasher = sha512
-    _InvalidSignature = Ed25519._exceptions.InvalidSignature
+    _Hasher = sha384
     _Signer = Ed25519
 
     _CHECKSUM = CHECKSUM
@@ -1232,8 +2542,10 @@ class PackageSigner:
     _SIGNING_KEY = SIGNING_KEY
     _VERSIONS = VERSIONS
 
+    InvalidSignature = Ed25519._exceptions.InvalidSignature
+
     @classmethod
-    def _database_template(cls):
+    def _database_template(cls) -> t.Dict[str, t.Union[str, t.JSONObject]]:
         """
         Returns the default instance package database values for
         initializing new databases.
@@ -1245,7 +2557,7 @@ class PackageSigner:
         }
 
     @classmethod
-    def generate_signing_key(cls):
+    def generate_signing_key(cls) -> _Signer:
         """
         Generates a new `Ed25519` secret signing key object.
         """
@@ -1255,9 +2567,9 @@ class PackageSigner:
         self,
         package: str,
         version: str,
-        date: Typing.Optional[int] = None,
-        **scopes: Typing.Dict[str, Typing.JSONSerializable],
-    ):
+        date: t.Optional[int] = None,
+        **scopes: t.JSONObject,
+    ) -> "self":
         """
         Sets the instance's package scope attributes & default file
         checksums container.
@@ -1266,11 +2578,11 @@ class PackageSigner:
         self._scope = PackageSignerScope(
             package=package,
             version=version,
-            date=date if date else asynchs.this_day(),
+            date=date if date else day_clock.time(),
             **scopes,
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Displays the instance's declared scope.
         """
@@ -1278,26 +2590,28 @@ class PackageSigner:
         return str(f"{cls}({self._scope})")
 
     @property
-    def _public_credentials(self):
+    def _public_credentials(self) -> t.JSONObject:
         """
         Returns public credentials from the instance's secure database.
         """
         return self.db[self._scope.package][self._PUBLIC_CREDENTIALS]
 
     @property
-    def signing_key(self):
+    def signing_key(self) -> _Signer:
         """
         Returns the package's secret signing key from the instance's
         encrypted database in an `Ed25519` object.
         """
-        encrypted_key = self.db[self._scope.package][self._SIGNING_KEY]
+        package = self._scope.package
+        aad = Domains.PACKAGE_SIGNER + package.encode()
+        encrypted_key = self.db[package][self._SIGNING_KEY]
         if not encrypted_key:
             raise PackageSignerIssue.signing_key_hasnt_been_set()
-        key = self.db.read_token(encrypted_key)
-        return Ed25519().import_secret_key(key)
+        key = self.db.read_token(encrypted_key, aad=aad)
+        return self._Signer().import_secret_key(key)
 
     @property
-    def db(self):
+    def db(self) -> "Database":
         """
         Returns the instance's database object, or alerts the user to
         connect to a secure database if it isn't yet set.
@@ -1308,7 +2622,7 @@ class PackageSigner:
             raise PackageSignerIssue.must_connect_to_secure_database()
 
     @property
-    def _checksums(self):
+    def _checksums(self) -> t.Dict[str, str]:
         """
         Returns the instance's package filenames & their hexdigests in
         a JSON ready dictionary.
@@ -1319,7 +2633,7 @@ class PackageSigner:
         }
 
     @property
-    def _summary(self):
+    def _summary(self) -> t.JSONObject:
         """
         Collects the instance's package file checksums, names, public
         credentials, version scopes & the package's public signing key
@@ -1337,21 +2651,20 @@ class PackageSigner:
                 )
             },
             self._SCOPE: {
-                name: value
-                for name, value in sorted(self._scope.items())
+                name: value for name, value in sorted(self._scope.items())
             },
             self._SIGNING_KEY: self.signing_key.public_bytes.hex(),
         }
 
     @property
-    def _checksum(self):
+    def _checksum(self) -> bytes:
         """
         Returns the digest of the current package summary.
         """
         return self._Hasher(json.dumps(self._summary).encode()).digest()
 
     @property
-    def _signature(self):
+    def _signature(self) -> bytes:
         """
         Returns the stored package summary signature.
         """
@@ -1363,13 +2676,13 @@ class PackageSigner:
 
     def connect_to_secure_database(
         self,
-        *secret_credentials: Typing.Iterable[Typing.Any],
-        passphrase: Typing.Any,
-        salt: Typing.Any = None,
-        username: Typing.Any = None,
-        directory: Typing.OptionalPathStr = None,
-        **passcrypt_settings: Typing.Dict[str, int],
-    ):
+        *secret_credentials: t.Iterable[bytes],
+        username: bytes,
+        passphrase: bytes,
+        salt: bytes = b"",
+        path: t.OptionalPathStr = None,
+        **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+    ) -> "self":
         """
         Opens an encrypted database connection using the Passcrypt
         passphrase-based key derivation function, a ``passphrase`` & any
@@ -1377,30 +2690,35 @@ class PackageSigner:
         doesn't already exist, then a new one is created with default
         values.
         """
-        tokens = Database.generate_profile_tokens(
-            self._CLASS,
+        from .databases import Database
+
+        self._db = Database.generate_profile(
+            self._CLASS.encode(),
             *secret_credentials,
             username=username,
             passphrase=passphrase,
             salt=salt,
+            path=path,
             **passcrypt_settings,
         )
-        self._db = Database.generate_profile(tokens, directory=directory)
         try:
             self.db.query_tag(self._scope.package, cache=True)
         except LookupError:
             self.db[self._scope.package] = self._database_template()
+        finally:
+            return self
 
-    def update_scope(self, **scopes):
+    def update_scope(self, **scopes) -> "self":
         """
         Updates the package scopes to qualify the package signature of
         the current package version within the instance.
         """
         self._scope.namespace.update(scopes)
+        return self
 
     def update_public_credentials(
-        self, **credentials: Typing.Dict[str, Typing.JSONSerializable]
-    ):
+        self, **credentials: t.Dict[str, t.JSONSerializable]
+    ) -> "self":
         """
         Updates the public credentials to be associated with the package
         signature & stores them in the instance's database cache. The
@@ -1408,28 +2726,34 @@ class PackageSigner:
         """
         package = self._scope.package
         self.db[package][self._PUBLIC_CREDENTIALS].update(credentials)
+        return self
 
-    def update_signing_key(self, signing_key: bytes):
+    def update_signing_key(
+        self, signing_key: t.Union[str, bytes, Ed25519PrivateKey, Ed25519]
+    ) -> "self":
         """
         Updates the package's secret signing key as an encrypted token
         within the instance's database cache. The database must be saved
         separately to save the encrypted signing key to disk.
         """
-        if signing_key.__class__ is not bytes:
-            raise Issue.value_must_be_type("signing_key", bytes)
+        if signing_key.__class__ is not self._Signer:
+            signing_key = self._Signer().import_secret_key(signing_key)
         package = self._scope.package
+        aad = Domains.PACKAGE_SIGNER + package.encode()
         self.db[package][self._SIGNING_KEY] = self.db.make_token(
-            signing_key
+            signing_key.secret_bytes, aad=aad
         ).decode()
+        return self
 
-    def add_file(self, filename: str, file_data: bytes):
+    def add_file(self, filename: str, file_data: bytes) -> "self":
         """
         Stores a ``filename`` & the hash object of the file's bytes type
         contents in the instance's `files` attribute mapping.
         """
         self.files[filename] = self._Hasher(file_data)
+        return self
 
-    def sign_package(self):
+    def sign_package(self) -> "self":
         """
         Signs the package summary checksum & stores it in the instance's
         secure database cache. The database must be saved separately to
@@ -1439,8 +2763,9 @@ class PackageSigner:
         self.db[self._scope.package][self._VERSIONS].update(
             {self._scope.version: self.signing_key.sign(checksum).hex()}
         )
+        return self
 
-    def summarize(self):
+    def summarize(self) -> t.JSONObject:
         """
         Assures the stored package checksum signature matches the
         current checksum of the package summary. If valid, the summary
@@ -1452,7 +2777,7 @@ class PackageSigner:
         signing_key = self.signing_key
         try:
             signing_key.verify(signature, checksum)
-        except self._InvalidSignature:
+        except self.InvalidSignature:
             raise PackageSignerIssue.out_of_sync_package_signature()
         return {
             self._CHECKSUM: checksum.hex(),
@@ -1466,37 +2791,63 @@ class PackageVerifier:
     Provides an intuitive API for verifying package summaries produced
     by `PackageSigner` objects.
 
-    Usage Example:
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
 
     from aiootp import PackageVerifier
 
-    verifier = PackageVerifier(public_signing_key)
+    verifier = PackageVerifier(public_signing_key, path="")
     verifier.verify_summary(package_signature_summary)
     """
 
     __slots__ = (
-        "_checksum", "_signature", "_signing_key", "_summary_dictionary"
+        "_path",
+        "_checksum",
+        "_signature",
+        "_signing_key",
+        "_summary_dictionary",
     )
 
-    _Hasher = sha512
-    _InvalidSignature = Ed25519._exceptions.InvalidSignature
+    _Hasher = sha384
     _Signer = Ed25519
 
     _CHECKSUM = CHECKSUM
+    _CHECKSUMS = CHECKSUMS
     _SIGNATURE = SIGNATURE
     _SIGNING_KEY = SIGNING_KEY
 
-    def __init__(self, public_signing_key: bytes):
+    InvalidSignature = Ed25519._exceptions.InvalidSignature
+
+    def __init__(
+        self,
+        public_signing_key: t.Union[str, bytes, Ed25519PublicKey, Ed25519],
+        *,
+        path: t.OptionalPathStr = None,
+        verify_files: bool = True,
+    ) -> "self":
         """
         Receives the bytes type public signing key a user expects a
-        package to be signed by, & stores it within the instance.
+        package to be signed by, & stores it within the instance. The
+        ``path`` keyword argument is the root location where all of the
+        source files can be reached via the relative paths of the files
+        declared in the summary. If instead the source files will not be
+        checked for validity & only the validity of the signature will
+        be assertained, the ``verify_files`` keyword can be set falsey.
         """
-        if public_signing_key.__class__ is not bytes:
-            raise Issue.value_must_be_type("public signing key", bytes)
-        self._signing_key = Ed25519().import_public_key(public_signing_key)
+        if public_signing_key.__class__ is not self._Signer:
+            key = self._Signer().import_public_key(public_signing_key)
+        else:
+            key = public_signing_key
+        self._signing_key = key
+        if verify_files:
+            self._path = Path(path).absolute()
+        elif path:
+            raise Issue.unused_parameters("path", "not verifying files")
 
     @property
-    def _summary_bytes(self):
+    def _summary_bytes(self) -> bytes:
         """
         Returns the UTF-8 encoded JSON package signature summary sans
         the package checksum & signature for hashing.
@@ -1504,8 +2855,8 @@ class PackageVerifier:
         return json.dumps(self._summary_dictionary).encode()
 
     def _import_summary(
-        self, summary: Typing.Dict[str, Typing.JSONSerializable]
-    ):
+        self, summary: t.Dict[str, t.JSONSerializable]
+    ) -> None:
         """
         Verifies the package summary checksum & stores its values within
         the instance.
@@ -1516,13 +2867,26 @@ class PackageVerifier:
         if self._Hasher(self._summary_bytes).digest() != self._checksum:
             raise Issue.invalid_value("package summary checksum")
 
+    def _verify_file_checksums(self, summary: dict) -> None:
+        """
+        Verifies the files declared in the summary by loading them from
+        the filesystem & calculating their digests for a match.
+        """
+        path = self._path
+        files = summary[self._CHECKSUMS]
+        for file_path, purported_hexdigest in files.items():
+            purported_digest = bytes.fromhex(purported_hexdigest)
+            with open(path / file_path, "rb") as source_file:
+                digest = self._Hasher(source_file.read()).digest()
+                if not bytes_are_equal(purported_digest, digest):
+                    raise PackageSignerIssue.invalid_file_digest(file_path)
+
     def verify_summary(
         self,
-        summary: Typing.Union[
-            Typing.Dict[str, Typing.JSONSerializable],
-            Typing.JSONDeserializable,
+        summary: t.Union[
+            t.Dict[str, t.JSONSerializable], t.JSONDeserializable
         ],
-    ):
+    ) -> None:
         """
         Verifies the purported checksum of a package summary & the
         signature of the checksum.
@@ -1533,46 +2897,28 @@ class PackageVerifier:
         if purported_signing_key != self._signing_key.public_bytes:
             raise Issue.invalid_value("summary's public signing key")
         self._import_summary(summary)
-        try:
-            self._signing_key.verify(self._signature, self._checksum)
-        except self._InvalidSignature:
-            raise Issue.invalid_value("package summary signature")
+        if hasattr(self, "_path"):
+            self._verify_file_checksums(summary)
+        self._signing_key.verify(self._signature, self._checksum)
 
 
 extras = dict(
-    AsyncKeys=AsyncKeys,
-    Curve25519=Curve25519,
+    _KeyAADBundle=KeyAADBundle,
     DomainKDF=DomainKDF,
     Ed25519=Ed25519,
-    KeyAADBundle=KeyAADBundle,
-    Keys=Keys,
     PackageSigner=PackageSigner,
     PackageVerifier=PackageVerifier,
     Passcrypt=Passcrypt,
     X25519=X25519,
     __doc__=__doc__,
-    __main_exports__=__all__,
     __package__=__package__,
     abytes_keys=abytes_keys,
-    acsprng=acsprng,
     agenerate_key=agenerate_key,
-    agenerate_salt=agenerate_salt,
     amnemonic=amnemonic,
-    arandom_256=arandom_256,
-    arandom_512=arandom_512,
-    atable_key=atable_key,
-    atable_keystream=atable_keystream,
     bytes_keys=bytes_keys,
-    csprng=csprng,
     generate_key=generate_key,
-    generate_salt=generate_salt,
     mnemonic=mnemonic,
-    random_256=random_256,
-    random_512=random_512,
-    table_key=table_key,
-    table_keystream=table_keystream,
 )
 
 
-keygens = commons.make_module("keygens", mapping=extras)
-
+keygens = make_module("keygens", mapping=extras)
