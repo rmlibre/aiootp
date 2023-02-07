@@ -25,7 +25,7 @@ def test_when_new_padding_blocks_are_created():
         # The data is prepended with a constant size inner-header &
         # appended with extra padding that is measured by the value of
         # the final byte of padded plaintext modulo the blocksize.
-        assert padded_pt[start:sentinel] == pt, f"{n=}, {sentinel=}"
+        assert padded_pt[start:sentinel] == pt, f"n={n}, sentinel={sentinel}"
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

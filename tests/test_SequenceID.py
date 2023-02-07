@@ -42,7 +42,7 @@ def test_range_uniqueness():
         history = set()
         for index in range(min([_subrange, 256 ** 2])):
             result = sid.new(index)
-            assert result not in history, f"{index=}, {n=}"
+            assert result not in history, f"index={index}, n={n}"
             history.add(result)
 
         # return the minimum size back to default configuration

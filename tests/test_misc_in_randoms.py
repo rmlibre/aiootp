@@ -163,8 +163,8 @@ async def test_guids():
             for j in range(prime):
                 result = _key()
                 assert result not in history, (
-                    f"{salt_test=}--{isalt=}--{osalt=}--{xsalt=}--"
-                    f"{size=}--{j=}--{i=}--{result=}"
+                    f"salt_test={salt_test}--isalt={isalt}--osalt={osalt}--"
+                    f"xsalt={xsalt}--size={size}--j={j}--i={i}--result={result}"
                 )
                 history.add(result)
 
