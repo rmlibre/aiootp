@@ -4,12 +4,12 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-__all__ = ["paths", "AsyncSecurePath", "DatabasePath", "SecurePath"]
+__all__ = []
 
 
 __doc__ = (
@@ -21,13 +21,17 @@ __doc__ = (
 import os
 import aiofiles
 from pathlib import Path
+from hashlib import sha3_256
+from secrets import token_bytes
+from .__constants import *
 from ._exceptions import *
 from ._typing import Typing
 from .asynchs import aos
-from .commons import commons
+from .commons import make_module
+from .generics import BytesIO
 
 
-def CurrentPath():
+def CurrentPath() -> Path:
     """
     Returns a ``pathlib.Path`` object pointing to the current working
     directory.
@@ -35,7 +39,7 @@ def CurrentPath():
     return Path(os.getcwd()).absolute()
 
 
-def RootPath():
+def RootPath() -> Path:
     """
     Returns a ``pathlib.Path`` object pointing to this module's directory.
     """
@@ -43,7 +47,7 @@ def RootPath():
     return Path(dir_path).absolute()
 
 
-def PackagePath():
+def PackagePath() -> Path:
     """
     Returns a ``pathlib.Path`` object pointing to this package's top
     level directory.
@@ -51,7 +55,7 @@ def PackagePath():
     return RootPath().parent
 
 
-def TorPath(*, path: Typing.OptionalPathStr = None):
+def TorPath(*, path: Typing.OptionalPathStr = None) -> Path:
     """
     Returns a ``pathlib.Path`` object pointing to an optional tor
     directory.
@@ -59,7 +63,7 @@ def TorPath(*, path: Typing.OptionalPathStr = None):
     return (Path(path).absolute() if path else RootPath()) / "tor"
 
 
-def DatabasePath(*, path: Typing.OptionalPathStr = None):
+def DatabasePath(*, path: Typing.OptionalPathStr = None) -> Path:
     """
     Returns a ``pathlib.Path`` object pointing to the default directory
     encrypted databases are saved to.
@@ -67,35 +71,37 @@ def DatabasePath(*, path: Typing.OptionalPathStr = None):
     return (Path(path).absolute() if path else RootPath()) / "databases"
 
 
-async def adeniable_filename(key: bytes, *, size: int = 8):
+async def adeniable_filename(key: bytes, *, size: int = 8) -> str:
     """
     Xors subsequent bytes-type, ``size`` length segments of ``key`` with
     each other to create a condensed & variably forgeable hash. This
     hash is used as a filename which is deniably attributable to a
     particular ``key``.
     """
-    from .generics import asha3__256, axi_mix
+    from .generics import axi_mix
 
     if size > 16 or size <= 0:
         raise Issue.value_must_be_value("size", "<= 16 and > 0")
-    return (await asha3__256(await axi_mix(key, size=size)))[:60]
+    filename = sha3_256(await axi_mix(key, size=size)).digest()
+    return await BytesIO.abytes_to_filename(filename[FILENAME_HASH_SLICE])
 
 
-def deniable_filename(key: bytes, *, size: int = 8):
+def deniable_filename(key: bytes, *, size: int = 8) -> str:
     """
     Xors subsequent bytes-type, ``size`` length segments of ``key`` with
     each other to create a condensed & variably forgeable hash. This
     hash is used as a filename which is deniably attributable to a
     particular ``key``.
     """
-    from .generics import sha3__256, xi_mix
+    from .generics import xi_mix
 
     if size > 16 or size <= 0:
         raise Issue.value_must_be_value("size", "<= 16 and > 0")
-    return sha3__256(xi_mix(key, size=size))[:60]
+    filename = sha3_256(xi_mix(key, size=size)).digest()
+    return BytesIO.bytes_to_filename(filename[FILENAME_HASH_SLICE])
 
 
-async def amake_salt_file(path: Path, *, key: bytes):
+async def amake_salt_file(path: Path, *, key: bytes) -> None:
     """
     Creates & populates the ``path`` file with a sensitive cryptographic
     salt used to harden user databases. If ``key`` is specified then the
@@ -103,9 +109,7 @@ async def amake_salt_file(path: Path, *, key: bytes):
     find its own salt. These salt files have their permissions changed
     with `os.chmod` to `0o000` after they're created.
     """
-    from .randoms import acsprng
-
-    secret = (await acsprng())[:32]
+    secret = token_bytes(32)
     filename = await adeniable_filename(key)
     filepath = path / filename
     async with aiofiles.open(filepath, "wb") as f:
@@ -113,7 +117,7 @@ async def amake_salt_file(path: Path, *, key: bytes):
     await aos.chmod(filepath, 0o000)
 
 
-def make_salt_file(path: Path, *, key: bytes):
+def make_salt_file(path: Path, *, key: bytes) -> None:
     """
     Creates & populates the ``path`` file with a sensitive cryptographic
     salt used to harden user databases. If ``key`` is specified then the
@@ -121,9 +125,7 @@ def make_salt_file(path: Path, *, key: bytes):
     find its own salt. These salt files have their permissions changed
     with `os.chmod` to `0o000` after they're created.
     """
-    from .randoms import csprng
-
-    secret = csprng()[:32]
+    secret = token_bytes(32)
     filename = deniable_filename(key)
     filepath = path / filename
     with open(filepath, "wb") as f:
@@ -131,7 +133,7 @@ def make_salt_file(path: Path, *, key: bytes):
     os.chmod(filepath, 0o000)
 
 
-async def afind_salt_file(path: Path, *, key: bytes):
+async def afind_salt_file(path: Path, *, key: bytes) -> Path:
     """
     This returns the path of a sensitive cryptographic salt used to
     harden user databases. If ``key`` is specified, the salt filename is
@@ -141,7 +143,7 @@ async def afind_salt_file(path: Path, *, key: bytes):
     return path / await adeniable_filename(key)
 
 
-def find_salt_file(path: Path, *, key: bytes):
+def find_salt_file(path: Path, *, key: bytes) -> Path:
     """
     This returns the path of a sensitive cryptographic salt used to
     harden user databases. If ``key`` is specified, the salt filename is
@@ -151,7 +153,7 @@ def find_salt_file(path: Path, *, key: bytes):
     return path / deniable_filename(key)
 
 
-async def aread_salt_file(filepath: Typing.PathStr):
+async def aread_salt_file(filepath: Typing.PathStr) -> bytes:
     """
     This returns the sensitive cryptographic salt contained within the
     file located at ``filepath``. The file has its permissions changed
@@ -169,7 +171,7 @@ async def aread_salt_file(filepath: Typing.PathStr):
         await aos.chmod(filepath, 0o000)
 
 
-def read_salt_file(filepath):
+def read_salt_file(filepath) -> bytes:
     """
     This returns the sensitive cryptographic salt contained within the
     file located at ``filepath``. The file has its permissions changed
@@ -187,13 +189,34 @@ def read_salt_file(filepath):
         os.chmod(filepath, 0o000)
 
 
-async def AsyncSecurePath(
-    *,
-    path: Typing.OptionalPathStr = None,
-    key: Typing.Optional[bytes] = None,
-):
+async def adelete_salt_file(filepath) -> None:
     """
-    This constructor returns the path of files which contain sensitive
+    This returns the sensitive cryptographic salt contained within the
+    file located at ``filepath``. The file has its permissions changed
+    with `os.chmod` to `0o000` after its read.
+    """
+    await aos.chmod(filepath, 0o700)
+    await aos.remove(filepath)
+
+
+def delete_salt_file(filepath) -> None:
+    """
+    This returns the sensitive cryptographic salt contained within the
+    file located at ``filepath``. The file has its permissions changed
+    with `os.chmod` to `0o000` after its read.
+    """
+    os.chmod(filepath, 0o700)
+    os.remove(filepath)
+
+
+async def AsyncSecurePath(
+    path: Typing.OptionalPathStr = None,
+    *,
+    key: Typing.Optional[bytes] = None,
+    _admin: bool = False,
+) -> Path:
+    """
+    This constructor returns the path for files which contain sensitive
     cryptographic salts used to harden user databases. If ``key`` is
     specified then the salt filename is deterministically derived from
     the key so a database can find its own salt. These salt files have
@@ -201,23 +224,32 @@ async def AsyncSecurePath(
     they're read from or created.
     """
     path = (Path(path).absolute() if path else DatabasePath()) / "secure"
+    admin_path = path / "_admin"
     if not path.exists():
         await aos.mkdir(path)
+    if not admin_path.exists():
+        await aos.mkdir(admin_path)
     if not key:
         return path
-    filepath = await afind_salt_file(path, key=key)
-    if not filepath or not filepath.exists():
-        await amake_salt_file(path, key=key)
+    elif _admin:
+        filepath = await afind_salt_file(admin_path, key=key)
+        if not filepath or not filepath.exists():
+            await amake_salt_file(admin_path, key=key)
+    else:
+        filepath = await afind_salt_file(path, key=key)
+        if not filepath or not filepath.exists():
+            await amake_salt_file(path, key=key)
     return filepath
 
 
 def SecurePath(
-    *,
     path: Typing.OptionalPathStr = None,
+    *,
     key: Typing.Optional[bytes] = None,
-):
+    _admin: bool = False,
+) -> Path:
     """
-    This constructor returns the path of files which contain sensitive
+    This constructor returns the path for files which contain sensitive
     cryptographic salts used to harden user databases. If ``key`` is
     specified then the salt filename is deterministically derived from
     the key so a database can find its own salt. These salt files have
@@ -225,13 +257,21 @@ def SecurePath(
     they're read from or created.
     """
     path = (Path(path).absolute() if path else DatabasePath()) / "secure"
+    admin_path = path / "_admin"
     if not path.exists():
-        path.mkdir()
+        os.mkdir(path)
+    if not admin_path.exists():
+        os.mkdir(admin_path)
     if not key:
         return path
-    filepath = find_salt_file(path, key=key)
-    if not filepath or not filepath.exists():
-        make_salt_file(path, key=key)
+    if _admin:
+        filepath = find_salt_file(admin_path, key=key)
+        if not filepath or not filepath.exists():
+            make_salt_file(admin_path, key=key)
+    else:
+        filepath = find_salt_file(path, key=key)
+        if not filepath or not filepath.exists():
+            make_salt_file(path, key=key)
     return filepath
 
 
@@ -245,12 +285,13 @@ extras = dict(
     SecurePath=SecurePath,
     TorPath=TorPath,
     __doc__=__doc__,
-    __main_exports__=__all__,
     __package__=__package__,
     _afind_salt_file=afind_salt_file,
+    _adelete_salt_file=adelete_salt_file,
     _amake_salt_file=amake_salt_file,
     _aread_salt_file=aread_salt_file,
     _find_salt_file=find_salt_file,
+    _delete_salt_file=delete_salt_file,
     _make_salt_file=make_salt_file,
     _read_salt_file=read_salt_file,
     adeniable_filename=adeniable_filename,
@@ -258,5 +299,5 @@ extras = dict(
 )
 
 
-paths = commons.make_module("paths", mapping=extras)
+paths = make_module("paths", mapping=extras)
 
