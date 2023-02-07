@@ -19,7 +19,6 @@ __doc__ = (
 
 
 import math
-from zlib import crc32
 import random as _random
 from collections import deque
 from secrets import choice, token_bytes
@@ -300,7 +299,7 @@ async def _add_to_pool(
     entropy_pool.appendleft(entropy)
 
 
-# initialize the global hashing objects that also collects entropy
+# initialize the global hashing objects that also collect entropy
 _entropy = Hasher(token_bytes(304) + b"".join(_pool))
 _xof = Hasher(token_bytes(208) + b"".join(_pool), obj=shake_256)
 
