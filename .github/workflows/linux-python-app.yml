@@ -22,7 +22,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: install dependencies
       run: |
-        python3 -m pip install --upgrade pytest pytest-asyncio coverage aiofiles cryptography
+        python3 -m pip install --upgrade pip pytest pytest-asyncio coverage aiofiles cryptography
     - name: test with pytest
       run: |
         coverage run --source aiootp -m pytest -vv tests/test_aiootp.py
