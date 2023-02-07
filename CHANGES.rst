@@ -2,6 +2,165 @@ _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
 
 
+
+Changes for version 0.22.0 
+---------------------------
+
+(Major Rewrite: Backwards Incompatible)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Security Advisory:
+^^^^^^^^^^^^^^^^^^
+
+-  The top-level ``(a)csprng`` functions were found to be unsafe in concurrent code, leading to the possibilty of producing identical outputs from distinct calls if run in quick succession from concurrently running threads & coroutines. The classification of this vulnerability is severe because: 1) users should be able to expect the output of a 64-byte cryptographically secure pseudo-random number generator to always produce unique outputs; and, 2) much of the package utilizes them to produce cryptographic material. This vulnerability does not effect users of the library which are not running it in multiple concurrent threads or coroutines. The vulnerability has been patched & all users are **highly encouraged** to upgrade to v0.22.0+.
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Support for python 3.6 was dropped. The package now supports python versions 3.7+.
+-  **Chunky2048**: A new version of the cipher has been developed which
+   implements algorithms & interfaces that offer improvements in multiple
+   regards: smaller size overhead of ciphertexts, faster execution time
+   for large messages & large keys, more robust salt reuse/misue resistance,
+   fewer aspects harming deniability & better domain separation.
+   Many of the changes are described here:
+
+   -  The ``(a)bytes_keys`` generators were updated to use ``shake_128``-based KDF objects instead of ``sha3_512``, yielding 256-bytes on each iteration instead of 128, now requiring only a single iteration to produce a keystream key for each block, instead of two. This choice was made during the process of analyzing the use of the user's encryption `key` to seed the `seed_kdf` on each iteration. We wanted to stop doing that essentially, because it slowed down the cipher too much when used with large keys. And because it seems like a bad idea to use the same key repeatedly while also not incorporating the uniqueness or entropy from the message's `salt`, `siv` or `aad`. 
+
+      But still, we somehow wanted to come up with an idea which could efficiently & continually extract entropy from the user `key` if it did happen to be large. An answer came in the form of expanding on an earlier implemented idea which used the key multiple times to create unique seeds during initialization. In this case, however, instead of creating unique seeds with the single `seed_kdf`, each of the three KDFs & the MAC object used by the cipher will be given the whole `key` once at initialization, with proper domain separation, & including the message `salt` & `aad` (The `siv` can't be used because its creation happens after initialization during encryption). This gives each of their (SHA3) 200-byte internal states independent access to the full entropy of the `key`.
+
+      Then, the problem was that, by using ``sha3_512`` internally, a maximum of 64-bytes of entropy could be communicated between KDFs at each round (and only 32-bytes from the ``StreamHMAC`` (`shmac`) object's ``sha3_256`` MAC). But the blocksize of each round is 256-bytes. So, the idea became to attempt to *communicate* more entropy between the KDFs & MAC each round than there exists possible messages in the message space of each round. It seems plausible, that by only assuming the independence of each of the KDFs / MAC & that they can indeed `efficiently pass entropy` to one another, that for large keys we could argue the relevant key space is that of the 800-byte internal state of the cipher at each round (which happens to be more than three times the size of the message space of each round). This is to say, we conjecture, that by `efficiently communicating more entropy` from *independent sources* than there exists *possible messages*, & in fact incorporating the entropy of *each message block* into the cipher's state at the start of *each round*, that the entropy of the internal keyspace is continually being refreshed in a way which is negligibly distinguishable from using a fresh random key each round the length of the blocksize. This seems like at least a feasible way to begin the argument that it is possible to meaningfully relate the information theoretic security of the one-time pad to a pseudo one-time pad in a measurable way.
+
+      `Efficiently Pass Entropy`: By this we mean, the rate of bits extracted from one state object, to the rate of bits of actual entropy absorbed by a receiveing state object, up to its XORable state size, being different by only a negligible amount. Here, we can conservatively assume the limit of this efficiency is the XORable state size, since we know that in the ideal setting, XORing `n` uniform random bits with an unknown message of <= `n` bits is perfectly hiding, which implies perfectly efficient conveyance of entropy. By using ``shake_128`` as each of the cipher's state objects, & its larger rate of 168-bytes, more than twice the number of bytes can be passed to & extracted from each, per round & per call to their internal `f` permutation, as compared with ``sha3_512``. `If they can efficiently pass entropy`, then any secret state exposed by the `left_kdf` or `right_kdf` in the creation of ciphertext, can then be efficiently displaced by the introduction of new entropy from the other state objects. This follows from the theory that a finite sized pool of entropy which is already maximally filled with entropy, cannot incorporate more entropy without fundamentally erasing internal information. From this we arrived at the new design for ``Chunky2048``. In this new design, the `shmac` feeds 168-bytes to the `seed_kdf`, the `seed_kdf` creates 336-bytes to feed 168-bytes each to the `left_kdf` & `right_kdf`, the `left_kdf` & `right_kdf` each produce 128-byte keys which XOR the 256-byte plaintext, then this ciphertext feeds the `shmac` & the cycle repeats.
+
+      More work needs to be done to formalize these definitions & analyze their properties. We would be grateful for any help from those with expertise in formal proofs of security in tearing apart this design as we move closer to the first stable release of the package.
+
+   -  The ``SyntheticIV`` class' algorithm has been updated as a result of analyzing how we could improve the salt reuse / misuse resistance of the cipher without attesting to plaintext contents in the form of an `siv` attached to ciphertexts. This plaintext attestation worked counter to our goal of wanting to be able to say something non-trivial about the key-deniability of the cipher. It was noticed that the plaintext padding already incorporated an 8-byte timestamp (now reduced to 4-bytes) & 16-bytes of ephemeral randomness as part of the prepended inner-header, & that these values were not at all used to seed the cipher's state during decryption. Instead a keyed-hash was calculated over the first block of plaintext during encryption to create the 24-byte `siv`. But, this is actually `less effective` at producing salt reuse / misuse resistance than using the timestamp & ephemeral randomness directly in seeding the `seed_kdf`, because the timestamp is a unique & global counter that does not suffer from collisions. This understanding came while also trying to find a good use for the initial `primer_key` generated by the keystream generator when sending in the first obligatory `None` value. In the previous version it was used to initialize the `shmac`, but now that the `shmac` would be initialized directly with the user `key`, it was searching for a use. So the idea was to pair them. 
+
+      The new 256-byte `primer_key` would be XORed with the 256-byte first block of plaintext to mask the inner-header. The unmasked inner-header & 148-bytes of the `shmac`'s digest will seed the keystream, & the freshly seeded keystream output would be truncated to XOR the part of the masked plaintext which doesn't include the inner-header. There's no need now to attach the `siv` to the ciphertext. Instead, during decryption, the decipher algorithm has access to the inner-header, because it has access to the `primer_key` & the masked inner-header. The actual plaintext contents of the first block are only accessible after unmasking the inner-header & seeding the keystream. This combination alone of protection from a timestamp & 16-bytes of randomness should give a salt reuse / misuse resistance of at least `~2 ^ 64 messages` **per second**!
+
+      However, even with this new scheme, it would still be problematic to repeat a combination of `key`, `salt` & `aad`, since it would leak the XORs of timestamp information. With all of this in mind, the new formulation would include a 16-byte `salt` & a newly introduced 16-byte `iv`, both of which are attached to ciphertexts. This is a header size reduction of 16-bytes, since prior `salt` & `siv` sizes were 24-bytes each. The difference between the `salt` & `iv` is that the `salt` is available for the user to choose, but the `iv` is **always** generated randomly. Since the `iv` isn't dependent on message data the way that the `siv` was, it too can now be incorporated into all of the state objects during initialization. The `iv` ensures that even if a `key`, `salt` & `aad` tuple repeats, the timestamp is still protected. Below is a diagram of the procedure:
+
+
+      .. code-block:: python
+
+        """
+         _____________________________________
+        |                                     |
+        |    Algorithm Diagram: Encryption    |
+        |_____________________________________|
+         ------------------------------------------------------------------     #
+        |      inner-header      |        first block of plaintext         |    #
+        | timestamp |  siv-key   |                                         |    #
+        |  4-bytes  |  16-bytes  |               236-bytes                 |    #
+         ------------------------------------------------------------------     #
+        |---------------------- entire first block ------------------------|    #
+                                         |                                      #
+                                         |                                      #
+        first 256-byte keystream key ----⊕                                      #
+                                         |                                      #
+                                         |                                      #
+                                         V                                      #
+                              masked plaintext block                            #
+         ------------------------------------------------------------------     #
+        |  masked inner-header   |     first block of masked plaintext     |    #
+         ------------------------------------------------------------------     #
+                                 |----- the 236-byte masked plaintext -----|    #
+                                                      |                         #
+                                                      |                         #
+        siv = inner-header + shmac.digest(148)        |                         #
+        keystream(siv)[10:246] -----------------------⊕                         #
+                                                      |                         #
+                                                      |                         #
+                                                      V                         #
+         ------------------------------------------------------------------     #
+        |  masked inner-header   |       first block of ciphertext         |    #
+         ------------------------------------------------------------------     #
+
+
+         _____________________________________                                  
+        |                                     |
+        |    Algorithm Diagram: Decryption    |
+        |_____________________________________|
+         ------------------------------------------------------------------     #
+        |  masked inner-header   |        first block of ciphertext        |    #
+         ------------------------------------------------------------------     #
+        |---------------------- entire first block ------------------------|    #
+                                         |                                      #
+                                         |                                      #
+        first 256-byte keystream key ----⊕                                      #
+                                         |                                      #
+                                         |                                      #
+                                         V                                      #
+                            unmasked ciphertext block                           #
+         ------------------------------------------------------------------     #
+        |      inner-header      |   first block of unmasked ciphertext    |    #
+         ------------------------------------------------------------------     #
+                                 |--- the 236-byte unmasked ciphertext ----|    #
+                                                      |                         #
+                                                      |                         #
+        siv = inner-header + shmac.digest(148)        |                         #
+        keystream(siv)[10:246] -----------------------⊕                         #
+                                                      |                         #
+                                                      |                         #
+                                                      V                         #
+         ------------------------------------------------------------------     #
+        |      inner-header      |         first block of plaintext        |    #
+        | timestamp |  siv-key   |                                         |    #
+        |  4-bytes  |  16-bytes  |               236-bytes                 |    #
+         ------------------------------------------------------------------     #
+                                                                                
+        """
+
+   -  The ``Padding`` class has seen some changes. Firstly, the 8-byte timestamp in the inner-header was reduced to 4-bytes. Furthermore, to get the full 136 years out of the 4-byte timestamps, the epoch used to calculate them was changed to unix timestamp `1672531200` (Sun, 01 Jan 2023 00:00:00 UTC). This is the new default `0` date for the package's timestamps. This saves some space & aims to provided fewer bits of confirmable attestation & correlation in proof games which simulate attacks on the key-deniability of the cipher. To explain: the plaintext padding includes random padding. That padding is intended to leave an adversary which attempts to brute force a ciphertext's encryption `key`, even with unbounded computational resources, in a state where it cannot decide with better accuracy than random chance between the exponentially large number of keys which create the same `shmac` tag (the variable `keyspace` is much larger than the 32-byte tag) with their accompanying exponentially large number of `plausible` plaintexts (any `reasonable` plaintext with any variable length random padding between 16 & 272 bytes), & the actual user `key` & plaintext.
+
+      We also got rid of the use of a `padding_key` to indicate the end of a plaintext message. It used to be sliced off the `primer_key`, but the `primer_key` has a new use now. Also, the `padding_key` was another form of plaintext / key attestation harming deniability that we wanted to get rid of. Instead, a simpler method is now employed: The final byte of the final block of padded plaintext is a number which tells the decryptor exactly how many bytes of random padding were added to the plaintext to fill the block. This saves a lot of space, is simpler, minimizes unnecessary key attestation, & eliminates the need for the ``Padding`` class to know anything about user secrets in order to do the padding, which is an improvment all around.
+
+-  New ``(Async)CipherStream`` & ``(Async)DecipherStream`` classes were introduced which allow users to utilize the online nature of the ``Chunky2048`` cipher, ciphering & deciphering data in bufferable chunks, without needing to know about or instantiate all of the low-level classes. They automatically handle the required plaintext padding, ciphertext authentication, & detection of out-of-order message blocks. This greatly simplifies the safe usage of ``Chunky2048`` in online mode, provides robustness, & gets rid of the need for users to worry about the dangers of release of unverified plaintexts.
+
+-  The ``Passcrypt`` algorithm was redesigned to be data-independent, more efficiently acheive its security goals, & allow for more compact hashes which include its difficulty settings metadata. The `kb` parameter was changed to `mb`, & now measures Mibibytes (MiB). A new `cores` parallelization parameter was added, which indicates the number of parallel processes to use to complete the procedure. And the `cpu` parameter now measures the number of iterations over the memory cache that are done, as well as the computational complexity of the algorithm. ``Passcrypt`` now uses ``shake_128`` instead of ``sha3_512`` internally. This also allows for users to specify a ``tag_size`` number of bytes to produce as an output tag. A ``salt_size`` parameter can now also be supplied to the ``(a)hash_passphrase`` methods. The ``(a)verify`` methods now produce raw-bytes outputs & the ``(a)verfiy_raw`` methods were removed. They now also accept ``range``-type objects as ``mb_allowed``, ``cpu_allowed``, & ``cores_allowed`` keyword argument inputs. These range objects can be used to specify the exact amount of resources which the user allows for difficulty settings, which can mitigate adversarial (or unintentional) DOS attacks on machines doing hash verification.
+
+-  Type annotations were added to most of the library, including return types, which were completely neglected in prior versions. They are still not functioning with mypy, & are serving right now as documentation & auto-complete helpers.
+
+-  Many unnecesssary, low-level or badly designed features, functions & classes were either deleted or pulled into private namespaces, along with major reorganization & cleanup of the codebase. The tangled mess of internal module imports was also cleaned up. The goal is to provide access to only the highest level, simplest, & safest by default interfaces which can actually help users in their data processing & cryptographic tasks. These changes aim to improve maintainability, readability, correctness & safety.
+
+-  New top-level ``(a)hash_bytes`` functions were added to the package, which accept an unlimited number bytes-type inputs as positional arguments & automatically canonically encode all inputs before being hashed (which aims to prevent canonicalization attacks & length-extension attacks). A ``key`` keyword-only argument can also be supplied to optionally produce keyed hashes.
+
+-  A new top-level ``GUID`` class was added. It creates objects which produce variable length, obfuscated, pseudo-random bytes-type globally unique identifiers based on a user-defined integer `node_number`, a user-defined uniform bytes `salt`, a nanosecond `timestamp`, random `entropy` bytes & a 1-byte `counter`. The benefits of its novel design explained: **1)** the namespace separation of user-defined salts (like name-based uuids); **2)** guaranteed output uniqueness for all instances using the same `salt` & `node_number` which occur on a different nanosecond (like time-based uuids, but with higher precision); **3)** guaranteed output uniqueness between all instances which use the same `salt` but a different `node_number`, even if produced on the same nanosecond; **4)** guaranteed output uniqueness for any unique instance using the same `salt` & `node_number` if it produces 256 or fewer outputs every nanosecond; **5)** probabilistic output uniqueness for any unique instance using the same `salt` & `node_number` if it produces >256 outputs per-nanosecond, exponentially proportional to the number of random `entropy` bytes (which in turn are proportional to the output size of the GUIDs); **6)** output invertability, meaning outputs can be unmasked & sorted according to `timestamp`, `node_number` & `counter`; **7)** random-appearing outputs, with the marginal amount of privacy which can be afforded by obfuscated affine-group operations. Admittedly, point **7)** still *leaves much room for improvement*, as the privacy of the design could instead be ensured by strong hardness assumptions given by other types of invertible permutations or group operations. The goal was to create something efficient (below 3µs per guid), which met the above criterion, & that produced output bit sequences which passed basic randomness tests. We'd be excited to accept pull requests which use strong invertable permutations or group operations that are also about as efficient, & that for `n`-byte declared output sizes, outputs do not repeat for fewer than ~256 ** `n` sequential input values.
+
+-  The top-level ``DomainKDF`` class now also creates KDF objects which automatically canonically encode all inputs.
+
+-  The ``X25519`` protocols now return ``DomainKDF`` results instead of plain ``sha3_512`` objects.
+
+-  The ``(Base)Comprende`` classes were greatly simplified, & the caching & ``messages`` features were removed.
+
+-  The top-level ``(a)mnemonic`` functions now return lists of bytes-type words, instead of str-type, & can now be used to quickly generate lists of randomly selected words without providing a (now optional) passphrase.
+
+-  The ``(Async)Database`` classes' ``(a)generate_profile`` methods no longer require tokens to first be created by the user. That is now handled internally, & the external API accepts raw bytes inputs for credentials from the user.
+
+-  The ``PackageSigner`` & ``PackageVerifier`` now use ``sha384`` for digests instead of ``sha512``. The verifier now by default recomputes & verifies the digests of files from the filesystem using the ``path`` keyword argument to the constructor as the root directory for the relative filepaths declared in the "checksums" entry of the signature summary.
+
+
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  A new ``Clock`` class was added to the ``generics.py`` module which provides a very intuitive API for handling time & timestamp functionalities for various time units.
+
+-  The test suite was reorganized, cleaned up & extended significantly, & now also utilizes ``pytest-asyncio`` to run async tests. This led to many found & fixed bugs in code that was not being tested. There's still a substantial amount of tests that need to be written. We would greatly appreciate contributions which extend our test coverage.
+
+-  Many improvements to the correctness, completeness & aesthetic beauty of the code documentation with the addition of visual aides, diagrams & usage examples.
+
+-  A top-level ``report_security_issue`` function was added, which provides a terminal application for users to automatically encrypt security reports to us using our new X25519 public key.
+
+-  We lost access to our signing keys in encrypted drives which were damaged in flooding. So we decided to shred them & start fresh. Our new Ed25519 signing key is "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b". Contact us via email or twitter if you'd like to confirm that the key you are seeing is really ours.
+
+
+
+
 Changes for version 0.21.1
 --------------------------
 
@@ -1983,19 +2142,15 @@ _`Known Issues` ................................... `Table Of Contents`_
 -  The test suite for this software is under construction, & what tests
    have been published are currently inadequate to the needs of
    cryptography software.
--  The ``(a)sha__(256/512)`` hash functions aren't to spec. This is 
-   because their inputs aren't required to be bytes, are contained in
-   a tuple & are stringified before hashing. This is purposeful, giving
-   the power to hash any collection python objects which have reprs, but 
-   this can still be an issue.
--  This package is currently in beta testing & active development, 
+-  This package is currently in beta testing & active development,
    meaning major changes are still possible when there are really good
    reasons to do so. Contributions are welcome. Send us a message if 
    you spot a bug or security vulnerability:
    
-   -  < gonzo.development@protonmail.ch >
-   -  < 31FD CC4F 9961 AFAC 522A 9D41 AE2B 47FA 1EF4 4F0A >
-
+   -  gonzo.development@protonmail.ch
+   -  rmlibre@riseup.net
+   -  ed25519-key: 70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b
+   -  x25519-key: 4457276dbcae91cc5b69f1aed4384b9eb6f933343bb44d9ed8a80e2ce438a450
 
 
 
