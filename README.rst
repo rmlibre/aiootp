@@ -12,13 +12,14 @@ aiootp - Asynchronous pseudo one-time pad based crypto and anonymity library.
 primatives and abstractions, transparently encrypted / decrypted file 
 I/O and databases, as well as powerful, pythonic utilities that 
 simplify data processing & cryptographic procedures in python code. 
-This library's online MRAE / AEAD cipher, called ``Chunky2048``, is an 
-implementation of the **pseudo one-time pad**. The aim is to create a simple, 
-standard, efficient implementation that's indistinguishable from the 
-unbreakable one-time pad cipher; to give users and applications access to 
-user-friendly cryptographic tools; and, to increase the overall security, 
-privacy, and anonymity on the web, and in the digital world. Users will 
-find ``aiootp`` to be easy to write, easy to read, and fun. 
+This library's online, salt reuse / misuse resistant, tweakable AEAD cipher, called 
+``Chunky2048``, is an implementation of the **pseudo one-time pad**. The 
+aim is to create a simple, standard, efficient implementation that's 
+indistinguishable from the unbreakable one-time pad cipher; to give 
+users and applications access to user-friendly cryptographic tools; and, 
+to increase the overall security, privacy, and anonymity on the web, and 
+in the digital world. Users will find ``aiootp`` to be easy to write, 
+easy to read, and fun. 
 
 
 
@@ -48,10 +49,6 @@ professionals.
     :target: https://img.shields.io/pypi/pyversions/aiootp?color=black
     :alt: python-versions
 
-.. image:: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
-    :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
-    :alt: linux-build-status
-
 .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
     :target: https://img.shields.io/badge/License-AGPL%20v3-red.svg
     :alt: license
@@ -59,6 +56,18 @@ professionals.
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://img.shields.io/badge/code%20style-black-000000.svg
     :alt: code-style
+
+.. image:: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
+    :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
+    :alt: linux-build-status
+
+.. image:: https://github.com/rmlibre/aiootp/actions/workflows/windows-python-app.yml/badge.svg
+    :target: https://github.com/rmlibre/aiootp/actions/workflows/windows-python-app.yml/badge.svg
+    :alt: windows-build-status
+
+.. image:: https://github.com/rmlibre/aiootp/actions/workflows/macos-python-app.yml/badge.svg
+    :target: https://github.com/rmlibre/aiootp/actions/workflows/macos-python-app.yml/badge.svg
+    :alt: macos-build-status
 
 
 
@@ -82,7 +91,7 @@ Run Tests
 
   $ cd ~/aiootp/tests
 
-  $ coverage run --source aiootp -m pytest test_aiootp.py -vv
+  $ coverage run --source aiootp -m pytest -vv test_aiootp.py
 
 
 
@@ -113,12 +122,17 @@ _`Table Of Contents`
 
 - `Chunky2048 Cipher`_
   
-  a) `High-level Interfaces`_
+  a) `High-level Functions`_
   
-  b) `Low-level Generators`_
+  b) `High-level Generators`_
   
-  c) `Nuts & Bolts`_
-  
+
+- `Passcrypt`_
+
+  a) `Hashing & Verifying Passphrases`_
+
+  b) `Passcrypt Algorithm Overview`_
+
 
 - `X25519 & Ed25519`_
   
@@ -161,10 +175,10 @@ Make a new user key with a fast, cryptographically secure pseudo-random number g
 
 .. code-block:: python
 
-    from aiootp import AsyncKeys, AsyncDatabase
+    from aiootp import acsprng, AsyncDatabase
     
     
-    key = await AsyncKeys.acsprng()
+    key = await acsprng()
 
     db = await AsyncDatabase(key)
     
@@ -172,30 +186,33 @@ Make a new user key with a fast, cryptographically secure pseudo-random number g
 _`User Profiles` .................................. `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-With User Profiles, passphrases may be used instead to open a database. Often, passwords & passphrases contain very little entropy. So, they aren't recommended for that reason. However, profiles provide a succinct way to use passphrases more safely. They do this by deriving strong keys from low entropy user input, the memory/cpu hard passcrypt algorithm, & a secret salt which is automatically generated & stored on the user's filesystem.
+With User Profiles, passphrases may be used instead to open a database. Often, passwords & passphrases contain very little entropy. So, they aren't recommended for that reason. However, profiles provide a succinct way to use passphrases more safely. They do this by deriving strong keys from low entropy user input using the memory/cpu hard passcrypt algorithm, & a secret salt which is automatically generated & stored on the user's filesystem.
 
 .. code-block:: python
 
-    # Convert any available user credentials into cryptographic tokens ->
+    # Automatically convert any available user credentials into 
 
-    tokens = await AsyncDatabase.agenerate_profile_tokens(
+    # cryptographic tokens which help to safely open databases ->
+
+    db = await AsyncDatabase.agenerate_profile(
     
-        "server-url.com",     # An unlimited number of arguments can be passed
+        b"server-url.com",     # Here an unlimited number of bytes-type
+                               # arguments can be passed as additional
+        b"address@email.net",  # optional credentials.
         
-        "address@email.net",  # here as additional, optional credentials.
+        username=b"username",
         
-        username="username",
+        passphrase=b"passphrase",
         
-        passphrase="passphrase",
-        
-        salt="optional salt keyword argument",
+        salt=b"optional salt keyword argument",
+                  # Optional passcrypt configuration:
+        mb=256,   # The memory cost in Mibibytes (MiB)
+
+        cpu=2,    # The computational complexity & number of iterations
+
+        cores=8,  # How many parallel processes passcrypt will utilize
         
     )
-
-
-    # Finally, use those special tokens to open a database instance ->
-
-    db = await AsyncDatabase.agenerate_profile(tokens)
 
 
 _`Tags` ........................................... `Table Of Contents`_
@@ -245,7 +262,7 @@ Data within databases are primarily organized by Tags. Tags are simply string la
     await db.aquery_tag("new_tag")  # reads from disk if not in the cache
     >>> ['data', 'goes', 'here']
 
-    tag_path = db.directory / await db.afilename("new_tag")
+    tag_path = db.path / await db.afilename("new_tag")
 
     "new_tag" in db
     >>> True
@@ -281,7 +298,7 @@ Access to data is open to the user, so care must be taken not to let external AP
 _`Metatags` ....................................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Metatags are used to organize & create children of parent databases. They are fully-fledged databases all on their own, with their own distinct key material too. They're accessible from the parent through an attribute that's added to the parent instance with the same name as the metatag. When the parent is saved, or deleted, then their children are also.
+Metatags are used to organize data by string names & domain separate cryptographic material. They are fully-fledged databases all on their own, with their own distinct key material too. They're accessible from the parent through an attribute that's added to the parent instance with the same name as the metatag. When the parent is saved, or deleted, then their descendants are also.
 
 .. code-block:: python
 
@@ -327,13 +344,13 @@ There's a few settings & public methods on databases for users to manage their i
 
 .. code-block:: python
 
-    # The directory attribute is set within the instance's __init__
+    # The path attribute is set within the instance's __init__
 
     # using a keyword-only argument. It's the directory where the
 
     # instance will store all of its files.
 
-    db.directory
+    db.path
     >>> PosixPath('site-packages/aiootp/aiootp/databases')
     
     
@@ -444,7 +461,7 @@ Database mirrors allow users to make copies of all files within a database under
     
     # database ->
     
-    new_key = await AsyncKeys.acsprng()
+    new_key = await acsprng()
     
     new_db = await AsyncDatabase(new_key)
     
@@ -457,15 +474,7 @@ Database mirrors allow users to make copies of all files within a database under
     
         await new_db.aquery_tag("favorite_foods") 
         
-        == await db.aquery_tag("favorite_foods")
-        
-    )
-
-    assert (
-    
-        await new_db.aquery_tag("favorite_foods") 
-        
-        is not await db.aquery_tag("favorite_foods")
+        is await db.aquery_tag("favorite_foods")
         
     )
     
@@ -536,7 +545,8 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
     assert groceries == await db.ajson_decrypt(ciphertext, filename=filename)
     
     await db.ajson_decrypt(ciphertext, filename="wrong filename")
-    >>> "ValueError: Invalid HMAC of data stream!"
+    >>> "InvalidSHMAC: Invalid StreamHMAC hash for the given ciphertext."
+
 
 
     # Time-based expiration of ciphertexts is also available for all 
@@ -549,13 +559,13 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
     await asleep(6)
 
     await db.ajson_decrypt(json_ciphertext, ttl=1)
-    >>> "TimeoutError: Timestamp expired by <5> seconds."
+    >>> "TimestampExpired: Timestamp expired by <5> seconds."
 
     await db.abytes_decrypt(bytes_ciphertext, ttl=1)
-    >>> "TimeoutError: Timestamp expired by <5> seconds."
+    >>> "TimestampExpired: Timestamp expired by <5> seconds."
 
     await db.aread_token(token_ciphertext, ttl=1)
-    >>> "TimeoutError: Timestamp expired by <5> seconds."
+    >>> "TimestampExpired: Timestamp expired by <5> seconds."
 
 
     # The number of seconds that are exceeded may be helpful to know. In
@@ -564,17 +574,17 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
 
     try: 
     
-        await db.abytes_decrypt(bytes_ciphertext, ttl=2)
+        await db.abytes_decrypt(bytes_ciphertext, ttl=1)
 
-    except TimeoutError as error:
+    except db.TimestampExpired as error:
 
-        seconds_expired = error.seconds_expired
+        assert error.expired_by == 5
 
 
 _`HMACs` .......................................... `Table Of Contents`_
 ************************************************************************
 
-Besides encryption & decryption, databases can also be used to manually verify the authenticity of data with HMACs.
+Besides encryption & decryption, databases can also be used to manually verify the authenticity of bytes-type data with HMACs.
 
 .. code-block:: python
 
@@ -584,38 +594,53 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     hmac = await db.amake_hmac(data)
 
-    await db.atest_hmac(data, hmac)  # Runs without incident
+    await db.atest_hmac(hmac, data)  # Runs without incident
 
 
-    # Data that is not the same, or is altered, will be caught ->
+    # Data that is not the same will be caught ->
 
     altered_data = b"valiZate this data!"
 
-    await db.atest_hmac(altered_data, hmac)
-    >>> "ValueError: HMAC of the data stream isn't valid."
+    await db.atest_hmac(hmac, altered_data)
+    >>> "InvalidHMAC: Invalid HMAC hash for the given data."
     
 
-    # Any type of data can be run thorugh the function, it's the repr
+    # Any number of bytes-type arguments can be run thorugh the function, 
 
-    # of the data which is evaluated ->
+    # the collection of items is canonically encoded automagically ->
 
-    arbitrary_data = {"id": 1234, "payload": "message"}
+    arbitrary_data = (b"uid_\x0f\x12", b"session_id_\xa1")
 
-    hmac = await db.amake_hmac(arbitrary_data)
+    hmac = await db.amake_hmac(*arbitrary_data)
     
-    await db.atest_hmac(arbitrary_data, hmac)  # Runs without incident
+    await db.atest_hmac(hmac, *arbitrary_data)  # Runs without incident
 
 
-    # Beware: Datatypes where order of values is not preserved may fail 
+    # Additional qualifying information can be specified with the ``aad``
 
-    # to validate even if they are functionally equivalent -> 
+    # keyword argument ->
 
-    order_swapped_data = {"payload": "message", "id": 1234}
+    from time import time
 
-    assert order_swapped_data == arbitrary_data
+    timestamp = int(time()).to_bytes(8, "big")
+
+    hmac = await db.amake_hmac(*arbitrary_data, aad=timestamp)
     
-    await db.atest_hmac(order_swapped_data, hmac) 
-    >>> "ValueError: HMAC of the data stream isn't valid."
+    await db.atest_hmac(hmac, *arbitrary_data)
+    >>> "InvalidHMAC: Invalid HMAC hash for the given data."
+
+    await db.atest_hmac(hmac, *arbitrary_data, aad=timestamp) # Runs fine
+
+
+    # This is most helpful for domain separation of the HMAC outputs.
+
+    # Each distinct setting & purpose of the HMAC should be specified
+
+    # & NEVER MIXED ->
+
+    uuid = await db.amake_hmac(user_name, aad=b"uuid")
+
+    hmac = await db.amake_hmac(user_data, aad=b"data-authentication")
     
     
     #
@@ -629,8 +654,8 @@ _`Chunky2048 Cipher` .............................. `Table Of Contents`_
 The ``Chunky2048`` cipher is the built from generators & SHA3-based key-derivation functions. It's designed to be easy to use, difficult to misuse & future-proof with large security margins. 
 
 
-_`High-level Interfaces` .......................... `Table Of Contents`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_`High-level Functions` .......................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 These premade recipes allow for the easiest usage of the cipher.
 
@@ -672,7 +697,7 @@ These premade recipes allow for the easiest usage of the cipher.
     assert decrypted_binary_data == binary_data
     
     
-    # URL-safe Base64 encoded encrypted tokens ->
+    # encrypted URL-safe Base64 encoded tokens ->
     
     token_data = b"some plaintext token data..."
     
@@ -687,152 +712,336 @@ These premade recipes allow for the easiest usage of the cipher.
     assert decrypted_token_data == token_data
 
 
-_`Low-level Generators` ........................... `Table Of Contents`_
+_`High-level Generators` .......................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The cipher can also be used as an online cipher, handling blocks of data 256-bytes at a time. Using these generators is more difficult, giving more fine-grained control to the user.
+With these generators, the online nature of the Chunky2048 cipher can be utilized. This means that any arbitrary amount of data can be processed in streams of controllable, buffered chunks. These streaming interfaces automatically handle message padding & depadding, ciphertext validation & detection of out-of-order message blocks.
+
+Encryption:
 
 .. code-block:: python
     
-    from aiootp import gentools
-    
-    from aiootp import csprng, Padding, KeyAADBundle, StreamHMAC
+    from aiootp import AsyncCipherStream
     
     
-    key = csprng()  # <---Must be known by the decrypting party
-    
-    aad = b"any associated data"  # <---Must be known by the decrypting party
+    # Let's imagine we are serving some data over a network ->
 
-    key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
-    
-    plaintext = b"example plaintext..."
-    
-    
-    # Yields padded plaintext in chunks of 256 bytes ->
-    
-    stream = gentools.plaintext_stream(plaintext, key_bundle)
-    
-    
-    # This is used to authenticate the ciphertext & associated data ->
-    
-    shmac = StreamHMAC(key_bundle).for_encryption()
-    
-    
-    # Iterates over the plaintext ``stream`` generator, in this case, 
-    
-    # returning the enciphered data in one ``join`` call ->
-    
-    ciphertext = stream.bytes_encipher(key_bundle, shmac).join(b"")
-    
-    assert type(ciphertext) == bytes
-        
-    hmac = shmac.finalize()  # <---Must be shared with the decrypting party
-        
-    siv = key_bundle.siv  # <---Must be shared with the decrypting party
-    
-    salt = key_bundle.salt  # <---Must be shared with the decrypting party
-        
-        
-    # When receiving ciphertext, the user must first validate the hmac of 
-    
-    # the ciphertext before trusting the plaintext that's revealed! ->
-    
-    key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv).sync_mode()
-    
-    shmac = StreamHMAC(key_bundle).for_decryption()
-    
-    
-    # Yields the ciphertext 256-bytes at a time.
-    
-    stream = gentools.data(ciphertext)
-    
-    with stream.bytes_decipher(key_bundle, shmac) as decrypting:
-        
-        # Consumes the ciphertext stream, deciphering it simultaneously ->
-        
-        padded_data = decrypting.join(b"")
-        
-        shmac.finalize()
-        
-        shmac.test_hmac(hmac)
-        
-        # If no ValueError was raised, the authentication has passed! 
-        
-    
-    # Continue with processing the plaintext ->
-    
-    depadded_data = Padding.depad_plaintext(padded_data, key_bundle, ttl=60)
-    
-    depadded_data == plaintext
-    >>> True
-
-This example was a low-level look at the encryption algorithm. And it was only a few lines of code. The Comprende class makes working with generators a breeze, & working with generators makes solving problems in bite-sized chunks a breeze.
+    receiver = SomeRemoteConnection(session).connect()
 
 
-_`Nuts & Bolts` ................................... `Table Of Contents`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    # This will manage encrypting a stream of data ->
 
-Let's take a deep dive into the low-level xor procedure used to implement the ``Chunky2048`` cipher.
+    stream = await AsyncCipherStream(key, aad=session.transcript)
+
+
+    # We'll have to send the salt & iv in some way ->
+
+    receiver.transmit(salt=stream.salt, iv=stream.iv)
+
+
+    # Now we can buffer the plaintext we are going to encrypt ->
+
+    for plaintext in receiver.upload.buffer(4 * stream.PACKETSIZE):
+
+        await stream.abuffer(plaintext)
+
+
+        # The stream will now produce encrypted blocks of ciphertext
+
+        # as well as the block ID which authenticates each block ->
+
+        async for block_id, ciphertext in stream:
+
+            # The receiver needs both the block ID & ciphertext ->
+
+            receiver.send_packet(block_id + ciphertext)
+
+
+    # Once done with buffering-in the plaintext, the ``afinalize`` 
+
+    # method is called so the remaining encrypted data will be 
+
+    # flushed out of the buffer to the user ->
+
+    async for block_id, ciphertext in stream.afinalize():
+
+        receiver.send_packet(block_id + ciphertext)
+
+
+    # Here we can give an optional check of further authenticity, 
+
+    # also cryptographically asserts the stream is finished ->
+
+    receiver.transmit(shmac=await stream.shmac.afinalize())
+
+
+Decryption / Authentication:
 
 .. code-block:: python
+    
+    from aiootp import AsyncDecipherStream
 
-    from aiootp.ciphers import SyntheticIV
     
-    from aiootp.gentools import comprehension
-    
-    
-    # It's a ``Comprende`` generator ->
-    
-    @comprehension()
-    
-    # ``data`` is an iterable which produces 256-bytes of either plaintext 
-    
-    # or ciphertext data on each iteration. ``key`` should be an instance 
+    # Here let's imagine we'll be downloading some data ->
 
-    # of the ``bytes_keys`` generator. And, ``validator`` should be an 
+    source = SomeRemoteConnection(session).connect()
 
-    # instance of the ``StreamHMAC`` class. ->
+
+    # The key, salt, aad & iv must be the same for both parties ->
+
+    stream = await AsyncDecipherStream(
+
+        key, salt=source.salt, aad=session.transcript, iv=source.iv
+
+    )
+
+    # The downloaded ciphertext will now be buffered & the stream
+
+    # object will produce the plaintext ->
+
+    for ciphertext in source.download.buffer(4 * stream.PACKETSIZE):
+
+        # Here stream.shmac.InvalidBlockID is raised if an invalid or
+
+        # out-of-order block is detected within the last 4 packets ->
+
+        await stream.abuffer(ciphertext) 
+
+
+        # If authentication succeeds, the plaintext is produced ->
+
+        async for plaintext in stream:
+
+            yield plaintext
+
+
+    # After all the ciphertext is downloaded, ``afinalize`` is called
+
+    # to finish processing the stream & flush out the plaintext ->
+
+    async for plaintext in stream.afinalize():
+
+        yield plaintext
+
+
+    # An optional check for further authenticity which also
+
+    # cryptographically asserts the stream is finished ->
+
+    await stream.shmac.afinalize()
+
+    await stream.shmac.atest_shmac(source.shmac)
+
+
+    #
+
+
+
+
+_`Passcrypt` .............................. `Table Of Contents`_
+------------------------------------------------------------------------
+
+The ``Passcrypt`` algorithm is a data independent memory & computationally hard password-based key derivation function. It's built from a single primitive, the SHAKE-128 extendable output function from the SHA-3 family. Its resource costs are measured by three parameters: ``mb``, which represents an integer number of Mibibytes (MiB); ``cpu``, which is a linear integer measure of computational complexity & the number of iterations of the algorithm over the memory cache; and ``cores``, which is an integer which directly assigns the number of separate processes that will be pooled to complete the algorithm. The number of bytes of the output tag are decided by the integer ``tag_size`` parameter. And, the number of bytes of the automatically generated ``salt`` are decided by the integer ``salt_size`` parameter.
+
+
+_`Hashing & Verifying Passphrases` .......................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+By far, the dominating measure of difficulty for ``Passcrypt`` is determined by the ``mb`` Mibibyte memory cost. It's recommended that increases to desired difficulty are first translated into higher ``mb`` values, where resource limitations of the machines executing the algorithm permit. If more difficulty is desired than can be obtained by increasing ``mb``, then increases to the ``cpu`` parameter should be used. The higher this parameter is the less likely an adversary is to benefit from expending less than the intended memory cost, & increases the execution time & complexity of the algorithm. The final option that should be considered, if still more difficulty is desired, is to lower the ``cores`` parallelization parameter, which will just cause each execution to take longer to complete.
+
+.. code-block:: python
     
-    def xor(data, *, key, validator):
-    
-        # Return the necessary method & coroutine pointers ->
-        
-        datastream, keystream, validated_xor, shmac_hexdigest = (
-        
-            _xor_shortcuts(data, key, validator)
-            
+    from aiootp import Passcrypt, hash_bytes
+
+
+    # The class accepts an optional (but recommended) static "pepper"
+
+    # which is applied as additional randomness to all hashes computed
+
+    # by the class. It's a secret random bytes value of any size that is
+
+    # expected to be stored somewhere inaccessible by the database which
+
+    # contains the hashed passphrases ->
+
+    with open(SECRET_PEPPER_PATH, "rb") as pepper_file:
+
+        Passcrypt.PEPPER = pepper_file.read()
+
+
+    # when preparing to hash passphrases, it's a good idea to use any &
+
+    # all of the static data / credentials available which are specific 
+
+    # to the context of the registration ->
+
+    APPLICATION = b"my-application-name"
+
+    PRODUCT = b"the-product-being-accessed-by-this-registration"
+
+    STATIC_CONTEXT = [APPLICATION, PRODUCT, PUBLIC_CERTIFICATE]
+
+
+    # If the same difficulty settings are going to be used for every 
+
+    # hash, then a ``Passcrypt`` instance can be initialized to
+
+    # automatically pass those static settings ->
+
+    pcrypt = Passcrypt(mb=1024, cpu=2, cores=8)  # 1 GiB, 8 cores
+
+
+    # Now that the static credentials / settings are ready to go, we
+
+    # can start hashing any user information that arrives ->
+
+    username = form["username"].encode()
+
+    passphrase = form["passphrase"].encode()
+
+    email_address = form["email_address"].encode()
+
+
+    # The ``hash_bytes`` function can then be used to automatically
+
+    # encode then hash the multi-input data so as to prevent the chance
+
+    # of canonicalization (&/or length extension) attacks ->
+
+    aad = hash_bytes(*STATIC_CONTEXT, username, email_address)
+
+    hashed_passphrase = pcrypt.hash_passphrase(passphrase, aad=aad)
+
+    assert type(hashed_passphrase) is bytes
+
+    assert len(hashed_passphrase) == 38
+
+
+    # Later, a hashed passphrase can be used to authenticate a user ->
+
+    untrusted_username = form["username"].encode()
+
+    untrusted_passphrase = form["passphrase"].encode()
+
+    untrusted_email_address = form["email_address"].encode()
+
+    aad = hash_bytes(
+
+        *STATIC_CONTEXT, untrusted_username, untrusted_email_address
+
+    )
+
+    try:
+
+        pcrypt.verify(
+
+            hashed_passphrase, untrusted_passphrase, aad=aad, ttl=3600
+
         )
-        
-        # We use the first block of plaintext (which is prepended with an 
 
-        # 8-byte timestamp & a 16-byte random, ephemeral & automatically 
+    except pcrypt.InvalidPassphrase as auth_fail:
 
-        # generated SIV-key) to derive a syntheic IV, seeding the keystream 
-        
-        # & validator with globally unique entropy -> 
-        
-        yield SyntheticIV.validated_xor(datastream, keystream, validator)
-        
-        for block in datastream:
-        
-            # We use the output of the validator's current state to 
+        # If the passphrase does not hash to the same value as the 
 
-            # continuously seed the keystream with message dependent entropy ->
-            
-            seed = shmac_digest()
-            
-            # We contantenate two 128-byte key chunks together ->
-            
-            key_chunk = keystream(seed) + keystream(seed)
-            
-            # Then xor the 256-byte key chunk & 256-byte data block, & 
-            
-            # update the validator with the ciphertext ->
-            
-            yield validated_xor(block, key_chunk)
+        # stored hash, then this exception is raised & can be handled
 
-This is a very efficient, online-AEAD, salt-reuse/misuse resistant, pseudo-one-time-pad cipher algorithm. Being built on generators makes it simple to grok & compose with additional funcitonality. It's backed by an infinite stream of non-repeating key material, efficiently produced from a finite-sized key, an ephemeral salt, authenticated associated data, message content, & SHA3 hashing.
+        # by the application ->
 
+        app.post_mortem(error=auth_fail)
+
+    except pcrypt.TimestampExpired as registration_expired:
+
+        # If the timestamp on the stored hash was created more than
+
+        # ``ttl`` seconds before the current time, then this exception
+
+        # is raised. This is helpful for automating registrations which
+
+        # expire after a certain amount of time, which in this case was
+
+        # 1 hour ->
+
+        app.post_mortem(error=registration_expired)
+
+    else:
+
+        # If no exception was raised, then the user has been authenticated
+
+        # by their passphrase, username, email address & the context of
+
+        # the registration ->
+
+        app.login_user(username, email_address)
+
+
+    # 
+
+
+_`Passcrypt Algorithm Overview` .......................... `Table Of Contents`_
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By being secret-independent, ``Passcrypt`` is resistant to side-channel attacks. This implementation is also written in pure python. Significant attention was paid to design the algorithm so as to suffer minimally from the performance inefficiencies of python, since doing so would help to equalize the cost of computation between regular users & dedicated attackers with custom hardware / software. Below is a diagram that depicts how an example execution works:
+
+.. code-block:: python
+
+    """
+           ___________________ # of rows ___________________
+          |                                                 |
+          |              initial memory cache               |
+          |  row  # of columns == 2 * max([1, cpu // 2])    |
+          |   |   # of rows == ⌈1024*1024*mb/168*columns⌉   |
+          v   v                                             v
+    column|---'-----------------------------------------'---| the initial cache
+    column|---'-----------------------------------------'---| of size ~`mb` is
+    column|---'-----------------------------------------'---| built very quickly
+    column|---'-----------------------------------------'---| using SHAKE-128.
+    column|---'-----------------------------------------'---| each (row, column)
+    column|---'-----------------------------------------'---| coordinate holds
+    column|---'-----------------------------------------'---| one element of
+    column|---'-----------------------------------------'---| 168-bytes.
+                                                        ^
+                                                        |
+                           reflection                  row
+                          <-   |
+          |--------------------'-------'--------------------| each row is
+          |--------------------'-------'--------------------| hashed then has
+          |--------------------'-------'--------------------| a new 168-byte
+          |--------------------'-------'--------------------| digest overwrite
+          |--------------------'-------'--------------------| the current pointer
+          |--------------------'-------'--------------------| in an alternating
+          |--------------------Xxxxxxxx'xxxxxxxxxxxxxxxxxxxx| sequence, first at
+          |oooooooooooooooooooo'oooooooO--------------------| the index, then at
+                                       |   ->                 its reflection.
+                                     index
+
+
+          |--'-------------------------------------------'--| this continues
+          |--'-------------------------------------------'--| until the entire
+          |--'-------------------------------------------Xxx| cache has been
+          |ooO-------------------------------------------'--| overwritten.
+          |xx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'xx| a single `shake_128`
+          |oo'ooooooooooooooooooooooooooooooooooooooooooo'oo| object (H) is used
+          |xx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'xx| to do all of the
+          |oo'ooooooooooooooooooooooooooooooooooooooooooo'oo| hashing.
+             |   ->                                 <-   |
+           index                                     reflection
+
+
+          |xxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| finally, the whole
+          |ooooooooooo'ooooooooooooooooooooooooooooooooooooo| cache is quickly
+          |xxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| hashed `cpu` + 2
+          |ooooooooooo'ooooooooooooooooooooooooooooooooooooo| number of times.
+          |Fxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| after each pass an
+          |foooooooooo'ooooooooooooooooooooooooooooooooooooo| 84-byte digest is
+          |fxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| inserted into the
+          |foooooooooo'ooooooooooooooooooooooooooooooooooooo| cache, ruling out
+                      |   ->                                  hashing state cycles.
+                      | hash cpu + 2 # of times               Then a `tag_size`-
+                      v                                       byte tag is output.
+                  H(cache)
+
+          tag = H.digest(tag_size)
 
 
 
@@ -849,12 +1058,35 @@ Elliptic curve 25519 diffie-hellman exchange protocols.
 
 .. code-block:: python
 
-    from aiootp import X25519
+    from aiootp import X25519, DomainKDF, GUID, Domains
+
+
+    # Basic Elliptic Curve Diffie-Hellman ->
+
+    guid = GUID().new()
+
+    my_ecdhe_key = X25519().generate()
+
+    yield guid, my_ecdhe_key.public_bytes  # send this to Bob
+
+    raw_shared_secret = my_ecdhe_key.exchange(bobs_public_key)
+
+    shared_kdf = DomainKDF(  # Use this to create secret shared keys
+
+        Domains.ECDHE,
+
+        guid,
+
+        bobs_public_key,
+
+        my_ecdhe_key.public_bytes,
+
+        key=raw_shared_secret,
+
+    )
     
     
-    # Triple Diffie-Hellman Key Exchange client initialization ->
-    
-    ecdhe_key = X25519().generate()
+    # Triple ECDH Key Exchange client initialization ->
     
     with ecdhe_key.dh3_client() as exchange:
     
@@ -865,9 +1097,7 @@ Elliptic curve 25519 diffie-hellman exchange protocols.
     clients_kdf = exchange.result()
 
 
-    # Triple Diffie-Hellman Key Exchange for a receiving peer ->
-
-    ecdhe_key = X25519().generate()
+    # Triple ECDH Key Exchange for a receiving peer ->
     
     identity_key, ephemeral_key = client_public_keys = internet.receive()
     
@@ -882,9 +1112,15 @@ Elliptic curve 25519 diffie-hellman exchange protocols.
 
     # Success! Now both the client & server peers share an identical
     
-    # sha3_512 hashing object to create shared keys ->
+    # ``DomainKDF`` hashing object to create shared keys ->
 
-    assert clients_kdf.digest() == servers_kdf.digest()
+    assert (
+
+        clients_kdf.sha3_512(context=b"test") 
+
+        == servers_kdf.sha3_512(context=b"test")
+
+    )
     
     
 _`Ed25519` ........................................ `Table Of Contents`_
@@ -929,7 +1165,7 @@ Edwards curve 25519 signing & verification.
 
     # Bob sees the message from Alice! Bob already knows Alice's public
     
-    # key & she has reason believe it is genuinely hers. So, she'll
+    # key & she has reason believe it is genuinely Alice's. So, she'll
     
     # import Alice's known public key to verify the signed document ->
     
@@ -951,7 +1187,7 @@ The verification didn't throw an exception! So, Bob knows the file was signed by
 _`Comprende` ...................................... `Table Of Contents`_
 ------------------------------------------------------------------------
 
-This magic with generators is made simple with the ``comprehension`` decorator. It wraps them in ``Comprende`` objects with access to myriad data processing & cryptographic utilities right out of the box.
+This magic with generators is made simple with the ``comprehension`` decorator. It wraps them in ``Comprende`` objects with access to myriad data processing pipeline utilities right out of the box.
 
 
 _`Synchronous Generators` ......................... `Table Of Contents`_
@@ -1030,9 +1266,9 @@ _`Synchronous Generators` ......................... `Table Of Contents`_
 
     # This example just hashes each output then yields them
 
-    for hex_digest in unpack(base64_data).sha3__256():
+    for digest in unpack(base64_data).sha3_256():
         
-        print(hex_digest)
+        print(digest)
 
 
 _`Asynchronous Generators` ........................ `Table Of Contents`_
@@ -1042,7 +1278,9 @@ Async ``Comprende`` coroutines have almost exactly the same interface as synchro
 
 .. code-block:: python
 
-    from aiootp.gentools import comprehension
+    from aiootp.asynchs import asleep
+
+    from aiootp.gentools import Comprende, comprehension
 
 
     @comprehension()
@@ -1053,13 +1291,13 @@ Async ``Comprende`` coroutines have almost exactly the same interface as synchro
         
         # SyntaxError, the return value is expected to be passed into
         
-        # UserWarning, and then raised to propagate upstream. It's then
-        
-        # available from the instance's ``aresult`` method ->
+        # Comprende.ReturnValue, and then raised to propagate upstream. 
+
+        # It's then available from the instance's ``aresult`` method ->
         
         z = yield x + y
         
-        raise UserWarning(x * y * z)
+        raise Comprende.ReturnValue(x * y * z)
         
         
     # Drive the generator forward.
@@ -1097,17 +1335,31 @@ Async ``Comprende`` coroutines have almost exactly the same interface as synchro
     @comprehension()
     
     async def one_byte_numbers():
+
+        # It's probably a good idea to pass control to the event loop at
+
+        # least once or twice, even if async sleeping after each iteration
+
+        # may be excessive when no real work is being demanded by range(256).
+
+        # This consideration is more or less significant depending on the 
+
+        # expectations placed on this generator by the calling code.
+
+        await asleep()
     
         for number in range(256):
         
             yield number
+
+        await asleep()
     
     
     # This is asynchronous data processing ->
     
     base64_data = await one_byte_numbers().aint_to_bytes(1).ato_base64().alist()
     
-    # This converted each number to bytes then base64 encoded them.
+    # This converted each number to bytes then base64 encoded them into a list.
 
 
     # We can wrap other iterables to add asynchronous functionality to them ->
@@ -1123,11 +1375,11 @@ Async ``Comprende`` coroutines have almost exactly the same interface as synchro
 
     # Want only the first twenty results? ->
 
-    async for hex_hash in unpack(base64_data).asha3__256()[:20]:
+    async for digest in unpack(base64_data).asha3_256()[:20]:
     
         # Then you can slice the generator.
         
-        print(hex_hash)
+        print(digest)
         
         
     # Users can slice generators to receive more complex output rules, like:
@@ -1192,14 +1444,9 @@ Here's a quick overview of this package's modules:
     aiootp.paths
     
     
-    # Global async functionalities & abstractions ->
+    # Global async / concurrency functionalities & abstractions ->
     
     aiootp.asynchs
-    
-    
-    # Decorators & classes able to benchmark async/sync functions & generators ->
-    
-    aiootp.debuggers
     
     
     #
@@ -1213,50 +1460,17 @@ _`FAQ` ............................................ `Table Of Contents`_
 
 **Q: What is the one-time pad?**
 
-A: It's a provably unbreakable cipher. It's typically thought to be too cumbersome a cipher because it has strict requirements. Key size is one such requirement, since keys must be at least as large as the plaintext in order to ensure this unbreakability. We've tried to relax this requirement, by getting as close as possible with a pseudo one-time pad that's indistinguishable from a one-time pad. We attempt to not only make decryption computationally infeasible without the correct key, but also attempt to force an adversary, even with unbounded computational power, to distinguish between an exponentially large number of possible plaintexts. We've built a candidate cipher, which we've called ``Chunk2048``, by using a forward secret and semi-future secret double-ratchet key algorithm from arbitrarily large >=64-byte keys whose entropy are continuously extracted on each block, ephemeral salts, purposefully randomized synthetic IVs, large 256-byte block sizes, and deniability properties from plaintext padding randomization. Our view is that we can learn more from what makes the one-time pad unbreakable than just using large truly random keys, such as leaving an adversary in a state of undecidability when considering exponentially many equally likely options. This algorithmic approach also lends itself to great optimizations, since hash processing hardware / software is continually pushed to the edges of efficiency.
-
-
-**Q: Isn't this technically a stream cipher?**
-
-A: For sure, one-time pads are stream ciphers. Though, if we trust that pseudo-random functions **(PRFs)** exist, then by definition, their outputs are indistinguishable from truly random bits. Because of this, it's proven that pseudo one-time pads are computationally secure if they use secure PRFs. We conjecture that the sha3_512 hash function is either a PRF, or is close with negligible difference. In our view, it's an ideal candidate for the role of mimicking a PRF because: 
- -  it utilizes large >1024-bit hidden internal states 
- -  its cryptographic permutations are of high quality & are extensively reviewed
- -  it's irreversible & non-simulatable without knowing the internal states
- -  when updated with new key material, the exposed state is xor'd with the new key material then mixed & permuted with the hidden state, which is essentially one-time pad encryption of the exposed state with additional secret-dependent diffusion
- -  loss of information occurs, from the point of view of output digests, as data is processed
- -  it's continually reseedable with constant memory overhead
- -  it's a standardized cryptographic hash function designed with wide security margins 
-
-True random advocates should note that even something as complicated, & seemingly unpredictable, as quantum mechanical events_, can in theory be the result of rather simple_ & predictable processes. We in no way claim to be quantum physicists. It, however, seems fitting in a discussion on the existence of randomness, & when challenging the conventional notion that the natural world is quintessential randomness, when none of that is proven (or provable) mathematically. This problem is related to several impossibility proofs [1_][2_][3_].
-
-.. _1: https://en.wikipedia.org/wiki/Turing%27s_proof
-.. _2: https://www.scientificamerican.com/article/are-we-living-in-a-computer-simulation/
-.. _3: https://en.wikipedia.org/wiki/Kolmogorov_complexity#Chaitin's_incompleteness_theorem
-.. _events : https://dailygalaxy.com/2019/06/the-unknown-question-the-end-of-spacetime/
-.. _simple: https://writings.stephenwolfram.com/2020/04/finally-we-may-have-a-path-to-the-fundamental-theory-of-physics-and-its-beautiful/
-.. _pseudo: https://www.youtube.com/watch?v=QlrPPG5H7lg&list=PL2jykFOD1AWb07OLBdFI2QIHvPo3aTTeu&index=16
-
-
-**Q: What do you mean the ``aiootp.bytes_keys`` generator produces forward & semi-future secure key material?**
-
-A: The infinite stream of key material produced by that generator has amazing properties. Under the hood it's a ``hashlib.sha3_512`` key ratchet algorithm. It's internal state consists of the user key, & three ``hashlib.sha3_512`` objects ratcheted iteratively with different KDF outputs computed on the key, salt, authenticated associated data, various other random & pseudo-random values, & plaintext message content. This algorithm is forward secure because compromising a future key will not compromise past keys since these hashes are irreversibly constructed. It's also semi-future secure since having a past key doesn't allow you to compute future keys without also compromising the values used to initialize & continuously seed entropy into the generator. Since those internal states are never disclosed or used directly for encryption, the key material produced is future secure with respect to itself only. Full future-security would allow for the same property even if these internal states were compromised. This feature can, however, be added to the algorithm since the generator itself can receive entropy externally from a user at any arbitrary point in its execution, say, after computing a shared diffie-hellman exchange key.
-
-
-**Q: Why make a new cipher when AES is strong enough?** 
-
-A: Although primatives like AES are strong enough for now, there's no guarantee that future hardware or algorithms won't be developed which break them. In fact, AES's theoretical bit-strength has dropped over the years because of new developments_. Many popular AES modes don't provide authentication, salt reuse/misuse resistance, post-quantum resistance, or beyond-birthday-bound security. And the most common authenticated AES mode (GCM) involves some complex maths & has large pits implementers & users can easily fall into. AES's efficiency is important, even though it falls short in defending against these weaknesses. We wanted to build a cipher which focuses on security & simplicity for developers, even at the cost of some efficiency. AES is still considered a secure cipher, but the **pseudo one-time pad** isn't considered "strong enough". Instead, it's mathematically proven to be computationally secure if the keystream is produced from a large enough key & a secure pseudo-random function. Such a cryptographic guarantee is too profound not to develop further into an accessible standard. The ``Chunky2048`` cipher is an attempt to do just that.
-
-.. _developments: https://www.schneier.com/blog/archives/2009/07/another_new_aes.html
+A: It's a cipher which provides an information theoretic guarantee of confidentiality. It's typically thought to be too cumbersome a cipher for generalized application because it conveys strict, and well, cumbersome, requirements onto its users. The need for its keys to be at least as large as all the messages it's ever used to encrypt is one such requirement. Our goal is to design a cipher which immitates the one-time pad through clever algorithms, in such a way as to minimize its inconveniences & still provide some form of information theoretic confidentiality guarantees or, at a minimum, be able to make non-trivial statements about its security against even computationally unbounded adversaries. In this effort, we've built what we hope to be a candidate cipher, which we've called ``Chunky2048``.
 
 
 **Q: How fast is this ``Chunky2048`` cipher?** 
 
-A: Well, because it relies on ``hashlib.sha3_512`` hashing to build key material streams, it's rather efficient. It can process about 23 MB/s on a ~1.5 GHz core for both encrypting & decrypting. This is slower than other stream ciphers, but this package is written in pure Python & without hardware optimizations. Using sha3_512 ASICs, specific chipset instructions, or a lower-level language implementation, could make this algorithm competitively fast.
+A: Well, because it relies on ``hashlib.shake_128`` hashing to build key material streams, it's rather efficient. It can process about 24 MB/s on a ~1.5 GHz core for both encrypting & decrypting. This is still slow relative to other stream ciphers, but this package is written in pure Python & without hardware optimizations. Using SHA3 ASICs, specific chipset instructions, or a lower-level language implementation, could make this algorithm competitively fast.
 
 
-**Q: What size keys does this pseudo one-time pad cipher use?** 
+**Q: What size keys does the ``Chunky2048`` cipher use?** 
 
-A: It's been designed to work with >=64-byte keys. 
+A: It's been designed to work with any size of key >= 64 bytes. 
 
 
 **Q: What's up with the ``AsyncDatabase`` / ``Database``?**
@@ -1264,15 +1478,174 @@ A: It's been designed to work with >=64-byte keys.
 A: The idea is to create an intuitive, pythonic interface to a transparently encrypted and decrypted persistence tool that also cryptographically obscures metadata. It's designed to persist raw bytes or JSON serializable data, which gives it native support for some of the most important basic python datatypes. It's still a work in progress, albeit a very nifty one.
 
 
-**Q: Why are the modules transformed into ``OpenNamespace`` objects?**
+**Q: Why are the modules transformed into ``Namespace`` objects?**
 
-A: We overwrite our modules in this package to have a more fine-grained control over what part of the package's internal state is exposed to users and applications. The goal is make it more difficult for users to inadvertently jeopardize their security tools, and minimize the attack surface available to adversaries. The ``aiootp.OpenNamespace`` class also makes it easier to coordinate and decide the library's UI/UX across the package.
+A: We overwrite our modules in this package to have a more fine-grained control over what part of the package's internal state is exposed to users & applications. The goal is make it more difficult for users to inadvertently jeopardize their security tools, & minimize the attack surface available to adversaries. The ``Namespace`` class also makes it easier to coordinate and decide the library's UI/UX across the package.
 
 
 
 
 _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
+
+
+
+Changes for version 0.22.0 
+---------------------------
+
+(Major Rewrite: Backwards Incompatible)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+Security Advisory:
+^^^^^^^^^^^^^^^^^^
+
+-  The top-level ``(a)csprng`` functions were found to be unsafe in concurrent code, leading to the possibilty of producing identical outputs from distinct calls if run in quick succession from concurrently running threads & coroutines. The classification of this vulnerability is severe because: 1) users should be able to expect the output of a 64-byte cryptographically secure pseudo-random number generator to always produce unique outputs; and, 2) much of the package utilizes them to produce cryptographic material. This vulnerability does not effect users of the library which are not running it in multiple concurrent threads or coroutines. The vulnerability has been patched & all users are **highly encouraged** to upgrade to v0.22.0+.
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  Support for python 3.6 was dropped. The package now supports python versions 3.7+.
+-  **Chunky2048**: A new version of the cipher has been developed which
+   implements algorithms & interfaces that offer improvements in multiple
+   regards: smaller size overhead of ciphertexts, faster execution time
+   for large messages & large keys, more robust salt reuse/misue resistance,
+   fewer aspects harming deniability & better domain separation.
+   Many of the changes are described here:
+
+   -  The ``(a)bytes_keys`` generators were updated to use ``shake_128``-based KDF objects instead of ``sha3_512``, yielding 256-bytes on each iteration instead of 128, now requiring only a single iteration to produce a keystream key for each block, instead of two. This choice was made during the process of analyzing the use of the user's encryption `key` to seed the `seed_kdf` on each iteration. We wanted to stop doing that essentially, because it slowed down the cipher too much when used with large keys. And because it seems like a bad idea to use the same key repeatedly while also not incorporating the uniqueness or entropy from the message's `salt`, `siv` or `aad`. 
+
+      But still, we somehow wanted to come up with an idea which could efficiently & continually extract entropy from the user `key` if it did happen to be large. An answer came in the form of expanding on an earlier implemented idea which used the key multiple times to create unique seeds during initialization. In this case, however, instead of creating unique seeds with the single `seed_kdf`, each of the three KDFs & the MAC object used by the cipher will be given the whole `key` once at initialization, with proper domain separation, & including the message `salt` & `aad` (The `siv` can't be used because its creation happens after initialization during encryption). This gives each of their (SHA3) 200-byte internal states independent access to the full entropy of the `key`.
+
+      Then, the problem was that, by using ``sha3_512`` internally, a maximum of 64-bytes of entropy could be communicated between KDFs at each round (and only 32-bytes from the ``StreamHMAC`` (`shmac`) object's ``sha3_256`` MAC). But the blocksize of each round is 256-bytes. So, the idea became to attempt to *communicate* more entropy between the KDFs & MAC each round than there exists possible messages in the message space of each round. It seems plausible, that by only assuming the independence of each of the KDFs / MAC & that they can indeed `efficiently pass entropy` to one another, that for large keys we could argue the relevant key space is that of the 800-byte internal state of the cipher at each round (which happens to be more than three times the size of the message space of each round). This is to say, we conjecture, that by `efficiently communicating more entropy` from *independent sources* than there exists *possible messages*, & in fact incorporating the entropy of *each message block* into the cipher's state at the start of *each round*, that the entropy of the internal keyspace is continually being refreshed in a way which is negligibly distinguishable from using a fresh random key each round the length of the blocksize. This seems like at least a feasible way to begin the argument that it is possible to meaningfully relate the information theoretic security of the one-time pad to a pseudo one-time pad in a measurable way.
+
+      `Efficiently Pass Entropy`: By this we mean, the rate of bits extracted from one state object, to the rate of bits of actual entropy absorbed by a receiveing state object, up to its XORable state size, being different by only a negligible amount. Here, we can conservatively assume the limit of this efficiency is the XORable state size, since we know that in the ideal setting, XORing `n` uniform random bits with an unknown message of <= `n` bits is perfectly hiding, which implies perfectly efficient conveyance of entropy. By using ``shake_128`` as each of the cipher's state objects, & its larger rate of 168-bytes, more than twice the number of bytes can be passed to & extracted from each, per round & per call to their internal `f` permutation, as compared with ``sha3_512``. `If they can efficiently pass entropy`, then any secret state exposed by the `left_kdf` or `right_kdf` in the creation of ciphertext, can then be efficiently displaced by the introduction of new entropy from the other state objects. This follows from the theory that a finite sized pool of entropy which is already maximally filled with entropy, cannot incorporate more entropy without fundamentally erasing internal information. From this we arrived at the new design for ``Chunky2048``. In this new design, the `shmac` feeds 168-bytes to the `seed_kdf`, the `seed_kdf` creates 336-bytes to feed 168-bytes each to the `left_kdf` & `right_kdf`, the `left_kdf` & `right_kdf` each produce 128-byte keys which XOR the 256-byte plaintext, then this ciphertext feeds the `shmac` & the cycle repeats.
+
+      More work needs to be done to formalize these definitions & analyze their properties. We would be grateful for any help from those with expertise in formal proofs of security in tearing apart this design as we move closer to the first stable release of the package.
+
+   -  The ``SyntheticIV`` class' algorithm has been updated as a result of analyzing how we could improve the salt reuse / misuse resistance of the cipher without attesting to plaintext contents in the form of an `siv` attached to ciphertexts. This plaintext attestation worked counter to our goal of wanting to be able to say something non-trivial about the key-deniability of the cipher. It was noticed that the plaintext padding already incorporated an 8-byte timestamp (now reduced to 4-bytes) & 16-bytes of ephemeral randomness as part of the prepended inner-header, & that these values were not at all used to seed the cipher's state during decryption. Instead a keyed-hash was calculated over the first block of plaintext during encryption to create the 24-byte `siv`. But, this is actually `less effective` at producing salt reuse / misuse resistance than using the timestamp & ephemeral randomness directly in seeding the `seed_kdf`, because the timestamp is a unique & global counter that does not suffer from collisions. This understanding came while also trying to find a good use for the initial `primer_key` generated by the keystream generator when sending in the first obligatory `None` value. In the previous version it was used to initialize the `shmac`, but now that the `shmac` would be initialized directly with the user `key`, it was searching for a use. So the idea was to pair them. 
+
+      The new 256-byte `primer_key` would be XORed with the 256-byte first block of plaintext to mask the inner-header. The unmasked inner-header & 148-bytes of the `shmac`'s digest will seed the keystream, & the freshly seeded keystream output would be truncated to XOR the part of the masked plaintext which doesn't include the inner-header. There's no need now to attach the `siv` to the ciphertext. Instead, during decryption, the decipher algorithm has access to the inner-header, because it has access to the `primer_key` & the masked inner-header. The actual plaintext contents of the first block are only accessible after unmasking the inner-header & seeding the keystream. This combination alone of protection from a timestamp & 16-bytes of randomness should give a salt reuse / misuse resistance of at least `~2 ^ 64 messages` **per second**!
+
+      However, even with this new scheme, it would still be problematic to repeat a combination of `key`, `salt` & `aad`, since it would leak the XORs of timestamp information. With all of this in mind, the new formulation would include a 16-byte `salt` & a newly introduced 16-byte `iv`, both of which are attached to ciphertexts. This is a header size reduction of 16-bytes, since prior `salt` & `siv` sizes were 24-bytes each. The difference between the `salt` & `iv` is that the `salt` is available for the user to choose, but the `iv` is **always** generated randomly. Since the `iv` isn't dependent on message data the way that the `siv` was, it too can now be incorporated into all of the state objects during initialization. The `iv` ensures that even if a `key`, `salt` & `aad` tuple repeats, the timestamp is still protected. Below is a diagram of the procedure:
+
+
+      .. code-block:: python
+
+        """
+         _____________________________________
+        |                                     |
+        |    Algorithm Diagram: Encryption    |
+        |_____________________________________|
+         ------------------------------------------------------------------     #
+        |      inner-header      |        first block of plaintext         |    #
+        | timestamp |  siv-key   |                                         |    #
+        |  4-bytes  |  16-bytes  |               236-bytes                 |    #
+         ------------------------------------------------------------------     #
+        |---------------------- entire first block ------------------------|    #
+                                         |                                      #
+                                         |                                      #
+        first 256-byte keystream key ----⊕                                      #
+                                         |                                      #
+                                         |                                      #
+                                         V                                      #
+                              masked plaintext block                            #
+         ------------------------------------------------------------------     #
+        |  masked inner-header   |     first block of masked plaintext     |    #
+         ------------------------------------------------------------------     #
+                                 |----- the 236-byte masked plaintext -----|    #
+                                                      |                         #
+                                                      |                         #
+        siv = inner-header + shmac.digest(148)        |                         #
+        keystream(siv)[10:246] -----------------------⊕                         #
+                                                      |                         #
+                                                      |                         #
+                                                      V                         #
+         ------------------------------------------------------------------     #
+        |  masked inner-header   |       first block of ciphertext         |    #
+         ------------------------------------------------------------------     #
+
+
+         _____________________________________                                  
+        |                                     |
+        |    Algorithm Diagram: Decryption    |
+        |_____________________________________|
+         ------------------------------------------------------------------     #
+        |  masked inner-header   |        first block of ciphertext        |    #
+         ------------------------------------------------------------------     #
+        |---------------------- entire first block ------------------------|    #
+                                         |                                      #
+                                         |                                      #
+        first 256-byte keystream key ----⊕                                      #
+                                         |                                      #
+                                         |                                      #
+                                         V                                      #
+                            unmasked ciphertext block                           #
+         ------------------------------------------------------------------     #
+        |      inner-header      |   first block of unmasked ciphertext    |    #
+         ------------------------------------------------------------------     #
+                                 |--- the 236-byte unmasked ciphertext ----|    #
+                                                      |                         #
+                                                      |                         #
+        siv = inner-header + shmac.digest(148)        |                         #
+        keystream(siv)[10:246] -----------------------⊕                         #
+                                                      |                         #
+                                                      |                         #
+                                                      V                         #
+         ------------------------------------------------------------------     #
+        |      inner-header      |         first block of plaintext        |    #
+        | timestamp |  siv-key   |                                         |    #
+        |  4-bytes  |  16-bytes  |               236-bytes                 |    #
+         ------------------------------------------------------------------     #
+                                                                                
+        """
+
+   -  The ``Padding`` class has seen some changes. Firstly, the 8-byte timestamp in the inner-header was reduced to 4-bytes. Furthermore, to get the full 136 years out of the 4-byte timestamps, the epoch used to calculate them was changed to unix timestamp `1672531200` (Sun, 01 Jan 2023 00:00:00 UTC). This is the new default `0` date for the package's timestamps. This saves some space & aims to provided fewer bits of confirmable attestation & correlation in proof games which simulate attacks on the key-deniability of the cipher. To explain: the plaintext padding includes random padding. That padding is intended to leave an adversary which attempts to brute force a ciphertext's encryption `key`, even with unbounded computational resources, in a state where it cannot decide with better accuracy than random chance between the exponentially large number of keys which create the same `shmac` tag (the variable `keyspace` is much larger than the 32-byte tag) with their accompanying exponentially large number of `plausible` plaintexts (any `reasonable` plaintext with any variable length random padding between 16 & 272 bytes), & the actual user `key` & plaintext.
+
+      We also got rid of the use of a `padding_key` to indicate the end of a plaintext message. It used to be sliced off the `primer_key`, but the `primer_key` has a new use now. Also, the `padding_key` was another form of plaintext / key attestation harming deniability that we wanted to get rid of. Instead, a simpler method is now employed: The final byte of the final block of padded plaintext is a number which tells the decryptor exactly how many bytes of random padding were added to the plaintext to fill the block. This saves a lot of space, is simpler, minimizes unnecessary key attestation, & eliminates the need for the ``Padding`` class to know anything about user secrets in order to do the padding, which is an improvment all around.
+
+-  New ``(Async)CipherStream`` & ``(Async)DecipherStream`` classes were introduced which allow users to utilize the online nature of the ``Chunky2048`` cipher, ciphering & deciphering data in bufferable chunks, without needing to know about or instantiate all of the low-level classes. They automatically handle the required plaintext padding, ciphertext authentication, & detection of out-of-order message blocks. This greatly simplifies the safe usage of ``Chunky2048`` in online mode, provides robustness, & gets rid of the need for users to worry about the dangers of release of unverified plaintexts.
+
+-  The ``Passcrypt`` algorithm was redesigned to be data-independent, more efficiently acheive its security goals, & allow for more compact hashes which include its difficulty settings metadata. The `kb` parameter was changed to `mb`, & now measures Mibibytes (MiB). A new `cores` parallelization parameter was added, which indicates the number of parallel processes to use to complete the procedure. And the `cpu` parameter now measures the number of iterations over the memory cache that are done, as well as the computational complexity of the algorithm. ``Passcrypt`` now uses ``shake_128`` instead of ``sha3_512`` internally. This also allows for users to specify a ``tag_size`` number of bytes to produce as an output tag. A ``salt_size`` parameter can now also be supplied to the ``(a)hash_passphrase`` methods. The ``(a)verify`` methods now produce raw-bytes outputs & the ``(a)verfiy_raw`` methods were removed. They now also accept ``range``-type objects as ``mb_allowed``, ``cpu_allowed``, & ``cores_allowed`` keyword argument inputs. These range objects can be used to specify the exact amount of resources which the user allows for difficulty settings, which can mitigate adversarial (or unintentional) DOS attacks on machines doing hash verification.
+
+-  Type annotations were added to most of the library, including return types, which were completely neglected in prior versions. They are still not functioning with mypy, & are serving right now as documentation & auto-complete helpers.
+
+-  Many unnecesssary, low-level or badly designed features, functions & classes were either deleted or pulled into private namespaces, along with major reorganization & cleanup of the codebase. The tangled mess of internal module imports was also cleaned up. The goal is to provide access to only the highest level, simplest, & safest by default interfaces which can actually help users in their data processing & cryptographic tasks. These changes aim to improve maintainability, readability, correctness & safety.
+
+-  New top-level ``(a)hash_bytes`` functions were added to the package, which accept an unlimited number bytes-type inputs as positional arguments & automatically canonically encode all inputs before being hashed (which aims to prevent canonicalization attacks & length-extension attacks). A ``key`` keyword-only argument can also be supplied to optionally produce keyed hashes.
+
+-  A new top-level ``GUID`` class was added. It creates objects which produce variable length, obfuscated, pseudo-random bytes-type globally unique identifiers based on a user-defined integer `node_number`, a user-defined uniform bytes `salt`, a nanosecond `timestamp`, random `entropy` bytes & a 1-byte `counter`. The benefits of its novel design explained: **1)** the namespace separation of user-defined salts (like name-based uuids); **2)** guaranteed output uniqueness for all instances using the same `salt` & `node_number` which occur on a different nanosecond (like time-based uuids, but with higher precision); **3)** guaranteed output uniqueness between all instances which use the same `salt` but a different `node_number`, even if produced on the same nanosecond; **4)** guaranteed output uniqueness for any unique instance using the same `salt` & `node_number` if it produces 256 or fewer outputs every nanosecond; **5)** probabilistic output uniqueness for any unique instance using the same `salt` & `node_number` if it produces >256 outputs per-nanosecond, exponentially proportional to the number of random `entropy` bytes (which in turn are proportional to the output size of the GUIDs); **6)** output invertability, meaning outputs can be unmasked & sorted according to `timestamp`, `node_number` & `counter`; **7)** random-appearing outputs, with the marginal amount of privacy which can be afforded by obfuscated affine-group operations. Admittedly, point **7)** still *leaves much room for improvement*, as the privacy of the design could instead be ensured by strong hardness assumptions given by other types of invertible permutations or group operations. The goal was to create something efficient (below 3µs per guid), which met the above criterion, & that produced output bit sequences which passed basic randomness tests. We'd be excited to accept pull requests which use strong invertable permutations or group operations that are also about as efficient, & that for `n`-byte declared output sizes, outputs do not repeat for fewer than ~256 ** `n` sequential input values.
+
+-  The top-level ``DomainKDF`` class now also creates KDF objects which automatically canonically encode all inputs.
+
+-  The ``X25519`` protocols now return ``DomainKDF`` results instead of plain ``sha3_512`` objects.
+
+-  The ``(Base)Comprende`` classes were greatly simplified, & the caching & ``messages`` features were removed.
+
+-  The top-level ``(a)mnemonic`` functions now return lists of bytes-type words, instead of str-type, & can now be used to quickly generate lists of randomly selected words without providing a (now optional) passphrase.
+
+-  The ``(Async)Database`` classes' ``(a)generate_profile`` methods no longer require tokens to first be created by the user. That is now handled internally, & the external API accepts raw bytes inputs for credentials from the user.
+
+-  The ``PackageSigner`` & ``PackageVerifier`` now use ``sha384`` for digests instead of ``sha512``. The verifier now by default recomputes & verifies the digests of files from the filesystem using the ``path`` keyword argument to the constructor as the root directory for the relative filepaths declared in the "checksums" entry of the signature summary.
+
+
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  A new ``Clock`` class was added to the ``generics.py`` module which provides a very intuitive API for handling time & timestamp functionalities for various time units.
+
+-  The test suite was reorganized, cleaned up & extended significantly, & now also utilizes ``pytest-asyncio`` to run async tests. This led to many found & fixed bugs in code that was not being tested. There's still a substantial amount of tests that need to be written. We would greatly appreciate contributions which extend our test coverage.
+
+-  Many improvements to the correctness, completeness & aesthetic beauty of the code documentation with the addition of visual aides, diagrams & usage examples.
+
+-  A top-level ``report_security_issue`` function was added, which provides a terminal application for users to automatically encrypt security reports to us using our new X25519 public key.
+
+-  We lost access to our signing keys in encrypted drives which were damaged in flooding. So we decided to shred them & start fresh. Our new Ed25519 signing key is "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b". Contact us via email or twitter if you'd like to confirm that the key you are seeing is really ours.
+
+
 
 
 Changes for version 0.21.1
@@ -3256,19 +3629,15 @@ _`Known Issues` ................................... `Table Of Contents`_
 -  The test suite for this software is under construction, & what tests
    have been published are currently inadequate to the needs of
    cryptography software.
--  The ``(a)sha__(256/512)`` hash functions aren't to spec. This is 
-   because their inputs aren't required to be bytes, are contained in
-   a tuple & are stringified before hashing. This is purposeful, giving
-   the power to hash any collection python objects which have reprs, but 
-   this can still be an issue.
--  This package is currently in beta testing & active development, 
+-  This package is currently in beta testing & active development,
    meaning major changes are still possible when there are really good
    reasons to do so. Contributions are welcome. Send us a message if 
    you spot a bug or security vulnerability:
    
-   -  < gonzo.development@protonmail.ch >
-   -  < 31FD CC4F 9961 AFAC 522A 9D41 AE2B 47FA 1EF4 4F0A >
-
+   -  gonzo.development@protonmail.ch
+   -  rmlibre@riseup.net
+   -  ed25519-key: 70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b
+   -  x25519-key: 4457276dbcae91cc5b69f1aed4384b9eb6f933343bb44d9ed8a80e2ce438a450
 
 
 
