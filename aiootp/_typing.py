@@ -4,7 +4,7 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -22,7 +22,6 @@ import types
 import typing
 import pathlib
 from hashlib import sha3_256, sha3_512
-from ._exceptions import Issue as _Issue
 
 
 try:
@@ -119,19 +118,19 @@ _JSONSerializableNonContainerTypes = typing.Union[
 _JSONSerializableBaseTypes = typing.Union[
     dict, list, _JSONSerializableNonContainerTypes
 ]
-_JSONArray = typing.List[_JSONSerializableBaseTypes]
-_JSONObject = typing.Dict[str, _JSONSerializableBaseTypes]
+JSONArray = typing.List[_JSONSerializableBaseTypes]
+JSONObject = typing.Dict[str, _JSONSerializableBaseTypes]
 JSONSerializable = typing.Union[
-    _JSONObject, _JSONArray, _JSONSerializableNonContainerTypes
+    JSONObject, JSONArray, _JSONSerializableNonContainerTypes
 ]
 JSONDeserializable = typing.Union[str, bytes, bytearray]
 
 
 class DictCiphertext(typing_extensions.TypedDict):
-    hmac: str
+    shmac: str
     salt: str
-    siv: str
-    ciphertext: typing.List[int]
+    iv: str
+    ciphertext: typing.List[str]
 
 
 JSONCiphertext = typing.Union[DictCiphertext, JSONDeserializable]
@@ -145,6 +144,38 @@ AsyncOrSyncKeystream = typing.Union[AsyncKeystream, Keystream]
 Datastream = typing.Iterable[bytes]
 AsyncDatastream = typing.AsyncIterable[bytes]
 AsyncOrSyncDatastream = typing.Union[AsyncDatastream, Datastream]
+
+
+class PasscryptNewSettingsType(typing_extensions.TypedDict):
+    mb: int
+    cpu: int
+    cores: int
+    tag_size: int
+
+
+class PasscryptKWsNew(typing_extensions.TypedDict):
+    aad: bytes
+    mb: int
+    cpu: int
+    cores: int
+    tag_size: int
+
+
+class PasscryptHashSettingsType(typing_extensions.TypedDict):
+    mb: int
+    cpu: int
+    cores: int
+    tag_size: int
+    salt_size: int
+
+
+class PasscryptKWsHash(typing_extensions.TypedDict):
+    aad: bytes
+    mb: int
+    cpu: int
+    cores: int
+    tag_size: int
+    salt_size: int
 
 
 def _transpose_this_modules_types(
@@ -162,7 +193,7 @@ def _transpose_this_modules_types(
 
 def _transpose_types_modules_types(
     class_dict: typing.Dict[str, typing.Any]
-):
+) -> None:
     """
     Inserts the types from the standard library's `types` module.
     """
@@ -175,7 +206,7 @@ def _transpose_types_modules_types(
 
 def _transpose_typing_modules_types(
     class_dict: typing.Dict[str, typing.Any]
-):
+) -> None:
     """
     Inserts the types from the standard library's `typing` module.
     """
@@ -210,7 +241,7 @@ class Typing:
         extensions = typing_extensions
 
     @classmethod
-    def _test_type_name(cls, name: str):
+    def _test_type_name(cls, name: str) -> None:
         """
         Assures new type additions to the class are unique & title or
         capital-cased.
@@ -220,18 +251,21 @@ class Typing:
         is_capitalized = name[0].isupper()
 
         if not name.isidentifier():
-            raise _Issue.invalid_value(f"variable name {repr(name)}")
+            raise ValueError(f"Invalid variable name {repr(name)}.")
         elif attribute_already_defined:
-            raise _Issue.cant_overwrite_existing_attribute(repr(name))
+            raise AttributeError(f"{repr(name)} is already defined.")
         elif is_mixed_case or not is_capitalized:
-            raise _Issue.value_must(repr(name), "be title or capital-cased")
+            raise ValueError(f"{repr(name)} must be title or capital-cased")
 
     @classmethod
-    def add_type(cls, name: str, new_type: typing.Any):
+    def add_type(cls, name: str, new_type: typing.Any) -> None:
         """
         Adds a new typing type to the class dictionary.
 
-        Usage Example:
+         _____________________________________
+        |                                     |
+        |            Usage Example:           |
+        |_____________________________________|
 
         Typing.add_type("Message", Union[str, bytes, None])
         message: Typing.Message = b"Hello, World!"
