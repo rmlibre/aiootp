@@ -4,27 +4,23 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
 __all__ = [
-    "ciphers",
-    "AsyncDatabase",
+    "AsyncCipherStream",
+    "AsyncDecipherStream",
     "Chunky2048",
-    "Database",
-    "DomainKDF",
-    "Passcrypt",
-    "StreamHMAC",
+    "CipherStream",
+    "DecipherStream",
     "abytes_decrypt",
     "abytes_encrypt",
-    "abytes_keys",
     "ajson_decrypt",
     "ajson_encrypt",
     "bytes_decrypt",
     "bytes_encrypt",
-    "bytes_keys",
     "json_decrypt",
     "json_encrypt",
 ]
@@ -33,134 +29,135 @@ __all__ = [
 __doc__ = (
     "A collection of low-level tools & higher level abstractions which "
     "can be used to create custom security tools, or as pre-assembled r"
-    "ecipes, including the package's main MRAE / AEAD pseudo-one-time-p"
-    "ad cipher called `Chunky2048`."
+    "ecipes, including the package's main online salt reuse / misuse re"
+    "sistant, tweakable AEAD cipher called `Chunky2048`."
 )
 
 
+import io
 import hmac
 import json
 import base64
-from functools import wraps
-from functools import partial
 from collections import deque
-from hashlib import sha3_256, sha3_512, shake_256
-from ._exceptions import *
-from ._typing import Typing
-from .paths import *
-from .paths import Path
-from .asynchs import *
-from .asynchs import asleep, gather, time
-from .commons import *
-from .commons import chunky2048_constants, passcrypt_constants
-from commons import *  # import the module's constants
+from secrets import token_bytes
+from hashlib import sha3_256, sha3_512, shake_128, shake_256
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from .__constants import *
 from ._containers import *
-from _containers import *
+from ._exceptions import *
+from ._typing import Typing as t
+from .paths import Path, DatabasePath
+from .asynchs import AsyncInit, asleep, gather
+from .commons import DeletedAttribute
+from .commons import make_module
+from .gentools import comprehension
+from .gentools import data as _data
+from .gentools import adata
+from .gentools import unpack, aunpack
+from .gentools import popleft, apopleft
 from .randoms import csprng, acsprng
+from .randoms import generate_iv
+from .randoms import generate_key, agenerate_key
 from .randoms import generate_salt, agenerate_salt
-from .generics import Hasher
-from .generics import BytesIO
-from .generics import Domains
-from .generics import Padding
-from .generics import AsyncInit
-from .generics import gentools
-from .generics import data, adata
-from .generics import cycle, acycle
-from .generics import unpack, aunpack
-from .generics import sha3__256, asha3__256
-from .generics import sha3__512, asha3__512
-from .generics import is_async_function
-from .generics import lru_cache, alru_cache
-from .generics import Comprende, comprehension
-from .generics import int_to_base, aint_to_base
-from .generics import sha3__256_hmac, asha3__256_hmac
-from .generics import sha3__512_hmac, asha3__512_hmac
+from .generics import Domains, Padding, BytesIO, Clock
+from .generics import encode_key, aencode_key
+from .generics import hash_bytes, ahash_bytes
+from .generics import int_as_base, aint_as_base
+from .generics import int_as_bytes, aint_as_bytes
+from .generics import len_as_bytes, alen_as_bytes
+from .generics import bytes_as_int, abytes_as_int
+from .generics import canonical_pack, acanonical_pack
 from .generics import bytes_are_equal, abytes_are_equal
+from .generics import fullblock_ljust, afullblock_ljust
 
 
-async def atest_key_salt_aad(key: bytes, salt: bytes, aad: bytes):
+clock = Clock(SECONDS)
+
+
+async def atest_key_salt_aad(key: bytes, salt: bytes, aad: bytes) -> None:
     """
     Validates the main symmetric user ``key``, ephemeral ``salt``, &
     ``aad`` authenticated associated data for the `Chunky2048` cipher.
     """
     if key.__class__ is not bytes:
         raise Issue.value_must_be_type("main key", bytes)
-    elif len(key) < MINIMUM_KEY_BYTES:
+    elif len(key) < MIN_KEY_BYTES:
         raise KeyAADIssue.invalid_key()
     elif salt.__class__ is not bytes:
         raise Issue.value_must_be_type("salt", bytes)
     elif len(salt) != SALT_BYTES:
-        raise KeyAADIssue.invalid_salt()
+        raise KeyAADIssue.invalid_salt(SALT_BYTES)
     elif aad.__class__ is not bytes:
         raise Issue.value_must_be_type("aad", bytes)
 
 
-def test_key_salt_aad(key: bytes, salt: bytes, aad: bytes):
+def test_key_salt_aad(key: bytes, salt: bytes, aad: bytes) -> None:
     """
     Validates the main symmetric user ``key``, ephemeral ``salt``, &
     ``aad`` authenticated associated data for the `Chunky2048` cipher.
     """
     if key.__class__ is not bytes:
         raise Issue.value_must_be_type("main key", bytes)
-    elif len(key) < MINIMUM_KEY_BYTES:
+    elif len(key) < MIN_KEY_BYTES:
         raise KeyAADIssue.invalid_key()
     elif salt.__class__ is not bytes:
         raise Issue.value_must_be_type("salt", bytes)
     elif len(salt) != SALT_BYTES:
-        raise KeyAADIssue.invalid_salt()
+        raise KeyAADIssue.invalid_salt(SALT_BYTES)
     elif aad.__class__ is not bytes:
         raise Issue.value_must_be_type("aad", bytes)
 
 
 async def amake_non_deterministic_salt(
-    salt: bytes, *, disable: bool = False
-):
+    salt: t.Optional[bytes], *, disable: bool = False
+) -> bytes:
     """
     Prevents a deterministic salt from being used for an encryption
     procedure without explicitly passing the appropriate flag to do so.
-    Returns a random 24-byte salt otherwise.
+    Returns a random 16-byte salt otherwise.
     """
     if disable:
-        return salt if salt else await agenerate_salt(size=SALT_BYTES)
+        return salt if salt else await agenerate_salt(SALT_BYTES)
     elif salt:
         raise Issue.unsafe_determinism()
     else:
-        return await agenerate_salt(size=SALT_BYTES)
+        return await agenerate_salt(SALT_BYTES)
 
 
-def make_non_deterministic_salt(salt: bytes, *, disable: bool = False):
+def make_non_deterministic_salt(
+    salt: t.Optional[bytes], *, disable: bool = False
+) -> bytes:
     """
     Prevents a deterministic salt from being used for an encryption
     procedure without explicitly passing the appropriate flag to do so.
-    Returns a random 24-byte salt otherwise.
+    Returns a random 16-byte salt otherwise.
     """
     if disable:
-        return salt if salt else generate_salt(size=SALT_BYTES)
+        return salt if salt else generate_salt(SALT_BYTES)
     elif salt:
         raise Issue.unsafe_determinism()
     else:
-        return generate_salt(size=SALT_BYTES)
+        return generate_salt(SALT_BYTES)
 
 
 async def asingle_use_key_bundle(
-    key: Typing.Optional[bytes] = None,
+    key: t.Optional[bytes] = None,
     *,
-    salt: Typing.Optional[bytes] = None,
-    aad: bytes = b"aad",
+    salt: t.Optional[bytes] = None,
+    aad: bytes = DEFAULT_AAD,
     allow_dangerous_determinism: bool = False,
-):
+) -> KeySaltAAD:
     """
     Returns a mapping containing a unique combination of a ``key``,
     ``salt`` & ``aad`` whose use is limited TO A SINGLE encryption /
     decryption round. The reuse of the same permutation of ``key``,
-    ``salt`` & ``aad`` for multiple different messages **completely**
-    breaks the security of the encryption algorithm if the correct
-    padding, available from the `Padding` class, on the plaintext is not
-    used.
+    ``salt`` & ``aad`` for multiple different messages reduces the
+    security of the cipher to the randomly generated `iv` & the inner-
+    header of the plaintext, which is padding provided by the `Padding`
+    class.
 
     New ``key`` & ``salt`` values are returned in the mapping if neither
-    are specified. The returned ``aad`` defaults to b"aad", as it does
-    across the package.
+    are specified.
     """
     key_and_salt = key and salt
     key = key if key else await acsprng()
@@ -172,24 +169,23 @@ async def asingle_use_key_bundle(
 
 
 def single_use_key_bundle(
-    key: Typing.Optional[bytes] = None,
+    key: t.Optional[bytes] = None,
     *,
-    salt: Typing.Optional[bytes] = None,
-    aad: bytes = b"aad",
+    salt: t.Optional[bytes] = None,
+    aad: bytes = DEFAULT_AAD,
     allow_dangerous_determinism: bool = False,
-):
+) -> KeySaltAAD:
     """
     Returns a mapping containing a unique combination of a ``key``,
     ``salt`` & ``aad`` whose use is limited TO A SINGLE encryption /
     decryption round. The reuse of the same permutation of ``key``,
-    ``salt`` & ``aad`` for multiple different messages **completely**
-    breaks the security of the encryption algorithm if the correct
-    padding, available from the `Padding` class, on the plaintext is not
-    used.
+    ``salt`` & ``aad`` for multiple different messages reduces the
+    security of the cipher to the randomly generated `iv` & the inner-
+    header of the plaintext, which is padding provided by the `Padding`
+    class.
 
     New ``key`` & ``salt`` values are returned in the mapping if neither
-    are specified. The returned ``aad`` defaults to b"aad", as it does
-    across the package.
+    are specified.
     """
     key_and_salt = key and salt
     key = key if key else csprng()
@@ -200,83 +196,215 @@ def single_use_key_bundle(
     return KeySaltAAD(key, salt, aad)
 
 
+class Chunky2048KDFs:
+    """
+    A private type which is responsible for initializing the keystream
+    key-derivation & mac objects for the `Chunky2048` cipher.
+    """
+
+    __slots__ = ("_summary", "_key")
+
+    _SEED_KDF_SALT: bytes = Domains.encode_constant(
+        b"chunky2048_seed_kdf_salt", size=SEED_KDF_BLOCKSIZE
+    )
+    _LEFT_KDF_SALT: bytes = Domains.encode_constant(
+        b"chunky2048_left_kdf_salt", size=LEFT_KDF_BLOCKSIZE
+    )
+    _RIGHT_KDF_SALT: bytes = Domains.encode_constant(
+        b"chunky2048_right_kdf_salt", size=RIGHT_KDF_BLOCKSIZE
+    )
+    _SHMAC_MAC_SALT: bytes = Domains.encode_constant(
+        b"chunky2048_shmac_mac_salt", size=SHMAC_BLOCKSIZE
+    )
+
+    _new_seed_kdf: callable = SEED_KDF_TYPE(_SEED_KDF_SALT).copy
+    _new_left_kdf: callable = LEFT_KDF_TYPE(_LEFT_KDF_SALT).copy
+    _new_right_kdf: callable = RIGHT_KDF_TYPE(_RIGHT_KDF_SALT).copy
+    _new_shmac_mac: callable = SHMAC_TYPE(_SHMAC_MAC_SALT).copy
+
+    _KDF_TYPES = {
+        # This offset is intended to reduce the potential control an
+        # adversary can exert when the StreamHMAC object's digest is
+        # being xor'd into the seed_kdf's state by spreading each update
+        # in half over two different blocks.
+        # ----------------------------------vvvvvvvvvvvvvvv
+        SEED_KDF: (_new_seed_kdf, SEED_PAD, SEED_KDF_OFFSET),
+        LEFT_KDF: (_new_left_kdf, LEFT_PAD, b""),
+        RIGHT_KDF: (_new_right_kdf, RIGHT_PAD, b""),
+        SHMAC: (_new_shmac_mac, SHMAC_PAD, b""),
+    }
+
+    # Cause ciphertexts to be unique & plaintexts to be scrambled for
+    # any distinct variations of the cipher if the package is modified.
+    # IMPORTANT FOR SECURITY. (https://eprint.iacr.org/2016/292.pdf)
+    # DO NOT OVERRIDE TO PROVIDE ITER-OP.
+    METADATA = canonical_pack(
+        int_as_bytes(EPOCH_NS, size=16),
+        int_as_bytes(BLOCKSIZE, size=2),
+        int_as_bytes(BLOCK_ID_BYTES, size=1),
+        int_as_bytes(SHMAC_BYTES, size=1),
+        int_as_bytes(SALT_BYTES, size=1),
+        int_as_bytes(IV_BYTES, size=1),
+        int_as_bytes(TIMESTAMP_BYTES, size=1),
+        int_as_bytes(SIV_KEY_BYTES, size=2),
+        int_as_bytes(MIN_PADDING_BLOCKS, size=2),
+        pad=b"",
+        int_bytes=1,
+    )
+
+    def __init__(self, summary: bytes, *, key: bytes) -> "self":
+        """
+        Stores the full metadata & values summary provided by the
+        `KeyAADBundle`.
+        """
+        self._summary = summary
+        self._key = key
+
+    def __iter__(self) -> "self":
+        """
+        Yields a set of fresh seed, left & right KDFs & the shmac for
+        the instance's given summary.
+        """
+        yield self._initialize_chunky2048_kdf(SEED_KDF)
+        yield self._initialize_chunky2048_kdf(LEFT_KDF)
+        yield self._initialize_chunky2048_kdf(RIGHT_KDF)
+        yield self._initialize_chunky2048_kdf(SHMAC)
+
+    def _initialize_chunky2048_kdf(self, kdf_name: str) -> SHAKE_128_TYPE:
+        """
+        A generalized KDF initializer which works for the seed, left &
+        right KDFs, & the StreamHMAC MAC.
+        """
+        factory, pad, offset = self._KDF_TYPES[kdf_name]
+        kdf = factory()
+        kdf.update(
+            encode_key(self._key, kdf.block_size, pad=pad)
+            + fullblock_ljust(self._summary, kdf.block_size, pad=pad)
+            + offset
+        )
+        return kdf
+
+
 class KeyAADBundle:
     """
-    A public interface for managing a key, salt & associated data bundle
-    which is to be used for ONLY ONE encryption. If a unique bundle is
-    used for more than one encryption, then the security of the
-    `Chunky2048` cipher may be greatly damaged.
+    A low-level interface for managing a key, salt, iv & authenticated
+    associated data bundle which is to be used for ONLY ONE encryption.
+    If a unique bundle is used for more than one encryption, then the
+    security of the `Chunky2048` cipher may be greatly damaged.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform value.
 
-    ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
-            ONCE for each encryption. This value is sent in the clear
-            along with the ciphertext.
+    ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+            generated during encryption if not supplied. SHOULD BE
+            USED ONLY ONCE for each encryption. Any repeats can harm
+            anonymity & unnecessarily forces ciphertext security to rely
+            on the salt reuse / misuse properties of the cipher. This
+            value can be sent in the clear along with the ciphertext.
 
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
+            permutation of `key`, `salt` & `iv`.
+
+    ``iv``: An ephemeral, uniform 16-byte value, generated automatically
+            & at random by the encryption algorithm. Helps ensure salt
+            reuse / misue security even if the `key`, `salt` & `aad` are
+            the same for ~2**64 messages. This value can be sent in the
+            clear along with the ciphertext.
     """
 
-    __slots__ = ("__keys", "_bundle", "_mode", "_registers", "_siv")
+    __slots__ = (
+        "__keys",
+        "_bundle",
+        "_mode",
+        "_registers",
+        "_iv",
+        "_iv_given_by_user",
+    )
 
     _generate_bundle = staticmethod(single_use_key_bundle)
     _agenerate_bundle = staticmethod(asingle_use_key_bundle)
 
     @staticmethod
-    def _test_siv(siv):
+    def _test_iv(iv: bytes) -> None:
         """
-        Assures the ``siv`` is a bytes value & is 24-bytes.
+        Assures the ``iv`` is a 16-byte bytestring.
         """
-        if siv.__class__ is not bytes:
-            raise Issue.value_must_be_type("siv", bytes)
-        elif len(siv) != SIV_BYTES:
-            raise Issue.invalid_length("siv", SIV_BYTES)
+        if iv.__class__ is not bytes:
+            raise Issue.value_must_be_type("iv", bytes)
+        elif len(iv) != IV_BYTES:
+            raise Issue.invalid_length("iv", IV_BYTES)
+
+    def _set_iv(self, iv: bytes) -> bool:
+        """
+        Sets the instance's ``iv`` if it passes tests. Returns `True`
+        if the ``iv`` was given by the user, otherwise returns `False`
+        to indicate a fresh value was randomly sampled. The ``iv``
+        should NOT be set by the user during encryption! Creating a new
+        random IV during encryption ensures the user cannot accidentally
+        prevent the derived key material from being fresh, & salt reuse
+        / misue security even if the `key`, `salt` & `aad` are the same
+        for ~2**64 messages.
+        """
+        if iv:
+            self._test_iv(iv)
+            self._iv = iv
+            self._iv_given_by_user = True
+            return True
+        else:
+            self._iv = generate_iv(IV_BYTES)
+            self._iv_given_by_user = False
+            return False
 
     @classmethod
     async def aunsafe(
-        cls, key: bytes, salt: bytes, aad: bytes = b"aad", siv: bytes = b""
-    ):
+        cls,
+        key: bytes,
+        salt: bytes = b"",
+        aad: bytes = DEFAULT_AAD,
+        iv: bytes = b"",
+    ) -> "self":
         """
-        Allows instances to be used in the `bytes_keys` & `abytes_keys`
-        coroutines without checking for unsafe reuse or checking for the
-        correct lengths of the ``key``, ``salt``, ``aad`` & ``siv``
-        values. This is useful for when the coroutines are needed as
-        cryptographically secure pseudo-random number generators outside
-        of the context of `Chunky2048` cipher.
+        Allows instances to be used in the `(a)bytes_keys` coroutines
+        without checking for unsafe reuse or checking for the
+        correctness of the ``key``, ``salt``, ``aad`` & ``iv`` values.
 
-        WARNING: This initializer SHOULD NOT be used within the
-        `Chunky2048` cipher's interfaces which expect a `key_bundle`.
+        This is useful for when the coroutines are needed as CSPRNGs,
+        or KDFs, outside of the context of the `Chunky2048` cipher.
+        --------
+        WARNING: DO NOT use this initializer within other `Chunky2048`
+        -------- cipher interfaces which expect a `key_bundle`.
         """
         try:
             await asleep()
-            return cls.unsafe(key, salt, aad, siv)
+            return cls.unsafe(key, salt, aad, iv)
         finally:
             await asleep()
 
     @classmethod
     def unsafe(
-        cls, key: bytes, salt: bytes, aad: bytes = b"aad", siv: bytes = b""
-    ):
+        cls,
+        key: bytes,
+        salt: bytes = b"",
+        aad: bytes = DEFAULT_AAD,
+        iv: bytes = b"",
+    ) -> "self":
         """
-        Allows instances to be used in the `bytes_keys` & `abytes_keys`
-        coroutines without checking for unsafe reuse or checking for the
-        correct lengths of the ``key``, ``salt``, ``aad`` & ``siv``
-        values. This is useful for when the coroutines are needed as
-        cryptographically secure pseudo-random number generators outside
-        of the context of the `Chunky2048` cipher.
+        Allows instances to be used in the `(a)bytes_keys` coroutines
+        without checking for unsafe reuse or checking for the
+        correctness of the ``key``, ``salt``, ``aad`` & ``iv`` values.
 
-        WARNING: This initializer SHOULD NOT be used within the
-        `Chunky2048` cipher's interfaces which expect a `key_bundle`.
+        This is useful for when the coroutines are needed as CSPRNGs,
+        or KDFs, outside of the context of the `Chunky2048` cipher.
+        --------
+        WARNING: DO NOT use this initializer within other `Chunky2048`
+        -------- cipher interfaces which expect a `key_bundle`.
         """
         self = cls.__new__(cls)
-        if siv:
-            self._test_siv(siv)
-        self._siv: bytes = siv
+        self._iv: bytes = iv
         self._mode = KeyAADMode()
         self._registers = NoRegisters()
         self._bundle = KeySaltAAD(key, salt, aad)
@@ -285,118 +413,111 @@ class KeyAADBundle:
 
     def __init__(
         self,
-        key: Typing.Optional[bytes] = None,
+        key: t.Optional[bytes] = None,
         *,
-        salt: Typing.Optional[bytes] = None,
-        aad: bytes = b"aad",
-        siv: bytes = b"",
+        salt: t.Optional[bytes] = None,
+        aad: bytes = DEFAULT_AAD,
+        iv: bytes = b"",
         allow_dangerous_determinism: bool = False,
-    ):
+    ) -> "self":
         """
-        Stores the ``key``, ``salt`` & ``aad`` associated data in a
-        private object which is queried through this class' interface.
-        Since the ``siv`` should only be passed when the bundle is to be
+        Stores the ``key``, ``salt`` & ``aad`` in a private object, &
+        initializes the keys & KDFs for this permutation of the values.
+
+        Since the ``iv`` should only be passed when the bundle is to be
         used for decryption, the ``allow_dangerous_determinism`` keyword-
-        only argument doesn't need to be passed when the ``siv`` is.
+        only argument doesn't need to be passed when the ``iv`` is.
         """
-        if siv:
-            self._test_siv(siv)
-            allow_dangerous_determinism = True
-        self._siv: bytes = siv
+        override = self._set_iv(iv) or allow_dangerous_determinism
         self._mode = KeyAADMode()
         self._registers = KeyAADBundleRegisters()
         self._bundle: KeySaltAAD = self._generate_bundle(
             key=key,
             salt=salt,
             aad=aad,
-            allow_dangerous_determinism=allow_dangerous_determinism,
+            allow_dangerous_determinism=override,
         )
         self._initialize_keys()
 
-    def __iter__(self):
+    def __iter__(self) -> "self":
         """
-        Yields the instance's key, salt then the associated aad data.
+        Yields the instance's salt, authenticated associated data then
+        the IV, along with the contextual data the cipher is being run
+        in.
         """
-        yield self._bundle.key
         yield self._bundle.salt
         yield self._bundle.aad
+        yield self._iv
+        yield Chunky2048KDFs.METADATA
 
-    def _initialize_keys(self):
+    def _initialize_keys(self) -> None:
         """
-        Sets up standardized seeds for the `Chunky2048` cipher's KDFs.
+        Creates a canonicalized summary for the `Chunky2048` cipher's
+        KDFs.
         """
         self.__keys = keys = Chunky2048Keys()
-        # main kdf
-        summary = Domains.KDF + Domains.SEED + b"||".join(self)
-        keys.seed_kdf = kdf = sha3_512(summary)
-        # seeds
-        keys.seed_0 = kdf.digest()
-        kdf.update(summary)
-        keys.seed_1 = kdf.digest()
-        kdf.update(summary)
+        # encode key material, salt & aad with their length metadata
+        summary = canonical_pack(*self, pad=b"", int_bytes=4)
+        # keystream kdfs
+        kdfs = Chunky2048KDFs(summary, key=self._bundle.key)
+        keys.seed_kdf, keys.left_kdf, keys.right_kdf, keys.shmac_mac = kdfs
 
-    async def _agenerate_algorithm_keys(self):
+    async def _agenerate_algorithm_keys(self) -> None:
         """
-        Starts the `Chunky2048` cipher's async keystream generator, &
-        uses its first 128-byte output to derive the keys & sha3_256 MAC
-        object needed by the algorithm.
+        Starts the `Chunky2048` cipher's async keystream generator. This
+        stores its first 256-byte output to mask the first block of
+        plaintext after it retrieves the inner-header for use as an SIV
+        to uniquely randomize the keystream. See `SyntheticIV`.
         """
         keys = self.__keys
         # init keystream
         keys.keystream = keystream = abytes_keys.root(self)
-        keys.primer_key = primer_key = await keystream.asend(None)
-        # init stream hmac
-        domain = Domains.SHMAC
-        keys.shmac_mac = sha3_256(primer_key + domain)  # Update with 136 bytes
-        keys.shmac_key = primer_key[:KEY_BYTES]
-        # init padding key
-        keys.padding_key = primer_key[-PADDING_KEY_BYTES:]
+        keys.primer_key = primer_key = await keystream.asend(None)  # 256-bytes
+        if len(primer_key) != BLOCKSIZE:
+            raise Issue.invalid_length("keystream key", BLOCKSIZE)
 
-    def _generate_algorithm_keys(self):
+    def _generate_algorithm_keys(self) -> None:
         """
-        Starts the `Chunky2048` cipher's sync keystream generator, &
-        uses its first 128-byte output to derive the keys & sha3_256 MAC
-        object needed by the algorithm.
+        Starts the `Chunky2048` cipher's sync keystream generator. This
+        stores its first 256-byte output to mask the first block of
+        plaintext after it retrieves the inner-header for use as an SIV
+        to uniquely randomize the keystream. See `SyntheticIV`.
         """
         keys = self.__keys
         # init keystream
         keys.keystream = keystream = bytes_keys.root(self)
-        keys.primer_key = primer_key = keystream.send(None)
-        # init stream hmac
-        domain = Domains.SHMAC
-        keys.shmac_mac = sha3_256(primer_key + domain)  # Update with 136 bytes
-        keys.shmac_key = primer_key[:KEY_BYTES]
-        # init padding key
-        keys.padding_key = primer_key[-PADDING_KEY_BYTES:]
+        keys.primer_key = primer_key = keystream.send(None)  # 256-bytes
+        if len(primer_key) != BLOCKSIZE:
+            raise Issue.invalid_length("keystream key", BLOCKSIZE)
 
-    async def async_mode(self):
+    async def async_mode(self) -> "self":
         """
-        Sets the instance up to run async key derivation.
+        Sets the instance up to run async `Chunky2048` key derivation.
         """
         await self._agenerate_algorithm_keys()
-        await self._mode.aset_async_mode()
+        self._mode.set_async_mode()
         return self
 
-    def sync_mode(self):
+    def sync_mode(self) -> "self":
         """
-        Sets the instance up to run sync key derivation.
+        Sets the instance up to run sync `Chunky2048` key derivation.
         """
         self._generate_algorithm_keys()
         self._mode.set_sync_mode()
         return self
 
-    def _register_validator(self, validator):
+    def _register_shmac(self, shmac) -> None:
         """
-        Registers the validator which will be tied to the instance for a
+        Registers the shmac which will be tied to the instance for a
         single run of the `Chunky2048` cipher. Reusing an instance or
-        the same validator for multiple cipher calls is NOT SAFE, & is
+        the same shmac for multiple cipher calls is NOT SAFE, & is
         disallowed by this registration.
         """
-        if hasattr(self._registers, "validator"):
-            raise KeyAADIssue.validator_already_registered()
-        self._registers.register("validator", validator)
+        if hasattr(self._registers, "shmac"):
+            raise KeyAADIssue.shmac_already_registered()
+        self._registers.register("shmac", shmac)
 
-    def _register_keystream(self):
+    def _register_keystream(self) -> None:
         """
         Registers the keystream which will be tied to the instance for a
         single run of the `Chunky2048` cipher. Reusing an instance is
@@ -407,46 +528,32 @@ class KeyAADBundle:
         self._registers.register("keystream", True)
 
     @property
-    def _keys(self):
+    def _keys(self) -> t.Generator[None, SHAKE_128_TYPE, None]:
         """
-        Returns the private iterable of the instance & its seeds.
+        Returns the private iterable of the KDFs used by `Chunky2048`.
         """
         return self.__keys.__iter__()
 
     @property
-    def _kdf(self):
+    def _kdf(self) -> SEED_KDF_TYPE:
         """
-        Returns the private KDF the instance used to create its seeds.
+        Returns the private seed KDF.
         """
         return self.__keys.seed_kdf
 
     @property
-    def _padding_key(self):
+    def _shmac_mac(self) -> SHMAC_TYPE:
         """
-        Returns the private key which is appended to the plaintext in
-        the `Padding` class to find the end of a message if it, along
-        with the inner header, doesn't precisely fill the 256-byte block.
-        """
-        return self.__keys.padding_key
-
-    @property
-    def _shmac_key(self):
-        """
-        Returns the private authentication key used in the `StreamHMAC`
-        class to produce secure message tags.
-        """
-        return self.__keys.shmac_key
-
-    @property
-    def _shmac_mac(self):
-        """
-        Returns the private `sha3_256` object used by the `StreamHMAC`
-        class.
+        Returns the private `shake_128` MAC object used by the
+        `StreamHMAC` class.
         """
         return self.__keys.shmac_mac
 
     @property
-    def _keystream(self):
+    def _keystream(self) -> t.Union[
+        t.Generator[bytes, bytes, None],
+        t.AsyncGenerator[bytes, bytes],
+    ]:
         """
         Returns the private keystream coroutine used in the `Chunky2048`
         cipher to encrypt / decrypt data. The coroutine can be either
@@ -455,54 +562,74 @@ class KeyAADBundle:
         return self.__keys.keystream
 
     @property
-    def key(self):
+    def _primer_key(self) -> bytes:
         """
-        Returns the main, longer-term symmetric user ``key``. It should
-        be a uniform 64-byte value.
+        Returns the private primer key used by the `SyntheticIV` class
+        to mask the timestamp & IV-key prepended to plaintexts during
+        the message padding phase.
+        """
+        return self.__keys.primer_key
+
+    @property
+    def key(self) -> bytes:
+        """
+        Returns the main, longer-term symmetric user ``key``. It must be
+        be AT LEAST 64 bytes, but any larger key length is also
+        supported.
         """
         return self._bundle.key
 
     @property
-    def salt(self):
+    def salt(self) -> bytes:
         """
-        Returns the random 24-byte ``salt``.
+        Returns the ephemeral, uniform 16-byte salt value. Automatically
+        generated during encryption if not supplied. SHOULD BE USED ONLY
+        ONCE for each encryption. Any repeats reduce salt reuse / misuse
+        security by 64 bits. It also harms anonymity. This value can be
+        sent in the clear along with the ciphertext.
         """
         return self._bundle.salt
 
     @property
-    def aad(self):
+    def aad(self) -> bytes:
         """
-        Returns the ``aad`` authenticated associated data bytes.
+        Returns the authenticated associated data, ``aad``, which is
+        also used to securely alter derived key material per unique
+        permutation of `salt`, `iv` & user `key`.
+        .
         """
         return self._bundle.aad
 
     @property
-    def siv(self):
+    def iv(self) -> bytes:
         """
-        Returns the 24-byte ``siv`` that was attached to ciphertext or
-        derived from the first plaintext block.
+        Returns the 16-byte ephemeral, uniform ``iv`` value, generated
+        automatically & at random by the encryption algorithm. Helps
+        ensure salt reuse / misue security even if the `key`, `salt` &
+        `aad` are the same for ~2**64 messages. This value can be sent
+        in the clear along with the ciphertext.
         """
-        return self._siv
+        return self._iv
 
 
-async def akeypair_ratchets(key_bundle: KeyAADBundle):
+async def akeystream_ratchets(key_bundle: KeyAADBundle) -> t.Tuple[
+    t.Callable[[bytes], None],
+    t.Callable[[int], bytes],
+    t.Callable[[bytes], None],
+    t.Callable[[int], bytes],
+    t.Callable[[bytes], None],
+    t.Callable[[int], bytes],
+]:
     """
-    Returns the user's key value & the method pointers of three
-    ``hashlib.sha3_512`` objects that have been primed in different ways
-    with the hashes of the ``key_bundle``'s `key`, `salt` & `aad` values.
-    The returned values are used to construct a symmetric keypair
-    ratchet algorithm.
+    Returns the method pointers of three ``hashlib.shake_128`` objects
+    that have been primed in different ways with the ``key_bundle``'s
+    `key`, `salt`, `aad` & `iv` values.
+
+    The returned values are used to construct a key ratchet algorithm.
     """
     await asleep()
-    keys, seed_0, seed_1 = key_bundle._keys
-    domain = Domains.CHUNKY_2048
-    seed_kdf = keys.seed_kdf
-    left_kdf = sha3_512(seed_1 + domain + seed_0 + LEFT_PAD)
-    right_kdf = sha3_512(left_kdf.digest() + domain + seed_0 + RIGHT_PAD)
-    keys.add_keystream_kdfs(left_kdf, right_kdf)
-    await asleep()
+    seed_kdf, left_kdf, right_kdf = key_bundle._keys
     return (
-        key_bundle.key,
         seed_kdf.update,
         seed_kdf.digest,
         left_kdf.update,
@@ -512,22 +639,23 @@ async def akeypair_ratchets(key_bundle: KeyAADBundle):
     )
 
 
-def keypair_ratchets(key_bundle: KeyAADBundle):
+def keystream_ratchets(key_bundle: KeyAADBundle) -> t.Tuple[
+    t.Callable[[bytes], None],
+    t.Callable[[int], bytes],
+    t.Callable[[bytes], None],
+    t.Callable[[int], bytes],
+    t.Callable[[bytes], None],
+    t.Callable[[int], bytes],
+]:
     """
-    Returns the user's key value & the method pointers of three
-    ``hashlib.sha3_512`` objects that have been primed in different ways
-    with the hashes of the ``key_bundle``'s `key`, `salt` & `aad` values.
-    The returned values are used to construct a symmetric keypair
-    ratchet algorithm.
+    Returns the method pointers of three ``hashlib.shake_128`` objects
+    that have been primed in different ways with the ``key_bundle``'s
+    `key`, `salt`, `aad` & `iv` values.
+
+    The returned values are used to construct a key ratchet algorithm.
     """
-    keys, seed_0, seed_1 = key_bundle._keys
-    domain = Domains.CHUNKY_2048
-    seed_kdf = keys.seed_kdf
-    left_kdf = sha3_512(seed_1 + domain + seed_0 + LEFT_PAD)
-    right_kdf = sha3_512(left_kdf.digest() + domain + seed_0 + RIGHT_PAD)
-    keys.add_keystream_kdfs(left_kdf, right_kdf)
+    seed_kdf, left_kdf, right_kdf = key_bundle._keys
     return (
-        key_bundle.key,
         seed_kdf.update,
         seed_kdf.digest,
         left_kdf.update,
@@ -538,116 +666,170 @@ def keypair_ratchets(key_bundle: KeyAADBundle):
 
 
 @comprehension()
-async def abytes_keys(key_bundle: KeyAADBundle):
+async def abytes_keys(
+    key_bundle: t.Optional[KeyAADBundle] = None
+) -> t.AsyncGenerator[bytes, bytes]:
     """
     An efficient async coroutine which produces an unending, non-
     repeating, deterministic stream of bytes key material.
 
-    Each iteration yields 128 bytes, iteratively derived by the mixing &
-    hashing of the permutation of the user's key, salt & aad, previous
-    hashed results, & the ``entropy`` users may send into this async
-    generator as an async coroutine.
+    Each iteration yields 256 bytes, iteratively derived by the mixing &
+    hashing of the permutation of the salt, aad, iv & user key, previous
+    hashed results, & the ``entropy`` users may send into this generator
+    as a coroutine.
 
-    Algorithm diagram:
+     _____________________________________
+    |                                     |
+    |     Usage Example: As a CSPRNG      |
+    |_____________________________________|
 
-    R = 64-byte ratchet key (output of the seed KDF)
-    D = 8-byte domain separator (left or right padding constant)
-    r = 72-byte bitrate (blocksize of each round)
-    c = 128-byte capacity (hidden inner state)
+    keystream = aiootp.abytes_keys()  # REPEATS OUTPUTS IF COPIED INTO A
+    async for subkey in keystream:    # NEWLY FORKED PROCESS
+        assert len(subkey) == 256
+        assert type(subkey) is bytes
+        new_subkey = await keystream(b"user can add more entropy here")
+
+     _____________________________________
+    |                                     |
+    |         Algorithm Diagram:          |
+    |_____________________________________|
+
+    R = 336-byte ratchet key (output of the seed KDF)
+    r = 168-byte bitrate (blocksize of each round for left & right KDFs)
+    c = 32-byte capacity (hidden inner state for left & right KDFs)
     f = The round permutation function
-    O = 64-byte output key
+    O = 128-byte output key
 
-               R           D
-               |           |
-    |----------⊕---------|-⊕-|-----------------------------------------|
-    |            r           |                    c                    |
-    |------------------------|-----------------------------------------|
-                 |                                |
-            |------------------------------------------|
-            |                    f                     |
-            |------------------------------------------|
-                 |                                |
-    |------------------------|-----------------------------------------|
-    |            r           |                    c                    |
-    |---------V----------|---|-----------------------------------------|
-              |
-              O
+    left & right KDFs ->
 
-                    seed_kdf.update(key║mac_or_user_entropy║R)
-                    R = seed_kdf.digest()
+                       R[::2]  (the right kdf receives R[1::2] instead)
+                       |
+    |------------------⊕----------------------------|------------------|
+    |                  r                            |      c           |
+    |-----------------------------------------------|------------------|
+                       |                                   |
+          |-----------------------------------------------------|
+          |                         f                           |
+          |-----------------------------------------------------|
+                       |                                   |
+    |--------------------------------------|--------|------------------|
+    |                  r                   |        |      c           |
+    |------------------V-------------------|--------|------------------|
+                       |
+                       O
 
-    Do this procedure for the left & right kdfs, concatenate & retrieve
-    their outputs, repeat this cycle each iteration. It's important that
-    the placement of the ratchet key (R) exactly overlaps with the
-    placement of the 64 bytes which will become the output key (O).
+    after both left & right KDFs have been updated ->
+
+                    seed_kdf.update(user_entropy or R[-r:])
+                    R = seed_kdf.digest(2 * r)
+
+    Do this procedure for the left & right kdfs, retrieve & concatenate
+    their outputs, repeat this cycle each iteration.
     """
+    if not key_bundle:
+        key_bundle = KeyAADBundle(aad=Domains.CSPRNG)
     key_bundle._register_keystream()
-    key, s_update, s_digest, l_update, l_digest, r_update, r_digest = (
-        await akeypair_ratchets(key_bundle)
-    )
+    (
+        s_update,
+        s_digest,
+        l_update,
+        l_digest,
+        r_update,
+        r_digest,
+    ) = await akeystream_ratchets(key_bundle)
     while True:
-        ratchet_key = s_digest()
-        l_update(ratchet_key + LEFT_PAD)  # update with 72-bytes
-        r_update(ratchet_key + RIGHT_PAD)  # update with 72-bytes
-        entropy = yield l_digest() + r_digest()
+        ratchet_key = s_digest(SEED_KDF_DOUBLE_BLOCKSIZE)  # extract 336 bytes
+        l_update(ratchet_key[LEFT_RATCHET_KEY_SLICE])   # update with 168 even index bytes
+        r_update(ratchet_key[RIGHT_RATCHET_KEY_SLICE])  # update with 168 odd index bytes
+        entropy = yield l_digest(HALF_BLOCKSIZE) + r_digest(HALF_BLOCKSIZE)
         await asleep()
-        s_update(key + entropy if entropy else SEED_PAD + ratchet_key)
+        s_update(
+            entropy if entropy else ratchet_key[SEED_RATCHET_KEY_SLICE]
+        )
+        # last 168 bytes -----------------------^^^^^^^^^^^^^^^^^^^^^^
 
 
 @comprehension()
-def bytes_keys(key_bundle: KeyAADBundle):
+def bytes_keys(
+    key_bundle: t.Optional[KeyAADBundle] = None
+) -> t.Generator[bytes, bytes, None]:
     """
     An efficient sync coroutine which produces an unending, non-
     repeating, deterministic stream of bytes key material.
 
-    Each iteration yields 128 bytes, iteratively derived by the mixing &
-    hashing of the permutation of the user's key, salt & aad, previous
+    Each iteration yields 256 bytes, iteratively derived by the mixing &
+    hashing of the permutation of the salt, aad, iv & user key, previous
     hashed results, & the ``entropy`` users may send into this generator
     as a coroutine.
 
-    Algorithm diagram:
+     _____________________________________
+    |                                     |
+    |     Usage Example: As a CSPRNG      |
+    |_____________________________________|
 
-    R = 64-byte ratchet key (output of the seed KDF)
-    D = 8-byte domain separator (left or right padding constant)
-    r = 72-byte bitrate (blocksize of each round)
-    c = 128-byte capacity (hidden inner state)
+    keystream = aiootp.bytes_keys()  # REPEATS OUTPUTS IF COPIED INTO A
+    for subkey in keystream:         # NEWLY FORKED PROCESS
+        assert len(subkey) == 256
+        assert type(subkey) is bytes
+        new_subkey = keystream(b"user can add more entropy here")
+
+     _____________________________________
+    |                                     |
+    |         Algorithm Diagram:          |
+    |_____________________________________|
+
+    R = 336-byte ratchet key (output of the seed KDF)
+    r = 168-byte bitrate (blocksize of each round for left & right KDFs)
+    c = 32-byte capacity (hidden inner state for left & right KDFs)
     f = The round permutation function
-    O = 64-byte output key
+    O = 128-byte output key
 
-               R           D
-               |           |
-    |----------⊕---------|-⊕-|-----------------------------------------|
-    |            r           |                    c                    |
-    |------------------------|-----------------------------------------|
-                 |                                |
-            |------------------------------------------|
-            |                    f                     |
-            |------------------------------------------|
-                 |                                |
-    |------------------------|-----------------------------------------|
-    |            r           |                    c                    |
-    |---------V----------|---|-----------------------------------------|
-              |
-              O
+    left & right KDFs ->
 
-                    seed_kdf.update(key║mac_or_user_entropy║R)
-                    R = seed_kdf.digest()
+                       R[::2]  (the right kdf receives R[1::2] instead)
+                       |
+    |------------------⊕----------------------------|------------------|
+    |                  r                            |      c           |
+    |-----------------------------------------------|------------------|
+                       |                                   |
+          |-----------------------------------------------------|
+          |                         f                           |
+          |-----------------------------------------------------|
+                       |                                   |
+    |--------------------------------------|--------|------------------|
+    |                  r                   |        |      c           |
+    |------------------V-------------------|--------|------------------|
+                       |
+                       O
 
-    Do this procedure for the left & right kdfs, concatenate & retrieve
-    their outputs, repeat this cycle each iteration. It's important that
-    the placement of the ratchet key (R) exactly overlaps with the
-    placement of the 64 bytes which will become the output key (O).
+    after both left & right KDFs have been updated ->
+
+                    seed_kdf.update(user_entropy or R[-r:])
+                    R = seed_kdf.digest(2 * r)
+
+    Do this procedure for the left & right KDFs, retrieve & concatenate
+    their outputs, repeat this cycle each iteration.
     """
+    if not key_bundle:
+        key_bundle = KeyAADBundle(aad=Domains.CSPRNG)
     key_bundle._register_keystream()
-    key, s_update, s_digest, l_update, l_digest, r_update, r_digest = (
-        keypair_ratchets(key_bundle)
-    )
+    (
+        s_update,
+        s_digest,
+        l_update,
+        l_digest,
+        r_update,
+        r_digest,
+    ) = keystream_ratchets(key_bundle)
     while True:
-        ratchet_key = s_digest()
-        l_update(ratchet_key + LEFT_PAD)  # update with 72-bytes
-        r_update(ratchet_key + RIGHT_PAD)  # update with 72-bytes
-        entropy = yield l_digest() + r_digest()
-        s_update(key + entropy if entropy else SEED_PAD + ratchet_key)
+        ratchet_key = s_digest(SEED_KDF_DOUBLE_BLOCKSIZE)  # extract 336 bytes
+        l_update(ratchet_key[LEFT_RATCHET_KEY_SLICE])   # update with 168 even index bytes
+        r_update(ratchet_key[RIGHT_RATCHET_KEY_SLICE])  # update with 168 odd index bytes
+        entropy = yield l_digest(HALF_BLOCKSIZE) + r_digest(HALF_BLOCKSIZE)
+        s_update(
+            entropy if entropy else ratchet_key[SEED_RATCHET_KEY_SLICE]
+        )
+        # last 168 bytes -----------------------^^^^^^^^^^^^^^^^^^^^^^
 
 
 class StreamHMAC:
@@ -655,22 +837,22 @@ class StreamHMAC:
     This class is used as an inline validator for ciphertext streams as
     they are being created & decrypted. Its design was inspired by AES-
     GCM, but it's key committing, uses SHA3 for ciphertext validation,
-    feeds its state at each step into the keystream generator, & is used
-    to derive an SIV from the first block of plaintext.
+    feeds its state at each step into the keystream generator & can be
+    used to validate each ciphertext block to mitigate the dangers
+    related to release of unverified plaintexts.
     """
 
     __slots__ = (
         "_aupdate",
-        "_auth_key",
         "_avalidated_xor",
+        "_current_digest",
         "_is_finalized",
         "_key_bundle",
-        "_last_digest",
+        "_previous_digest",
         "_mac",
         "_mode",
         "_result",
         "_result_is_ready",
-        "_siv",
         "_update",
         "_validated_xor",
     )
@@ -678,14 +860,22 @@ class StreamHMAC:
     _DECRYPTION: str = DECRYPTION
     _ENCRYPTION: str = ENCRYPTION
 
-    _key_type = sha3_512
-    _type = sha3_256
+    _new_block_id_mac: callable = SHAKE_128_TYPE(
+        Domains.encode_constant(
+            b"chunky2048_shmac_block_id_mac", size=SHAKE_128_BLOCKSIZE
+        )
+    ).copy
 
-    def __init__(self, key_bundle: KeyAADBundle):
+    InvalidBlockID = InvalidBlockID
+    InvalidSHMAC = InvalidSHMAC
+
+    def __init__(self, key_bundle: KeyAADBundle) -> "self":
         """
         Begins a stateful hash object that's used to calculate a keyed-
-        message authentication code referred to as an hmac. The instance
-        uses derived key material from the provided KeyAADBundle.
+        message authentication code referred to as a shmac, as well as
+        block IDs to validate ciphertext streams that have not yet been
+        completed. The instance uses derived key material from the
+        provided KeyAADBundle.
         """
         if not issubclass(key_bundle.__class__, KeyAADBundle):
             raise Issue.value_must_be_type("key_bundle", KeyAADBundle)
@@ -693,10 +883,10 @@ class StreamHMAC:
         self._is_finalized = False
         self._result_is_ready = False
         self._register_key_bundle(key_bundle)
-        self._update = self._placeholder_update
-        self._aupdate = self._aplaceholder_update
+        self._update = self._placeholder_update    # Don't allow updates
+        self._aupdate = self._aplaceholder_update  # unless mode is set
 
-    def _register_key_bundle(self, key_bundle: KeyAADBundle):
+    def _register_key_bundle(self, key_bundle: KeyAADBundle) -> None:
         """
         Registers the `KeyAADBundle` object which will be tied to the
         instance for a single run of the `Chunky2048` cipher. Reusing an
@@ -705,76 +895,37 @@ class StreamHMAC:
         """
         key_bundle._mode.validate()
         self._key_bundle = key_bundle
-        key_bundle._register_validator(self)
-        self._mac = key_bundle._shmac_mac
-        self._last_digest = self._mac.digest()
-        self._auth_key = key_bundle._shmac_key
-        self.siv = key_bundle.siv
+        key_bundle._register_shmac(self)
+        self._mac = mac = key_bundle._shmac_mac
+        self._previous_digest = self._current_digest = mac.digest(
+            SHMAC_BLOCKSIZE
+        )
 
     @property
-    def mode(self):
+    def mode(self) -> str:
         """
         Returns the mode which the instance was instructed to be in by
-        the user.
+        the user by calling `_for_encryption` or `_for_decryption`.
         """
         return self._mode
 
-    @property
-    def siv(self):
+    def _for_encryption(self) -> "self":
         """
-        Returns the instance's synthetic IV, which is used as a seed to
-        the encryption key stream algorithm. It's derived from the first
-        block of plaintext during the padding phase. The ``siv`` is
-        attached to the ciphertext.
-        """
-        return self._siv
+        Instructs the SHMAC instance to prepare itself for validating
+        ciphertext within the `(a)bytes_xor` generator as plaintext is
+        being encrypted.
 
-    @siv.setter
-    def siv(self, value: bytes):
-        """
-        An interface for setting the instance's SIV & assist users by
-        warning against invalid usage.
-        """
-        if getattr(self, "_siv", None):
-            raise Issue.value_already_set("siv", str(self._siv))
-        elif value:
-            self._siv = value
-            self._key_bundle._siv = value
-            self._mac.update(value)
-        else:
-            self._siv = b""
-
-    def for_encryption(self):
-        """
-        Instructs the HMAC validator instance to prepare itself for
-        validating ciphertext within the `xor` generator as plaintext
-        is being encrypted.
-
-        Usage Example:
-
-        from aiootp import gentools, StreamHMAC, KeyAADBundle
-
-        aad = b"known associated data"
-        key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
-        shmac = StreamHMAC(key_bundle).for_encryption()
-        stream = gentools.plaintext_stream(
-            b"some bytes of plaintext...", key_bundle
-        )
-
-        with stream.bytes_encipher(key_bundle, shmac) as ciphering:
-            return {
-                "ciphertext": ciphering.join(b""),
-                "hmac": shmac.finalize(),
-                "salt": key_bundle.salt,
-                "synthetic_iv": key_bundle.siv,
-            }
+         --------------------------------------------------------------
+        | PRIVATE: Use high-level Chunky2048 or (Async)CipherStream    |
+        |          instead!                                            |
+         --------------------------------------------------------------
         """
         if self._mode:
-            raise Issue.value_already_set("validator", self._mode)
+            raise Issue.value_already_set("shmac", self._mode)
         elif self._is_finalized:
             raise SHMACIssue.already_finalized()
-        elif self._siv:
-            raise SHMACIssue.invalid_siv_usage()
+        elif self._key_bundle._iv_given_by_user:
+            raise SHMACIssue.invalid_iv_usage()
         self._mode = self._ENCRYPTION
         self._update = self._update_mac
         self._aupdate = self._aupdate_mac
@@ -782,38 +933,23 @@ class StreamHMAC:
         self._avalidated_xor = self._axor_then_hash
         return self
 
-    def for_decryption(self):
+    def _for_decryption(self) -> "self":
         """
-        Instructs the HMAC validator instance to prepare itself for
-        validating ciphertext within the `xor` generator as it's being
+        Instructs the SHMAC instance to prepare itself for validating
+        ciphertext within the `(a)bytes_xor` generator as it's being
         decrypted.
 
-        Usage Example:
-
-        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
-
-        salt = message["salt"]
-        siv = message["synthetic_iv"]
-        aad = b"known associated data"
-        key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
-        shmac = StreamHMAC(key_bundle.sync_mode()).for_decryption()
-        stream = gentools.data(message["ciphertext"])
-
-        with stream.bytes_decipher(key_bundle, shmac) as deciphering:
-            padded_plaintext = deciphering.join(b"")
-            shmac.finalize()
-            shmac.test_hmac(message["hmac"])
-
-        plaintext = Padding.depad_plaintext(
-            padded_plaintext, key_bundle, ttl=60
-        )
+         --------------------------------------------------------------
+        | PRIVATE: Use high-level Chunky2048 or (Async)DecipherStream  |
+        |          instead!                                            |
+         --------------------------------------------------------------
         """
         if self._mode:
-            raise Issue.value_already_set("validator", self._mode)
+            raise Issue.value_already_set("shmac", self._mode)
         elif self._is_finalized:
             raise SHMACIssue.already_finalized()
-        elif not self._siv:
-            raise SHMACIssue.invalid_siv_usage()
+        elif not self._key_bundle._iv_given_by_user:
+            raise SHMACIssue.invalid_iv_usage()
         self._mode = self._DECRYPTION
         self._update = self._update_mac
         self._aupdate = self._aupdate_mac
@@ -821,79 +957,51 @@ class StreamHMAC:
         self._avalidated_xor = self._ahash_then_xor
         return self
 
-    async def aupdate_key(self, entropic_material: bytes):
+    async def _aplaceholder_update(self, *a, **kw) -> None:
         """
-        This method provides a public interface for updating the SHMAC
-        key during validation of the stream of ciphertext. This allows
-        users to ratchet their authentication key, the keystream, & have
-        the validator track when the key changes & validate the change.
+        This method is overwritten with the propper functionality when a
+        cipher mode is declared with either the `_for_encryption` or
+        `_for_decryption` methods. This interface helps ensure correct
+        usage of the object.
         """
-        if self._is_finalized:
-            raise SHMACIssue.already_finalized()
+        raise SHMACIssue.no_cipher_mode_declared()
+
+    def _placeholder_update(self, *a, **kw) -> None:
+        """
+        This method is overwritten with the propper functionality when a
+        cipher mode is declared with either the `_for_encryption` or
+        `_for_decryption` methods. This interface helps ensure correct
+        usage of the object.
+        """
+        raise SHMACIssue.no_cipher_mode_declared()
+
+    async def _aupdate_mac(self, ciphertext_block: bytes) -> "self":
+        """
+        This method is called automatically when an instance is passed
+        into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
+        generators. It updates the instance's mac object with the
+        ``ciphertext_block`` & stores its previous digest in case the
+        instance is needed to create / validate `block_id`s.
+        """
         await asleep()
-        mac = self._mac.digest()
-        payload = (Domains.KDF, self._auth_key, entropic_material, mac)
-        kdf = self._key_bundle._kdf
-        kdf.update(b"".join(payload))
-        self._auth_key = key = kdf.digest()
-        self._mac.update(key)
+        mac = self._mac
+        self._previous_digest = self._current_digest
+        mac.update(ciphertext_block)
+        self._current_digest = mac.digest(SHMAC_BLOCKSIZE)
         return self
 
-    def update_key(self, entropic_material: bytes):
-        """
-        This method provides a public interface for updating the SHMAC
-        key during validation of the stream of ciphertext. This allows
-        users to ratchet their authentication key, the keystream, & have
-        the validator track when the key changes & validate the change.
-        """
-        if self._is_finalized:
-            raise SHMACIssue.already_finalized()
-        mac = self._mac.digest()
-        payload = (Domains.KDF, self._auth_key, entropic_material, mac)
-        kdf = self._key_bundle._kdf
-        kdf.update(b"".join(payload))
-        self._auth_key = key = kdf.digest()
-        self._mac.update(key)
-        return self
-
-    async def _aplaceholder_update(self, *a, **kw):
-        """
-        This method is overwritten with the propper functionality when a
-        cipher mode is declared with either the `for_encryption` or
-        `for_decryption` methods. This interface helps use the object
-        correctly.
-        """
-        raise SHMACIssue.no_cipher_mode_declared()
-
-    def _placeholder_update(self, *a, **kw):
-        """
-        This method is overwritten with the propper functionality when a
-        cipher mode is declared with either the `for_encryption` or
-        `for_decryption` methods. This interface helps use the object
-        correctly.
-        """
-        raise SHMACIssue.no_cipher_mode_declared()
-
-    async def _aupdate_mac(self, ciphertext_block: bytes):
+    def _update_mac(self, ciphertext_block: bytes) -> "self":
         """
         This method is called automatically when an instance is passed
         into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
-        generators as a `validator`. It updates the instance's mac
-        object with the ``ciphertext_block``.
+        generators. It updates the instance's mac object with the
+        ``ciphertext_block`` & stores its previous digest in case the
+        instance is needed to create / validate `block_id`s.
         """
-        self._last_digest = self._mac.digest()
-        self._mac.update(ciphertext_block)
-        return self
-
-    def _update_mac(self, ciphertext_block: bytes):
-        """
-        This method is called automatically when an instance is passed
-        into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
-        generators as a `validator`. It updates the instance's mac
-        object with the ``ciphertext_block``.
-        """
-        self._last_digest = self._mac.digest()
-        self._mac.update(ciphertext_block)
+        mac = self._mac
+        self._previous_digest = self._current_digest
+        mac.update(ciphertext_block)
+        self._current_digest = mac.digest(SHMAC_BLOCKSIZE)
         return self
 
     async def _axor_then_hash(
@@ -901,62 +1009,62 @@ class StreamHMAC:
         plaintext_block: bytes,
         key_chunk: bytes,
         *,
-        _from_bytes: Typing.Callable = int.from_bytes,
-    ):
+        _from_bytes: t.Callable[..., int] = int.from_bytes,
+    ) -> bytes:
         """
         This method is inserted as the instance's `_avalidated_xor`
         method after the user chooses the encryption mode. The mode is
-        chosen by calling the `for_encryption` method. It receives a
+        chosen by calling the `_for_encryption` method. It receives a
         ``plaintext_block`` & ``key_chunk``, & xors them into a 256-byte
         `ciphertext_block` used to update the instance's mac object
         before being returned.
         """
         try:
             ciphertext_block = (
-                _from_bytes(plaintext_block, "big")
-                ^ _from_bytes(key_chunk, "big")
-            ).to_bytes(BLOCKSIZE, "big")
+                _from_bytes(plaintext_block, BYTE_ORDER)
+                ^ _from_bytes(key_chunk, BYTE_ORDER)
+            ).to_bytes(BLOCKSIZE, BYTE_ORDER)
             await self._aupdate(ciphertext_block)
             return ciphertext_block
         except OverflowError:
-            raise Issue.exceeded_blocksize()
+            raise Issue.exceeded_blocksize(BLOCKSIZE)
 
     def _xor_then_hash(
         self,
         plaintext_block: bytes,
         key_chunk: bytes,
         *,
-        _from_bytes: Typing.Callable = int.from_bytes,
-    ):
+        _from_bytes: t.Callable[..., int] = int.from_bytes,
+    ) -> bytes:
         """
         This method is inserted as the instance's `_validated_xor`
         method after the user chooses the encryption mode. The mode is
-        chosen by calling the `for_encryption` method. It receives a
+        chosen by calling the `_for_encryption` method. It receives a
         ``plaintext_block`` & ``key_chunk``, & xors them into a 256-byte
         `ciphertext_block` used to update the instance's mac object
         before being returned.
         """
         try:
             ciphertext_block = (
-                _from_bytes(plaintext_block, "big")
-                ^ _from_bytes(key_chunk, "big")
-            ).to_bytes(BLOCKSIZE, "big")
+                _from_bytes(plaintext_block, BYTE_ORDER)
+                ^ _from_bytes(key_chunk, BYTE_ORDER)
+            ).to_bytes(BLOCKSIZE, BYTE_ORDER)
             self._update(ciphertext_block)
             return ciphertext_block
         except OverflowError:
-            raise Issue.exceeded_blocksize()
+            raise Issue.exceeded_blocksize(BLOCKSIZE)
 
     async def _ahash_then_xor(
         self,
         ciphertext_block: bytes,
         key_chunk: bytes,
         *,
-        _from_bytes: Typing.Callable = int.from_bytes,
-    ):
+        _from_bytes: t.Callable[..., int] = int.from_bytes,
+    ) -> bytes:
         """
         This method is inserted as the instance's `_avalidated_xor`
         method after the user chooses the decryption mode. The mode is
-        chosen by calling the `for_decryption` method. It receives a
+        chosen by calling the `_for_decryption` method. It receives a
         ``ciphertext_block`` & ``key_chunk``, uses the ciphertext to
         update the instance's mac object, then returns the 256-byte
         plaintext.
@@ -964,23 +1072,23 @@ class StreamHMAC:
         try:
             await self._aupdate(ciphertext_block)
             return (
-                _from_bytes(ciphertext_block, "big")
-                ^ _from_bytes(key_chunk, "big")
-            ).to_bytes(BLOCKSIZE, "big")
+                _from_bytes(ciphertext_block, BYTE_ORDER)
+                ^ _from_bytes(key_chunk, BYTE_ORDER)
+            ).to_bytes(BLOCKSIZE, BYTE_ORDER)
         except OverflowError:
-            raise Issue.exceeded_blocksize()
+            raise Issue.exceeded_blocksize(BLOCKSIZE)
 
     def _hash_then_xor(
         self,
         ciphertext_block: bytes,
         key_chunk: bytes,
         *,
-        _from_bytes: Typing.Callable = int.from_bytes,
-    ):
+        _from_bytes: t.Callable[..., int] = int.from_bytes,
+    ) -> bytes:
         """
         This method is inserted as the instance's `_validated_xor`
         method after the user chooses the decryption mode. The mode is
-        chosen by calling the `for_decryption` method. It receives a
+        chosen by calling the `_for_decryption` method. It receives a
         ``ciphertext_block`` & ``key_chunk``, uses the ciphertext to
         update the instance's mac object, then returns the 256-byte
         plaintext.
@@ -988,57 +1096,24 @@ class StreamHMAC:
         try:
             self._update(ciphertext_block)
             return (
-                _from_bytes(ciphertext_block, "big")
-                ^ _from_bytes(key_chunk, "big")
-            ).to_bytes(BLOCKSIZE, "big")
+                _from_bytes(ciphertext_block, BYTE_ORDER)
+                ^ _from_bytes(key_chunk, BYTE_ORDER)
+            ).to_bytes(BLOCKSIZE, BYTE_ORDER)
         except OverflowError:
-            raise Issue.exceeded_blocksize()
+            raise Issue.exceeded_blocksize(BLOCKSIZE)
 
     @staticmethod
-    async def _ablock_id_metadata(next_block: bytes, block_id_size: int):
+    def _test_block_id_size(size: int) -> None:
         """
-        Returns 8-bytes of metadata of the requested block ID size &
-        the size of the next block.
+        Raises errors if the requested `block_id` ``size`` is not within
+        the allowed bounds.
         """
-        await asleep()
-        if block_id_size < MINIMUM_BLOCK_ID_BYTES:
-            raise SHMACIssue.block_id_is_too_small(block_id_size)
-        elif block_id_size > MAX_BLOCK_ID_BYTES:
-            raise SHMACIssue.block_id_is_too_big(block_id_size)
-        id_size = block_id_size.to_bytes(4, "big")
-        blocksize = len(next_block).to_bytes(4, "big")
-        return id_size + blocksize
+        if size < MIN_BLOCK_ID_BYTES:
+            raise SHMACIssue.block_id_is_too_small(size)
+        elif size > MAX_BLOCK_ID_BYTES:
+            raise SHMACIssue.block_id_is_too_big(size)
 
-    @staticmethod
-    def _block_id_metadata(next_block: bytes, block_id_size: int):
-        """
-        Returns 8-bytes of metadata of the requested block ID size &
-        the size of the next block.
-        """
-        if block_id_size < MINIMUM_BLOCK_ID_BYTES:
-            raise SHMACIssue.block_id_is_too_small(block_id_size)
-        elif block_id_size > MAX_BLOCK_ID_BYTES:
-            raise SHMACIssue.block_id_is_too_big(block_id_size)
-        id_size = block_id_size.to_bytes(4, "big")
-        blocksize = len(next_block).to_bytes(4, "big")
-        return id_size + blocksize
-
-    async def _aget_block_id_mac(self):
-        """
-        Returns a correct mac digest considering that during encryption
-        the instance is updated before the block id is generated, & it
-        must be checked by an instance during decryption before being
-        updated.
-        """
-        await asleep()
-        if self._mode == self._ENCRYPTION:
-            return self._last_digest
-        elif self._mode == self._DECRYPTION:
-            return self._mac.digest()
-        else:
-            raise SHMACIssue.no_cipher_mode_declared()
-
-    def _get_block_id_mac(self):
+    def _get_block_id_mac(self) -> None:
         """
         Returns a correct mac digest considering that during encryption
         the instance is updated before the block id is generated, & it
@@ -1046,330 +1121,122 @@ class StreamHMAC:
         updated.
         """
         if self._mode == self._ENCRYPTION:
-            return self._last_digest
+            return self._previous_digest
         elif self._mode == self._DECRYPTION:
-            return self._mac.digest()
+            return self._current_digest
         else:
             raise SHMACIssue.no_cipher_mode_declared()
 
     async def anext_block_id(
-        self, next_block: bytes, *, size: int = BLOCK_ID_BYTES
-    ):
+        self,
+        next_block: bytes,
+        *,
+        size: int = BLOCK_ID_BYTES,
+        aad: bytes = DEFAULT_AAD,
+        _join: t.Callable[..., bytes] = b"".join
+    ) -> bytes:
         """
         Returns a ``size``-byte block id derived from the current state
         & the supplied ``next_block`` chunk of ciphertext. These block
         ids can be used to detect out-of-order messages, as well as
         ciphertext forgeries, without altering the internal state. This
-        allows for robust decryption of ciphertext streams & mitigates
-        adversarial attempts to crash communication channels.
+        allows for robust decryption of ciphertext streams, mitigates
+        adversarial attempts to crash communication channels & allows
+        release of plaintexts without waiting for the stream to end.
 
-        Usage Example (Encryption): # when the `key` & `aad` are already
-                                    # shared
+        Additional ``aad`` for each block may be specified if desired,
+        however the ``aad`` passed into this method DO NOT alter the
+        keystream. Only used to create block ids that authenticate the
+        additional data.
 
-        from aiootp import gentools, StreamHMAC, KeyAADBundle
-
-        async def aciphertext_stream():
-            plaintext_bytes = b"example plaintext..."
-            key_bundle = await KeyAADBundle(key, aad=aad).async_mode()
-            shmac = StreamHMAC(key_bundle).for_encryption()
-            datastream = gentools.aplaintext_stream(
-                plaintext_bytes, key_bundle
-            )
-            cipherstream = datastream.abytes_encipher(key_bundle, shmac)
-
-            first_ciphertext_block = await cipherstream()
-            yield key_bundle.salt, key_bundle.siv
-            yield (
-                await shmac.anext_block_id(first_ciphertext_block),
-                first_ciphertext_block,
-            )
-            async for ciphertext_block in cipherstream:
-                yield (
-                    await shmac.anext_block_id(ciphertext_block),
-                    ciphertext_block,
-                )
-
-
-        Usage Example (Decryption): # when the `key` & `aad` are already
-                                    # shared
-
-        from collections import deque
-        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
-
-        cipherstream = aciphertext_stream()
-        salt, siv = await cipherstream.asend(None)
-        key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
-        shmac = StreamHMAC(await key_bundle.async_mode()).for_decryption()
-
-        ciphertext = deque()
-        deciphering = gentools.apopleft(ciphertext).abytes_decipher(
-            key_bundle, validator=shmac
-        )
-
-        padded_plaintext = b""
-        async for block_id, ciphertext_block in cipherstream:
-            await shmac.atest_next_block_id(block_id, ciphertext_block)
-            ciphertext.append(ciphertext_block)
-            padded_plaintext += await deciphering()
-
-        assert plaintext_bytes == await Padding.adepad_plaintext(
-            padded_plaintext, key_bundle, ttl=60
-        )
-        """
-        payload = (
-            Domains.BLOCK_ID,
-            await self._ablock_id_metadata(next_block, size),
-            self._auth_key,
-            await self._aget_block_id_mac(),
-            next_block,
-        )
-        block_id = self._type(b"".join(payload))
-        return block_id.digest()[:size]
-
-    def next_block_id(
-        self, next_block: bytes, *, size: int = BLOCK_ID_BYTES
-    ):
-        """
-        Returns a ``size``-byte block id derived from the current state
-        & the supplied ``next_block`` chunk of ciphertext. These block
-        ids can be used to detect out-of-order messages, as well as
-        ciphertext forgeries, without altering the internal state. This
-        allows for robust decryption of ciphertext streams & mitigates
-        adversarial attempts to crash communication channels.
-
-        Usage Example (Encryption): # when the `key` & `aad` are already
-                                    # shared
-
-        from aiootp import gentools, StreamHMAC, KeyAADBundle
-
-        def ciphertext_stream():
-            plaintext_bytes = b"example plaintext..."
-            key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
-            shmac = StreamHMAC(key_bundle).for_encryption()
-            datastream = gentools.plaintext_stream(
-                plaintext_bytes, key_bundle
-            )
-            cipherstream = datastream.bytes_encipher(key_bundle, shmac)
-
-            first_ciphertext_block = cipherstream()
-            yield key_bundle.salt, key_bundle.siv
-            yield (
-                shmac.next_block_id(first_ciphertext_block),
-                first_ciphertext_block,
-            )
-            for ciphertext_block in cipherstream:
-                yield (
-                    shmac.next_block_id(ciphertext_block),
-                    ciphertext_block,
-                )
-
-
-        Usage Example (Decryption): # when the `key` & `aad` are already
-                                    # shared
-
-        from collections import deque
-        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
-
-        cipherstream = ciphertext_stream()
-        salt, siv = cipherstream.asend(None)
-        key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
-        shmac = StreamHMAC(key_bundle.sync_mode()).for_decryption()
-
-        ciphertext = deque()
-        deciphering = gentools.popleft(ciphertext).bytes_decipher(
-            key_bundle, validator=shmac
-        )
-
-        padded_plaintext = b""
-        async for block_id, ciphertext_block in cipherstream:
-            shmac.test_next_block_id(block_id, ciphertext_block)
-            ciphertext.append(ciphertext_block)
-            padded_plaintext += deciphering()
-
-        assert plaintext_bytes == Padding.depad_plaintext(
-            padded_plaintext, key_bundle, ttl=60
-        )
-        """
-        payload = (
-            Domains.BLOCK_ID,
-            self._block_id_metadata(next_block, size),
-            self._auth_key,
-            self._get_block_id_mac(),
-            next_block,
-        )
-        block_id = self._type(b"".join(payload))
-        return block_id.digest()[:size]
-
-    async def acurrent_digest(
-        self, *, obj: Typing.Union[sha3_256, sha3_512] = _type
-    ):
-        """
-        Returns a secure digest that authenticates the ciphertext up to
-        the current point of execution of the StreamHMAC algorithm. It
-        incorporates the number of blocks of ciphertext blocks processed,
-        the encoded key derived from the user's key, salt, & aad, as
-        well as the hashing object's current & previous digest.
-
-        Usage Example (Encryption): # when the `key` & `aad` are already
-                                    # shared
-        import aiootp
-        from aiootp import gentools, StreamHMAC, KeyAADBundle
-
-        async def acipher_stream():
-            plaintext_bytes = b"example plaintext..."
-            aad = b"known associated data"
-            key_bundle = await KeyAADBundle(key, aad=aad).async_mode()
-            shmac = StreamHMAC(key_bundle).for_encryption()
-
-            datastream = gentools.aplaintext_stream(
-                plaintext_bytes, key_bundle
-            )
-            cipherstream = datastream.abytes_encipher(key_bundle, shmac)
-
-            first_ciphertext_block = await cipherstream()
-            yield key_bundle.salt, shmac.siv
-            yield await shmac.acurrent_digest(), first_ciphertext_block
-            async for ciphertext_block in cipherstream:
-                yield await shmac.acurrent_digest(), ciphertext_block
-
-
-        Usage Example (Decryption): # when the `key` & `aad` are already
-                                    # shared
-        from collections import deque
-        import aiootp
-        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
-
-        cipherstream = acipher_stream()
-        aad = b"known associated data"
-        salt, siv = await cipherstream.asend(None)
-        key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
-        shmac = StreamHMAC(await key_bundle.async_mode()).for_decryption()
-
-        ciphertext = deque()
-        deciphering = gentools.apopleft(ciphertext).abytes_decipher(
-            key_bundle, validator=shmac
-        )
-
-        padded_plaintext = b""
-        async for digest, ciphertext_block in cipherstream:
-            ciphertext.append(ciphertext_block)
-            plaintext_chunk = await deciphering()
-            await shmac.atest_current_digest(digest)
-            padded_plaintext += plaintext_chunk
-
-        assert b"example plaintext..." == await Padding.adepad_plaintext(
-            padded_plaintext, key_bundle, ttl=60
-        )
+         --------------------------------------------------------------
+        | PRIVATE: Use high-level Chunky2048 or (Async)CipherStream    |
+        |          instead!                                            |
+         --------------------------------------------------------------
         """
         await asleep()
+        self._test_block_id_size(size)
+        mac = self._new_block_id_mac()
         payload = (
-            Domains.DIGEST,
-            self._auth_key,
-            self._mac.digest(),
-            self._last_digest,
+            self._get_block_id_mac(),
+            size.to_bytes(1, BYTE_ORDER),
+            len(aad).to_bytes(8, BYTE_ORDER),
+            aad,
+            len(next_block).to_bytes(8, BYTE_ORDER),
+            next_block,
         )
-        return obj(b"".join(payload)).digest()
+        mac.update(_join(payload))
+        return mac.digest(size)
 
-    def current_digest(
-        self, *, obj: Typing.Union[sha3_256, sha3_512] = _type
-    ):
+    def next_block_id(
+        self,
+        next_block: bytes,
+        *,
+        size: int = BLOCK_ID_BYTES,
+        aad: bytes = DEFAULT_AAD,
+        _join: t.Callable[..., bytes] = b"".join
+    ) -> bytes:
         """
-        Returns a secure digest that authenticates the ciphertext up to
-        the current point of execution of the StreamHMAC algorithm. It
-        incorporates the number of blocks of ciphertext blocks processed,
-        the encoded key derived from the user's key, salt, & aad, as
-        well as the hashing object's current & previous digest.
+        Returns a ``size``-byte block id derived from the current state
+        & the supplied ``next_block`` chunk of ciphertext. These block
+        ids can be used to detect out-of-order messages, as well as
+        ciphertext forgeries, without altering the internal state. This
+        allows for robust decryption of ciphertext streams & mitigates
+        adversarial attempts to crash communication channels & allows
+        release of plaintexts without waiting for the stream to end.
 
-        Usage Example (Encryption): # when the `key` & `aad` are already
-                                    # shared
-        import aiootp
-        from aiootp import gentools, StreamHMAC, KeyAADBundle
+        Additional ``aad`` for each block may be specified if desired,
+        however the ``aad`` passed into this method DO NOT alter the
+        keystream. Only used to create block ids that authenticate the
+        additional data.
 
-        def cipher_stream():
-            plaintext_bytes = b"example plaintext..."
-            aad = b"known associated data"
-            key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
-            shmac = StreamHMAC(key_bundle).for_encryption()
-
-            datastream = gentools.plaintext_stream(
-                plaintext_bytes, key_bundle
-            )
-            cipherstream = datastream.bytes_encipher(key_bundle, shmac)
-
-            first_ciphertext_block = cipherstream()
-            yield key_bundle.salt, shmac.siv
-            yield shmac.current_digest(), first_ciphertext_block
-            for ciphertext_block in cipherstream:
-                yield shmac.current_digest(), ciphertext_block
-
-
-        Usage Example (Decryption): # when the `key` & `aad` are already
-                                    # shared
-
-        from collections import deque
-        import aiootp
-        from aiootp import gentools, StreamHMAC, KeyAADBundle, Padding
-
-        cipherstream = cipher_stream()
-        aad = b"known associated data"
-        salt, siv = cipherstream.send(None)
-        key_bundle = KeyAADBundle(key, salt=salt, aad=aad, siv=siv)
-        shmac = StreamHMAC(key_bundle.sync_mode()).for_decryption()
-
-        ciphertext = deque()
-        deciphering = gentools.popleft(ciphertext).bytes_decipher(
-            key_bundle, validator=shmac
-        )
-
-        padded_plaintext = b""
-        for digest, ciphertext_block in cipherstream:
-            ciphertext.append(ciphertext_block)
-            plaintext_chunk = deciphering()
-            shmac.test_current_digest(digest)
-            padded_plaintext += plaintext_chunk
-
-        assert b"example plaintext..." == Padding.depad_plaintext(
-            padded_plaintext, key_bundle, ttl=60
-        )
+         --------------------------------------------------------------
+        | PRIVATE: Use high-level Chunky2048 or (Async)CipherStream    |
+        |          instead!                                            |
+         --------------------------------------------------------------
         """
+        self._test_block_id_size(size)
+        mac = self._new_block_id_mac()
         payload = (
-            Domains.DIGEST,
-            self._auth_key,
-            self._mac.digest(),
-            self._last_digest,
+            self._get_block_id_mac(),
+            size.to_bytes(1, BYTE_ORDER),
+            len(aad).to_bytes(8, BYTE_ORDER),
+            aad,
+            len(next_block).to_bytes(8, BYTE_ORDER),
+            next_block,
         )
-        return obj(b"".join(payload)).digest()
+        mac.update(_join(payload))
+        return mac.digest(size)
 
-    async def _aset_final_result(self):
+    async def _aset_final_result(self) -> None:
         """
         Caps off the instance's validation hash object & populates the
-        instance's final result with an HMAC of its state. This signals
+        instance's final result with a SHMAC of its state. This signals
         the end of a stream of data that can be validated with the
         current instance.
         """
-        key = Domains.SHMAC + self._auth_key
-        await self._aupdate(key)
-        payload = self._last_digest + self._mac.digest()
-        result = hmac.new(key, payload, self._key_type)
-        self._result = result.digest()[:HMAC_BYTES]
+        await asleep()
+        self._mac.update(
+            self._key_bundle._kdf.digest(SHMAC_DOUBLE_BLOCKSIZE)
+        )
+        self._result = self._mac.digest(SHMAC_BYTES)
 
-    def _set_final_result(self):
+    def _set_final_result(self) -> None:
         """
         Caps off the instance's validation hash object & populates the
-        instance's final result with an HMAC of its state. This signals
+        instance's final result with a SHMAC of its state. This signals
         the end of a stream of data that can be validated with the
         current instance.
         """
-        key = Domains.SHMAC + self._auth_key
-        self._update(key)
-        payload = self._last_digest + self._mac.digest()
-        result = hmac.new(key, payload, self._key_type)
-        self._result = result.digest()[:HMAC_BYTES]
+        self._mac.update(
+            self._key_bundle._kdf.digest(SHMAC_DOUBLE_BLOCKSIZE)
+        )
+        self._result = self._mac.digest(SHMAC_BYTES)
 
-    async def afinalize(self):
+    async def afinalize(self) -> bytes:
         """
         Caps off the instance's validation hash object & populates the
-        instance's final result with an HMAC of its state. This signals
+        instance's final result with an SHMAC of its state. This signals
         the end of a stream of data that can be validated with the
         current instance.
         """
@@ -1381,10 +1248,10 @@ class StreamHMAC:
         self._mac = DeletedAttribute(SHMACIssue.already_finalized)
         return self._result
 
-    def finalize(self):
+    def finalize(self) -> bytes:
         """
         Caps off the instance's validation hash object & populates the
-        instance's final result with an HMAC of its state. This signals
+        instance's final result with an SHMAC of its state. This signals
         the end of a stream of data that can be validated with the
         current instance.
         """
@@ -1396,18 +1263,19 @@ class StreamHMAC:
         self._mac = DeletedAttribute(SHMACIssue.already_finalized)
         return self._result
 
-    async def aresult(self):
+    async def aresult(self) -> bytes:
         """
-        Returns the instance's final result which is the secure HMAC of
+        Returns the instance's final result which is the secure SHMAC of
         the ciphertext that was processed through the instance.
         """
+        await asleep()
         if not self._result_is_ready:
             raise SHMACIssue.validation_incomplete()
         return self._result
 
-    def result(self):
+    def result(self) -> bytes:
         """
-        Returns the instance's final result which is the secure HMAC of
+        Returns the instance's final result which is the secure SHMAC of
         the ciphertext that was processed through the instance.
         """
         if not self._result_is_ready:
@@ -1415,223 +1283,405 @@ class StreamHMAC:
         return self._result
 
     async def atest_next_block_id(
-        self, untrusted_block_id: bytes, next_block: bytes
-    ):
+        self,
+        untrusted_block_id: bytes,
+        next_block: bytes,
+        aad: bytes = DEFAULT_AAD,
+    ) -> None:
         """
         Does a timing-safe comparison of a supplied ``untrusted_block_id``
         with a derived block id of the supplied ``next_block`` chunk of
-        ciphertext. Raises `ValueError` if the untrusted block id is
-        invalid. These block id checks can detect out of order messages,
-        or ciphertext forgeries, without altering the internal state.
-        This allows for robust decryption of ciphertext streams &
-        mitigates adversarial attempts to crash a communication channel.
+        ciphertext. Raises `InvalidBlockID`, subclass of `ValueError`,
+        if the untrusted block id is invalid. These block id checks can
+        detect out of order messages, or ciphertext forgeries, without
+        altering the internal state. This allows for robust decryption of
+        ciphertext streams, mitigates adversarial attempts to crash a
+        communication channel & allows release of plaintexts without
+        waiting for the stream to end.
+
+        Additional ``aad`` for each block may be specified if desired.
         """
         if untrusted_block_id.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_block_id", bytes)
         size = len(untrusted_block_id)
-        block_id = await self.anext_block_id(next_block, size=size)
-        if not await abytes_are_equal(untrusted_block_id, block_id):
-            raise Issue.invalid_value("next_block_id")
+        block_id = await self.anext_block_id(next_block, size=size, aad=aad)
+        if not bytes_are_equal(untrusted_block_id, block_id):
+            raise SHMACIssue.invalid_block_id()
 
     def test_next_block_id(
-        self, untrusted_block_id: bytes, next_block: bytes
-    ):
+        self,
+        untrusted_block_id: bytes,
+        next_block: bytes,
+        aad: bytes = DEFAULT_AAD,
+    ) -> None:
         """
         Does a timing-safe comparison of a supplied ``untrusted_block_id``
         with a derived block id of the supplied ``next_block`` chunk of
-        ciphertext. Raises `ValueError` if the untrusted block id is
-        invalid. These block id checks can detect out of order messages,
-        or ciphertext forgeries, without altering the internal state.
-        This allows for robust decryption of ciphertext streams &
-        mitigates adversarial attempts to crash a communication channel.
+        ciphertext. Raises `InvalidBlockID`, subclass of `ValueError`,
+        if the untrusted block id is invalid. These block id checks can
+        detect out of order messages, or ciphertext forgeries, without
+        altering the internal state. This allows for robust decryption of
+        ciphertext streams, mitigates adversarial attempts to crash a
+        communication channel & allows release of plaintexts without
+        waiting for the stream to end.
+
+        Additional ``aad`` for each block may be specified if desired.
         """
         if untrusted_block_id.__class__ is not bytes:
             raise Issue.value_must_be_type("untrusted_block_id", bytes)
         size = len(untrusted_block_id)
-        block_id = self.next_block_id(next_block, size=size)
+        block_id = self.next_block_id(next_block, size=size, aad=aad)
         if not bytes_are_equal(untrusted_block_id, block_id):
-            raise Issue.invalid_value("next_block_id")
+            raise SHMACIssue.invalid_block_id()
 
-    async def atest_current_digest(self, untrusted_digest: bytes):
+    async def atest_shmac(self, untrusted_shmac: bytes) -> None:
         """
-        Does a time-safe comparison of a supplied ``untrusted_digest``
-        with the output of the instance's current digest of an
-        unfinished stream of ciphertext. Raises `ValueError` if the
-        instance's current digest doesn't match.
+        Does a time-safe comparison of a supplied ``untrusted_shmac``
+        with the instance's final result shmac. Raises `InvalidSHMAC`,
+        subclass of `ValueError`, if the shmac doesn't match.
         """
-        if untrusted_digest.__class__ is not bytes:
-            raise Issue.value_must_be_type("untrusted_digest", bytes)
-        digest = await self.acurrent_digest()
-        if not await abytes_are_equal(untrusted_digest, digest):
-            raise Issue.invalid_value("current_digest")
+        if untrusted_shmac.__class__ is not bytes:
+            raise Issue.value_must_be_type("untrusted_shmac", bytes)
+        shmac = await self.aresult()
+        if not bytes_are_equal(untrusted_shmac, shmac):
+            raise SHMACIssue.invalid_shmac()
 
-    def test_current_digest(self, untrusted_digest: bytes):
+    def test_shmac(self, untrusted_shmac: bytes) -> None:
         """
-        Does a time-safe comparison of a supplied ``untrusted_digest``
-        with the output of the instance's current digest of an
-        unfinished stream of ciphertext. Raises `ValueError` if the
-        instance's current digest doesn't match.
+        Does a time-safe comparison of a supplied ``untrusted_shmac``
+        with the instance's final result shmac. Raises `InvalidSHMAC`,
+        subclass of `ValueError`, if the shmac doesn't match.
         """
-        if untrusted_digest.__class__ is not bytes:
-            raise Issue.value_must_be_type("untrusted_digest", bytes)
-        digest = self.current_digest()
-        if not bytes_are_equal(untrusted_digest, digest):
-            raise Issue.invalid_value("current_digest")
-
-    async def atest_hmac(self, untrusted_hmac: bytes):
-        """
-        Does a time-safe comparison of a supplied ``untrusted_hmac``
-        with the instance's final result hmac. Raises `ValueError` if
-        the hmac doesn't match.
-        """
-        if untrusted_hmac.__class__ is not bytes:
-            raise Issue.value_must_be_type("untrusted_hmac", bytes)
-        hmac = await self.aresult()
-        if not await abytes_are_equal(untrusted_hmac, hmac):
-            raise Issue.invalid_value("HMAC of data stream")
-
-    def test_hmac(self, untrusted_hmac: bytes):
-        """
-        Does a time-safe comparison of a supplied ``untrusted_hmac``
-        with the instance's final result hmac. Raises `ValueError` if
-        the hmac doesn't match.
-        """
-        if untrusted_hmac.__class__ is not bytes:
-            raise Issue.value_must_be_type("untrusted_hmac", bytes)
-        hmac = self.result()
-        if not bytes_are_equal(untrusted_hmac, hmac):
-            raise Issue.invalid_value("HMAC of data stream")
+        if untrusted_shmac.__class__ is not bytes:
+            raise Issue.value_must_be_type("untrusted_shmac", bytes)
+        shmac = self.result()
+        if not bytes_are_equal(untrusted_shmac, shmac):
+            raise SHMACIssue.invalid_shmac()
 
 
 class SyntheticIV:
     """
     Manages the derivation & application of synthetic IVs which improve
-    the salt reuse / misuse resistance of the package's online AEAD
-    cipher. This class is handled automatically within the `(a)bytes_xor`
-    generators & the `StreamHMAC` class. The required plaintext padding
-    is handled within the `Padding` class.
+    the salt reuse / misuse resistance of the package's online,
+    tweakable AEAD cipher, `Chunky2048`. This class is handled
+    automatically within the `(a)bytes_xor` generators, & works in
+    collaboration with the `StreamHMAC` class. The required plaintext
+    padding is handled within the `Padding` class.
+
+     _____________________________________
+    |                                     |
+    |    Algorithm Diagram: Encryption    |
+    |_____________________________________|
+     ------------------------------------------------------------------
+    |      inner-header      |        first block of plaintext         |
+    | timestamp |  siv-key   |                                         |
+    |  4-bytes  |  16-bytes  |               236-bytes                 |
+     ------------------------------------------------------------------
+    |---------------------- entire first block ------------------------|
+                                     |
+                                     |
+    first 256-byte keystream key ----⊕
+                                     |
+                                     |
+                                     V
+                          masked plaintext block
+     ------------------------------------------------------------------
+    |  masked inner-header   |     first block of masked plaintext     |
+     ------------------------------------------------------------------
+                             |----- the 236-byte masked plaintext -----|
+                                                  |
+                                                  |
+    siv = inner-header + shmac.digest(148)        |
+    keystream(siv)[10:246] -----------------------⊕
+                                                  |
+                                                  |
+                                                  V
+     ------------------------------------------------------------------
+    |  masked inner-header   |       first block of ciphertext         |
+     ------------------------------------------------------------------
+    |--------------- entire first block of ciphertext -----------------|
+
+    shmac.update(entire_first_block_of_ciphertext)
+
+
+     _____________________________________
+    |                                     |
+    |    Algorithm Diagram: Decryption    |
+    |_____________________________________|
+     ------------------------------------------------------------------
+    |  masked inner-header   |        first block of ciphertext        |
+     ------------------------------------------------------------------
+    |---------------------- entire first block ------------------------|
+                                     |
+                                     |
+    first 256-byte keystream key ----⊕
+                                     |
+                                     |
+                                     V
+                        unmasked ciphertext block
+     ------------------------------------------------------------------
+    |      inner-header      |   first block of unmasked ciphertext    |
+     ------------------------------------------------------------------
+                             |--- the 236-byte unmasked ciphertext ----|
+                                                  |
+                                                  |
+    siv = inner-header + shmac.digest(148)        |
+    keystream(siv)[10:246] -----------------------⊕
+                                                  |
+                                                  |
+                                                  V
+     ------------------------------------------------------------------
+    |      inner-header      |         first block of plaintext        |
+    | timestamp |  siv-key   |                                         |
+    |  4-bytes  |  16-bytes  |               236-bytes                 |
+     ------------------------------------------------------------------
+
+    shmac.update(entire_first_block_of_ciphertext)
     """
+
+    __slots__ = ()
 
     _BLOCKSIZE: int = BLOCKSIZE
     _DECRYPTION: str = DECRYPTION
     _ENCRYPTION: str = ENCRYPTION
-    _SIV_BYTES: str = SIV_BYTES
-    _SIV_NIBBLES: int = SIV_NIBBLES
-    _SIV_KEY_BYTES: int = SIV_KEY_BYTES
-    _SIV_KEY_NIBBLES: int = SIV_KEY_NIBBLES
+    _DIGEST_SLICE: slice = slice(10, -10)
 
     @classmethod
-    async def amake_siv(cls, plaintext_block: bytes, validator: StreamHMAC):
+    def _mask_block(
+        cls, block: bytes, primer_key: bytes
+    ) -> t.Tuple[bytes, int]:
         """
-        Returns a 24-byte, truncated keyed-hash of a plaintext block to
-        be used as a synthetic IV to improve the salt reuse / misuse
-        resistance of a stream of key material.
+        Extracts the inner-header prepended to the first block of
+        plaintext containing the 4-byte timestamp of the message & the
+        random 16-byte IV-key. Then enciphers the first block with the
+        first 256-byte key produced by the cipher's keystream.
+
+        This inner-header is used as a seed to randomize the keystream
+        & improve the cipher's salt reuse / misuse security. The first
+        block will later be enciphered with the next randomized key,
+        except for the inner-header which will remain masked & able to
+        be deciphered without knowledge of the inner-header.
+
+        Returns the inner-header & the partially enciphered first block.
         """
-        await asleep()
-        payload = (
-            Domains.SIV,
-            Domains.SIV_KEY,
-            validator._auth_key,
-            validator._mac.digest(),
-            plaintext_block,
-        )
-        return sha3_256(b"".join(payload)).digest()[: cls._SIV_BYTES]
+        header = block[INNER_HEADER_SLICE]
+        masked_block = bytes_as_int(primer_key) ^ bytes_as_int(block)
+        return header, masked_block
 
     @classmethod
-    def make_siv(cls, plaintext_block: bytes, validator: StreamHMAC):
+    def _unmask_block(
+        cls, block: bytes, primer_key: bytes
+    ) -> t.Tuple[bytes, int]:
         """
-        Returns a 24-byte, truncated keyed-hash of a plaintext block to
-        be used as a synthetic IV to improve the salt reuse / misuse
-        resistance of a stream of key material.
+        Deciphers the first block of ciphertext with the first 256-byte
+        key produced by the cipher's keystream. This reveals the inner-
+        header containing the 4-byte timestamp of the message & the
+        random 16-byte IV-key.
+
+        This inner-header is used to randomize the keystream & improve
+        the cipher's salt reuse / misuse security. The remainder of the
+        first block will be deciphered with the new key produced by the
+        keystream after being seeded with the inner-header.
+
+        Returns the inner-header & the partially deciphered first block.
         """
-        payload = (
-            Domains.SIV,
-            Domains.SIV_KEY,
-            validator._auth_key,
-            validator._mac.digest(),
-            plaintext_block,
+        unmasked_block = bytes_as_int(primer_key) ^ bytes_as_int(block)
+        header = int_as_bytes(
+            unmasked_block, size=BLOCKSIZE
+        )[INNER_HEADER_SLICE]
+        return header, unmasked_block
+
+    @classmethod
+    async def _asynthesize_key(
+        cls,
+        header: bytes,
+        keystream: t.Callable[[bytes], bytes],
+        shmac: StreamHMAC,
+    ) -> bytes:
+        """
+        Uses the inner-``header`` & ``shmac`` object's current digest to
+        create an ephemeral SIV which leads to the derivation of the
+        encryption key for the first block of message data.
+        """
+        whole_header = len(header)
+        siv = header + shmac._current_digest[:-whole_header]
+        half_header = whole_header // 2
+        middle_part = slice(half_header, BLOCKSIZE - half_header)
+        return (await keystream(siv))[middle_part]
+
+    @classmethod
+    def _synthesize_key(
+        cls, header: bytes,
+        keystream: t.Callable[[bytes], bytes],
+        shmac: StreamHMAC,
+    ) -> bytes:
+        """
+        Uses the inner-``header`` & ``shmac`` object's current digest to
+        create an ephemeral SIV which leads to the derivation of the
+        encryption key for the first block of message data.
+        """
+        whole_header = len(header)
+        siv = header + shmac._current_digest[:-whole_header]
+        half_header = whole_header // 2
+        middle_part = slice(half_header, BLOCKSIZE - half_header)
+        return keystream(siv)[middle_part]
+
+    @classmethod
+    async def _aunique_cipher(
+        cls,
+        block: bytes,
+        keystream: t.Callable[[bytes], t.Awaitable[bytes]],
+        shmac: StreamHMAC,
+    ) -> bytes:
+        """
+        Uses a masking & encryption algorithm to pull secret ephemeral
+        data from the plaintext header to protect the payload of the
+        ciphertext with more salt reuse / misuse resistance.
+        """
+        primer_key = shmac._key_bundle._primer_key
+        header, masked_block = cls._mask_block(block, primer_key)
+        key_chunk = await cls._asynthesize_key(header, keystream, shmac)
+        ciphertext = int_as_bytes(
+            masked_block ^ bytes_as_int(key_chunk), size=BLOCKSIZE
         )
-        return sha3_256(b"".join(payload)).digest()[: cls._SIV_BYTES]
+        await shmac._aupdate_mac(ciphertext)
+        return ciphertext
+
+    @classmethod
+    def _unique_cipher(
+        cls,
+        block: bytes,
+        keystream: t.Callable[[bytes], bytes],
+        shmac: StreamHMAC,
+    ) -> bytes:
+        """
+        Uses a masking & encryption algorithm to pull secret ephemeral
+        data from the plaintext header to protect the payload of the
+        ciphertext with more salt reuse / misuse resistance.
+        """
+        primer_key = shmac._key_bundle._primer_key
+        header, masked_block = cls._mask_block(block, primer_key)
+        key_chunk = cls._synthesize_key(header, keystream, shmac)
+        ciphertext = int_as_bytes(
+            masked_block ^ bytes_as_int(key_chunk), size=BLOCKSIZE
+        )
+        shmac._update_mac(ciphertext)
+        return ciphertext
+
+    @classmethod
+    async def _aunique_decipher(
+        cls,
+        block: bytes,
+        keystream: t.Callable[[bytes], t.Awaitable[bytes]],
+        shmac: StreamHMAC,
+    ) -> bytes:
+        """
+        Uses an unmasking & decryption algorithm to pull secret
+        ephemeral data from the plaintext header to protect the payload
+        of the ciphertext with more salt reuse / misuse resistance.
+        """
+        primer_key = shmac._key_bundle._primer_key
+        header, unmasked_block = cls._unmask_block(block, primer_key)
+        key_chunk = await cls._asynthesize_key(header, keystream, shmac)
+        await shmac._aupdate_mac(block)
+        return int_as_bytes(
+            unmasked_block ^ bytes_as_int(key_chunk), size=BLOCKSIZE
+        )
+
+    @classmethod
+    def _unique_decipher(
+        cls,
+        block: bytes,
+        keystream: t.Callable[[bytes], bytes],
+        shmac: StreamHMAC,
+    ) -> bytes:
+        """
+        Uses an unmasking & decryption algorithm to pull secret
+        ephemeral data from the plaintext header to protect the payload
+        of the ciphertext with more salt reuse / misuse resistance.
+        """
+        primer_key = shmac._key_bundle._primer_key
+        header, unmasked_block = cls._unmask_block(block, primer_key)
+        key_chunk = cls._synthesize_key(header, keystream, shmac)
+        shmac._update_mac(block)
+        return int_as_bytes(
+            unmasked_block ^ bytes_as_int(key_chunk), size=BLOCKSIZE
+        )
 
     @classmethod
     async def avalidated_xor(
         cls,
-        datastream: Typing.AsyncDatastream,
-        keystream: Typing.Callable,
-        validator: StreamHMAC,
-    ):
+        datastream: t.AsyncDatastream,
+        keystream: t.Callable[[bytes], t.Awaitable[bytes]],
+        shmac: StreamHMAC,
+    ) -> bytes:
         """
-        Derives the synthetic IV from the beginning of the plaintext &
-        seeds it into both the keystream & the validator.
+        Derives the synthetic IV from the timestamp & ephemeral SIV-key
+        in the plaintext header then seeds it into the keystream to
+        randomize it before encrypting the first block of payload data.
 
         This method ciphers/deciphers the first block of plaintext/
-        ciphertext depending on whether the validator has been set to
-        encryption or decryption modes. It feeds a syncthetic IV value,
-        which is derived from the keyed-hash of the first block of
-        plaintext & is attached to the ciphertext, into the keystream
-        coroutine prior to xoring the first block. This improves the
-        cipher's salt reuse/misuse resistance since if either the first
-        232 bytes of plaintext are unique, or the 24-byte inner header
-        is unique, then the entire stream of key material will be unique.
-        The inner header is prepended to the first plaintext block, &
-        consists of an 8-byte timestamp & a 16-byte random & ephemeral
-        SIV-key. This inner header is applied during message padding
-        from within the `Padding` class.
+        ciphertext depending on whether the shmac has been set to
+        encryption or decryption modes.
+
+        This improves the cipher's salt reuse / misuse resistance since:
+        if either the 4-byte timestamp or ephemeral SIV-key are unique,
+        then the entire stream of key material will be unique.
+
+        The inner header & footer are applied during message padding by
+        the `Padding` class.
         """
         try:
-            first_block = await datastream.asend(None)
+            block = await datastream.asend(None)
         except StopAsyncIteration:
             raise Issue.stream_is_empty()
-        if validator.mode == cls._ENCRYPTION:
-            siv = await cls.amake_siv(first_block, validator)
-            validator.siv = siv
+        if shmac._mode == cls._ENCRYPTION:
+            return await cls._aunique_cipher(block, keystream, shmac)
         else:
-            siv = validator.siv
-        key_chunk = await keystream(siv) + await keystream(siv)
-        return await validator._avalidated_xor(first_block, key_chunk)
+            return await cls._aunique_decipher(block, keystream, shmac)
 
     @classmethod
     def validated_xor(
         cls,
-        datastream: Typing.Datastream,
-        keystream: Typing.Callable,
-        validator: StreamHMAC,
-    ):
+        datastream: t.Datastream,
+        keystream: t.Callable[[bytes], bytes],
+        shmac: StreamHMAC,
+    ) -> bytes:
         """
-        Derives the synthetic IV from the beginning of the plaintext &
-        seeds it into both the keystream & the validator.
+        Derives the synthetic IV from the timestamp & ephemeral SIV-key
+        in the plaintext header then seeds it into the keystream to
+        randomize it before encrypting the first block of payload data.
 
         This method ciphers/deciphers the first block of plaintext/
-        ciphertext depending on whether the validator has been set to
-        encryption or decryption modes. It feeds a syncthetic IV value,
-        which is derived from the keyed-hash of the first block of
-        plaintext & is attached to the ciphertext, into the keystream
-        coroutine prior to xoring the first block. This improves the
-        cipher's salt reuse/misuse resistance since if either the first
-        232 bytes of plaintext are unique, or the 24-byte inner header
-        is unique, then the entire stream of key material will be unique.
-        The inner header is prepended to the first plaintext block, &
-        consists of an 8-byte timestamp & a 16-byte random & ephemeral
-        SIV-key. This inner header is applied during message padding
-        from within the `Padding` class.
+        ciphertext depending on whether the shmac has been set to
+        encryption or decryption modes.
+
+        This improves the cipher's salt reuse / misuse resistance since:
+        if either the 4-byte timestamp or ephemeral SIV-key are unique,
+        then the entire stream of key material will be unique.
+
+        The inner header & footer are applied during message padding by
+        the `Padding` class.
         """
         try:
-            first_block = datastream.send(None)
+            block = datastream.send(None)
         except StopIteration:
             raise Issue.stream_is_empty()
-        if validator.mode == cls._ENCRYPTION:
-            siv = validator.siv = cls.make_siv(first_block, validator)
+        if shmac._mode == cls._ENCRYPTION:
+            return cls._unique_cipher(block, keystream, shmac)
         else:
-            siv = validator.siv
-        key_chunk = keystream(siv) + keystream(siv)
-        return validator._validated_xor(first_block, key_chunk)
+            return cls._unique_decipher(block, keystream, shmac)
 
 
 async def _axor_shortcuts(
-    data: Typing.AsyncOrSyncDatastream,
-    key: Typing.AsyncKeystream,
-    validator: StreamHMAC,
-):
+    data: t.AsyncOrSyncDatastream,
+    key: t.AsyncKeystream,
+    shmac: StreamHMAC,
+) -> t.Tuple[
+    t.AsyncGenerator[None, bytes],
+    t.Callable[[bytes], bytes],
+    t.Callable[..., bytes],
+]:
     """
     Returns a series of function pointers that allow their efficient use
     within the `Chunky2048` cipher's low-level xor generators. This is
@@ -1640,19 +1690,18 @@ async def _axor_shortcuts(
     """
     if not hasattr(data, "asend"):
         data = aunpack.root(data)
-    return (
-        data,
-        key.asend,
-        validator._avalidated_xor,
-        validator._mac.digest,
-    )
+    return (data, key.asend, shmac._avalidated_xor)
 
 
 def _xor_shortcuts(
-    data: Typing.Datastream,
-    key: Typing.Keystream,
-    validator: StreamHMAC,
-):
+    data: t.Datastream,
+    key: t.Keystream,
+    shmac: StreamHMAC,
+) -> t.Tuple[
+    t.Generator[None, bytes, None],
+    t.Callable[[bytes], bytes],
+    t.Callable[..., bytes],
+]:
     """
     Returns a series of function pointers that allow their efficient use
     within the `Chunky2048` cipher's low-level xor generators. This is
@@ -1661,440 +1710,1480 @@ def _xor_shortcuts(
     """
     if not hasattr(data, "send"):
         data = unpack.root(data)
-    return (
-        data,
-        key.send,
-        validator._validated_xor,
-        validator._mac.digest,
-    )
+    return (data, key.send, shmac._validated_xor)
 
 
-@comprehension()
 async def abytes_xor(
-    data: Typing.AsyncOrSyncDatastream,
+    data: t.AsyncOrSyncDatastream,
     *,
-    key: Typing.AsyncKeystream,
-    validator: StreamHMAC,
-):
+    key: t.AsyncKeystream,
+    shmac: StreamHMAC,
+) -> t.AsyncGenerator[None, bytes]:
     """
-    `Chunky2048` - an online MRAE / AEAD pseudo one-time pad cipher
-    implementation.
+    `Chunky2048` - an online, salt reuse / misuse resistant, tweakable
+    AEAD pseudo one-time pad cipher implementation.
 
     Gathers both an iterable of 256-byte blocks of ``data``, & a
     non-repeating generator of deterministic bytes ``key`` material,
     then bitwise xors the streams together, producing `Chunky2048`
-    ciphertext or plaintext chunks 256 bytes long. The keystream MUST
-    produce 128-bytes of key material each iteration, as each output is
-    paired with another to reach exactly 256 pseudo-random bytes for
-    each block.
+    ciphertext or plaintext chunks 256 bytes long. The ciphertext is
+    then fed into the ``shmac`` for validation.
 
-    Restricting the ciphertext to a distinct size is a measure to
+    The keystream MUST produce 256-bytes of key material each iteration.
+
+    Restricting the ciphertext to multiples of 256-bytes is a measure to
     protect the metadata of plaintext from adversaries that could make
-    informed guesses of the plaintext given accurate sizes of its
-    chunks.
+    informed guesses of the plaintext given accurate size measures.
 
     WARNING: ``data`` MUST produce plaintext in chunks of 256 bytes or
     less per iteration or security WILL BE BROKEN by directly leaking
-    plaintext. The plaintext MUST be padded using the `Padding` class in
-    order to add salt reuse / misuse resistance (MRAE) to the cipher.
+    plaintext. The cipher is designed for plaintext to be padded using
+    the `Padding` class.
 
-    WARNING: ``key`` MUST produce key chunks of exactly 128 bytes per
+    WARNING: ``key`` MUST produce key chunks of exactly 256 bytes per
     iteration or security WILL BE BROKEN by directly leaking plaintext.
     """
-    datastream, keystream, validated_xor, shmac_digest = (
-        await _axor_shortcuts(data, key, validator)
+    datastream, keystream, validated_xor = await _axor_shortcuts(
+        data, key, shmac
     )
-    yield await SyntheticIV.avalidated_xor(datastream, keystream, validator)
+    yield await SyntheticIV.avalidated_xor(datastream, keystream, shmac)
     async for block in datastream:
-        seed = shmac_digest()
-        key_chunk = await keystream(seed) + await keystream(seed)
-        yield await validated_xor(block, key_chunk)
+        yield await validated_xor(
+            block, await keystream(shmac._current_digest)
+        )
 
 
-@comprehension()
 def bytes_xor(
-    data: Typing.Datastream,
+    data: t.Datastream,
     *,
-    key: Typing.Keystream,
-    validator: StreamHMAC,
-):
+    key: t.Keystream,
+    shmac: StreamHMAC,
+) -> t.Generator[None, bytes, None]:
     """
-    `Chunky2048` - an online MRAE / AEAD pseudo one-time pad cipher
-    implementation.
+    `Chunky2048` - an online, salt reuse / misuse resistant, tweakable
+    AEAD pseudo one-time pad cipher implementation.
 
     Gathers both an iterable of 256-byte blocks of ``data``, & a
     non-repeating generator of deterministic bytes ``key`` material,
     then bitwise xors the streams together, producing `Chunky2048`
-    ciphertext or plaintext chunks 256 bytes long. The keystream MUST
-    produce 128-bytes of key material each iteration, as each output is
-    paired with another to reach exactly 256 pseudo-random bytes for
-    each block.
+    ciphertext or plaintext chunks 256 bytes long. The ciphertext is
+    then fed into the ``shmac`` for validation.
 
-    Restricting the ciphertext to a distinct size is a measure to
+    The keystream MUST produce 256-bytes of key material each iteration.
+
+    Restricting the ciphertext to multiples of 256-bytes is a measure to
     protect the metadata of plaintext from adversaries that could make
-    informed guesses of the plaintext given accurate sizes of its
-    chunks.
+    informed guesses of the plaintext given accurate size measures.
 
     WARNING: ``data`` MUST produce plaintext in chunks of 256 bytes or
     less per iteration or security WILL BE BROKEN by directly leaking
-    plaintext. The plaintext MUST be padded using the `Padding` class in
-    order to add salt reuse / misuse resistance (MRAE) to the cipher.
+    plaintext. The cipher is designed for plaintext to be padded using
+    the `Padding` class.
 
-    WARNING: ``key`` MUST produce key chunks of exactly 128 bytes per
+    WARNING: ``key`` MUST produce key chunks of exactly 256 bytes per
     iteration or security WILL BE BROKEN by directly leaking plaintext.
     """
-    datastream, keystream, validated_xor, shmac_digest = _xor_shortcuts(
-        data, key, validator
-    )
-    yield SyntheticIV.validated_xor(datastream, keystream, validator)
+    datastream, keystream, validated_xor = _xor_shortcuts(data, key, shmac)
+    yield SyntheticIV.validated_xor(datastream, keystream, shmac)
     for block in datastream:
-        seed = shmac_digest()
-        key_chunk = keystream(seed) + keystream(seed)
-        yield validated_xor(block, key_chunk)
-
-
-@comprehension()
-async def aplaintext_stream(data: bytes, key_bundle: KeyAADBundle):
-    """
-    Takes in plaintext bytes ``data``, then pads & yields it in 256-byte
-    chunks per iteration. The plaintext padding is done in two separate
-    ways:
-        First, an 8-byte timestamp & a 16-byte ephemeral SIV-key are
-    prepended to the plaintext. This makes the first block, & the SIV
-    which is derived from it, globally unique. This allows the cipher to
-    be both online & be strongly salt-reuse/misuse resistant, counter to
-    the findings in https://eprint.iacr.org/2015/189.pdf.
-        Second, the `key`, `salt` & `aad` that are stored in the
-    ``key_bundle`` are used to derive 32 pseudo-random padding bytes
-    which are appended to the plaintext. Then random padding bytes are
-    appended to make the resulting plaintext a multiple of the 256-byte
-    blocksize. The details can be found in the `Padding` class.
-    """
-    plaintext = await Padding.apad_plaintext(data, key_bundle)
-    async for block in adata.root(plaintext):
-        yield block
-
-
-@comprehension()
-def plaintext_stream(data: bytes, key_bundle: KeyAADBundle):
-    """
-    Takes in plaintext bytes ``data``, then pads & yields it in 256-byte
-    chunks per iteration. The plaintext padding is done in two separate
-    ways:
-        First, an 8-byte timestamp & a 16-byte ephemeral SIV-key are
-    prepended to the plaintext. This makes the first block, & the SIV
-    which is derived from it, globally unique. This allows the cipher to
-    be both online & be strongly salt-reuse/misuse resistant, counter to
-    the findings in https://eprint.iacr.org/2015/189.pdf.
-        Second, the `key`, `salt` & `aad` that are stored in the
-    ``key_bundle`` are used to derive 32 pseudo-random padding bytes
-    which are appended to the plaintext. Then random padding bytes are
-    appended to make the resulting plaintext a multiple of the 256-byte
-    blocksize. The details can be found in the `Padding` class.
-    """
-    plaintext = Padding.pad_plaintext(data, key_bundle)
-    yield from gentools.data.root(plaintext)
+        yield validated_xor(block, keystream(shmac._current_digest))
 
 
 def abytes_encipher(
-    data: Typing.AsyncOrSyncDatastream,
-    key_bundle: KeyAADBundle,
-    validator: StreamHMAC,
-):
+    data: t.AsyncOrSyncDatastream, shmac: StreamHMAC
+) -> t.AsyncGenerator[None, bytes]:
     """
     A low-level function which returns an async generator that runs this
-    package's online MRAE / AEAD `Chunky2048` cipher.
+    package's online, salt reuse / misuse resistant, tweakable AEAD
+    cipher, `Chunky2048`.
 
     WARNING: ``data`` MUST produce plaintext in chunks of 256 bytes
     or less per iteration or security WILL BE BROKEN by directly
-    leaking plaintext. The plaintext MUST also be padded using the
-    `Padding` class in order to add salt reuse / misuse resistance
-    (MRAE) to the cipher.
+    leaking plaintext. The cipher is designed for plaintext be padded
+    using the `Padding` class.
 
     WARNING: The generator does not provide authentication of the
     ciphertexts or associated data it handles. Nor does it do any
     message padding or sufficient checking of inputs for adequacy. Those
     are functionalities which must be obtained through other means. Just
-    passing in a ``validator`` will not authenticate ciphertext
+    passing in a ``shmac`` will not authenticate ciphertext
     itself. The `finalize` or `afinalize` methods must be called on
-    the ``validator`` once all of the cipehrtext has been created /
-    decrypted. Then the final HMAC is available from the `aresult`
-    & `result` methods, & can be tested against untrusted HMACs
-    with the `atest_hmac` & `test_hmac` methods. The validator also
-    has `(a)current_digest` & `(a)next_block_id` methods that can be
-    used to authenticate unfinished streams of cipehrtext.
+    the ``shmac`` once all of the cipehrtext has been created /
+    decrypted. Then the final SHMAC is available from the `aresult`
+    & `result` methods, & can be tested against untrusted SHMACs
+    with the `(a)test_shmac` methods. The shmac also has
+    `(a)next_block_id` methods that can be used to authenticate
+    unfinished streams of cipehrtext on the fly.
     """
-    if validator.mode != ENCRYPTION:
-        raise Issue.must_set_value("validator", ENCRYPTION)
+    key_bundle = shmac._key_bundle
+    if shmac._mode != ENCRYPTION:
+        raise Issue.must_set_value("shmac", ENCRYPTION)
     elif not issubclass(key_bundle.__class__, KeyAADBundle):
         raise Issue.value_must_be_type("key_bundle", KeyAADBundle)
     elif key_bundle._mode != ASYNC:
         raise KeyAADIssue.mode_isnt_correct(ASYNC)
-    return abytes_xor.root(
-        data, key=key_bundle._keystream, validator=validator
-    )
+    return abytes_xor(data, key=key_bundle._keystream, shmac=shmac)
 
 
 def bytes_encipher(
-    data: Typing.Datastream,
-    key_bundle: KeyAADBundle,
-    validator: StreamHMAC,
-):
+    data: t.Datastream, shmac: StreamHMAC
+) -> t.Generator[None, bytes, None]:
     """
-    A low-level function which returns a generator that runs this
-    package's online MRAE / AEAD `Chunky2048` cipher.
+    A low-level function which returns an sync generator that runs this
+    package's online, salt reuse / misuse resistant, tweakable AEAD
+    cipher, `Chunky2048`.
 
     WARNING: ``data`` MUST produce plaintext in chunks of 256 bytes
     or less per iteration or security WILL BE BROKEN by directly
-    leaking plaintext. The plaintext MUST also be padded using the
-    `Padding` class in order to add salt reuse / misuse resistance
-    (MRAE) to the cipher.
+    leaking plaintext. The cipher is designed for plaintext be padded
+    using the `Padding` class.
 
     WARNING: The generator does not provide authentication of the
     ciphertexts or associated data it handles. Nor does it do any
     message padding or sufficient checking of inputs for adequacy. Those
     are functionalities which must be obtained through other means. Just
-    passing in a ``validator`` will not authenticate ciphertext
+    passing in a ``shmac`` will not authenticate ciphertext
     itself. The `finalize` or `afinalize` methods must be called on
-    the ``validator`` once all of the cipehrtext has been created /
-    decrypted. Then the final HMAC is available from the `aresult`
-    & `result` methods, & can be tested against untrusted HMACs
-    with the `atest_hmac` & `test_hmac` methods. The validator also
-    has `(a)current_digest` & `(a)next_block_id` methods that can be
-    used to authenticate unfinished streams of cipehrtext.
+    the ``shmac`` once all of the cipehrtext has been created /
+    decrypted. Then the final SHMAC is available from the `aresult`
+    & `result` methods, & can be tested against untrusted SHMACs
+    with the `(a)test_shmac` methods. The shmac also has
+    `(a)next_block_id` methods that can be used to authenticate
+    unfinished streams of cipehrtext on the fly.
     """
-    if validator.mode != ENCRYPTION:
-        raise Issue.must_set_value("validator", ENCRYPTION)
+    key_bundle = shmac._key_bundle
+    if shmac._mode != ENCRYPTION:
+        raise Issue.must_set_value("shmac", ENCRYPTION)
     elif not issubclass(key_bundle.__class__, KeyAADBundle):
         raise Issue.value_must_be_type("key_bundle", KeyAADBundle)
     elif key_bundle._mode != SYNC:
         raise KeyAADIssue.mode_isnt_correct(SYNC)
-    return bytes_xor.root(
-        data, key=key_bundle._keystream, validator=validator
-    )
+    return bytes_xor(data, key=key_bundle._keystream, shmac=shmac)
 
 
 def abytes_decipher(
-    data: Typing.AsyncOrSyncDatastream,
-    key_bundle: KeyAADBundle,
-    validator: StreamHMAC,
-):
+    data: t.AsyncOrSyncDatastream, shmac: StreamHMAC
+) -> t.AsyncGenerator[None, bytes]:
     """
     A low-level function which returns an async generator that runs this
-    package's online MRAE / AEAD `Chunky2048` cipher.
+    package's online, salt reuse / misuse resistant, tweakable AEAD
+    cipher, `Chunky2048`.
 
     WARNING: The generator does not provide authentication of the
     ciphertexts or associated data it handles. Nor does it do any
     message padding or sufficient checking of inputs for adequacy. Those
     are functionalities which must be obtained through other means. Just
-    passing in a ``validator`` will not authenticate ciphertext
+    passing in a ``shmac`` will not authenticate ciphertext
     itself. The `finalize` or `afinalize` methods must be called on
-    the ``validator`` once all of the cipehrtext has been created /
-    decrypted. Then the final HMAC is available from the `aresult`
-    & `result` methods, & can be tested against untrusted HMACs
-    with the `atest_hmac` & `test_hmac` methods. The validator also
-    has `(a)current_digest` & `(a)next_block_id` methods that can be
-    used to authenticate unfinished streams of cipehrtext.
+    the ``shmac`` once all of the cipehrtext has been created /
+    decrypted. Then the final SHMAC is available from the `aresult`
+    & `result` methods, & can be tested against untrusted SHMACs
+    with the `(a)test_shmac` methods. The shmac also has
+    `(a)next_block_id` methods that can be used to authenticate
+    unfinished streams of cipehrtext on the fly.
     """
-    if validator.mode != DECRYPTION:
-        raise Issue.must_set_value("validator", DECRYPTION)
+    key_bundle = shmac._key_bundle
+    if shmac._mode != DECRYPTION:
+        raise Issue.must_set_value("shmac", DECRYPTION)
     elif not issubclass(key_bundle.__class__, KeyAADBundle):
         raise Issue.value_must_be_type("key_bundle", KeyAADBundle)
     elif key_bundle._mode != ASYNC:
         raise KeyAADIssue.mode_isnt_correct(ASYNC)
-    return abytes_xor.root(
-        data, key=key_bundle._keystream, validator=validator
-    )
+    return abytes_xor(data, key=key_bundle._keystream, shmac=shmac)
 
 
 def bytes_decipher(
-    data: Typing.Datastream,
-    key_bundle: KeyAADBundle,
-    validator: StreamHMAC,
-):
+    data: t.Datastream, shmac: StreamHMAC
+) -> t.Generator[None, bytes, None]:
     """
-    A low-level function which returns a generator that runs this
-    package's online MRAE / AEAD `Chunky2048` cipher.
+    A low-level function which returns an sync generator that runs this
+    package's online, salt reuse / misuse resistant, tweakable AEAD
+    cipher, `Chunky2048`.
 
     WARNING: The generator does not provide authentication of the
     ciphertexts or associated data it handles. Nor does it do any
     message padding or sufficient checking of inputs for adequacy. Those
     are functionalities which must be obtained through other means. Just
-    passing in a ``validator`` will not authenticate ciphertext
+    passing in a ``shmac`` will not authenticate ciphertext
     itself. The `finalize` or `afinalize` methods must be called on
-    the ``validator`` once all of the cipehrtext has been created /
-    decrypted. Then the final HMAC is available from the `aresult`
-    & `result` methods, & can be tested against untrusted HMACs
-    with the `atest_hmac` & `test_hmac` methods. The validator also
-    has `(a)current_digest` & `(a)next_block_id` methods that can be
-    used to authenticate unfinished streams of cipehrtext.
+    the ``shmac`` once all of the cipehrtext has been created /
+    decrypted. Then the final SHMAC is available from the `aresult`
+    & `result` methods, & can be tested against untrusted SHMACs
+    with the `(a)test_shmac` methods. The shmac also has
+    `(a)next_block_id` methods that can be used to authenticate
+    unfinished streams of cipehrtext on the fly.
     """
-    if validator.mode != DECRYPTION:
-        raise Issue.must_set_value("validator", DECRYPTION)
+    key_bundle = shmac._key_bundle
+    if shmac._mode != DECRYPTION:
+        raise Issue.must_set_value("shmac", DECRYPTION)
     elif not issubclass(key_bundle.__class__, KeyAADBundle):
         raise Issue.value_must_be_type("key_bundle", KeyAADBundle)
     elif key_bundle._mode != SYNC:
         raise KeyAADIssue.mode_isnt_correct(SYNC)
-    return bytes_xor.root(
-        data, key=key_bundle._keystream, validator=validator
+    return bytes_xor(data, key=key_bundle._keystream, shmac=shmac)
+
+
+class AsyncCipherStream(metaclass=AsyncInit):
+    """
+    A high-level public interface to the package's online, salt reuse /
+    misuse resistant, tweakable AEAD cipher, `Chunky2048`.
+
+    Since this class handles ciphertext validation automatically, all
+    decrypted plaintexts are verified & can be released with ~1 / 2**96
+    chance of block ID collisions.
+
+    Pads, encrypts & authenticates bytes-type plaintext streams,
+    converting them into `Chunky2048` ciphertext streams. The plaintext
+    streams are processed in blocks of 256-bytes. Each block is
+    prepended with their 24-byte `block_id` authentication tag. The
+    total ciphertext length for each block is then 280-bytes & is
+    referred to as a packet.
+
+    Validation using `StreamHMAC` `block_id`'s provides robustness to
+    communication channels. It does so by detecting forgeries & out-of-
+    order messages without changing its internal state. If a tag fails
+    to validate, the cipher stream can continue functioning once the
+    authentic messages, in their correct order, begin coming in.
+    --------
+    HOWEVER: The more blocks that are allowed to fail without aborting,
+    -------- the more chances an attacker has to spoof the 24-byte tag.
+
+     _____________________________________
+    |                                     |
+    |      Usage Example: Encryption      |
+    |_____________________________________|
+
+
+    stream = await AsyncCipherStream(key, aad=session.transcript)
+    session.transmit(salt=stream.salt, iv=stream.iv)
+
+    for plaintext in session.upload.buffer(4 * stream.PACKETSIZE):
+        await stream.abuffer(plaintext)
+        async for block_id, ciphertext in stream:
+            session.send_packet(block_id + ciphertext)
+
+    async for block_id, ciphertext in stream.afinalize():
+        session.send_packet(block_id + ciphertext)
+
+    # Give option to check for further validity ------------------------
+    # Cryptographically asserts stream is done. ------------------------
+    session.transmit(shmac=await stream.shmac.afinalize())
+    """
+
+    __slots__ = (
+        "_aad",
+        "_buffer",
+        "_byte_count",
+        "_cipher",
+        "_is_digesting",
+        "_is_finalized",
+        "_key_bundle",
+        "shmac",
     )
 
+    async def __init__(
+        self,
+        key: bytes,
+        *,
+        salt: t.Optional[bytes] = None,
+        aad: bytes = DEFAULT_AAD,
+    ) -> "self":
+        """
+        Derives encryption keys & initializes a mutable buffer to
+        automatically prepare plaintext given by the user with the
+        necessary padding & resized to the blocksize of the `Chunky2048`
+        cipher.
 
-async def ajson_encrypt(
-    data: Typing.JSONSerializable,
-    key: bytes,
-    *,
-    salt: Typing.Optional[bytes] = None,
-    aad: bytes = b"aad",
-):
+        ``key``: A 64-byte or greater entropic value that contains the
+                user's desired entropy & cryptographic strength.
+                Designed to be used as a longer-term user encryption /
+                decryption key & is ideally a uniform value.
+
+        ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+                generated during encryption if not supplied. SHOULD BE
+                USED ONLY ONCE for each encryption. Any repeats can harm
+                anonymity & unnecessarily forces ciphertext security to rely
+                on the salt reuse / misuse properties of the cipher. This
+                value can be sent in the clear along with the ciphertext.
+
+        ``aad``: An arbitrary bytes value that a user decides to
+                categorize keystreams. It is authenticated as associated
+                data & safely differentiates keystreams when it is
+                unique for each permutation of `key`, `salt` & `iv`.
+        """
+        self._aad = aad
+        self._byte_count = 0
+        self._is_digesting = False
+        self._is_finalized = False
+        self._buffer = buffer = deque([Padding.start_padding()])
+        self._key_bundle = key_bundle = await KeyAADBundle(
+            key=key, salt=salt, aad=aad, allow_dangerous_determinism=True
+        ).async_mode()
+        self.shmac = shmac = StreamHMAC(key_bundle)._for_encryption()
+        self._cipher = abytes_encipher(apopleft.root(buffer), shmac)
+
+    @property
+    def PACKETSIZE(self) -> int:
+        """
+        Returns the number of combined bytes each iteration of the
+        stream will produce. Equal to 24 + 256; 24-bytes for the
+        `block_id` & 256-bytes for the ciphertext block.
+        """
+        return chunky2048.PACKETSIZE
+
+    @property
+    def _iter_shortcuts(self) -> t.Tuple[
+        t.Callable[..., bytes],
+        t.Deque[bytes],
+        t.Callable[[type(None)], bytes],
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self.shmac.anext_block_id, self._buffer, self._cipher.asend
+
+    @property
+    def _buffer_shortcuts(self) -> t.Tuple[
+        t.Deque[bytes], t.Callable[[bytes], None]
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self._buffer, self._buffer.append
+
+    @property
+    def aad(self) -> bytes:
+        """
+        Returns the current value of the ``aad`` set by the user. This
+        value may be updated to add different authentication contexts
+        for blocks yet to be processed. **Requires synchonization!**
+        """
+        return self._aad
+
+    @aad.setter
+    def aad(self, value: bytes) -> None:
+        """
+        Sets a new current value of the ``aad``. This value may be
+        updated to add different authentication contexts for blocks yet
+        to be processed. **Requires synchonization!**
+        """
+        if value.__class__ is not bytes:
+            raise Issue.value_must_be_type("aad", bytes)
+        self._aad = value
+
+    @property
+    def salt(self) -> bytes:
+        """
+        Returns the ephemeral, uniform 16-byte salt value. Automatically
+        generated during encryption if not supplied. SHOULD BE USED ONLY
+        ONCE for each encryption. Any repeats reduce salt reuse / misuse
+        security by 64 bits. It also harms anonymity. This value can be
+        sent in the clear along with the ciphertext.
+        """
+        return self._key_bundle.salt
+
+    @property
+    def iv(self) -> bytes:
+        """
+        Returns the 16-byte ephemeral, uniform ``iv`` value, generated
+        automatically & at random by the encryption algorithm. Helps
+        ensure salt reuse / misue security even if the `key`, `salt` &
+        `aad` are the same for ~2**64 messages. This value can be sent
+        in the clear along with the ciphertext.
+        """
+        return self._key_bundle.iv
+
+    async def __aiter__(self) -> t.AsyncGenerator[
+        None, t.Tuple[bytes, bytes]
+    ]:
+        """
+        Allows the object to be entered in for-loops an unlimited amount
+        of times in the process of gathering data to buffer for the
+        stream. This leads to a very pythonic API.
+        """
+        anext_block_id, buffer, cipher = self._iter_shortcuts
+        while len(buffer) > MIN_STREAM_QUEUE:
+            block = await cipher(None)
+            yield await anext_block_id(block, aad=self._aad), block
+
+    async def afinalize(self) -> t.AsyncGenerator[
+        None, t.Tuple[bytes, bytes]
+    ]:
+        """
+        Instructs the instance to finish receiving data into the buffer
+        & to flush all ciphertext results out to the user.
+
+         _____________________________________
+        |                                     |
+        |      Usage Example: Encryption      |
+        |_____________________________________|
+
+
+        for plaintext in session.upload.buffer(4 * stream.PACKETSIZE):
+            await stream.abuffer(plaintext)
+            async for block_id, ciphertext in stream:
+                session.send_packet(block_id + ciphertext)
+
+        async for block_id, ciphertext in stream.afinalize():  # <------
+            session.send_packet(block_id + ciphertext)
+        """
+        self._is_finalized = True
+        async for result in self:
+            yield result
+        self._buffer[-1] += await Padding.aend_padding(self._byte_count)
+        block = await self._cipher.asend(None)
+        yield await self.shmac.anext_block_id(block, aad=self._aad), block
+
+    async def _adigest_data(
+        self,
+        data: t.Callable[[int], bytes],
+        buffer: t.Deque[bytes],
+        append: t.Callable[[bytes], None],
+    ) -> None:
+        """
+        Prepares the input plaintext ``data`` for encryption by dividing
+        it into blocksize chunks.
+        """
+        if buffer and len(buffer[-1]) != BLOCKSIZE:
+            missing_bytes = BLOCKSIZE - len(buffer[-1])
+            chunk = data(missing_bytes)
+            buffer[-1] += chunk
+            if len(chunk) != missing_bytes:
+                return
+        while True:
+            await asleep()
+            block = data(BLOCKSIZE)
+            append(block)
+            if len(block) != BLOCKSIZE:
+                break
+
+    async def abuffer(self, data: bytes) -> "self":
+        """
+        Prepares the input plaintext ``data`` for encryption by dividing
+        it into blocksize chunks & taking plaintext measuremenets for
+        automated message padding.
+
+         _____________________________________
+        |                                     |
+        |      Usage Example: Encryption      |
+        |_____________________________________|
+
+
+        for plaintext in session.upload.buffer(4 * stream.PACKETSIZE):
+            await stream.abuffer(plaintext)  # <------------------------
+            async for block_id, ciphertext in stream:
+                session.send_packet(block_id + ciphertext)
+
+        async for block_id, ciphertext in stream.afinalize():
+            session.send_packet(block_id + ciphertext)
+        """
+        if self._is_finalized:
+            raise CipherStreamIssue.stream_has_been_closed()
+        self._byte_count += len(data)
+        data = io.BytesIO(data).read
+        _buffer, append = self._buffer_shortcuts
+        while self._is_digesting:
+            await asleep(0.00001)
+        try:
+            self._is_digesting = True
+            await self._adigest_data(data, _buffer, append)
+        finally:
+            self._is_digesting = False
+        return self
+
+
+class CipherStream:
     """
-    A high-level public interface to the package's MRAE / AEAD
-    `Chunky2048` cipher.
+    A high-level public interface to the package's online, salt reuse /
+    misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-    Returns the `Chunky2048` ciphertext of any JSON serializable ``data``.
-    The returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV,
-    & a 32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it.
+    Since this class handles ciphertext validation automatically, all
+    decrypted plaintexts are verified & can be released with ~1 / 2**96
+    chance of block ID collisions.
 
-    ``key``: A 64-byte or greater entropic value that contains the
-            user's desired entropy & cryptographic strength. Designed to
-            be used as a longer-term user encryption / decryption key &
-            is ideally a uniform value.
-    ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
-            ONCE for each encryption. This value is sent in the clear
-            along with the ciphertext.
-    ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as associated data & safely
-            differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
+    Pads, encrypts & authenticates bytes-type plaintext streams,
+    converting them into `Chunky2048` ciphertext streams. The plaintext
+    streams are processed in blocks of 256-bytes. Each block is
+    prepended with their 24-byte `block_id` authentication tag. The
+    total ciphertext length for each block is then 280-bytes & is
+    referred to as a packet.
+
+    Validation using `StreamHMAC` `block_id`'s provides robustness to
+    communication channels. It does so by detecting forgeries & out-of-
+    order messages without changing its internal state. If a tag fails
+    to validate, the cipher stream can continue functioning once the
+    authentic messages, in their correct order, begin coming in.
+    --------
+    HOWEVER: The more blocks that are allowed to fail without aborting,
+    -------- the more chances an attacker has to spoof the 24-byte tag.
+
+     _____________________________________
+    |                                     |
+    |      Usage Example: Encryption      |
+    |_____________________________________|
+
+
+    stream = CipherStream(key, aad=session.transcript)
+    session.transmit(salt=stream.salt, iv=stream.iv)
+
+    for plaintext in session.upload.buffer(4 * stream.PACKETSIZE):
+        stream.buffer(plaintext)
+        for block_id, ciphertext in stream:
+            session.send_packet(block_id + ciphertext)
+
+    for block_id, ciphertext in stream.finalize():
+        session.send_packet(block_id + ciphertext)
+
+    # Give option to check for further validity ------------------------
+    # Cryptographically asserts stream is done. ------------------------
+    session.transmit(shmac=stream.shmac.finalize())
     """
-    return await abytes_encrypt(
-        json.dumps(data).encode(), key=key, salt=salt, aad=aad
+
+    __slots__ = (
+        "_aad",
+        "_buffer",
+        "_byte_count",
+        "_cipher",
+        "_is_digesting",
+        "_is_finalized",
+        "_key_bundle",
+        "shmac",
     )
 
+    def __init__(
+        self,
+        key: bytes,
+        *,
+        salt: t.Optional[bytes] = None,
+        aad: bytes = DEFAULT_AAD,
+    ) -> "self":
+        """
+        Derives encryption keys & initializes a mutable buffer to
+        automatically prepare plaintext given by the user with the
+        necessary padding & resized to the blocksize of the `Chunky2048`
+        cipher.
 
-def json_encrypt(
-    data: Typing.JSONSerializable,
-    key: bytes,
-    *,
-    salt: Typing.Optional[bytes] = None,
-    aad: bytes = b"aad",
-):
+        ``key``: A 64-byte or greater entropic value that contains the
+                user's desired entropy & cryptographic strength.
+                Designed to be used as a longer-term user encryption /
+                decryption key & is ideally a uniform value.
+
+        ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+                generated during encryption if not supplied. SHOULD BE
+                USED ONLY ONCE for each encryption. Any repeats can harm
+                anonymity & unnecessarily forces ciphertext security to
+                rely on the salt reuse / misuse properties of the cipher.
+                This value can be sent in the clear along with the
+                ciphertext.
+
+        ``aad``: An arbitrary bytes value that a user decides to
+                categorize keystreams. It is authenticated as associated
+                data & safely differentiates keystreams when it is
+                unique for each permutation of `key`, `salt` & `iv`.
+        """
+        self._aad = aad
+        self._byte_count = 0
+        self._is_digesting = False
+        self._is_finalized = False
+        self._buffer = buffer = deque([Padding.start_padding()])
+        self._key_bundle = key_bundle = KeyAADBundle(
+            key=key, salt=salt, aad=aad, allow_dangerous_determinism=True
+        ).sync_mode()
+        self.shmac = shmac = StreamHMAC(key_bundle)._for_encryption()
+        self._cipher = bytes_encipher(popleft.root(buffer), shmac)
+
+    @property
+    def PACKETSIZE(self) -> int:
+        """
+        Returns the number of combined bytes each iteration of the
+        stream will produce. Equal to 24 + 256; 24-bytes for the
+        `block_id` & 256-bytes for the ciphertext block.
+        """
+        return chunky2048.PACKETSIZE
+
+    @property
+    def _iter_shortcuts(self) -> t.Tuple[
+        t.Callable[..., bytes],
+        t.Deque[bytes],
+        t.Callable[[type(None)], bytes],
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self.shmac.next_block_id, self._buffer, self._cipher.send
+
+    @property
+    def _buffer_shortcuts(self) -> t.Tuple[
+        t.Deque[bytes], t.Callable[[bytes], None]
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self._buffer, self._buffer.append
+
+    @property
+    def aad(self) -> bytes:
+        """
+        Returns the current value of the ``aad`` set by the user. This
+        value may be updated to add different authentication contexts
+        for blocks yet to be processed. **Requires synchonization!**
+        """
+        return self._aad
+
+    @aad.setter
+    def aad(self, value: bytes) -> None:
+        """
+        Sets a new current value of the ``aad``. This value may be
+        updated to add different authentication contexts for blocks yet
+        to be processed. **Requires synchonization!**
+        """
+        if value.__class__ is not bytes:
+            raise Issue.value_must_be_type("aad", bytes)
+        self._aad = value
+
+    @property
+    def salt(self) -> bytes:
+        """
+        Returns the ephemeral, uniform 16-byte salt value. Automatically
+        generated during encryption if not supplied. SHOULD BE USED ONLY
+        ONCE for each encryption. Any repeats reduce salt reuse / misuse
+        security by 64 bits. It also harms anonymity. This value can be
+        sent in the clear along with the ciphertext.
+        """
+        return self._key_bundle.salt
+
+    @property
+    def iv(self) -> bytes:
+        """
+        Returns the 16-byte ephemeral, uniform ``iv`` value, generated
+        automatically & at random by the encryption algorithm. Helps
+        ensure salt reuse / misue security even if the `key`, `salt` &
+        `aad` are the same for ~2**64 messages. This value can be sent
+        in the clear along with the ciphertext.
+        """
+        return self._key_bundle.iv
+
+    def __iter__(self) -> t.Generator[
+        None, t.Tuple[bytes, bytes], None
+    ]:
+        """
+        Allows the object to be entered in for-loops an unlimited amount
+        of times in the process of gathering data to buffer for the
+        stream. This leads to a very pythonic API.
+        """
+        next_block_id, buffer, cipher = self._iter_shortcuts
+        while len(buffer) > MIN_STREAM_QUEUE:
+            block = cipher(None)
+            yield next_block_id(block, aad=self._aad), block
+
+    def finalize(self) -> t.Generator[
+        None, t.Tuple[bytes, bytes], None
+    ]:
+        """
+        Instructs the instance to finish receiving data into the buffer
+        & to flush all ciphertext results out to the user.
+
+         _____________________________________
+        |                                     |
+        |      Usage Example: Encryption      |
+        |_____________________________________|
+
+
+        for plaintext in session.upload.buffer(4 * stream.PACKETSIZE):
+            stream.buffer(plaintext)
+            for block_id, ciphertext in stream:
+                session.send_packet(block_id + ciphertext)
+
+        for block_id, ciphertext in stream.finalize():  # <-------------
+            session.send_packet(block_id + ciphertext)
+        """
+        self._is_finalized = True
+        for result in self:
+            yield result
+        self._buffer[-1] += Padding.end_padding(self._byte_count)
+        block = self._cipher.send(None)
+        yield self.shmac.next_block_id(block, aad=self._aad), block
+
+    def _digest_data(
+        self,
+        data: t.Callable[[int], bytes],
+        buffer: t.Deque[bytes],
+        append: t.Callable[[bytes], None],
+    ) -> None:
+        """
+        Prepares the input plaintext ``data`` for encryption by dividing
+        it into blocksize chunks.
+        """
+        if buffer and len(buffer[-1]) != BLOCKSIZE:
+            missing_bytes = BLOCKSIZE - len(buffer[-1])
+            chunk = data(missing_bytes)
+            buffer[-1] += chunk
+            if len(chunk) != missing_bytes:
+                return
+        while True:
+            block = data(BLOCKSIZE)
+            append(block)
+            if len(block) != BLOCKSIZE:
+                break
+
+    def buffer(self, data: bytes) -> "self":
+        """
+        Prepares the input plaintext ``data`` for encryption by dividing
+        it into blocksize chunks & taking plaintext measuremenets for
+        automated message padding.
+
+         _____________________________________
+        |                                     |
+        |      Usage Example: Encryption      |
+        |_____________________________________|
+
+
+        for plaintext in session.upload.buffer(4 * stream.PACKETSIZE):
+            stream.buffer(plaintext)  # <-------------------------------
+            for block_id, ciphertext in stream:
+                session.send_packet(block_id + ciphertext)
+
+        for block_id, ciphertext in stream.finalize():
+            session.send_packet(block_id + ciphertext)
+        """
+        if self._is_finalized:
+            raise CipherStreamIssue.stream_has_been_closed()
+        self._byte_count += len(data)
+        data = io.BytesIO(data).read
+        _buffer, append = self._buffer_shortcuts
+        while self._is_digesting:
+            asynchs.sleep(0.00001)
+        try:
+            self._is_digesting = True
+            self._digest_data(data, _buffer, append)
+        finally:
+            self._is_digesting = False
+        return self
+
+
+class AsyncDecipherStream(metaclass=AsyncInit):
     """
-    A high-level public interface to the package's MRAE / AEAD
-    `Chunky2048` cipher.
+    A high-level public interface to the package's online, salt reuse /
+    misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-    Returns the `Chunky2048` ciphertext of any JSON serializable ``data``.
-    The returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV,
-    & a 32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it.
+    Since this class handles ciphertext validation automatically, all
+    decrypted plaintexts are verified & can be released with ~1 / 2**96
+    chance of block ID collisions.
 
-    ``key``: A 64-byte or greater entropic value that contains the
-            user's desired entropy & cryptographic strength. Designed to
-            be used as a longer-term user encryption / decryption key &
-            is ideally a uniform value.
-    ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
-            ONCE for each encryption. This value is sent in the clear
-            along with the ciphertext.
-    ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as associated data & safely
-            differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
+    Authenticates, decrypts & depads streams of `Chunky2048` ciphertext.
+    The streams are processed in blocks of 280-bytes, where the first
+    24-bytes of each block is its `block_id` authentication tag, & the
+    remaining 256-bytes is encrypted plaintext.
+
+    Validation using `StreamHMAC` `block_id`'s provides robustness to
+    communication channels. It does so by detecting forgeries & out-of-
+    order messages without changing its internal state. If a tag fails
+    to validate, the cipher stream can continue functioning once the
+    authentic messages, in their correct order, begin coming in.
+    --------
+    HOWEVER: The more blocks that are allowed to fail without aborting,
+    -------- the more chances an attacker has to spoof the 24-byte tag.
+
+     _____________________________________
+    |                                     |
+    |      Usage Example: Decryption      |
+    |_____________________________________|
+
+
+    stream = await AsyncDecipherStream(
+        key, salt=session.salt, aad=session.transcript, iv=session.iv
+    )
+    for ciphertext in session.download.buffer(4 * stream.PACKETSIZE):
+        await stream.abuffer(ciphertext)  # <--- raises InvalidBlockID if
+        async for plaintext in stream:    # auth failure in last 4 packets
+            yield plaintext
+
+    async for plaintext in stream.afinalize():
+        yield plaintext
+
+    # An optional check for further validity ---------------------------
+    # Cryptographically asserts stream is done. ------------------------
+    shmac = await stream.shmac.afinalize()
+    assert aiootp.bytes_are_equal(shmac, session.shmac)
     """
-    return bytes_encrypt(
-        json.dumps(data).encode(), key=key, salt=salt, aad=aad
+
+    __slots__ = (
+        "_aad",
+        "_buffer",
+        "_cipher",
+        "_is_digesting",
+        "_is_finalized",
+        "_is_streaming",
+        "_key_bundle",
+        "_result_queue",
+        "_ttl",
+        "shmac",
     )
 
+    async def __init__(
+        self,
+        key: bytes,
+        *,
+        salt: bytes,
+        aad: bytes = DEFAULT_AAD,
+        iv: bytes,
+        ttl: int = DEFAULT_TTL,
+    ) -> "self":
+        """
+        Derives decryption keys & initializes mutable buffers to
+        automatically prepare ciphertext & stage plaintext for retrival
+        by the user. The plaintext produced is stripped of its padding,
+        which was necessary during encryption for `Chunky2048` to be
+        able to provide stronger salt reuse / misuse resistance.
 
-async def ajson_decrypt(
-    data: bytes, key: bytes, *, aad: bytes = b"aad", ttl: int = 0
-):
+        ``key``: A 64-byte or greater entropic value that contains the
+                user's desired entropy & cryptographic strength.
+                Designed to be used as a longer-term user encryption /
+                decryption key & is ideally a uniform value.
+
+        ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+                generated during encryption if not supplied. SHOULD BE
+                USED ONLY ONCE for each encryption. Any repeats can harm
+                anonymity & unnecessarily forces ciphertext security to
+                rely on the salt reuse / misuse properties of the cipher.
+                This value can be sent in the clear along with the
+                ciphertext.
+
+        ``aad``: An arbitrary bytes value that a user decides to
+                categorize keystreams. It is authenticated as associated
+                data & safely differentiates keystreams when it is
+                unique for each permutation of `key`, `salt` & `iv`.
+
+        ``iv``: An ephemeral, uniform 16-byte value, generated
+                automatically & at random by the encryption algorithm.
+                Helps ensure salt reuse / misue security even if the
+                `key`, `salt` & `aad` are the same for ~2**64 messages.
+                This value can be sent in the clear along with the
+                ciphertext.
+
+        ``ttl``: An amount of seconds that dictate the allowable age of
+                a ciphertext stream, but ONLY checks the time for expiry
+                at the very start of a stream. Has no effect on how long
+                a stream can continue to live for.
+        """
+        self._aad = aad
+        self._ttl = ttl
+        self._is_digesting = False
+        self._is_streaming = False
+        self._is_finalized = False
+        self._result_queue = deque()
+        self._buffer = buffer = deque()
+        self._key_bundle = key_bundle = await KeyAADBundle(
+            key=key, salt=salt, aad=aad, iv=iv,
+        ).async_mode()
+        self.shmac = shmac = StreamHMAC(key_bundle)._for_decryption()
+        self._cipher = abytes_decipher(apopleft.root(buffer), shmac)
+
+    @property
+    def PACKETSIZE(self) -> int:
+        """
+        Returns the number of combined bytes each iteration of the
+        stream will produce. Equal to 24 + 256; 24-bytes for the
+        `block_id` & 256-bytes for the ciphertext block.
+        """
+        return chunky2048.PACKETSIZE
+
+    @property
+    def _iter_shortcuts(
+        self
+    ) -> t.Tuple[
+        t.Deque[bytes], t.Callable[[], bytes]
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self._result_queue, self._result_queue.popleft
+
+    @property
+    def _digest_data_shortcuts(self) -> t.Tuple[
+        t.Callable[[type(None)], bytes], t.Callable[[bytes], None]
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self._cipher.asend, self._result_queue.append
+
+    @property
+    def _buffer_shortcuts(self) -> t.Tuple[
+        t.Callable[..., None], t.Callable[[bytes], None]
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self.shmac.atest_next_block_id, self._buffer.append
+
+    @property
+    def aad(self) -> bytes:
+        """
+        Returns the current value of the ``aad`` set by the user. This
+        value may be updated to add different authentication contexts
+        for blocks yet to be processed. **Requires synchonization!**
+        """
+        return self._aad
+
+    @aad.setter
+    def aad(self, value: bytes) -> None:
+        """
+        Sets a new current value of the ``aad``. This value may be
+        updated to add different authentication contexts for blocks yet
+        to be processed. **Requires synchonization!**
+        """
+        if value.__class__ is not bytes:
+            raise Issue.value_must_be_type("aad", bytes)
+        self._aad = value
+
+    @property
+    def salt(self) -> bytes:
+        """
+        Returns the ephemeral, uniform 16-byte salt value. Automatically
+        generated during encryption if not supplied. SHOULD BE USED ONLY
+        ONCE for each encryption. Any repeats reduce salt reuse / misuse
+        security by 64 bits. It also harms anonymity. This value can be
+        sent in the clear along with the ciphertext.
+        """
+        return self._key_bundle.salt
+
+    @property
+    def iv(self) -> bytes:
+        """
+        Returns the 16-byte ephemeral, uniform ``iv`` value, generated
+        automatically & at random by the encryption algorithm. Helps
+        ensure salt reuse / misue security even if the `key`, `salt` &
+        `aad` are the same for ~2**64 messages. This value can be sent
+        in the clear along with the ciphertext.
+        """
+        return self._key_bundle.iv
+
+    async def __aiter__(self) -> t.AsyncGenerator[None, bytes]:
+        """
+        Allows the object to be entered in for-loops an unlimited amount
+        of times in the process of gathering data to buffer for the
+        stream. This leads to a very pythonic API.
+        """
+        result_queue, pop_result = self._iter_shortcuts
+        if not self._is_streaming:
+            try:
+                self._is_streaming = True
+                timestamp = result_queue[0][TIMESTAMP_SLICE]
+                await clock.atest_timestamp(timestamp, self._ttl)
+            except TimeoutError as error:
+                self._is_streaming = False
+                raise error
+            else:
+                result_queue[0] = result_queue[0][INNER_BODY_SLICE]
+        while len(result_queue) > MIN_STREAM_QUEUE:
+            yield pop_result()
+            await asleep()
+
+    async def afinalize(self) -> t.AsyncGenerator[None, bytes]:
+        """
+        Instructs the instance to finish receiving data into the buffer
+        & to flush all results out to the user with its plaintext
+        padding removed.
+
+         _____________________________________
+        |                                     |
+        |      Usage Example: Decryption      |
+        |_____________________________________|
+
+
+        for ciphertext in session.download.buffer(4 * stream.PACKETSIZE):
+            await stream.abuffer(ciphertext)  # <--- raises InvalidBlockID if
+            async for plaintext in stream:    # auth failure in last 4 packets
+                yield plaintext
+
+        async for plaintext in stream.afinalize():
+            yield plaintext
+        """
+        self._is_finalized = True
+        async for result in self:
+            yield result
+        block = self._result_queue.popleft()
+        footer_index = Padding.depadding_end_index(block)
+        yield block[:footer_index]
+
+    async def _adigest_data(
+        self,
+        data: t.Callable[[int], bytes],
+        atest_block_id: t.Callable[..., None],
+        append: t.Callable[[bytes], None],
+    ) -> None:
+        """
+        Prepares the input ciphertext ``data`` for decryption by
+        dividing it into blocksize chunks & validating each packet's
+        block ID.
+        """
+        cipher, queue_result = self._digest_data_shortcuts
+        while True:
+            block_id = data(BLOCK_ID_BYTES)
+            if not block_id:
+                break
+            block = data(BLOCKSIZE)
+            try:
+                await atest_block_id(block_id, block, aad=self._aad)
+            except InvalidBlockID as auth_fail:
+                # Package the current state of buffering for the caller
+                # to handle authentication failures & negotiation of
+                # data retransmission if desired.
+                auth_fail.failure_state = AuthFail(block_id, block, data)
+                raise auth_fail
+            append(block)
+            queue_result(await cipher(None))
+
+    async def abuffer(self, data: bytes) -> "self":
+        """
+        Prepares the input ciphertext ``data`` for decryption by
+        dividing it into blocksize chunks & validating each packet's
+        block ID.
+
+         _____________________________________
+        |                                     |
+        |      Usage Example: Decryption      |
+        |_____________________________________|
+
+
+        for ciphertext in session.download.buffer(4 * stream.PACKETSIZE):
+            await stream.abuffer(ciphertext)  # <--- raises InvalidBlockID if
+            async for plaintext in stream:    # auth failure in last 4 packets
+                yield plaintext
+
+        async for plaintext in stream.afinalize():
+            yield plaintext
+        """
+        if self._is_finalized:
+            raise CipherStreamIssue.stream_has_been_closed()
+        elif not data or len(data) % PACKETSIZE:
+            raise CipherStreamIssue.invalid_buffer_size(len(data))
+        data = io.BytesIO(data).read
+        atest_block_id, append = self._buffer_shortcuts
+        while self._is_digesting:
+            await asleep(0.00001)
+        try:
+            self._is_digesting = True
+            await self._adigest_data(data, atest_block_id, append)
+        finally:
+            self._is_digesting = False
+        return self
+
+
+class DecipherStream:
     """
-    A high-level public interface to the package's MRAE / AEAD
-    `Chunky2048` cipher.
+    A high-level public interface to the package's online, salt reuse /
+    misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-    Returns the loaded plaintext JSON object from the bytes ciphertext
-    ``data``. The ``data`` bytes contain a 24-byte ephemeral salt, a
-    24-byte SIV & a 32-byte HMAC used to verify the integrity &
-    authenticity of the ciphertext & the values used to create it.
+    Since this class handles ciphertext validation automatically, all
+    decrypted plaintexts are verified & can be released with ~1 / 2**96
+    chance of block ID collisions.
 
-    ``key``: A 64-byte or greater entropic value that contains the
-            user's desired entropy & cryptographic strength. Designed to
-            be used as a longer-term user encryption / decryption key &
-            is ideally a uniform value.
-    ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as associated data & safely
-            differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
-    ``ttl``: An amount of seconds that dictate the allowable age of
-            the decrypted message.
+    Authenticates, decrypts & depads streams of `Chunky2048` ciphertext.
+    The streams are processed in blocks of 280-bytes, where the first
+    24-bytes of each block is its `block_id` authentication tag, & the
+    remaining 256-bytes is encrypted plaintext.
+
+    Validation using `StreamHMAC` `block_id`'s provides robustness to
+    communication channels. It does so by detecting forgeries & out-of-
+    order messages without changing its internal state. If a tag fails
+    to validate, the cipher stream can continue functioning once the
+    authentic messages, in their correct order, begin coming in.
+    --------
+    HOWEVER: The more blocks that are allowed to fail without aborting,
+    -------- the more chances an attacker has to spoof the 24-byte tag.
+
+     _____________________________________
+    |                                     |
+    |      Usage Example: Decryption      |
+    |_____________________________________|
+
+
+    stream = DecipherStream(
+        key, salt=session.salt, aad=session.transcript, iv=session.iv
+    )
+    for ciphertext in session.download.buffer(4 * stream.PACKETSIZE):
+        stream.buffer(ciphertext)   # <--- raises InvalidBlockID if
+        for plaintext in stream:    # auth failure in last 4 packets
+            yield plaintext
+
+    for plaintext in stream.finalize():
+        yield plaintext
+
+    # An optional check for further validity ---------------------------
+    # Cryptographically asserts stream is done. ------------------------
+    assert aiootp.bytes_are_equal(stream.shmac.finalize(), session.shmac)
     """
-    return json.loads(await abytes_decrypt(data, key=key, aad=aad, ttl=ttl))
+
+    __slots__ = (
+        "_aad",
+        "_buffer",
+        "_cipher",
+        "_is_digesting",
+        "_is_finalized",
+        "_is_streaming",
+        "_key_bundle",
+        "_result_queue",
+        "_ttl",
+        "shmac",
+    )
+
+    def __init__(
+        self,
+        key: bytes,
+        *,
+        salt: bytes,
+        aad: bytes = DEFAULT_AAD,
+        iv: bytes,
+        ttl: int = DEFAULT_TTL,
+    ) -> "self":
+        """
+        Derives decryption keys & initializes mutable buffers to
+        automatically prepare ciphertext & stage plaintext for retrival
+        by the user. The plaintext produced is stripped of its padding,
+        which was necessary during encryption for `Chunky2048` to be
+        able to provide stronger salt reuse / misuse resistance.
+
+        ``key``: A 64-byte or greater entropic value that contains the
+                user's desired entropy & cryptographic strength.
+                Designed to be used as a longer-term user encryption /
+                decryption key & is ideally a uniform value.
+
+        ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+                generated during encryption if not supplied. SHOULD BE
+                USED ONLY ONCE for each encryption. Any repeats can harm
+                anonymity & unnecessarily forces ciphertext security to
+                rely on the salt reuse / misuse properties of the cipher.
+                This value can be sent in the clear along with the
+                ciphertext.
+
+        ``aad``: An arbitrary bytes value that a user decides to
+                categorize keystreams. It is authenticated as associated
+                data & safely differentiates keystreams when it is
+                unique for each permutation of `key`, `salt` & `iv`.
+
+        ``iv``: An ephemeral, uniform 16-byte value, generated
+                automatically & at random by the encryption algorithm.
+                Helps ensure salt reuse / misue security even if the
+                `key`, `salt` & `aad` are the same for ~2**64 messages.
+                This value can be sent in the clear along with the
+                ciphertext.
+
+        ``ttl``: An amount of seconds that dictate the allowable age of
+                a ciphertext stream, but ONLY checks the time for expiry
+                at the very start of a stream. Has no effect on how long
+                a stream can continue to live for.
+        """
+        self._aad = aad
+        self._ttl = ttl
+        self._is_digesting = False
+        self._is_streaming = False
+        self._is_finalized = False
+        self._result_queue = deque()
+        self._buffer = buffer = deque()
+        self._key_bundle = key_bundle = KeyAADBundle(
+            key=key, salt=salt, aad=aad, iv=iv,
+        ).sync_mode()
+        self.shmac = shmac = StreamHMAC(key_bundle)._for_decryption()
+        self._cipher = bytes_decipher(popleft.root(buffer), shmac)
+
+    @property
+    def PACKETSIZE(self) -> int:
+        """
+        Returns the number of combined bytes each iteration of the
+        stream will produce. Equal to 24 + 256; 24-bytes for the
+        `block_id` & 256-bytes for the ciphertext block.
+        """
+        return chunky2048.PACKETSIZE
+
+    @property
+    def _iter_shortcuts(self) -> t.Tuple[
+        t.Deque[bytes], t.Callable[[], bytes]
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self._result_queue, self._result_queue.popleft
+
+    @property
+    def _digest_data_shortcuts(self) -> t.Tuple[
+        t.Callable[[type(None)], bytes], t.Callable[[bytes], None]
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self._cipher.send, self._result_queue.append
+
+    @property
+    def _buffer_shortcuts(self) -> t.Tuple[
+        t.Callable[..., None], t.Callable[[bytes], None]
+    ]:
+        """
+        Returns method pointers so calls in tight loops during
+        processing don't have to continually getattr on instance
+        objects.
+        """
+        return self.shmac.test_next_block_id, self._buffer.append
+
+    @property
+    def aad(self) -> bytes:
+        """
+        Returns the current value of the ``aad`` set by the user. This
+        value may be updated to add different authentication contexts
+        for blocks yet to be processed. **Requires synchonization!**
+        """
+        return self._aad
+
+    @aad.setter
+    def aad(self, value: bytes) -> None:
+        """
+        Sets a new current value of the ``aad``. This value may be
+        updated to add different authentication contexts for blocks yet
+        to be processed. **Requires synchonization!**
+        """
+        if value.__class__ is not bytes:
+            raise Issue.value_must_be_type("aad", bytes)
+        self._aad = value
+
+    @property
+    def salt(self) -> bytes:
+        """
+        Returns the ephemeral, uniform 16-byte salt value. Automatically
+        generated during encryption if not supplied. SHOULD BE USED ONLY
+        ONCE for each encryption. Any repeats reduce salt reuse / misuse
+        security by 64 bits. It also harms anonymity. This value can be
+        sent in the clear along with the ciphertext.
+        """
+        return self._key_bundle.salt
+
+    @property
+    def iv(self) -> bytes:
+        """
+        Returns the 16-byte ephemeral, uniform ``iv`` value, generated
+        automatically & at random by the encryption algorithm. Helps
+        ensure salt reuse / misue security even if the `key`, `salt` &
+        `aad` are the same for ~2**64 messages. This value can be sent
+        in the clear along with the ciphertext.
+        """
+        return self._key_bundle.iv
+
+    def __iter__(self) -> t.Generator[None, bytes, None]:
+        """
+        Allows the object to be entered in for-loops an unlimited amount
+        of times in the process of gathering data to buffer for the
+        stream. This leads to a very pythonic API.
+        """
+        result_queue, pop_result = self._iter_shortcuts
+        if not self._is_streaming:
+            try:
+                self._is_streaming = True
+                timestamp = result_queue[0][TIMESTAMP_SLICE]
+                clock.test_timestamp(timestamp, self._ttl)
+            except TimeoutError as error:
+                self._is_streaming = False
+                raise error
+            else:
+                result_queue[0] = result_queue[0][INNER_BODY_SLICE]
+        while len(result_queue) > MIN_STREAM_QUEUE:
+            yield pop_result()
+
+    def finalize(self) -> t.Generator[None, bytes, None]:
+        """
+        Instructs the instance to finish receiving data into the buffer
+        & to flush all results out to the user with its plaintext
+        padding removed.
+
+         _____________________________________
+        |                                     |
+        |      Usage Example: Decryption      |
+        |_____________________________________|
+
+        for ciphertext in source.download.buffer(4 * stream.PACKETSIZE):
+            stream.buffer(ciphertext)   # <--- raises InvalidBlockID if
+            for plaintext in stream:    # auth failure in last 4 packets
+                yield plaintext
+        for plaintext in stream.finalize():
+            yield plaintext
+        """
+        self._is_finalized = True
+        for result in self:
+            yield result
+        block = self._result_queue.popleft()
+        footer_index = Padding.depadding_end_index(block)
+        yield block[:footer_index]
+
+    def _digest_data(
+        self,
+        data: t.Callable[[int], bytes],
+        test_block_id: t.Callable[..., None],
+        append: t.Callable[[bytes], None],
+    ) -> None:
+        """
+        Prepares the input ciphertext ``data`` for decryption by
+        dividing it into blocksize chunks & validating each packet's
+        block ID.
+        """
+        cipher, queue_result = self._digest_data_shortcuts
+        while True:
+            block_id = data(BLOCK_ID_BYTES)
+            if not block_id:
+                break
+            block = data(BLOCKSIZE)
+            try:
+                test_block_id(block_id, block, aad=self._aad)
+            except InvalidBlockID as auth_fail:
+                # Package the current state of buffering for the caller
+                # to handle authentication failures & negotiation of
+                # data retransmission if desired.
+                auth_fail.failure_state = AuthFail(block_id, block, data)
+                raise auth_fail
+            append(block)
+            queue_result(cipher(None))
+
+    def buffer(self, data: bytes) -> "self":
+        """
+        Prepares the input ciphertext ``data`` for decryption by
+        dividing it into blocksize chunks & validating each packet's
+        block ID.
+
+         _____________________________________
+        |                                     |
+        |      Usage Example: Decryption      |
+        |_____________________________________|
+
+        for ciphertext in source.download.buffer(4 * stream.PACKETSIZE):
+            stream.buffer(ciphertext)   # <--- raises InvalidBlockID if
+            for plaintext in stream:    # auth failure in last 4 packets
+                yield plaintext
+        for plaintext in stream.finalize():
+            yield plaintext
+        """
+        if self._is_finalized:
+            raise CipherStreamIssue.stream_has_been_closed()
+        elif not data or len(data) % PACKETSIZE:
+            raise CipherStreamIssue.invalid_buffer_size(len(data))
+        data = io.BytesIO(data).read
+        test_block_id, append = self._buffer_shortcuts
+        while self._is_digesting:
+            asynchs.sleep(0.00001)
+        try:
+            self._is_digesting = True
+            self._digest_data(data, test_block_id, append)
+        finally:
+            self._is_digesting = False
+        return self
 
 
-def json_decrypt(
-    data: bytes, key: bytes, *, aad: bytes = b"aad", ttl: int = 0
-):
+def aplaintext_stream(data: bytes) -> t.AsyncGenerator[None, bytes]:
     """
-    A high-level public interface to the package's MRAE / AEAD
-    `Chunky2048` cipher.
+     --------------------------------------------------------------
+    | PRIVATE: Use high-level Chunky2048 or (Async)CipherStream    |
+    |          instead!                                            |
+     --------------------------------------------------------------
 
-    Returns the loaded plaintext JSON object from the bytes ciphertext
-    ``data``. The ``data`` bytes contain a 24-byte ephemeral salt, a
-    24-byte SIV & a 32-byte HMAC used to verify the integrity &
-    authenticity of the ciphertext & the values used to create it.
+    Takes in plaintext bytes ``data``, then pads & yields it in 256-byte
+    chunks per iteration. The plaintext padding is done in two separate
+    ways:
 
-    ``key``: A 64-byte or greater entropic value that contains the
-            user's desired entropy & cryptographic strength. Designed to
-            be used as a longer-term user encryption / decryption key &
-            is ideally a uniform value.
-    ``aad``: An arbitrary bytes value that a user decides to categorize
-            keystreams. It is authenticated as associated data & safely
-            differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
-    ``ttl``: An amount of seconds that dictate the allowable age of
-            the decrypted message.
+    First, a 4-byte timestamp & 16-byte ephemeral SIV-key are prepended
+    to the plaintext. This makes the first block, & the SIV which is
+    derived from it, globally unique. This allows the cipher to be
+    both online & be strongly salt reuse / misuse resistant, counter to
+    findings in https://eprint.iacr.org/2015/189.pdf.
+
+    Second, random padding bytes, & a single byte that encodes the
+    padding size, are appended to make the resulting plaintext a
+    multiple of the 256-byte blocksize. Further details can be found in
+    the `Padding` class.
     """
-    return json.loads(bytes_decrypt(data, key=key, aad=aad, ttl=ttl))
+    return adata.root(Padding.pad_plaintext(data), size=BLOCKSIZE)
+
+
+def plaintext_stream(data: bytes) -> t.Generator[None, bytes, None]:
+    """
+     --------------------------------------------------------------
+    | PRIVATE: Use high-level Chunky2048 or (Async)CipherStream    |
+    |          instead!                                            |
+     --------------------------------------------------------------
+
+    Takes in plaintext bytes ``data``, then pads & yields it in 256-byte
+    chunks per iteration. The plaintext padding is done in two separate
+    ways:
+
+    First, a 4-byte timestamp & 16-byte ephemeral SIV-key are prepended
+    to the plaintext. This makes the first block, & the SIV which is
+    derived from it, globally unique. This allows the cipher to be
+    both online & be strongly salt reuse / misuse resistant, counter to
+    findings in https://eprint.iacr.org/2015/189.pdf.
+
+    Second, random padding bytes, & a single byte that encodes the
+    padding size, are appended to make the resulting plaintext a
+    multiple of the 256-byte blocksize. Further details can be found in
+    the `Padding` class.
+    """
+    return _data.root(Padding.pad_plaintext(data), size=BLOCKSIZE)
 
 
 async def abytes_encrypt(
     data: bytes,
     key: bytes,
     *,
-    salt: Typing.Optional[bytes] = None,
-    aad: bytes = b"aad",
-):
+    salt: t.Optional[bytes] = None,
+    aad: bytes = DEFAULT_AAD,
+) -> bytes:
     """
-    A high-level public interface to the package's MRAE / AEAD
-    `Chunky2048` cipher.
+    A high-level public interface to the package's salt reuse / misuse
+    resistant, tweakable AEAD cipher, `Chunky2048`.
 
     Returns the `Chunky2048` ciphertext of any bytes type ``data``. The
-    returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV, &
-    a 32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it.
+    returned bytes contain the 32-byte SHMAC authentication tag, the
+    16-byte salt, & an ephemeral, uniform & random 16-byte IV.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform value.
-    ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
-            ONCE for each encryption. This value is sent in the clear
-            along with the ciphertext.
+
+    ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+            generated during encryption if not supplied. SHOULD BE USED
+            ONLY ONCE for each encryption. Any repeats can harm
+            anonymity & unnecessarily forces ciphertext security to rely
+            on the salt reuse / misuse properties of the cipher. This
+            value can be sent in the clear along with the ciphertext.
+
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
+            permutation of `key`, `salt` & `iv`.
     """
     key_bundle = await KeyAADBundle(
         key=key, salt=salt, aad=aad, allow_dangerous_determinism=True
     ).async_mode()
-    shmac = StreamHMAC(key_bundle).for_encryption()
-    data = aplaintext_stream.root(data, key_bundle)
-    ciphering = abytes_encipher(data, key_bundle, shmac)
+    shmac = StreamHMAC(key_bundle)._for_encryption()
+    data = aplaintext_stream(data)
+    ciphering = abytes_encipher(data, shmac)
     ciphertext = (
         b"".join([block async for block in ciphering]),
-        shmac.siv,
+        key_bundle.iv,
         key_bundle.salt,
         await shmac.afinalize(),
     )
@@ -2105,38 +3194,42 @@ def bytes_encrypt(
     data: bytes,
     key: bytes,
     *,
-    salt: Typing.Optional[bytes] = None,
-    aad: bytes = b"aad",
-):
+    salt: t.Optional[bytes] = None,
+    aad: bytes = DEFAULT_AAD,
+) -> bytes:
     """
-    A high-level public interface to the package's MRAE / AEAD
-    `Chunky2048` cipher.
+    A high-level public interface to the package's salt reuse / misuse
+    resistant, tweakable AEAD cipher, `Chunky2048`.
 
     Returns the `Chunky2048` ciphertext of any bytes type ``data``. The
-    returned bytes contain the ephemeral 24-byte salt, a 24-byte SIV, &
-    a 32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it.
+    returned bytes contain the 32-byte SHMAC authentication tag, the
+    16-byte salt, & an ephemeral, uniform & random 16-byte IV.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform value.
-    ``salt``: An ephemeral, random 24-byte value that MUST BE USED ONLY
-            ONCE for each encryption. This value is sent in the clear
-            along with the ciphertext.
+
+    ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+            generated during encryption if not supplied. SHOULD BE USED
+            ONLY ONCE for each encryption. Any repeats can harm
+            anonymity & unnecessarily forces ciphertext security to rely
+            on the salt reuse / misuse properties of the cipher. This
+            value can be sent in the clear along with the ciphertext.
+
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
+            permutation of `key`, `salt` & `iv`.
     """
     key_bundle = KeyAADBundle(
         key=key, salt=salt, aad=aad, allow_dangerous_determinism=True
     ).sync_mode()
-    shmac = StreamHMAC(key_bundle).for_encryption()
-    data = plaintext_stream.root(data, key_bundle)
+    shmac = StreamHMAC(key_bundle)._for_encryption()
+    data = plaintext_stream(data)
     ciphertext = (
-        b"".join(bytes_encipher(data, key_bundle, shmac)),
-        shmac.siv,
+        b"".join(bytes_encipher(data, shmac)),
+        key_bundle.iv,
         key_bundle.salt,
         shmac.finalize(),
     )
@@ -2144,3482 +3237,642 @@ def bytes_encrypt(
 
 
 async def abytes_decrypt(
-    data: bytes, key: bytes, *, aad: bytes = b"aad", ttl: int = 0
-):
+    data: bytes, key: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+) -> bytes:
     """
-    A high-level public interface to the package's MRAE / AEAD
-    `Chunky2048` cipher.
+    A high-level public interface to the package's salt reuse / misuse
+    resistant, tweakable AEAD cipher, `Chunky2048`.
 
     Returns the plaintext bytes from the bytes ciphertext ``data``. The
-    ``data`` bytes contain a 24-byte ephemeral salt, a 24-byte SIV & a
-    32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it.
+    ``data`` bytes contain the 32-byte SHMAC authentication tag, the
+    16-byte salt, & an ephemeral, uniform & random 16-byte IV.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform value.
+
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
+            permutation of `key`, `salt` & `iv`.
+
     ``ttl``: An amount of seconds that dictate the allowable age of
             the decrypted message.
     """
     data = Ciphertext(data)
-    key_bundle = await KeyAADBundle(
-        key=key, salt=data.salt, aad=aad, siv=data.synthetic_iv
-    ).async_mode()
-    shmac = StreamHMAC(key_bundle).for_decryption()
-    ciphertext = adata.root(data.ciphertext)
-    deciphering = abytes_decipher(ciphertext, key_bundle, shmac)
+    key_bundle = KeyAADBundle(key=key, salt=data.salt, aad=aad, iv=data.iv)
+    shmac = StreamHMAC(await key_bundle.async_mode())._for_decryption()
+    ciphertext = adata.root(data.ciphertext, size=BLOCKSIZE)
+    deciphering = abytes_decipher(ciphertext, shmac)
     plaintext = b"".join([block async for block in deciphering])
     await shmac.afinalize()
-    await shmac.atest_hmac(data.hmac)
-    return await Padding.adepad_plaintext(plaintext, key_bundle, ttl=ttl)
+    await shmac.atest_shmac(data.shmac)
+    return await Padding.adepad_plaintext(plaintext, ttl=ttl)
 
 
 def bytes_decrypt(
-    data: bytes, key: bytes, *, aad: bytes = b"aad", ttl: int = 0
-):
+    data: bytes, key: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+) -> bytes:
     """
-    A high-level public interface to the package's MRAE / AEAD
-    `Chunky2048` cipher.
+    A high-level public interface to the package's salt reuse / misuse
+    resistant, tweakable AEAD cipher, `Chunky2048`.
 
     Returns the plaintext bytes from the bytes ciphertext ``data``. The
-    ``data`` bytes contain a 24-byte ephemeral salt, a 24-byte SIV & a
-    32-byte HMAC used to verify the integrity & authenticity of the
-    ciphertext & the values used to create it.
+    ``data`` bytes contain the 32-byte SHMAC authentication tag, the
+    16-byte salt, & an ephemeral, uniform & random 16-byte IV.
 
     ``key``: A 64-byte or greater entropic value that contains the
             user's desired entropy & cryptographic strength. Designed to
             be used as a longer-term user encryption / decryption key &
             is ideally a uniform value.
+
     ``aad``: An arbitrary bytes value that a user decides to categorize
             keystreams. It is authenticated as associated data & safely
             differentiates keystreams when it is unique for each
-            permutation of ``key`` & ``salt``.
+            permutation of `key`, `salt` & `iv`.
+
     ``ttl``: An amount of seconds that dictate the allowable age of
             the decrypted message.
     """
     data = Ciphertext(data)
-    key_bundle = KeyAADBundle(
-        key=key, salt=data.salt, aad=aad, siv=data.synthetic_iv
-    ).sync_mode()
-    shmac = StreamHMAC(key_bundle).for_decryption()
-    ciphertext = gentools.data.root(data.ciphertext)
-    plaintext = b"".join(bytes_decipher(ciphertext, key_bundle, shmac))
+    key_bundle = KeyAADBundle(key=key, salt=data.salt, aad=aad, iv=data.iv)
+    shmac = StreamHMAC(key_bundle.sync_mode())._for_decryption()
+    ciphertext = _data.root(data.ciphertext, size=BLOCKSIZE)
+    plaintext = b"".join(bytes_decipher(ciphertext, shmac))
     shmac.finalize()
-    shmac.test_hmac(data.hmac)
-    return Padding.depad_plaintext(plaintext, key_bundle, ttl=ttl)
+    shmac.test_shmac(data.shmac)
+    return Padding.depad_plaintext(plaintext, ttl=ttl)
+
+
+async def ajson_encrypt(
+    data: t.JSONSerializable,
+    key: bytes,
+    *,
+    salt: t.Optional[bytes] = None,
+    aad: bytes = DEFAULT_AAD,
+) -> bytes:
+    """
+    A high-level public interface to the package's salt reuse / misuse
+    resistant, tweakable AEAD cipher, `Chunky2048`.
+
+    Returns the `Chunky2048` ciphertext of any JSON serializable ``data``.
+    The returned bytes contain the 32-byte SHMAC authentication tag, the
+    16-byte salt, & an ephemeral, uniform & random 16-byte IV.
+
+    ``key``: A 64-byte or greater entropic value that contains the
+            user's desired entropy & cryptographic strength. Designed to
+            be used as a longer-term user encryption / decryption key &
+            is ideally a uniform value.
+
+    ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+            generated during encryption if not supplied. SHOULD BE USED
+            ONLY ONCE for each encryption. Any repeats can harm
+            anonymity & unnecessarily forces ciphertext security to rely
+            on the salt reuse / misuse properties of the cipher. This
+            value can be sent in the clear along with the ciphertext.
+
+    ``aad``: An arbitrary bytes value that a user decides to categorize
+            keystreams. It is authenticated as associated data & safely
+            differentiates keystreams when it is unique for each
+            permutation of `key`, `salt` & `iv`.
+    """
+    return await abytes_encrypt(
+        json.dumps(data).encode(), key=key, salt=salt, aad=aad
+    )
+
+
+def json_encrypt(
+    data: t.JSONSerializable,
+    key: bytes,
+    *,
+    salt: t.Optional[bytes] = None,
+    aad: bytes = DEFAULT_AAD,
+) -> bytes:
+    """
+    A high-level public interface to the package's salt reuse / misuse
+    resistant, tweakable AEAD cipher, `Chunky2048`.
+
+    Returns the `Chunky2048` ciphertext of any JSON serializable ``data``.
+    The returned bytes contain the 32-byte SHMAC authentication tag, the
+    16-byte salt, & an ephemeral, uniform & random 16-byte IV.
+
+    ``key``: A 64-byte or greater entropic value that contains the
+            user's desired entropy & cryptographic strength. Designed to
+            be used as a longer-term user encryption / decryption key &
+            is ideally a uniform value.
+
+    ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+            generated during encryption if not supplied. SHOULD BE USED
+            ONLY ONCE for each encryption. Any repeats can harm
+            anonymity & unnecessarily forces ciphertext security to rely
+            on the salt reuse / misuse properties of the cipher. This
+            value can be sent in the clear along with the ciphertext.
+
+    ``aad``: An arbitrary bytes value that a user decides to categorize
+            keystreams. It is authenticated as associated data & safely
+            differentiates keystreams when it is unique for each
+            permutation of `key`, `salt` & `iv`.
+    """
+    return bytes_encrypt(
+        json.dumps(data).encode(), key=key, salt=salt, aad=aad
+    )
+
+
+async def ajson_decrypt(
+    data: bytes, key: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+) -> t.JSONSerializable:
+    """
+    A high-level public interface to the package's salt reuse / misuse
+    resistant, tweakable AEAD cipher, `Chunky2048`.
+
+    Returns the loaded plaintext JSON deserializable value from the
+    bytes ciphertext ``data``.  The ``data`` bytes contain the 32-byte
+    SHMAC authentication tag, the 16-byte salt, & an ephemeral, uniform
+    & random 16-byte IV.
+
+    ``key``: A 64-byte or greater entropic value that contains the
+            user's desired entropy & cryptographic strength. Designed to
+            be used as a longer-term user encryption / decryption key &
+            is ideally a uniform value.
+
+    ``aad``: An arbitrary bytes value that a user decides to categorize
+            keystreams. It is authenticated as associated data & safely
+            differentiates keystreams when it is unique for each
+            permutation of `key`, `salt` & `iv`.
+
+    ``ttl``: An amount of seconds that dictate the allowable age of
+            the decrypted message.
+    """
+    return json.loads(await abytes_decrypt(data, key=key, aad=aad, ttl=ttl))
+
+
+def json_decrypt(
+    data: bytes, key: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+) -> t.JSONSerializable:
+    """
+    A high-level public interface to the package's salt reuse / misuse
+    resistant, tweakable AEAD cipher, `Chunky2048`.
+
+    Returns the loaded plaintext JSON deserializable value from the
+    bytes ciphertext ``data``.  The ``data`` bytes contain the 32-byte
+    SHMAC authentication tag, the 16-byte salt, & an ephemeral, uniform
+    & random 16-byte IV.
+
+    ``key``: A 64-byte or greater entropic value that contains the
+            user's desired entropy & cryptographic strength. Designed to
+            be used as a longer-term user encryption / decryption key &
+            is ideally a uniform value.
+
+    ``aad``: An arbitrary bytes value that a user decides to categorize
+            keystreams. It is authenticated as associated data & safely
+            differentiates keystreams when it is unique for each
+            permutation of `key`, `salt` & `iv`.
+
+    ``ttl``: An amount of seconds that dictate the allowable age of
+            the decrypted message.
+    """
+    return json.loads(bytes_decrypt(data, key=key, aad=aad, ttl=ttl))
 
 
 class Chunky2048:
-    """
-    An efficient high-level public interface to the package's online
-    MRAE / AEAD pseudo one-time pad cipher implementation. This
-    implementation is built primarily out of async & sync generators as
-    data processing pipelines & communication coroutines.
+    r"""
+    An efficient high-level public interface to the package's online,
+    salt reuse / misuse resistant, tweakable AEAD pseudo one-time pad
+    cipher implementation. This implementation is built primarily out of
+    async & sync generators as data processing pipelines & communication
+    coroutines.
 
-    key = aiootp.csprng()
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
+
+    key = aiootp.generate_key()
     cipher = aiootp.Chunky2048(key)
 
-    encrypted = cipher.bytes_encrypt(b"binary data")
-    assert isinstance(encrypted, bytes)
-    decrypted = cipher.bytes_decrypt(encrypted)
-    assert decrypted == b"binary data"
+    ciphertext = cipher.bytes_encrypt(b"binary data")
+    assert isinstance(ciphertext, bytes)
+    plaintext = cipher.bytes_decrypt(ciphertext)
+    assert plaintext == b"binary data"
 
-    encrypted = cipher.json_encrypt({"any": "JSON serializable object"})
-    assert isinstance(encrypted, bytes)
-    decrypted = cipher.json_decrypt(encrypted)
-    assert decrypted == {"any": "JSON serializable object"}
+    ciphertext = cipher.json_encrypt({"any": "JSON serializable object"})
+    assert isinstance(ciphertext, bytes)
+    plaintext = cipher.json_decrypt(ciphertext)
+    assert plaintext == {"any": "JSON serializable object"}
 
     # Encrypted & authenticated urlsafe tokens can be created too ->
     token = cipher.make_token(b"binary data")
     print(token)
-    b'''KGqiGdVlTI7AjiA3KS9BCNw5JE-Vr57D2a9P_330HvmPK9e5YFkX4pJ19mYqb_f5
-    u9z__ZtUoS9m7OYqZmoFB6zwaDvIQXXc9qY7VzATEHxyyjGFlTW-hKq08ma8-Dkzcx'x
-    YtgC7xPOu_wax6HtX_3nCFuV27OPp6mivfhKv3nXEVG_vdayBNW0AeeEvB0jhXubo_u9
-    41JY_Egif3Dl3GemrPcGuPhYyWNO19tfypqZIAt2GmsBVm-k9dZTvNqcn5fRptCSvGuQ
-    PC5AemvzJvUFZWvzOLnBTEUdMy6gXOwnVI-CrGpHzeUqTEwAldyn9R-H15YvcRaUQQuJ
-    eRm_lo_f7eEHJtPXt9M84U7r6tjDpNajMnGG-MRbyWmYCpBXH0dx4Myuh9MfDA9F43Mz
-    0vT2DAuWaFYRO-yPkRGk3NmTbAEGgV_o_L7LO0bE4aLka'''
+    b'''RAJE5RxTUY_NmMwvkbv3xGl-hPgLbcWUfCKCBR4wCLxH598ee7qk22DvKZVF417k
+    nZAtj6Xud4yxz189V28FaQboFuq6yxeFRpWt6FzfDZwSUM_lBBSCB44xmufC9T5w1kiE
+    5x6R340aCQW5LX6J3lyAuLLo7qlTT7tADWnw1TNrIGjEsMzPRykkMjozU2KDn2KBzJWq
+    -b-3A-6HxY1NaJ-SItywKf601ebCe2mB3VbuLPlVligGTB1PH3QUhnKQ9VdSaOxtRezs
+    0PXqFt44QQVaV-krZsiRZpxieVHzWpLl5apqnESYehriv28lmbnv1KXlbxPxwMQNXAqI
+    6ae-RU_nESmjRKPnt9NGQPwpcvnKQztLkCk6PjaH74zsMUALAklWzE0ats4yDAZ1ACZk
+    YmaEup0q2keiesd5Qmgcao8%3D'''
     assert b"binary data" == cipher.read_token(token)
+
+     _____________________________________
+    |                                     |
+    |     Algorithm Pseudocode: Init      |
+    |_____________________________________|
+
+    e = a canonical, domain-specified encoding / padding function
+    S = seed_kdf = shake_128(e(SALT_S, key, salt, aad, iv, METADATA))
+    L = left_kdf = shake_128(e(SALT_L, key, salt, aad, iv, METADATA))
+    R = right_kdf = shake_128(e(SALT_R, key, salt, aad, iv, METADATA))
+    V = shmac_mac = shake_128(e(SALT_V, key, salt, aad, iv, METADATA))
+    P = 256-byte plaintext block
+    C = 256-byte ciphertext block
+    S_L, S_R = the two 168-byte seed_kdf outputs for the left & right kdfs
+    K_L, K_R = the two 128-byte left & right kdf outputs
+
+    Each block, except for the first (see `SyntheticIV`),
+    is processed as such:
+
+     _____________________________________
+    |                                     |
+    |    Algorithm Diagram: Encryption    |
+    |_____________________________________|
+                                               ___ ___
+                                                |   |
+                                -----           |   |
+                       S_L --->|  L  |--->K_L---⊕-->|
+                      /         -----           |   |
+     -----      -----/                          |   |     -----      ---
+    |  V  |--->|  S  |                          P   C--->|  V  |--->|  S
+     -----      -----\                          |   |     -----      ---
+                      \         -----           |   |
+                       S_R --->|  R  |--->K_R---⊕-->|
+                                -----           |   |
+                                                |   |
+                                               _|_ _|_
+
+     _____________________________________
+    |                                     |
+    |    Algorithm Diagram: Decryption    |
+    |_____________________________________|
+                                               ___ ___
+                                                |   |
+                                -----           |   |
+                       S_L --->|  L  |--->K_L---⊕-->|
+                      /         -----           |   |
+     -----      -----/                          |   |     -----      ---
+    |  V  |--->|  S  |                          C   P    |  V  |--->|  S
+     -----      -----\                          |   |     -----      ---
+                      \         -----           |   |       ^
+                       S_R --->|  R  |--->K_R---⊕-->|       |
+                                -----           |   |       |
+                                                |   |       |
+                                               _|_ _|_      |
+                                                |           |
+                                                -------------
     """
 
     __slots__ = ("_key",)
 
-    _CONSTANTS = chunky2048_constants
-    _IO = BytesIO
+    InvalidSHMAC = InvalidSHMAC
+    TimestampExpired = TimestampExpired
 
-    def __init__(self, key: Typing.Optional[bytes] = None):
+    def __init__(self, key: bytes) -> "self":
         """
-        Creates an efficient object which manages a main encryption key
-        for use in the `Chunky2048` cipher.
+        Creates an efficient object which manages a main encryption
+        ``key`` for use in the `Chunky2048` cipher.
         """
-        self._key = key if key else csprng()
-
-    @property
-    def key(self):
-        """
-        Returns the instance's main symmetric key.
-        """
-        return self._key
-
-    async def ajson_encrypt(
-        self,
-        data: Typing.JSONSerializable,
-        *,
-        salt: Typing.Optional[bytes] = None,
-        aad: bytes = b"aad",
-    ):
-        """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
-
-        ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
-        authenticated associated data which also permutes the cipher's
-        internal derived keys.
-        """
-        return await ajson_encrypt(data, key=self.key, salt=salt, aad=aad)
-
-    def json_encrypt(
-        self,
-        data: Typing.JSONSerializable,
-        *,
-        salt: Typing.Optional[bytes] = None,
-        aad: bytes = b"aad",
-    ):
-        """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
-
-        ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
-        authenticated associated data which also permutes the cipher's
-        internal derived keys.
-        """
-        return json_encrypt(data, key=self.key, salt=salt, aad=aad)
-
-    async def ajson_decrypt(
-        self, data: bytes, *, aad: bytes = b"aad", ttl: int = 0
-    ):
-        """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
-
-        ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
-        be allowed during validation. The age in measured from a
-        timestamp that is removed from the plaintext data. ``aad`` is
-        authenticated associated data which also permutes the cipher's
-        internal derived keys.
-        """
-        return await ajson_decrypt(data, key=self.key, aad=aad, ttl=ttl)
-
-    def json_decrypt(
-        self, data: bytes, *, aad: bytes = b"aad", ttl: int = 0
-    ):
-        """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
-
-        ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
-        be allowed during validation. The age in measured from a
-        timestamp that is removed from the plaintext data. ``aad`` is
-        authenticated associated data which also permutes the cipher's
-        internal derived keys.
-        """
-        return json_decrypt(data, key=self.key, aad=aad, ttl=ttl)
+        if len(key) < MIN_KEY_BYTES:
+            raise KeyAADIssue.invalid_key()
+        self._key = key
 
     async def abytes_encrypt(
         self,
         data: bytes,
         *,
-        salt: Typing.Optional[bytes] = None,
-        aad: bytes = b"aad",
-    ):
+        salt: t.Optional[bytes] = None,
+        aad: bytes = DEFAULT_AAD,
+    ) -> bytes:
         """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
+        Returns the `Chunky2048` ciphertext of any bytes type ``data``.
+        The returned bytes contain the 32-byte SHMAC authentication tag,
+        the 16-byte salt, & an ephemeral, uniform & random 16-byte IV.
 
-        ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
-        authenticated associated data which also permutes the cipher's
-        internal derived keys.
+        ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+                generated during encryption if not supplied. SHOULD BE
+                USED ONLY ONCE for each encryption. Any repeats can harm
+                anonymity & unnecessarily forces ciphertext security to rely
+                on the salt reuse / misuse properties of the cipher. This
+                value can be sent in the clear along with the ciphertext.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
         """
-        return await abytes_encrypt(data, key=self.key, salt=salt, aad=aad)
+        return await abytes_encrypt(data, key=self._key, salt=salt, aad=aad)
 
     def bytes_encrypt(
         self,
         data: bytes,
         *,
-        salt: Typing.Optional[bytes] = None,
-        aad: bytes = b"aad",
-    ):
+        salt: t.Optional[bytes] = None,
+        aad: bytes = DEFAULT_AAD,
+    ) -> bytes:
         """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-        ``salt`` is a uniform & ephemeral 24-byte value. ``aad`` is
-        authenticated associated data which also permutes the cipher's
-        internal derived keys.
+        Returns the `Chunky2048` ciphertext of any bytes type ``data``.
+        The returned bytes contain the 32-byte SHMAC authentication tag,
+        the 16-byte salt, & an ephemeral, uniform & random 16-byte IV.
+
+        ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+                generated during encryption if not supplied. SHOULD BE
+                USED ONLY ONCE for each encryption. Any repeats can harm
+                anonymity & unnecessarily forces ciphertext security to rely
+                on the salt reuse / misuse properties of the cipher. This
+                value can be sent in the clear along with the ciphertext.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
         """
-        return bytes_encrypt(data, key=self.key, salt=salt, aad=aad)
+        return bytes_encrypt(data, key=self._key, salt=salt, aad=aad)
 
     async def abytes_decrypt(
-        self, data: bytes, *, aad: bytes = b"aad", ttl: int = 0
-    ):
+        self, data: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+    ) -> bytes:
         """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-        ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
-        be allowed during validation. The age in measured from a
-        timestamp that is removed from the plaintext data. ``aad`` is
-        authenticated associated data which also permutes the  cipher's
-        internal derived keys.
+        Returns the plaintext bytes from the bytes ciphertext ``data``.
+        The ``data`` bytes contain the 32-byte SHMAC authentication tag,
+        the 16-byte salt, & an ephemeral, uniform & random 16-byte IV.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
+
+        ``ttl``: An amount of seconds that dictate the allowable age of
+                the decrypted message.
         """
-        return await abytes_decrypt(data, key=self.key, aad=aad, ttl=ttl)
+        return await abytes_decrypt(data, key=self._key, aad=aad, ttl=ttl)
 
     def bytes_decrypt(
-        self, data: bytes, *, aad: bytes = b"aad", ttl: int = 0
-    ):
+        self, data: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+    ) -> bytes:
         """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-        ``ttl`` is the maximum age of a ciphertext, in seconds, that'll
-        be allowed during validation. The age in measured from a
-        timestamp that is removed from the plaintext data. ``aad`` is
-        authenticated associated data which also permutes the  cipher's
-        internal derived keys.
+        Returns the plaintext bytes from the bytes ciphertext ``data``.
+        The ``data`` bytes contain the 32-byte SHMAC authentication tag,
+        the 16-byte salt, & an ephemeral, uniform & random 16-byte IV.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
+
+        ``ttl``: An amount of seconds that dictate the allowable age of
+                the decrypted message.
         """
-        return bytes_decrypt(data, key=self.key, aad=aad, ttl=ttl)
+        return bytes_decrypt(data, key=self._key, aad=aad, ttl=ttl)
 
-    async def amake_token(self, data: bytes, *, aad: bytes = b"aad"):
+    async def ajson_encrypt(
+        self,
+        data: t.JSONSerializable,
+        *,
+        salt: t.Optional[bytes] = None,
+        aad: bytes = DEFAULT_AAD,
+    ) -> bytes:
         """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-        Encrypts ``data`` with the instance key & returns a urlsafe
-        encoded ciphertext token. ``aad`` is authenticated associated
-        data which also permutes the cipher's internal derived keys.
+        Returns the `Chunky2048` ciphertext of any JSON serializable
+        ``data``. The returned bytes contain the 32-byte SHMAC
+        authentication tag, the 16-byte salt, & an ephemeral, uniform &
+        random 16-byte IV.
+
+        ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+                generated during encryption if not supplied. SHOULD BE
+                USED ONLY ONCE for each encryption. Any repeats can harm
+                anonymity & unnecessarily forces ciphertext security to rely
+                on the salt reuse / misuse properties of the cipher. This
+                value can be sent in the clear along with the ciphertext.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
+        """
+        return await ajson_encrypt(data, key=self._key, salt=salt, aad=aad)
+
+    def json_encrypt(
+        self,
+        data: t.JSONSerializable,
+        *,
+        salt: t.Optional[bytes] = None,
+        aad: bytes = DEFAULT_AAD,
+    ) -> bytes:
+        """
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
+
+        Returns the `Chunky2048` ciphertext of any JSON serializable
+        ``data``. The returned bytes contain the 32-byte SHMAC
+        authentication tag, the 16-byte salt, & an ephemeral, uniform &
+        random 16-byte IV.
+
+        ``salt``: An ephemeral, uniform 16-byte salt value. Automatically
+                generated during encryption if not supplied. SHOULD BE
+                USED ONLY ONCE for each encryption. Any repeats can harm
+                anonymity & unnecessarily forces ciphertext security to rely
+                on the salt reuse / misuse properties of the cipher. This
+                value can be sent in the clear along with the ciphertext.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
+        """
+        return json_encrypt(data, key=self._key, salt=salt, aad=aad)
+
+    async def ajson_decrypt(
+        self, data: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+    ) -> t.JSONSerializable:
+        """
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
+
+        Returns the loaded plaintext JSON deserializable value from the
+        bytes ciphertext ``data``.  The ``data`` bytes contain the 32-
+        byte SHMAC authentication tag, the 16-byte salt, & an ephemeral,
+        uniform & random 16-byte IV.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
+
+        ``ttl``: An amount of seconds that dictate the allowable age of
+                the decrypted message.
+        """
+        return await ajson_decrypt(data, key=self._key, aad=aad, ttl=ttl)
+
+    def json_decrypt(
+        self, data: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+    ) -> t.JSONSerializable:
+        """
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
+
+        Returns the loaded plaintext JSON deserializable value from the
+        bytes ciphertext ``data``.  The ``data`` bytes contain the 32-
+        byte SHMAC authentication tag, the 16-byte salt, & an ephemeral,
+        uniform & random 16-byte IV.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
+
+        ``ttl``: An amount of seconds that dictate the allowable age of
+                the decrypted message.
+        """
+        return json_decrypt(data, key=self._key, aad=aad, ttl=ttl)
+
+    async def amake_token(
+        self, data: bytes, *, aad: bytes = DEFAULT_AAD
+    ) -> bytes:
+        """
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
+
+        Encrypts the bytes-type ``data`` with the instance key & returns
+        a urlsafe encoded ciphertext token. The ``token`` bytes contain
+        the 32-byte SHMAC authentication tag, the 16-byte salt, & an
+        ephemeral, uniform & random 16-byte IV.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
         """
         if data.__class__ is not bytes:
-            raise Issue.value_must_be_type("plaintext ``data``", bytes)
+            raise Issue.value_must_be_type("token data", bytes)
         ciphertext = await self.abytes_encrypt(data, aad=aad)
-        return await self._IO.abytes_to_urlsafe(ciphertext)
+        return await BytesIO.abytes_to_urlsafe(ciphertext)
 
-    def make_token(self, data: bytes, *, aad: bytes = b"aad"):
+    def make_token(self, data: bytes, *, aad: bytes = DEFAULT_AAD) -> bytes:
         """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-        Encrypts ``data`` with the instance key & returns a urlsafe
-        encoded ciphertext token. ``aad`` is authenticated associated
-        data which also permutes the cipher's internal derived keys.
+        Encrypts the bytes-type ``data`` with the instance key & returns
+        a urlsafe encoded ciphertext token. The ``token`` bytes contain
+        the 32-byte SHMAC authentication tag, the 16-byte salt, & an
+        ephemeral, uniform & random 16-byte IV.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
         """
         if data.__class__ is not bytes:
-            raise Issue.value_must_be_type("plaintext ``data``", bytes)
+            raise Issue.value_must_be_type("token data", bytes)
         ciphertext = self.bytes_encrypt(data, aad=aad)
-        return self._IO.bytes_to_urlsafe(ciphertext)
+        return BytesIO.bytes_to_urlsafe(ciphertext)
 
     async def aread_token(
         self,
-        token: Typing.Base64URLSafe,
+        token: t.Base64URLSafe,
         *,
-        aad: bytes = b"aad",
-        ttl: int = 0,
-    ):
+        aad: bytes = DEFAULT_AAD,
+        ttl: int = DEFAULT_TTL,
+    ) -> bytes:
         """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-        Decodes a ciphertext token & returns the decrypted token data.
-        ``ttl`` is the maximum age of a token, in seconds, that will
-        be allowed during the token's validation. The age in measured
-        from a timestamp that is removed from the plaintext token data.
-        ``aad`` is authenticated associated data which also permutes the
-        cipher's internal derived keys.
+        Decodes a ciphertext ``token`` & returns the decrypted token
+        data. The ``token`` bytes contain the 32-byte SHMAC authentication
+        tag, the 16-byte salt, & an ephemeral, uniform & random 16-byte
+        IV.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
+
+        ``ttl``: An amount of seconds that dictate the allowable age of
+                the decrypted message.
         """
         if token.__class__ is not bytes:
             token = token.encode()
-        ciphertext = await self._IO.aurlsafe_to_bytes(token)
+        ciphertext = await BytesIO.aurlsafe_to_bytes(token)
         return await self.abytes_decrypt(ciphertext, aad=aad, ttl=ttl)
 
     def read_token(
         self,
-        token: Typing.Base64URLSafe,
+        token: t.Base64URLSafe,
         *,
-        aad: bytes = b"aad",
-        ttl: int = 0,
-    ):
+        aad: bytes = DEFAULT_AAD,
+        ttl: int = DEFAULT_TTL,
+    ) -> bytes:
         """
-        A high-level public interface to the package's MRAE / AEAD
-        `Chunky2048` cipher.
+        A high-level public interface to the package's salt reuse /
+        misuse resistant, tweakable AEAD cipher, `Chunky2048`.
 
-        Decodes a ciphertext token & returns the decrypted token data.
-        ``ttl`` is the maximum age of a token, in seconds, that will
-        be allowed during the token's validation. The age in measured
-        from a timestamp that is removed from the plaintext token data.
-        ``aad`` is authenticated associated data which also permutes the
-        cipher's internal derived keys.
+        Decodes a ciphertext ``token`` & returns the decrypted token
+        data. The ``token`` bytes contain the 32-byte SHMAC authentication
+        tag, the 16-byte salt, & an ephemeral, uniform & random 16-byte
+        IV.
+
+        ``aad``: An arbitrary bytes value that a user decides to categorize
+                keystreams. It is authenticated as associated data & safely
+                differentiates keystreams when it is unique for each
+                permutation of `key`, `salt` & `iv`.
+
+        ``ttl``: An amount of seconds that dictate the allowable age of
+                the decrypted message.
         """
         if token.__class__ is not bytes:
             token = token.encode()
-        ciphertext = self._IO.urlsafe_to_bytes(token)
+        ciphertext = BytesIO.urlsafe_to_bytes(token)
         return self.bytes_decrypt(ciphertext, aad=aad, ttl=ttl)
-
-    @comprehension(chained=True)
-    async def _abytes_encipher(
-        self: Comprende, key_bundle: KeyAADBundle, validator: StreamHMAC
-    ):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online MRAE / AEAD `Chunky2048` cipher.
-
-        Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all generators that
-        are decorated with `comprehension` can encrypt valid plaintext
-        byte streams.
-
-        WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
-        or less per iteration or security WILL BE BROKEN by directly
-        leaking plaintext. The plaintext MUST also be padded using the
-        `Padding` class in order to add salt reuse / misuse resistance
-        (MRAE) to the cipher.
-
-        WARNING: The generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or sufficient checking of inputs for adequacy.
-        Those are functionalities which must be obtained through other
-        means. Just passing in a ``validator`` will not authenticate
-        ciphertext itself. The `finalize` or `afinalize` methods must be
-        called on the ``validator`` once all of the cipehrtext has been
-        created / decrypted. Then the final HMAC is available from the
-        `aresult` & `result` methods, & can be tested against untrusted
-        HMACs with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `(a)current_digest` & `(a)next_block_id` methods that
-        can be used to authenticate unfinished streams of cipehrtext.
-        """
-        async for block in abytes_encipher(
-            data=self, key_bundle=key_bundle, validator=validator
-        ):
-            yield block
-
-    @comprehension(chained=True)
-    def _bytes_encipher(
-        self: Comprende, key_bundle: KeyAADBundle, validator: StreamHMAC
-    ):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online MRAE / AEAD `Chunky2048` cipher.
-
-        Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all generators that
-        are decorated with `comprehension` can encrypt valid plaintext
-        byte streams.
-
-        WARNING: ``self`` MUST produce plaintext in chunks of 256 bytes
-        or less per iteration or security WILL BE BROKEN by directly
-        leaking plaintext. The plaintext MUST also be padded using the
-        `Padding` class in order to add salt reuse / misuse resistance
-        (MRAE) to the cipher.
-
-        WARNING: The generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or sufficient checking of inputs for adequacy.
-        Those are functionalities which must be obtained through other
-        means. Just passing in a ``validator`` will not authenticate
-        ciphertext itself. The `finalize` or `afinalize` methods must be
-        called on the ``validator`` once all of the cipehrtext has been
-        created / decrypted. Then the final HMAC is available from the
-        `aresult` & `result` methods, & can be tested against untrusted
-        HMACs with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `(a)current_digest` & `(a)next_block_id` methods that
-        can be used to authenticate unfinished streams of cipehrtext.
-        """
-        yield from bytes_encipher(
-            data=self, key_bundle=key_bundle, validator=validator
-        )
-
-    @comprehension(chained=True)
-    async def _abytes_decipher(
-        self: Comprende, key_bundle: KeyAADBundle, validator: StreamHMAC
-    ):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online MRAE / AEAD `Chunky2048` cipher.
-
-        Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all generators that
-        are decorated with `comprehension` can decrypt valid ciphertext
-        byte streams.
-
-        WARNING: The generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or sufficient checking of inputs for adequacy.
-        Those are functionalities which must be obtained through other
-        means. Just passing in a ``validator`` will not authenticate
-        ciphertext itself. The `finalize` or `afinalize` methods must be
-        called on the ``validator`` once all of the cipehrtext has been
-        created / decrypted. Then the final HMAC is available from the
-        `aresult` & `result` methods, & can be tested against untrusted
-        HMACs with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `(a)current_digest` & `(a)next_block_id` methods that
-        can be used to authenticate unfinished streams of cipehrtext.
-        """
-        async for block in abytes_decipher(
-            data=self, key_bundle=key_bundle, validator=validator
-        ):
-            yield block
-
-    @comprehension(chained=True)
-    def _bytes_decipher(
-        self: Comprende, key_bundle: KeyAADBundle, validator: StreamHMAC
-    ):
-        """
-        This function is copied into the ``Comprende`` class dictionary.
-        Doing so allows instances of ``Comprende`` generators access to
-        this package's online MRAE / AEAD `Chunky2048` cipher.
-
-        Once copied, the ``self`` argument becomes a reference to an
-        instance of ``Comprende``. With that, now all generators that
-        are decorated with `comprehension` can decrypt valid ciphertext
-        byte streams.
-
-        WARNING: The generator does not provide authentication of the
-        ciphertexts or associated data it handles. Nor does it do any
-        message padding or sufficient checking of inputs for adequacy.
-        Those are functionalities which must be obtained through other
-        means. Just passing in a ``validator`` will not authenticate
-        ciphertext itself. The `finalize` or `afinalize` methods must be
-        called on the ``validator`` once all of the cipehrtext has been
-        created / decrypted. Then the final HMAC is available from the
-        `aresult` & `result` methods, & can be tested against untrusted
-        HMACs with the `atest_hmac` & `test_hmac` methods. The validator
-        also has `(a)current_digest` & `(a)next_block_id` methods that
-        can be used to authenticate unfinished streams of cipehrtext.
-        """
-        yield from bytes_decipher(
-            data=self, key_bundle=key_bundle, validator=validator
-        )
-
-
-class Passcrypt:
-    """
-    This class is used to implement an Argon2id-like passphrase-based
-    key derivation function that's designed to be resistant to cache-
-    timing side-channel attacks & time-memory trade-offs.
-
-    It's hybrid data dependant / independant. The algorithm requires a
-    tunable amount of memory (in kilobytes) & cpu time to compute. If
-    the memory cost is too high, it can eat up all the ram on a machine
-    very quickly. The ``cpu`` time cost is linearly proportional to the
-    number of sha3_512 hashes of cache columns that are calculated per
-    column. The ``hardness`` parameter measures the minimum number of
-    columns in the memory cache.
-
-    The algorithm initializes all the columns for the cache using the
-    `bytes_keys` generator after being fed the passphrase, salt & the
-    hash of all the parameters. The number of columns is computed
-    dynamically to reach the specified memory cost considering the ``cpu``
-    cost also sequentially adds 128 bytes of sha3_512 digests to the
-    cache ``cpu`` * columns number of times. The effect is that, hashing
-    the bytes in a column, is the same as a proving knowledge of the
-    state of that column for all past passes over the cache.
-
-    The sequential passes involve a current column index, the index of
-    the current index's reflection across the cache, & an index chosen
-    pseudo-randomly using the current digest of the sha3_512 object that
-    does all of the hashing.
-
-    This algorithm is also decribed by this diagram:
-
-
-           _____width of the cache is the # of columns______
-          |                                                 |
-          v              initial memory cache               v
-    row-> |-------------------------------------------------| each
-    row-> |-------------------------------------------------| element in
-                                                              a row is
-                                                              64-bytes.
-                                pseudo-random selection
-                                          |
-    ram = |--------'----------------------'--------'--------| each column
-        = |--------'----------------------'--------'--------| is hashed
-        = |ooooooooO                               Xxxxxxxxx| & added to
-                   |   ->                     <-   |          sequentially,
-                 index                        reflection      first the
-                                                              index, then
-                           reflection                         the reflection.
-                          <-   |
-    ram = |-'------------------'-------'--------------------| A pseudo-
-        = |-'------------------'-------'--------------------| random index
-        = |o'oooooooooooooooooo'ooooxxx'xxxxxxxxxxxxxxxxxxxx| is hashed at
-        = | |                  XxxxxoooO                    | the start of
-            |                          |   ->                 each round
-    pseudo-random selection          index                    to randomize
-                                                              that round's
-       pseudo-random selection                                two digests.
-                 |
-    ram = |--'---'---------------------------------------'--| Each index,
-        = |--'---'---------------------------------------'--| reflection,
-        = |oo'ooo'ooooooooooooooooooxxxxxxxxxxxxxxxxxxxxx'xx| & pseudo-
-        = |xx'xxx'xxxxxxxxxxxxxxxxxxooooooooooooooooooooo'oo| random index
-        = |ooO                                           Xxx| tuple represents
-             |   ->                                 <-   |    one round.
-           index                                    reflection
-                                   |
-                                   |
-                                   v Continue until there are
-                                     2 * (cpu + 1) total rows,
-                                     completing cpu * columns
-                                     total rounds.
-    `kb` == rows * columns * 64
-    rows == 2 * (`cpu` + 1)
-    columns == `kb` / (128 * (`cpu` + 1))
-
-    proof = sha3_512(DOMAIN + initial_memory_cache[-1] + H(args))
-    The ``proof`` hashing object is used to do all hashing in the
-    algorithm, which helps assure the algorithm must be run sequentially.
-    """
-
-    vars().update(
-        {f"_{name}": value for name, value in passcrypt_constants.items()}
-    )
-
-    def __init__(
-        self,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        Stores a dict of user-defined settings which are automatically
-        passed into instance methods when they are called.
-        """
-        self._validate_settings(kb=kb, cpu=cpu, hardness=hardness)
-        self._settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-        instance = self.__dict__
-        for method in self._instance_methods:
-            method = method.__func__
-            name = method.__name__
-            instance[name] = wraps(method)(
-                partial(method, self, **self._settings)
-            )
-
-    @staticmethod
-    def _validate_inputs(passphrase: bytes, salt: bytes):
-        """
-        Makes sure ``passphrase`` & ``salt`` are truthy bytes. Throws
-        `ValueError` or `TypeError` if not.
-        """
-        if passphrase.__class__ is not bytes:
-            raise Issue.value_must_be_type("passphrase", bytes)
-        elif not passphrase:
-            raise Issue.no_value_specified("passphrase")
-        elif salt.__class__ is not bytes:
-            raise Issue.value_must_be_type("salt", bytes)
-        elif not salt:
-            raise Issue.no_value_specified("salt")
-
-    @staticmethod
-    def _validate_settings(kb: int, cpu: int, hardness: int):
-        """
-        Ensures the values ``kb``, ``cpu`` and ``hardness`` passed into
-        this module's Argon2id-like, passphrase-based key derivation
-        function are within acceptable bounds & types. Then performs a
-        calculation to determine how many iterations of the ``bytes_keys``
-        generator will sum to the desired number of kilobytes, taking
-        into account that for every initial column in that cache, 2 *
-        ``cpu`` number of extra sha3_512 hashes will be added to the
-        cache as proofs of memory & work.
-        """
-        if (
-            hardness < 256
-            or hardness >= 4294967296
-            or hardness.__class__ is not int
-        ):
-            raise PasscryptIssue.invalid_hardness(hardness)
-        elif cpu < 2 or cpu >= 65536 or cpu.__class__ is not int:
-            raise PasscryptIssue.invalid_cpu(cpu)
-        elif kb < 256 or kb >= 4294967296 or kb.__class__ is not int:
-            raise PasscryptIssue.invalid_kb(kb)
-
-    @classmethod
-    def cache_width(cls, kb: int, cpu: int, hardness: int):
-        """
-        Returns the width of the cache that will be built given the
-        desired amount of kilobytes ``kb`` & the depth of hash updates &
-        proofs ``cpu`` that will be computed & added to the cache
-        sequentially. This should help users determine optimal ratios
-        for their applications.
-
-        Explanation:
-        desired_bytes = 1024 * kb
-        build_size = 128 * build_iterations
-        proof_size = (64 + 64) * build_iterations * cpu
-        desired_bytes == build_size + proof_size
-        # solve for build_iterations given cpu & kb
-        width = build_iterations
-        width = (1024 * kb) // (128 * (cpu + 1))
-        width = (8 * kb) // (cpu + 1)
-        """
-        cls._validate_settings(kb, cpu, hardness)
-        width = int((8 * kb) / (cpu + 1))
-        return width if width >= hardness else hardness
-
-    @staticmethod
-    def _work_memory_prover(
-        proof: sha3_512, ram: Typing.List[bytes], cpu: int
-    ):
-        """
-        Returns the keyed scanning function which combines sequential
-        passes over the memory cache with a pseudo-random selection
-        algorithm which makes the scheme hybrid data-dependent /
-        independent. It ensures an attacker attempting to crack a
-        passphrase hash cannot complete the algorithm substantially
-        faster by storing more memory than what is already necessary, or
-        substantially less memory intensively by dropping cache entries
-        without drastically increasing the computational cost.
-        """
-
-        def keyed_scanner():
-            nonlocal digest
-
-            for _ in range(cpu):
-                index = next_index()
-                reflection = -index - 1
-
-                update(choose() + ram[index])
-                ram[index] += summarize()
-
-                update(ram[reflection])
-                digest = summarize()
-                ram[reflection] += digest
-            return digest
-
-        update = proof.update
-        summarize = proof.digest
-        digest = summarize()
-        cache_width = len(ram)
-        to_int = int.from_bytes
-        next_index = cycle.root(range(cache_width)).__next__
-        choose = lambda: ram[to_int(digest, "big") % cache_width]
-        return keyed_scanner
-
-    @classmethod
-    async def _apasscrypt(
-        cls,
-        passphrase: bytes,
-        salt: bytes,
-        *,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        An implementation of an Argon2id-like passphrase-based key
-        derivation function that's designed to be resistant to cache-
-        timing side-channel attacks & time-memory trade-offs.
-
-        It's hybrid data dependant / independant. The algorithm requires
-        a tunable amount of memory (in kilobytes) & cpu time to compute.
-        If the memory cost is too high, it can eat up all the ram on a
-        machine very quickly. The ``cpu`` time cost is linearly
-        proportional to the number of sha3_512 hashes of cache columns
-        that are calculated per column. The ``hardness`` parameter
-        measures the minimum number of columns in the memory cache.
-
-        The algorithm initializes all the columns for the cache using
-        the `abytes_keys` generator after being fed the passphrase, salt
-        & the hash of all the parameters. The number of columns is
-        computed dynamically to reach the specified memory cost
-        considering the ``cpu`` cost also sequentially adds 128 bytes of
-        sha3_512 digests to the cache ``cpu`` * columns number of times.
-        The effect is that, hashing the bytes in a column, is same as a
-        proving knowledge of the state of that column for all past
-        passes over the cache.
-
-        The sequential passes involve a current column index, the index
-        of the current index's reflection across the cache, & an index
-        chosen pseudo-randomly using the current digest of the sha3_512
-        object that does all of the hashing.
-
-        `kb` == rows * columns * 64
-        rows == 2 * (`cpu` + 1)
-        columns == `kb` / (128 * (`cpu` + 1))
-        """
-        cache_width = cls.cache_width(kb, cpu, hardness)
-        args = sha3__512(passphrase, salt, kb, cpu, hardness, hex=False)
-
-        key_bundle = KeyAADBundle.unsafe(passphrase, salt=salt, aad=args)
-        cache_builder = abytes_keys.root(key_bundle).asend
-        ram = [await cache_builder(None) for _ in range(cache_width)]
-
-        proof = sha3_512(Domains.PASSCRYPT + ram[-1] + args)
-        prove = cls._work_memory_prover(proof, ram, cpu)
-        for element in ram:
-            prove()
-            await asleep()
-        return proof.digest()
-
-    @classmethod
-    def _passcrypt(
-        cls,
-        passphrase: bytes,
-        salt: bytes,
-        *,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        An implementation of an Argon2id-like passphrase-based key
-        derivation function that's designed to be resistant to cache-
-        timing side-channel attacks & time-memory trade-offs.
-
-        It's hybrid data dependant / independant. The algorithm requires
-        a tunable amount of memory (in kilobytes) & cpu time to compute.
-        If the memory cost is too high, it can eat up all the ram on a
-        machine very quickly. The ``cpu`` time cost is linearly
-        proportional to the number of sha3_512 hashes of cache columns
-        that are calculated per column. The ``hardness`` parameter
-        measures the minimum number of columns in the memory cache.
-
-        The algorithm initializes all the columns for the cache using
-        the `bytes_keys` generator after being fed the passphrase, salt
-        & the hash of all the parameters. The number of columns is
-        computed dynamically to reach the specified memory cost
-        considering the ``cpu`` cost also sequentially adds 128 bytes of
-        sha3_512 digests to the cache ``cpu`` * columns number of times.
-        The effect is that, hashing the bytes in a column, is same as a
-        proving knowledge of the state of that column for all past
-        passes over the cache.
-
-        The sequential passes involve a current column index, the index
-        of the current index's reflection across the cache, & an index
-        chosen pseudo-randomly using the current digest of the sha3_512
-        object that does all of the hashing.
-
-        `kb` == rows * columns * 64
-        rows == 2 * (`cpu` + 1)
-        columns == `kb` / (128 * (`cpu` + 1))
-        """
-        cache_width = cls.cache_width(kb, cpu, hardness)
-        args = sha3__512(passphrase, salt, kb, cpu, hardness, hex=False)
-
-        key_bundle = KeyAADBundle.unsafe(passphrase, salt=salt, aad=args)
-        cache_builder = bytes_keys.root(key_bundle).send
-        ram = [cache_builder(None) for _ in range(cache_width)]
-
-        proof = sha3_512(Domains.PASSCRYPT + ram[-1] + args)
-        prove = cls._work_memory_prover(proof, ram, cpu)
-        for element in ram:
-            prove()
-        return proof.digest()
-
-    @classmethod
-    async def anew(
-        cls,
-        passphrase: bytes,
-        salt: bytes,
-        *,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        Returns just the 64-byte hash of the ``passphrase`` when mixed
-        with the given ``salt`` & difficulty settings.
-
-        NOTICE: The passcrypt algorithm can be highly memory intensive.
-        These resources may not be freed up, & often are not, because of
-        python quirks around memory management. To force the release of
-        these resources, we run the function in another process which
-        guarantees the release.
-        """
-        cls._validate_inputs(passphrase, salt)
-        cls._validate_settings(kb, cpu, hardness)
-        return await Processes.anew(
-            cls._passcrypt,
-            passphrase,
-            salt,
-            kb=kb,
-            cpu=cpu,
-            hardness=hardness,
-            probe_frequency=0.01,
-        )
-
-    @classmethod
-    def new(
-        cls,
-        passphrase: bytes,
-        salt: bytes,
-        *,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        Returns just the 64-byte hash of the ``passphrase`` when mixed
-        with the given ``salt`` & difficulty settings.
-
-        NOTICE: The passcrypt algorithm can be highly memory intensive.
-        These resources may not be freed up, & often are not, because of
-        python quirks around memory management. To force the release of
-        these resources, we run the function in another process which
-        guarantees the release.
-        """
-        cls._validate_inputs(passphrase, salt)
-        cls._validate_settings(kb, cpu, hardness)
-        return Processes.new(
-            cls._passcrypt,
-            passphrase,
-            salt,
-            kb=kb,
-            cpu=cpu,
-            hardness=hardness,
-            probe_frequency=0.01,
-        )
-
-    @classmethod
-    async def _acompose_passcrypt_hash(
-        cls,
-        passphrase_hash: bytes,
-        salt: bytes,
-        *,
-        kb: int,
-        cpu: int,
-        hardness: int,
-    ):
-        """
-        Attaches the difficulty settings & salt to the hash of the
-        passphrase.
-        """
-        await asleep()
-        passcrypt_hash = (
-            kb.to_bytes(cls._KB_BYTES, "big"),
-            cpu.to_bytes(cls._CPU_BYTES, "big"),
-            hardness.to_bytes(cls._HARDNESS_BYTES, "big"),
-            salt[: cls._SALT_BYTES],
-            passphrase_hash[: cls._PASSPHRASE_HASH_BYTES],
-        )
-        return b"".join(passcrypt_hash)
-
-    @classmethod
-    def _compose_passcrypt_hash(
-        cls,
-        passphrase_hash: bytes,
-        salt: bytes,
-        *,
-        kb: int,
-        cpu: int,
-        hardness: int,
-    ):
-        """
-        Attaches the difficulty settings & salt to the hash of the
-        passphrase.
-        """
-        passcrypt_hash = (
-            kb.to_bytes(cls._KB_BYTES, "big"),
-            cpu.to_bytes(cls._CPU_BYTES, "big"),
-            hardness.to_bytes(cls._HARDNESS_BYTES, "big"),
-            salt[: cls._SALT_BYTES],
-            passphrase_hash[: cls._PASSPHRASE_HASH_BYTES],
-        )
-        return b"".join(passcrypt_hash)
-
-    @classmethod
-    async def _adecompose_passcrypt_hash(cls, raw_passcrypt_hash: bytes):
-        """
-        Separates the passphrase hash, salt & difficulty settings &
-        returns them in a namespace object available by dotted lookup.
-        """
-        await asleep()
-        SCHEMA_BYTES = cls._PASSCRYPT_SCHEMA_BYTES
-        if len(raw_passcrypt_hash) != SCHEMA_BYTES:
-            raise Issue.invalid_length("passcrypt hash", SCHEMA_BYTES)
-        return PasscryptHash(raw_passcrypt_hash)
-
-    @classmethod
-    def _decompose_passcrypt_hash(cls, raw_passcrypt_hash: bytes):
-        """
-        Separates the passphrase hash, salt & difficulty settings &
-        returns them in a namespace object available by dotted lookup.
-        """
-        SCHEMA_BYTES = cls._PASSCRYPT_SCHEMA_BYTES
-        if len(raw_passcrypt_hash) != SCHEMA_BYTES:
-            raise Issue.invalid_length("passcrypt hash", SCHEMA_BYTES)
-        return PasscryptHash(raw_passcrypt_hash)
-
-    @classmethod
-    async def ahash_passphrase_raw(
-        cls,
-        passphrase: bytes,
-        *,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        Returns the passcrypt difficulty settings, salt & hash of the
-        ``passphrase`` in a single raw bytes sequence for convenient
-        storage. The salt here is automatically generated.
-
-        Metadata hash layout:
-        4-bytes - 2-bytes - 4-bytes - 32-bytes - 64-bytes
-          kb        cpu     hardness    salt       hash
-        """
-        salt = (await acsprng())[: cls._SALT_BYTES]
-        passphrase_hash = await cls.anew(
-            passphrase, salt, kb=kb, cpu=cpu, hardness=hardness
-        )
-        return await cls._acompose_passcrypt_hash(
-            passphrase_hash, salt, kb=kb, cpu=cpu, hardness=hardness
-        )
-
-    @classmethod
-    def hash_passphrase_raw(
-        cls,
-        passphrase: bytes,
-        *,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        Returns the passcrypt difficulty settings, salt & hash of the
-        ``passphrase`` in a single raw bytes sequence for convenient
-        storage. The salt here is automatically generated.
-
-        Metadata hash layout:
-        4-bytes - 2-bytes - 4-bytes - 32-bytes - 64-bytes
-          kb        cpu     hardness    salt       hash
-        """
-        salt = csprng()[: cls._SALT_BYTES]
-        passphrase_hash = cls.new(
-            passphrase, salt, kb=kb, cpu=cpu, hardness=hardness
-        )
-        return cls._compose_passcrypt_hash(
-            passphrase_hash, salt, kb=kb, cpu=cpu, hardness=hardness
-        )
-
-    @classmethod
-    async def ahash_passphrase(
-        cls,
-        passphrase: bytes,
-        *,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        Returns the passcrypt difficulty settings, salt & hash of the
-        ``passphrase`` in a single urlsafe base64 encoded string for
-        convenient storage. The salt here is automatically generated.
-
-        Metadata hash layout:
-        4-bytes - 2-bytes - 4-bytes - 32-bytes - 64-bytes
-          kb        cpu     hardness    salt       hash
-        """
-        raw_passcrypt_hash = await cls.ahash_passphrase_raw(
-            passphrase, kb=kb, cpu=cpu, hardness=hardness
-        )
-        return await BytesIO.abytes_to_urlsafe(raw_passcrypt_hash)
-
-    @classmethod
-    def hash_passphrase(
-        cls,
-        passphrase: bytes,
-        *,
-        kb: int = _DEFAULT_KB,
-        cpu: int = _DEFAULT_CPU,
-        hardness: int = _DEFAULT_HARDNESS,
-    ):
-        """
-        Returns the passcrypt difficulty settings, salt & hash of the
-        ``passphrase`` in a single urlsafe base64 encoded string for
-        convenient storage. The salt here is automatically generated.
-
-        Metadata hash layout:
-        4-bytes - 2-bytes - 4-bytes - 32-bytes - 64-bytes
-          kb        cpu     hardness    salt       hash
-        """
-        raw_passcrypt_hash = cls.hash_passphrase_raw(
-            passphrase, kb=kb, cpu=cpu, hardness=hardness
-        )
-        return BytesIO.bytes_to_urlsafe(raw_passcrypt_hash)
-
-    @classmethod
-    async def averify_raw(
-        cls, composed_passcrypt_hash: bytes, passphrase: bytes
-    ):
-        """
-        Verifies that a supplied ``passphrase`` was indeed used to build
-        the ``composed_passcrypt_hash``.
-
-        Runs the passcrypt algorithm on the ``passphrase`` with the
-        parameters specified in the ``composed_passcrypt_hash`` value's
-        attached metadata. If the result doesn't match the hash in
-        ``composed_passcrypt_hash`` then `ValueError` is raised. The
-        ``composed_passcrypt_hash`` passed into this method must be
-        raw bytes.
-        """
-        parts = await cls._adecompose_passcrypt_hash(
-            composed_passcrypt_hash
-        )
-        untrusted_hash = await cls.anew(
-            passphrase,
-            parts.salt,
-            kb=parts.kb,
-            cpu=parts.cpu,
-            hardness=parts.hardness,
-        )
-        if not await abytes_are_equal(
-            untrusted_hash[: cls._PASSPHRASE_HASH_BYTES],
-            parts.passphrase_hash,
-        ):
-            raise Issue.invalid_value("passphrase")
-
-    @classmethod
-    def verify_raw(cls, composed_passcrypt_hash: bytes, passphrase: bytes):
-        """
-        Verifies that a supplied ``passphrase`` was indeed used to build
-        the ``composed_passcrypt_hash``.
-
-        Runs the passcrypt algorithm on the ``passphrase`` with the
-        parameters specified in the ``composed_passcrypt_hash`` value's
-        attached metadata. If the result doesn't match the hash in
-        ``composed_passcrypt_hash`` then `ValueError` is raised. The
-        ``composed_passcrypt_hash`` passed into this method must be
-        raw bytes.
-        """
-        parts = cls._decompose_passcrypt_hash(composed_passcrypt_hash)
-        untrusted_hash = cls.new(
-            passphrase,
-            parts.salt,
-            kb=parts.kb,
-            cpu=parts.cpu,
-            hardness=parts.hardness,
-        )
-        if not bytes_are_equal(
-            untrusted_hash[: cls._PASSPHRASE_HASH_BYTES],
-            parts.passphrase_hash,
-        ):
-            raise Issue.invalid_value("passphrase")
-
-    @classmethod
-    async def averify(
-        cls,
-        composed_passcrypt_hash: Typing.Base64URLSafe,
-        passphrase: bytes,
-    ):
-        """
-        Verifies that a supplied ``passphrase`` was indeed used to build
-        the ``composed_passcrypt_hash``.
-
-        Runs the passcrypt algorithm on the ``passphrase`` with the
-        parameters specified in the ``composed_passcrypt_hash`` value's
-        attached metadata. If the result doesn't match the hash in
-        ``composed_passcrypt_hash`` then `ValueError` is raised. The
-        ``composed_passcrypt_hash`` passed into this method must be
-        urlsafe base64 encoded.
-        """
-        if composed_passcrypt_hash.__class__ is str:
-            composed_passcrypt_hash = composed_passcrypt_hash.encode()
-        await cls.averify_raw(
-            await BytesIO.aurlsafe_to_bytes(composed_passcrypt_hash),
-            passphrase,
-        )
-
-    @classmethod
-    def verify(
-        cls,
-        composed_passcrypt_hash: Typing.Base64URLSafe,
-        passphrase: bytes,
-    ):
-        """
-        Verifies that a supplied ``passphrase`` was indeed used to build
-        the ``composed_passcrypt_hash``.
-
-        Runs the passcrypt algorithm on the ``passphrase`` with the
-        parameters specified in the ``composed_passcrypt_hash`` value's
-        attached metadata. If the result doesn't match the hash in
-        ``composed_passcrypt_hash`` then `ValueError` is raised. The
-        ``composed_passcrypt_hash`` passed into this method must be
-        urlsafe base64 encoded.
-        """
-        if composed_passcrypt_hash.__class__ is str:
-            composed_passcrypt_hash = composed_passcrypt_hash.encode()
-        cls.verify_raw(
-            BytesIO.urlsafe_to_bytes(composed_passcrypt_hash), passphrase
-        )
-
-    _instance_methods = {
-        # The kb, cpu & hardness settings automatically get passed into
-        # these methods when called from an instance of the class.
-        new,
-        anew,
-        hash_passphrase,
-        ahash_passphrase,
-        hash_passphrase_raw,
-        ahash_passphrase_raw,
-    }
-
-
-class DomainKDF:
-    """
-    Creates objects able to derive domain & payload-specific HMAC hashes.
-    """
-
-    __slots__ = ("_domain", "_key", "_payload")
-
-    _hmac = staticmethod(hmac.new)
-    _sha3_256 = sha3_256
-    _sha3_512 = sha3_512
-    _shake_256 = shake_256
-
-    @staticmethod
-    def _type_check(domain: bytes, payload: bytes, key: bytes):
-        """
-        Assure that all arguments to the initializer are bytes objects.
-        """
-        if domain.__class__ is not bytes:
-            raise Issue.value_must_be_type("domain", bytes)
-        elif payload.__class__ is not bytes:
-            raise Issue.value_must_be_type("payload", bytes)
-        elif key.__class__ is not bytes:
-            raise Issue.value_must_be_type("key", bytes)
-
-    def __init__(self, domain: bytes, payload: bytes = b"", *, key: bytes):
-        """
-        Validate the input values before initializing the object.
-        """
-        self._type_check(domain, payload, key)
-        self._domain = domain
-        self._key = domain + sha3_512(domain + key).digest()
-        self._payload = sha3_512(self._key + payload)
-
-    async def aupdate(self, payload: bytes):
-        """
-        Updates the payload object with additional payload. This allows
-        large amounts of data to be used for key derivation without a
-        large in-memory cost.
-        """
-        await asleep()
-        self._payload.update(payload)
-        return self
-
-    def update(self, payload: bytes):
-        """
-        Updates the payload object with additional payload. This allows
-        large amounts of data to be used for key derivation without a
-        large in-memory cost.
-        """
-        self._payload.update(payload)
-        return self
-
-    async def aupdate_key(self, entropic_material: bytes):
-        """
-        Derive's a new instance key from the its domain, new ``key``
-        material & the previous key.
-        """
-        await asleep()
-        key = self._key + entropic_material
-        self._key = self._domain + sha3_512(key).digest()
-        return self
-
-    def update_key(self, entropic_material: bytes):
-        """
-        Derive's a new instance key from the its domain, new ``key``
-        material & the previous key.
-        """
-        key = self._key + entropic_material
-        self._key = self._domain + sha3_512(key).digest()
-        return self
-
-    async def _amake_hmac(self, *, hasher: Typing.Callable):
-        """
-        Returns an hmac object which has been given the instance's key,
-        the digest of the instance's payload, & the hashing type passed
-        into the ``hasher`` keyword argument.
-        """
-        await asleep()
-        return self._hmac(self._key, self._payload.digest(), hasher)
-
-    def _make_hmac(self, *, hasher: Typing.Callable):
-        """
-        Returns an hmac object which has been given the instance's key,
-        the digest of the instance's payload, & the hashing type passed
-        into the ``hasher`` keyword argument.
-        """
-        return self._hmac(self._key, self._payload.digest(), hasher)
-
-    async def asha3_256(self, *, context: bytes = b""):
-        """
-        Return the sha3_256_hmac of the instance's state.
-        """
-        obj = await self._amake_hmac(hasher=self._sha3_256)
-        obj.update(context) if context else 0
-        return obj.digest()
-
-    def sha3_256(self, *, context: bytes = b""):
-        """
-        Return the sha3_256_hmac of the instance's state.
-        """
-        obj = self._make_hmac(hasher=self._sha3_256)
-        obj.update(context) if context else 0
-        return obj.digest()
-
-    async def asha3_512(self, *, context: bytes = b""):
-        """
-        Return the sha3_512_hmac of the instance's state.
-        """
-        obj = await self._amake_hmac(hasher=self._sha3_512)
-        obj.update(context) if context else 0
-        return obj.digest()
-
-    def sha3_512(self, *, context: bytes = b""):
-        """
-        Return the sha3_512_hmac of the instance's state.
-        """
-        obj = self._make_hmac(hasher=self._sha3_512)
-        obj.update(context) if context else 0
-        return obj.digest()
-
-    async def ashake_256(self, size: int, *, context: bytes = b""):
-        """
-        Return the sha3_512_hmac of the instance's state.
-        """
-        await asleep()
-        obj = self._shake_256(self._key + self._payload.digest())
-        obj.update(context) if context else 0
-        return obj.digest(size)
-
-    def shake_256(self, size: int, *, context: bytes = b""):
-        """
-        Return the sha3_512_hmac of the instance's state.
-        """
-        obj = self._shake_256(self._key + self._payload.digest())
-        obj.update(context) if context else 0
-        return obj.digest(size)
-
-    async def apasscrypt(
-        self,
-        salt: bytes,
-        *,
-        context: bytes = b"",
-        kb: int = Passcrypt._DEFAULT_KB,
-        cpu: int = Passcrypt._DEFAULT_CPU,
-        hardness: int = Passcrypt._DEFAULT_HARDNESS,
-    ):
-        """
-        Runs the instance's state through the passcrypt algorithm &
-        returns the resulting hash as bytes.
-        """
-        domain = Domains.PASSCRYPT
-        value = await self.asha3_512(context=domain + context + salt)
-        settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-        return await Passcrypt.anew(value, salt=salt, **settings)
-
-    def passcrypt(
-        self,
-        salt: bytes,
-        *,
-        context: bytes = b"",
-        kb: int = Passcrypt._DEFAULT_KB,
-        cpu: int = Passcrypt._DEFAULT_CPU,
-        hardness: int = Passcrypt._DEFAULT_HARDNESS,
-    ):
-        """
-        Runs the instance's state through the passcrypt algorithm &
-        returns the resulting hash as bytes.
-        """
-        domain = Domains.PASSCRYPT
-        value = self.sha3_512(context=domain + context + salt)
-        settings = dict(kb=kb, cpu=cpu, hardness=hardness)
-        return Passcrypt.new(value, salt=salt, **settings)
-
-
-class AsyncDatabase(metaclass=AsyncInit):
-    """
-    This class creates databases which enable the disk persistence of
-    any bytes or JSON serializable native python data-types, with fully
-    transparent, asynchronous encryption / decryption using the
-    library's `Chunky2048` cipher.
-
-    Usage Example:
-
-    key = await aiootp.acsprng()
-    db = await AsyncDatabase(key)
-
-    # Elements in a database are organized by user-defined tags ->
-    db["income"] = 32000
-
-    # Databases can store any JSON serializable data ->
-    db["dict"] = {0: 1, 2: 3, 4: 5}
-    db["lists"] = ["juice", ["nested juice"]]
-
-    # As well as raw bytes ->
-    db["bytes"] = b"value..."
-
-    # Retrieve items by their tags ->
-    db["dict"]
-    >>> {0: 1, 2: 3, 4: 5}
-
-    # Save changes to disk ->
-    await db.asave_database()
-
-    # Create child databases using what are called metatags ->
-    taxes = await db.ametatag("taxes")
-    taxes[2020] = {"jan": 130.25, "feb": 163.23, "mar": 149.68}
-    assert taxes == db.taxes
-    assert taxes[2020] == db.taxes[2020]
-
-    # Delete a child database ->
-    await db.adelete_metatag("taxes")
-
-    # Purge the filesystem of the database files ->
-    await db.adelete_database()
-    """
-
-    IO = BytesIO
-
-    directory: Typing.Path = DatabasePath()
-
-    _BASE_38_TABLE: str = Tables.BASE_38
-    _KDF: bytes = Domains.KDF
-    _HMAC: bytes = Domains.HMAC
-    _SALT: bytes = Domains.SALT
-    _SEED: bytes = Domains.SEED
-    _UUID: bytes = Domains.UUID
-    _TOKEN: bytes = Domains.TOKEN
-    _MANIFEST: bytes = Domains.MANIFEST
-    _FILENAME: bytes = Domains.FILENAME
-    _FILE_KEY: bytes = Domains.FILE_KEY
-    _METATAG_KEY: bytes = Domains.METATAG_KEY
-    _METATAGS: bytes = sha3_256(Domains.METATAG + Domains.FILENAME).digest()
-
-    @classmethod
-    async def abase64_encode(cls, byte_sequence: bytes):
-        """
-        Encodes a raw ``bytes_sequence`` into a urlsafe base64 string.
-        """
-        await asleep()
-        return base64.urlsafe_b64encode(byte_sequence).decode()
-
-    @classmethod
-    async def abase64_decode(cls, base64_sequence: Typing.AnyStr):
-        """
-        Decodes a urlsafe base64 string or bytes sequence into raw bytes.
-        """
-        await asleep()
-        if base64_sequence.__class__ is not bytes:
-            base64_sequence = base64_sequence.encode()
-        return base64.urlsafe_b64decode(base64_sequence)
-
-    @classmethod
-    def _hex_to_base38(cls, hex_string: str):
-        """
-        Returns the received ``hex_string`` in base38 encoding.
-        """
-        return int_to_base(
-            int(hex_string, 16), base=38, table=cls._BASE_38_TABLE
-        )
-
-    @classmethod
-    async def _ahex_to_base38(cls, hex_string: str):
-        """
-        Returns the received ``hex_hash`` in base38 encoding.
-        """
-        return await aint_to_base(
-            int(hex_string, 16), base=38, table=cls._BASE_38_TABLE
-        )
-
-    @classmethod
-    async def aprofile_exists(cls, tokens: ProfileTokens):
-        """
-        Tests if a profile that ``tokens`` would open has saved a salt
-        file on the user filesystem. Retruens false if not.
-        """
-        filename = await paths.adeniable_filename(tokens._bytes_key)
-        path = (DatabasePath() / "secure") / filename
-        return path.exists()
-
-    @classmethod
-    async def agenerate_profile_tokens(
-        cls,
-        *credentials: Typing.Iterable[Typing.Any],
-        username: Typing.Any,
-        passphrase: Typing.Any,
-        salt: Typing.Any = None,
-        kb: int = 32768,
-        cpu: int = 3,
-        hardness: int = 1024,
-    ):
-        """
-        Runs a very expensive key derivation function to build keys
-        for users to open a database with only access to potentially
-        weakly entropic credentials & the filesystem.
-
-        Usage Example:
-
-        tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
-            "server_url",     # Any number of arguments can be passed
-            "email_address",  # here as additional, optional credentials.
-            username="username",
-            passphrase="passphrase",
-            salt="optional salt keyword argument",
-        )
-
-        db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
-        """
-        await asleep()
-        UUID = cls._UUID
-        summary = str((salt, passphrase, *credentials, username)).encode()
-        uuid = await asha3__512_hmac(UUID + summary, key=summary, hex=False)
-        key = await Passcrypt.anew(
-            summary, uuid, kb=kb, cpu=cpu, hardness=hardness
-        )
-        return ProfileTokens(key, uuid)
-
-    @classmethod
-    async def _agenerate_profile_salt(
-        cls, tokens: ProfileTokens, directory: Path
-    ):
-        """
-        Creates or loads a salt value saved on the user filesystem to
-        help add more entropy to their key derivation functions when
-        preparing to open a profile database.
-        """
-        tokens._salt_path = await paths.AsyncSecurePath(
-            path=directory, key=tokens._bytes_key
-        )
-        tokens._salt = await paths._aread_salt_file(tokens._salt_path)
-        return tokens._salt
-
-    @classmethod
-    async def _agenerate_profile_login_key(cls, tokens: ProfileTokens):
-        """
-        Combines the output of the expensive key derivation functions &
-        the salt stored on the filesystem gathered in preparation to
-        safely open a profile database.
-        """
-        tokens.login_key = await Passcrypt.anew(
-            tokens._bytes_key, tokens._salt
-        )
-        return tokens.login_key
-
-    @classmethod
-    async def agenerate_profile(
-        cls, tokens: ProfileTokens, directory: Path = directory, **kw
-    ):
-        """
-        Creates & loads a profile database for a user from the ``tokens``
-        passed in.
-
-        Usage Example:
-
-        tokens = await aiootp.AsyncDatabase.agenerate_profile_tokens(
-            "server_url",     # Any number of arguments can be passed
-            "email_address",  # here as additional, optional credentials.
-            username="username",
-            passphrase="passphrase",
-            salt="optional salt keyword argument",
-        )
-
-        db = await aiootp.AsyncDatabase.agenerate_profile(tokens)
-        """
-        await cls._agenerate_profile_salt(tokens, directory=directory)
-        await cls._agenerate_profile_login_key(tokens)
-        tokens.profile = await cls(
-            key=tokens.login_key, depth=10000, directory=directory, **kw
-        )
-        if not tokens.profile._root_path.is_file():
-            await tokens.profile.asave_database()
-        return tokens.profile
-
-    @classmethod
-    async def aload_profile(cls, tokens: ProfileTokens, **kw):
-        """
-        Loads a profile database for a user from the ``tokens`` passed
-        in. Throws ``LookupError`` if the profile has not yet been
-        generated.
-        """
-        if not await cls.aprofile_exists(tokens):
-            raise DatabaseIssue.missing_profile()
-        return await cls.agenerate_profile(tokens, **kw)
-
-    @classmethod
-    async def adelete_profile(cls, tokens: ProfileTokens):
-        """
-        Deletes the profile's salt saved on the filesystem & all of its
-        database files.
-        """
-        try:
-            await tokens.profile.adelete_database()
-        except AttributeError:
-            await cls.aload_profile(tokens, preload=False)
-            await tokens.profile.adelete_database()
-        await asynchs.aos.remove(tokens._salt_path)
-
-    async def __init__(
-        self,
-        key: bytes,
-        *,
-        depth: int = 0,  # >= 5000 if ``key`` is weak
-        preload: bool = False,
-        directory: Typing.Union[Path, str] = directory,
-        metatag: bool = False,
-        silent: bool = True,
-    ):
-        """
-        Sets a database object's basic key generators & cryptographic
-        values based on the unique permutations of the ``key`` &
-        ``depth`` values. If ``key`` is a passphrase, or has very
-        low entropy, then ``depth`` should be a larger number.
-        However, using the `generate_profile_tokens` & `generate_profile`
-        methods would be a safer choice for opening a database with a
-        potentially weak passphrase.
-
-        ``preload``:    This boolean value tells the object to -- True --
-            load all of the stored database values from the filesystem
-            into the cache during initialization, or -- False -- skip
-            the loading stage. This can save time up front so users can
-            pay the cost of loading data only when that value is needed.
-
-        ``directory``:  This value is the string or ``Pathlib.Path``
-            object that points to the filesystem location where the
-            database files reside / will be saved. By default, stores
-            values in the directory "databases" relative to the package
-            source code.
-
-        ``metatag``:    This boolean value tells the class whether to
-            prepare itself as a sub-database or not, which generally
-            means less storage overhead used to secure its cryptographic
-            material. Parent databases that are not metatags store a
-            random salt value in their ``self._root_path`` file.
-
-        ``silent``:     This boolean value tells the class to surpress
-            exceptions when loading files so that errors in the database
-            don't prevent a user from logging in.
-        """
-        self._silent = silent
-        self._corrupted_files = {}
-        self._cache = Namespace()
-        self._manifest = Namespace()
-        self.directory = await self._aformat_directory(directory)
-        self._is_metatag = True if metatag else False
-        self._root_key, self._root_hash, self._root_filename = (
-            await self._ainitialize_keys(key, depth)
-        )
-        await self._aload_manifest()
-        await self._ainitialize_metatags()
-        await self.aload_database(silent=silent, preload=preload)
-
-    @classmethod
-    async def _aformat_directory(cls, path: Typing.OptionalPathStr):
-        """
-        Returns a `pathlib.Path` object to the user-specified ``path``
-        if given, else returns a copy of the default database directory
-        `Path` object.
-        """
-        if path == None:
-            return Path(cls.directory).absolute()
-        return Path(path).absolute()
-
-    @classmethod
-    async def _aderive_root_key(cls, key: bytes, depth: int):
-        """
-        Returns a root key derived from the user supplied key & context
-        data.
-        """
-        key_aad = KeyAADBundle.unsafe(
-            key=key,
-            salt=b"derive database:",
-            aad=repr((cls._KDF, depth)).encode(),
-        )
-        return await abytes_keys(key_aad)[depth]()
-
-    @classmethod
-    async def _aderive_root_hash(cls, root_key: bytes):
-        """
-        Returns a hash derived from the instance's root key.
-        """
-        return await asha3__512_hmac(
-            cls._KDF + root_key, key=root_key, hex=False
-        )
-
-    @classmethod
-    async def _aderive_root_filename(cls, root_hash: bytes):
-        """
-        Returns a 24-byte hash encoded in base38 used as the instance's
-        manifest filename.
-        """
-        root_filename_hash = await asha3__256_hmac(
-            cls._FILENAME + root_hash, key=root_hash
-        )
-        return await cls._ahex_to_base38(root_filename_hash[:48])
-
-    @classmethod
-    async def _ainitialize_keys(cls, key: bytes, depth: int = 0):
-        """
-        Derives the database's cryptographic root key material and the
-        filename of the manifest ledger.
-        """
-        root_key = await cls._aderive_root_key(key, depth)
-        root_hash = await cls._aderive_root_hash(root_key)
-        root_filename = await cls._aderive_root_filename(root_hash)
-        return root_key, root_hash, root_filename
-
-    @property
-    def _root_path(self):
-        """
-        Returns a ``pathlib.Path`` object that points to the file that
-        contains the manifest ledger.
-        """
-        return self.directory / self._root_filename
-
-    @property
-    def _maintenance_files(self):
-        """
-        Returns the filenames of entries in the database that refer to
-        administrative values used by objects to track and coordinate
-        themselves internally.
-        """
-        return {self._root_filename, self._metatags_filename}
-
-    @property
-    def tags(self):
-        """
-        Returns a list of all user-defined names for values stored in
-        the database object.
-        """
-        manifest = self._manifest
-        return {
-            getattr(manifest, filename)
-            for filename in self._maintenance_files.symmetric_difference(
-                manifest
-            )
-        }
-
-    @property
-    def filenames(self):
-        """
-        Returns a list of all derived filenames of user-defined tags
-        stored in the database object.
-        """
-        manifest = self._manifest.namespace
-        return {
-            filename
-            for filename in self._maintenance_files.symmetric_difference(
-                manifest
-            )
-        }
-
-    @property
-    def metatags(self):
-        """
-        Returns the list of metatags that a database contains.
-        """
-        return set(
-            self._manifest.namespace.get(self._metatags_filename, [])
-        )
-
-    @property
-    def _root_salt_filename(self):
-        """
-        Returns the filename of the database's root salt.
-        """
-        key = self._root_key
-        payload = self._root_hash
-        domain = self._SALT + self._FILENAME
-        filename = DomainKDF(domain, payload, key=key).sha3_256()
-        return self._hex_to_base38(filename.hex()[:48])
-
-    @property
-    def _root_salt_path(self):
-        """
-        Returns the path of the database's root salt file if the
-        instance is not a metatag.
-        """
-        if not self._is_metatag:
-            return self.directory / self._root_salt_filename
-
-    async def _aroot_encryption_key(
-        self, filename: bytes, salt: Typing.Optional[bytes]
-    ):
-        """
-        Takes a ``filename`` & ``salt`` to construct a unique symmetric
-        cryptographic key with preliminary database key material.
-        """
-        await asleep()
-        domain = self._KDF + self._FILE_KEY
-        key = self._root_hash
-        payload = self._root_key + repr((salt, filename)).encode()
-        return await DomainKDF(domain, payload, key=key).asha3_512()
-
-    async def _aopen_manifest(self):
-        """
-        Loads an existing manifest file ledger from the filesystem.
-        """
-        ciphertext = await self.IO.aread(path=self._root_path)
-        salt = self._root_session_salt = ciphertext[SALT_SLICE]
-        key = await self._aroot_encryption_key(self._MANIFEST, salt)
-        return await ajson_decrypt(ciphertext, key=key)
-
-    async def _aload_root_salt(self):
-        """
-        Pulls the root salt from the filesystem for a database instance,
-        or retrieves it from the manifest file if the database is a
-        metatag. Returns the result.
-        """
-        if self._is_metatag:
-            await asleep()
-            salt = self._manifest[self._root_filename]
-        else:
-            encrypted_root_salt = await self.IO.aread(
-                path=self._root_salt_path
-            )
-            key = await self._aroot_encryption_key(self._SALT, salt=None)
-            salt = await ajson_decrypt(encrypted_root_salt, key=key)
-        return bytes.fromhex(salt)
-
-    async def _agenerate_root_salt(self):
-        """
-        Returns a 32 byte hex salt for a metatag database, or a 64 byte
-        hex salt otherwise.
-        """
-        if self._is_metatag:
-            return await agenerate_salt(self._root_hash, size=32)
-        else:
-            return await acsprng(self._root_hash)
-
-    async def _ainstall_root_salt(self, salt: bytes):
-        """
-        Gives the manifest knowledge of the database's root ``salt``.
-        This salt is the source of entropy for the database that is not
-        derived from the user's key that opens the database. This salt
-        is saved in the manifest if the database is a metatag, or the
-        salt is saved in its own file if the database is a main parent
-        database.
-        """
-        if self._is_metatag:
-            self._manifest[self._root_filename] = salt.hex()
-        else:
-            self._manifest[self._root_filename] = 0
-
-    async def _agenerate_root_seed(self):
-        """
-        Returns a key that is derived from the database's main key &
-        the root salt's entropy.
-        """
-        domain = self._SEED
-        key = self.__root_salt
-        payload = self._root_hash + self._root_key
-        return await DomainKDF(domain, payload, key=key).asha3_512()
-
-    async def _aload_manifest(self):
-        """
-        Initalizes the object with a new database file ledger or loads
-        an existing one from the filesystem.
-        """
-        if self._root_path.exists():
-            self._manifest = Namespace(await self._aopen_manifest())
-            root_salt = await self._aload_root_salt()
-        else:
-            self._manifest = Namespace()
-            self._root_session_salt = await agenerate_salt(size=SALT_BYTES)
-            root_salt = await self._agenerate_root_salt()
-            await self._ainstall_root_salt(root_salt)
-
-        self.__root_salt = root_salt
-        self._root_seed = await self._agenerate_root_seed()
-
-    async def _ainitialize_metatags(self):
-        """
-        Initializes the values that organize database metatags, which
-        are children databases contained within their parent.
-        """
-        self._metatags_filename = await self.afilename(self._METATAGS)
-        if not self.metatags:
-            self._manifest[self._metatags_filename] = []
-
-    async def aload_tags(self, *, silent: bool = False):
-        """
-        Specifically loads all of the database's tag values into the
-        cache.
-        """
-        tags = self.tags
-        if not tags:
-            await asleep()
-            return self
-
-        tag_values = (
-            self.aquery_tag(tag, silent=silent, cache=True) for tag in tags
-        )
-        await gather(*tag_values, return_exceptions=True)
-        return self
-
-    async def aload_metatags(
-        self, *, preload: bool = True, silent: bool = False
-    ):
-        """
-        Specifically loads all of the database's metatag values into the
-        cache. If the ``preload`` keyword argument is falsey then the
-        metatag references are populated in the database's instance
-        dictionary, but their internal values are not loaded.
-        """
-        metatags_set = set(self.metatags)
-        if not metatags_set:
-            await asleep()
-            return self
-
-        metatags = (
-            self.ametatag(metatag, preload=preload, silent=silent)
-            for metatag in metatags_set
-        )
-        await gather(*metatags, return_exceptions=True)
-        return self
-
-    async def aload_database(
-        self,
-        *,
-        manifest: bool = False,
-        silent: bool = False,
-        preload: bool = True,
-    ):
-        """
-        Loads all the database object's values from the filesystem into
-        the database cache. This brings the database values into the
-        cache, enables up-to-date bracket lookup of tag values & dotted
-        lookup of metatags. Otherwise, values would have to be queried
-        using the awaitable ``aquery`` & ``ametatag`` methods.
-        """
-        if manifest:
-            await self._aload_manifest()
-        if preload:
-            await self.aload_tags(silent=silent)
-        await self.aload_metatags(silent=silent, preload=preload)
-        return self
-
-    @lru_cache(maxsize=256)
-    def _filename(self, tag: Typing.Optional[str]):
-        """
-        Derives the filename hash given a user-defined ``tag``.
-        """
-        domain = self._FILENAME
-        payload = repr(tag).encode()
-        key = self._root_hash + self._root_seed
-        filename = DomainKDF(domain, payload, key=key).sha3_256().hex()
-        return self._hex_to_base38(filename[:48])
-
-    @alru_cache(maxsize=256)
-    async def afilename(self, tag: Typing.Optional[str]):
-        """
-        Derives the filename hash given a user-defined ``tag``.
-        """
-        await asleep()
-        domain = self._FILENAME
-        payload = repr(tag).encode()
-        key = self._root_hash + self._root_seed
-        filename = await DomainKDF(domain, payload, key=key).asha3_256()
-        return await self._ahex_to_base38(filename.hex()[:48])
-
-    async def amake_hmac(self, data: Typing.DeterministicRepr):
-        """
-        Derives an HMAC hash of the supplied ``data`` with a unique
-        permutation of the database's keys & a domain-specific kdf.
-        """
-        await asleep()
-        domain = self._HMAC
-        payload = data if data.__class__ is bytes else repr(data).encode()
-        key = self._root_seed + self._root_hash
-        return await DomainKDF(domain, payload, key=key).asha3_256()
-
-    async def atest_hmac(
-        self, data: Typing.DeterministicRepr, untrusted_hmac: bytes
-    ):
-        """
-        Tests if the ``hmac`` of ``data`` is valid using the instance's
-        keys & a timing-safe comparison.
-        """
-        if not hmac:
-            raise Issue.no_value_specified("untrusted_hmac")
-        true_hmac = await self.amake_hmac(data)
-        if not await abytes_are_equal(untrusted_hmac, true_hmac):
-            raise Issue.invalid_value("HMAC of data stream")
-
-    async def _aencryption_key(self, filename: str, salt: bytes):
-        """
-        Takes a ``filename`` & ``salt`` to contruct a unique symmetric
-        cryptographic key.
-        """
-        await asleep()
-        domain = self._FILE_KEY
-        key = self._root_seed
-        payload = self.__root_salt + salt + filename.encode()
-        return await DomainKDF(domain, payload, key=key).asha3_512()
-
-    async def abytes_encrypt(
-        self, plaintext: bytes, *, filename: str = "", aad: bytes = b"aad"
-    ):
-        """
-        Encrypts the ``plaintext`` bytes with keys specific to the
-        ``filename`` value & returns the ciphertext bytes.
-        """
-        salt = await agenerate_salt(size=SALT_BYTES)
-        key = await self._aencryption_key(filename, salt)
-        return await abytes_encrypt(plaintext, key, salt=salt, aad=aad)
-
-    async def ajson_encrypt(
-        self,
-        plaintext: Typing.JSONSerializable,
-        *,
-        filename: str = "",
-        aad: bytes = b"aad",
-    ):
-        """
-        Encrypts the JSON serializable ``plaintext`` object with keys
-        specific to the ``filename`` value & returns the ciphertext
-        bytes.
-        """
-        salt = await agenerate_salt(size=SALT_BYTES)
-        key = await self._aencryption_key(filename, salt)
-        return await ajson_encrypt(plaintext, key, salt=salt, aad=aad)
-
-    async def amake_token(
-        self, plaintext: bytes, *, filename: str = "", aad: bytes = b"aad"
-    ):
-        """
-        Encrypts the ``plaintext`` bytes with keys specific to the
-        ``filename`` value & base64 encodes the resulting ciphertext
-        bytes.
-        """
-        key = await self._aencryption_key(filename, self._TOKEN)
-        return await Chunky2048(key).amake_token(plaintext, aad=aad)
-
-    async def abytes_decrypt(
-        self,
-        ciphertext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = b"aad",
-        ttl: int = 0,
-    ):
-        """
-        Decrypts the ``ciphertext`` bytes with keys specific to the
-        ``filename`` value & returns the plaintext bytes. ``ttl`` is the
-        amount of seconds that dictate the allowable age of the
-        decrypted message.
-        """
-        salt = ciphertext[SALT_SLICE]
-        key = await self._aencryption_key(filename, salt)
-        return await abytes_decrypt(ciphertext, key, aad=aad, ttl=ttl)
-
-    async def ajson_decrypt(
-        self,
-        ciphertext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = b"aad",
-        ttl: int = 0,
-    ):
-        """
-        Decrypts the ``ciphertext`` bytes with keys specific to the
-        ``filename`` value & JSON loads the resulting plaintext bytes.
-        ``ttl`` is the amount of seconds that dictate the allowable age
-        of the decrypted message.
-        """
-        salt = ciphertext[SALT_SLICE]
-        key = await self._aencryption_key(filename, salt)
-        return await ajson_decrypt(ciphertext, key, aad=aad, ttl=ttl)
-
-    async def aread_token(
-        self,
-        token: Typing.Base64URLSafe,
-        *,
-        filename: str = "",
-        aad: bytes = b"aad",
-        ttl: int = 0,
-    ):
-        """
-        Decrypts the base64 encoded ``token`` with keys specific to the
-        ``filename`` value & returns the plaintext bytes. ``ttl`` is the
-        amount of seconds that dictate the allowable age of the
-        decrypted message.
-        """
-        key = await self._aencryption_key(filename, self._TOKEN)
-        return await Chunky2048(key).aread_token(token, aad=aad, ttl=ttl)
-
-    async def _asave_ciphertext(self, filename: str, ciphertext: bytes):
-        """
-        Saves the encrypted value ``ciphertext`` in the database file
-        called ``filename``.
-        """
-        path = self.directory / filename
-        await self.IO.awrite(path=path, ciphertext=ciphertext)
-
-    async def aset_tag(
-        self, tag: str, data: Typing.JSONSerializable, *, cache: bool = True
-    ):
-        """
-        Allows users to add the value ``data`` under the name ``tag``
-        into the database.
-        """
-        filename = await self.afilename(tag)
-        setattr(self._cache, filename, data)
-        setattr(self._manifest, filename, tag)
-        if not cache:
-            await self.asave_tag(tag, drop_cache=True)
-
-    async def _aquery_ciphertext(
-        self, filename: str, *, silent: bool = False
-    ):
-        """
-        Retrieves the value stored in the database which has the given
-        ``filename``.
-        """
-        try:
-            path = self.directory / filename
-            return await self.IO.aread(path=path)
-        except FileNotFoundError as corrupt_database:
-            self._corrupted_files[filename] = True
-            if not silent:
-                raise DatabaseIssue.file_not_found(filename)
-
-    async def aquery_tag(
-        self, tag: str, *, silent: bool = False, cache: bool = False
-    ):
-        """
-        Allows users to retrieve the value stored under the name ``tag``
-        from the database.
-        """
-        filename = await self.afilename(tag)
-        if filename in self._cache:
-            return getattr(self._cache, filename)
-        ciphertext = await self._aquery_ciphertext(filename, silent=silent)
-        if not ciphertext:
-            return
-        result = await self.abytes_decrypt(ciphertext, filename=filename)
-        if result[:BYTES_FLAG_SIZE] == BYTES_FLAG:
-            result = result[BYTES_FLAG_SIZE:]  # Remove bytes value flag
-        else:
-            result = json.loads(result)
-        if cache:
-            setattr(self._cache, filename, result)
-        return result
-
-    async def _adelete_file(self, filename: str, *, silent=False):
-        """
-        Deletes a file in the database directory by ``filename``.
-        """
-        try:
-            await asynchs.aos.remove(self.directory / filename)
-        except FileNotFoundError as error:
-            if not silent:
-                raise error from None
-
-    async def apop_tag(
-        self, tag: str, *, admin: bool = False, silent: bool = False
-    ):
-        """
-        Returns a value from the database by it's ``tag`` & deletes the
-        associated file in the database directory.
-        """
-        failures = deque()
-        filename = await self.afilename(tag)
-        if filename in self._maintenance_files and not admin:
-            raise DatabaseIssue.cant_delete_maintenance_files()
-        try:
-            value = await self.aquery_tag(tag, cache=False)
-        except FileNotFoundError as error:
-            value = None
-            failures.appendleft(error)
-        try:
-            del self._manifest[filename]
-        except KeyError as error:
-            failures.appendleft(error)
-        try:
-            del self._cache[filename]
-        except KeyError as error:
-            pass
-        try:
-            await self._adelete_file(filename)
-        except FileNotFoundError as error:
-            failures.appendleft(error)
-        if failures and not silent:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
-        return value
-
-    async def arollback_tag(self, tag: str, *, cache: bool = False):
-        """
-        Clears the new ``tag`` data from the cache which undoes any
-        recent changes. If the ``tag`` data was never saved to disk,
-        then removing it from the cache will prevent it from being
-        saved in the database.
-        """
-        filename = await self.afilename(tag)
-        file_exists = (self.directory / filename).is_file()
-        tag_is_stored = filename in self._manifest
-        if tag_is_stored and not file_exists:
-            delattr(self._manifest, filename)
-        elif not tag_is_stored and not file_exists:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
-        if filename in self._cache:
-            delattr(self._cache, filename)
-            await self.aquery_tag(tag, cache=True) if cache else 0
-        await asleep()
-
-    async def aclear_cache(self):
-        """
-        Clears all recent changes in the cache, but this doesn't clear
-        a database's metatag caches.
-        """
-        self._cache.namespace.clear()
-        await asleep()
-
-    async def _ametatag_key(self, tag: str):
-        """
-        Derives the metatag's database key given a user-defined ``tag``.
-        """
-        await asleep()
-        key = self.__root_salt
-        domain = self._METATAG_KEY
-        payload = self._root_seed + repr(tag).encode()
-        return await DomainKDF(domain, payload, key=key).asha3_512()
-
-    async def ametatag(
-        self, tag: str, *, preload: bool = False, silent: bool = False
-    ):
-        """
-        Allows a user to create a child database with the name ``tag``
-        accessible by dotted lookup from the parent database. Child
-        databases are synchronized by their parents automatically.
-
-        Usage Example:
-
-        # Create a parent database ->
-        key = aiootp.csprng()
-        parent = await AsyncDatabase(key)
-
-        # Name the child database ->
-        tag = "sub_database"
-        child = await parent.ametatag(tag)
-
-        # The child is now accessible from the parent by the tag ->
-        assert child == parent.sub_database
-        """
-        if tag in self.__class__.__dict__:
-            raise Issue.cant_overwrite_existing_attribute(tag)
-        elif tag in self.__dict__:
-            if issubclass(self.__dict__[tag].__class__, self.__class__):
-                return self.__dict__[tag]
-            else:
-                raise Issue.cant_overwrite_existing_attribute(tag)
-        self.__dict__[tag] = await self.__class__(
-            key=await self._ametatag_key(tag),
-            depth=0,
-            preload=preload,
-            directory=self.directory,
-            metatag=True,
-            silent=silent,
-        )
-        if tag not in self.metatags:
-            getattr(self._manifest, self._metatags_filename).append(tag)
-        return self.__dict__[tag]
-
-    async def adelete_metatag(self, tag: str):
-        """
-        Removes the child database named ``tag``.
-        """
-        if tag not in self.metatags:
-            raise DatabaseIssue.no_existing_metatag(tag)
-        sub_db = await self.ametatag(tag)
-        await sub_db.adelete_database()
-        self.__dict__.pop(tag)
-        self.metatags.remove(tag)
-
-    async def _anullify(self):
-        """
-        Clears the database's memory caches & instance variables of all
-        values so a deleted database no longer makes changes to the
-        filesystem.
-        """
-        self._manifest.namespace.clear()
-        self._cache.namespace.clear()
-        self.__dict__.clear()
-        await asleep()
-
-    async def adelete_database(self):
-        """
-        Completely clears all of the entries in database instance & its
-        associated files.
-        """
-        for metatag in self.metatags:
-            sub_db = await self.ametatag(metatag, preload=False)
-            await sub_db.adelete_database()
-        for filename in self._manifest.namespace:
-            await self._adelete_file(filename, silent=True)
-        await self._adelete_file(self._root_salt_filename, silent=True)
-        await self._anullify()
-
-    async def _aencrypt_manifest(self, salt: bytes):
-        """
-        Takes a ``salt`` & returns the database's manifest encrypted.
-        """
-        manifest = self._manifest.namespace
-        key = await self._aroot_encryption_key(self._MANIFEST, salt)
-        return await ajson_encrypt(manifest, key=key, salt=salt)
-
-    async def _asave_manifest(self, ciphertext: Typing.DictCiphertext):
-        """
-        Writes the manifest ledger to disk. It contains all database
-        filenames & special cryptographic values for initializing the
-        database's key derivation functions.
-        """
-        if not ciphertext:
-            raise DatabaseIssue.invalid_write_attempt()
-        await self.IO.awrite(path=self._root_path, ciphertext=ciphertext)
-
-    async def _asave_root_salt(self, salt: bytes):
-        """
-        Writes a non-metatag database instance's root salt to disk as a
-        separate file.
-        """
-        key = await self._aroot_encryption_key(self._SALT, salt=None)
-        await self.IO.awrite(
-            path=self._root_salt_path,
-            ciphertext=await ajson_encrypt(salt.hex(), key=key),
-        )
-
-    async def _aclose_manifest(self):
-        """
-        Prepares for & writes the manifest ledger to disk. The manifest
-        contains all database filenames & other metadata used to
-        organize databases.
-        """
-        if not self._is_metatag:
-            await self._asave_root_salt(self.__root_salt)
-        salt = await agenerate_salt(size=SALT_BYTES)
-        manifest = await self._aencrypt_manifest(salt)
-        self._root_session_salt = salt
-        await self._asave_manifest(manifest)
-
-    async def _asave_file(self, filename: str, *, admin: bool = False):
-        """
-        Writes the cached value for a user-specified ``filename`` to the
-        user filesystem.
-        """
-        value = getattr(self._cache, filename)
-        if value.__class__ is bytes:
-            value = BYTES_FLAG + value  # Assure not reloaded as JSON
-        else:
-            value = json.dumps(value).encode()
-        ciphertext = await self.abytes_encrypt(value, filename=filename)
-        await self._asave_ciphertext(filename, ciphertext)
-
-    async def _asave_tags(self):
-        """
-        Writes the database's user-defined tags to disk.
-        """
-        filenames = self._cache.namespace
-        saves = (self._asave_file(filename) for filename in filenames)
-        await gather(*saves, return_exceptions=True)
-
-    async def _asave_metatags(self):
-        """
-        Writes the database's child databases to disk.
-        """
-        db = self.__dict__
-        saves = (db[metatag].asave_database() for metatag in self.metatags)
-        await gather(*saves, return_exceptions=True)
-
-    async def asave_tag(
-        self, tag: str, *, admin: bool = False, drop_cache: bool = False
-    ):
-        """
-        Writes the cached value for a user-specified ``tag`` to the user
-        filesystem.
-        """
-        filename = await self.afilename(tag)
-        try:
-            await self._asave_file(filename, admin=admin)
-            if drop_cache and hasattr(self._cache, filename):
-                delattr(self._cache, filename)
-        except AttributeError:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
-
-    async def asave_database(self):
-        """
-        Writes the database's values to disk with transparent encryption.
-        """
-        if self._root_filename not in self._manifest:
-            raise DatabaseIssue.key_has_been_deleted()
-        await self._aclose_manifest()
-        await gather(
-            self._asave_metatags(),
-            self._asave_tags(),
-            return_exceptions=True,
-        )
-
-    async def amirror_database(self, database):
-        """
-        Copies over all of the stored & loaded values, tags & metatags
-        from the ``database`` object passed into this function.
-        """
-        async for tag, value in aunpack.root(database):
-            await self.aset_tag(tag, value)
-        for metatag in database.metatags:
-            my_metatag = await self.ametatag(metatag)
-            await my_metatag.amirror_database(database.__dict__[metatag])
-
-    def __contains__(self, tag: str):
-        """
-        Checks the cache & manifest for the filename associated with the
-        user-defined ``tag``.
-        """
-        filename = self._filename(tag)
-        return filename in self._manifest or filename in self._cache
-
-    def __bool__(self):
-        """
-        Returns True if the instance dictionary is populated or the
-        manifast is saved to the filesystem.
-        """
-        return bool(self.__dict__)
-
-    async def __aenter__(self):
-        """
-        The context manager automatically writes database changes made
-        by a user to disk.
-        """
-        return self
-
-    async def __aexit__(
-        self, exc_type=None, exc_value=None, traceback=None
-    ):
-        """
-        The context manager automatically writes database changes made
-        by a user to disk.
-        """
-        await self.asave_database()
-
-    async def __aiter__(self):
-        """
-        Provides an interface to the names & values stored in databases.
-        """
-        silent = self._silent
-        for tag in self.tags:
-            yield (
-                tag,
-                await self.aquery_tag(tag, silent=silent, cache=False),
-            )
-
-    def __setitem__(self, tag: str, data: Typing.JSONSerializable):
-        """
-        Allows users to add the value ``data`` under the name ``tag``
-        into the database.
-        """
-        filename = self._filename(tag)
-        setattr(self._cache, filename, data)
-        setattr(self._manifest, filename, tag)
-
-    def __getitem__(self, tag: str):
-        """
-        Allows users to retrieve the value stored under the name ``tag``
-        from the database cache.
-        """
-        filename = self._filename(tag)
-        if filename in self._cache:
-            return getattr(self._cache, filename)
-
-    def __delitem__(self, tag: str):
-        """
-        Allows users to delete the value stored under the name ``tag``
-        from the database.
-        """
-        filename = self._filename(tag)
-        try:
-            del self._manifest[filename]
-        except KeyError:
-            pass
-        try:
-            del self._cache[filename]
-        except KeyError:
-            pass
-        try:
-            (self.directory / filename).unlink()
-        except FileNotFoundError:
-            pass
-
-    __len__ = lambda self: (
-        len(self._manifest) - len(self._maintenance_files)
-    )
-
-
-class Database:
-    """
-    This class creates databases which enable the disk persistence of
-    any bytes or JSON serializable native python data-types, with fully
-    transparent encryption / decryption using the library's `Chunky2048`
-    cipher.
-
-    Usage Example:
-
-    key = aiootp.csprng()
-    db = Database(key)
-
-    # Elements in a database are organized by user-defined tags ->
-    db["income"] = 32000
-
-    # Databases can store any JSON serializable data ->
-    db["dict"] = {0: 1, 2: 3, 4: 5}
-    db["lists"] = ["juice", ["nested juice"]]
-
-    # As well as raw bytes ->
-    db["bytes"] = b"value..."
-
-    # Retrieve items by their tags ->
-    db["dict"]
-    >>> {0: 1, 2: 3, 4: 5}
-
-    # Save changes to disk ->
-    db.save_database()
-
-    # Create child databases using what are called metatags ->
-    taxes = db.metatag("taxes")
-    taxes[2020] = {"jan": 130.25, "feb": 163.23, "mar": 149.68}
-    assert taxes == db.taxes
-    assert taxes[2020] == db.taxes[2020]
-
-    # Delete a child database ->
-    db.delete_metatag("taxes")
-
-    # Purge the filesystem of the database files ->
-    db.delete_database()
-    """
-
-    IO = BytesIO
-
-    directory: Typing.Path = DatabasePath()
-
-    _BASE_38_TABLE: str = Tables.BASE_38
-    _KDF: bytes = Domains.KDF
-    _HMAC: bytes = Domains.HMAC
-    _SALT: bytes = Domains.SALT
-    _SEED: bytes = Domains.SEED
-    _UUID: bytes = Domains.UUID
-    _TOKEN: bytes = Domains.TOKEN
-    _MANIFEST: bytes = Domains.MANIFEST
-    _FILENAME: bytes = Domains.FILENAME
-    _FILE_KEY: bytes = Domains.FILE_KEY
-    _PASSCRYPT: bytes = Domains.PASSCRYPT
-    _METATAG_KEY: bytes = Domains.METATAG_KEY
-    _METATAGS: bytes = sha3_256(Domains.METATAG + Domains.FILENAME).digest()
-
-    @classmethod
-    def base64_encode(cls, byte_sequence: bytes):
-        """
-        Encodes a raw ``bytes_sequence`` into a urlsafe base64 string.
-        """
-        return base64.urlsafe_b64encode(byte_sequence).decode()
-
-    @classmethod
-    def base64_decode(cls, base64_sequence: Typing.AnyStr):
-        """
-        Decodes a urlsafe base64 string or bytes sequence into raw bytes.
-        """
-        if base64_sequence.__class__ is not bytes:
-            base64_sequence = base64_sequence.encode()
-        return base64.urlsafe_b64decode(base64_sequence)
-
-    @classmethod
-    def _hex_to_base38(cls, hex_string: str):
-        """
-        Returns the received ``hex_string`` in base38 encoding.
-        """
-        return int_to_base(
-            int(hex_string, 16), base=38, table=cls._BASE_38_TABLE
-        )
-
-    @classmethod
-    def profile_exists(cls, tokens: ProfileTokens):
-        """
-        Tests if a profile that ``tokens`` would open has saved a salt
-        file on the user filesystem. Retruens false if not.
-        """
-        filename = paths.deniable_filename(tokens._bytes_key)
-        path = (DatabasePath() / "secure") / filename
-        return path.exists()
-
-    @classmethod
-    def generate_profile_tokens(
-        cls,
-        *credentials: Typing.Iterable[Typing.Any],
-        username: Typing.Any,
-        passphrase: Typing.Any,
-        salt: Typing.Any = None,
-        kb: int = 32768,
-        cpu: int = 3,
-        hardness: int = 1024,
-    ):
-        """
-        Runs a very expensive key derivation function to build keys
-        for users to open a database with only access to potentially
-        weakly entropic credentials & the filesystem.
-
-        Usage Example:
-
-        tokens = aiootp.Database.generate_profile_tokens(
-            "server_url",     # Any number of arguments can be passed
-            "email_address",  # here as additional, optional credentials.
-            username="username",
-            passphrase="passphrase",
-            salt="optional salt keyword argument",
-        )
-
-        db = aiootp.Database.generate_profile(tokens)
-        """
-        UUID = cls._UUID
-        summary = str((salt, passphrase, *credentials, username)).encode()
-        uuid = sha3__512_hmac(UUID + summary, key=summary, hex=False)
-        key = Passcrypt.new(
-            summary, uuid, kb=kb, cpu=cpu, hardness=hardness
-        )
-        return ProfileTokens(key, uuid)
-
-    @classmethod
-    def _generate_profile_salt(
-        cls, tokens: ProfileTokens, directory: Path
-    ):
-        """
-        Creates or loads a salt value saved on the user filesystem to
-        help add more entropy to their key derivation functions when
-        preparing to open a profile database.
-        """
-        tokens._salt_path = paths.SecurePath(
-            path=directory, key=tokens._bytes_key
-        )
-        tokens._salt = paths._read_salt_file(tokens._salt_path)
-        return tokens._salt
-
-    @classmethod
-    def _generate_profile_login_key(cls, tokens: ProfileTokens):
-        """
-        Combines the output of the expensive key derivation functions &
-        the salt stored on the filesystem gathered in preparation to
-        safely open a profile database.
-        """
-        tokens.login_key = Passcrypt.new(tokens._bytes_key, tokens._salt)
-        return tokens.login_key
-
-    @classmethod
-    def generate_profile(
-        cls, tokens: ProfileTokens, directory: Path = directory, **kw
-    ):
-        """
-        Creates & loads a profile database for a user from the ``tokens``
-        passed in.
-
-        Usage Example:
-
-        tokens = aiootp.Database.generate_profile_tokens(
-            "server_url",     # Any number of arguments can be passed
-            "email_address",  # here as additional, optional credentials.
-            username="username",
-            passphrase="passphrase",
-            salt="optional salt keyword argument",
-        )
-
-        db = aiootp.Database.generate_profile(tokens)
-        """
-        cls._generate_profile_salt(tokens, directory=directory)
-        cls._generate_profile_login_key(tokens)
-        tokens.profile = cls(
-            key=tokens.login_key, depth=10000, directory=directory, **kw
-        )
-        if not tokens.profile._root_path.is_file():
-            tokens.profile.save_database()
-        return tokens.profile
-
-    @classmethod
-    def load_profile(cls, tokens: ProfileTokens, **kw):
-        """
-        Loads a profile database for a user from the ``tokens`` passed
-        in. Throws ``LookupError`` if the profile has not yet been
-        generated.
-        """
-        if not cls.profile_exists(tokens):
-            raise DatabaseIssue.missing_profile()
-        return cls.generate_profile(tokens, **kw)
-
-    @classmethod
-    def delete_profile(cls, tokens: ProfileTokens):
-        """
-        Deletes the profile's salt saved on the filesystem & all of its
-        database files.
-        """
-        try:
-            tokens.profile.delete_database()
-        except AttributeError:
-            cls.load_profile(tokens, preload=False)
-            tokens.profile.delete_database()
-        tokens._salt_path.unlink()
-
-    def __init__(
-        self,
-        key: bytes,
-        *,
-        depth: int = 0,  # >= 5000 if ``key`` is weak
-        preload: bool = False,
-        directory: Typing.Path = directory,
-        metatag: bool = False,
-        silent: bool = True,
-    ):
-        """
-        Sets a database object's basic key generators & cryptographic
-        values based on the unique permutations of the ``key`` &
-        ``depth`` values. If ``key`` is a passphrase, or has very
-        low entropy, then ``depth`` should be a larger number.
-        However, using the `generate_profile_tokens` & `generate_profile`
-        methods would be a safer choice for opening a database with a
-        potentially weak passphrase.
-
-        ``preload``:    This boolean value tells the object to -- True --
-            load all of the stored database values from the filesystem
-            into the cache during initialization, or -- False -- skip
-            the loading stage. This can save time up front so users can
-            pay the cost of loading data only when that value is needed.
-
-        ``directory``:  This value is the string or ``Pathlib.Path``
-            object that points to the filesystem location where the
-            database files reside / will be saved. By default, stores
-            values in the directory "databases" relative to the package
-            source code.
-
-        ``metatag``:    This boolean value tells the class whether to
-            prepare itself as a sub-database or not, which generally
-            means less storage overhead used to secure its cryptographic
-            material. Parent databases that are not metatags store a
-            random salt value in their ``self._root_path`` file.
-
-        ``silent``:     This boolean value tells the class to surpress
-            exceptions when loading files so that errors in the database
-            don't prevent a user from logging in.
-        """
-        self._silent = silent
-        self._corrupted_files = {}
-        self._cache = Namespace()
-        self._manifest = Namespace()
-        self.directory = self._format_directory(directory)
-        self._is_metatag = True if metatag else False
-        self._root_key, self._root_hash, self._root_filename = self._initialize_keys(
-            key, depth
-        )
-        self._load_manifest()
-        self._initialize_metatags()
-        self.load_database(silent=silent, preload=preload)
-
-    @classmethod
-    def _format_directory(cls, path: Typing.OptionalPathStr):
-        """
-        Returns a `pathlib.Path` object to the user-specified ``path``
-        if given, else returns a copy of the default database directory
-        `Path` object.
-        """
-        if path == None:
-            return Path(cls.directory).absolute()
-        return Path(path).absolute()
-
-    @classmethod
-    def _derive_root_key(cls, key: bytes, depth: int):
-        """
-        Returns a root key derived from the user supplied key & context
-        data.
-        """
-        key_aad = KeyAADBundle.unsafe(
-            key=key,
-            salt=b"derive database:",
-            aad=repr((cls._KDF, depth)).encode(),
-        )
-        return bytes_keys(key_aad)[depth]()
-
-    @classmethod
-    def _derive_root_hash(cls, root_key: bytes):
-        """
-        Returns a hash derived from the instance's root key.
-        """
-        return sha3__512_hmac(cls._KDF + root_key, key=root_key, hex=False)
-
-    @classmethod
-    def _derive_root_filename(cls, root_hash: bytes):
-        """
-        Returns a 24-byte hash encoded in base38 used as the instance's
-        manifest filename.
-        """
-        root_filename_hash = sha3__256_hmac(
-            cls._FILENAME + root_hash, key=root_hash
-        )
-        return cls._hex_to_base38(root_filename_hash[:48])
-
-    @classmethod
-    def _initialize_keys(cls, key: bytes, depth: int = 0):
-        """
-        Derives the database's cryptographic root key material and the
-        filename of the manifest ledger.
-        """
-        root_key = cls._derive_root_key(key, depth)
-        root_hash = cls._derive_root_hash(root_key)
-        root_filename = cls._derive_root_filename(root_hash)
-        return root_key, root_hash, root_filename
-
-    @property
-    def _root_path(self):
-        """
-        Returns a ``pathlib.Path`` object that points to the file that
-        contains the manifest ledger.
-        """
-        return self.directory / self._root_filename
-
-    @property
-    def _maintenance_files(self):
-        """
-        Returns the filenames of entries in the database that refer to
-        administrative values used by objects to track and coordinate
-        themselves internally.
-        """
-        return {self._root_filename, self._metatags_filename}
-
-    @property
-    def tags(self):
-        """
-        Returns a list of all user-defined names for values stored in
-        the database object.
-        """
-        manifest = self._manifest
-        return {
-            getattr(manifest, filename)
-            for filename in self._maintenance_files.symmetric_difference(
-                manifest
-            )
-        }
-
-    @property
-    def filenames(self):
-        """
-        Returns a list of all derived filenames of user-defined tags
-        stored in the database object.
-        """
-        manifest = self._manifest.namespace
-        return {
-            filename
-            for filename in self._maintenance_files.symmetric_difference(
-                manifest
-            )
-        }
-
-    @property
-    def metatags(self):
-        """
-        Returns the list of metatags that a database contains.
-        """
-        return set(
-            self._manifest.namespace.get(self._metatags_filename, [])
-        )
-
-    @property
-    def _root_salt_filename(self):
-        """
-        Returns the filename of the database's root salt.
-        """
-        key = self._root_key
-        payload = self._root_hash
-        domain = self._SALT + self._FILENAME
-        filename = DomainKDF(domain, payload, key=key).sha3_256()
-        return self._hex_to_base38(filename.hex()[:48])
-
-    @property
-    def _root_salt_path(self):
-        """
-        Returns the path of the database's root salt file if the
-        instance is not a metatag.
-        """
-        if not self._is_metatag:
-            return self.directory / self._root_salt_filename
-
-    def _root_encryption_key(
-        self, filename: bytes, salt: Typing.Optional[bytes]
-    ):
-        """
-        Takes a ``filename`` & ``salt`` to construct a unique symmetric
-        cryptographic key with preliminary database key material.
-        """
-        domain = self._KDF + self._FILE_KEY
-        key = self._root_hash
-        payload = self._root_key + repr((salt, filename)).encode()
-        return DomainKDF(domain, payload, key=key).sha3_512()
-
-    def _open_manifest(self):
-        """
-        Loads an existing manifest file ledger from the filesystem.
-        """
-        ciphertext = self.IO.read(path=self._root_path)
-        salt = self._root_session_salt = ciphertext[SALT_SLICE]
-        key = self._root_encryption_key(self._MANIFEST, salt)
-        return json_decrypt(ciphertext, key=key)
-
-    def _load_root_salt(self):
-        """
-        Pulls the root salt from the filesystem for a database instance,
-        or retrieves it from the manifest file if the database is a
-        metatag. Returns the result.
-        """
-        if self._is_metatag:
-            salt = self._manifest[self._root_filename]
-        else:
-            encrypted_root_salt = self.IO.read(path=self._root_salt_path)
-            key = self._root_encryption_key(self._SALT, salt=None)
-            salt = json_decrypt(encrypted_root_salt, key=key)
-        return bytes.fromhex(salt)
-
-    def _generate_root_salt(self):
-        """
-        Returns a 32 byte hex salt for a metatag database, or a 64 byte
-        hex salt otherwise.
-        """
-        if self._is_metatag:
-            return generate_salt(self._root_hash, size=32)
-        else:
-            return csprng(self._root_hash)
-
-    def _install_root_salt(self, salt: bytes):
-        """
-        Gives the manifest knowledge of the database's root ``salt``.
-        This salt is the source of entropy for the database that is not
-        derived from the user's key that opens the database. This salt
-        is saved in the manifest if the database is a metatag, or the
-        salt is saved in its own file if the database is a main parent
-        database.
-        """
-        if self._is_metatag:
-            self._manifest[self._root_filename] = salt.hex()
-        else:
-            self._manifest[self._root_filename] = 0
-
-    def _generate_root_seed(self):
-        """
-        Returns a key that is derived from the database's main key &
-        the root salt's entropy.
-        """
-        domain = self._SEED
-        key = self.__root_salt
-        payload = self._root_hash + self._root_key
-        return DomainKDF(domain, payload, key=key).sha3_512()
-
-    def _load_manifest(self):
-        """
-        Initalizes the object with a new database file ledger or loads
-        an existing one from the filesystem.
-        """
-        if self._root_path.exists():
-            self._manifest = Namespace(self._open_manifest())
-            root_salt = self._load_root_salt()
-        else:
-            self._manifest = Namespace()
-            self._root_session_salt = generate_salt(size=SALT_BYTES)
-            root_salt = self._generate_root_salt()
-            self._install_root_salt(root_salt)
-
-        self.__root_salt = root_salt
-        self._root_seed = self._generate_root_seed()
-
-    def _initialize_metatags(self):
-        """
-        Initializes the values that organize database metatags, which
-        are children databases contained within their parent.
-        """
-        self._metatags_filename = self.filename(self._METATAGS)
-        if not self.metatags:
-            self._manifest[self._metatags_filename] = []
-
-    def load_tags(self, *, silent: bool = False):
-        """
-        Specifically loads all of the database's tag values into the
-        cache.
-        """
-        for tag in self.tags:
-            self.query_tag(tag, silent=silent, cache=True)
-        return self
-
-    def load_metatags(self, *, preload: bool = True, silent: bool = False):
-        """
-        Specifically loads all of the database's metatag values into the
-        cache. If the ``preload`` keyword argument is falsey then the
-        metatag references are populated in the database's instance
-        dictionary, but their internal values are not loaded.
-        """
-        for metatag in set(self.metatags):
-            self.metatag(metatag, preload=preload, silent=silent)
-        return self
-
-    def load_database(
-        self,
-        *,
-        silent: bool = False,
-        manifest: bool = False,
-        preload: bool = True,
-    ):
-        """
-        Loads all the database object's values from the filesystem into
-        the database cache. This brings the database values into the
-        cache, enables up-to-date bracket lookup of tag values & dotted
-        lookup of metatags.
-        """
-        if manifest:
-            self._load_manifest()
-        if preload:
-            self.load_tags(silent=silent)
-        self.load_metatags(preload=preload, silent=silent)
-        return self
-
-    @lru_cache(maxsize=256)
-    def filename(self, tag: Typing.Optional[str]):
-        """
-        Derives the filename hash given a user-defined ``tag``.
-        """
-        domain = self._FILENAME
-        payload = repr(tag).encode()
-        key = self._root_hash + self._root_seed
-        filename = DomainKDF(domain, payload, key=key).sha3_256().hex()
-        return self._hex_to_base38(filename[:48])
-
-    def make_hmac(self, data: Typing.DeterministicRepr):
-        """
-        Derives an HMAC hash of the supplied ``data`` with a unique
-        permutation of the database's keys & a domain-specific kdf.
-        """
-        domain = self._HMAC
-        payload = data if data.__class__ is bytes else repr(data).encode()
-        key = self._root_seed + self._root_hash
-        return DomainKDF(domain, payload, key=key).sha3_256()
-
-    def test_hmac(
-        self, data: Typing.DeterministicRepr, untrusted_hmac: bytes
-    ):
-        """
-        Tests if the ``hmac`` of ``data`` is valid using the instance's
-        keys & a timing-safe comparison.
-        """
-        if not hmac:
-            raise Issue.no_value_specified("untrusted_hmac")
-        true_hmac = self.make_hmac(data)
-        if not bytes_are_equal(untrusted_hmac, true_hmac):
-            raise Issue.invalid_value("HMAC of data stream")
-
-    def _encryption_key(self, filename: str, salt: bytes):
-        """
-        Takes a ``filename`` & ``salt`` to contruct a unique symmetric
-        cryptographic key.
-        """
-        domain = self._FILE_KEY
-        key = self._root_seed
-        payload = self.__root_salt + salt + filename.encode()
-        return DomainKDF(domain, payload, key=key).sha3_512()
-
-    def bytes_encrypt(
-        self, plaintext: bytes, *, filename: str = "", aad: bytes = b"aad"
-    ):
-        """
-        Encrypts the ``plaintext`` bytes with keys specific to the
-        ``filename`` value & returns the ciphertext bytes.
-        """
-        salt = generate_salt(size=SALT_BYTES)
-        key = self._encryption_key(filename, salt)
-        return bytes_encrypt(plaintext, key, salt=salt, aad=aad)
-
-    def json_encrypt(
-        self,
-        plaintext: Typing.JSONSerializable,
-        *,
-        filename: str = "",
-        aad: bytes = b"aad",
-    ):
-        """
-        Encrypts the JSON serializable ``plaintext`` object with keys
-        specific to the ``filename`` value & returns the ciphertext
-        bytes.
-        """
-        salt = generate_salt(size=SALT_BYTES)
-        key = self._encryption_key(filename, salt)
-        return json_encrypt(plaintext, key, salt=salt, aad=aad)
-
-    def make_token(
-        self, plaintext: bytes, *, filename: str = "", aad: bytes = b"aad"
-    ):
-        """
-        Encrypts the ``plaintext`` bytes with keys specific to the
-        ``filename`` value & base64 encodes the resulting ciphertext
-        bytes.
-        """
-        key = self._encryption_key(filename, self._TOKEN)
-        return Chunky2048(key).make_token(plaintext, aad=aad)
-
-    def bytes_decrypt(
-        self,
-        ciphertext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = b"aad",
-        ttl: int = 0
-    ):
-        """
-        Decrypts the ``ciphertext`` bytes with keys specific to the
-        ``filename`` value & returns the plaintext bytes. ``ttl`` is the
-        amount of seconds that dictate the allowable age of the
-        decrypted message.
-        """
-        salt = ciphertext[SALT_SLICE]
-        key = self._encryption_key(filename, salt)
-        return bytes_decrypt(ciphertext, key, aad=aad, ttl=ttl)
-
-    def json_decrypt(
-        self,
-        ciphertext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = b"aad",
-        ttl: int = 0
-    ):
-        """
-        Decrypts the ``ciphertext`` bytes with keys specific to the
-        ``filename`` value & JSON loads the resulting plaintext bytes.
-        ``ttl`` is the amount of seconds that dictate the allowable age
-        of the decrypted message.
-        """
-        salt = ciphertext[SALT_SLICE]
-        key = self._encryption_key(filename, salt)
-        return json_decrypt(ciphertext, key=key, aad=aad, ttl=ttl)
-
-    def read_token(
-        self,
-        token: Typing.Base64URLSafe,
-        *,
-        filename: str = "",
-        aad: bytes = b"aad",
-        ttl: int = 0,
-    ):
-        """
-        Decrypts the base64 encoded ``token`` with keys specific to the
-        ``filename`` value & returns the plaintext bytes. ``ttl`` is the
-        amount of seconds that dictate the allowable age of the
-        decrypted message.
-        """
-        key = self._encryption_key(filename, self._TOKEN)
-        return Chunky2048(key).read_token(token, aad=aad, ttl=ttl)
-
-    def _save_ciphertext(self, filename: str, ciphertext: bytes):
-        """
-        Saves the encrypted value ``ciphertext`` in the database file
-        called ``filename``.
-        """
-        path = self.directory / filename
-        self.IO.write(path=path, ciphertext=ciphertext)
-
-    def set_tag(
-        self, tag: str, data: Typing.JSONSerializable, *, cache: bool = True
-    ):
-        """
-        Allows users to add the value ``data`` under the name ``tag``
-        into the database.
-        """
-        filename = self.filename(tag)
-        setattr(self._cache, filename, data)
-        setattr(self._manifest, filename, tag)
-        if not cache:
-            self.save_tag(tag, drop_cache=True)
-
-    def _query_ciphertext(self, filename: str, *, silent: bool = False):
-        """
-        Retrieves the value stored in the database which has the given
-        ``filename``.
-        """
-        try:
-            path = self.directory / filename
-            return self.IO.read(path=path)
-        except FileNotFoundError as corrupt_database:
-            self._corrupted_files[filename] = True
-            if not silent:
-                raise DatabaseIssue.file_not_found(filename)
-
-    def query_tag(
-        self, tag: str, *, silent: bool = False, cache: bool = False
-    ):
-        """
-        Allows users to retrieve the value stored under the name ``tag``
-        from the database.
-        """
-        filename = self.filename(tag)
-        if filename in self._cache:
-            return getattr(self._cache, filename)
-        ciphertext = self._query_ciphertext(filename, silent=silent)
-        if not ciphertext:
-            return
-        result = self.bytes_decrypt(ciphertext, filename=filename)
-        if result[:BYTES_FLAG_SIZE] == BYTES_FLAG:
-            result = result[BYTES_FLAG_SIZE:]  # Remove bytes value flag
-        else:
-            result = json.loads(result)
-        if cache:
-            setattr(self._cache, filename, result)
-        return result
-
-    def _delete_file(self, filename: str, *, silent=False):
-        """
-        Deletes a file in the database directory by ``filename``.
-        """
-        try:
-            (self.directory / filename).unlink()
-        except FileNotFoundError as error:
-            if not silent:
-                raise error from None
-
-    def pop_tag(
-        self, tag: str, *, admin: bool = False, silent: bool = False
-    ):
-        """
-        Returns a value from the database by it's ``tag`` & deletes the
-        associated file in the database directory.
-        """
-        failures = deque()
-        filename = self.filename(tag)
-        if filename in self._maintenance_files and not admin:
-            raise DatabaseIssue.cant_delete_maintenance_files()
-        try:
-            value = self.query_tag(tag, cache=False)
-        except FileNotFoundError as error:
-            value = None
-            failures.appendleft(error)
-        try:
-            del self._manifest[filename]
-        except KeyError as error:
-            failures.appendleft(error)
-        try:
-            del self._cache[filename]
-        except KeyError as error:
-            pass
-        try:
-            self._delete_file(filename)
-        except FileNotFoundError as error:
-            failures.appendleft(error)
-        if failures and not silent:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
-        return value
-
-    def rollback_tag(self, tag: str, *, cache: bool = False):
-        """
-        Clears the new ``tag`` data from the cache which undoes any
-        recent changes. If the ``tag`` data was never saved to disk,
-        then removing it from the cache will prevent it from being
-        saved in the database.
-        """
-        filename = self.filename(tag)
-        file_exists = (self.directory / filename).is_file()
-        tag_is_stored = filename in self._manifest
-        if tag_is_stored and not file_exists:
-            delattr(self._manifest, filename)
-        elif not tag_is_stored and not file_exists:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
-        if filename in self._cache:
-            delattr(self._cache, filename)
-            self.query_tag(tag, cache=True) if cache else 0
-
-    def clear_cache(self):
-        """
-        Clears all recent changes in the cache, but this doesn't clear
-        a database's metatag caches.
-        """
-        self._cache.namespace.clear()
-
-    def _metatag_key(self, tag: str):
-        """
-        Derives the metatag's database key given a user-defined ``tag``.
-        """
-        key = self.__root_salt
-        domain = self._METATAG_KEY
-        payload = self._root_seed + repr(tag).encode()
-        return DomainKDF(domain, payload, key=key).sha3_512()
-
-    def metatag(
-        self, tag: str, *, preload: bool = False, silent: bool = False
-    ):
-        """
-        Allows a user to create a child database with the name ``tag``
-        accessible by dotted lookup from the parent database. Child
-        databases are synchronized by their parents automatically.
-
-        Usage Example:
-
-        # Create a parent database ->
-        key = aiootp.csprng()
-        parent = Database(key)
-
-        # Name the child database ->
-        tag = "sub_database"
-        child = await parent.ametatag(tag)
-
-        # The child is now accessible from the parent by the tag ->
-        assert child == parent.sub_database
-        """
-        if tag in self.__class__.__dict__:
-            raise Issue.cant_overwrite_existing_attribute(tag)
-        elif tag in self.__dict__:
-            if issubclass(self.__dict__[tag].__class__, self.__class__):
-                return self.__dict__[tag]
-            else:
-                raise Issue.cant_overwrite_existing_attribute(tag)
-        self.__dict__[tag] = self.__class__(
-            key=self._metatag_key(tag),
-            depth=0,
-            preload=preload,
-            directory=self.directory,
-            metatag=True,
-            silent=silent,
-        )
-        if tag not in self.metatags:
-            getattr(self._manifest, self._metatags_filename).append(tag)
-        return self.__dict__[tag]
-
-    def delete_metatag(self, tag: str):
-        """
-        Removes the child database named ``tag``.
-        """
-        if tag not in self.metatags:
-            raise DatabaseIssue.no_existing_metatag(tag)
-        self.metatag(tag).delete_database()
-        self.__dict__.pop(tag)
-        self.metatags.remove(tag)
-
-    def _nullify(self):
-        """
-        Clears the database's memory caches & instance variables of all
-        values so a deleted database no longer makes changes to the
-        filesystem.
-        """
-        self._manifest.namespace.clear()
-        self._cache.namespace.clear()
-        self.__dict__.clear()
-
-    def delete_database(self):
-        """
-        Completely clears all of the entries in database instance & its
-        associated files.
-        """
-        for metatag in self.metatags:
-            self.metatag(metatag, preload=False).delete_database()
-        for filename in self._manifest.namespace:
-            self._delete_file(filename, silent=True)
-        self._delete_file(self._root_salt_filename, silent=True)
-        self._nullify()
-
-    def _encrypt_manifest(self, salt: bytes):
-        """
-        Takes a ``salt`` & returns the database's manifest encrypted.
-        """
-        manifest = self._manifest.namespace
-        key = self._root_encryption_key(self._MANIFEST, salt)
-        return json_encrypt(manifest, key=key, salt=salt)
-
-    def _save_manifest(self, ciphertext: bytes):
-        """
-        Writes the manifest ledger to disk. It contains all database
-        filenames & special cryptographic values for initializing the
-        database's key derivation functions.
-        """
-        if not ciphertext:
-            raise DatabaseIssue.invalid_write_attempt()
-        self.IO.write(path=self._root_path, ciphertext=ciphertext)
-
-    def _save_root_salt(self, salt: bytes):
-        """
-        Writes a non-metatag database instance's root salt to disk as a
-        separate file.
-        """
-        key = self._root_encryption_key(self._SALT, salt=None)
-        self.IO.write(
-            path=self._root_salt_path,
-            ciphertext=json_encrypt(salt.hex(), key=key),
-        )
-
-    def _close_manifest(self):
-        """
-        Prepares for & writes the manifest ledger to disk. The manifest
-        contains all database filenames & other metadata used to
-        organize databases.
-        """
-        if not self._is_metatag:
-            self._save_root_salt(self.__root_salt)
-        salt = generate_salt(size=SALT_BYTES)
-        manifest = self._encrypt_manifest(salt)
-        self._root_session_salt = salt
-        self._save_manifest(manifest)
-
-    def _save_file(self, filename: str, *, admin: bool = False):
-        """
-        Writes the cached value for a user-specified ``filename`` to the
-        user filesystem.
-        """
-        value = getattr(self._cache, filename)
-        if value.__class__ is bytes:
-            value = BYTES_FLAG + value  # Assure not reloaded as JSON
-        else:
-            value = json.dumps(value).encode()
-        ciphertext = self.bytes_encrypt(value, filename=filename)
-        self._save_ciphertext(filename, ciphertext)
-
-    def _save_tags(self):
-        """
-        Writes the database's user-defined tags to disk.
-        """
-        for filename in self._cache.namespace:
-            self._save_file(filename)
-
-    def _save_metatags(self):
-        """
-        Writes the database's child databases to disk.
-        """
-        db = self.__dict__
-        for metatag in self.metatags:
-            db[metatag].save_database()
-
-    def save_tag(
-        self, tag: str, *, admin: bool = False, drop_cache: bool = False
-    ):
-        """
-        Writes the cached value for a user-specified ``tag`` to the user
-        filesystem.
-        """
-        filename = self.filename(tag)
-        try:
-            self._save_file(filename, admin=admin)
-            if drop_cache and hasattr(self._cache, filename):
-                delattr(self._cache, filename)
-        except AttributeError:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
-
-    def save_database(self):
-        """
-        Writes the database's values to disk with transparent encryption.
-        """
-        if self._root_filename not in self._manifest:
-            raise DatabaseIssue.key_has_been_deleted()
-        self._close_manifest()
-        self._save_metatags()
-        self._save_tags()
-
-    def mirror_database(self, database):
-        """
-        Copies over all of the stored & loaded values, tags & metatags
-        from the ``database`` object passed into this function.
-        """
-        if issubclass(database.__class__, self.__class__):
-            for tag, value in database:
-                self.set_tag(tag, value)
-        else:
-            # Works with async databases, but doesn't load unloaded values
-            for tag in database.tags:
-                self.set_tag(tag, database[tag])
-        for metatag in set(database.metatags):
-            my_metatag = self.metatag(metatag)
-            my_metatag.mirror_database(database.__dict__[metatag])
-
-    def __contains__(self, tag: str):
-        """
-        Checks the cache & manifest for the filename associated with the
-        user-defined ``tag``.
-        """
-        filename = self.filename(tag)
-        return filename in self._manifest or filename in self._cache
-
-    def __bool__(self):
-        """
-        Returns True if the instance dictionary is populated or the
-        manifast is saved to the filesystem.
-        """
-        return bool(self.__dict__)
-
-    def __enter__(self):
-        """
-        The context manager automatically writes database changes made
-        by a user to disk.
-        """
-        return self
-
-    def __exit__(self, exc_type=None, exc_value=None, traceback=None):
-        """
-        The context manager automatically writes database changes made
-        by a user to disk.
-        """
-        self.save_database()
-
-    def __iter__(self):
-        """
-        Provides an interface to the names & values stored in databases.
-        """
-        silent = self._silent
-        for tag in self.tags:
-            yield tag, self.query_tag(tag, silent=silent, cache=False)
-
-    def __getitem__(self, tag: str):
-        """
-        Allows users to retrieve the value stored under the name ``tag``
-        from the database cache.
-        """
-        filename = self.filename(tag)
-        if filename in self._cache:
-            return getattr(self._cache, filename)
-
-    __delitem__ = pop_tag
-    __setitem__ = vars()["set_tag"]
-    __len__ = lambda self: (
-        len(self._manifest) - len(self._maintenance_files)
-    )
 
 
 extras = dict(
-    AsyncDatabase=AsyncDatabase,
+    _StreamHMAC=StreamHMAC,
+    _SyntheticIV=SyntheticIV,
+    AsyncCipherStream=AsyncCipherStream,
+    AsyncDecipherStream=AsyncDecipherStream,
+    ChaCha20Poly1305=ChaCha20Poly1305,
     Chunky2048=Chunky2048,
-    Database=Database,
-    StreamHMAC=StreamHMAC,
-    SyntheticIV=SyntheticIV,
+    CipherStream=CipherStream,
+    DecipherStream=DecipherStream,
     __doc__=__doc__,
-    __main_exports__=__all__,
     __package__=__package__,
-    _abytes_xor=abytes_xor,
-    _akeypair_ratchets=akeypair_ratchets,
-    _asingle_use_key_bundle=asingle_use_key_bundle,
-    _atest_key_salt_aad=atest_key_salt_aad,
-    _bytes_xor=bytes_xor,
-    _keypair_ratchets=keypair_ratchets,
-    _single_use_key_bundle=single_use_key_bundle,
-    _test_key_salt_aad=test_key_salt_aad,
-    abytes_decipher=abytes_decipher,
+    _abytes_decipher=abytes_decipher,
+    _abytes_encipher=abytes_encipher,
+    _aplaintext_stream=aplaintext_stream,
+    _bytes_decipher=bytes_decipher,
+    _bytes_encipher=bytes_encipher,
+    _plaintext_stream=plaintext_stream,
     abytes_decrypt=abytes_decrypt,
-    abytes_encipher=abytes_encipher,
     abytes_encrypt=abytes_encrypt,
     ajson_decrypt=ajson_decrypt,
     ajson_encrypt=ajson_encrypt,
-    bytes_decipher=bytes_decipher,
     bytes_decrypt=bytes_decrypt,
-    bytes_encipher=bytes_encipher,
     bytes_encrypt=bytes_encrypt,
     json_decrypt=json_decrypt,
     json_encrypt=json_encrypt,
 )
 
 
-ciphers = commons.make_module("ciphers", mapping=extras)
+ciphers = make_module("ciphers", mapping=extras)
 
