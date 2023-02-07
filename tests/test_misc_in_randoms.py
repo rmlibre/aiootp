@@ -157,7 +157,7 @@ async def test_guids():
             inner_guid = lambda: (node_number + raw_guid_simulator() + counter)
             _key = lambda: (
                 xsalt ^ ((isalt * inner_guid() + osalt) % prime)
-            ).to_bytes(size, BYTE_ORDER)
+            ).to_bytes(size, BIG)
 
             history = set()
             for j in range(prime):

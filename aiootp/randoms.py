@@ -1114,12 +1114,11 @@ class GUID(SequenceID):
         efficient referencing.
         """
         guid_size = size - self._NODE_NUMBER_BYTES - self._COUNTER_BYTES
-        node_size = self._NODE_NUMBER_BYTES
         offset_npad = self._offset_npad
         node = self._node_number
         _int = int.from_bytes
         inverse = pow(isalt, prime - 2, prime)
-        return guid_size, node_size, offset_npad, node, _int, inverse
+        return guid_size, offset_npad, node, _int, inverse
 
     def _install_obfuscator(self) -> None:
         """
@@ -1137,19 +1136,19 @@ class GUID(SequenceID):
         i, size, gen, prime, subprime = 0, *self._session_configuration
         isalt, osalt, xsalt = self._encode_salt(self._salt, prime, size)
         (
-            guid_size, node_size, offset_npad, node, _int, inverse
+            guid_size, offset_npad, node, _int, inverse
         ) = self._obfuscator_shortcuts(size, prime, isalt)
         inner_guid = lambda: (
             counter()
-            + _int(node + generate_raw_guid(guid_size) + b"\0", BYTE_ORDER)
+            + _int(node + generate_raw_guid(guid_size) + b"\0", BIG)
         )
         self._key = lambda: (
             xsalt ^ ((isalt * inner_guid() + osalt) % prime)
-        ).to_bytes(size, BYTE_ORDER)
+        ).to_bytes(size, BIG)
         self._unmask = lambda guid: (
             offset_npad
-            ^ (inverse * ((xsalt ^ _int(guid, BYTE_ORDER)) - osalt) % prime)
-        ).to_bytes(size, BYTE_ORDER)
+            ^ (inverse * ((xsalt ^ _int(guid, BIG)) - osalt) % prime)
+        ).to_bytes(size, BIG)
 
     async def anew(
         self,
