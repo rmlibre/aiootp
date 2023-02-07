@@ -217,10 +217,10 @@ class Chunky2048KDFs:
         b"chunky2048_shmac_mac_salt", size=SHMAC_BLOCKSIZE
     )
 
-    _new_seed_kdf: callable = SEED_KDF_TYPE(_SEED_KDF_SALT).copy
-    _new_left_kdf: callable = LEFT_KDF_TYPE(_LEFT_KDF_SALT).copy
-    _new_right_kdf: callable = RIGHT_KDF_TYPE(_RIGHT_KDF_SALT).copy
-    _new_shmac_mac: callable = SHMAC_TYPE(_SHMAC_MAC_SALT).copy
+    _new_seed_kdf: callable = shake_128(_SEED_KDF_SALT).copy
+    _new_left_kdf: callable = shake_128(_LEFT_KDF_SALT).copy
+    _new_right_kdf: callable = shake_128(_RIGHT_KDF_SALT).copy
+    _new_shmac_mac: callable = shake_128(_SHMAC_MAC_SALT).copy
 
     _KDF_TYPES = {
         # This offset is intended to reduce the potential control an
@@ -860,7 +860,7 @@ class StreamHMAC:
     _DECRYPTION: str = DECRYPTION
     _ENCRYPTION: str = ENCRYPTION
 
-    _new_block_id_mac: callable = SHAKE_128_TYPE(
+    _new_block_id_mac: callable = shake_128(
         Domains.encode_constant(
             b"chunky2048_shmac_block_id_mac", size=SHAKE_128_BLOCKSIZE
         )

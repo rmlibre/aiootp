@@ -86,7 +86,7 @@ class DBKDF(DomainKDF):
     __slots__ = ("aead_key", "auth_key", "prf_key")
 
     _key_size: int = 296
-    _key_type: SHAKE_256_TYPE = SHAKE_256_TYPE
+    _key_type: callable = shake_256
 
     _AEAD_KEY_SLICE: slice = slice(None, 168)
     _AUTH_KEY_SLICE: slice = slice(168, 232)

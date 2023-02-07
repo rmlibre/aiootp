@@ -97,8 +97,8 @@ class DomainKDF:
     __slots__ = ("_domain", "_key", "_payload")
 
     _key_size: int = 0  # for subclasses which use an XOF for keygen
-    _key_type: t.Callable = sha3_512
-    _type: t.Callable = shake_256
+    _key_type: callable = sha3_512
+    _type: callable = shake_256
 
     _KEY_TYPE_BLOCKSIZE: int = _key_type().block_size
     _TYPE_BLOCKSIZE: int = _type().block_size
@@ -212,7 +212,7 @@ class DomainKDF:
             context,
             self._payload.digest(SHA3_256_BLOCKSIZE),
             key=self._key + context,
-            hasher=SHA3_256_TYPE,
+            hasher=sha3_256,
         )
 
     def sha3_256(self, *, context: bytes = b"") -> bytes:
@@ -224,7 +224,7 @@ class DomainKDF:
             context,
             self._payload.digest(SHA3_256_BLOCKSIZE),
             key=self._key + context,
-            hasher=SHA3_256_TYPE,
+            hasher=sha3_256,
         )
 
     async def asha3_512(self, *, context: bytes = b"") -> bytes:
@@ -236,7 +236,7 @@ class DomainKDF:
             context,
             self._payload.digest(SHA3_512_BLOCKSIZE),
             key=self._key + context,
-            hasher=SHA3_512_TYPE,
+            hasher=sha3_512,
         )
 
     def sha3_512(self, *, context: bytes = b"") -> bytes:
@@ -248,7 +248,7 @@ class DomainKDF:
             context,
             self._payload.digest(SHA3_512_BLOCKSIZE),
             key=self._key + context,
-            hasher=SHA3_512_TYPE,
+            hasher=sha3_512,
         )
 
     async def ashake_128(self, size: int, *, context: bytes = b"") -> bytes:
@@ -261,7 +261,7 @@ class DomainKDF:
             self._payload.digest(SHAKE_128_BLOCKSIZE),
             size=size,
             key=self._key + context,
-            hasher=SHAKE_128_TYPE,
+            hasher=shake_128,
         )
 
     def shake_128(self, size: int, *, context: bytes = b"") -> bytes:
@@ -274,7 +274,7 @@ class DomainKDF:
             self._payload.digest(SHAKE_128_BLOCKSIZE),
             size=size,
             key=self._key + context,
-            hasher=SHAKE_128_TYPE,
+            hasher=shake_128,
         )
 
     async def ashake_256(self, size: int, *, context: bytes = b"") -> bytes:
@@ -287,7 +287,7 @@ class DomainKDF:
             self._payload.digest(SHAKE_256_BLOCKSIZE),
             size=size,
             key=self._key + context,
-            hasher=SHAKE_256_TYPE,
+            hasher=shake_256,
         )
 
     def shake_256(self, size: int, *, context: bytes = b"") -> bytes:
@@ -300,7 +300,7 @@ class DomainKDF:
             self._payload.digest(SHAKE_256_BLOCKSIZE),
             size=size,
             key=self._key + context,
-            hasher=SHAKE_256_TYPE,
+            hasher=shake_256,
         )
 
 
