@@ -99,12 +99,12 @@ def test_sign_and_verify():
         summary = signer.summarize()
 
         # The package verifier successfully verifies a correct summary
-        verifier = PackageVerifier(signer.signing_key.public_bytes, path="..")
+        verifier = PackageVerifier(signer.signing_key.public_bytes, path=test_path)
         verifier.verify_summary(summary)
 
         # Package verifier can also accept an Ed25519 object
         verifier = PackageVerifier(
-            Ed25519().import_public_key(signer.signing_key.public_key), path=".."
+            Ed25519().import_public_key(signer.signing_key.public_key), path=test_path
         )
         verifier.verify_summary(summary)
 
