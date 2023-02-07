@@ -4,12 +4,12 @@
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2022 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
-__all__ = ["_containers", "_exceptions", "_typing", "gentools"]
+__all__ = ["_containers", "_exceptions", "_typing"]
 
 
 __doc__ = (
@@ -19,30 +19,28 @@ __doc__ = (
 )
 
 
-from ._typing import Typing
-from .debuggers import gen_timer, agen_timer
-from .generics import sha3__512, asha3__512
-from .generics import Comprende, comprehension
-from .randoms import random_sleep as _random_sleep
-from .randoms import arandom_sleep as _arandom_sleep
-from .ciphers import generate_salt, agenerate_salt
-from .ciphers import plaintext_stream, aplaintext_stream
-from .ciphers import bytes_encipher, abytes_encipher
-from .ciphers import bytes_decipher, abytes_decipher
 from . import *
 from . import _typing, _containers, _exceptions
-from . import AsyncKeys, Keys
-from . import Ed25519, X25519
-from . import Processes, Threads
-from . import AsyncDatabase, Database
-from . import Namespace, OpenNamespace
-from . import PackageSigner, PackageVerifier
-from . import Domains, DomainKDF, Hasher, Passcrypt
-from . import BytesIO, Padding, KeyAADBundle, StreamHMAC, Chunky2048
+from ._typing import Typing
+from ._debuggers import gen_timer, agen_timer
+from .asynchs import Processes, Threads, AsyncInit
+from .commons import Namespace, OpenNamespace, Slots
+from .commons import make_module
+from .gentools import Comprende, comprehension
+from .generics import Hasher, Domains, BytesIO, Padding
+from .randoms import SequenceID
+from .ciphers import StreamHMAC, SyntheticIV, Chunky2048
+from .ciphers import generate_salt, agenerate_salt
+from .keygens import KeyAADBundle
+from .keygens import Ed25519, X25519, DomainKDF, Passcrypt
+from .keygens import PackageSigner, PackageVerifier
+from .databases import Database, AsyncDatabase
 
 
-@comprehension(chained=True)
-async def adebugger(self: Comprende, *args, **kwargs):
+@comprehension()
+async def adebugger(
+    self: Comprende, *args, **kwargs
+) -> Typing.AsyncGenerator:
     """
     Allows users to benchmark & read inspection details of running async
     generators inline as a chainable method.
@@ -53,8 +51,8 @@ async def adebugger(self: Comprende, *args, **kwargs):
         yield result
 
 
-@comprehension(chained=True)
-def debugger(self: Comprende, *args, **kwargs):
+@comprehension()
+def debugger(self: Comprende, *args, **kwargs) -> Typing.Generator:
     """
     Allows users to benchmark & read inspection details of running sync
     generators inline as a chainable method.
@@ -64,99 +62,7 @@ def debugger(self: Comprende, *args, **kwargs):
     yield from gen_timer(self._func)(*args, **kwargs)
 
 
-@comprehension(chained=True)
-async def apasscrypt(
-    self: Comprende,
-    *,
-    kb: int = Passcrypt._DEFAULT_KB,
-    cpu: int = Passcrypt._DEFAULT_CPU,
-    hardness: int = Passcrypt._DEFAULT_HARDNESS,
-):
-    """
-    Applies the `Passcrypt` algorithm on a pseudo-randomly generated
-    salt & each value that's yielded from the underlying `Comprende`
-    async generator. Each iteration a new salt is produced & is yielded
-    along with the result of the `Passcrypt` operation.
-    """
-    got = None
-    pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
-    while True:
-        salt = await agenerate_salt(size=Passcrypt._SALT_BYTES)
-        got = yield salt, await pcrypt.anew(await self.asend(got), salt)
-
-
-@comprehension(chained=True)
-def passcrypt(
-    self: Comprende,
-    *,
-    kb: int = Passcrypt._DEFAULT_KB,
-    cpu: int = Passcrypt._DEFAULT_CPU,
-    hardness: int = Passcrypt._DEFAULT_HARDNESS,
-):
-    """
-    Applies the `Passcrypt` algorithm on a pseudo-randomly generated
-    salt & each value that's yielded from the underlying `Comprende`
-    sync generator. Each iteration a new salt is produced & is yielded
-    along with the result of the `Passcrypt` operation.
-    """
-    got = None
-    pcrypt = Passcrypt(kb=kb, cpu=cpu, hardness=hardness)
-    try:
-        while True:
-            salt = generate_salt(size=Passcrypt._SALT_BYTES)
-            got = yield salt, pcrypt.new(self.send(got), salt)
-    except StopIteration:
-        pass
-
-
-@comprehension(chained=True)
-async def arandom_sleep(
-    self: Comprende, span: Typing.Union[int, float] = 1
-):
-    """
-    Applies a random sleep before each yielded value from the underlying
-    ``Comprende`` async generator.
-    """
-    got = None
-    asend = self.asend
-    while True:
-        await _arandom_sleep(span)
-        got = yield await asend(got)
-
-
-@comprehension(chained=True)
-def random_sleep(self: Comprende, span: Typing.Union[int, float] = 1):
-    """
-    Applies a random sleep before each yielded value from the underlying
-    ``Comprende`` sync generator.
-    """
-    got = None
-    send = self.send
-    try:
-        while True:
-            _random_sleep(span)
-            got = yield send(got)
-    except StopIteration:
-        pass
-
-
-def insert_bytes_cipher_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = (
-        Chunky2048._bytes_encipher,
-        Chunky2048._bytes_decipher,
-        Chunky2048._abytes_encipher,
-        Chunky2048._abytes_decipher,
-    )
-    for addon in addons:
-        name = addon.__name__[1:]
-        setattr(Comprende, name, addon)
-        Comprende.lazy_generators.add(name)
-
-
-def insert_debuggers():
+def insert_debuggers() -> None:
     """
     Copies the addons over into the ``Comprende`` class.
     """
@@ -166,45 +72,17 @@ def insert_debuggers():
         Comprende.lazy_generators.add(addon.__name__)
 
 
-def insert_gentools_pointers():
-    """
-    Inserts generator function pointers into the gentools namespace.
-    """
-    gentools.aplaintext_stream = aplaintext_stream
-    gentools.plaintext_stream = plaintext_stream
-    gentools.abytes_encipher = abytes_encipher
-    gentools.bytes_encipher = bytes_encipher
-    gentools.abytes_decipher = abytes_decipher
-    gentools.bytes_decipher = bytes_decipher
-
-
-def insert_passcrypt_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = (passcrypt, apasscrypt)
-    for addon in addons:
-        setattr(Comprende, addon.__name__, addon)
-        Comprende.lazy_generators.add(addon.__name__)
-
-
-def insert_random_sleep_methods():
-    """
-    Copies the addons over into the ``Comprende`` class.
-    """
-    addons = (random_sleep, arandom_sleep)
-    for addon in addons:
-        setattr(Comprende, addon.__name__, addon)
-        Comprende.lazy_generators.add(addon.__name__)
-
-
-def insert_types():
+def insert_types() -> None:
     """
     Gives the package's type-hinting helper class access to the higher
     level classes.
     """
+    Typing.AsyncCipherStream = AsyncCipherStream
+    Typing.AsyncDecipherStream = AsyncDecipherStream
+    Typing.AsyncInit = AsyncInit
+    Typing.CipherStream = CipherStream
+    Typing.DecipherStream = DecipherStream
     Typing.AsyncDatabase = AsyncDatabase
-    Typing.AsyncKeys = AsyncKeys
     Typing.BytesIO = BytesIO
     Typing.Chunky2048 = Chunky2048
     Typing.Comprende = Comprende
@@ -212,64 +90,62 @@ def insert_types():
     Typing.DomainKDF = DomainKDF
     Typing.Domains = Domains
     Typing.Ed25519 = Ed25519
+    Typing.GUID = GUID
     Typing.Hasher = Hasher
     Typing.KeyAADBundle = KeyAADBundle
-    Typing.Keys = Keys
     Typing.Namespace = Namespace
     Typing.OpenNamespace = OpenNamespace
     Typing.PackageSigner = PackageSigner
     Typing.PackageVerifier = PackageVerifier
     Typing.Padding = Padding
     Typing.Passcrypt = Passcrypt
+    Typing.PasscryptInstance = Passcrypt().__class__
     Typing.Processes = Processes
+    Typing.SequenceID = SequenceID
+    Typing.Slots = Slots
     Typing.StreamHMAC = StreamHMAC
+    Typing.SyntheticIV = SyntheticIV
     Typing.Threads = Threads
     Typing.X25519 = X25519
 
 
-def overwrite_containers_module():
+def overwrite_containers_module() -> None:
     """
     Overwrites the package's `_containers.py` variable which will then
     be accessible to the user.
     """
     global _containers
 
-    exports = _containers.__main_exports__
     mapping = OpenNamespace(
         **{
-            name: obj
-            for name, obj in _containers.__dict__.items()
-            if name in exports
+            name: getattr(_containers, name) for name in _containers.__all__
         },
-        __all__=_containers.__main_exports__,
+        __all__=_containers.__all__,
         __doc__=_containers.__doc__,
         __package__=_containers.__package__,
     )
-    _containers = commons.make_module("_containers", mapping=mapping)
+    _containers = make_module("_containers", mapping=mapping)
 
 
-def overwrite_exceptions_module():
+def overwrite_exceptions_module() -> None:
     """
     Overwrites the package's `_exceptions.py` variable which will then
     be accessible to the user.
     """
     global _exceptions
 
-    exports = _exceptions.__all__
     mapping = OpenNamespace(
         **{
-            name: obj
-            for name, obj in _exceptions.__dict__.items()
-            if name in exports
+            name: getattr(_exceptions, name) for name in _exceptions.__all__
         },
         __all__=_exceptions.__all__,
         __doc__=_exceptions.__doc__,
         __package__=_exceptions.__package__,
     )
-    _exceptions = commons.make_module("_exceptions", mapping=mapping)
+    _exceptions = make_module("_exceptions", mapping=mapping)
 
 
-def overwrite_typing_module():
+def overwrite_typing_module() -> None:
     """
     Overwrites the package's `_typing.py` variable which will then be
     accessible to the user.
@@ -282,14 +158,10 @@ def overwrite_typing_module():
         __doc__=_typing.__doc__,
         __package__=_typing.__package__,
     )
-    _typing = commons.make_module("_typing", mapping=mapping)
+    _typing = make_module("_typing", mapping=mapping)
 
 
-insert_bytes_cipher_methods()
 insert_debuggers()
-insert_gentools_pointers()
-insert_passcrypt_methods()
-insert_random_sleep_methods()
 insert_types()
 overwrite_containers_module()
 overwrite_exceptions_module()

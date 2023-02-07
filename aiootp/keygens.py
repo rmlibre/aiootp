@@ -783,7 +783,7 @@ class Passcrypt:
         cores: int = _DEFAULT_CORES,
         tag_size: int = _DEFAULT_SCHEMA_TAG_SIZE,
         salt_size: int = _DEFAULT_SCHEMA_SALT_SIZE,
-    ) -> "self":
+    ) -> "PasscryptInstance":
         """
         Stores user-defined settings within an object so that they can
         automatically be passed into mirrored calls to the class'
