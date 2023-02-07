@@ -1,5 +1,5 @@
 {
-    "checksum": "5a34da173f94a0c7ae5624aacaacdd9b6e223bf469d430b58f0eb28463a10b731f36b418751ccdfa6503898a35725b38",
+    "checksum": "36e78f5d904b0264752523ab663e9ec1c224a0d0a41c3b91df6a1400ca0f6e094e9c4c645a519006002321222096538d",
     "checksums": {
         ".gitignore": "c5f44ba6b593c951db72ada8dfe2ac33a565dbb8bca2b57f435e732dc2c8960caf9c19c226aa2767e5412a6202ad730e",
         "CHANGES.rst": "ecff1cf7d294b77ebcdda2fcb27ab4e58406f076f1b5a8e02b0aeecec2b8317020e8b17619a74f3c91f18f0759e3ba85",
@@ -44,8 +44,8 @@
         "tests/test_Comprende.py": "30dfcd4c328869fee207535456cc2ee65cc3dede26326e79ed2198c9b74cd32fba3c4fa4828129baed7508ca1dec3f5d",
         "tests/test_Database_AsyncDatabase.py": "da4d49f56bb8fe4c93da131e571da538a104dc4f9e957bc8103f2f304a6ee15806c570e0f70d7d566bbe01f8339bc3f6",
         "tests/test_PackageSigner.py": "fe22fa93328b0ddce917e9bd569b9fc100af547e4073eef7b97d6b3f95d694675da6828a249f604d5242375608070142",
-        "tests/test_Padding.py": "9f0f171c2a819441d04775e1deb1020fa8cd94d1eb7810bda5cdc28e161cb967ed98652cd147f3087c6da0eceb40f896",
-        "tests/test_SequenceID.py": "99a0413020b27b6d07d446867013d3d98516969b83f899147b6e1e06c5f4593c4a5f1d20c9ac5903bee216cf93790f57",
+        "tests/test_Padding.py": "d8a274c4d630bcd23404bd9ef71e007ceed535029a0dd859c8f8819531b708dbdaab8626d4d182fca71b1766f2e1c825",
+        "tests/test_SequenceID.py": "0c52ce37249b50c304c41511a98a08edec0f676ab7f4f2346bae628a3d112cc5d6a37157ef5afb786d4eb201b9a18ee8",
         "tests/test_StreamHMAC.py": "118787f82a4d53d22b70124cc7f8a8e6d9d948e8fa7082df650413dd3639d414d14a53d0326d69b08e41b749acc24bc0",
         "tests/test_X25519_Ed25519.py": "147f1848b2d1de50b51147bc140d38cd16a7c38104f93788a0fb5f2bc2c25b43b059f4c6280b9180f570aff3e9ff9aa2",
         "tests/test_aiootp.py": "edc7c6c158291298ede6dae890216cf5953c0352ddfb62cc130420959a29e22722947c306faac3f048049cd2203f75c2",
@@ -61,7 +61,7 @@
         "tests/test_misc_in_generics.py": "7cc766ffb328c4e8d122fccb5a268afa834e104d2ba37c7f23ca62dbb27bd95798458b5e24a08dda77c5e5746b01e44f",
         "tests/test_misc_in_gentools.py": "4475a3043bc0137c9fdf901308da5f7655ea53326277e8263076cf8bdf9a7d5bee9873b799951dc2c1c62d92983bf0e2",
         "tests/test_misc_in_keygens.py": "c565d070bd1f5273baa5f5bf0e884d49307a4def96001205ff637b74058e0d8bcf5855f90ece264bd3f823a659e31bfb",
-        "tests/test_misc_in_randoms.py": "b7aa4a4f73a55881bf3b93787cc8aad72abace838b8af5a91544bf4c75a2ef300a7ce102f35fe8b93e1ad45de3a8ceb1",
+        "tests/test_misc_in_randoms.py": "8dcbbbf2fda9a94f9b35cb175d3785ac12ad5f84e1ef3f03b86decc99deb8c74da3ca8e0a93f2e1591d499f81897268b",
         "tests/test_namespace_classes.py": "cd0700f16180b76cb7a01b6e1f89bdff6ab229db86dafc79c78fe6c65d45d0bede5ba1c512a44c04d148fbc2c63a8fc0",
         "tests/test_passcrypt_apasscrypt.py": "501eb2821014950cf58d0bcd6e65341ce4ab93a01d2f4837fef3f451ba36c313f5edc27c006cbd6613284ca97dc1524d",
         "tests/test_randoms.py": "fc62f9f9d8ef3f0861f8f9d7e1812b83e9efb2743676cdcd37763efd5398424defdb1b0c75c1fc4cbc244dc6e5cf8344",
@@ -72,7 +72,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 2,
+        "build_number": 3,
         "date": 19395,
         "description": "aiootp - an asynchronous pseudo one-time pad based crypto and anonymity library.",
         "license": "AGPLv3",
@@ -80,5 +80,5 @@
         "version": "0.22.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "00c8758a9d8e0cc249b7ece96583372fa1233ca0b93cabf0f43aab89b5f93839e78a4d983fd6552e7631ef58ed7d2c6a08a235833cfd3001bb12a12e9b4a0705"
+    "signature": "3e1f11948a38028e1a953077c3a49628a6162f2393bcc3df841ad0ea36713fc077561f39ee7df4f5673d15cf5504c346aa1daff2a5cea0a81446d3dd2550bd09"
 }
