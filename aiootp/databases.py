@@ -222,7 +222,7 @@ class AsyncDatabase(metaclass=AsyncInit):
     async def _agenerate_profile_login_key(
         cls,
         tokens: ProfileTokens,
-        **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+        **passcrypt_settings: t.PasscryptNewSettingsType,
     ) -> bytes:
         """
         Combines the output of the expensive key derivation functions &
@@ -244,7 +244,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         salt: bytes,
         aad: bytes,
         path: PathStr = path,
-        **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+        **passcrypt_settings: t.PasscryptNewSettingsType,
     ) -> ProfileTokens:
         """
         Runs a very expensive key derivation function to build keys
@@ -1302,7 +1302,7 @@ class Database:
     def _generate_profile_login_key(
         cls,
         tokens: ProfileTokens,
-        **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+        **passcrypt_settings: t.PasscryptNewSettingsType,
     ) -> bytes:
         """
         Combines the output of the expensive key derivation functions &
@@ -1324,7 +1324,7 @@ class Database:
         salt: bytes,
         aad: bytes,
         path: PathStr = path,
-        **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+        **passcrypt_settings: t.PasscryptNewSettingsType,
     ) -> ProfileTokens:
         """
         Runs a very expensive key derivation function to build keys

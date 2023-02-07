@@ -356,7 +356,7 @@ async def amnemonic(
     *,
     salt: t.Optional[bytes] = b"",
     words: t.Optional[t.Sequence[t.Any]] = None,
-    **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+    **passcrypt_settings: t.PasscryptKWsNew,
 ) -> t.List[bytes]:
     """
     Creates list of ``size`` number of words for a mnemonic key from a
@@ -390,7 +390,7 @@ def mnemonic(
     *,
     salt: t.Optional[bytes] = b"",
     words: t.Optional[t.Sequence[t.Any]] = None,
-    **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+    **passcrypt_settings: t.PasscryptKWsNew,
 ) -> t.List[bytes]:
     """
     Creates list of ``size`` number of words for a mnemonic key from a
@@ -2681,7 +2681,7 @@ class PackageSigner:
         passphrase: bytes,
         salt: bytes = b"",
         path: t.OptionalPathStr = None,
-        **passcrypt_settings: t.PasscryptMethodKWArgsNew,
+        **passcrypt_settings: t.PasscryptKWsNew,
     ) -> "self":
         """
         Opens an encrypted database connection using the Passcrypt
