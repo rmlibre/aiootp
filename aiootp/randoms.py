@@ -1127,11 +1127,11 @@ class GUID(SequenceID):
         user-defined node number, & a nanosecond-time & random-bytes raw
         guid.
         """
-        def counter() -> int:
+        def counter() -> bytes:
             nonlocal i
 
             i = (i + 1) % 256
-            return i
+            return i.to_bytes(1, BIG)
 
         i, size, gen, prime, subprime = 0, *self._session_configuration
         isalt, osalt, xsalt = self._encode_salt(self._salt, prime, size)
@@ -1139,8 +1139,7 @@ class GUID(SequenceID):
             guid_size, offset_npad, node, _int, inverse
         ) = self._obfuscator_shortcuts(size, prime, isalt)
         inner_guid = lambda: (
-            counter()
-            + _int(node + generate_raw_guid(guid_size) + b"\0", BIG)
+            _int(node + generate_raw_guid(guid_size) + counter(), BIG)
         )
         self._key = lambda: (
             xsalt ^ ((isalt * inner_guid() + osalt) % prime)
