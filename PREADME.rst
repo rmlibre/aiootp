@@ -27,7 +27,7 @@ easy to read, and fun.
 Important Disclaimer
 --------------------
 
-``aiootp`` is experimental software that works with Python 3.6+. 
+``aiootp`` is experimental software that works with Python 3.7+. 
 It's a work in progress. The programming API could change with 
 future updates, and it isn't bug free. ``aiootp`` provides powerful 
 security tools and misc utilities that're designed to be 
