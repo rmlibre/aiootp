@@ -655,7 +655,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 _`Chunky2048 Cipher` .............................. `Table Of Contents`_
 ------------------------------------------------------------------------
 
-The ``Chunky2048`` cipher is the built from generators & SHA3-based key-derivation functions. It's designed to be easy to use, difficult to misuse & future-proof with large security margins. 
+The ``Chunky2048`` cipher is built from generators & SHA3-based key-derivation functions. It's designed to be easy to use, difficult to misuse & future-proof with large security margins. 
 
 
 _`High-level Functions` .......................... `Table Of Contents`_
@@ -1444,11 +1444,6 @@ Here's a quick overview of this package's modules:
     # The higher-level abstractions used to create / manage key material ->
     
     aiootp.keygens
-    
-    
-    # Common system paths & the ``pathlib.Path`` utility ->
-    
-    aiootp.paths
     
     
     # Global async / concurrency functionalities & abstractions ->
