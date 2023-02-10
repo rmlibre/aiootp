@@ -40,5 +40,23 @@ async def test_mnemonic():
     assert mnemonic() != await amnemonic()
 
 
+async def test_DomainKDF():
+    # additional optional data can be added to hashing methods
+    kdf = DomainKDF(b"test", key=key)
+    test_data = (b"input tests", token_bytes(32), token_bytes(32))
+
+    # async and sync methods produce the same outputs given the same inputs
+    assert kdf.sha3_256(*test_data) == await kdf.asha3_256(*test_data)
+    assert kdf.sha3_512(*test_data) == await kdf.asha3_512(*test_data)
+    assert kdf.shake_128(32, *test_data) == await kdf.ashake_128(32, *test_data)
+    assert kdf.shake_256(32, *test_data) == await kdf.ashake_256(32, *test_data)
+
+    # hashing methods produce different outputs given the different inputs
+    assert kdf.sha3_256() != await kdf.asha3_256(*test_data)
+    assert kdf.sha3_512() != await kdf.asha3_512(*test_data)
+    assert kdf.shake_128(32) != await kdf.ashake_128(32, *test_data)
+    assert kdf.shake_256(32) != await kdf.ashake_256(32, *test_data)
+
+
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 
