@@ -203,100 +203,124 @@ class DomainKDF:
         )
         return self
 
-    async def asha3_256(self, *, context: bytes = b"") -> bytes:
+    async def asha3_256(
+        self, *data: t.Iterable[bytes], context: bytes = b""
+    ) -> bytes:
         """
         Return the keyed sha3_256 hash of the instance's state.
         """
         return await ahash_bytes(
             self._domain,
             context,
+            *data,
             self._payload.digest(SHA3_256_BLOCKSIZE),
             key=self._key + context,
             hasher=sha3_256,
         )
 
-    def sha3_256(self, *, context: bytes = b"") -> bytes:
+    def sha3_256(
+        self, *data: t.Iterable[bytes], context: bytes = b""
+    ) -> bytes:
         """
         Return the keyed sha3_256 hash of the instance's state.
         """
         return hash_bytes(
             self._domain,
             context,
+            *data,
             self._payload.digest(SHA3_256_BLOCKSIZE),
             key=self._key + context,
             hasher=sha3_256,
         )
 
-    async def asha3_512(self, *, context: bytes = b"") -> bytes:
+    async def asha3_512(
+        self, *data: t.Iterable[bytes], context: bytes = b""
+    ) -> bytes:
         """
         Return the keyed sha3_512 hash of the instance's state.
         """
         return await ahash_bytes(
             self._domain,
             context,
+            *data,
             self._payload.digest(SHA3_512_BLOCKSIZE),
             key=self._key + context,
             hasher=sha3_512,
         )
 
-    def sha3_512(self, *, context: bytes = b"") -> bytes:
+    def sha3_512(
+        self, *data: t.Iterable[bytes], context: bytes = b""
+    ) -> bytes:
         """
         Return the keyed sha3_512 hash of the instance's state.
         """
         return hash_bytes(
             self._domain,
             context,
+            *data,
             self._payload.digest(SHA3_512_BLOCKSIZE),
             key=self._key + context,
             hasher=sha3_512,
         )
 
-    async def ashake_128(self, size: int, *, context: bytes = b"") -> bytes:
+    async def ashake_128(
+        self, size: int, *data: t.Iterable[bytes], context: bytes = b""
+    ) -> bytes:
         """
         Return the keyed shake_128 hash of the instance's state.
         """
         return await ahash_bytes(
             self._domain,
             context,
+            *data,
             self._payload.digest(SHAKE_128_BLOCKSIZE),
             size=size,
             key=self._key + context,
             hasher=shake_128,
         )
 
-    def shake_128(self, size: int, *, context: bytes = b"") -> bytes:
+    def shake_128(
+        self, size: int, *data: t.Iterable[bytes], context: bytes = b""
+    ) -> bytes:
         """
         Return the keyed shake_128 hash of the instance's state.
         """
         return hash_bytes(
             self._domain,
             context,
+            *data,
             self._payload.digest(SHAKE_128_BLOCKSIZE),
             size=size,
             key=self._key + context,
             hasher=shake_128,
         )
 
-    async def ashake_256(self, size: int, *, context: bytes = b"") -> bytes:
+    async def ashake_256(
+        self, size: int, *data: t.Iterable[bytes], context: bytes = b""
+    ) -> bytes:
         """
         Return the keyed shake_256 hash of the instance's state.
         """
         return await ahash_bytes(
             self._domain,
             context,
+            *data,
             self._payload.digest(SHAKE_256_BLOCKSIZE),
             size=size,
             key=self._key + context,
             hasher=shake_256,
         )
 
-    def shake_256(self, size: int, *, context: bytes = b"") -> bytes:
+    def shake_256(
+        self, size: int, *data: t.Iterable[bytes], context: bytes = b""
+    ) -> bytes:
         """
         Return the keyed shake_256 hash of the instance's state.
         """
         return hash_bytes(
             self._domain,
             context,
+            *data,
             self._payload.digest(SHAKE_256_BLOCKSIZE),
             size=size,
             key=self._key + context,
