@@ -21,7 +21,7 @@ async def test_datastream_limits():
     key_bundle = KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).sync_mode()
 
     # async cipher blocksize limits are respected
-    context = f"A cipher block exceeded {BLOCKSIZE} bytes!"
+    context = f"A cipher block was allowed to exceed {BLOCKSIZE} bytes!"
     async with aignore(OverflowError, if_else=aviolation(context)):
         await ainvalid_size_datastream.areset()
         keystream = abytes_keys.root(akey_bundle)
@@ -30,7 +30,7 @@ async def test_datastream_limits():
             pass
 
     # sync cipher blocksize limits are respected
-    context = f"A cipher block exceeded {BLOCKSIZE} bytes"
+    context = f"A cipher block was allowed to exceed {BLOCKSIZE} bytes!"
     with ignore(OverflowError, if_else=violation(context)):
         invalid_size_datastream.reset()
         keystream = bytes_keys(key_bundle)
@@ -40,10 +40,10 @@ async def test_datastream_limits():
 
 
 def test_keys_limits():
-    context = "A falsey key was not overwritten"
-    with ignore(AssertionError, if_else=violation(context)):
-        key_bundle = KeyAADBundle(key=None)
-        assert not key_bundle.key
+    # A falsey key is overwritten
+    key_bundle = KeyAADBundle(key=None)
+    assert key_bundle.key
+    assert len(key_bundle.key) == 64
 
     context = "Non-bytes key was allowed"
     with ignore(TypeError, if_else=violation(context)):
@@ -69,11 +69,9 @@ async def test_salt_reuse_resistance_given_by_ivs_only():
     # async ciphertexts instantiated with the same key, salt & aad
     kw = dict(key=key, salt=salt, allow_dangerous_determinism=True)
     aciphertexts = set({
-        await aunpack(
-            abytes_encipher(
-                adata.root(unpadded_plaintext),
-                shmac=StreamHMAC(await KeyAADBundle(**kw).async_mode())._for_encryption(),
-            )
+        await abytes_encipher(
+            adata.root(unpadded_plaintext),
+            shmac=StreamHMAC(await KeyAADBundle(**kw).async_mode())._for_encryption(),
         ).asend(None)
         for _ in range(number_of_tests)
     })
@@ -94,11 +92,9 @@ async def test_salt_reuse_resistance_given_by_ivs_only():
     # ciphertexts instantiated with the same key, salt & aad
     kw = dict(key=key, salt=salt, allow_dangerous_determinism=True)
     ciphertexts = set({
-        unpack(
-            bytes_encipher(
-                data.root(unpadded_plaintext),
-                shmac=StreamHMAC(KeyAADBundle(**kw).sync_mode())._for_encryption(),
-            )
+        bytes_encipher(
+            data.root(unpadded_plaintext),
+            shmac=StreamHMAC(KeyAADBundle(**kw).sync_mode())._for_encryption(),
         ).send(None)
         for _ in range(number_of_tests)
     })

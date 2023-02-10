@@ -80,7 +80,7 @@ async def test_canonical_packs():
             digest_size = obj.digest_size
             encoded_key = encode_key(key, obj.block_size, pad=pad)
             packing = canonical_pack(
-                (digest_size if digest_size else 64).to_bytes(8, BYTE_ORDER),
+                (digest_size if digest_size else 64).to_bytes(DEFAULT_INT_BYTES, BYTE_ORDER),
                 *inputs,
                 blocksize=obj.block_size,
                 pad=pad,
@@ -113,6 +113,7 @@ async def test_canonical_packs():
             # the relative location of the default pad declaration is
             # dependent on the size of integers used to represent item
             # lengths
+            assert type(result) is bytes
             assert result[4 * int_bytes] == DEFAULT_PAD[0]
         for blocksize in test_blocksizes:
             result = canonical_pack(*inputs, blocksize=blocksize)
@@ -137,7 +138,7 @@ async def test_canonical_packs():
 
     pad = b"Z"
     items = (b"testing", b"pad", b"character", b"location", b"in", b"result")
-    packing = bytearray(canonical_pack(*items, blocksize=1, pad=pad))
+    packing = bytearray(canonical_pack(*items, pad=pad))
     assert packing[PACK_PAD_INDEX] == pad[0]
 
 
