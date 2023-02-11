@@ -3,6 +3,30 @@ _`Changelog` ...................................... `Table Of Contents`_
 
 
 
+
+Changes for version 0.22.1
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  The top-level ``DomainKDF`` class' hashing methods can now accept an arbitrary amount of additional data arguments which do not change the internal state of its objects.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  The default ``cpu`` cost for ``Passcrypt`` was lowered from 2 to 1.
+-  Ensured raw guid byte values used by ``GUID`` class are interpreted as big-endian integers.
+-  The top-level ``(a)csprng`` functions now don't bother to convert a falsey, non-``bytes``, user-supplied ``entropy`` argument to ``bytes``. Instead they just use a value from an internal entropy pool as additional entropy for that invocation of the function.
+-  Code clean-ups.
+-  Documentation fixes.
+-  Added tests for ``DomainKDF`` & improved clarity of some existing tests.
+
+
+
+
 Changes for version 0.22.0 
 ---------------------------
 
