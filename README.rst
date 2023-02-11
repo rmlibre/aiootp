@@ -27,7 +27,7 @@ easy to read, and fun.
 Important Disclaimer
 --------------------
 
-``aiootp`` is experimental software that works with Python 3.6+. 
+``aiootp`` is experimental software that works with Python 3.7+. 
 It's a work in progress. The programming API could change with 
 future updates, and it isn't bug free. ``aiootp`` provides powerful 
 security tools and misc utilities that're designed to be 
@@ -48,6 +48,10 @@ professionals.
 .. image:: https://img.shields.io/pypi/pyversions/aiootp?color=black
     :target: https://img.shields.io/pypi/pyversions/aiootp?color=black
     :alt: python-versions
+
+.. image:: https://img.shields.io/pypi/wheel/aiootp
+    :target: https://img.shields.io/pypi/wheel/aiootp
+    :alt: python-wheel-availability
 
 .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
     :target: https://img.shields.io/badge/License-AGPL%20v3-red.svg
@@ -651,7 +655,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 _`Chunky2048 Cipher` .............................. `Table Of Contents`_
 ------------------------------------------------------------------------
 
-The ``Chunky2048`` cipher is the built from generators & SHA3-based key-derivation functions. It's designed to be easy to use, difficult to misuse & future-proof with large security margins. 
+The ``Chunky2048`` cipher is built from generators & SHA3-based key-derivation functions. It's designed to be easy to use, difficult to misuse & future-proof with large security margins. 
 
 
 _`High-level Functions` .......................... `Table Of Contents`_
@@ -1442,11 +1446,6 @@ Here's a quick overview of this package's modules:
     aiootp.keygens
     
     
-    # Common system paths & the ``pathlib.Path`` utility ->
-    
-    aiootp.paths
-    
-    
     # Global async / concurrency functionalities & abstractions ->
     
     aiootp.asynchs
@@ -1490,6 +1489,30 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 
 _`Changelog` ...................................... `Table Of Contents`_
 ========================================================================
+
+
+
+
+Changes for version 0.22.1
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+-  The top-level ``DomainKDF`` class' hashing methods can now accept an arbitrary amount of additional data arguments which do not change the internal state of its objects.
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+-  The default ``cpu`` cost for ``Passcrypt`` was lowered from 2 to 1.
+-  Ensured raw guid byte values used by ``GUID`` class are interpreted as big-endian integers.
+-  The top-level ``(a)csprng`` functions now don't bother to convert a falsey, non-``bytes``, user-supplied ``entropy`` argument to ``bytes``. Instead they just use a value from an internal entropy pool as additional entropy for that invocation of the function.
+-  Code clean-ups.
+-  Documentation fixes.
+-  Added tests for ``DomainKDF`` & improved clarity of some existing tests.
+
 
 
 
