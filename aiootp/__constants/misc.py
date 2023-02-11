@@ -55,11 +55,12 @@ PORT = 8081
 TB_PORT = 9150
 TOR_PORT = 9050
 
+_algorithms_available = set(hashlib.algorithms_available)
 HASHER_TYPES = {
     str(name): value
     for name, value
     in hashlib.__dict__.items()
-    if str(name) in hashlib.algorithms_available
+    if str(name) in _algorithms_available
 }
 SHA3_256_BLOCKSIZE = sha3_256().block_size
 SHA3_256_TYPE = type(sha3_256())
