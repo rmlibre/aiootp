@@ -50,13 +50,25 @@ async def dunder_tests(cls, obj):
     assert [getattr(obj, name) for name in obj] == [*obj.values()]
     assert [(name, obj[name]) for name in obj] == [*obj.items()]
     assert all(
-        (name in obj.__repr__(mask=True) and str(obj[name]) not in obj.__repr__(mask=True))
-        for name in obj
-    )
-    assert all(
         (name in obj.__repr__(mask=False) and str(obj[name]) in obj.__repr__(mask=False))
         for name in obj
     )
+    assert all(
+        (name in obj.__repr__(mask=True) and str(obj[name]) not in obj.__repr__(mask=True))
+        for name in obj
+    )
+    # debug mode toggles value viewability on and off
+    if not issubclass(cls, OpenNamespace):
+        DebugControl.enable_debugging()
+        assert all(
+            (name in obj.__repr__() and str(obj[name]) in obj.__repr__())
+            for name in obj
+        )
+        DebugControl.disable_debugging()
+        assert all(
+            (name in obj.__repr__() and str(obj[name]) not in obj.__repr__())
+            for name in obj
+        )
     if hasattr(obj, "__all__"):
         assert [*obj.__dict__] == obj.__all__
         obj._private = True

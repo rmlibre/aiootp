@@ -54,8 +54,8 @@ _globals.update(_original_globals)
 _globals.update(builtins.__dict__)
 
 
-# Uncomment to run tests in debug mode. May cause noticable slowdown.
-# DebugControl.enable_debugging()
+# Use enable_debugging method to run tests in debug mode. May cause noticable slowdown.
+DebugControl.disable_debugging()
 
 
 # acknowledge private variables
