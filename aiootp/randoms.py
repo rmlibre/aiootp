@@ -700,15 +700,13 @@ async def agenerate_raw_guid(
     size: int = GUID_BYTES,
     *,
     clock: Clock = Clock(NANOSECONDS, epoch=EPOCH_NS),
-    encode: bool = False,
+    timestamp_bytes: int = 8,
 ) -> bytes:
     """
-    Returns a raw ``size``-byte globally unique identifier. If ``encode``
-    is set to `True`, then a `base64.urlsafe_b64encode` guid without
-    b"=" characters is returned instead. The first raw 8-bytes are a
-    nanosecond timestamp, & the rest are random bytes. A custom ``clock``
-    can be specified, which produces timestamps from its `amake_timestamp`
-    method.
+    Returns a raw ``size``-byte globally unique identifier. The first
+    8-bytes are a nanosecond timestamp, & the rest are random bytes. A
+    custom ``clock`` can be specified, which produces timestamps from
+    its `amake_timestamp` method.
     --------
     WARNING: DO NOT use if timestamp information, for security or
     -------- anonymity purposes, is supposed to be kept secret from the
@@ -723,26 +721,23 @@ async def agenerate_raw_guid(
     """
     if size < 10 or size > 64:
         raise Issue.invalid_value("guid size", "<10 or >64")
-    timestamp = await clock.amake_timestamp()
-    randomness = await atoken_bytes(size - len(timestamp))
-    if encode:
-        return await BytesIO.abytes_to_urlsafe(timestamp + randomness)
-    return timestamp + randomness
+    return (
+        await clock.amake_timestamp(size=timestamp_bytes)
+        + await atoken_bytes(size - timestamp_bytes)
+    )
 
 
 def generate_raw_guid(
     size: int = GUID_BYTES,
     *,
     clock: Clock = Clock(NANOSECONDS, epoch=EPOCH_NS),
-    encode: bool = False,
+    timestamp_bytes: int = 8,
 ) -> bytes:
     """
-    Returns a raw ``size``-byte globally unique identifier. If ``encode``
-    is set to `True`, then a `base64.urlsafe_b64encode` guid without
-    b"=" characters is returned instead. The first raw 8-bytes are a
-    nanosecond timestamp, & the rest are random bytes. A custom ``clock``
-    can be specified, which produces timestamps from its `make_timestamp`
-    method.
+    Returns a raw ``size``-byte globally unique identifier. The first
+    8-bytes are a nanosecond timestamp, & the rest are random bytes. A
+    custom ``clock`` can be specified, which produces timestamps from
+    its `make_timestamp` method.
     --------
     WARNING: DO NOT use if timestamp information, for security or
     -------- anonymity purposes, is supposed to be kept secret from the
@@ -757,11 +752,10 @@ def generate_raw_guid(
     """
     if size < 10 or size > 64:
         raise Issue.invalid_value("guid size", "<10 or >64")
-    timestamp = clock.make_timestamp()
-    randomness = token_bytes(size - len(timestamp))
-    if encode:
-        return BytesIO.bytes_to_urlsafe(timestamp + randomness)
-    return timestamp + randomness
+    return (
+        clock.make_timestamp(size=timestamp_bytes)
+        + token_bytes(size - timestamp_bytes)
+    )
 
 
 class SequenceID:
@@ -966,12 +960,21 @@ class GUID(SequenceID):
     r"""
     A class for producing pseudo-random identifiers that are guaranteed
     to be unique if all calls occur on a different nanosecond & use the
-    same instance `node_number` & `salt`. Additionally, the above, AND
-    any calls which utilize the same `salt` but a different `node_number`
-    will always produce unique outputs from each other even if they
-    occur on the same nanosecond. The probability of per-nanosecond
-    uniqueness can be increased exponentially with linear increases to
-    the instance `size` parameter.
+    same instance `salt`. Additionally, any calls which utilize the same
+    `salt` but a different `node_number` will always produce unique
+    outputs from each other, even if they occur on the same nanosecond.
+    Also, outputs are guaranteed to be unique for any calls from any
+    unique instance that utilizes the same `salt` & `node_number` if
+    no more than 256 calls are made every nanosecond. The probability of
+    per-nanosecond uniqueness for instances using the same `salt` can be
+    increased exponentially with linear increases to the instance `size`
+    parameter.
+
+    Normal birthday-bound collision probabilities apply when different
+    salts are used between callers.
+
+    All outputs are also invertable. This means outputs can be unmasked
+    & sorted according to `timestamp`, `node_number` & `counter`.
 
     By default only 256 different `node_number`s are supported, as they
     are represented in one byte, but as demonstrated in an example below,
@@ -982,9 +985,6 @@ class GUID(SequenceID):
     expose the guids if the `node_number`, `salt` or the current time in
     nanoseconds must remain secret from the audiences able to view the
     guids.
-
-    Normal birthday-bound collision probabilities apply when different
-    salts are used between callers.
 
      _____________________________________
     |                                     |
@@ -1124,8 +1124,8 @@ class GUID(SequenceID):
         """
         Stores an efficient guid generator function that obfuscates the
         outputs of affine-group operations on the user-defined salt, a
-        user-defined node number, & a nanosecond-time & random-bytes raw
-        guid.
+        user-defined node number, a nanosecond-time & random-bytes raw
+        guid, & a 1-byte counter.
         """
         def counter() -> bytes:
             nonlocal i
@@ -1133,7 +1133,7 @@ class GUID(SequenceID):
             i = (i + 1) % 256
             return i.to_bytes(1, BIG)
 
-        i, size, gen, prime, subprime = 0, *self._session_configuration
+        i, size, _, prime, _ = 0, *self._session_configuration
         isalt, osalt, xsalt = self._encode_salt(self._salt, prime, size)
         (
             guid_size, offset_npad, node, _int, inverse
@@ -1158,23 +1158,24 @@ class GUID(SequenceID):
         r"""
         Produces a raw-bytes pseudo-random identifier that is guaranteed
         to be unique if each call occurs on a different nanosecond & is
-        produced using the same instance `node_number` & `salt`.
+        produced using the same instance `salt`. Additionally, any calls
+        which utilize the same `salt` but a different `node_number` will
+        always produce unique outputs from each other, even if they
+        occur on the same nanosecond. Also, outputs are guaranteed to be
+        unique for all calls from any unique instance that utilizes the
+        same `salt` & `node_number` if no more than 256 calls are made
+        every nanosecond. The probability of per-nanosecond uniqueness
+        for instances using the same `salt` increases exponentially with
+        linear increases to the instance `size` parameter.
 
-        Additionally, the above, AND any calls which utilize the same
-        `salt` but a different `node_number` will always produce unique
-        outputs from each other even if they occur the same nanosecond.
-        The probability of per-nanosecond uniqueness can be increased
-        exponentially with linear increases to the instance's `size`
-        parameter.
+        Normal birthday-bound collision probabilities apply when salts
+        are not the same between callers.
         --------
         WARNING: The produced identifiers are randomized & obfuscated
-        -------- but they are also invertible. The user must beware not
+        -------- but they're also invertible. The user must beware not
         to expose the guids if the `node_number`, `salt` or the current
         time in nanoseconds must remain secret from the audiences able
         to view the guids.
-
-        Normal birthday-bound collision probabilities apply when
-        different salts are used between callers.
 
         If ``encode`` is set to `True`, then the result is first passed
         as an argument to the ``encoder`` async callable before being
@@ -1254,28 +1255,29 @@ class GUID(SequenceID):
         r"""
         Produces a raw-bytes pseudo-random identifier that is guaranteed
         to be unique if each call occurs on a different nanosecond & is
-        produced using the same instance `node_number` & `salt`.
+        produced using the same instance `salt`. Additionally, any calls
+        which utilize the same `salt` but a different `node_number` will
+        always produce unique outputs from each other, even if they
+        occur on the same nanosecond. Also, outputs are guaranteed to be
+        unique for all calls from any unique instance that utilizes the
+        same `salt` & `node_number` if no more than 256 calls are made
+        every nanosecond. The probability of per-nanosecond uniqueness
+        for instances using the same `salt` increases exponentially with
+        linear increases to the instance `size` parameter.
 
-        Additionally, the above, AND any calls which utilize the same
-        `salt` but a different `node_number` will always produce unique
-        outputs from each other even if they occur the same nanosecond.
-        The probability of per-nanosecond uniqueness can be increased
-        exponentially with linear increases to the instance's `size`
-        parameter.
+        Normal birthday-bound collision probabilities apply when salts
+        are not the same between callers.
         --------
         WARNING: The produced identifiers are randomized & obfuscated
-        -------- but they are also invertible. The user must beware not
+        -------- but they're also invertible. The user must beware not
         to expose the guids if the `node_number`, `salt` or the current
         time in nanoseconds must remain secret from the audiences able
         to view the guids.
 
-        Normal birthday-bound collision probabilities apply when
-        different salts are used between callers.
-
         If ``encode`` is set to `True`, then the result is first passed
-        as an argument to the ``encoder`` callable before being returned.
-        By default, the ``encoder`` transforms the raw bytes into a url
-        safe base64 value without b"=" characters.
+        as an argument to the ``encoder`` async callable before being
+        returned. By default, the ``encoder`` transforms the raw bytes
+        into a url safe base64 value without b"=" characters.
 
          _____________________________________
         |                                     |
@@ -1334,10 +1336,11 @@ class GUID(SequenceID):
         """
         Unmasks & optionally, if encoded, decodes, a guid generated by
         an instance which utilized the same instance `salt`, returned in
-        an object where the `node_number`, nanosecond `timestamp`, &
-        ephemeral `entropy` are accessible via dotted attribute lookup.
-        The returned objects are also sortable, which sorts according to
-        the nanosecond timestamp.
+        an object where the `node_number`, nanosecond `timestamp`, 1-
+        byte `counter` & ephemeral `entropy` are accessible via dotted
+        attribute lookup. The returned objects are also sortable, which
+        sorts first according to the nanosecond `timestamp`, then by the
+        instance `node_number`, & finally by the `counter` value.
         """
         if decode:
             guid = await decoder(guid)
@@ -1353,10 +1356,11 @@ class GUID(SequenceID):
         """
         Unmasks & optionally, if encoded, decodes, a guid generated by
         an instance which utilized the same instance `salt`, returned in
-        an object where the `node_number`, nanosecond `timestamp`, &
-        ephemeral `entropy` are accessible via dotted attribute lookup.
-        The returned objects are also sortable, which sorts according to
-        the nanosecond timestamp.
+        an object where the `node_number`, nanosecond `timestamp`, 1-
+        byte `counter` & ephemeral `entropy` are accessible via dotted
+        attribute lookup. The returned objects are also sortable, which
+        sorts first according to the nanosecond `timestamp`, then by the
+        instance `node_number`, & finally by the `counter` value.
         """
         if decode:
             guid = decoder(guid)
@@ -1404,10 +1408,10 @@ async def acsprng(
     Takes in an arbitrary ``entropy`` value from the user to seed then
     return a 64-byte cryptographically secure pseudo-random value.
     """
-    if entropy.__class__ is not bytes:
-        entropy = repr(entropy).encode() + _pool[0]
-    elif not entropy:
+    if not entropy:
         entropy = _pool[0]
+    elif entropy.__class__ is not bytes:
+        entropy = repr(entropy).encode() + _pool[0]
     token = await atoken_bytes(32)
     output = await _entropy.ahash(token, entropy)
     thread_safe_entropy = _entropy.copy()
@@ -1419,10 +1423,10 @@ def csprng(entropy: t.Any = random_number_generator(freshness=1)) -> bytes:
     Takes in an arbitrary ``entropy`` value from the user to seed then
     return a 64-byte cryptographically secure pseudo-random value.
     """
-    if entropy.__class__ is not bytes:
-        entropy = repr(entropy).encode() + _pool[0]
-    elif not entropy:
+    if not entropy:
         entropy = _pool[0]
+    elif entropy.__class__ is not bytes:
+        entropy = repr(entropy).encode() + _pool[0]
     token = token_bytes(32)
     output = _entropy.hash(token, entropy)
     thread_safe_entropy = _entropy.copy()
