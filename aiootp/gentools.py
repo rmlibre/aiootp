@@ -732,9 +732,10 @@ class Comprende(BaseComprende):
         iterator of a range object.
         """
         index = self._unpack_slice(index)
-        for value in index:
-            if value.__class__ is int and value < 0:
-                raise Issue.value_must_be_value("index", "positive int")
+        if not all(
+            (value.__class__ is int) and (value >= 0) for value in index
+        ):
+            raise Issue.value_must_be_value("index", "positive int")
         return iter(range(*index)).__next__
 
     async def _agetitem(self, index: t.Index):
