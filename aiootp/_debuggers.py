@@ -24,7 +24,7 @@ import datetime
 from time import time
 from functools import wraps
 from ._exceptions import *
-from ._typing import Typing
+from ._typing import Typing as t
 from .commons import make_module
 
 
@@ -48,9 +48,9 @@ class DebugControl:
 
     __slots__ = ()
 
-    _DEBUG_MODE = False
+    _DEBUG_MODE: bool = False
 
-    _switches = []
+    _switches: t.List[t.Callable[[bool], t.Any]] = []
 
     @classmethod
     def is_debugging(cls):
@@ -63,15 +63,17 @@ class DebugControl:
         such as cryptographic keys, in object repr's that are omitted by
         default.
         """
-        cls._DEBUG_MODE = True
-        for toggle in cls._switches:
-            toggle()
+        if not cls._DEBUG_MODE:
+            cls._DEBUG_MODE = True
+            for toggle in cls._switches:
+                toggle()
 
     @classmethod
     def disable_debugging(cls):
-        cls._DEBUG_MODE = False
-        for toggle in cls._switches:
-            toggle()
+        if cls._DEBUG_MODE:
+            cls._DEBUG_MODE = False
+            for toggle in cls._switches:
+                toggle()
 
 
 class AsyncDebugTools:
