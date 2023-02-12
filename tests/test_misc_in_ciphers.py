@@ -21,7 +21,7 @@ async def test_datastream_limits():
     key_bundle = KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).sync_mode()
 
     # async cipher blocksize limits are respected
-    context = f"A cipher block was allowed to exceed {BLOCKSIZE} bytes!"
+    context = f"A plaintext block was allowed to exceed {BLOCKSIZE} bytes!"
     async with aignore(OverflowError, if_else=aviolation(context)):
         await ainvalid_size_datastream.areset()
         keystream = abytes_keys.root(akey_bundle)
@@ -30,7 +30,7 @@ async def test_datastream_limits():
             pass
 
     # sync cipher blocksize limits are respected
-    context = f"A cipher block was allowed to exceed {BLOCKSIZE} bytes!"
+    context = f"A plaintext block was allowed to exceed {BLOCKSIZE} bytes!"
     with ignore(OverflowError, if_else=violation(context)):
         invalid_size_datastream.reset()
         keystream = bytes_keys(key_bundle)
