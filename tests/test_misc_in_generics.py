@@ -46,7 +46,7 @@ async def test_canonical_packs():
 
     for inputs in test_inputs:
         # similar inputs do no produce the same output
-        for int_bytes, hasher in zip(test_int_bytes, HASHERS):
+        for int_bytes in test_int_bytes:
             result = canonical_pack(*inputs)
             aresult = await acanonical_pack(*inputs, int_bytes=int_bytes)
             assert result != aresult
@@ -54,10 +54,11 @@ async def test_canonical_packs():
             # but the items are still packed correctly & interoperably
             assert inputs == list(canonical_unpack(aresult, int_bytes=int_bytes))
             assert inputs == list(await acanonical_unpack(result))
-        for blocksize, hasher in zip(test_blocksizes, HASHERS):
+        for blocksize in test_blocksizes:
             result = canonical_pack(*inputs)
             aresult = await acanonical_pack(*inputs, blocksize=blocksize)
             assert result != aresult
+            assert 0 == len(aresult) % blocksize
 
             # but the items are still packed correctly & interoperably
             assert inputs == list(canonical_unpack(aresult))
@@ -119,6 +120,7 @@ async def test_canonical_packs():
             result = canonical_pack(*inputs, blocksize=blocksize)
             aresult = await acanonical_pack(*inputs, blocksize=blocksize)
             assert result == aresult
+            assert 0 == len(result) % blocksize
         for pad in test_pads:
             result = canonical_pack(*inputs, pad=pad)
             aresult = await acanonical_pack(*inputs, pad=pad)
