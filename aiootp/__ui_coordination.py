@@ -21,13 +21,14 @@ __doc__ = (
 
 from . import *
 from . import _typing, _containers, _exceptions
+from ._exceptions import is_exception
 from ._typing import Typing
 from ._debuggers import gen_timer, agen_timer
 from .asynchs import Processes, Threads, AsyncInit
 from .commons import Namespace, OpenNamespace, Slots
 from .commons import make_module
 from .gentools import Comprende, comprehension
-from .generics import Hasher, Domains, BytesIO, Padding
+from .generics import Hasher, Domains, BytesIO, Padding, Clock
 from .randoms import SequenceID
 from .ciphers import StreamHMAC, SyntheticIV, Chunky2048
 from .ciphers import generate_salt, agenerate_salt
@@ -77,36 +78,50 @@ def insert_types() -> None:
     Gives the package's type-hinting helper class access to the higher
     level classes.
     """
-    Typing.AsyncCipherStream = AsyncCipherStream
-    Typing.AsyncDecipherStream = AsyncDecipherStream
-    Typing.AsyncInit = AsyncInit
-    Typing.CipherStream = CipherStream
-    Typing.DecipherStream = DecipherStream
-    Typing.AsyncDatabase = AsyncDatabase
-    Typing.BytesIO = BytesIO
-    Typing.Chunky2048 = Chunky2048
-    Typing.Comprende = Comprende
-    Typing.Database = Database
-    Typing.DomainKDF = DomainKDF
-    Typing.Domains = Domains
-    Typing.Ed25519 = Ed25519
-    Typing.GUID = GUID
-    Typing.Hasher = Hasher
-    Typing.KeyAADBundle = KeyAADBundle
-    Typing.Namespace = Namespace
-    Typing.OpenNamespace = OpenNamespace
-    Typing.PackageSigner = PackageSigner
-    Typing.PackageVerifier = PackageVerifier
-    Typing.Padding = Padding
-    Typing.Passcrypt = Passcrypt
-    Typing.PasscryptInstance = Passcrypt().__class__
-    Typing.Processes = Processes
-    Typing.SequenceID = SequenceID
-    Typing.Slots = Slots
-    Typing.StreamHMAC = StreamHMAC
-    Typing.SyntheticIV = SyntheticIV
-    Typing.Threads = Threads
-    Typing.X25519 = X25519
+    Typing.add_type("AsyncCipherStream", AsyncCipherStream)
+    Typing.add_type("AsyncDecipherStream", AsyncDecipherStream)
+    Typing.add_type("AsyncInit", AsyncInit)
+    Typing.add_type("CipherStream", CipherStream)
+    Typing.add_type("DecipherStream", DecipherStream)
+    Typing.add_type("AsyncDatabase", AsyncDatabase)
+    Typing.add_type("BytesIO", BytesIO)
+    Typing.add_type("Chunky2048", Chunky2048)
+    Typing.add_type("Clock", Clock)
+    Typing.add_type("Comprende", Comprende)
+    Typing.add_type("Database", Database)
+    Typing.add_type("DomainKDF", DomainKDF)
+    Typing.add_type("Domains", Domains)
+    Typing.add_type("Ed25519", Ed25519)
+    Typing.add_type("GUID", GUID)
+    Typing.add_type("Hasher", Hasher)
+    Typing.add_type("KeyAADBundle", KeyAADBundle)
+    Typing.add_type("Slots", Slots)
+    Typing.add_type("Namespace", Namespace)
+    Typing.add_type("OpenNamespace", OpenNamespace)
+    Typing.add_type("PackageSigner", PackageSigner)
+    Typing.add_type("PackageVerifier", PackageVerifier)
+    Typing.add_type("Padding", Padding)
+    Typing.add_type("Passcrypt", Passcrypt)
+    Typing.add_type("PasscryptInstance", Passcrypt().__class__)
+    Typing.add_type(
+        "PasscryptSession", Passcrypt._passcrypt.__annotations__["session"]
+    )
+    Typing.add_type("Processes", Processes)
+    Typing.add_type("SequenceID", SequenceID)
+    Typing.add_type("StreamHMAC", StreamHMAC)
+    Typing.add_type("SyntheticIV", SyntheticIV)
+    Typing.add_type("Threads", Threads)
+    Typing.add_type("X25519", X25519)
+    for name, cls in _containers.__dict__.items():
+        if (
+            hasattr(cls, "mro")
+            and issubclass(cls, Slots)
+            and not hasattr(Typing, name)
+        ):
+            Typing.add_type(name, cls)
+    for name, exc in _exceptions.__dict__.items():
+        if is_exception(exc):
+            Typing.add_type(name, exc)
 
 
 def overwrite_containers_module() -> None:
