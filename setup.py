@@ -106,6 +106,7 @@ setup(
     python_requires=">=3.7",
     tests_require=["pytest>=7.2.0", "pytest-asyncio>=0.20.0"],
     install_requires=["aiofiles>=0.6.0", "cryptography>=3.4.6"],
+    options={"bdist_wheel": {"python_tag": "py3"}},
     classifiers=[
         "Framework :: AsyncIO",
         "Framework :: IPython",
