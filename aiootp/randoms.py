@@ -1139,7 +1139,7 @@ class GUID(SequenceID):
             guid_size, offset_npad, node, _int, inverse
         ) = self._obfuscator_shortcuts(size, prime, isalt)
         inner_guid = lambda: (
-            _int(node + generate_raw_guid(guid_size) + counter(), BIG)
+            _int(generate_raw_guid(guid_size) + node + counter(), BIG)
         )
         self._key = lambda: (
             xsalt ^ ((isalt * inner_guid() + osalt) % prime)
