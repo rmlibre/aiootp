@@ -111,7 +111,7 @@ class Enumerate:
         start: int = 0,
         *,
         encoding: str = "int",
-        a: t.Iterable[t.Any] = (8, "big"),
+        a: t.Iterable[t.Any] = (8, BIG),
         kw: t.Dict[str, t.Any] = {},
     ) -> "self":
         self.a = a
