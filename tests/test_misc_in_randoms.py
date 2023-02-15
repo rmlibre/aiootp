@@ -100,7 +100,7 @@ def test_csprng():
     )
 
 
-async def test_guids():
+async def test_guids_uniqueness():
     assert 16 == len(GUID().new())
     assert 16 == len(await GUID().anew())
 
@@ -174,6 +174,42 @@ async def test_guids():
     GUID._MIN_RAW_SIZE = MIN_RAW_GUID_BYTES
     GUID._MIN_SALT_SIZE = 16
     GUID._COUNTER_BYTES = 1
+
+
+async def test_guid_unmask():
+    for size in range(GUID._MIN_SIZE, GUID._MAX_SIZE + 1):
+        for node_number in range(0, 256, 16):
+            salt = token_bytes(max([size, 16]))
+            guid_gen = GUID(size=size, node_number=node_number)
+            guid = guid_gen.new()
+            encoded_guid = guid_gen.new(encode=True)
+            unmasked_guid = guid_gen.unmask(guid)
+            decoded_unmasked_guid = guid_gen.unmask(encoded_guid, decode=True)
+
+            # sync & async unmasking are the same
+            assert unmasked_guid == await guid_gen.aunmask(guid)
+            assert decoded_unmasked_guid == await guid_gen.aunmask(encoded_guid, decode=True)
+
+            # the counter starts at 1 & increments every call to new
+            assert unmasked_guid.counter == b"\x01"
+            assert decoded_unmasked_guid.counter  == b"\x02"
+
+            # the node number is correctly retrieved by unmasking
+            assert unmasked_guid.node_number == node_number.to_bytes(1, BIG)
+            assert unmasked_guid.node_number == decoded_unmasked_guid.node_number
+
+            # nanosecond timestamps are retrieved correctly & are always
+            # increasing
+            assert ns_clock.make_timestamp() > unmasked_guid.timestamp
+            assert ns_clock.make_timestamp() > decoded_unmasked_guid.timestamp
+
+            # every new guid is always unmasked to a value which is
+            # larger than all previous guids
+            assert guid_gen.unmask(guid_gen.new()) > unmasked_guid
+            assert (
+                guid_gen.unmask(guid_gen.new(encode=True), decode=True)
+                > decoded_unmasked_guid
+            )
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
