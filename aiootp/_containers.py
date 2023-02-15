@@ -265,15 +265,14 @@ class UnmaskedGUID(Slots):
     Efficiently stores the de-obfuscated values used to generate a guid.
     """
 
-    __slots__ = ("node_number", "timestamp", "entropy", "counter")
+    __slots__ = ("timestamp", "entropy", "node_number", "counter")
 
     def __init__(self, guid: bytes, node_number_bytes: int) -> "self":
         read = BytesIO(guid).read
-        self.node_number = read(node_number_bytes)
         self.timestamp = read(SAFE_TIMESTAMP_BYTES)
-        tail = read()
-        self.entropy = tail[:-1]
-        self.counter = tail[-1:]
+        self.entropy = read(len(guid) - SAFE_TIMESTAMP_BYTES - node_number_bytes - 1)
+        self.node_number = read(node_number_bytes)
+        self.counter = read()
 
     def __repr__(self) -> str:
         """
@@ -295,7 +294,9 @@ class UnmaskedGUID(Slots):
 
     @property
     def sort_key(self) -> bytes:
-        return self.timestamp + self.node_number + self.counter
+        return (
+            self.timestamp + self.node_number + self.counter + self.entropy
+        )
 
 
 class PasscryptResources(Slots):
