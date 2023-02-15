@@ -565,7 +565,7 @@ class KeyAADBundle:
     def _primer_key(self) -> bytes:
         """
         Returns the private primer key used by the `SyntheticIV` class
-        to mask the timestamp & IV-key prepended to plaintexts during
+        to mask the timestamp & SIV-key prepended to plaintexts during
         the message padding phase.
         """
         return self.__keys.primer_key
@@ -1453,7 +1453,7 @@ class SyntheticIV:
         """
         Extracts the inner-header prepended to the first block of
         plaintext containing the 4-byte timestamp of the message & the
-        random 16-byte IV-key. Then enciphers the first block with the
+        random 16-byte SIV-key. Then enciphers the first block with the
         first 256-byte key produced by the cipher's keystream.
 
         This inner-header is used as a seed to randomize the keystream
@@ -1476,7 +1476,7 @@ class SyntheticIV:
         Deciphers the first block of ciphertext with the first 256-byte
         key produced by the cipher's keystream. This reveals the inner-
         header containing the 4-byte timestamp of the message & the
-        random 16-byte IV-key.
+        random 16-byte SIV-key.
 
         This inner-header is used to randomize the keystream & improve
         the cipher's salt reuse / misuse security. The remainder of the
