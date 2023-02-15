@@ -8,18 +8,18 @@
 aiootp - Asynchronous pseudo one-time pad based crypto and anonymity library.
 =============================================================================
 
-``aiootp`` is an asynchronous library providing access to cryptographic 
-primatives and abstractions, transparently encrypted / decrypted file 
-I/O and databases, as well as powerful, pythonic utilities that 
-simplify data processing & cryptographic procedures in python code. 
-This library's online, salt reuse / misuse resistant, tweakable AEAD cipher, called 
-``Chunky2048``, is an implementation of the **pseudo one-time pad**. The 
-aim is to create a simple, standard, efficient implementation that's 
-indistinguishable from the unbreakable one-time pad cipher; to give 
-users and applications access to user-friendly cryptographic tools; and, 
-to increase the overall security, privacy, and anonymity on the web, and 
-in the digital world. Users will find ``aiootp`` to be easy to write, 
-easy to read, and fun. 
+``aiootp`` is an asynchronous library providing access to cryptographic
+primatives and abstractions, transparently encrypted / decrypted file
+I/O and databases, as well as powerful, pythonic utilities that
+simplify data processing & cryptographic procedures in python code.
+This library's online, salt reuse / misuse resistant, tweakable AEAD cipher, called
+``Chunky2048``, is an implementation of the **pseudo one-time pad**. The
+aim is to create a simple, standard, efficient implementation that's
+indistinguishable from the unbreakable one-time pad cipher; to give
+users and applications access to user-friendly cryptographic tools; and,
+to increase the overall security, privacy, and anonymity on the web, and
+in the digital world. Users will find ``aiootp`` to be easy to write,
+easy to read, and fun.
 
 
 
@@ -27,15 +27,15 @@ easy to read, and fun.
 Important Disclaimer
 --------------------
 
-``aiootp`` is experimental software that works with Python 3.7+. 
-It's a work in progress. The programming API could change with 
-future updates, and it isn't bug free. ``aiootp`` provides powerful 
-security tools and misc utilities that're designed to be 
-developer-friendly and privacy preserving. 
-As a security tool, ``aiootp`` needs to be tested and reviewed 
-extensively by the programming and cryptography communities to 
-ensure its implementations are sound. We provide no guarantees. 
-This software hasn't yet been audited by third-party security 
+``aiootp`` is experimental software that works with Python 3.7+.
+It's a work in progress. The programming API could change with
+future updates, and it isn't bug free. ``aiootp`` provides powerful
+security tools and misc utilities that're designed to be
+developer-friendly and privacy preserving.
+As a security tool, ``aiootp`` needs to be tested and reviewed
+extensively by the programming and cryptography communities to
+ensure its implementations are sound. We provide no guarantees.
+This software hasn't yet been audited by third-party security
 professionals.
 
 
@@ -49,10 +49,6 @@ professionals.
     :target: https://img.shields.io/pypi/pyversions/aiootp?color=black
     :alt: python-versions
 
-.. image:: https://img.shields.io/pypi/wheel/aiootp
-    :target: https://img.shields.io/pypi/wheel/aiootp
-    :alt: python-wheel-availability
-
 .. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
     :target: https://img.shields.io/badge/License-AGPL%20v3-red.svg
     :alt: license
@@ -60,6 +56,10 @@ professionals.
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://img.shields.io/badge/code%20style-black-000000.svg
     :alt: code-style
+
+.. image:: https://img.shields.io/pypi/wheel/aiootp
+    :target: https://img.shields.io/pypi/wheel/aiootp
+    :alt: python-wheel-availability
 
 .. image:: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
     :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
@@ -106,30 +106,30 @@ _`Table Of Contents`
 - `Transparently Encrypted Databases`_
 
   a) `Ideal Initialization`_
-  
+
   b) `User Profiles`_
-  
+
   c) `Tags`_
-  
+
   d) `Metatags`_
-  
+
   e) `Basic Management`_
-  
+
   f) `Mirrors`_
-  
+
   g) `Public Cryptographic Functions`_
 
      I. `Encrypt / Decrypt`_
-     
+
      II. `HMACs`_
-     
+
 
 - `Chunky2048 Cipher`_
-  
+
   a) `High-level Functions`_
-  
+
   b) `High-level Generators`_
-  
+
 
 - `Passcrypt`_
 
@@ -139,27 +139,27 @@ _`Table Of Contents`
 
 
 - `X25519 & Ed25519`_
-  
+
   a) `X25519`_
-  
+
   b) `Ed25519`_
-  
+
 
 - `Comprende`_
-  
+
   a) `Synchronous Generators`_
-  
+
   b) `Asynchronous Generators`_
-  
+
 
 - `Module Overview`_
-  
+
 
 - `FAQ`_
-  
+
 
 - `Changelog`_
-  
+
 
 - `Known Issues`_
 
@@ -180,12 +180,12 @@ Make a new user key with a fast, cryptographically secure pseudo-random number g
 .. code-block:: python
 
     from aiootp import acsprng, AsyncDatabase
-    
-    
+
+
     key = await acsprng()
 
     db = await AsyncDatabase(key)
-    
+
 
 _`User Profiles` .................................. `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -194,20 +194,20 @@ With User Profiles, passphrases may be used instead to open a database. Often, p
 
 .. code-block:: python
 
-    # Automatically convert any available user credentials into 
+    # Automatically convert any available user credentials into
 
     # cryptographic tokens which help to safely open databases ->
 
     db = await AsyncDatabase.agenerate_profile(
-    
+
         b"server-url.com",     # Here an unlimited number of bytes-type
                                # arguments can be passed as additional
         b"address@email.net",  # optional credentials.
-        
+
         username=b"username",
-        
+
         passphrase=b"passphrase",
-        
+
         salt=b"optional salt keyword argument",
                   # Optional passcrypt configuration:
         mb=256,   # The memory cost in Mibibytes (MiB)
@@ -215,7 +215,7 @@ With User Profiles, passphrases may be used instead to open a database. Often, p
         cpu=2,    # The computational complexity & number of iterations
 
         cores=8,  # How many parallel processes passcrypt will utilize
-        
+
     )
 
 
@@ -227,22 +227,22 @@ Data within databases are primarily organized by Tags. Tags are simply string la
 .. code-block:: python
 
     async with db:
-    
+
         # Using bracketed assignment adds tags to the cache
-    
+
         db["tag"] = {"data": "can be any JSON serializable object"}
-        
+
         db["hobby"] = b"fash smasher"
-        
+
         db["bitcoin"] = "0bb6eee10d2f8f45f8a"
-        
+
         db["lawyer"] = {"#": "555-555-1000", "$": 13000.50}
-        
+
         db["safehouses"] = ["Dublin Forgery", "NY Insurrection"]
-        
+
         # Changes in the cache are saved to disk when the context closes.
-        
-        
+
+
     # View an instance's tags ->
 
     db.tags
@@ -250,7 +250,7 @@ Data within databases are primarily organized by Tags. Tags are simply string la
 
 
     # View the filenames that locate the data for each tag ->
-    
+
     db.filenames
     >>> {'0z0l10btu_yd-n4quc8tsj9baqu8xmrxz87ix',
      '197ulmqmxg15lebm26zaahpqnabwr8sprojuh',
@@ -275,11 +275,11 @@ Data within databases are primarily organized by Tags. Tags are simply string la
     >>> False
 
     await db.asave_tag("new_tag")
-    
+
     tag_path.is_file()  # now it's saved to disk
     >>> True
-    
-    
+
+
     # This removes the tag from cache, & any of its unsaved changes ->
 
     await db.arollback_tag("new_tag")
@@ -312,39 +312,39 @@ Metatags are used to organize data by string names & domain separate cryptograph
 
 
     # They can contain their own sets of tags (and metatags) ->
-    
+
     molly["hobbies"] = ["skipping", "punching"]
-    
+
     molly["hobbies"].append("reading")
 
 
     # The returned metatag & the reference in the parent are the same ->
 
     assert molly["hobbies"] is db.molly["hobbies"]
-    
+
     assert isinstance(molly, AsyncDatabase)
-    
+
 
     # All of an instance's metatags are viewable ->
 
     db.metatags
     >>> {'molly'}
-    
+
 
     # Delete a metatag from an instance ->
 
     await db.adelete_metatag("molly")
-    
+
     db.metatags
     >>> set()
-    
+
     assert not hasattr(db, "molly")
 
 
 _`Basic Management` ............................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-There's a few settings & public methods on databases for users to manage their instances & data. This includes general utilities for saving & deleting databases to & from the filesystem, as well as fine-grained controls for how data is handled. 
+There's a few settings & public methods on databases for users to manage their instances & data. This includes general utilities for saving & deleting databases to & from the filesystem, as well as fine-grained controls for how data is handled.
 
 .. code-block:: python
 
@@ -356,25 +356,25 @@ There's a few settings & public methods on databases for users to manage their i
 
     db.path
     >>> PosixPath('site-packages/aiootp/aiootp/databases')
-    
-    
+
+
     # Write database changes to disk with transparent encryption ->
-    
+
     await db.asave_database()
 
 
     # Entering the instance's context also saves data to disk ->
 
     async with db:
-    
+
         print("Saving to disk...")
-    
+
 
     # Delete a database from the filesystem ->
-    
+
     await db.adelete_database()
-    
-    
+
+
 As databases grow in the number of tags, metatags & the size of data within, it becomes desireable to load data from them as needed, instead of all at once into the cache during initialization. This is why the ``preload`` boolean keyword-only argument is set to ``False`` by default.
 
 .. code-block:: python
@@ -384,120 +384,120 @@ As databases grow in the number of tags, metatags & the size of data within, it 
     async with (await AsyncDatabase(key, preload=True)) as db:
 
         db["favorite_foods"] = ["justice", "community"]
-    
-        await db.ametatag("exercise_routines") 
+
+        await db.ametatag("exercise_routines")
 
         db.exercise_routines["gardening"] = {"days": ["moday", "wednesday"]}
-        
+
         db.exercise_routines["swimming"] = {"days": ["thursday", "saturday"]}
-        
+
 
     # Again, preloading into the cache is toggled off by default ->
 
     uncached_db = await AsyncDatabase(key)
-    
-    
-    # To retrieve elements, ``aquery_tag`` isn't necessary when 
+
+
+    # To retrieve elements, ``aquery_tag`` isn't necessary when
 
     # preloading is used, since the tag is already in the cache ->
 
     async with uncached_db:
-    
+
         db["favorite_foods"]
         >>> ["justice", "community"]
-    
+
         uncached_db["favorite_foods"]
         >>> None
-    
+
         value = await uncached_db.aquery_tag("favorite_foods", cache=True)
-    
+
         assert value == ["justice", "community"]
-    
+
         assert uncached_db["favorite_foods"] == ["justice", "community"]
-    
-    
+
+
         # Metatags will be loaded, but their tags won't be ->
-    
+
         assert type(uncached_db.exercise_routines) == AsyncDatabase
-        
+
         uncached_db.exercise_routines["gardening"]
         >>> None
-        
+
         await uncached_db.exercise_routines.aquery_tag("gardening", cache=True)
         >>> {"days": ["moday", "wednesday"]}
-        
+
         uncached_db.exercise_routines["gardening"]
         >>> {"days": ["moday", "wednesday"]}
-        
-        
-        # But, tags can also be queried without caching their values, 
-        
+
+
+        # But, tags can also be queried without caching their values,
+
         value = await uncached_db.exercise_routines.aquery_tag("swimming")
-        
+
         value
         >>> {"days": ["thursday", "saturday"]}
-        
+
         uncached_db.exercise_routines["swimming"]
         >>> None
-        
-        
+
+
         # However, changes to mutable values won't be transmitted to the
-        
+
         # database if they aren't retrieved from the cache ->
-        
+
         value["days"].append("sunday")
-        
+
         value
         >>> {"days": ["thursday", "saturday", "sunday"]}
-        
+
         await uncached_db.exercise_routines.aquery_tag("swimming")
         >>> {"days": ["thursday", "saturday"]}
-    
-    
+
+
 _`Mirrors` ........................................ `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    
-Database mirrors allow users to make copies of all files within a database under new encryption keys. This is useful if users simply want to make backups, or if they'd like to update / change their database keys. 
-    
+
+Database mirrors allow users to make copies of all files within a database under new encryption keys. This is useful if users simply want to make backups, or if they'd like to update / change their database keys.
+
 .. code-block:: python
-    
-    # A unique login key / credentials are needed to create a new 
-    
+
+    # A unique login key / credentials are needed to create a new
+
     # database ->
-    
+
     new_key = await acsprng()
-    
+
     new_db = await AsyncDatabase(new_key)
-    
-    
+
+
     # Mirroring an existing database is done like this ->
-    
+
     await new_db.amirror_database(db)
-    
+
     assert (
-    
-        await new_db.aquery_tag("favorite_foods") 
-        
+
+        await new_db.aquery_tag("favorite_foods")
+
         is await db.aquery_tag("favorite_foods")
-        
+
     )
-    
-    
+
+
     # If the user is just updating their database keys, then the old
-    
+
     # database should be deleted ->
-    
+
     await db.adelete_database()
-    
-    
-    # Now, the new database can be saved to disk & given an appropriate 
-    
+
+
+    # Now, the new database can be saved to disk & given an appropriate
+
     # name ->
-    
+
     async with new_db as db:
-    
+
         pass
-    
+
 
 _`Public Cryptographic Functions` ................. `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -513,15 +513,15 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
     # Either JSON serializable or bytes-type data can be encrypted ->
 
     json_plaintext = {"some": "JSON data can go here..."}
-    
+
     bytes_plaintext = b"some bytes plaintext goes here..."
-    
+
     token_plaintext = b"some token data goes here..."
 
     json_ciphertext = await db.ajson_encrypt(json_plaintext)
 
     bytes_ciphertext = await db.abytes_encrypt(bytes_plaintext)
-    
+
     token_ciphertext = await db.amake_token(token_plaintext)
 
 
@@ -530,11 +530,11 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
     assert json_plaintext == await db.ajson_decrypt(json_ciphertext)
 
     assert bytes_plaintext == await db.abytes_decrypt(bytes_ciphertext)
-    
+
     assert token_plaintext == await db.aread_token(token_ciphertext)
 
 
-    # Filenames may be added to classify ciphertexts. They also alter the 
+    # Filenames may be added to classify ciphertexts. They also alter the
 
     # key material used during encryption in such a way, that without the
 
@@ -547,13 +547,13 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
     ciphertext = await db.ajson_encrypt(groceries, filename=filename)
 
     assert groceries == await db.ajson_decrypt(ciphertext, filename=filename)
-    
+
     await db.ajson_decrypt(ciphertext, filename="wrong filename")
     >>> "InvalidSHMAC: Invalid StreamHMAC hash for the given ciphertext."
 
 
 
-    # Time-based expiration of ciphertexts is also available for all 
+    # Time-based expiration of ciphertexts is also available for all
 
     # encrypted data this package produces ->
 
@@ -576,8 +576,8 @@ _`Encrypt / Decrypt` .............................. `Table Of Contents`_
 
     # which case, this is how to retrieve that integer value ->
 
-    try: 
-    
+    try:
+
         await db.abytes_decrypt(bytes_ciphertext, ttl=1)
 
     except db.TimestampExpired as error:
@@ -607,16 +607,16 @@ Besides encryption & decryption, databases can also be used to manually verify t
 
     await db.atest_hmac(hmac, altered_data)
     >>> "InvalidHMAC: Invalid HMAC hash for the given data."
-    
 
-    # Any number of bytes-type arguments can be run thorugh the function, 
+
+    # Any number of bytes-type arguments can be run thorugh the function,
 
     # the collection of items is canonically encoded automagically ->
 
     arbitrary_data = (b"uid_\x0f\x12", b"session_id_\xa1")
 
     hmac = await db.amake_hmac(*arbitrary_data)
-    
+
     await db.atest_hmac(hmac, *arbitrary_data)  # Runs without incident
 
 
@@ -629,7 +629,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
     timestamp = int(time()).to_bytes(8, "big")
 
     hmac = await db.amake_hmac(*arbitrary_data, aad=timestamp)
-    
+
     await db.atest_hmac(hmac, *arbitrary_data)
     >>> "InvalidHMAC: Invalid HMAC hash for the given data."
 
@@ -645,8 +645,8 @@ Besides encryption & decryption, databases can also be used to manually verify t
     uuid = await db.amake_hmac(user_name, aad=b"uuid")
 
     hmac = await db.amake_hmac(user_data, aad=b"data-authentication")
-    
-    
+
+
     #
 
 
@@ -655,7 +655,7 @@ Besides encryption & decryption, databases can also be used to manually verify t
 _`Chunky2048 Cipher` .............................. `Table Of Contents`_
 ------------------------------------------------------------------------
 
-The ``Chunky2048`` cipher is built from generators & SHA3-based key-derivation functions. It's designed to be easy to use, difficult to misuse & future-proof with large security margins. 
+The ``Chunky2048`` cipher is built from generators & SHA3-based key-derivation functions. It's designed to be easy to use, difficult to misuse & future-proof with large security margins.
 
 
 _`High-level Functions` .......................... `Table Of Contents`_
@@ -666,53 +666,53 @@ These premade recipes allow for the easiest usage of the cipher.
 .. code-block:: python
 
     import aiootp
-    
-    
+
+
     cipher = aiootp.Chunky2048(key)
-    
-    
+
+
     # Symmetric encryption of JSON data ->
-    
+
     json_data = {"account": 33817, "names": ["queen b"], "id": None}
-    
+
     encrypted_json_data = cipher.json_encrypt(json_data, aad=b"demo")
-    
+
     decrypted_json_data = cipher.json_decrypt(
-    
+
         encrypted_json_data, aad=b"demo", ttl=120
-        
+
     )
-    
+
     assert decrypted_json_data == json_data
-    
-    
+
+
     # Symmetric encryption of binary data ->
-    
+
     binary_data = b"some plaintext data..."
-    
+
     encrypted_binary_data = cipher.bytes_encrypt(binary_data, aad=b"demo")
-    
+
     decrypted_binary_data = cipher.bytes_decrypt(
-    
+
         encrypted_binary_data, aad=b"demo", ttl=30
-        
+
     )
-    
+
     assert decrypted_binary_data == binary_data
-    
-    
+
+
     # encrypted URL-safe Base64 encoded tokens ->
-    
+
     token_data = b"some plaintext token data..."
-    
+
     encrypted_token_data = cipher.make_token(token_data, aad=b"demo")
-    
+
     decrypted_token_data = cipher.read_token(
-    
+
         encrypted_token_data, aad=b"demo", ttl=3600
-        
+
     )
-    
+
     assert decrypted_token_data == token_data
 
 
@@ -724,10 +724,10 @@ With these generators, the online nature of the Chunky2048 cipher can be utilize
 Encryption:
 
 .. code-block:: python
-    
+
     from aiootp import AsyncCipherStream
-    
-    
+
+
     # Let's imagine we are serving some data over a network ->
 
     receiver = SomeRemoteConnection(session).connect()
@@ -761,9 +761,9 @@ Encryption:
             receiver.send_packet(block_id + ciphertext)
 
 
-    # Once done with buffering-in the plaintext, the ``afinalize`` 
+    # Once done with buffering-in the plaintext, the ``afinalize``
 
-    # method is called so the remaining encrypted data will be 
+    # method is called so the remaining encrypted data will be
 
     # flushed out of the buffer to the user ->
 
@@ -772,7 +772,7 @@ Encryption:
         receiver.send_packet(block_id + ciphertext)
 
 
-    # Here we can give an optional check of further authenticity, 
+    # Here we can give an optional check of further authenticity,
 
     # also cryptographically asserts the stream is finished ->
 
@@ -782,10 +782,10 @@ Encryption:
 Decryption / Authentication:
 
 .. code-block:: python
-    
+
     from aiootp import AsyncDecipherStream
 
-    
+
     # Here let's imagine we'll be downloading some data ->
 
     source = SomeRemoteConnection(session).connect()
@@ -809,7 +809,7 @@ Decryption / Authentication:
 
         # out-of-order block is detected within the last 4 packets ->
 
-        await stream.abuffer(ciphertext) 
+        await stream.abuffer(ciphertext)
 
 
         # If authentication succeeds, the plaintext is produced ->
@@ -855,7 +855,7 @@ _`Hashing & Verifying Passphrases` .......................... `Table Of Contents
 By far, the dominating measure of difficulty for ``Passcrypt`` is determined by the ``mb`` Mibibyte memory cost. It's recommended that increases to desired difficulty are first translated into higher ``mb`` values, where resource limitations of the machines executing the algorithm permit. If more difficulty is desired than can be obtained by increasing ``mb``, then increases to the ``cpu`` parameter should be used. The higher this parameter is the less likely an adversary is to benefit from expending less than the intended memory cost, & increases the execution time & complexity of the algorithm. The final option that should be considered, if still more difficulty is desired, is to lower the ``cores`` parallelization parameter, which will just cause each execution to take longer to complete.
 
 .. code-block:: python
-    
+
     from aiootp import Passcrypt, hash_bytes
 
 
@@ -876,7 +876,7 @@ By far, the dominating measure of difficulty for ``Passcrypt`` is determined by 
 
     # when preparing to hash passphrases, it's a good idea to use any &
 
-    # all of the static data / credentials available which are specific 
+    # all of the static data / credentials available which are specific
 
     # to the context of the registration ->
 
@@ -887,7 +887,7 @@ By far, the dominating measure of difficulty for ``Passcrypt`` is determined by 
     STATIC_CONTEXT = [APPLICATION, PRODUCT, PUBLIC_CERTIFICATE]
 
 
-    # If the same difficulty settings are going to be used for every 
+    # If the same difficulty settings are going to be used for every
 
     # hash, then a ``Passcrypt`` instance can be initialized to
 
@@ -946,7 +946,7 @@ By far, the dominating measure of difficulty for ``Passcrypt`` is determined by 
 
     except pcrypt.InvalidPassphrase as auth_fail:
 
-        # If the passphrase does not hash to the same value as the 
+        # If the passphrase does not hash to the same value as the
 
         # stored hash, then this exception is raised & can be handled
 
@@ -979,7 +979,7 @@ By far, the dominating measure of difficulty for ``Passcrypt`` is determined by 
         app.login_user(username, email_address)
 
 
-    # 
+    #
 
 
 _`Passcrypt Algorithm Overview` .......................... `Table Of Contents`_
@@ -1091,45 +1091,45 @@ Elliptic curve 25519 diffie-hellman exchange protocols.
         key=raw_shared_secret,
 
     )
-    
-    
+
+
     # Triple ECDH Key Exchange client initialization ->
-    
+
     with ecdhe_key.dh3_client() as exchange:
-    
+
         response = internet.post(exchange())
-        
+
         exchange(response)
-        
+
     clients_kdf = exchange.result()
 
 
     # Triple ECDH Key Exchange for a receiving peer ->
-    
+
     identity_key, ephemeral_key = client_public_keys = internet.receive()
-    
+
     server = ecdhe_key.dh3_server(identity_key, ephemeral_key)
-    
+
     with server as exchange:
-    
+
         internet.post(exchange.exhaust())
-        
+
     servers_kdf = exchange.result()
-    
+
 
     # Success! Now both the client & server peers share an identical
-    
+
     # ``DomainKDF`` hashing object to create shared keys ->
 
     assert (
 
-        clients_kdf.sha3_512(context=b"test") 
+        clients_kdf.sha3_512(context=b"test")
 
         == servers_kdf.sha3_512(context=b"test")
 
     )
-    
-    
+
+
 _`Ed25519` ........................................ `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1138,23 +1138,23 @@ Edwards curve 25519 signing & verification.
 .. code-block:: python
 
     from aiootp import Ed25519
-    
-    
+
+
     # In a land, long ago ->
-    
+
     alices_key = Ed25519().generate()
-    
+
     internet.send(alices_key.public_bytes)
-    
+
 
     # Alice wants to sign a document so that Bob can prove she wrote it.
-    
+
     # So, Alice sends the public key bytes of the key she wants to
-    
+
     # associate with her identity, the document & the signature ->
-    
+
     document = b"DesignDocument.cad"
-    
+
     signed_document = alices_key.sign(document)
 
     message = {
@@ -1164,33 +1164,33 @@ Edwards curve 25519 signing & verification.
     }
 
     internet.send(message)
-    
+
 
     # In a land far away ->
-    
+
     alices_message = internet.receive()
 
     # Bob sees the message from Alice! Bob already knows Alice's public
-    
+
     # key & she has reason believe it is genuinely Alice's. So, she'll
-    
+
     # import Alice's known public key to verify the signed document ->
-    
+
     assert alices_message["public_key"] == alices_public_key
-    
+
     alice_verifier = Ed25519().import_public_key(alices_public_key)
-    
+
     alice_verifier.verify(
         alices_message["signature"], alices_message["document"]
     )
-    
+
     internet.send(b"Beautiful work, Alice! Thanks ^u^")
 
 The verification didn't throw an exception! So, Bob knows the file was signed by Alice.
-    
-    
-    
-    
+
+
+
+
 _`Comprende` ...................................... `Table Of Contents`_
 ------------------------------------------------------------------------
 
@@ -1203,78 +1203,78 @@ _`Synchronous Generators` ......................... `Table Of Contents`_
 .. code-block:: python
 
     from aiootp.gentools import comprehension
-    
-    
+
+
     @comprehension()
-    
+
     def gen(x: int, y: int):
-    
+
         z = yield x + y
-        
+
         return x * y * z
-    
-    
+
+
     # Drive the generator forward with a context manager ->
-    
+
     with gen(x=1, y=2) as example:
-    
+
         z = 5
-        
-        
+
+
         # Calling the object will send ``None`` into the coroutine by default ->
-        
+
         sum_of_x_y = example()
-        
+
         assert sum_of_x_y == 3
 
 
-        # Passing ``z`` will send it into the coroutine, cause it to reach the 
-        
+        # Passing ``z`` will send it into the coroutine, cause it to reach the
+
         # return statement & exit the context manager ->
-        
+
         example(z)
-    
-    
+
+
     # The result returned from the generator is now available ->
-    
+
     product_of_x_y_z = example.result()
-    
+
     assert product_of_x_y_z == 10
-    
-    
+
+
     # Here's another example ->
-    
+
     @comprehension()
-    
+
     def one_byte_numbers():
-    
+
         for number in range(256):
-        
+
             yield number
-    
-    
+
+
     # Chained ``Comprende`` generators are excellent inline data processors ->
-    
+
     base64_data = one_byte_numbers().int_to_bytes(1).to_base64().list()
-    
+
     # This converted each number to bytes then base64 encoded them into a list.
 
 
     # We can wrap other iterables to add functionality to them ->
 
     @comprehension()
-    
+
     def unpack(iterable):
-    
+
         for item in iterable:
-    
+
             yield item
 
 
     # This example just hashes each output then yields them
 
     for digest in unpack(base64_data).sha3_256():
-        
+
         print(digest)
 
 
@@ -1291,56 +1291,56 @@ Async ``Comprende`` coroutines have almost exactly the same interface as synchro
 
 
     @comprehension()
-    
+
     async def gen(x: int, y: int):
-    
+
         # Because having a return statement in an async generator is a
-        
+
         # SyntaxError, the return value is expected to be passed into
-        
-        # Comprende.ReturnValue, and then raised to propagate upstream. 
+
+        # Comprende.ReturnValue, and then raised to propagate upstream.
 
         # It's then available from the instance's ``aresult`` method ->
-        
+
         z = yield x + y
-        
+
         raise Comprende.ReturnValue(x * y * z)
-        
-        
+
+
     # Drive the generator forward.
-    
+
     async with gen(x=1, y=2) as example:
-    
+
         z = 5
-        
-        
+
+
         # Awaiting the ``__call__`` method will send ``None`` into the
 
         # coroutine by default ->
-        
+
         sum_of_x_y = await example()
-        
+
         assert sum_of_x_y == 3
 
 
         # Passing ``z`` will send it into the coroutine, cause it to reach the
-        
+
         # raise statement which will exit the context manager gracefully ->
-        
+
         await example(z)
-    
-    
+
+
     # The result returned from the generator is now available ->
-    
+
     product_of_x_y_z = await example.aresult()
-    
+
     assert product_of_x_y_z == 10
-    
-    
+
+
     # Let's see some other ways async generators mirror synchronous ones ->
-    
+
     @comprehension()
-    
+
     async def one_byte_numbers():
 
         # It's probably a good idea to pass control to the event loop at
@@ -1349,52 +1349,52 @@ Async ``Comprende`` coroutines have almost exactly the same interface as synchro
 
         # may be excessive when no real work is being demanded by range(256).
 
-        # This consideration is more or less significant depending on the 
+        # This consideration is more or less significant depending on the
 
         # expectations placed on this generator by the calling code.
 
         await asleep()
-    
+
         for number in range(256):
-        
+
             yield number
 
         await asleep()
-    
-    
+
+
     # This is asynchronous data processing ->
-    
+
     base64_data = await one_byte_numbers().aint_to_bytes(1).ato_base64().alist()
-    
+
     # This converted each number to bytes then base64 encoded them into a list.
 
 
     # We can wrap other iterables to add asynchronous functionality to them ->
 
     @comprehension()
-    
+
     async def unpack(iterable):
-    
+
         for item in iterable:
-    
+
             yield item
 
 
     # Want only the first twenty results? ->
 
     async for digest in unpack(base64_data).asha3_256()[:20]:
-    
+
         # Then you can slice the generator.
-        
+
         print(digest)
-        
-        
+
+
     # Users can slice generators to receive more complex output rules, like:
-    
+
     # Getting every second result starting from the 4th result to the 50th ->
-    
+
     async for result in unpack(base64_data)[3:50:2]:
-    
+
         print(result)
 
 
@@ -1414,43 +1414,43 @@ Here's a quick overview of this package's modules:
 .. code-block:: python
 
     import aiootp
-    
-    
+
+
     # Commonly used constants, datasets & functionality across all modules ->
-    
+
     aiootp.commons
-    
-    
+
+
     # The basic utilities & abstractions of the package's architecture ->
-    
+
     aiootp.generics
-    
-    
+
+
     # A collection of the package's generator utilities ->
-    
+
     aiootp.gentools
-    
-    
+
+
     # This module is responsible for providing entropy to the package ->
-    
+
     aiootp.randoms
-    
-    
+
+
     # The high & low level abstractions used to implement the Chunky2048 cipher ->
-    
+
     aiootp.ciphers
-    
-    
+
+
     # The higher-level abstractions used to create / manage key material ->
-    
+
     aiootp.keygens
-    
-    
+
+
     # Global async / concurrency functionalities & abstractions ->
-    
+
     aiootp.asynchs
-    
-    
+
+
     #
 
 
@@ -1501,6 +1501,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 -  The top-level ``DomainKDF`` class' hashing methods can now accept an arbitrary amount of additional data arguments which do not change the internal state of its objects.
+-  Switch the order of the internal raw guids with the ``node_number`` in the ``GUID`` class. This is intended to induce the most variability possible in output guids by interpreting the variable raw guids as more significant bits.
 
 
 Minor Changes
@@ -1511,7 +1512,10 @@ Minor Changes
 -  The top-level ``(a)csprng`` functions now don't bother to convert a falsey, non-``bytes``, user-supplied ``entropy`` argument to ``bytes``. Instead they just use a value from an internal entropy pool as additional entropy for that invocation of the function.
 -  Code clean-ups.
 -  Documentation fixes.
--  Added tests for ``DomainKDF`` & improved clarity of some existing tests.
+-  Added tests for ``DomainKDF``, ``GUID`` & ``SyntheticIV``, & improved clarity of some existing tests.
+-  Packaging changes to create coherent wheel files.
+-  Explicitly declare use of big-endian encoding throughout the package.
+-  Conduct a more comprehensive addition of the package's types to the ``Typing`` class.
 
 
 
