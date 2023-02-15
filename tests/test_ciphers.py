@@ -12,6 +12,7 @@
 from test_initialization import *
 from test_high_level_encryption import *
 from test_StreamHMAC import *
+from test_SyntheticIV import *
 from test_misc_in_ciphers import *
 
 
