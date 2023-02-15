@@ -68,6 +68,7 @@ include tests/test_Padding.py
 include tests/test_passcrypt_apasscrypt.py
 include tests/test_SequenceID.py
 include tests/test_StreamHMAC.py
+include tests/test_SyntheticIV.py
 include tests/test_time_to_live.py
 include tests/test_X25519_Ed25519.py
 
