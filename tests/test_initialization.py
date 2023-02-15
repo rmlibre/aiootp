@@ -246,6 +246,7 @@ aexpired_passcrypt_hash = run(Passcrypt.ahash_passphrase(passphrase_0, mb=1, cor
 expired_passcrypt_hash = Passcrypt.hash_passphrase(passphrase_0, mb=1, cores=1)
 
 clock = Clock(SECONDS)
+ns_clock = Clock(NANOSECONDS)
 time_start = clock.make_timestamp()
 
 
