@@ -33,7 +33,7 @@ from .randoms import SequenceID
 from .ciphers import StreamHMAC, SyntheticIV, Chunky2048
 from .ciphers import generate_salt, agenerate_salt
 from .keygens import KeyAADBundle
-from .keygens import Ed25519, X25519, DomainKDF, Passcrypt
+from .keygens import Ed25519, X25519, DomainKDF, Passcrypt, PasscryptSession
 from .keygens import PackageSigner, PackageVerifier
 from .databases import Database, AsyncDatabase
 
@@ -103,9 +103,7 @@ def insert_types() -> None:
     Typing.add_type("Padding", Padding)
     Typing.add_type("Passcrypt", Passcrypt)
     Typing.add_type("PasscryptInstance", Passcrypt().__class__)
-    Typing.add_type(
-        "PasscryptSession", Passcrypt._passcrypt.__annotations__["session"]
-    )
+    Typing.add_type("PasscryptSession", PasscryptSession)
     Typing.add_type("Processes", Processes)
     Typing.add_type("SequenceID", SequenceID)
     Typing.add_type("StreamHMAC", StreamHMAC)
