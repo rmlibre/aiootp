@@ -1101,7 +1101,7 @@ class GUID(SequenceID):
             raise Issue.value_must(
                 "size", f"be at least {min_size} to fit the node number"
             )
-        self._offset_npad = self._NPAD << (8 * size - 8 * node_bytes)
+        self._offset_npad = self._NPAD << 8
         self._node_number = int_as_bytes(
             node_number ^ self._NPAD, size=node_bytes
         )
