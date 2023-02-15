@@ -12,6 +12,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 -  The top-level ``DomainKDF`` class' hashing methods can now accept an arbitrary amount of additional data arguments which do not change the internal state of its objects.
+-  Switch the order of the internal raw guids with the ``node_number`` in the ``GUID`` class. This is intended to induce the most variability possible in output guids by interpreting the variable raw guids as more significant bits.
 
 
 Minor Changes
@@ -22,7 +23,10 @@ Minor Changes
 -  The top-level ``(a)csprng`` functions now don't bother to convert a falsey, non-``bytes``, user-supplied ``entropy`` argument to ``bytes``. Instead they just use a value from an internal entropy pool as additional entropy for that invocation of the function.
 -  Code clean-ups.
 -  Documentation fixes.
--  Added tests for ``DomainKDF`` & improved clarity of some existing tests.
+-  Added tests for ``DomainKDF``, ``GUID`` & ``SyntheticIV``, & improved clarity of some existing tests.
+-  Packaging changes to create coherent wheel files.
+-  Explicitly declare use of big-endian encoding throughout the package.
+-  Conduct a more comprehensive addition of the package's types to the ``Typing`` class.
 
 
 
