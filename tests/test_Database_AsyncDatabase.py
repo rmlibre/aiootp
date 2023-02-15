@@ -431,18 +431,18 @@ class TestHMACMethods:
             database.test_hmac(tag, str(inputs))
 
         # sync hmac tags fail when inputs are altered
-        iinputs = int.from_bytes(inputs, BYTE_ORDER)
+        iinputs = int.from_bytes(inputs, BIG)
         context = "Data value alteration not caught!"
         for bit in range(iinputs.bit_length()):
             with ignore(database.InvalidHMAC, if_else=violation(context)):
-                database.test_hmac(tag, (iinputs ^ (1 << bit)).to_bytes(32, BYTE_ORDER))
+                database.test_hmac(tag, (iinputs ^ (1 << bit)).to_bytes(32, BIG))
 
         # sync hmac tags fail when they are altered
-        itag = int.from_bytes(tag, BYTE_ORDER)
+        itag = int.from_bytes(tag, BIG)
         context = "Tag alteration not caught!"
         for bit in range(itag.bit_length()):
             with ignore(database.InvalidHMAC, if_else=violation(context)):
-                altered_tag = (itag ^ (1 << bit)).to_bytes(32, BYTE_ORDER)
+                altered_tag = (itag ^ (1 << bit)).to_bytes(32, BIG)
                 database.test_hmac(altered_tag, inputs)
 
     async def test_async_hmac_methods_are_sound(self, async_database):
@@ -461,18 +461,18 @@ class TestHMACMethods:
             await async_database.atest_hmac(atag, str(ainputs))
 
         # async hmac tags fail when inputs are altered
-        aiinputs = int.from_bytes(ainputs, BYTE_ORDER)
+        aiinputs = int.from_bytes(ainputs, BIG)
         context = "Async data value alteration not caught!"
         for bit in range(aiinputs.bit_length()):
             async with aignore(async_database.InvalidHMAC, if_else=aviolation(context)):
-                await async_database.atest_hmac(atag, (aiinputs ^ (1 << bit)).to_bytes(32, BYTE_ORDER))
+                await async_database.atest_hmac(atag, (aiinputs ^ (1 << bit)).to_bytes(32, BIG))
 
         # async hmac tags fail when they are altered
-        aitag = int.from_bytes(atag, BYTE_ORDER)
+        aitag = int.from_bytes(atag, BIG)
         context = "Async tag alteration not caught!"
         for abit in range(aitag.bit_length()):
             async with aignore(async_database.InvalidHMAC, if_else=aviolation(context)):
-                altered_tag = (aitag ^ (1 << abit)).to_bytes(32, BYTE_ORDER)
+                altered_tag = (aitag ^ (1 << abit)).to_bytes(32, BIG)
                 await async_database.atest_hmac(altered_tag, ainputs)
 
 

@@ -1021,9 +1021,9 @@ class StreamHMAC:
         """
         try:
             ciphertext_block = (
-                _from_bytes(plaintext_block, BYTE_ORDER)
-                ^ _from_bytes(key_chunk, BYTE_ORDER)
-            ).to_bytes(BLOCKSIZE, BYTE_ORDER)
+                _from_bytes(plaintext_block, BIG)
+                ^ _from_bytes(key_chunk, BIG)
+            ).to_bytes(BLOCKSIZE, BIG)
             await self._aupdate(ciphertext_block)
             return ciphertext_block
         except OverflowError:
@@ -1046,9 +1046,9 @@ class StreamHMAC:
         """
         try:
             ciphertext_block = (
-                _from_bytes(plaintext_block, BYTE_ORDER)
-                ^ _from_bytes(key_chunk, BYTE_ORDER)
-            ).to_bytes(BLOCKSIZE, BYTE_ORDER)
+                _from_bytes(plaintext_block, BIG)
+                ^ _from_bytes(key_chunk, BIG)
+            ).to_bytes(BLOCKSIZE, BIG)
             self._update(ciphertext_block)
             return ciphertext_block
         except OverflowError:
@@ -1072,9 +1072,9 @@ class StreamHMAC:
         try:
             await self._aupdate(ciphertext_block)
             return (
-                _from_bytes(ciphertext_block, BYTE_ORDER)
-                ^ _from_bytes(key_chunk, BYTE_ORDER)
-            ).to_bytes(BLOCKSIZE, BYTE_ORDER)
+                _from_bytes(ciphertext_block, BIG)
+                ^ _from_bytes(key_chunk, BIG)
+            ).to_bytes(BLOCKSIZE, BIG)
         except OverflowError:
             raise Issue.exceeded_blocksize(BLOCKSIZE)
 
@@ -1096,9 +1096,9 @@ class StreamHMAC:
         try:
             self._update(ciphertext_block)
             return (
-                _from_bytes(ciphertext_block, BYTE_ORDER)
-                ^ _from_bytes(key_chunk, BYTE_ORDER)
-            ).to_bytes(BLOCKSIZE, BYTE_ORDER)
+                _from_bytes(ciphertext_block, BIG)
+                ^ _from_bytes(key_chunk, BIG)
+            ).to_bytes(BLOCKSIZE, BIG)
         except OverflowError:
             raise Issue.exceeded_blocksize(BLOCKSIZE)
 
@@ -1159,10 +1159,10 @@ class StreamHMAC:
         mac = self._new_block_id_mac()
         payload = (
             self._get_block_id_mac(),
-            size.to_bytes(1, BYTE_ORDER),
-            len(aad).to_bytes(8, BYTE_ORDER),
+            size.to_bytes(1, BIG),
+            len(aad).to_bytes(8, BIG),
             aad,
-            len(next_block).to_bytes(8, BYTE_ORDER),
+            len(next_block).to_bytes(8, BIG),
             next_block,
         )
         mac.update(_join(payload))
@@ -1199,10 +1199,10 @@ class StreamHMAC:
         mac = self._new_block_id_mac()
         payload = (
             self._get_block_id_mac(),
-            size.to_bytes(1, BYTE_ORDER),
-            len(aad).to_bytes(8, BYTE_ORDER),
+            size.to_bytes(1, BIG),
+            len(aad).to_bytes(8, BIG),
             aad,
-            len(next_block).to_bytes(8, BYTE_ORDER),
+            len(next_block).to_bytes(8, BIG),
             next_block,
         )
         mac.update(_join(payload))

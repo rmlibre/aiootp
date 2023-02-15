@@ -1388,7 +1388,7 @@ class Comprende(BaseComprende):
         except StopIteration:
             pass
 
-    async def aint_to_ascii(self, byte_order: str = BYTE_ORDER):
+    async def aint_to_ascii(self, byte_order: str = BIG):
         """
         Applies a ``binascii`` int-to-ascii conversion to each value
         that's yielded from the underlying Comprende async generator
@@ -1404,7 +1404,7 @@ class Comprende(BaseComprende):
         except StopAsyncIteration:
             pass
 
-    def int_to_ascii(self, byte_order: str = BYTE_ORDER):
+    def int_to_ascii(self, byte_order: str = BIG):
         """
         Applies a ``binascii`` int-to-ascii conversion to each value
         that's yielded from the underlying Comprende sync generator
@@ -1430,7 +1430,7 @@ class Comprende(BaseComprende):
         try:
             while True:
                 item = (await self(got)).encode()
-                got = yield int.from_bytes(item, BYTE_ORDER)
+                got = yield int.from_bytes(item, BIG)
         except StopAsyncIteration:
             pass
 
@@ -1443,7 +1443,7 @@ class Comprende(BaseComprende):
         got = None
         try:
             while True:
-                got = yield int.from_bytes(self(got).encode(), BYTE_ORDER)
+                got = yield int.from_bytes(self(got).encode(), BIG)
         except StopIteration:
             pass
 
@@ -1473,7 +1473,7 @@ class Comprende(BaseComprende):
         except StopIteration:
             pass
 
-    async def abytes_to_int(self, byte_order: str = BYTE_ORDER):
+    async def abytes_to_int(self, byte_order: str = BIG):
         """
         Applies ``int.from_bytes(result, byte_order)`` to each value
         that's yielded from the underlying Comprende async generator
@@ -1486,7 +1486,7 @@ class Comprende(BaseComprende):
         except StopAsyncIteration:
             pass
 
-    def bytes_to_int(self, byte_order: str = BYTE_ORDER):
+    def bytes_to_int(self, byte_order: str = BIG):
         """
         Applies ``int.from_bytes(result, byte_order)`` to each value
         that's yielded from the underlying Comprende sync generator
@@ -1500,7 +1500,7 @@ class Comprende(BaseComprende):
             pass
 
     async def aint_to_bytes(
-        self, size: int = 8, byte_order: str = BYTE_ORDER
+        self, size: int = 8, byte_order: str = BIG
     ):
         """
         Applies ``int.to_bytes(result, size, byte_order)`` to each
@@ -1514,7 +1514,7 @@ class Comprende(BaseComprende):
         except StopAsyncIteration:
             pass
 
-    def int_to_bytes(self, size: int = 8, byte_order: str = BYTE_ORDER):
+    def int_to_bytes(self, size: int = 8, byte_order: str = BIG):
         """
         Applies ``int.to_bytes(result, size, byte_order)`` to each
         value that's yielded from the underlying Comprende sync
@@ -2222,7 +2222,7 @@ def cycle(iterable: t.Iterable[t.Any]):
 
 @comprehension()
 async def abytes_count(
-    start: int = 0, *, size: int = 8, byte_order: str = BYTE_ORDER
+    start: int = 0, *, size: int = 8, byte_order: str = BIG
 ):
     """
     Unendingly yields incrementing numbers starting from ``start``.
@@ -2236,7 +2236,7 @@ async def abytes_count(
 
 @comprehension()
 def bytes_count(
-    start: int = 0, *, size: int = 8, byte_order: str = BYTE_ORDER
+    start: int = 0, *, size: int = 8, byte_order: str = BIG
 ):
     """
     Unendingly yields incrementing numbers starting from ``start``.
@@ -2271,7 +2271,7 @@ def count(start: int = 0):
 
 
 @comprehension()
-async def abytes_range(*a, size: int = 8, byte_order: str = BYTE_ORDER):
+async def abytes_range(*a, size: int = 8, byte_order: str = BIG):
     """
     An async version of ``builtins.range`` wrapped by the ``Comprende``
     class, & returns its values as bytes instead.
@@ -2282,7 +2282,7 @@ async def abytes_range(*a, size: int = 8, byte_order: str = BYTE_ORDER):
 
 
 @comprehension()
-def bytes_range(*a, size: int = 8, byte_order: str = BYTE_ORDER):
+def bytes_range(*a, size: int = 8, byte_order: str = BIG):
     """
     A synchronous version of ``builtins.range`` which is wrapped by the
     ``Comprende`` class, & returns its values as bytes instead.

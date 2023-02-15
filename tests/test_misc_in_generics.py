@@ -81,7 +81,7 @@ async def test_canonical_packs():
             digest_size = obj.digest_size
             encoded_key = encode_key(key, obj.block_size, pad=pad)
             packing = canonical_pack(
-                (digest_size if digest_size else 64).to_bytes(DEFAULT_INT_BYTES, BYTE_ORDER),
+                (digest_size if digest_size else 64).to_bytes(DEFAULT_INT_BYTES, BIG),
                 *inputs,
                 blocksize=obj.block_size,
                 pad=pad,

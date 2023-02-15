@@ -133,10 +133,10 @@ async def test_metadata_hashes():
     # test vector #0
     assert passcrypt_test_vector_0.hash_passphrase_result == (
         passcrypt_test_vector_0.timestamp
-        + (passcrypt_test_vector_0.mb - 1).to_bytes(MB_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_0.cpu - 1).to_bytes(CPU_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_0.cores - 1).to_bytes(CORES_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_0.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_0.mb - 1).to_bytes(MB_BYTES, BIG)
+        + (passcrypt_test_vector_0.cpu - 1).to_bytes(CPU_BYTES, BIG)
+        + (passcrypt_test_vector_0.cores - 1).to_bytes(CORES_BYTES, BIG)
+        + (passcrypt_test_vector_0.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BIG)
         + passcrypt_test_vector_0.salt
         + passcrypt_test_vector_0.tag
     )
@@ -157,10 +157,10 @@ async def test_metadata_hashes():
     # test vector #1
     assert passcrypt_test_vector_1.hash_passphrase_result == (
         passcrypt_test_vector_1.timestamp
-        + (passcrypt_test_vector_1.mb - 1).to_bytes(MB_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_1.cpu - 1).to_bytes(CPU_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_1.cores - 1).to_bytes(CORES_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_1.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_1.mb - 1).to_bytes(MB_BYTES, BIG)
+        + (passcrypt_test_vector_1.cpu - 1).to_bytes(CPU_BYTES, BIG)
+        + (passcrypt_test_vector_1.cores - 1).to_bytes(CORES_BYTES, BIG)
+        + (passcrypt_test_vector_1.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BIG)
         + passcrypt_test_vector_1.salt
         + passcrypt_test_vector_1.tag
     )
@@ -182,10 +182,10 @@ async def test_metadata_hashes():
     # test vector #2
     assert passcrypt_test_vector_2.hash_passphrase_result == (
         passcrypt_test_vector_2.timestamp
-        + (passcrypt_test_vector_2.mb - 1).to_bytes(MB_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_2.cpu - 1).to_bytes(CPU_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_2.cores - 1).to_bytes(CORES_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_2.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_2.mb - 1).to_bytes(MB_BYTES, BIG)
+        + (passcrypt_test_vector_2.cpu - 1).to_bytes(CPU_BYTES, BIG)
+        + (passcrypt_test_vector_2.cores - 1).to_bytes(CORES_BYTES, BIG)
+        + (passcrypt_test_vector_2.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BIG)
         + passcrypt_test_vector_2.salt
         + passcrypt_test_vector_2.tag
     )
@@ -207,10 +207,10 @@ async def test_metadata_hashes():
     # test vector #3
     assert passcrypt_test_vector_3.hash_passphrase_result == (
         passcrypt_test_vector_3.timestamp
-        + (passcrypt_test_vector_3.mb - 1).to_bytes(MB_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_3.cpu - 1).to_bytes(CPU_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_3.cores - 1).to_bytes(CORES_BYTES, BYTE_ORDER)
-        + (passcrypt_test_vector_3.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BYTE_ORDER)
+        + (passcrypt_test_vector_3.mb - 1).to_bytes(MB_BYTES, BIG)
+        + (passcrypt_test_vector_3.cpu - 1).to_bytes(CPU_BYTES, BIG)
+        + (passcrypt_test_vector_3.cores - 1).to_bytes(CORES_BYTES, BIG)
+        + (passcrypt_test_vector_3.salt_size - 1).to_bytes(SALT_SIZE_BYTES, BIG)
         + passcrypt_test_vector_3.salt
         + passcrypt_test_vector_3.tag
     )

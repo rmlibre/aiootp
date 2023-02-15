@@ -281,7 +281,7 @@ class UnmaskedGUID(Slots):
         return super().__repr__(mask=False)
 
     def __hash__(self) -> int:
-        return int.from_bytes(b"".join(self.values()), BYTE_ORDER)
+        return int.from_bytes(b"".join(self.values()), BIG)
 
     def __eq__(self, other: "cls") -> bool:
         return self.sort_key == other.sort_key
@@ -404,10 +404,10 @@ class PasscryptHash(Slots):
         read = BytesIO(passcrypt_hash).read
 
         self.timestamp = read(self.TIMESTAMP_BYTES)
-        self.mb = to_int(read(self.MB_BYTES), BYTE_ORDER) + 1
-        self.cpu = to_int(read(self.CPU_BYTES), BYTE_ORDER) + 1
-        self.cores = to_int(read(self.CORES_BYTES), BYTE_ORDER) + 1
-        salt_size = to_int(read(self.SALT_SIZE_BYTES), BYTE_ORDER) + 1
+        self.mb = to_int(read(self.MB_BYTES), BIG) + 1
+        self.cpu = to_int(read(self.CPU_BYTES), BIG) + 1
+        self.cores = to_int(read(self.CORES_BYTES), BIG) + 1
+        salt_size = to_int(read(self.SALT_SIZE_BYTES), BIG) + 1
         self.salt = read(salt_size)
         self.tag = read()
         if not all(self.values()):
@@ -422,10 +422,10 @@ class PasscryptHash(Slots):
         """
         passcrypt_hash = (
             self.timestamp,
-            (self.mb - 1).to_bytes(self.MB_BYTES, BYTE_ORDER),
-            (self.cpu - 1).to_bytes(self.CPU_BYTES, BYTE_ORDER),
-            (self.cores - 1).to_bytes(self.CORES_BYTES, BYTE_ORDER),
-            (self.salt_size - 1).to_bytes(self.SALT_SIZE_BYTES, BYTE_ORDER),
+            (self.mb - 1).to_bytes(self.MB_BYTES, BIG),
+            (self.cpu - 1).to_bytes(self.CPU_BYTES, BIG),
+            (self.cores - 1).to_bytes(self.CORES_BYTES, BIG),
+            (self.salt_size - 1).to_bytes(self.SALT_SIZE_BYTES, BIG),
             self.salt,
             self.tag,
         )

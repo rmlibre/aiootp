@@ -313,8 +313,8 @@ unique_range = random.randrange
 
 _mod = PRIMES[256][-1]
 _offset = token_bits(256)
-_mix = int.from_bytes(_entropy.hash(*_pool), BYTE_ORDER)
-_seed = int.from_bytes(_entropy.hash(*_pool)[:32], BYTE_ORDER)
+_mix = int.from_bytes(_entropy.hash(*_pool), BIG)
+_seed = int.from_bytes(_entropy.hash(*_pool)[:32], BIG)
 _numbers = (_mix, _seed, _offset)
 
 _ = _salt_multiply(*_numbers)
@@ -338,7 +338,7 @@ async def _asalt() -> int:
     entropy.
     """
     entropy = _entropy.hash(token_bytes(32), *_pool)[:32]
-    _initial_entropy.appendleft(int.from_bytes(entropy, BYTE_ORDER))
+    _initial_entropy.appendleft(int.from_bytes(entropy, BIG))
     return await _asalt_multiply(*_initial_entropy)
 
 
@@ -348,14 +348,14 @@ def _salt() -> int:
     entropy.
     """
     entropy = _entropy.hash(token_bytes(32), *_pool)[:32]
-    _initial_entropy.appendleft(int.from_bytes(entropy, BYTE_ORDER))
+    _initial_entropy.appendleft(int.from_bytes(entropy, BIG))
     return _salt_multiply(*_initial_entropy)
 
 
 async def arandom_number_generator(
     size: int = 64,
     *,
-    entropy: t.Any = _entropy.hash(run(_asalt()).to_bytes(2048, BYTE_ORDER)),
+    entropy: t.Any = _entropy.hash(run(_asalt()).to_bytes(2048, BIG)),
     freshness: int = 8,
 ) -> bytes:
     """
@@ -500,7 +500,7 @@ async def arandom_number_generator(
 def random_number_generator(
     size: int = 64,
     *,
-    entropy: t.Any = _entropy.hash(_salt().to_bytes(2048, BYTE_ORDER)),
+    entropy: t.Any = _entropy.hash(_salt().to_bytes(2048, BIG)),
     freshness: int = 8,
 ) -> bytes:
     """
@@ -890,7 +890,7 @@ class SequenceID:
         isalt, osalt, xsalt = self._encode_salt(self._salt, prime, size)
         self._key = lambda index: (
             xsalt ^ pow(gen, (osalt * (isalt + index)) % subprime, prime)
-        ).to_bytes(size, BYTE_ORDER)
+        ).to_bytes(size, BIG)
 
     async def anew(
         self,
@@ -1048,7 +1048,7 @@ class GUID(SequenceID):
     __slots__ = ("_node_number", "_offset_npad", "_unmask")
 
     _NODE_NUMBER_BYTES: int = NODE_NUMBER_BYTES
-    _NPAD = int.from_bytes(NODE_NUMBER_BYTES * b"i", BYTE_ORDER)
+    _NPAD = int.from_bytes(NODE_NUMBER_BYTES * b"i", BIG)
 
     _COUNTER_BYTES: int = 1
     _MIN_SIZE: int = MIN_GUID_BYTES
@@ -1065,7 +1065,7 @@ class GUID(SequenceID):
         """
         super().__init_subclass__(**kw)
         cls._NODE_NUMBER_BYTES = node_number_bytes
-        cls._NPAD = int.from_bytes(node_number_bytes * b"i", BYTE_ORDER)
+        cls._NPAD = int.from_bytes(node_number_bytes * b"i", BIG)
 
     def __init__(
         self,

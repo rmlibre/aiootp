@@ -36,11 +36,11 @@ async def test_detection_of_ciphertext_modification():
 
     ######
     ###### async decryption of altered ciphertext fails
-    aict = int.from_bytes(act, BYTE_ORDER)
+    aict = int.from_bytes(act, BIG)
     context = "Async ciphertext alteration not caught!"
     for abit in range(0, aict.bit_length(), 16):
         with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(context)):
-            altered_act = (aict ^ (1 << abit)).to_bytes(len(act), BYTE_ORDER)
+            altered_act = (aict ^ (1 << abit)).to_bytes(len(act), BIG)
             await cipher.abytes_decrypt(altered_act)
 
     # async decryption of ciphertext lengthened to invalid size fails
@@ -79,11 +79,11 @@ async def test_detection_of_ciphertext_modification():
 
     ######
     ###### sync decryption of altered ciphertext fails
-    ict = int.from_bytes(ct, BYTE_ORDER)
+    ict = int.from_bytes(ct, BIG)
     context = "Sync ciphertext alteration not caught!"
     for bit in range(0, ict.bit_length(), 16):
         with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(context)):
-            altered_ct = (ict ^ (1 << bit)).to_bytes(len(ct), BYTE_ORDER)
+            altered_ct = (ict ^ (1 << bit)).to_bytes(len(ct), BIG)
             cipher.bytes_decrypt(altered_ct)
 
     # sync decryption of ciphertext lengthened to invalid size fails

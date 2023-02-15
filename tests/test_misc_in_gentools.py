@@ -13,7 +13,7 @@ from test_initialization import *
 
 
 async def test_Enumerate():
-    iterable = b"".join(i.to_bytes(1, "big") for i in range(16))
+    iterable = b"".join(i.to_bytes(1, BIG) for i in range(16))
 
     # ASYNC
     # by default enumerates async iterables from zero
@@ -37,50 +37,50 @@ async def test_Enumerate():
     # method with 8 & the default byteorder of the package for async
     # iterables
     async for e, item in Enumerate(aunpack(iterable), encoding="bytes"):
-        assert e == item.to_bytes(8, BYTE_ORDER)
+        assert e == item.to_bytes(8, BIG)
 
     # the "bytes" encoding string by default calls the `to_bytes`
     # method with 8 & the default byteorder of the package
     async for e, item in Enumerate(iterable, encoding="bytes"):
-        assert e == item.to_bytes(8, BYTE_ORDER)
+        assert e == item.to_bytes(8, BIG)
 
     # the "bytes" encoding string calls the `to_bytes` method given
     # the values in the `a` kwarg as arguments for async iterables
-    async for e, item in Enumerate(aunpack(iterable), encoding="bytes", a=(12, "big")):
-        assert e == item.to_bytes(12, "big")
+    async for e, item in Enumerate(aunpack(iterable), encoding="bytes", a=(12, BIG)):
+        assert e == item.to_bytes(12, BIG)
 
     # the "bytes" encoding string calls the `to_bytes` method given
     # the values in the `a` kwarg as arguments
-    async for e, item in Enumerate(iterable, encoding="bytes", a=(12, "big")):
-        assert e == item.to_bytes(12, "big")
+    async for e, item in Enumerate(iterable, encoding="bytes", a=(12, BIG)):
+        assert e == item.to_bytes(12, BIG)
 
-    async for e, item in Enumerate(iterable, encoding="bytes", a=(12,), kw={"byteorder": "big"}):
-        assert e == item.to_bytes(12, "big")
+    async for e, item in Enumerate(iterable, encoding="bytes", a=(12,), kw={"byteorder": BIG}):
+        assert e == item.to_bytes(12, BIG)
 
     # enumeration begins where the `start` kwarg indicates, AND the
     # "bytes" encoding string calls the `to_bytes` method with 8 &
     # the default byteorder of the package as arguments, for async
     # iterables
     async for e, item in Enumerate(aunpack(iterable), start=32, encoding="bytes"):
-        assert e == (item + 32).to_bytes(8, BYTE_ORDER)
+        assert e == (item + 32).to_bytes(8, BIG)
 
     # enumeration begins where the `start` kwarg indicates, AND the
     # "bytes" encoding string calls the `to_bytes` method with 8 &
     # the default byteorder of the package as arguments
     async for e, item in Enumerate(iterable, start=32, encoding="bytes"):
-        assert e == (item + 32).to_bytes(8, BYTE_ORDER)
+        assert e == (item + 32).to_bytes(8, BIG)
 
     # enumeration begins where the `start` kwarg indicates, AND the
     # "bytes" encoding string calls the `to_bytes` method given
     # the values in the `a` kwarg as arguments, for async iterables
-    async for e, item in Enumerate(aunpack(iterable), start=32, encoding="bytes", a=(12, "big")):
-        assert e == (item + 32).to_bytes(12, "big")
+    async for e, item in Enumerate(aunpack(iterable), start=32, encoding="bytes", a=(12, BIG)):
+        assert e == (item + 32).to_bytes(12, BIG)
 
     # enumeration begins where the `start` kwarg indicates, AND the
     # "bytes" encoding string calls the `to_bytes` method given
     # the values in the `a` kwarg as arguments
-    async for e, item in Enumerate(iterable, start=32, encoding="bytes", a=(12, "big")):
-        assert e == (item + 32).to_bytes(12, "big")
+    async for e, item in Enumerate(iterable, start=32, encoding="bytes", a=(12, BIG)):
+        assert e == (item + 32).to_bytes(12, BIG)
 
 
     # SYNC
@@ -95,15 +95,15 @@ async def test_Enumerate():
     # the "bytes" encoding string by default calls the `to_bytes`
     # method with 8 & the default byteorder of the package
     for e, item in Enumerate(iterable, encoding="bytes"):
-        assert e == item.to_bytes(8, BYTE_ORDER)
+        assert e == item.to_bytes(8, BIG)
 
     # the "bytes" encoding string calls the `to_bytes` method given
     # the values in the `a` kwarg as arguments
-    for e, item in Enumerate(iterable, encoding="bytes", a=(12, "big")):
-        assert e == item.to_bytes(12, "big")
+    for e, item in Enumerate(iterable, encoding="bytes", a=(12, BIG)):
+        assert e == item.to_bytes(12, BIG)
 
-    for e, item in Enumerate(iterable, encoding="bytes", a=(12,), kw={"byteorder": "big"}):
-        assert e == item.to_bytes(12, "big")
+    for e, item in Enumerate(iterable, encoding="bytes", a=(12,), kw={"byteorder": BIG}):
+        assert e == item.to_bytes(12, BIG)
 
     for e, item in Enumerate(iterable, encoding="bytes", a=(12,), kw={"byteorder": "little"}):
         assert e == item.to_bytes(12, "little")
@@ -112,16 +112,16 @@ async def test_Enumerate():
     # "bytes" encoding string calls the `to_bytes` method with 8 &
     # the default byteorder of the package as arguments
     for e, item in Enumerate(iterable, start=32, encoding="bytes"):
-        assert e == (item + 32).to_bytes(8, BYTE_ORDER)
+        assert e == (item + 32).to_bytes(8, BIG)
 
     # enumeration begins where the `start` kwarg indicates, AND the
     # "bytes" encoding string calls the `to_bytes` method given
     # the values in the `a` kwarg as arguments
-    for e, item in Enumerate(iterable, start=32, encoding="bytes", a=(12, "big")):
-        assert e == (item + 32).to_bytes(12, "big")
+    for e, item in Enumerate(iterable, start=32, encoding="bytes", a=(12, BIG)):
+        assert e == (item + 32).to_bytes(12, BIG)
 
-    for e, item in Enumerate(iterable, start=32, encoding="bytes", a=(12,), kw={"byteorder": "big"}):
-        assert e == (item + 32).to_bytes(12, "big")
+    for e, item in Enumerate(iterable, start=32, encoding="bytes", a=(12,), kw={"byteorder": BIG}):
+        assert e == (item + 32).to_bytes(12, BIG)
 
     for e, item in Enumerate(iterable, start=32, encoding="bytes", a=(12,), kw={"byteorder": "little"}):
         assert e == (item + 32).to_bytes(12, "little")

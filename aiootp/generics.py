@@ -172,7 +172,7 @@ class Clock:
         self,
         *,
         size: int = SAFE_TIMESTAMP_BYTES,
-        byte_order: str = BYTE_ORDER,
+        byte_order: str = BIG,
     ) -> bytes:
         """
         Returns a ``size``-byte ``byte_order``-endian representation of
@@ -184,7 +184,7 @@ class Clock:
         self,
         *,
         size: int = SAFE_TIMESTAMP_BYTES,
-        byte_order: str = BYTE_ORDER,
+        byte_order: str = BIG,
     ) -> bytes:
         """
         Returns a ``size``-byte ``byte_order``-endian representation of
@@ -193,7 +193,7 @@ class Clock:
         return self.time().to_bytes(size, byte_order)
 
     async def aread_timestamp(
-        self, timestamp: bytes, *, byte_order: str = BYTE_ORDER
+        self, timestamp: bytes, *, byte_order: str = BIG
     ) -> int:
         """
         Returns the integer representation of the ``byte_order``-endian
@@ -203,7 +203,7 @@ class Clock:
         return int.from_bytes(timestamp, byte_order)
 
     def read_timestamp(
-        self, timestamp: bytes, *, byte_order: str = BYTE_ORDER
+        self, timestamp: bytes, *, byte_order: str = BIG
     ) -> int:
         """
         Returns the integer representation of the ``byte_order``-endian
@@ -212,7 +212,7 @@ class Clock:
         return int.from_bytes(timestamp, byte_order)
 
     async def adelta(
-        self, timestamp: bytes, *, byte_order: str = BYTE_ORDER
+        self, timestamp: bytes, *, byte_order: str = BIG
     ) -> int:
         """
         Takes a ``timestamp`` & returns the integer difference between
@@ -221,7 +221,7 @@ class Clock:
         return await self.atime() - await self.aread_timestamp(timestamp)
 
     def delta(
-        self, timestamp: bytes, *, byte_order: str = BYTE_ORDER
+        self, timestamp: bytes, *, byte_order: str = BIG
     ) -> int:
         """
         Takes a ``timestamp`` & returns the integer difference between
@@ -230,7 +230,7 @@ class Clock:
         return self.time() - self.read_timestamp(timestamp)
 
     async def atest_timestamp(
-        self, timestamp: bytes, ttl: int, *, byte_order: str = BYTE_ORDER
+        self, timestamp: bytes, ttl: int, *, byte_order: str = BIG
     ) -> None:
         """
         Raises ``TimestampExpired`` if ``timestamp`` is more than
@@ -246,7 +246,7 @@ class Clock:
             raise TimestampIssue.timestamp_expired(self._unit, expired_by)
 
     def test_timestamp(
-        self, timestamp: bytes, ttl: int, *, byte_order: str = BYTE_ORDER
+        self, timestamp: bytes, ttl: int, *, byte_order: str = BIG
     ) -> None:
         """
         Raises ``TimestampExpired`` if ``timestamp`` is more than
@@ -286,7 +286,7 @@ async def abytes_are_equal(value_0: bytes, value_1: bytes) -> bool:
 
 
 async def abytes_as_int(
-    data: bytes, *, byte_order: str = BYTE_ORDER
+    data: bytes, *, byte_order: str = BIG
 ) -> int:
     """
     Returns the `bytes`-type ``data`` value as a ``byte_order``-endian
@@ -296,7 +296,7 @@ async def abytes_as_int(
     return int.from_bytes(data, byte_order)
 
 
-def bytes_as_int(data: bytes, *, byte_order: str = BYTE_ORDER) -> int:
+def bytes_as_int(data: bytes, *, byte_order: str = BIG) -> int:
     """
     Returns the `bytes`-type ``data`` value as a ``byte_order``-endian
     `int`.
@@ -305,7 +305,7 @@ def bytes_as_int(data: bytes, *, byte_order: str = BYTE_ORDER) -> int:
 
 
 async def aint_as_bytes(
-    data: int, *, size: int = 8, byte_order: str = BYTE_ORDER
+    data: int, *, size: int = 8, byte_order: str = BIG
 ) -> bytes:
     """
     Returns an integer ``data`` as a ``byte_order``-endian, ``size``
@@ -316,7 +316,7 @@ async def aint_as_bytes(
 
 
 def int_as_bytes(
-    data: int, *, size: int = 8, byte_order: str = BYTE_ORDER
+    data: int, *, size: int = 8, byte_order: str = BIG
 ) -> bytes:
     """
     Returns an integer ``data`` as a ``byte_order``-endian, ``size``
@@ -326,7 +326,7 @@ def int_as_bytes(
 
 
 async def alen_as_bytes(
-    data: t.Sequence, size: int = 8, byte_order: str = BYTE_ORDER
+    data: t.Sequence, size: int = 8, byte_order: str = BIG
 ) -> bytes:
     """
     Returns the `len` of ``data`` as a ``byte_order``-endian, ``size``-
@@ -337,7 +337,7 @@ async def alen_as_bytes(
 
 
 def len_as_bytes(
-    data: t.Sequence, size: int = 8, byte_order: str = BYTE_ORDER
+    data: t.Sequence, size: int = 8, byte_order: str = BIG
 ) -> bytes:
     """
     Returns the `len` of ``data`` as a ``byte_order``-endian, ``size``-
@@ -451,8 +451,8 @@ async def axi_mix(bytes_hash: bytes, size: int = 8) -> bytes:
     """
     result = 0
     async for chunk in BytesIO.adata(bytes_hash, size=size):
-        result ^= int.from_bytes(chunk, BYTE_ORDER)
-    return result.to_bytes(size, BYTE_ORDER)
+        result ^= int.from_bytes(chunk, BIG)
+    return result.to_bytes(size, BIG)
 
 
 def xi_mix(bytes_hash: bytes, size: int = 8) -> bytes:
@@ -462,8 +462,8 @@ def xi_mix(bytes_hash: bytes, size: int = 8) -> bytes:
     """
     result = 0
     for chunk in BytesIO.data(bytes_hash, size=size):
-        result ^= int.from_bytes(chunk, BYTE_ORDER)
-    return result.to_bytes(size, BYTE_ORDER)
+        result ^= int.from_bytes(chunk, BIG)
+    return result.to_bytes(size, BIG)
 
 
 async def afullblock_ljust(
@@ -535,10 +535,10 @@ async def aencode_items(
     """
     Yields each item in ``items`` with encoded length metadata attached.
     """
-    yield len(items).to_bytes(int_bytes, BYTE_ORDER)
+    yield len(items).to_bytes(int_bytes, BIG)
     for item in items:
         await asleep()
-        yield len(item).to_bytes(int_bytes, BYTE_ORDER) + item
+        yield len(item).to_bytes(int_bytes, BIG) + item
 
 
 def encode_items(
@@ -551,9 +551,9 @@ def encode_items(
     -------- python which guarantee the input order of items in a
     dictionary is preserved.
     """
-    yield len(items).to_bytes(int_bytes, BYTE_ORDER)
+    yield len(items).to_bytes(int_bytes, BIG)
     for item in items:
-        yield len(item).to_bytes(int_bytes, BYTE_ORDER) + item
+        yield len(item).to_bytes(int_bytes, BIG) + item
 
 
 async def acanonical_pack(
@@ -665,7 +665,7 @@ async def adecode_items(
     the number of bytes that were used to encode item lengths.
     """
     async for _ in _arange(item_count):
-        item_size = int.from_bytes(read(int_bytes), BYTE_ORDER)
+        item_size = int.from_bytes(read(int_bytes), BIG)
         item = read(item_size)
         if len(item) != item_size:
             raise CanonicalIssue.item_length_mismatch()
@@ -684,7 +684,7 @@ def decode_items(
     the number of bytes that were used to encode item lengths.
     """
     for _ in range(item_count):
-        item_size = int.from_bytes(read(int_bytes), BYTE_ORDER)
+        item_size = int.from_bytes(read(int_bytes), BIG)
         item = read(item_size)
         if len(item) != item_size:
             raise CanonicalIssue.item_length_mismatch()
@@ -1177,7 +1177,7 @@ class Padding:
         return PlaintextMeasurements(
             padding_size=padding_size,
             pad_sentinel=sentinel.to_bytes(
-                PADDING_SENTINEL_BYTES, BYTE_ORDER
+                PADDING_SENTINEL_BYTES, BIG
             ),
         )
 
@@ -1195,7 +1195,7 @@ class Padding:
         return PlaintextMeasurements(
             padding_size=padding_size,
             pad_sentinel=sentinel.to_bytes(
-                PADDING_SENTINEL_BYTES, BYTE_ORDER
+                PADDING_SENTINEL_BYTES, BIG
             ),
         )
 
@@ -1320,7 +1320,7 @@ class Padding:
         - The appended 1-byte padding sentinel.
         """
         sentinel = int.from_bytes(
-            data[-PADDING_SENTINEL_BYTES :], BYTE_ORDER
+            data[-PADDING_SENTINEL_BYTES :], BIG
         )
         blocksize = cls._BLOCKSIZE * (1 + MIN_PADDING_BLOCKS)
         return -(sentinel if sentinel else blocksize)
@@ -1334,7 +1334,7 @@ class Padding:
         - The appended 1-byte padding sentinel.
         """
         sentinel = int.from_bytes(
-            data[-PADDING_SENTINEL_BYTES :], BYTE_ORDER
+            data[-PADDING_SENTINEL_BYTES :], BIG
         )
         blocksize = cls._BLOCKSIZE * (1 + MIN_PADDING_BLOCKS)
         return -(sentinel if sentinel else blocksize)
@@ -1535,7 +1535,7 @@ class BytesIO:
         very wide array of platforms.
         """
         return await aint_as_base(
-            int.from_bytes(value, BYTE_ORDER),
+            int.from_bytes(value, BIG),
             base=38,
             table=Tables.BASE_38,
         )
@@ -1548,7 +1548,7 @@ class BytesIO:
         very wide array of platforms.
         """
         return int_as_base(
-            int.from_bytes(value, BYTE_ORDER),
+            int.from_bytes(value, BIG),
             base=38,
             table=Tables.BASE_38,
         )
@@ -1560,7 +1560,7 @@ class BytesIO:
         """
         result = await abase_as_int(filename, base=38, table=Tables.BASE_38)
         byte_count = math.ceil(result.bit_length() / 8)
-        return result.to_bytes(byte_count, BYTE_ORDER)
+        return result.to_bytes(byte_count, BIG)
 
     @staticmethod
     def filename_to_bytes(filename: str) -> bytes:
@@ -1569,7 +1569,7 @@ class BytesIO:
         """
         result = base_as_int(filename, base=38, table=Tables.BASE_38)
         byte_count = math.ceil(result.bit_length() / 8)
-        return result.to_bytes(byte_count, BYTE_ORDER)
+        return result.to_bytes(byte_count, BIG)
 
     @classmethod
     async def aread(cls, path: t.PathStr) -> bytes:
