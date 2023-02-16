@@ -1444,7 +1444,6 @@ class SyntheticIV:
     _BLOCKSIZE: int = BLOCKSIZE
     _DECRYPTION: str = DECRYPTION
     _ENCRYPTION: str = ENCRYPTION
-    _DIGEST_SLICE: slice = slice(10, -10)
 
     @classmethod
     def _mask_block(
@@ -1506,8 +1505,7 @@ class SyntheticIV:
         whole_header = len(header)
         siv = header + shmac._current_digest[:-whole_header]
         half_header = whole_header // 2
-        middle_part = slice(half_header, BLOCKSIZE - half_header)
-        return (await keystream(siv))[middle_part]
+        return (await keystream(siv))[half_header:-half_header]
 
     @classmethod
     def _synthesize_key(
@@ -1523,8 +1521,7 @@ class SyntheticIV:
         whole_header = len(header)
         siv = header + shmac._current_digest[:-whole_header]
         half_header = whole_header // 2
-        middle_part = slice(half_header, BLOCKSIZE - half_header)
-        return keystream(siv)[middle_part]
+        return keystream(siv)[half_header:-half_header]
 
     @classmethod
     async def _aunique_cipher(
