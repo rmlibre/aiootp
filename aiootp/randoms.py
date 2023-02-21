@@ -287,7 +287,7 @@ _pool = deque([token_bytes(64), token_bytes(64)], maxlen=32)
 
 
 async def _add_to_pool(
-    entropy: bytes, entropy_pool: t.Sequence[bytes] = _pool
+    entropy: bytes, entropy_pool: t.Deque[bytes] = _pool
 ) -> None:
     """
     Prevents writes of the same `_entropy.hash` outputs to the global
