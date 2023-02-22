@@ -1759,9 +1759,8 @@ class Base25519:
     PublicKey = None
     SecretKey = None
 
-    @classmethod
     def _process_public_key(
-        cls,
+        self,
         public_key: t.Union[
             str,
             bytes,
@@ -1781,13 +1780,17 @@ class Base25519:
             raise Issue.no_value_specified("public key")
         elif public_key.__class__ is str:
             public_key = bytes.fromhex(public_key)
+        elif issubclass(
+            public_key.__class__,
+            (self.PublicKey, self.SecretKey, self.__class__)
+        ):
+            public_key = self._Curve25519.public_bytes(public_key)
         elif public_key.__class__ is not bytes:
-            public_key = cls._Curve25519.public_bytes(public_key)
-        return cls.PublicKey.from_public_bytes(public_key)
+            raise Issue.value_must_be_type("public_key", "valid key type")
+        return self.PublicKey.from_public_bytes(public_key)
 
-    @classmethod
     def _process_secret_key(
-        cls,
+        self,
         secret_key: t.Union[
             str, bytes, X25519PrivateKey, Ed25519PrivateKey
         ],
@@ -1801,9 +1804,13 @@ class Base25519:
             raise Issue.no_value_specified("secret key")
         elif secret_key.__class__ is str:
             secret_key = bytes.fromhex(secret_key)
+        elif issubclass(
+            secret_key.__class__, (self.SecretKey, self.__class__)
+        ):
+            secret_key = self._Curve25519.secret_bytes(secret_key)
         elif secret_key.__class__ is not bytes:
-            secret_key = cls._Curve25519.secret_bytes(secret_key)
-        return cls.SecretKey.from_private_bytes(secret_key)
+            raise Issue.value_must_be_type("secret_key", "valid key type")
+        return self.SecretKey.from_private_bytes(secret_key)
 
     async def aimport_public_key(
         self,
