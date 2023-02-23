@@ -12,6 +12,9 @@
 from test_initialization import *
 
 
+OTHER_TYPE_MAPPING = {Ed25519.__name__: X25519, X25519.__name__: Ed25519}
+
+
 async def basic_async_tests(tested_class):
     secret_key_a = await tested_class().agenerate()
 
@@ -37,6 +40,19 @@ async def basic_async_tests(tested_class):
     context = "an invalid type was allowed to be used to extract public bytes"
     async with aignore(TypeError, if_else=aviolation(context)):
         await secret_key_a._Curve25519.apublic_bytes(secret_key_a)
+
+    context = "an invalid type was allowed to be imported as a secret key"
+    class_not_being_tested = OTHER_TYPE_MAPPING[tested_class.__name__]
+    some_secret_key = class_not_being_tested().generate()
+    async with aignore(TypeError, if_else=aviolation(context)):
+        await tested_class().aimport_secret_key(some_secret_key.secret_key)
+    async with aignore(TypeError, if_else=aviolation(context)):
+        await tested_class().aimport_secret_key(some_secret_key.public_key)
+
+    context = "an invalid type was allowed to be imported as a public key"
+    some_public_key = class_not_being_tested().import_public_key(some_secret_key.public_key)
+    async with aignore(TypeError, if_else=aviolation(context)):
+        await tested_class().aimport_secret_key(some_public_key.public_key)
 
     # Testing equality of async constructors
     key_a_from_secret_object = await tested_class().aimport_secret_key(secret_key_a.secret_key)
