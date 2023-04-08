@@ -41,19 +41,19 @@ we'll ask for your email address & a passphrase to encrypt
 the keys, that will be generated automatically, locally on
 your device.
 
-how much RAM, in Mibibytes (1 MiB == 1024*1024 B), would you
+how much RAM, in Mebibytes (1 MiB == 1024*1024 B), would you
 like to use to hash this passphrase?
-1024 Mibibytes (1 GiB) is recommended, but choose according
+1024 Mebibytes (1 GiB) is recommended, but choose according
 to what your machine has available, & how much you'd like
 to protect the passphrase & the conversation keys on your
 device: 1024
 
 are you sure you'd like to use 1024 MiB of RAM to hash this
-passphrase? (Y/n) y   
+passphrase? (Y/n) y
 your email address: example@email.address
-your passphrase to continue the conversation (hidden): 
+your passphrase to continue the conversation (hidden):
 
-please include the following information to help us to 
+please include the following information to help us to
 efficiently fix the issue:
 
 * type of attack(s) enabled by the issue
@@ -62,7 +62,7 @@ efficiently fix the issue:
 * proof-of-concept or exploit code (if possible)
 * whether or not you'd like an email response
 
-please type or paste your message here. hit CTRL-D (or 
+please type or paste your message here. hit CTRL-D (or
 CTRL-Z on Windows) to finish the message:
 
 
@@ -77,10 +77,10 @@ excellent! here's the json message you can email to us:
 
 send it to either rmlibre@riseup.net or gonzo.development@protonmail.com
 
-thanks for your report! you should receive a response 
+thanks for your report! you should receive a response
 within two weeks. your secret key has been saved locally.
 
->>> 
+>>>
 ```
 
 
@@ -91,7 +91,7 @@ Communications are preferred to be in English, or with language declared(, and, 
 
 ## License
 
-### This file is part of aiootp, an asynchronous pseudo one-time pad based crypto and anonymity library.
+### This file is part of aiootp, an asynchronous crypto and anonymity library. Home of the Chunky2048 pseudo one-time pad stream cipher.
 
 #### Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 #### Copyright
