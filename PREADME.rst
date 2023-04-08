@@ -5,21 +5,12 @@
 
 
 
-aiootp - Asynchronous pseudo one-time pad based crypto and anonymity library.
-=============================================================================
+aiootp - An asynchronous crypto and anonymity library. Home of the Chunky2048 pseudo one-time pad stream cipher.
+================================================================================================================
 
-``aiootp`` is an asynchronous library providing access to cryptographic
-primatives and abstractions, transparently encrypted / decrypted file
-I/O and databases, as well as powerful, pythonic utilities that
-simplify data processing & cryptographic procedures in python code.
-This library's online, salt reuse / misuse resistant, tweakable AEAD cipher, called
-``Chunky2048``, is an implementation of the **pseudo one-time pad**. The
-aim is to create a simple, standard, efficient implementation that's
-indistinguishable from the unbreakable one-time pad cipher; to give
-users and applications access to user-friendly cryptographic tools; and,
-to increase the overall security, privacy, and anonymity on the web, and
-in the digital world. Users will find ``aiootp`` to be easy to write,
-easy to read, and fun.
+``aiootp`` is an async compatible and application agnostic library that provides access to pythonic, high-level cryptographic utilities to simplify the tasks of secure data processing and storage.
+
+This library is home to an online, salt reuse / misuse resistant, tweakable AEAD stream cipher, which we've called ``Chunky2048``. It's an implementation of a **pseudo one-time pad**, that's intended to be a simple and efficient cipher that's indistinguishable from a one-time pad. We hope to give users and applications empowering developer-friendly tools with strong and biased defaults, and in so doing, increase the overall security, privacy and anonymity in the digital world. Users will find ``aiootp`` to be easy to write, easy to read, & fun.
 
 
 
@@ -27,16 +18,7 @@ easy to read, and fun.
 Important Disclaimer
 --------------------
 
-``aiootp`` is experimental software that works with Python 3.7+.
-It's a work in progress. The programming API could change with
-future updates, and it isn't bug free. ``aiootp`` provides powerful
-security tools and misc utilities that're designed to be
-developer-friendly and privacy preserving.
-As a security tool, ``aiootp`` needs to be tested and reviewed
-extensively by the programming and cryptography communities to
-ensure its implementations are sound. We provide no guarantees.
-This software hasn't yet been audited by third-party security
-professionals.
+``aiootp`` is experimental software that works with Python 3.7+. It's a work in progress. Its algorithms and programming API could change with future updates, and it isn't bug free. ``aiootp`` provides security tools and misc utilities that're designed to be developer-friendly and privacy preserving. As a security tool, ``aiootp`` needs to be tested and reviewed extensively by the programming and cryptography communities to ensure its implementations are sound. We provide no guarantees. This software hasn't yet been audited by third-party security professionals.
 
 
 
@@ -210,7 +192,7 @@ With User Profiles, passphrases may be used instead to open a database. Often, p
 
         salt=b"optional salt keyword argument",
                   # Optional passcrypt configuration:
-        mb=256,   # The memory cost in Mibibytes (MiB)
+        mb=256,   # The memory cost in Mebibytes (MiB)
 
         cpu=2,    # The computational complexity & number of iterations
 
@@ -845,14 +827,14 @@ Decryption / Authentication:
 _`Passcrypt` .............................. `Table Of Contents`_
 ------------------------------------------------------------------------
 
-The ``Passcrypt`` algorithm is a data independent memory & computationally hard password-based key derivation function. It's built from a single primitive, the SHAKE-128 extendable output function from the SHA-3 family. Its resource costs are measured by three parameters: ``mb``, which represents an integer number of Mibibytes (MiB); ``cpu``, which is a linear integer measure of computational complexity & the number of iterations of the algorithm over the memory cache; and ``cores``, which is an integer which directly assigns the number of separate processes that will be pooled to complete the algorithm. The number of bytes of the output tag are decided by the integer ``tag_size`` parameter. And, the number of bytes of the automatically generated ``salt`` are decided by the integer ``salt_size`` parameter.
+The ``Passcrypt`` algorithm is a data independent memory & computationally hard password-based key derivation function. It's built from a single primitive, the SHAKE-128 extendable output function from the SHA-3 family. Its resource costs are measured by three parameters: ``mb``, which represents an integer number of Mebibytes (MiB); ``cpu``, which is a linear integer measure of computational complexity & the number of iterations of the algorithm over the memory cache; and ``cores``, which is an integer which directly assigns the number of separate processes that will be pooled to complete the algorithm. The number of bytes of the output tag are decided by the integer ``tag_size`` parameter. And, the number of bytes of the automatically generated ``salt`` are decided by the integer ``salt_size`` parameter.
 
 
 _`Hashing & Verifying Passphrases` .......................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-By far, the dominating measure of difficulty for ``Passcrypt`` is determined by the ``mb`` Mibibyte memory cost. It's recommended that increases to desired difficulty are first translated into higher ``mb`` values, where resource limitations of the machines executing the algorithm permit. If more difficulty is desired than can be obtained by increasing ``mb``, then increases to the ``cpu`` parameter should be used. The higher this parameter is the less likely an adversary is to benefit from expending less than the intended memory cost, & increases the execution time & complexity of the algorithm. The final option that should be considered, if still more difficulty is desired, is to lower the ``cores`` parallelization parameter, which will just cause each execution to take longer to complete.
+By far, the dominating measure of difficulty for ``Passcrypt`` is determined by the ``mb`` Mebibyte memory cost. It's recommended that increases to desired difficulty are first translated into higher ``mb`` values, where resource limitations of the machines executing the algorithm permit. If more difficulty is desired than can be obtained by increasing ``mb``, then increases to the ``cpu`` parameter should be used. The higher this parameter is the less likely an adversary is to benefit from expending less than the intended memory cost, & increases the execution time & complexity of the algorithm. The final option that should be considered, if still more difficulty is desired, is to lower the ``cores`` parallelization parameter, which will just cause each execution to take longer to complete.
 
 .. code-block:: python
 
