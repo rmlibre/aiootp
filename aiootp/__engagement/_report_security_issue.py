@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous pseudo one-time pad based
-# crypto and anonymity library.
+# This file is part of aiootp, an asynchronous crypto and anonymity
+# library. Home of the Chunky2048 psuedo one-time pad stream cipher.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
@@ -41,9 +41,9 @@ def report_security_issue() -> None:
     )
 
     mb: str = input(
-        "\nhow much RAM, in Mibibytes (1 MiB == 1024*1024 B), would you"
+        "\nhow much RAM, in Mebibytes (1 MiB == 1024*1024 B), would you"
         "\nlike to use to hash this passphrase?"
-        "\n1024 Mibibytes (1 GiB) is recommended, but choose according"
+        "\n1024 Mebibytes (1 GiB) is recommended, but choose according"
         "\nto what your machine has available, & how much you'd like"
         "\nto protect the passphrase & the conversation keys on your"
         "\ndevice: "
@@ -65,7 +65,7 @@ def report_security_issue() -> None:
         except PermissionError:
             print("Ok, let's try again.")
         mb: str = input(
-            "\nhow much RAM, in Mibibytes (1 MiB == 1024*1024 B), would "
+            "\nhow much RAM, in Mebibytes (1 MiB == 1024*1024 B), would "
             "\nyou like to use to hash this passphrase? "
         )
 
