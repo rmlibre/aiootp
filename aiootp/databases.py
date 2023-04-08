@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous pseudo one-time pad based
-# crypto and anonymity library.
+# This file is part of aiootp, an asynchronous crypto and anonymity
+# library. Home of the Chunky2048 psuedo one-time pad stream cipher.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
@@ -303,7 +303,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             username=b"username",
             passphrase=b"passphrase",
             salt=b"optional salt keyword argument",
-            mb=256,   # The passcrypt memory cost in Mibibytes (MiB)
+            mb=256,   # The passcrypt memory cost in Mebibytes (MiB)
             cpu=2,    # The computational complexity & number of iterations
             cores=8,  # How many parallel processes passcrypt will utilize
         )
@@ -1383,7 +1383,7 @@ class Database:
             username=b"username",
             passphrase=b"passphrase",
             salt=b"optional salt keyword argument",
-            mb=256,   # The passcrypt memory cost in Mibibytes (MiB)
+            mb=256,   # The passcrypt memory cost in Mebibytes (MiB)
             cpu=2,    # The computational complexity & number of iterations
             cores=8,  # How many parallel processes passcrypt will utilize
         )

@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous pseudo one-time pad based
-# crypto and anonymity library.
+# This file is part of aiootp, an asynchronous crypto and anonymity
+# library. Home of the Chunky2048 psuedo one-time pad stream cipher.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
@@ -902,7 +902,7 @@ class Passcrypt:
                 the hash with. It is authenticated as associated data &
                 safely permutes hashes created with different ``aad``.
 
-        ``mb``: The int number of Mibibytes (MiB) the user desires for
+        ``mb``: The int number of Mebibytes (MiB) the user desires for
                 this run of the algorithm to cost to compute.
 
         ``cpu``: The int number of iterations over the entire memory
@@ -985,7 +985,7 @@ class Passcrypt:
                 the hash with. It is authenticated as associated data &
                 safely permutes hashes created with different ``aad``.
 
-        ``mb``: The int number of Mibibytes (MiB) the user desires for
+        ``mb``: The int number of Mebibytes (MiB) the user desires for
                 this run of the algorithm to cost to compute.
 
         ``cpu``: The int number of iterations over the entire memory
@@ -1062,7 +1062,7 @@ class Passcrypt:
                 the hash with. It is authenticated as associated data &
                 safely permutes hashes created with different ``aad``.
 
-        ``mb``: The int number of Mibibytes (MiB) the user desires for
+        ``mb``: The int number of Mebibytes (MiB) the user desires for
                 this run of the algorithm to cost to compute.
 
         ``cpu``: The int number of iterations over the entire memory
@@ -1177,7 +1177,7 @@ class Passcrypt:
                 the hash with. It is authenticated as associated data &
                 safely permutes hashes created with different ``aad``.
 
-        ``mb``: The int number of Mibibytes (MiB) the user desires for
+        ``mb``: The int number of Mebibytes (MiB) the user desires for
                 this run of the algorithm to cost to compute.
 
         ``cpu``: The int number of iterations over the entire memory
@@ -1297,7 +1297,7 @@ class Passcrypt:
                 distinct domains.
 
         ``mb_allowed``: A `builtins.range` object which includes all
-                allowable values for the `mb` (Mibibyte) resource cost.
+                allowable values for the `mb` (Mebibyte) resource cost.
                 Raises `ResourceWarning` if the `mb` specified in the
                 provided hash falls outside of that range.
 
@@ -1409,7 +1409,7 @@ class Passcrypt:
                 distinct domains.
 
         ``mb_allowed``: A `builtins.range` object which includes all
-                allowable values for the `mb` (Mibibyte) resource cost.
+                allowable values for the `mb` (Mebibyte) resource cost.
                 Raises `ResourceWarning` if the `mb` specified in the
                 provided hash falls outside of that range.
 
