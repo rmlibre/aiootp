@@ -1,5 +1,5 @@
-# This file is part of aiootp, an asynchronous pseudo one-time pad based
-# crypto and anonymity library.
+# This file is part of aiootp, an asynchronous crypto and anonymity
+# library. Home of the Chunky2048 psuedo one-time pad stream cipher.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
@@ -462,7 +462,7 @@ async def arandom_number_generator(
             result = await big_modulation(seed, *multiples)
             await _add_to_pool(
                 await _entropy.ahash(
-                    seed.to_bytes(64, "big"), result.to_bytes(64, "big")
+                    seed.to_bytes(64, BIG), result.to_bytes(64, BIG)
                 )
             )
 
@@ -607,7 +607,7 @@ def random_number_generator(
             result = await big_modulation(seed, *multiples)
             await _add_to_pool(
                 await _entropy.ahash(
-                    seed.to_bytes(64, "big"), result.to_bytes(64, "big")
+                    seed.to_bytes(64, BIG), result.to_bytes(64, BIG)
                 )
             )
 
