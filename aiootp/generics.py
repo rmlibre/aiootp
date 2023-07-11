@@ -134,7 +134,7 @@ class Clock:
 
     def __init__(
         self, unit: str = SECONDS, *, epoch: int = EPOCH_NS
-    ) -> "self":
+    ) -> None:
         """
         Create an object which can create & measure bytes-type
         timestamps, with configurable units & epoch of measure.
@@ -260,6 +260,40 @@ class Clock:
             return
         elif timestamp_is_expired:
             raise TimestampIssue.timestamp_expired(self._unit, expired_by)
+
+
+class MaskedClock(Clock):
+    """
+    Adds a constant integer as a simple mask to the time values produced
+    by instances, the result becomes the instance's conception of the
+    current time.
+    """
+
+    __slots__ = ("_mask")
+
+    def __init__(self, *a, mask: int, **kw) -> None:
+        """
+        Stores the mask value & runs the base class' initializer.
+        """
+        self._mask = mask
+        super().__init__(*a, **kw)
+
+    async def atime(self) -> int:
+        """
+        Returns the instance's conception of the current time as an
+        integer, which is the number of time units since the instance's
+        epoch.
+        """
+        await asleep()
+        return self._time(self._epoch) + self._mask
+
+    def time(self) -> int:
+        """
+        Returns the instance's conception of the current time as an
+        integer, which is the number of time units since the instance's
+        epoch.
+        """
+        return self._time(self._epoch) + self._mask
 
 
 clock = Clock(SECONDS)
@@ -907,6 +941,7 @@ class Domains:
     MNEMONIC: bytes = _encode(MNEMONIC)
     USERNAME: bytes = _encode(USERNAME)
     CLIENT_ID: bytes = _encode(CLIENT_ID)
+    GUID_SALT: bytes = _encode(GUID_SALT)
     KEYSTREAM: bytes = _encode(KEYSTREAM)
     PASSCRYPT: bytes = _encode(PASSCRYPT)
     MESSAGE_ID: bytes = _encode(MESSAGE_ID)
@@ -926,6 +961,7 @@ class Domains:
     PACKAGE_SIGNER: bytes = _encode(PACKAGE_SIGNER)
     SECURE_CHANNEL: bytes = _encode(SECURE_CHANNEL)
     SENDING_STREAM: bytes = _encode(SENDING_STREAM)
+    GUID_CLOCK_MASK: bytes = _encode(GUID_CLOCK_MASK)
     RECEIVING_COUNT: bytes = _encode(RECEIVING_COUNT)
     RECEIVING_STREAM: bytes = _encode(RECEIVING_STREAM)
     CLIENT_MESSAGE_KEY: bytes = _encode(CLIENT_MESSAGE_KEY)
@@ -954,7 +990,7 @@ class Hasher:
 
     def __init__(
         self, data: bytes = b"", *, obj: t.Any = sha3_512
-    ) -> "self":
+    ) -> None:
         """
         Copies over the object dictionary of the ``obj`` hashing object.
         """
@@ -1535,9 +1571,7 @@ class BytesIO:
         very wide array of platforms.
         """
         return await aint_as_base(
-            int.from_bytes(value, BIG),
-            base=38,
-            table=Tables.BASE_38,
+            int.from_bytes(value, BIG), base=38, table=Tables.BASE_38
         )
 
     @staticmethod
@@ -1548,9 +1582,7 @@ class BytesIO:
         very wide array of platforms.
         """
         return int_as_base(
-            int.from_bytes(value, BIG),
-            base=38,
-            table=Tables.BASE_38,
+            int.from_bytes(value, BIG), base=38, table=Tables.BASE_38
         )
 
     @staticmethod
@@ -1744,6 +1776,7 @@ extras = dict(
     Domains=Domains,
     Hasher=Hasher,
     Clock=Clock,
+    MaskedClock=MaskedClock,
     _Padding=Padding,
     __doc__=__doc__,
     __package__=__package__,

@@ -200,8 +200,9 @@ async def test_guid_unmask():
 
             # nanosecond timestamps are retrieved correctly & are always
             # increasing
-            assert ns_clock.make_timestamp() > unmasked_guid.timestamp
-            assert ns_clock.make_timestamp() > decoded_unmasked_guid.timestamp
+            normalize = lambda timestamp: (int.from_bytes(timestamp, BIG) - guid_gen._clock._mask).to_bytes(SAFE_TIMESTAMP_BYTES, BIG)
+            assert ns_clock.make_timestamp() > normalize(unmasked_guid.timestamp)
+            assert ns_clock.make_timestamp() > normalize(decoded_unmasked_guid.timestamp)
 
             # every new guid is always unmasked to a value which is
             # larger than all previous guids

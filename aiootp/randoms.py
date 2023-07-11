@@ -42,8 +42,8 @@ from .asynchs import (
 )
 from .paths import SecurePath
 from .paths import read_salt_file
-from .generics import Domains, Hasher, Clock, BytesIO
-from .generics import bytes_as_int, int_as_bytes
+from .generics import Domains, Hasher, Clock, MaskedClock, BytesIO
+from .generics import bytes_as_int, int_as_bytes, hash_bytes
 
 
 async def auniform(*a, **kw) -> float:
@@ -172,7 +172,7 @@ class EntropyDaemon:
         entropy_pool: t.Deque[bytes],
         *,
         frequency: t.PositiveRealNumber = 1,
-    ) -> "self":
+    ) -> None:
         """
         Prepares an instance to safely start a background thread.
         """
@@ -317,8 +317,7 @@ _mix = int.from_bytes(_entropy.hash(*_pool), BIG)
 _seed = int.from_bytes(_entropy.hash(*_pool)[:32], BIG)
 _numbers = (_mix, _seed, _offset)
 
-_ = _salt_multiply(*_numbers)
-run(_asalt_multiply(_, *_numbers))
+run(_asalt_multiply(_salt_multiply(*_numbers), *_numbers))
 
 _initial_entropy = deque([token_bits(1024), token_bits(1024)], maxlen=2)
 
@@ -831,7 +830,7 @@ class SequenceID:
             osalt += 1
         return isalt, osalt, xsalt
 
-    def __init__(self, salt: bytes, *, size: int = 12) -> "self":
+    def __init__(self, salt: bytes, *, size: int = 12) -> None:
         """
         Prepares the instance to run the algorithm after checking that
         the provided ``size`` of outputs & uniform ``salt`` are
@@ -877,7 +876,8 @@ class SequenceID:
             raise Issue.value_must_be_type("salt", bytes)
         elif len(salt) < min_size:
             raise Issue.value_must("len(salt)", f"be >= {min_size}")
-        self._salt = salt
+        kw = dict(key=salt, hasher=shake_256, size=2 * self._size)
+        self._salt = hash_bytes(Domains.GUID_SALT, **kw)
 
     def _install_obfuscator(self) -> None:
         """
@@ -1045,10 +1045,9 @@ class GUID(SequenceID):
     '5e152c91-2f27-8ac6-fa4c-4041ba23d93d'
     """
 
-    __slots__ = ("_node_number", "_offset_npad", "_unmask")
+    __slots__ = ("_clock", "_node_number", "_unmask")
 
     _NODE_NUMBER_BYTES: int = NODE_NUMBER_BYTES
-    _NPAD = int.from_bytes(NODE_NUMBER_BYTES * b"i", BIG)
 
     _COUNTER_BYTES: int = 1
     _MIN_SIZE: int = MIN_GUID_BYTES
@@ -1065,7 +1064,6 @@ class GUID(SequenceID):
         """
         super().__init_subclass__(**kw)
         cls._NODE_NUMBER_BYTES = node_number_bytes
-        cls._NPAD = int.from_bytes(node_number_bytes * b"i", BIG)
 
     def __init__(
         self,
@@ -1073,7 +1071,7 @@ class GUID(SequenceID):
         *,
         size: int = GUID_BYTES,
         node_number: int = 0,
-    ) -> "self":
+    ) -> None:
         """
         Prepares the instance to run the algorithm after checking that
         the provided ``size`` of outputs & ``salt`` are supported & work
@@ -1083,28 +1081,33 @@ class GUID(SequenceID):
         """
         salt = salt if salt else _device_salt
         self._install_node_number(node_number, size=size)
+        self._install_clock(salt)
         super().__init__(salt=salt, size=size)
+
+    def _install_clock(self, salt: bytes) -> None:
+        """
+        Stores an instance clock which derives a pseudo-random value to,
+        as a simple mask, be added to the times used to create GUIDs.
+        """
+        mask = hash_bytes(Domains.GUID_CLOCK_MASK, key=salt)
+        mask = int.from_bytes(mask, BIG) % PRIMES[63][-1]
+        self._clock = MaskedClock(NANOSECONDS, mask=mask, epoch=EPOCH_NS)
 
     def _install_node_number(self, node_number: int, size: int) -> None:
         """
-        Stores an 'N'-byte ``node_number`` that's xor'd with a constant
-        which shares an optimal hamming distance of half its bit-length
-        with the class' `_IPAD` & `_OPAD` values. 'N' is the class'
+        Stores an 'N'-byte ``node_number`` where 'N' is the class'
         `_NODE_NUMBER_BYTES` value, which assigns a size (& maximum
         possible unique values) for the node_number. By default 'N' is
         1, & subclasses can customize this parameter in the subclass
         initializer.
         """
         node_bytes = self._NODE_NUMBER_BYTES
-        min_size = node_bytes + self._MIN_RAW_SIZE + self._COUNTER_BYTES
+        min_size = self._MIN_RAW_SIZE + node_bytes + self._COUNTER_BYTES
         if size < min_size:
             raise Issue.value_must(
                 "size", f"be at least {min_size} to fit the node number"
             )
-        self._offset_npad = self._NPAD << 8
-        self._node_number = int_as_bytes(
-            node_number ^ self._NPAD, size=node_bytes
-        )
+        self._node_number = int_as_bytes(node_number, size=node_bytes)
 
     def _obfuscator_shortcuts(
         self, size: int, prime: int, isalt: int
@@ -1114,11 +1117,10 @@ class GUID(SequenceID):
         efficient referencing.
         """
         guid_size = size - self._NODE_NUMBER_BYTES - self._COUNTER_BYTES
-        offset_npad = self._offset_npad
         node = self._node_number
         _int = int.from_bytes
         inverse = pow(isalt, prime - 2, prime)
-        return guid_size, offset_npad, node, _int, inverse
+        return guid_size, node, _int, inverse
 
     def _install_obfuscator(self) -> None:
         """
@@ -1130,23 +1132,21 @@ class GUID(SequenceID):
         def counter() -> bytes:
             nonlocal i
 
-            i = (i + 1) % 256
+            i = (i + 1) & 0xff
             return i.to_bytes(1, BIG)
 
         i, size, _, prime, _ = 0, *self._session_configuration
         isalt, osalt, xsalt = self._encode_salt(self._salt, prime, size)
         (
-            guid_size, offset_npad, node, _int, inverse
+            guid_size, node, _int, inverse
         ) = self._obfuscator_shortcuts(size, prime, isalt)
-        inner_guid = lambda: (
-            _int(generate_raw_guid(guid_size) + node + counter(), BIG)
-        )
+        raw_guid = lambda: generate_raw_guid(guid_size, clock=self._clock)
+        inner_guid = lambda: _int(raw_guid() + node + counter(), BIG)
         self._key = lambda: (
             xsalt ^ ((isalt * inner_guid() + osalt) % prime)
         ).to_bytes(size, BIG)
         self._unmask = lambda guid: (
-            offset_npad
-            ^ (inverse * ((xsalt ^ _int(guid, BIG)) - osalt) % prime)
+            inverse * ((xsalt ^ _int(guid, BIG)) - osalt) % prime
         ).to_bytes(size, BIG)
 
     async def anew(
