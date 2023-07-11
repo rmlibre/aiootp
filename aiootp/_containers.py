@@ -59,7 +59,7 @@ class AuthFail(Slots):
 
     def __init__(
         self, block_id: bytes, block: bytes, buffer: t.Callable
-    ) -> "self":
+    ) -> None:
         self.block_id = block_id
         self.block = block
         self.buffer = buffer
@@ -78,7 +78,7 @@ class KeySaltAAD(Slots):
 
     __slots__ = (KEY, SALT, AAD)
 
-    def __init__(self, key: bytes, salt: bytes, aad: bytes) -> "self":
+    def __init__(self, key: bytes, salt: bytes, aad: bytes) -> None:
         self.key = key
         self.salt = salt
         self.aad = aad
@@ -198,7 +198,7 @@ class Ciphertext(Slots):
 
     __slots__ = (SHMAC, SALT, IV, CIPHERTEXT)
 
-    def __init__(self, data: bytes) -> "self":
+    def __init__(self, data: bytes) -> None:
         """
         Decomposes a blob of ciphertext ``data`` bytes into an organized
         instance where the `shmac` auth tag, `salt` & `iv` randomizers &
@@ -228,7 +228,7 @@ class JSONCiphertext(Slots):
 
     __slots__ = (SHMAC, SALT, IV, CIPHERTEXT)
 
-    def __init__(self, data: t.JSONCiphertext) -> "self":
+    def __init__(self, data: t.JSONCiphertext) -> None:
         """
         Efficiently stores JSON / dict type ciphertext organized by
         instance attributes.
@@ -255,7 +255,7 @@ class PlaintextMeasurements(Slots):
 
     __slots__ = ("padding_size", "pad_sentinel")
 
-    def __init__(self, padding_size: int, pad_sentinel: bytes) -> "self":
+    def __init__(self, padding_size: int, pad_sentinel: bytes) -> None:
         self.padding_size = padding_size
         self.pad_sentinel = pad_sentinel
 
@@ -267,7 +267,7 @@ class UnmaskedGUID(Slots):
 
     __slots__ = ("timestamp", "entropy", "node_number", "counter")
 
-    def __init__(self, guid: bytes, node_number_bytes: int) -> "self":
+    def __init__(self, guid: bytes, node_number_bytes: int) -> None:
         read = BytesIO(guid).read
         self.timestamp = read(SAFE_TIMESTAMP_BYTES)
         self.entropy = read(len(guid) - SAFE_TIMESTAMP_BYTES - node_number_bytes - 1)
@@ -307,7 +307,7 @@ class PasscryptResources(Slots):
 
     __slots__ = ("mb", "cpu", "cores")
 
-    def __init__(self, mb: int, cpu: int, cores: int) -> "self":
+    def __init__(self, mb: int, cpu: int, cores: int) -> None:
         self.mb = mb
         self.cpu = cpu
         self.cores = cores
@@ -363,7 +363,7 @@ class PasscryptHash(Slots):
         cores: t.Optional[int] = None,
         salt: t.Optional[bytes] = None,
         tag: t.Optional[bytes] = None,
-    ) -> "self":
+    ) -> None:
         """
         Populates the instance state from the provided session values
         which are composable into a `Passcrypt` hash.
@@ -496,7 +496,7 @@ class ProfileTokens(Slots):
         "profile",
     )
 
-    def __init__(self, tmp_key: bytes, gist: bytes) -> "self":
+    def __init__(self, tmp_key: bytes, gist: bytes) -> None:
         self._tmp_key = tmp_key
         self._gist = gist
 
@@ -513,7 +513,7 @@ class PackageSignerScope(OpenNamespace):
         version: str,
         date: int,
         **extras: t.Dict[str, t.JSONSerializable],
-    ) -> "self":
+    ) -> None:
         self.__dict__.update(extras)
         self.package = package
         self.version = version
