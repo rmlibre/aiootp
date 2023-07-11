@@ -74,7 +74,26 @@ ns_clock = Clock(NANOSECONDS)
 day_clock = Clock(DAYS, epoch=0)
 
 
-class DomainKDF:
+class KDF:
+    """
+    A base type for passing KDF-related class attributes to subclasses
+    in a consistent manner.
+    """
+
+    __slots__ = ()
+
+    def __init_subclass__(cls) -> None:
+        """
+        Ensures subclasses can define custom key & base type hasher
+        algorithms within their class bodies & have the blocksizes of
+        those objects be recorded by the class correctly during
+        definition time.
+        """
+        cls._KEY_TYPE_BLOCKSIZE: int = cls._key_type().block_size
+        cls._TYPE_BLOCKSIZE: int = cls._type().block_size
+
+
+class DomainKDF(KDF):
     """
     Creates objects able to derive domain & payload-specific keyed
     hashes. Payload updates are automatically canonicalized.
@@ -100,9 +119,6 @@ class DomainKDF:
     _key_type: callable = sha3_512
     _type: callable = shake_256
 
-    _KEY_TYPE_BLOCKSIZE: int = _key_type().block_size
-    _TYPE_BLOCKSIZE: int = _type().block_size
-
     def _initialize_payload(self, payload: t.Iterable[bytes]) -> None:
         """
         Canonically encodes the key & first batch of input data to
@@ -119,7 +135,7 @@ class DomainKDF:
 
     def __init__(
         self, domain: bytes, *payload: t.Iterable[bytes], key: bytes
-    ) -> "self":
+    ) -> None:
         """
         Initializes a ``domain``-specific key & a keyed-mac object to
         incorporate an arbitrary amount of ``payload`` data, which is
@@ -552,7 +568,7 @@ class PasscryptSession(Slots):
         cpu: int,
         cores: int,
         tag_size: int,
-    ) -> "self":
+    ) -> None:
         """
         Efficiently stores user parameters.
         """
@@ -1502,7 +1518,7 @@ class PasscryptInstance:
 
     def __init__(
         self, mb: int, cpu: int, cores: int, tag_size: int, salt_size: int
-    ) -> "self":
+    ) -> None:
         """
         Stores user-defined settings so they can automatically be passed
         into `Passcrypt` methods when they are called.
@@ -2600,7 +2616,7 @@ class PackageSigner:
         version: str,
         date: t.Optional[int] = None,
         **scopes: t.JSONObject,
-    ) -> "self":
+    ) -> None:
         """
         Sets the instance's package scope attributes & default file
         checksums container.
@@ -2857,7 +2873,7 @@ class PackageVerifier:
         *,
         path: t.OptionalPathStr = None,
         verify_files: bool = True,
-    ) -> "self":
+    ) -> None:
         """
         Receives the bytes type public signing key a user expects a
         package to be signed by, & stores it within the instance. The
