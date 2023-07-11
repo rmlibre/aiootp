@@ -2,6 +2,7 @@
 __pycache__
 .coverage
 .pyc
+.hypothesis
 htmlcov
 build
 dist
