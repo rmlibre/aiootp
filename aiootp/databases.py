@@ -51,7 +51,6 @@ from .ciphers import bytes_decrypt, abytes_decrypt
 from .keygens import DomainKDF, Passcrypt, KeyAADBundle
 
 
-
 class DBDomains:
     """
     A container for database-specific domain constants.
@@ -336,7 +335,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         path: PathStr = path,
         metatag: bool = False,
         silent: bool = True,
-    ) -> "self":
+    ) -> None:
         """
         Sets a database object's basic cryptographic values derived from
         a ``key`` & opens up the associated administrative files. The
@@ -1416,7 +1415,7 @@ class Database:
         path: PathStr = path,
         metatag: bool = False,
         silent: bool = True,
-    ) -> "self":
+    ) -> None:
         """
         Sets a database object's basic cryptographic values derived from
         a ``key`` & opens up the associated administrative files. The
