@@ -39,7 +39,7 @@ class DeletedAttribute:
 
     __slots__ = ("_callback",)
 
-    def __init__(self, callback: t.Callable[..., Exception]) -> "self":
+    def __init__(self, callback: t.Callable[..., Exception]) -> None:
         self._callback = callback
 
     def __getattr__(self, name: str) -> None:
@@ -54,7 +54,7 @@ class Slots:
 
     __slots__ = ()
 
-    def __init__(self, **kwargs) -> "self":
+    def __init__(self, **kwargs) -> None:
         """
         Maps the user-defined kwargs to the instance attributes. If a
         subclass defines a `__slots__` list, then only variables with
@@ -190,7 +190,7 @@ class Namespace(Slots):
 
     __slots__ = ("__dict__",)
 
-    def __init__(self, mapping={}, **kwargs) -> "self":
+    def __init__(self, mapping={}, **kwargs) -> None:
         """
         Maps the user-defined mapping & kwargs to the Namespace's
         instance dictionary.
