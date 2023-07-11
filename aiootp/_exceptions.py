@@ -63,7 +63,7 @@ class Metadata:
 
     __slots__ = ("size", "type")
 
-    def __init__(self, value: t.Any) -> "self":
+    def __init__(self, value: t.Any) -> None:
         self.type = value.__class__
         self.size = len(value) if hasattr(value, "__len__") else None
 
@@ -138,7 +138,7 @@ class AsyncRelayExceptions:
         if_except: t.Union[None, t.Callable[[Exception], t.Any]] = None,
         if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
         finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-    ) -> "self":
+    ) -> None:
         async def placeholder(*a, **kw):
             return self._read_me
 
@@ -176,7 +176,7 @@ class RelayExceptions:
         if_except: t.Union[None, t.Callable[[Exception], t.Any]] = None,
         if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
         finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-    ) -> "self":
+    ) -> None:
         def placeholder(*a, **kw):
             return self._read_me
 
