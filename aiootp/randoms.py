@@ -1089,8 +1089,9 @@ class GUID(SequenceID):
         Stores an instance clock which derives a pseudo-random value to,
         as a simple mask, be added to the times used to create GUIDs.
         """
+        prime = PRIMES[8 * SAFE_TIMESTAMP_BYTES - 1][-1]
         mask = hash_bytes(Domains.GUID_CLOCK_MASK, key=salt)
-        mask = int.from_bytes(mask, BIG) % PRIMES[63][-1]
+        mask = int.from_bytes(mask, BIG) % prime
         self._clock = MaskedClock(NANOSECONDS, mask=mask, epoch=EPOCH_NS)
 
     def _install_node_number(self, node_number: int, size: int) -> None:
