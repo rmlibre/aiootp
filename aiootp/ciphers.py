@@ -252,7 +252,7 @@ class Chunky2048KDFs:
         int_bytes=1,
     )
 
-    def __init__(self, summary: bytes, *, key: bytes) -> "self":
+    def __init__(self, summary: bytes, *, key: bytes) -> None:
         """
         Stores the full metadata & values summary provided by the
         `KeyAADBundle`.
@@ -260,7 +260,7 @@ class Chunky2048KDFs:
         self._summary = summary
         self._key = key
 
-    def __iter__(self) -> "self":
+    def __iter__(self) -> t.Iterable[SHAKE_128_TYPE]:
         """
         Yields a set of fresh seed, left & right KDFs & the shmac for
         the instance's given summary.
@@ -419,7 +419,7 @@ class KeyAADBundle:
         aad: bytes = DEFAULT_AAD,
         iv: bytes = b"",
         allow_dangerous_determinism: bool = False,
-    ) -> "self":
+    ) -> None:
         """
         Stores the ``key``, ``salt`` & ``aad`` in a private object, &
         initializes the keys & KDFs for this permutation of the values.
@@ -439,7 +439,7 @@ class KeyAADBundle:
         )
         self._initialize_keys()
 
-    def __iter__(self) -> "self":
+    def __iter__(self) -> t.Iterable[bytes]:
         """
         Yields the instance's salt, authenticated associated data then
         the IV, along with the contextual data the cipher is being run
@@ -869,7 +869,7 @@ class StreamHMAC:
     InvalidBlockID = InvalidBlockID
     InvalidSHMAC = InvalidSHMAC
 
-    def __init__(self, key_bundle: KeyAADBundle) -> "self":
+    def __init__(self, key_bundle: KeyAADBundle) -> None:
         """
         Begins a stateful hash object that's used to calculate a keyed-
         message authentication code referred to as a shmac, as well as
@@ -1984,7 +1984,7 @@ class AsyncCipherStream(metaclass=AsyncInit):
         *,
         salt: t.Optional[bytes] = None,
         aad: bytes = DEFAULT_AAD,
-    ) -> "self":
+    ) -> None:
         """
         Derives encryption keys & initializes a mutable buffer to
         automatically prepare plaintext given by the user with the
@@ -2257,7 +2257,7 @@ class CipherStream:
         *,
         salt: t.Optional[bytes] = None,
         aad: bytes = DEFAULT_AAD,
-    ) -> "self":
+    ) -> None:
         """
         Derives encryption keys & initializes a mutable buffer to
         automatically prepare plaintext given by the user with the
@@ -2533,7 +2533,7 @@ class AsyncDecipherStream(metaclass=AsyncInit):
         aad: bytes = DEFAULT_AAD,
         iv: bytes,
         ttl: int = DEFAULT_TTL,
-    ) -> "self":
+    ) -> None:
         """
         Derives decryption keys & initializes mutable buffers to
         automatically prepare ciphertext & stage plaintext for retrival
@@ -2848,7 +2848,7 @@ class DecipherStream:
         aad: bytes = DEFAULT_AAD,
         iv: bytes,
         ttl: int = DEFAULT_TTL,
-    ) -> "self":
+    ) -> None:
         """
         Derives decryption keys & initializes mutable buffers to
         automatically prepare ciphertext & stage plaintext for retrival
@@ -3532,7 +3532,7 @@ class Chunky2048:
     InvalidSHMAC = InvalidSHMAC
     TimestampExpired = TimestampExpired
 
-    def __init__(self, key: bytes) -> "self":
+    def __init__(self, key: bytes) -> None:
         """
         Creates an efficient object which manages a main encryption
         ``key`` for use in the `Chunky2048` cipher.
