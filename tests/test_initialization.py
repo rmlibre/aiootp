@@ -245,8 +245,8 @@ atest_token_ciphertext = run(cipher.amake_token(plaintext_bytes, aad=aad))
 aexpired_passcrypt_hash = run(Passcrypt.ahash_passphrase(passphrase_0, mb=1, cores=1))
 expired_passcrypt_hash = Passcrypt.hash_passphrase(passphrase_0, mb=1, cores=1)
 
-clock = Clock(SECONDS)
-ns_clock = Clock(NANOSECONDS)
+clock = Clock(SECONDS, epoch=EPOCH_NS)
+ns_clock = Clock(NANOSECONDS, epoch=EPOCH_NS)
 time_start = clock.make_timestamp()
 
 
