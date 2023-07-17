@@ -1014,32 +1014,25 @@ class Hasher:
         return new_self
 
     async def ahash(
-        self,
-        *data: t.Iterable[bytes],
-        on: bytes = b"",
-        size: int = None,
+        self, *data: t.Iterable[bytes], size: int = None
     ) -> bytes:
         """
         Receives any number of arguments of bytes type ``data`` &
-        updates the instance with them all sequentially.
+        updates the instance with them all sequentially & canonically
+        encoded.
         """
-        await asleep()
-        self.update(on.join(data))
+        self.update(await acanonical_pack(*data, blocksize=self.block_size))
         if size:
             return self.digest(size)
         return self.digest()
 
-    def hash(
-        self,
-        *data: t.Iterable[bytes],
-        on: bytes = b"",
-        size: int = None,
-    ) -> bytes:
+    def hash(self, *data: t.Iterable[bytes], size: int = None) -> bytes:
         """
         Receives any number of arguments of bytes type ``data`` &
-        updates the instance with them all sequentially.
+        updates the instance with them all sequentially & canonically
+        encoded.
         """
-        self.update(on.join(data))
+        self.update(canonical_pack(*data, blocksize=self.block_size))
         if size:
             return self.digest(size)
         return self.digest()
@@ -1417,7 +1410,6 @@ class BytesIO:
     _SHMAC: str = SHMAC
     _SALT: str = SALT
     _IV: str = IV
-    _EQUAL_SIGN: bytes = b"%3D"
     _BLOCKSIZE: int = BLOCKSIZE
     _HEADER_BYTES: int = HEADER_BYTES
 
