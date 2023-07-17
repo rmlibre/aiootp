@@ -100,6 +100,38 @@ def test_csprng():
     )
 
 
+async def test_async_generate_raw_guid_constraints_upheld():
+    for size in range(0, MAX_RAW_GUID_BYTES + 10, 2):
+        for timestamp_bytes in range(0, 16, 2):
+            valid_size = MIN_RAW_GUID_BYTES <= size <= MAX_RAW_GUID_BYTES
+            valid_timestamp_bytes = timestamp_bytes <= size
+            try:
+                guid = await randoms._agenerate_raw_guid(size, timestamp_bytes=timestamp_bytes)
+            except ValueError:
+                assert (not valid_size) or (not valid_timestamp_bytes)
+            except OverflowError:
+                min_timestamp_bytes = ceil(ns_clock.time().bit_length() / 8)
+                assert timestamp_bytes < min_timestamp_bytes
+            else:
+                assert valid_size and valid_timestamp_bytes
+
+
+def test_generate_raw_guid_constraints_upheld():
+    for size in range(0, MAX_RAW_GUID_BYTES + 10, 2):
+        for timestamp_bytes in range(0, 16, 2):
+            valid_size = MIN_RAW_GUID_BYTES <= size <= MAX_RAW_GUID_BYTES
+            valid_timestamp_bytes = timestamp_bytes <= size
+            try:
+                guid = randoms._generate_raw_guid(size, timestamp_bytes=timestamp_bytes)
+            except ValueError:
+                assert (not valid_size) or (not valid_timestamp_bytes)
+            except OverflowError:
+                min_timestamp_bytes = ceil(ns_clock.time().bit_length() / 8)
+                assert timestamp_bytes < min_timestamp_bytes
+            else:
+                assert valid_size and valid_timestamp_bytes
+
+
 async def test_guids_uniqueness():
     assert 16 == len(GUID().new())
     assert 16 == len(await GUID().anew())
