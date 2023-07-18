@@ -297,58 +297,6 @@ class KeyAADBundle:
             self._iv_given_by_user = False
             return False
 
-    @classmethod
-    async def aunsafe(
-        cls,
-        key: bytes,
-        salt: bytes = b"",
-        aad: bytes = DEFAULT_AAD,
-        iv: bytes = b"",
-    ) -> "self":
-        """
-        Allows instances to be used in the `(a)bytes_keys` coroutines
-        without checking for unsafe reuse or checking for the
-        correctness of the ``key``, ``salt``, ``aad`` & ``iv`` values.
-
-        This is useful for when the coroutines are needed as CSPRNGs,
-        or KDFs, outside of the context of the `Chunky2048` cipher.
-        --------
-        WARNING: DO NOT use this initializer within other `Chunky2048`
-        -------- cipher interfaces which expect a `key_bundle`.
-        """
-        try:
-            await asleep()
-            return cls.unsafe(key, salt, aad, iv)
-        finally:
-            await asleep()
-
-    @classmethod
-    def unsafe(
-        cls,
-        key: bytes,
-        salt: bytes = b"",
-        aad: bytes = DEFAULT_AAD,
-        iv: bytes = b"",
-    ) -> "self":
-        """
-        Allows instances to be used in the `(a)bytes_keys` coroutines
-        without checking for unsafe reuse or checking for the
-        correctness of the ``key``, ``salt``, ``aad`` & ``iv`` values.
-
-        This is useful for when the coroutines are needed as CSPRNGs,
-        or KDFs, outside of the context of the `Chunky2048` cipher.
-        --------
-        WARNING: DO NOT use this initializer within other `Chunky2048`
-        -------- cipher interfaces which expect a `key_bundle`.
-        """
-        self = cls.__new__(cls)
-        self._iv: bytes = iv
-        self._mode = KeyAADMode()
-        self._registers = NoRegisters()
-        self._bundle = KeySaltAAD(key, salt, aad)
-        self._initialize_keys()
-        return self
-
     def __init__(
         self,
         key: t.Optional[bytes] = None,
