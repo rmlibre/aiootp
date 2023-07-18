@@ -402,12 +402,12 @@ class AsyncDatabase(metaclass=AsyncInit):
         self.__root_kdf = kdf = DBKDF(DBDomains.ROOT_KDF, key=key)
         self._root_filename = await self._aencode_filename(
             kdf.shake_128(
-                FILENAME_HASH_BYTES, context=DBDomains.ROOT_FILENAME
+                FILENAME_HASH_BYTES, aad=DBDomains.ROOT_FILENAME
             )
         )
         self._root_salt_filename = await self._aencode_filename(
             kdf.shake_128(
-                FILENAME_HASH_BYTES, context=DBDomains.ROOT_SALT_FILENAME
+                FILENAME_HASH_BYTES, aad=DBDomains.ROOT_SALT_FILENAME
             )
         )
 
@@ -636,10 +636,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         Derives the filename hash given a user-defined ``tag``.
         """
         key = self.__kdf.prf_key
-        context = canonical_pack(
+        aad = canonical_pack(
             DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
         )
-        filename = hmac.new(key, context, sha3_256).digest()
+        filename = hmac.new(key, aad, sha3_256).digest()
         return self._encode_filename(filename[FILENAME_HASH_SLICE])
 
     @alru_cache(maxsize=256)
@@ -648,10 +648,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         Derives the filename hash given a user-defined ``tag``.
         """
         key = self.__kdf.prf_key
-        context = await acanonical_pack(
+        aad = await acanonical_pack(
             DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
         )
-        filename = hmac.new(key, context, sha3_256).digest()
+        filename = hmac.new(key, aad, sha3_256).digest()
         return self._encode_filename(filename[FILENAME_HASH_SLICE])
 
     async def amake_hmac(
@@ -664,10 +664,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         if not data:
             raise Issue.no_value_specified("data")
         key = self.__kdf.auth_key
-        context = await acanonical_pack(
+        aad = await acanonical_pack(
             DBDomains.HMAC, aad, *data, blocksize=SHA3_256_BLOCKSIZE
         )
-        return hmac.new(key, context, sha3_256).digest()
+        return hmac.new(key, aad, sha3_256).digest()
 
     async def atest_hmac(
         self,
@@ -928,8 +928,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Derives the metatag's database key given a user-defined ``tag``.
         """
-        context = DBDomains.METATAG_KEY
-        return await self.__kdf.asha3_512(tag.encode(), context=context)
+        aad = DBDomains.METATAG_KEY
+        return await self.__kdf.asha3_512(tag.encode(), aad=aad)
 
     async def ametatag(
         self, tag: str, *, preload: bool = False, silent: bool = False
@@ -1490,12 +1490,12 @@ class Database:
         self.__root_kdf = kdf = DBKDF(DBDomains.ROOT_KDF, key=key)
         self._root_filename = self._encode_filename(
             kdf.shake_128(
-                FILENAME_HASH_BYTES, context=DBDomains.ROOT_FILENAME
+                FILENAME_HASH_BYTES, aad=DBDomains.ROOT_FILENAME
             )
         )
         self._root_salt_filename = self._encode_filename(
             kdf.shake_128(
-                FILENAME_HASH_BYTES, context=DBDomains.ROOT_SALT_FILENAME
+                FILENAME_HASH_BYTES, aad=DBDomains.ROOT_SALT_FILENAME
             )
         )
 
@@ -1708,10 +1708,10 @@ class Database:
         Derives the filename hash given a user-defined ``tag``.
         """
         key = self.__kdf.prf_key
-        context = canonical_pack(
+        aad = canonical_pack(
             DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
         )
-        filename = hmac.new(key, context, sha3_256).digest()
+        filename = hmac.new(key, aad, sha3_256).digest()
         return self._encode_filename(filename[FILENAME_HASH_SLICE])
 
     def make_hmac(
@@ -1724,10 +1724,10 @@ class Database:
         if not data:
             raise Issue.no_value_specified("data")
         key = self.__kdf.auth_key
-        context = canonical_pack(
+        aad = canonical_pack(
             DBDomains.HMAC, aad, *data, blocksize=SHA3_256_BLOCKSIZE
         )
-        return hmac.new(key, context, sha3_256).digest()
+        return hmac.new(key, aad, sha3_256).digest()
 
     def test_hmac(
         self,
@@ -1987,8 +1987,8 @@ class Database:
         """
         Derives the metatag's database key given a user-defined ``tag``.
         """
-        context = DBDomains.METATAG_KEY
-        return self.__kdf.sha3_512(tag.encode(), context=context)
+        aad = DBDomains.METATAG_KEY
+        return self.__kdf.sha3_512(tag.encode(), aad=aad)
 
     def metatag(
         self, tag: str, *, preload: bool = False, silent: bool = False
