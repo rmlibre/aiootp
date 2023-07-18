@@ -975,35 +975,40 @@ class Hasher:
     hashing object passed in during initialization.
     """
 
-    __slots__ = (
-        "_obj",
-        "block_size",
-        "digest",
-        "digest_size",
-        "hexdigest",
-        "name",
-        "update",
-    )
+    __slots__ = ("_obj",)
 
     xi_mix = xi_mix
     axi_mix = axi_mix
 
-    def __init__(
-        self, data: bytes = b"", *, obj: t.Any = sha3_512
-    ) -> None:
+    def __init__(self, data: bytes = b"", *, obj: t.Any = sha3_512) -> None:
         """
         Copies over the object dictionary of the ``obj`` hashing object.
         """
-        if data:
-            self._obj = obj = obj(data)
-        else:
-            self._obj = obj = obj()
-        self.block_size = obj.block_size
-        self.digest = obj.digest
-        self.digest_size = obj.digest_size
-        self.hexdigest = obj.hexdigest
-        self.name = obj.name
-        self.update = obj.update
+        self._obj = obj(data)
+
+    @property
+    def name(self) -> str:
+        return self._obj.name
+
+    @property
+    def block_size(self) -> int:
+        return self._obj.block_size
+
+    @property
+    def digest_size(self) -> int:
+        return self._obj.digest_size
+
+    @property
+    def update(self) -> callable:
+        return self._obj.update
+
+    @property
+    def digest(self) -> callable:
+        return self._obj.digest
+
+    @property
+    def hexdigest(self) -> callable:
+        return self._obj.hexdigest
 
     def copy(self) -> "cls":
         """
@@ -1013,29 +1018,35 @@ class Hasher:
         new_self._obj = self._obj.copy()
         return new_self
 
-    async def ahash(
-        self, *data: t.Iterable[bytes], size: int = None
-    ) -> bytes:
+    async def ahash(self, *data: t.Iterable[bytes], size: int = 0) -> bytes:
         """
         Receives any number of arguments of bytes type ``data`` &
         updates the instance with them all sequentially & canonically
         encoded.
         """
-        self.update(await acanonical_pack(*data, blocksize=self.block_size))
+        kw = dict(blocksize=self.block_size)
         if size:
+            digest_size = size.to_bytes(8, BIG)
+            self.update(await acanonical_pack(digest_size, *data, **kw))
             return self.digest(size)
-        return self.digest()
+        else:
+            self.update(await acanonical_pack(*data, **kw))
+            return self.digest()
 
-    def hash(self, *data: t.Iterable[bytes], size: int = None) -> bytes:
+    def hash(self, *data: t.Iterable[bytes], size: int = 0) -> bytes:
         """
         Receives any number of arguments of bytes type ``data`` &
         updates the instance with them all sequentially & canonically
         encoded.
         """
-        self.update(canonical_pack(*data, blocksize=self.block_size))
+        kw = dict(blocksize=self.block_size)
         if size:
+            digest_size = size.to_bytes(8, BIG)
+            self.update(canonical_pack(digest_size, *data, **kw))
             return self.digest(size)
-        return self.digest()
+        else:
+            self.update(canonical_pack(*data, **kw))
+            return self.digest()
 
 
 class Padding:
