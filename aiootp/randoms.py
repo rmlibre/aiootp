@@ -301,7 +301,7 @@ async def _add_to_pool(
 
 # initialize the global hashing objects that also collect entropy
 _entropy = Hasher(token_bytes(304) + b"".join(_pool))
-_xof = Hasher(token_bytes(208) + b"".join(_pool), obj=shake_256)
+_xof = Hasher(token_bytes(280) + b"".join(_pool), obj=shake_256)
 
 # avert event loop clashes
 run = asyncio.new_event_loop().run_until_complete
@@ -310,6 +310,9 @@ run = asyncio.new_event_loop().run_until_complete
 random = _random.Random(token_bytes(2500))
 uniform = random.uniform
 unique_range = random.randrange
+ns_clock = MaskedClock(
+    NANOSECONDS, mask=token_bits(256) % PRIMES[63][-1], epoch=EPOCH_NS
+)
 
 _mod = PRIMES[256][-1]
 _offset = token_bits(256)
@@ -472,7 +475,7 @@ async def arandom_number_generator(
 
         async def start_generator() -> None:
             tasks = deque()
-            rounds = 8 if not freshness else freshness
+            rounds = 8 if (freshness < 1) else freshness
             for _ in range(rounds):
                 await asleep()
                 tasks.appendleft(modular_multiplication())
@@ -617,7 +620,7 @@ def random_number_generator(
 
         async def start_generator() -> None:
             tasks = deque()
-            rounds = 8 if not freshness else freshness
+            rounds = 8 if (freshness < 1) else freshness
             for _ in range(rounds):
                 await asleep()
                 tasks.appendleft(modular_multiplication())
@@ -718,11 +721,16 @@ async def agenerate_raw_guid(
     information is NOT being touched AND the time information DOES NOT
     harm anonymity or security!
     """
-    if size < 10 or size > 64:
-        raise Issue.invalid_value("guid size", "<10 or >64")
+    random_bytes = size - timestamp_bytes
+    if (MIN_RAW_GUID_BYTES > size) or (size > MAX_RAW_GUID_BYTES):
+        raise Issue.invalid_value(
+            "guid size", f"<{MIN_RAW_GUID_BYTES} or >{MAX_RAW_GUID_BYTES}"
+        )
+    elif 0 > random_bytes:
+        raise Issue.invalid_value("timestamp bytes", "> guid size")
     return (
         await clock.amake_timestamp(size=timestamp_bytes)
-        + await atoken_bytes(size - timestamp_bytes)
+        + await atoken_bytes(random_bytes)
     )
 
 
@@ -749,11 +757,16 @@ def generate_raw_guid(
     information is NOT being touched AND the time information DOES NOT
     harm anonymity or security!
     """
-    if size < 10 or size > 64:
-        raise Issue.invalid_value("guid size", "<10 or >64")
+    random_bytes = size - timestamp_bytes
+    if (MIN_RAW_GUID_BYTES > size) or (size > MAX_RAW_GUID_BYTES):
+        raise Issue.invalid_value(
+            "guid size", f"<{MIN_RAW_GUID_BYTES} or >{MAX_RAW_GUID_BYTES}"
+        )
+    elif 0 > random_bytes:
+        raise Issue.invalid_value("timestamp bytes", "> guid size")
     return (
         clock.make_timestamp(size=timestamp_bytes)
-        + token_bytes(size - timestamp_bytes)
+        + token_bytes(random_bytes)
     )
 
 
@@ -1403,35 +1416,39 @@ def generate_key(size: int = KEY_BYTES, *, freshness: int = 8) -> bytes:
 
 
 async def acsprng(
-    entropy: t.Any = run(arandom_number_generator(freshness=1))
+    entropy: t.Any = run(arandom_number_generator(32, freshness=1))
 ) -> bytes:
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
     return a 64-byte cryptographically secure pseudo-random value.
     """
-    if not entropy:
-        entropy = _pool[0]
-    elif entropy.__class__ is not bytes:
-        entropy = repr(entropy).encode() + _pool[0]
-    token = await atoken_bytes(32)
-    output = await _entropy.ahash(token, entropy)
+    if entropy.__class__ is not bytes:
+        entropy = _pool[0] + repr(entropy).encode()
+    else:
+        entropy = _pool[0] + entropy
+    token = await atoken_bytes(32) + ns_clock.make_timestamp()
+    _entropy.update(token + entropy)
     thread_safe_entropy = _entropy.copy()
-    return await thread_safe_entropy.ahash(token, entropy, output)
+    thread_safe_entropy.update(token + entropy + _entropy.digest())
+    return thread_safe_entropy.digest()
 
 
-def csprng(entropy: t.Any = random_number_generator(freshness=1)) -> bytes:
+def csprng(
+    entropy: t.Any = random_number_generator(32, freshness=1)
+) -> bytes:
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
     return a 64-byte cryptographically secure pseudo-random value.
     """
-    if not entropy:
-        entropy = _pool[0]
-    elif entropy.__class__ is not bytes:
-        entropy = repr(entropy).encode() + _pool[0]
-    token = token_bytes(32)
-    output = _entropy.hash(token, entropy)
+    if entropy.__class__ is not bytes:
+        entropy = _pool[0] + repr(entropy).encode()
+    else:
+        entropy = _pool[0] + entropy
+    token = token_bytes(32) + ns_clock.make_timestamp()
+    _entropy.update(token + entropy)
     thread_safe_entropy = _entropy.copy()
-    return thread_safe_entropy.hash(token, entropy, output)
+    thread_safe_entropy.update(token + entropy + _entropy.digest())
+    return thread_safe_entropy.digest()
 
 
 extras = dict(
