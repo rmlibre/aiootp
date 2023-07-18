@@ -58,22 +58,26 @@ class DBDomains:
 
     __slots__ = ()
 
-    _encode: t.Callable = Domains.encode_constant
+    _encode: t.Callable = lambda constant, size: Domains.encode_constant(
+        constant, domain=b"encoded_database_constant:", size=size
+    )
 
-    ROOT_KDF: bytes = _encode("database_root_kdf", 16)
-    ROOT_FILENAME: bytes = _encode("database_root_filename", 16)
-    ROOT_SALT: bytes = _encode("database_root_salt", 16)
-    ROOT_SALT_FILENAME: bytes = _encode("database_root_salt_filename", 16)
-    KDF: bytes = _encode("database_kdf", 16)
-    USER_KDF: bytes = _encode("database_user_kdf", 16)
-    METATAG: bytes = _encode("database_metatag", 16)
-    HMAC: bytes = _encode("database_derive_hmac", 16)
-    PROFILE_TOKENS: bytes = _encode("database_profile_tokens", 16)
-    MANIFEST: bytes = _encode("database_manifest", 16)
-    FILENAME: bytes = _encode("database_filename", 16)
-    FILE_KEY: bytes = _encode("database_file_encryption_key", 16)
-    METATAG_KEY: bytes = _encode("database_metatag_key", 16)
-    DEVICE_SALT: bytes = _encode(b"database_device_salt", 16)
+    ROOT_KDF: bytes = _encode("root_kdf", 16)
+    ROOT_FILENAME: bytes = _encode("root_filename", 16)
+    ROOT_SALT: bytes = _encode("root_salt", 16)
+    ROOT_SALT_FILENAME: bytes = _encode("root_salt_filename", 16)
+    KDF: bytes = _encode("salted_kdf", 16)
+    USER_KDF: bytes = _encode("user_kdf", 16)
+    METATAG: bytes = _encode("metatag", 16)
+    HMAC: bytes = _encode("derive_hmac", 16)
+    GIST: bytes = _encode("profile_credential_gist", 16)
+    TMP_PREKEY: bytes = _encode("temporary_profile_prekey", 16)
+    PROFILE_LOGIN_KEY: bytes = _encode("profile_login_key", 16)
+    MANIFEST: bytes = _encode("manifest", 16)
+    FILENAME: bytes = _encode("filename", 16)
+    METATAG_KEY: bytes = _encode("metatag_key", 16)
+    DEVICE_SALT: bytes = _encode(b"device_salt", 16)
+    CIPHER: bytes = _encode("cipher", 16)
 
 
 class DBKDF(DomainKDF):
@@ -229,7 +233,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         safely open a profile database.
         """
         tokens.login_key = await Passcrypt.anew(
-            tokens._tmp_key, tokens._salt, **passcrypt_settings
+            tokens._tmp_key,
+            tokens._salt,
+            aad=DBDomains.PROFILE_LOGIN_KEY,
+            **passcrypt_settings,
         )
         tokens._tmp_key = None
         return tokens.login_key
@@ -252,7 +259,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         device_salt = await cls._asummon_device_salt(path=path)
         gist = await ahash_bytes(
-            DBDomains.PROFILE_TOKENS,
+            DBDomains.GIST,
             device_salt,
             salt,
             aad,
@@ -261,10 +268,10 @@ class AsyncDatabase(metaclass=AsyncInit):
             key=device_salt,
             hasher=sha3_512,
         )
-        tokens = ProfileTokens(
-            await ahash_bytes(gist, key=passphrase, hasher=sha3_512),
-            gist=gist,
+        tmp_key = await ahash_bytes(
+            DBDomains.TMP_PREKEY, gist, key=passphrase, hasher=sha3_512
         )
+        tokens = ProfileTokens(tmp_key=tmp_key, gist=gist)
         await cls._asummon_profile_salt(tokens, path=path)
         await cls._agenerate_profile_login_key(tokens, **passcrypt_settings)
         return tokens
@@ -629,7 +636,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         Derives the filename hash given a user-defined ``tag``.
         """
         key = self.__kdf.prf_key
-        context = DBDomains.FILENAME + tag.encode()
+        context = canonical_pack(
+            DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
+        )
         filename = hmac.new(key, context, sha3_256).digest()
         return self._encode_filename(filename[FILENAME_HASH_SLICE])
 
@@ -638,9 +647,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Derives the filename hash given a user-defined ``tag``.
         """
-        await asleep()
         key = self.__kdf.prf_key
-        context = DBDomains.FILENAME + tag.encode()
+        context = await acanonical_pack(
+            DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
+        )
         filename = hmac.new(key, context, sha3_256).digest()
         return self._encode_filename(filename[FILENAME_HASH_SLICE])
 
@@ -653,8 +663,10 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         if not data:
             raise Issue.no_value_specified("data")
-        key = self.__kdf.auth_key + aad
-        context = await acanonical_pack(DBDomains.HMAC, aad, *data)
+        key = self.__kdf.auth_key
+        context = await acanonical_pack(
+            DBDomains.HMAC, aad, *data, blocksize=SHA3_256_BLOCKSIZE
+        )
         return hmac.new(key, context, sha3_256).digest()
 
     async def atest_hmac(
@@ -685,7 +697,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         ``filename`` value & returns the ciphertext bytes.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await abytes_encrypt(plaintext, key, aad=aad)
 
     async def ajson_encrypt(
@@ -701,7 +713,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         bytes.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await ajson_encrypt(plaintext, key, aad=aad)
 
     async def amake_token(
@@ -717,7 +729,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         ciphertext bytes.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await Chunky2048(key).amake_token(plaintext, aad=aad)
 
     async def abytes_decrypt(
@@ -735,7 +747,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         decrypted message.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await abytes_decrypt(ciphertext, key, aad=aad, ttl=ttl)
 
     async def ajson_decrypt(
@@ -753,7 +765,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         of the decrypted message.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await ajson_decrypt(ciphertext, key, aad=aad, ttl=ttl)
 
     async def aread_token(
@@ -771,7 +783,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         decrypted message.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await Chunky2048(key).aread_token(token, aad=aad, ttl=ttl)
 
     async def _asave_ciphertext(
@@ -916,8 +928,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Derives the metatag's database key given a user-defined ``tag``.
         """
-        context = DBDomains.METATAG_KEY + tag.encode()
-        return await self.__kdf.ashake_256(DBKDF._key_size, context=context)
+        context = DBDomains.METATAG_KEY
+        return await self.__kdf.asha3_512(tag.encode(), context=context)
 
     async def ametatag(
         self, tag: str, *, preload: bool = False, silent: bool = False
@@ -1309,7 +1321,10 @@ class Database:
         safely open a profile database.
         """
         tokens.login_key = Passcrypt.new(
-            tokens._tmp_key, tokens._salt, **passcrypt_settings
+            tokens._tmp_key,
+            tokens._salt,
+            aad=DBDomains.PROFILE_LOGIN_KEY,
+            **passcrypt_settings,
         )
         tokens._tmp_key = None
         return tokens.login_key
@@ -1332,7 +1347,7 @@ class Database:
         """
         device_salt = cls._summon_device_salt(path=path)
         gist = hash_bytes(
-            DBDomains.PROFILE_TOKENS,
+            DBDomains.GIST,
             device_salt,
             salt,
             aad,
@@ -1341,10 +1356,10 @@ class Database:
             key=device_salt,
             hasher=sha3_512,
         )
-        tokens = ProfileTokens(
-            tmp_key=hash_bytes(gist, key=passphrase, hasher=sha3_512),
-            gist=gist,
+        tmp_key = hash_bytes(
+            DBDomains.TMP_PREKEY, gist, key=passphrase, hasher=sha3_512
         )
+        tokens = ProfileTokens(tmp_key=tmp_key, gist=gist)
         cls._summon_profile_salt(tokens, path=path)
         cls._generate_profile_login_key(tokens, **passcrypt_settings)
         return tokens
@@ -1693,7 +1708,9 @@ class Database:
         Derives the filename hash given a user-defined ``tag``.
         """
         key = self.__kdf.prf_key
-        context = DBDomains.FILENAME + tag.encode()
+        context = canonical_pack(
+            DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
+        )
         filename = hmac.new(key, context, sha3_256).digest()
         return self._encode_filename(filename[FILENAME_HASH_SLICE])
 
@@ -1706,8 +1723,10 @@ class Database:
         """
         if not data:
             raise Issue.no_value_specified("data")
-        key = self.__kdf.auth_key + aad
-        context = canonical_pack(DBDomains.HMAC, aad, *data)
+        key = self.__kdf.auth_key
+        context = canonical_pack(
+            DBDomains.HMAC, aad, *data, blocksize=SHA3_256_BLOCKSIZE
+        )
         return hmac.new(key, context, sha3_256).digest()
 
     def test_hmac(
@@ -1738,7 +1757,7 @@ class Database:
         ``filename`` value & returns the ciphertext bytes.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return bytes_encrypt(plaintext, key, aad=aad)
 
     def json_encrypt(
@@ -1754,7 +1773,7 @@ class Database:
         bytes.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return json_encrypt(plaintext, key, aad=aad)
 
     def make_token(
@@ -1770,7 +1789,7 @@ class Database:
         ciphertext bytes.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return Chunky2048(key).make_token(plaintext, aad=aad)
 
     def bytes_decrypt(
@@ -1788,7 +1807,7 @@ class Database:
         decrypted message.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return bytes_decrypt(ciphertext, key, aad=aad, ttl=ttl)
 
     def json_decrypt(
@@ -1806,7 +1825,7 @@ class Database:
         of the decrypted message.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return json_decrypt(ciphertext, key=key, aad=aad, ttl=ttl)
 
     def read_token(
@@ -1824,7 +1843,7 @@ class Database:
         decrypted message.
         """
         key = self.__kdf.aead_key
-        aad = canonical_pack(DBDomains.FILE_KEY, filename.encode(), aad)
+        aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return Chunky2048(key).read_token(token, aad=aad, ttl=ttl)
 
     def _save_ciphertext(self, filename: str, ciphertext: bytes) -> None:
@@ -1968,8 +1987,8 @@ class Database:
         """
         Derives the metatag's database key given a user-defined ``tag``.
         """
-        context = DBDomains.METATAG_KEY + tag.encode()
-        return self.__kdf.shake_256(DBKDF._key_size, context=context)
+        context = DBDomains.METATAG_KEY
+        return self.__kdf.sha3_512(tag.encode(), context=context)
 
     def metatag(
         self, tag: str, *, preload: bool = False, silent: bool = False
