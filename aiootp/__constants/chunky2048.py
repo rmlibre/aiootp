@@ -13,7 +13,7 @@ __doc__  =  "Aggregated Chunky2048 constants."
 
 
 from math import ceil
-from hashlib import sha3_256, sha3_512, shake_128, shake_256
+from hashlib import shake_128
 
 
 # Config Constants:
