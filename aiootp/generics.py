@@ -1094,29 +1094,30 @@ class Padding:
     _SENTINEL_BYTES: int = PADDING_SENTINEL_BYTES
     _MIN_PADDING_BLOCKS: int = MIN_PADDING_BLOCKS
     _TIMESTAMP_BYTES: int = TIMESTAMP_BYTES
+    _TIMESTAMP_SLICE: int = TIMESTAMP_SLICE
     _INNER_HEADER_BYTES: int = INNER_HEADER_BYTES
     _INNER_HEADER_SLICE: slice = INNER_HEADER_SLICE
     _SIV_KEY_BYTES: int = SIV_KEY_BYTES
     _SIV_KEY_SLICE: slice = SIV_KEY_SLICE
 
-    @staticmethod
-    async def amake_timestamp() -> bytes:
+    @classmethod
+    async def amake_timestamp(cls) -> bytes:
         """
         Returns a 4-byte timestamp measured in seconds from the epoch
         set by the package (1672531200: Sun, 01 Jan 2023 00:00:00 UTC).
         """
-        return await clock.amake_timestamp(size=TIMESTAMP_BYTES)
+        return await clock.amake_timestamp(size=cls._TIMESTAMP_BYTES)
 
-    @staticmethod
-    def make_timestamp() -> bytes:
+    @classmethod
+    def make_timestamp(cls) -> bytes:
         """
         Returns a 4-byte timestamp measured in seconds from the epoch
         set by the package (1672531200: Sun, 01 Jan 2023 00:00:00 UTC).
         """
-        return clock.make_timestamp(size=TIMESTAMP_BYTES)
+        return clock.make_timestamp(size=cls._TIMESTAMP_BYTES)
 
-    @staticmethod
-    async def amake_siv_key() -> bytes:
+    @classmethod
+    async def amake_siv_key(cls) -> bytes:
         """
         Returns a 16-byte random bytestring. This value is used by the
         `SyntheticIV` class to ensure every encryption is randomized &
@@ -1125,10 +1126,10 @@ class Padding:
         """
         from .randoms import agenerate_siv_key
 
-        return await agenerate_siv_key(SIV_KEY_BYTES)
+        return await agenerate_siv_key(cls._SIV_KEY_BYTES)
 
-    @staticmethod
-    def make_siv_key() -> bytes:
+    @classmethod
+    def make_siv_key(cls) -> bytes:
         """
         Returns a 16-byte random bytestring. This value is used by the
         `SyntheticIV` class to ensure every encryption is randomized &
@@ -1137,7 +1138,7 @@ class Padding:
         """
         from .randoms import generate_siv_key
 
-        return generate_siv_key(SIV_KEY_BYTES)
+        return generate_siv_key(cls._SIV_KEY_BYTES)
 
     @classmethod
     async def astart_padding(cls) -> bytes:
@@ -1184,7 +1185,7 @@ class Padding:
         to be almost any message + random padding).
         """
         await asleep()
-        return token_bytes(cls._BLOCKSIZE * (1 + MIN_PADDING_BLOCKS))
+        return token_bytes(cls._BLOCKSIZE * (1 + cls._MIN_PADDING_BLOCKS))
 
     @classmethod
     def _make_extra_padding(cls) -> bytes:
@@ -1200,7 +1201,7 @@ class Padding:
         (satisfy verification tags) & appear plausible (they can be made
         to be almost any message + random padding).
         """
-        return token_bytes(cls._BLOCKSIZE * (1 + MIN_PADDING_BLOCKS))
+        return token_bytes(cls._BLOCKSIZE * (1 + cls._MIN_PADDING_BLOCKS))
 
     @classmethod
     async def _adata_measurements(cls, size: int) -> PlaintextMeasurements:
@@ -1210,14 +1211,14 @@ class Padding:
         usage.
         """
         await asleep()
-        blocksize = cls._BLOCKSIZE * (1 + MIN_PADDING_BLOCKS)
-        remainder = (INNER_HEADER_BYTES + size) % blocksize
+        blocksize = cls._BLOCKSIZE * (1 + cls._MIN_PADDING_BLOCKS)
+        remainder = (cls._INNER_HEADER_BYTES + size) % blocksize
         padding_size = blocksize - remainder
         sentinel = padding_size % blocksize
         return PlaintextMeasurements(
             padding_size=padding_size,
             pad_sentinel=sentinel.to_bytes(
-                PADDING_SENTINEL_BYTES, BIG
+                cls._SENTINEL_BYTES, BIG
             ),
         )
 
@@ -1229,13 +1230,13 @@ class Padding:
         usage.
         """
         blocksize = cls._BLOCKSIZE * (1 + MIN_PADDING_BLOCKS)
-        remainder = (INNER_HEADER_BYTES + size) % blocksize
+        remainder = (cls._INNER_HEADER_BYTES + size) % blocksize
         padding_size = blocksize - remainder
         sentinel = padding_size % blocksize
         return PlaintextMeasurements(
             padding_size=padding_size,
             pad_sentinel=sentinel.to_bytes(
-                PADDING_SENTINEL_BYTES, BIG
+                cls._SENTINEL_BYTES, BIG
             ),
         )
 
@@ -1360,9 +1361,9 @@ class Padding:
         - The appended 1-byte padding sentinel.
         """
         sentinel = int.from_bytes(
-            data[-PADDING_SENTINEL_BYTES :], BIG
+            data[-cls._SENTINEL_BYTES :], BIG
         )
-        blocksize = cls._BLOCKSIZE * (1 + MIN_PADDING_BLOCKS)
+        blocksize = cls._BLOCKSIZE * (1 + cls._MIN_PADDING_BLOCKS)
         return -(sentinel if sentinel else blocksize)
 
     @classmethod
@@ -1374,9 +1375,9 @@ class Padding:
         - The appended 1-byte padding sentinel.
         """
         sentinel = int.from_bytes(
-            data[-PADDING_SENTINEL_BYTES :], BIG
+            data[-cls._SENTINEL_BYTES :], BIG
         )
-        blocksize = cls._BLOCKSIZE * (1 + MIN_PADDING_BLOCKS)
+        blocksize = cls._BLOCKSIZE * (1 + cls._MIN_PADDING_BLOCKS)
         return -(sentinel if sentinel else blocksize)
 
     @classmethod
@@ -1388,7 +1389,7 @@ class Padding:
         - The appended variable-[0, 255]-byte random padding.
         - The appended 1-byte padding sentinel.
         """
-        clock.test_timestamp(data[TIMESTAMP_SLICE], ttl=ttl)
+        clock.test_timestamp(data[cls._TIMESTAMP_SLICE], ttl=ttl)
         start_index = await cls.adepadding_start_index()
         end_index = await cls.adepadding_end_index(data)
         return data[start_index:end_index]
@@ -1402,7 +1403,7 @@ class Padding:
         - The appended variable-[0, 255]-byte random padding.
         - The appended 1-byte padding sentinel.
         """
-        clock.test_timestamp(data[TIMESTAMP_SLICE], ttl=ttl)
+        clock.test_timestamp(data[cls._TIMESTAMP_SLICE], ttl=ttl)
         start_index = cls.depadding_start_index()
         end_index = cls.depadding_end_index(data)
         return data[start_index:end_index]
