@@ -172,9 +172,6 @@ async def test_chainable_methods():
     """
     Testing the chainable generator methods of the ``Comprende`` class.
     """
-    key_bundle = KeyAADBundle.unsafe(key, salt=salt, aad=aad)
-
-
     # Check timeout / atimeout
     time_sleep = 0.02
     time_limit = 0.01
@@ -213,14 +210,26 @@ async def test_chainable_methods():
 
 
     # Check feed / afeed
-    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
-    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_keys = bytes_keys(mock_kb)
+    @comprehension()
+    async def adrbg(key: bytes):
+        pool = sha3_256(key)
+        while True:
+            await asleep()
+            food = yield pool.digest()
+            pool.update(food if type(food) is bytes else repr(food).encode())
+
+    @comprehension()
+    def drbg(key: bytes):
+        pool = sha3_256(key)
+        while True:
+            food = yield pool.digest()
+            pool.update(food if type(food) is bytes else repr(food).encode())
+
+    mock_keys = drbg(key)
     mock_food = order([None], bytes_range(4))
-    async with abytes_keys(akb).afeed(abytes_range(5)) as altered_keys:
+    async with adrbg(key).afeed(abytes_range(5)) as altered_keys:
         first_loop = True
-        for original_key in bytes_keys(kb):
+        for original_key in drbg(key):
             altered_key = await altered_keys()
             if first_loop:
                 first_loop = False
@@ -230,14 +239,11 @@ async def test_chainable_methods():
             with _exceptions.ignore(StopIteration):
                 assert mock_keys(mock_food()) == altered_key
 
-    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
-    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_keys = bytes_keys(mock_kb)
+    mock_keys = drbg(key)
     mock_food = order([None], bytes_range(4))
-    with bytes_keys(kb).feed(bytes_range(5)) as altered_keys:
+    with drbg(key).feed(bytes_range(5)) as altered_keys:
         first_loop = True
-        async for original_key in abytes_keys(akb):
+        async for original_key in adrbg(key):
             altered_key = altered_keys()
             if first_loop:
                 first_loop = False
@@ -249,13 +255,10 @@ async def test_chainable_methods():
 
 
     # Check feed_self / afeed_self
-    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
-    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_keys = bytes_keys(mock_kb)
-    async with abytes_keys(akb).afeed_self()[:5] as altered_keys:
+    mock_keys = drbg(key)
+    async with adrbg(key).afeed_self()[:5] as altered_keys:
         first_loop = True
-        for original_key in bytes_keys(kb):
+        for original_key in drbg(key):
             altered_key = await altered_keys()
             if first_loop:
                 food = None
@@ -267,13 +270,10 @@ async def test_chainable_methods():
                 food = mock_keys(food)
                 assert food == altered_key
 
-    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
-    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_keys = bytes_keys(mock_kb)
-    with bytes_keys(kb).feed_self()[:5] as altered_keys:
+    mock_keys = drbg(key)
+    with drbg(key).feed_self()[:5] as altered_keys:
         first_loop = True
-        async for original_key in abytes_keys(akb):
+        async for original_key in adrbg(key):
             altered_key = altered_keys()
             if first_loop:
                 food = None
@@ -287,18 +287,14 @@ async def test_chainable_methods():
 
 
     # Check heappop / aheappop
-    akb = await KeyAADBundle.unsafe(key, salt).async_mode()
-    amock_kb = await KeyAADBundle.unsafe(key, salt).async_mode()
-    mock_keys = await abytes_keys(amock_kb)[:16].alist()
-    keys = await abytes_keys(akb).aheappop(16).alist()
+    mock_keys = await adrbg(key)[:16].alist()
+    keys = await adrbg(key).aheappop(16).alist()
     assert keys != mock_keys
     mock_keys.sort()
     assert keys == mock_keys
 
-    kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_kb = KeyAADBundle.unsafe(key, salt).sync_mode()
-    mock_keys = bytes_keys(mock_kb)[:16].list()
-    keys = bytes_keys(kb).heappop(16).list()
+    mock_keys = drbg(key)[:16].list()
+    keys = drbg(key).heappop(16).list()
     assert keys != mock_keys
     mock_keys.sort()
     assert keys == mock_keys
