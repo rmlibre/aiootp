@@ -144,5 +144,122 @@ async def test_canonical_packs():
     assert packing[PACK_PAD_INDEX] == pad[0]
 
 
+class TestHasher:
+    """
+    Implements unit tests for the Hasher class.
+    """
+
+    HASH_TYPES = {hasher for hasher in HASHER_TYPES.values() if hasher().digest_size}
+    XOF_TYPES = {xof for xof in HASHER_TYPES.values() if not xof().digest_size}
+
+    _test_data = (b"", b"test data")
+    _test_container_data = ((), (b"", b""), (b"test", b"data"))
+
+    def _test_cases(self, hasher_types: set, data_examples: tuple):
+        """
+        Abstract the nested iterating over test case permutations into
+        a generator.
+        """
+        for hasher in hasher_types:
+            for data in data_examples:
+                yield hasher, data
+
+    def test_xofs_work(self):
+        """
+        Ensure the class can be initialized & used identically to how
+        an XOF hashing object can be.
+        """
+        for hasher, data in self._test_cases(self.XOF_TYPES, self._test_data):
+            control = hasher(data)
+            test = Hasher(data, obj=hasher)
+
+            throw_data = f"{hasher=} {data=}"
+            assert control.digest(32) == test.digest(32), throw_data
+
+    def test_non_xofs_work(self):
+        """
+        Ensure the class can be initialized & used identically to how
+        a non-XOF hashing object can be.
+        """
+        for hasher, data in self._test_cases(self.HASH_TYPES, self._test_data):
+            control = hasher(data)
+            test = Hasher(data, obj=hasher)
+
+            throw_data = f"{hasher=} {data=}"
+            assert control.digest() == test.digest(), throw_data
+
+    async def test_xof_ahash_method(self):
+        """
+        The hash method canonically encodes the provided data along with
+        the requested size of digest as inputs to the instance object.
+        """
+        size = 32
+        size_as_bytes = size.to_bytes(8, BIG)
+        for hasher, data in self._test_cases(self.XOF_TYPES, self._test_container_data):
+            control = hasher()
+            control.update(canonical_pack(size_as_bytes, *data, blocksize=control.block_size))
+
+            test = Hasher(obj=hasher)
+
+            throw_data = f"{hasher=} {data=} {test=}"
+            assert control.digest(32) == await test.ahash(*data, size=32), throw_data
+
+            # Unique requested sizes change the entire associated digests
+            test_copy = test.copy()
+            assert test_copy.digest(16) == test.digest(16), throw_data
+            assert await test_copy.ahash(*data, size=16) == await test.ahash(*data, size=16), throw_data
+            assert await test_copy.ahash(*data, size=16) != (await test.ahash(*data, size=17))[:16], throw_data
+
+    def test_xof_hash_method(self):
+        """
+        The hash method canonically encodes the provided data along with
+        the requested size of digest as inputs to the instance object.
+        """
+        size = 32
+        size_as_bytes = size.to_bytes(8, BIG)
+        for hasher, data in self._test_cases(self.XOF_TYPES, self._test_container_data):
+            control = hasher()
+            control.update(canonical_pack(size_as_bytes, *data, blocksize=control.block_size))
+
+            test = Hasher(obj=hasher)
+
+            throw_data = f"{hasher=} {data=} {test=}"
+            assert control.digest(32) == test.hash(*data, size=32), throw_data
+
+            # Unique requested sizes change the entire associated digests
+            test_copy = test.copy()
+            assert test_copy.digest(16) == test.digest(16), throw_data
+            assert test_copy.hash(*data, size=16) == test.hash(*data, size=16)
+            assert test_copy.hash(*data, size=16) != test.hash(*data, size=17)[:16]
+
+    async def test_non_xof_ahash_method(self):
+        """
+        The ahash method canonically encodes the provided data as inputs
+        to the non-XOF instance object.
+        """
+        for hasher, data in self._test_cases(self.HASH_TYPES, self._test_container_data):
+            control = hasher()
+            control.update(canonical_pack(*data, blocksize=control.block_size))
+
+            test = Hasher(obj=hasher)
+
+            throw_data = f"{hasher=} {data=}"
+            assert control.digest() == await test.ahash(*data), throw_data
+
+    def test_non_xof_hash_method(self):
+        """
+        The hash method canonically encodes the provided data as inputs
+        to the non-XOF instance object.
+        """
+        for hasher, data in self._test_cases(self.HASH_TYPES, self._test_container_data):
+            control = hasher()
+            control.update(canonical_pack(*data, blocksize=control.block_size))
+
+            test = Hasher(obj=hasher)
+
+            throw_data = f"{hasher=} {data=}"
+            assert control.digest() == test.hash(*data), throw_data
+
+
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 
