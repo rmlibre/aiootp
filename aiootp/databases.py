@@ -399,6 +399,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         Derives the database's cryptographic root key material and the
         filename of the manifest ledger.
         """
+        if len(key) < MIN_KEY_BYTES:
+            raise KeyAADIssue.invalid_key()
         self.__root_kdf = kdf = DBKDF(DBDomains.ROOT_KDF, key=key)
         self._root_filename = await self._aencode_filename(
             kdf.shake_128(
@@ -1487,6 +1489,8 @@ class Database:
         Derives the database's cryptographic root key material and the
         filename of the manifest ledger.
         """
+        if len(key) < MIN_KEY_BYTES:
+            raise KeyAADIssue.invalid_key()
         self.__root_kdf = kdf = DBKDF(DBDomains.ROOT_KDF, key=key)
         self._root_filename = self._encode_filename(
             kdf.shake_128(
