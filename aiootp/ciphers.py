@@ -74,23 +74,6 @@ from .generics import fullblock_ljust, afullblock_ljust
 clock = Clock(SECONDS)
 
 
-async def atest_key_salt_aad(key: bytes, salt: bytes, aad: bytes) -> None:
-    """
-    Validates the main symmetric user ``key``, ephemeral ``salt``, &
-    ``aad`` authenticated associated data for the `Chunky2048` cipher.
-    """
-    if key.__class__ is not bytes:
-        raise Issue.value_must_be_type("main key", bytes)
-    elif len(key) < MIN_KEY_BYTES:
-        raise KeyAADIssue.invalid_key()
-    elif salt.__class__ is not bytes:
-        raise Issue.value_must_be_type("salt", bytes)
-    elif len(salt) != SALT_BYTES:
-        raise KeyAADIssue.invalid_salt(SALT_BYTES)
-    elif aad.__class__ is not bytes:
-        raise Issue.value_must_be_type("aad", bytes)
-
-
 def test_key_salt_aad(key: bytes, salt: bytes, aad: bytes) -> None:
     """
     Validates the main symmetric user ``key``, ephemeral ``salt``, &
@@ -108,22 +91,6 @@ def test_key_salt_aad(key: bytes, salt: bytes, aad: bytes) -> None:
         raise Issue.value_must_be_type("aad", bytes)
 
 
-async def amake_non_deterministic_salt(
-    salt: t.Optional[bytes], *, disable: bool = False
-) -> bytes:
-    """
-    Prevents a deterministic salt from being used for an encryption
-    procedure without explicitly passing the appropriate flag to do so.
-    Returns a random 16-byte salt otherwise.
-    """
-    if disable:
-        return salt if salt else await agenerate_salt(SALT_BYTES)
-    elif salt:
-        raise Issue.unsafe_determinism()
-    else:
-        return await agenerate_salt(SALT_BYTES)
-
-
 def make_non_deterministic_salt(
     salt: t.Optional[bytes], *, disable: bool = False
 ) -> bytes:
@@ -138,34 +105,6 @@ def make_non_deterministic_salt(
         raise Issue.unsafe_determinism()
     else:
         return generate_salt(SALT_BYTES)
-
-
-async def asingle_use_key_bundle(
-    key: t.Optional[bytes] = None,
-    *,
-    salt: t.Optional[bytes] = None,
-    aad: bytes = DEFAULT_AAD,
-    allow_dangerous_determinism: bool = False,
-) -> KeySaltAAD:
-    """
-    Returns a mapping containing a unique combination of a ``key``,
-    ``salt`` & ``aad`` whose use is limited TO A SINGLE encryption /
-    decryption round. The reuse of the same permutation of ``key``,
-    ``salt`` & ``aad`` for multiple different messages reduces the
-    security of the cipher to the randomly generated `iv` & the inner-
-    header of the plaintext, which is padding provided by the `Padding`
-    class.
-
-    New ``key`` & ``salt`` values are returned in the mapping if neither
-    are specified.
-    """
-    key_and_salt = key and salt
-    key = key if key else await acsprng()
-    salt = await amake_non_deterministic_salt(
-        salt, disable=allow_dangerous_determinism or not key_and_salt
-    )
-    await atest_key_salt_aad(key, salt, aad)
-    return KeySaltAAD(key, salt, aad)
 
 
 def single_use_key_bundle(
@@ -326,7 +265,6 @@ class KeyAADBundle:
     )
 
     _generate_bundle = staticmethod(single_use_key_bundle)
-    _agenerate_bundle = staticmethod(asingle_use_key_bundle)
 
     @staticmethod
     def _test_iv(iv: bytes) -> None:
