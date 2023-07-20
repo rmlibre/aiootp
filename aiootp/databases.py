@@ -38,7 +38,7 @@ from .commons import Namespace
 from .commons import make_module
 from .gentools import aunpack
 from .randoms import generate_salt, agenerate_salt
-from .generics import Domains, BytesIO
+from .generics import Domains, DomainEncoder, BytesIO
 from .generics import hash_bytes, ahash_bytes
 from .generics import int_as_base, aint_as_base
 from .generics import canonical_pack, acanonical_pack
@@ -51,33 +51,33 @@ from .ciphers import bytes_decrypt, abytes_decrypt
 from .keygens import DomainKDF, Passcrypt, KeyAADBundle
 
 
-class DBDomains:
+class DBDomains(DomainEncoder):
     """
     A container for database-specific domain constants.
     """
 
     __slots__ = ()
 
-    _encode: t.Callable = lambda constant, size: Domains.encode_constant(
-        constant, domain=b"encoded_database_constant:", size=size
+    _encode: t.Callable = lambda constant: DomainEncoder.encode_constant(
+        constant, domain=b"database_constants", size=16
     )
 
-    ROOT_KDF: bytes = _encode("root_kdf", 16)
-    ROOT_FILENAME: bytes = _encode("root_filename", 16)
-    ROOT_SALT: bytes = _encode("root_salt", 16)
-    ROOT_SALT_FILENAME: bytes = _encode("root_salt_filename", 16)
-    KDF: bytes = _encode("salted_kdf", 16)
-    USER_KDF: bytes = _encode("user_kdf", 16)
-    METATAG: bytes = _encode("metatag", 16)
-    HMAC: bytes = _encode("derive_hmac", 16)
-    GIST: bytes = _encode("profile_credential_gist", 16)
-    TMP_PREKEY: bytes = _encode("temporary_profile_prekey", 16)
-    PROFILE_LOGIN_KEY: bytes = _encode("profile_login_key", 16)
-    MANIFEST: bytes = _encode("manifest", 16)
-    FILENAME: bytes = _encode("filename", 16)
-    METATAG_KEY: bytes = _encode("metatag_key", 16)
-    DEVICE_SALT: bytes = _encode(b"device_salt", 16)
-    CIPHER: bytes = _encode("cipher", 16)
+    ROOT_KDF: bytes = _encode("root_kdf")
+    ROOT_FILENAME: bytes = _encode("root_filename")
+    ROOT_SALT: bytes = _encode("root_salt")
+    ROOT_SALT_FILENAME: bytes = _encode("root_salt_filename")
+    KDF: bytes = _encode("salted_kdf")
+    USER_KDF: bytes = _encode("user_kdf")
+    METATAG: bytes = _encode("metatag")
+    HMAC: bytes = _encode("hmac")
+    GIST: bytes = _encode("profile_credential_gist")
+    TMP_PREKEY: bytes = _encode("temporary_profile_prekey")
+    PROFILE_LOGIN_KEY: bytes = _encode("profile_login_key")
+    MANIFEST: bytes = _encode("manifest")
+    FILENAME: bytes = _encode("filename")
+    METATAG_KEY: bytes = _encode("metatag_key")
+    DEVICE_SALT: bytes = _encode(b"device_salt")
+    CIPHER: bytes = _encode("cipher")
 
 
 class DBKDF(DomainKDF):
