@@ -2783,5 +2783,6 @@ WORD_LIST = [
 
 
 datasets = {n: v for n, v in globals().items() if n[0].isupper()}
+datasets.pop("SimpleNamespace")
 datasets["__all__"] = [*datasets]
 
