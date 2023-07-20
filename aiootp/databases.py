@@ -481,8 +481,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         aad = DBDomains.MANIFEST
         key = self.__root_kdf.aead_key
-        return await ajson_decrypt(
-            await self.IO.aread(path=self._root_path), key=key, aad=aad
+        return await Chunky2048(key).ajson_decrypt(
+            await self.IO.aread(path=self._root_path), aad=aad
         )
 
     async def _aload_root_salt(self) -> bytes:
@@ -498,7 +498,9 @@ class AsyncDatabase(metaclass=AsyncInit):
             encrypted_salt = await self.IO.aread(path=self._root_salt_path)
             aad = DBDomains.ROOT_SALT
             key = self.__root_kdf.aead_key
-            salt = await ajson_decrypt(encrypted_salt, key=key, aad=aad)
+            salt = await Chunky2048(key).ajson_decrypt(
+                encrypted_salt, aad=aad
+            )
         return bytes.fromhex(salt)
 
     async def _agenerate_root_salt(self) -> bytes:
@@ -700,7 +702,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         key = self.__kdf.aead_key
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
-        return await abytes_encrypt(plaintext, key, aad=aad)
+        return await Chunky2048(key).abytes_encrypt(plaintext, aad=aad)
 
     async def ajson_encrypt(
         self,
@@ -716,7 +718,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         key = self.__kdf.aead_key
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
-        return await ajson_encrypt(plaintext, key, aad=aad)
+        return await Chunky2048(key).ajson_encrypt(plaintext, aad=aad)
 
     async def amake_token(
         self,
@@ -750,7 +752,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         key = self.__kdf.aead_key
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
-        return await abytes_decrypt(ciphertext, key, aad=aad, ttl=ttl)
+        return await Chunky2048(key).abytes_decrypt(
+            ciphertext, aad=aad, ttl=ttl
+        )
 
     async def ajson_decrypt(
         self,
@@ -768,7 +772,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         key = self.__kdf.aead_key
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
-        return await ajson_decrypt(ciphertext, key, aad=aad, ttl=ttl)
+        return await Chunky2048(key).ajson_decrypt(
+            ciphertext, aad=aad, ttl=ttl
+        )
 
     async def aread_token(
         self,
@@ -1025,7 +1031,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         manifest = self._manifest.namespace
         aad = DBDomains.MANIFEST
         key = self.__root_kdf.aead_key
-        return await ajson_encrypt(manifest, key=key, aad=aad)
+        return await Chunky2048(key).ajson_encrypt(manifest, aad=aad)
 
     async def _asave_manifest(
         self, ciphertext: t.DictCiphertext
@@ -1048,7 +1054,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         key = self.__root_kdf.aead_key
         await self.IO.awrite(
             path=self._root_salt_path,
-            data=await ajson_encrypt(salt.hex(), key=key, aad=aad),
+            data=await Chunky2048(key).ajson_encrypt(salt.hex(), aad=aad),
         )
 
     async def _aclose_manifest(self) -> None:
@@ -1573,7 +1579,7 @@ class Database:
         ciphertext = self.IO.read(path=self._root_path)
         aad = DBDomains.MANIFEST
         key = self.__root_kdf.aead_key
-        return json_decrypt(ciphertext, key=key, aad=aad)
+        return Chunky2048(key).json_decrypt(ciphertext, aad=aad)
 
     def _load_root_salt(self) -> bytes:
         """
@@ -1587,7 +1593,7 @@ class Database:
             encrypted_salt = self.IO.read(path=self._root_salt_path)
             aad = DBDomains.ROOT_SALT
             key = self.__root_kdf.aead_key
-            salt = json_decrypt(encrypted_salt, key=key, aad=aad)
+            salt = Chunky2048(key).json_decrypt(encrypted_salt, aad=aad)
         return bytes.fromhex(salt)
 
     def _generate_root_salt(self) -> bytes:
@@ -1762,7 +1768,7 @@ class Database:
         """
         key = self.__kdf.aead_key
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
-        return bytes_encrypt(plaintext, key, aad=aad)
+        return Chunky2048(key).bytes_encrypt(plaintext, aad=aad)
 
     def json_encrypt(
         self,
@@ -1778,7 +1784,7 @@ class Database:
         """
         key = self.__kdf.aead_key
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
-        return json_encrypt(plaintext, key, aad=aad)
+        return Chunky2048(key).json_encrypt(plaintext, aad=aad)
 
     def make_token(
         self,
@@ -1812,7 +1818,7 @@ class Database:
         """
         key = self.__kdf.aead_key
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
-        return bytes_decrypt(ciphertext, key, aad=aad, ttl=ttl)
+        return Chunky2048(key).bytes_decrypt(ciphertext, aad=aad, ttl=ttl)
 
     def json_decrypt(
         self,
@@ -1830,7 +1836,7 @@ class Database:
         """
         key = self.__kdf.aead_key
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
-        return json_decrypt(ciphertext, key=key, aad=aad, ttl=ttl)
+        return Chunky2048(key).json_decrypt(ciphertext, aad=aad, ttl=ttl)
 
     def read_token(
         self,
@@ -2083,7 +2089,7 @@ class Database:
         manifest = self._manifest.namespace
         aad = DBDomains.MANIFEST
         key = self.__root_kdf.aead_key
-        return json_encrypt(manifest, key=key, aad=aad)
+        return Chunky2048(key).json_encrypt(manifest, aad=aad)
 
     def _save_manifest(self, ciphertext: bytes) -> None:
         """
@@ -2104,7 +2110,7 @@ class Database:
         key = self.__root_kdf.aead_key
         self.IO.write(
             path=self._root_salt_path,
-            data=json_encrypt(salt.hex(), key=key, aad=aad),
+            data=Chunky2048(key).json_encrypt(salt.hex(), aad=aad),
         )
 
     def _close_manifest(self) -> None:
