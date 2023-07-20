@@ -463,15 +463,15 @@ async def arandom_number_generator(
             multiples = [await multiple for multiple in multiples]
             result = await big_modulation(seed, *multiples)
             await _add_to_pool(
-                await _entropy.ahash(
-                    seed.to_bytes(64, BIG), result.to_bytes(64, BIG)
+                await acsprng(
+                    seed.to_bytes(64, BIG) + result.to_bytes(64, BIG)
                 )
             )
 
         async def add_to_pool() -> None:
             seed = await xof.ahash(await atoken_bytes(32), size=32)
             await arandom_sleep(0.003)
-            await _add_to_pool(await _entropy.ahash(entropy, seed))
+            await _add_to_pool(await acsprng(entropy + seed))
 
         async def start_generator() -> None:
             tasks = deque()
@@ -488,9 +488,7 @@ async def arandom_number_generator(
 
         await start_generator()
     else:
-        await _add_to_pool(
-            await _entropy.ahash(await atoken_bytes(32), entropy)
-        )
+        await _add_to_pool(await acsprng(entropy))
 
     # Prevent the possibility that multiple threads will retrieve the
     # same result if they each happen to interrupt each other multiple
@@ -608,15 +606,15 @@ def random_number_generator(
             multiples = [await multiple for multiple in multiples]
             result = await big_modulation(seed, *multiples)
             await _add_to_pool(
-                await _entropy.ahash(
-                    seed.to_bytes(64, BIG), result.to_bytes(64, BIG)
+                await acsprng(
+                    seed.to_bytes(64, BIG) + result.to_bytes(64, BIG)
                 )
             )
 
         async def add_to_pool() -> None:
             seed = await xof.ahash(await atoken_bytes(32), size=32)
             await arandom_sleep(0.003)
-            await _add_to_pool(await _entropy.ahash(entropy, seed))
+            await _add_to_pool(await acsprng(entropy + seed))
 
         async def start_generator() -> None:
             tasks = deque()
@@ -633,7 +631,7 @@ def random_number_generator(
 
         run(start_generator())  # <- RuntimeError in event loops
     else:
-        run(_add_to_pool(_entropy.hash(token_bytes(32), entropy)))
+        run(_add_to_pool(csprng(entropy)))
 
     # Prevent the possibility that multiple threads will retrieve the
     # same result if they each happen to interrupt each other multiple
@@ -1416,7 +1414,7 @@ def generate_key(size: int = KEY_BYTES, *, freshness: int = 8) -> bytes:
 
 
 async def acsprng(
-    entropy: t.Any = run(arandom_number_generator(32, freshness=1))
+    entropy: t.Any = _entropy.hash(_salt().to_bytes(2048, BIG))[:32]
 ) -> bytes:
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
@@ -1426,7 +1424,7 @@ async def acsprng(
         entropy = _pool[0] + repr(entropy).encode()
     else:
         entropy = _pool[0] + entropy
-    token = await atoken_bytes(32) + ns_clock.make_timestamp()
+    token = await atoken_bytes(32) + await ns_clock.amake_timestamp()
     _entropy.update(token + entropy)
     thread_safe_entropy = _entropy.copy()
     thread_safe_entropy.update(token + entropy + _entropy.digest())
@@ -1434,7 +1432,7 @@ async def acsprng(
 
 
 def csprng(
-    entropy: t.Any = random_number_generator(32, freshness=1)
+    entropy: t.Any = run(arandom_number_generator(32, freshness=1))
 ) -> bytes:
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
