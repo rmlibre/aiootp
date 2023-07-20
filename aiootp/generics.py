@@ -848,20 +848,24 @@ def hash_bytes(
     return obj.digest()
 
 
-class Domains:
+class DomainEncoder:
     """
-    A collection of encoded constants which can augment function inputs
-    to make their outputs domain-specific.
+    A base class which enables domain constants to be encoded & created
+    for specific use cases.
     """
 
     __slots__ = ()
 
-    @staticmethod
+    _DOMAIN: bytes = b"domain_constant_encoder"
+
+    @classmethod
     async def aencode_constant(
+        cls,
         constant: t.AnyStr,
         size: int = 8,
         *,
-        domain: bytes = b"encoded_constant:",
+        domain: bytes = b"",
+        aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
         Receives a `str` or `bytes`-type ``constant``, encodes & hashes
@@ -881,15 +885,17 @@ class Domains:
         if constant.__class__ is not bytes:
             constant = constant.encode()
         return await ahash_bytes(
-            domain, constant, hasher=shake_128, size=size
+            cls._DOMAIN, domain, aad, constant, hasher=shake_128, size=size
         )
 
-    @staticmethod
+    @classmethod
     def encode_constant(
+        cls,
         constant: t.AnyStr,
         size: int = 8,
         *,
-        domain: bytes = b"encoded_constant:",
+        domain: bytes = b"",
+        aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
         Receives a `str` or `bytes`-type ``constant``, encodes & hashes
@@ -908,9 +914,20 @@ class Domains:
         """
         if constant.__class__ is not bytes:
             constant = constant.encode()
-        return hash_bytes(domain, constant, hasher=shake_128, size=size)
+        return hash_bytes(
+            cls._DOMAIN, domain, aad, constant, hasher=shake_128, size=size
+        )
 
-    _encode = encode_constant.__func__
+
+class Domains(DomainEncoder):
+    """
+    A collection of encoded constants which can augment function inputs
+    to make their outputs domain-specific.
+    """
+
+    __slots__ = ()
+
+    _encode = DomainEncoder.encode_constant
 
     IV: bytes = _encode(IV)
     DH2: bytes = _encode(DH2)
