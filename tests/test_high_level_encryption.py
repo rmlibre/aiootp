@@ -87,5 +87,14 @@ async def test_token_functions():
     assert plaintext_bytes == plaintext_of_bytes
 
 
+async def test_cipher_test_vectors():
+    t = chunky2048_test_vector_0
+    cipher = Chunky2048(t.key)
+
+    assert t.plaintext == cipher.bytes_decrypt(
+        t.shmac + t.salt + t.iv + t.ciphertext, aad=t.aad
+    )
+
+
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 

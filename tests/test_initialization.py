@@ -84,6 +84,35 @@ akey_bundle = run(KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_dete
 key_bundle = KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).sync_mode()
 cipher = Chunky2048(key)
 
+
+chunky2048_test_vector_0 = OpenNamespace(
+    plaintext=b"it is not a doctrine to be preached, but a deed to be done.",
+    key=bytes.fromhex(
+        "54868dc506d99611adb67f1b41eda44fd7151e135860a6d791cad6df6715bd"
+        "5204713bc2b064e88a429b93aaa282d9cc7c0c5cdaaffb65cc268b7acedd5e"
+        "531a"
+    ),
+    shmac=bytes.fromhex(
+        "8f8b51a2ed191396358ffd69118fdba1eae5bdcb16b2a0cce92927f5ddf548"
+        "20"
+    ),
+    salt=bytes.fromhex("cf3761d57860bdbcd27084fa1527d119"),
+    iv=bytes.fromhex("0ef1d4ad1929752fa12946ff82c3f9a1"),
+    aad=b"test_vector_I",
+    ciphertext=bytes.fromhex(
+        "6ca043ee2e4a7861dc2d21ae0f4c34338bf1a549970f0c37d285d6b202d137"
+        "80932b592b54e78661ab71c5c7f7e2a35e42a432b8af4422bb3a0d0b4be4ef"
+        "d246201eeb1b5f06c3de0dc4053afbb9f1fc0666fb28aa18089d2b52feb91a"
+        "d18a0cca76dda2aba19456029b86b13d4a4f8d4a1c8d62268b3331e3a61972"
+        "945bc122db294ac8d9633602518ebbd5b605232fc707debcbf9df967f2ddb2"
+        "27bd252da0849ce810e628e3ebfaa574d59993c882dfec1ef6a0b6dbf6c1ac"
+        "fb75498f0c037eabaca6b318ec9cec3e175fcb0784fe8eda8e73f2923ebf5b"
+        "7f88f367064072e7312f976f16789bd13117d1bc27547a05e14e4ac245bd55"
+        "e9c985cebac2e1d1"
+    ),
+)
+
+
 passphrase_0 = csprng()
 passphrase_1 = randoms.token_bytes(32)
 passphrases = [passphrase_0, passphrase_1]
