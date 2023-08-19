@@ -72,8 +72,8 @@ KeyAADBundle = _KeyAADBundle
 
 
 # create static values for this test session
-violation = lambda context: partial(raise_exception, AssertionError(context))
-aviolation = lambda context: partial(araise_exception, AssertionError(context))
+violation = lambda problem: partial(raise_exception, AssertionError(problem))
+aviolation = lambda problem: partial(araise_exception, AssertionError(problem))
 
 _entropy = csprng() + token_bytes(32)
 

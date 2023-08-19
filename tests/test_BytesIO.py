@@ -71,13 +71,13 @@ async def test_json_conversion_functions():
         assert plaintext_bytes == await cipher.abytes_decrypt(amessage, aad=_aad)
 
         # use of wrong aad fails
-        context = "Alteration of aad was not noticed!"
-        with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(context)):
+        problem = "Alteration of aad was not noticed!"
+        with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(problem)):
             cipher.bytes_decrypt(message, aad=aads[(i + 1) % 2])
 
         # async use of wrong aad fails
-        context = "Async alteration of aad was not noticed!"
-        async with aignore(StreamHMAC.InvalidSHMAC, if_else=aviolation(context)):
+        problem = "Async alteration of aad was not noticed!"
+        async with aignore(StreamHMAC.InvalidSHMAC, if_else=aviolation(problem)):
             await cipher.abytes_decrypt(message, aad=aads[(i + 1) % 2])
 
 

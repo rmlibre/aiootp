@@ -21,17 +21,17 @@ async def test_datastream_limits():
     key_bundle = KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).sync_mode()
 
     # async cipher blocksize limits are respected
-    context = f"A plaintext block was allowed to exceed {BLOCKSIZE} bytes!"
-    async with aignore(OverflowError, if_else=aviolation(context)):
+    problem = f"A plaintext block was allowed to exceed {BLOCKSIZE} bytes!"
+    async with aignore(OverflowError, if_else=aviolation(problem)):
         await ainvalid_size_datastream.areset()
-        keystream = abytes_keys.root(akey_bundle)
+        keystream = abytes_keys(akey_bundle)
         shmac = StreamHMAC(akey_bundle)._for_encryption()
         async for chunk in abytes_encipher(ainvalid_size_datastream, shmac):
             pass
 
     # sync cipher blocksize limits are respected
-    context = f"A plaintext block was allowed to exceed {BLOCKSIZE} bytes!"
-    with ignore(OverflowError, if_else=violation(context)):
+    problem = f"A plaintext block was allowed to exceed {BLOCKSIZE} bytes!"
+    with ignore(OverflowError, if_else=violation(problem)):
         invalid_size_datastream.reset()
         keystream = bytes_keys(key_bundle)
         shmac = StreamHMAC(key_bundle)._for_encryption()
@@ -45,18 +45,18 @@ def test_keys_limits():
     assert key_bundle.key
     assert len(key_bundle.key) == 64
 
-    context = "Non-bytes key was allowed"
-    with ignore(TypeError, if_else=violation(context)):
+    problem = "Non-bytes key was allowed"
+    with ignore(TypeError, if_else=violation(problem)):
         KeyAADBundle(key=csprng().hex(), allow_dangerous_determinism=True)
 
 
 def test_salt_limits():
-    context = "Non-bytes salt was allowed"
-    with ignore(TypeError, if_else=violation(context)):
+    problem = "Non-bytes salt was allowed"
+    with ignore(TypeError, if_else=violation(problem)):
         KeyAADBundle(salt=csprng().hex())
 
-    context = "Invalid length salt was allowed"
-    with ignore(ValueError, if_else=violation(context)):
+    problem = "Invalid length salt was allowed"
+    with ignore(ValueError, if_else=violation(problem)):
         KeyAADBundle(salt=csprng(), allow_dangerous_determinism=True)
 
 

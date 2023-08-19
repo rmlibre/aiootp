@@ -56,11 +56,11 @@ async def test_sizes():
 
     for n in range(SequenceID._MIN_SIZE, SequenceID._MAX_SIZE):
         # the salt must be at least the length of output sizes
-        context = (
+        problem = (
             "The salt was allowed to be less than the length of the "
             "declared size of sequence ids"
         )
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             sid = SequenceID(salt=token_bytes(n - 1), size=n)
 
         sid = SequenceID(token_bytes(max([16, n])), size=n)

@@ -18,30 +18,30 @@ async def test_xttl_functionality():
         asynchs.sleep(delta)
 
     # ciphertext verification fails if the hash has expired
-    context = "Life-time for sync json ciphertext is malfunctioning."
-    with ignore(TimeoutError, TimestampExpired, if_else=violation(context)):
+    problem = "Life-time for sync json ciphertext is malfunctioning."
+    with ignore(TimeoutError, TimestampExpired, if_else=violation(problem)):
         cipher.json_decrypt(test_json_ciphertext, aad=aad, ttl=1)
 
-    context = "Life-time for async json ciphertext is malfunctioning."
-    async with aignore(TimeoutError, TimestampExpired, if_else=aviolation(context)):
+    problem = "Life-time for async json ciphertext is malfunctioning."
+    async with aignore(TimeoutError, TimestampExpired, if_else=aviolation(problem)):
         await cipher.ajson_decrypt(atest_json_ciphertext, aad=aad, ttl=1)
 
-    context = "Life-time for sync tokens is malfunctioning."
-    with ignore(TimeoutError, TimestampExpired, if_else=violation(context)):
+    problem = "Life-time for sync tokens is malfunctioning."
+    with ignore(TimeoutError, TimestampExpired, if_else=violation(problem)):
         cipher.read_token(test_token_ciphertext, aad=aad, ttl=1)
 
-    context = "Life-time for async tokens is malfunctioning."
-    async with aignore(TimeoutError, TimestampExpired, if_else=aviolation(context)):
+    problem = "Life-time for async tokens is malfunctioning."
+    async with aignore(TimeoutError, TimestampExpired, if_else=aviolation(problem)):
         await cipher.aread_token(atest_token_ciphertext, aad=aad, ttl=1)
 
 
     # passcrypt verification fails if the hash has expired
-    context = "Life-time for sync passcrypt hashes are malfunctioning."
-    with ignore(TimeoutError, TimestampExpired, if_else=violation(context)):
+    problem = "Life-time for sync passcrypt hashes are malfunctioning."
+    with ignore(TimeoutError, TimestampExpired, if_else=violation(problem)):
         Passcrypt.verify(expired_passcrypt_hash, passphrase_0, ttl=1)
 
-    context = "Life-time for async passcrypt hashes are malfunctioning."
-    async with aignore(TimeoutError, TimestampExpired, if_else=aviolation(context)):
+    problem = "Life-time for async passcrypt hashes are malfunctioning."
+    async with aignore(TimeoutError, TimestampExpired, if_else=aviolation(problem)):
         await Passcrypt.averify(aexpired_passcrypt_hash, passphrase_0, ttl=1)
 
 

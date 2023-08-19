@@ -33,8 +33,8 @@ async def test_acsprng():
     assert len(key) == KEY_BYTES
     assert key.__class__ is bytes
 
-    context = f"Allowed to generate a key less than {MIN_KEY_BYTES}"
-    async with aignore(ValueError, if_else=aviolation(context)):
+    problem = f"Allowed to generate a key less than {MIN_KEY_BYTES}"
+    async with aignore(ValueError, if_else=aviolation(problem)):
         key = await agenerate_key(size=MIN_KEY_BYTES - 1, freshness=0)
 
     async def try_to_make_duplicate_readouts():
@@ -77,8 +77,8 @@ def test_csprng():
     assert len(key) == KEY_BYTES
     assert key.__class__ is bytes
 
-    context = f"Allowed to generate a key less than {MIN_KEY_BYTES} bytes."
-    with ignore(ValueError, if_else=violation(context)):
+    problem = f"Allowed to generate a key less than {MIN_KEY_BYTES} bytes."
+    with ignore(ValueError, if_else=violation(problem)):
         key = generate_key(size=MIN_KEY_BYTES - 1, freshness=0)
 
     def try_to_make_duplicate_readouts():

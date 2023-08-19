@@ -129,7 +129,6 @@ def test_Database_instance(database):
     assert db._Database__root_kdf.sha3_256() != database._Database__kdf.sha3_256()
     assert db._Database__root_salt == database._Database__root_salt
     assert db._root_filename == database._root_filename
-    assert db._root_salt_filename == database._root_salt_filename
     assert db.make_hmac(atag.encode()) == database.make_hmac(atag.encode())
     assert db.filename(atag) == database.filename(atag)
     assert db._metatag_key(atag) == database._metatag_key(atag)
@@ -144,36 +143,9 @@ async def test_AsyncDatabase_instance(database):
     assert db._AsyncDatabase__root_kdf.sha3_256() != database._Database__kdf.sha3_256()
     assert db._AsyncDatabase__root_salt == database._Database__root_salt
     assert db._root_filename == database._root_filename
-    assert db._root_salt_filename == database._root_salt_filename
     assert await db.amake_hmac(tag.encode()) == database.make_hmac(tag.encode())
     assert await db.afilename(tag) == database.filename(tag)
     assert await db._ametatag_key(tag) == database._metatag_key(tag)
-
-
-def test_Database_user_kdf(database):
-    db = Database(key=key, preload=False)
-
-    context = "empty kdf updates were allowed!"
-    with ignore(ValueError, if_else=violation(context)):
-        db.kdf.update()
-
-    assert db.kdf.sha3_256() == database.kdf.sha3_256()
-    assert db.kdf.sha3_512() == database.kdf.sha3_512()
-    assert db.kdf.shake_128(32) == database.kdf.shake_128(32)
-    assert db.kdf.shake_256(32) == database.kdf.shake_256(32)
-
-
-async def test_AsyncDatabase_user_kdf(async_database):
-    db = await AsyncDatabase(key=key, preload=False)
-
-    context = "empty kdf updates were allowed!"
-    with ignore(ValueError, if_else=violation(context)):
-        await db.kdf.aupdate()
-
-    assert await db.kdf.asha3_256() == await async_database.kdf.asha3_256()
-    assert await db.kdf.asha3_512() == await async_database.kdf.asha3_512()
-    assert await db.kdf.ashake_128(32) == await async_database.kdf.ashake_128(32)
-    assert await db.kdf.ashake_256(32) == await async_database.kdf.ashake_256(32)
 
 
 def test_database_ciphers(database):
@@ -426,22 +398,22 @@ class TestHMACMethods:
         database.test_hmac(tag, inputs)
 
         # sync hmac tags fail when inputs type is altered
-        context = "Data type alteration not caught!"
-        with ignore(TypeError, if_else=violation(context)):
+        problem = "Data type alteration not caught!"
+        with ignore(TypeError, if_else=violation(problem)):
             database.test_hmac(tag, str(inputs))
 
         # sync hmac tags fail when inputs are altered
         iinputs = int.from_bytes(inputs, BIG)
-        context = "Data value alteration not caught!"
+        problem = "Data value alteration not caught!"
         for bit in range(iinputs.bit_length()):
-            with ignore(database.InvalidHMAC, if_else=violation(context)):
+            with ignore(database.InvalidHMAC, if_else=violation(problem)):
                 database.test_hmac(tag, (iinputs ^ (1 << bit)).to_bytes(32, BIG))
 
         # sync hmac tags fail when they are altered
         itag = int.from_bytes(tag, BIG)
-        context = "Tag alteration not caught!"
+        problem = "Tag alteration not caught!"
         for bit in range(itag.bit_length()):
-            with ignore(database.InvalidHMAC, if_else=violation(context)):
+            with ignore(database.InvalidHMAC, if_else=violation(problem)):
                 altered_tag = (itag ^ (1 << bit)).to_bytes(32, BIG)
                 database.test_hmac(altered_tag, inputs)
 
@@ -456,22 +428,22 @@ class TestHMACMethods:
         await async_database.atest_hmac(atag, ainputs)
 
         # async hmac tags fail when inputs type is altered
-        context = "Async data type alteration not caught!"
-        async with aignore(TypeError, if_else=aviolation(context)):
+        problem = "Async data type alteration not caught!"
+        async with aignore(TypeError, if_else=aviolation(problem)):
             await async_database.atest_hmac(atag, str(ainputs))
 
         # async hmac tags fail when inputs are altered
         aiinputs = int.from_bytes(ainputs, BIG)
-        context = "Async data value alteration not caught!"
+        problem = "Async data value alteration not caught!"
         for bit in range(aiinputs.bit_length()):
-            async with aignore(async_database.InvalidHMAC, if_else=aviolation(context)):
+            async with aignore(async_database.InvalidHMAC, if_else=aviolation(problem)):
                 await async_database.atest_hmac(atag, (aiinputs ^ (1 << bit)).to_bytes(32, BIG))
 
         # async hmac tags fail when they are altered
         aitag = int.from_bytes(atag, BIG)
-        context = "Async tag alteration not caught!"
+        problem = "Async tag alteration not caught!"
         for abit in range(aitag.bit_length()):
-            async with aignore(async_database.InvalidHMAC, if_else=aviolation(context)):
+            async with aignore(async_database.InvalidHMAC, if_else=aviolation(problem)):
                 altered_tag = (aitag ^ (1 << abit)).to_bytes(32, BIG)
                 await async_database.atest_hmac(altered_tag, ainputs)
 

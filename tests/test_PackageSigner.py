@@ -29,8 +29,8 @@ def test_sign_and_verify():
         _repr = repr(signer)
         assert all(name in _repr for name in signer._scope)
 
-        context = "Allowed to retrieve a signature before connecting to the database."
-        with ignore(RuntimeError, if_else=violation(context)):
+        problem = "Allowed to retrieve a signature before connecting to the database."
+        with ignore(RuntimeError, if_else=violation(problem)):
             signer._signature
 
         signer.connect_to_secure_database(
@@ -43,12 +43,12 @@ def test_sign_and_verify():
         )
         signer.update_public_credentials(x25519_public_key=aiootp.__PUBLIC_X25519_KEY__)
 
-        context = "Allowed to retrieve a signing key before its creation."
-        with ignore(LookupError, if_else=violation(context)):
+        problem = "Allowed to retrieve a signing key before its creation."
+        with ignore(LookupError, if_else=violation(problem)):
             signer.signing_key
 
-        context = "Allowed to retrieve a signature before signing."
-        with ignore(RuntimeError, if_else=violation(context)):
+        problem = "Allowed to retrieve a signature before signing."
+        with ignore(RuntimeError, if_else=violation(problem)):
             signer._signature
 
         test_signing_key = signer.generate_signing_key()
@@ -59,8 +59,8 @@ def test_sign_and_verify():
         signer.update_signing_key(signer.signing_key.secret_bytes)
         signer.update_signing_key(signer.signing_key.secret_bytes.hex())
 
-        context = "a type other than str, bytes, Ed25519PrivateKey or an Ed25519 object was allowed for update_signing_key"
-        with ignore(TypeError, if_else=violation(context)):
+        problem = "a type other than str, bytes, Ed25519PrivateKey or an Ed25519 object was allowed for update_signing_key"
+        with ignore(TypeError, if_else=violation(problem)):
             signer.update_signing_key(bytearray(signer.signing_key.secret_bytes))
 
         filename_sheet = """
@@ -114,8 +114,8 @@ def test_sign_and_verify():
 
         # summary checksum alteration fails
         summary["checksum"] = summary["checksum"][::-1]
-        context = "Summary alteration uncaught!"
-        with ignore(ValueError, if_else=violation(context)):
+        problem = "Summary alteration uncaught!"
+        with ignore(ValueError, if_else=violation(problem)):
             verifier.verify_summary(summary)
 
         # returning the checksum to the original value succeeds
@@ -126,8 +126,8 @@ def test_sign_and_verify():
         verifier.verify_summary(json.dumps(summary))
 
         # altering the signature does not work
-        context = "Signature alteration went uncaught!"
-        with ignore(verifier.InvalidSignature, if_else=violation(context)):
+        problem = "Signature alteration went uncaught!"
+        with ignore(verifier.InvalidSignature, if_else=violation(problem)):
             fake_summary = {**summary, "signature": token_bytes(64).hex()}
             verifier.verify_summary(fake_summary)
 
@@ -138,8 +138,8 @@ def test_sign_and_verify():
 
         # altering the signing key fails
         summary["signing_key"] = X25519().generate().public_bytes.hex()
-        context = "Changed signing_key went uncaught!"
-        with ignore(ValueError, if_else=violation(context)):
+        problem = "Changed signing_key went uncaught!"
+        with ignore(ValueError, if_else=violation(problem)):
             verifier.verify_summary(summary)
 
         # returning to the original signing key succeeds
@@ -152,8 +152,8 @@ def test_sign_and_verify():
         PACKAGE = signer._scope.package
         signature = signer.db[PACKAGE][VERSIONS][VERSION]
         signer.db[PACKAGE][VERSIONS][VERSION] = token_bytes(32).hex()
-        context = "altered signature not detected during summarization!"
-        with ignore(ValueError, if_else=violation(context)):
+        problem = "altered signature not detected during summarization!"
+        with ignore(ValueError, if_else=violation(problem)):
             signer.summarize()
 
         # returning the signature works

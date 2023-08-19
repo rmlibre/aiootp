@@ -29,29 +29,29 @@ async def basic_async_tests(tested_class):
         == await secret_key_a._Curve25519.apublic_bytes(secret_key_a.public_key)
     )
 
-    context = "an invalid type was allowed to be used to extract secret bytes"
-    async with aignore(TypeError, if_else=aviolation(context)):
+    problem = "an invalid type was allowed to be used to extract secret bytes"
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await secret_key_a._Curve25519.asecret_bytes(secret_key_a.public_key)
 
-    context = "an invalid type was allowed to be used to extract secret bytes"
-    async with aignore(TypeError, if_else=aviolation(context)):
+    problem = "an invalid type was allowed to be used to extract secret bytes"
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await secret_key_a._Curve25519.asecret_bytes(secret_key_a)
 
-    context = "an invalid type was allowed to be used to extract public bytes"
-    async with aignore(TypeError, if_else=aviolation(context)):
+    problem = "an invalid type was allowed to be used to extract public bytes"
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await secret_key_a._Curve25519.apublic_bytes(secret_key_a)
 
-    context = "an invalid type was allowed to be imported as a secret key"
+    problem = "an invalid type was allowed to be imported as a secret key"
     class_not_being_tested = OTHER_TYPE_MAPPING[tested_class.__name__]
     some_secret_key = class_not_being_tested().generate()
-    async with aignore(TypeError, if_else=aviolation(context)):
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await tested_class().aimport_secret_key(some_secret_key.secret_key)
-    async with aignore(TypeError, if_else=aviolation(context)):
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await tested_class().aimport_secret_key(some_secret_key.public_key)
 
-    context = "an invalid type was allowed to be imported as a public key"
+    problem = "an invalid type was allowed to be imported as a public key"
     some_public_key = class_not_being_tested().import_public_key(some_secret_key.public_key)
-    async with aignore(TypeError, if_else=aviolation(context)):
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await tested_class().aimport_secret_key(some_public_key.public_key)
 
     # Testing equality of async constructors
@@ -63,24 +63,24 @@ async def basic_async_tests(tested_class):
     key_a_from_public_bytes = await tested_class().aimport_public_key(secret_key_a.public_bytes)
     key_a_from_public_hex = await tested_class().aimport_public_key(secret_key_a.public_bytes.hex())
 
-    context = "a falsey value secret key import didn't fail!"
+    problem = "a falsey value secret key import didn't fail!"
     for falsey_value in (None, b"", ""):
-        async with aignore(ValueError, if_else=aviolation(context)):
+        async with aignore(ValueError, if_else=aviolation(problem)):
             await tested_class().aimport_secret_key(falsey_value)
 
-    context = "an invalid length secret key import didn't fail!"
+    problem = "an invalid length secret key import didn't fail!"
     for invalid_length in (1, 16, 31, 33, 48, 64):
-        async with aignore(ValueError, if_else=aviolation(context)):
+        async with aignore(ValueError, if_else=aviolation(problem)):
             await tested_class().aimport_secret_key(token_bytes(invalid_length))
 
-    context = "a falsey value public key import didn't fail!"
+    problem = "a falsey value public key import didn't fail!"
     for falsey_value in (None, b"", ""):
-        async with aignore(ValueError, if_else=aviolation(context)):
+        async with aignore(ValueError, if_else=aviolation(problem)):
             await tested_class().aimport_public_key(falsey_value)
 
-    context = "an invalid length public key import didn't fail!"
+    problem = "an invalid length public key import didn't fail!"
     for invalid_length in (1, 16, 31, 33, 48, 64):
-        async with aignore(ValueError, if_else=aviolation(context)):
+        async with aignore(ValueError, if_else=aviolation(problem)):
             await tested_class().aimport_public_key(token_bytes(invalid_length))
 
     assert len(secret_key_a.public_bytes) == 32
@@ -108,19 +108,19 @@ async def basic_async_tests(tested_class):
     assert secret_key_a.has_secret_key()
     assert secret_key_a.has_public_key()
 
-    context = (
+    problem = (
         "Async public key import was allowed when an instance was "
         "already initialized with a key!"
     )
-    async with aignore(PermissionError, if_else=aviolation(context)) as relay:
+    async with aignore(PermissionError, if_else=aviolation(problem)) as relay:
         await secret_key_a.aimport_public_key(secret_key_a.public_bytes)
     assert "is already set" in relay.error.args[0]
 
-    context = (
+    problem = (
         "Async secret key import was allowed when an instance was "
         "already initialized with a key!"
     )
-    async with aignore(PermissionError, if_else=aviolation(context)) as relay:
+    async with aignore(PermissionError, if_else=aviolation(problem)) as relay:
         await secret_key_a.aimport_secret_key(secret_key_a.secret_bytes)
     assert "is already set" in relay.error.args[0]
 
@@ -139,16 +139,16 @@ def basic_sync_tests(tested_class):
         == secret_key_b._Curve25519.public_bytes(secret_key_b.public_key)
     )
 
-    context = "an invalid type was allowed to be used to extract secret bytes"
-    with ignore(TypeError, if_else=violation(context)):
+    problem = "an invalid type was allowed to be used to extract secret bytes"
+    with ignore(TypeError, if_else=violation(problem)):
         secret_key_b._Curve25519.secret_bytes(secret_key_b.public_key)
 
-    context = "an invalid type was allowed to be used to extract secret bytes"
-    with ignore(TypeError, if_else=violation(context)):
+    problem = "an invalid type was allowed to be used to extract secret bytes"
+    with ignore(TypeError, if_else=violation(problem)):
         secret_key_b._Curve25519.secret_bytes(secret_key_b)
 
-    context = "an invalid type was allowed to be used to extract public bytes"
-    with ignore(TypeError, if_else=violation(context)):
+    problem = "an invalid type was allowed to be used to extract public bytes"
+    with ignore(TypeError, if_else=violation(problem)):
         secret_key_b._Curve25519.public_bytes(secret_key_b)
 
     # Testing equality of sync constructors
@@ -160,24 +160,24 @@ def basic_sync_tests(tested_class):
     key_b_from_public_bytes = tested_class().import_public_key(secret_key_b.public_bytes)
     key_b_from_public_hex = tested_class().import_public_key(secret_key_b.public_bytes.hex())
 
-    context = "a falsey value secret key import didn't fail!"
+    problem = "a falsey value secret key import didn't fail!"
     for falsey_value in (None, b"", ""):
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             tested_class().import_secret_key(falsey_value)
 
-    context = "an invalid length secret key import didn't fail!"
+    problem = "an invalid length secret key import didn't fail!"
     for invalid_length in (1, 16, 31, 33, 48, 64):
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             tested_class().import_secret_key(token_bytes(invalid_length))
 
-    context = "a falsey value public key import didn't fail!"
+    problem = "a falsey value public key import didn't fail!"
     for falsey_value in (None, b"", ""):
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             tested_class().import_public_key(falsey_value)
 
-    context = "an invalid length public key import didn't fail!"
+    problem = "an invalid length public key import didn't fail!"
     for invalid_length in (1, 16, 31, 33, 48, 64):
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             tested_class().import_public_key(token_bytes(invalid_length))
 
     assert len(secret_key_b.public_bytes) == 32
@@ -319,11 +319,11 @@ async def test_Ed25519(database, async_database):
     await arbitrary_verifier.averify(async_signature, plaintext_bytes, public_key=secret_key_a.public_bytes)
 
     # async verification succeeds when supplied an incorrect signature & data
-    context = "Async verification succeeded for an invalid signature!"
-    async with aignore(Ed25519.InvalidSignature, if_else=aviolation(context)):
+    problem = "Async verification succeeded for an invalid signature!"
+    async with aignore(Ed25519.InvalidSignature, if_else=aviolation(problem)):
         await key_a_verifier.averify(token_bytes(len(async_signature)), plaintext_bytes)
-    context = "Async verification succeeded for an invalid signature!"
-    async with aignore(Ed25519.InvalidSignature, if_else=aviolation(context)):
+    problem = "Async verification succeeded for an invalid signature!"
+    async with aignore(Ed25519.InvalidSignature, if_else=aviolation(problem)):
         await arbitrary_verifier.averify(token_bytes(len(async_signature)), plaintext_bytes, public_key=secret_key_a.public_bytes)
 
     # sync verification succeeds when supplied a correct signature & data
@@ -331,11 +331,11 @@ async def test_Ed25519(database, async_database):
     arbitrary_verifier.verify(signature, plaintext_bytes, public_key=secret_key_b.public_bytes)
 
     # sync verification succeeds when supplied an incorrect signature & data
-    context = "Verification succeeded for an invalid signature!"
-    with ignore(Ed25519.InvalidSignature, if_else=violation(context)):
+    problem = "Verification succeeded for an invalid signature!"
+    with ignore(Ed25519.InvalidSignature, if_else=violation(problem)):
         key_a_verifier.verify(token_bytes(len(async_signature)), plaintext_bytes)
-    context = "Verification succeeded for an invalid signature!"
-    with ignore(Ed25519.InvalidSignature, if_else=violation(context)):
+    problem = "Verification succeeded for an invalid signature!"
+    with ignore(Ed25519.InvalidSignature, if_else=violation(problem)):
         arbitrary_verifier.verify(token_bytes(len(async_signature)), plaintext_bytes, public_key=secret_key_a.public_bytes)
 
 

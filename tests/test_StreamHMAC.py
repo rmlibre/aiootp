@@ -37,22 +37,22 @@ async def test_detection_of_ciphertext_modification():
     ######
     ###### async decryption of altered ciphertext fails
     aict = int.from_bytes(act, BIG)
-    context = "Async ciphertext alteration not caught!"
+    problem = "Async ciphertext alteration not caught!"
     for abit in range(0, aict.bit_length(), 16):
-        with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(context)):
+        with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(problem)):
             altered_act = (aict ^ (1 << abit)).to_bytes(len(act), BIG)
             await cipher.abytes_decrypt(altered_act)
 
     # async decryption of ciphertext lengthened to invalid size fails
-    context = "Invalid size lengthened sync ciphertext allowed"
+    problem = "Invalid size lengthened sync ciphertext allowed"
     for extra_bytes in range(1, BLOCKSIZE):
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             await cipher.abytes_decrypt(act + token_bytes(extra_bytes))
 
     # sync decryption of ciphertext shortened to invalid size fails
-    context = "Invalid size shortened sync ciphertext allowed"
+    problem = "Invalid size shortened sync ciphertext allowed"
     for fewer_bytes in range(1, BLOCKSIZE):
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             await cipher.abytes_decrypt(act[:-fewer_bytes])
 
     ######
@@ -80,22 +80,22 @@ async def test_detection_of_ciphertext_modification():
     ######
     ###### sync decryption of altered ciphertext fails
     ict = int.from_bytes(ct, BIG)
-    context = "Sync ciphertext alteration not caught!"
+    problem = "Sync ciphertext alteration not caught!"
     for bit in range(0, ict.bit_length(), 16):
-        with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(context)):
+        with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(problem)):
             altered_ct = (ict ^ (1 << bit)).to_bytes(len(ct), BIG)
             cipher.bytes_decrypt(altered_ct)
 
     # sync decryption of ciphertext lengthened to invalid size fails
-    context = "Invalid size lengthened sync ciphertext allowed"
+    problem = "Invalid size lengthened sync ciphertext allowed"
     for extra_bytes in range(1, BLOCKSIZE):
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             cipher.bytes_decrypt(ct + token_bytes(extra_bytes))
 
     # sync decryption of ciphertext shortened to invalid size fails
-    context = "Invalid size shortened sync ciphertext allowed"
+    problem = "Invalid size shortened sync ciphertext allowed"
     for fewer_bytes in range(1, BLOCKSIZE):
-        with ignore(ValueError, if_else=violation(context)):
+        with ignore(ValueError, if_else=violation(problem)):
             cipher.bytes_decrypt(ct[:-fewer_bytes])
 
 
@@ -153,20 +153,20 @@ async def test_async_block_ids_during_deciphering():
         padded_plaintext += await deciphering.asend(None)
 
         # altering the block_id fails
-        context = "Block id was modified without notice!"
-        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(context)):
+        problem = "Block id was modified without notice!"
+        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(problem)):
             fake_block_id = await axi_mix(block_id + b"\x01", size=BLOCK_ID_BYTES)
             await shmac.atest_next_block_id(fake_block_id, ciphertext_block)
 
         # a block_id that is too short fails
-        context = "An insufficient size block id was allowed!"
-        with ignore(PermissionError, if_else=violation(context)):
+        problem = "An insufficient size block id was allowed!"
+        with ignore(PermissionError, if_else=violation(problem)):
             truncated_block_id = block_id[:MIN_BLOCK_ID_BYTES - 1]
             await shmac.atest_next_block_id(truncated_block_id, ciphertext_block)
 
         # alterting the ciphertext_block fails
-        context = "Block was modified without notice!"
-        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(context)):
+        problem = "Block was modified without notice!"
+        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(problem)):
             fake_block = await axi_mix(ciphertext_block + b"\x01", size=BLOCKSIZE)
             await shmac.atest_next_block_id(block_id, fake_block)
 
@@ -174,10 +174,10 @@ async def test_async_block_ids_during_deciphering():
         padded_plaintext
     )
 
-    context = "MAC object accessible after finalization!"
+    problem = "MAC object accessible after finalization!"
     tag = await shmac.afinalize()
     await shmac.atest_shmac(tag)
-    with ignore(PermissionError, if_else=violation(context)):
+    with ignore(PermissionError, if_else=violation(problem)):
         shmac._mac.digest()
 
 
@@ -197,29 +197,29 @@ def test_sync_block_ids_during_deciphering():
         padded_plaintext += deciphering.send(None)
 
         # altering the block_id fails
-        context = "Block id was modified without notice!"
-        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(context)):
+        problem = "Block id was modified without notice!"
+        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(problem)):
             fake_block_id = xi_mix(block_id + b"\x01", size=BLOCK_ID_BYTES)
             shmac.test_next_block_id(fake_block_id, ciphertext_block)
 
         # a block_id that is too short fails
-        context = "An insufficient size block id was allowed!"
-        with ignore(PermissionError, if_else=violation(context)):
+        problem = "An insufficient size block id was allowed!"
+        with ignore(PermissionError, if_else=violation(problem)):
             truncated_block_id = block_id[:MIN_BLOCK_ID_BYTES - 1]
             shmac.test_next_block_id(truncated_block_id, ciphertext_block)
 
         # alterting the ciphertext_block fails
-        context = "Block was modified without notice!"
-        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(context)):
+        problem = "Block was modified without notice!"
+        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(problem)):
             fake_block = xi_mix(ciphertext_block + b"\x01", size=BLOCKSIZE)
             shmac.test_next_block_id(block_id, fake_block)
 
     assert plaintext_bytes == Padding.depad_plaintext(padded_plaintext)
 
-    context = "MAC object accessible after finalization!"
+    problem = "MAC object accessible after finalization!"
     tag = shmac.finalize()
     shmac.test_shmac(tag)
-    with ignore(PermissionError, if_else=violation(context)):
+    with ignore(PermissionError, if_else=violation(problem)):
         shmac._mac.digest()
 
 
@@ -291,17 +291,17 @@ async def test_async_encipher_sync_decipher_interop():
         # the cipher can be resumed after the failure state of an
         # InvalidBlockID exception is recovered & the correct data
         # is supplied to the buffer
-        context = "An altered block_id was not detected"
+        problem = "An altered block_id was not detected"
         fake_block_id = xi_mix(block_id + b"\x01", size=len(block_id))
-        with ignore(InvalidBlockID, if_else=violation(context)) as relay:
+        with ignore(InvalidBlockID, if_else=violation(problem)) as relay:
             stream_dec.buffer(fake_block_id + block)
         assert fake_block_id == relay.error.failure_state.block_id
         assert block == relay.error.failure_state.block
         assert 0 == len(relay.error.failure_state.buffer())
 
-        context = "An altered block was not detected"
+        problem = "An altered block was not detected"
         fake_block = xi_mix(block + b"\x01", size=len(block))
-        with ignore(InvalidBlockID, if_else=violation(context)) as relay:
+        with ignore(InvalidBlockID, if_else=violation(problem)) as relay:
             stream_dec.buffer(block_id + fake_block)
         assert block_id == relay.error.failure_state.block_id
         assert fake_block == relay.error.failure_state.block
@@ -336,17 +336,17 @@ async def test_sync_encipher_async_decipher_interop():
         # the cipher can be resumed after the failure state of an
         # InvalidBlockID exception is recovered & the correct data
         # is supplied to the buffer
-        context = "An altered block_id was not detected"
+        problem = "An altered block_id was not detected"
         fake_block_id = xi_mix(block_id + b"\x01", size=len(block_id))
-        async with aignore(InvalidBlockID, if_else=aviolation(context)) as relay:
+        async with aignore(InvalidBlockID, if_else=aviolation(problem)) as relay:
             await stream_dec.abuffer(fake_block_id + block)
         assert fake_block_id == relay.error.failure_state.block_id
         assert block == relay.error.failure_state.block
         assert 0 == len(relay.error.failure_state.buffer())
 
-        context = "An altered block was not detected"
+        problem = "An altered block was not detected"
         fake_block = xi_mix(block + b"\x01", size=len(block))
-        async with aignore(InvalidBlockID, if_else=aviolation(context)) as relay:
+        async with aignore(InvalidBlockID, if_else=aviolation(problem)) as relay:
             await stream_dec.abuffer(block_id + fake_block)
         assert block_id == relay.error.failure_state.block_id
         assert fake_block == relay.error.failure_state.block

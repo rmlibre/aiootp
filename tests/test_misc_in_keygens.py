@@ -26,13 +26,13 @@ async def test_mnemonic():
     assert len(phrase12.split(b"-")) == 12
 
 
-    context = "Can supply passcrypt settings to sync mnemonic when not given passphrase"
-    with ignore(ValueError, if_else=violation(context)) as relay:
+    problem = "Can supply passcrypt settings to sync mnemonic when not given passphrase"
+    with ignore(ValueError, if_else=violation(problem)) as relay:
         phrase12 = b"-".join(mnemonic(size=12, **passcrypt_settings)).title()
     assert "parameters are not used" in relay.error.args[0]
 
-    context = "Can supply passcrypt settings to async mnemonic when not given passphrase"
-    with ignore(ValueError, if_else=violation(context)) as relay:
+    problem = "Can supply passcrypt settings to async mnemonic when not given passphrase"
+    with ignore(ValueError, if_else=violation(problem)) as relay:
         aphrase12 = b"-".join(await amnemonic(size=12, **passcrypt_settings)).title()
     assert "parameters are not used" in relay.error.args[0]
 
@@ -44,6 +44,12 @@ async def test_DomainKDF():
     # additional optional data can be added to hashing methods
     kdf = DomainKDF(b"test", key=key)
     test_data = (b"input tests", token_bytes(32), token_bytes(32))
+
+    problem = "empty kdf updates were allowed!"
+    with ignore(ValueError, if_else=violation(problem)):
+        await kdf.aupdate()
+    with ignore(ValueError, if_else=violation(problem)):
+        kdf.update()
 
     # async and sync methods produce the same outputs given the same inputs
     assert kdf.sha3_256(*test_data) == await kdf.asha3_256(*test_data)

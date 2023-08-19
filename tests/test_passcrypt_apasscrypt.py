@@ -87,45 +87,45 @@ async def test_metadata_hashes():
 
 
     # verification fails given a different passphrase
-    context = "An invalid passphrase passed sync verification!"
-    with ignore(Passcrypt.InvalidPassphrase, if_else=violation(context)):
+    problem = "An invalid passphrase passed sync verification!"
+    with ignore(Passcrypt.InvalidPassphrase, if_else=violation(problem)):
         pcrypt.verify(metadata_hash, passphrase + b"\x00")
 
-    context = "An invalid passphrase passed async verification!"
-    with ignore(Passcrypt.InvalidPassphrase, if_else=violation(context)):
+    problem = "An invalid passphrase passed async verification!"
+    with ignore(Passcrypt.InvalidPassphrase, if_else=violation(problem)):
         await pcrypt.averify(ametadata_hash, passphrase + b"\x00")
 
 
     # mb resource limits are respected
     mb_allowed = passcrypt_settings.mb
-    context = f"The `mb` was allowed to exceed the resource limit of {mb_allowed - 1}"
-    with ignore(ResourceWarning, if_else=violation(context)):
+    problem = f"The `mb` was allowed to exceed the resource limit of {mb_allowed - 1}"
+    with ignore(ResourceWarning, if_else=violation(problem)):
         pcrypt.verify(metadata_hash, passphrase, mb_allowed=range(1, mb_allowed - 1))
 
-    context = f"The `mb` was allowed to fall below the resource limit of {mb_allowed + 1}"
-    with ignore(ResourceWarning, if_else=violation(context)):
+    problem = f"The `mb` was allowed to fall below the resource limit of {mb_allowed + 1}"
+    with ignore(ResourceWarning, if_else=violation(problem)):
         pcrypt.verify(metadata_hash, passphrase, mb_allowed=range(mb_allowed + 1, mb_allowed + 2))
 
 
     # cpu resource limits are respected
     cpu_allowed = passcrypt_settings.cpu
-    context = f"The `cpu` was allowed to exceed the resource limit of {cpu_allowed - 1}"
-    with ignore(ResourceWarning, if_else=violation(context)):
+    problem = f"The `cpu` was allowed to exceed the resource limit of {cpu_allowed - 1}"
+    with ignore(ResourceWarning, if_else=violation(problem)):
         pcrypt.verify(metadata_hash, passphrase, cpu_allowed=range(256, cpu_allowed - 1))
 
-    context = f"The `cpu` was allowed to fall below the resource limit of {cpu_allowed + 1}"
-    with ignore(ResourceWarning, if_else=violation(context)):
+    problem = f"The `cpu` was allowed to fall below the resource limit of {cpu_allowed + 1}"
+    with ignore(ResourceWarning, if_else=violation(problem)):
         pcrypt.verify(metadata_hash, passphrase, cpu_allowed=range(cpu_allowed + 1, 257))
 
 
     # cores resource limits are respected
     cores_allowed = passcrypt_settings.cores
-    context = f"The `cores` was allowed to exceed the resource limit of {cores_allowed - 1}"
-    with ignore(ResourceWarning, if_else=violation(context)):
+    problem = f"The `cores` was allowed to exceed the resource limit of {cores_allowed - 1}"
+    with ignore(ResourceWarning, if_else=violation(problem)):
         pcrypt.verify(metadata_hash, passphrase, cores_allowed=range(256, cores_allowed - 1))
 
-    context = f"The `cores` was allowed to fall below the resource limit of {cores_allowed + 1}"
-    with ignore(ResourceWarning, if_else=violation(context)):
+    problem = f"The `cores` was allowed to fall below the resource limit of {cores_allowed + 1}"
+    with ignore(ResourceWarning, if_else=violation(problem)):
         pcrypt.verify(metadata_hash, passphrase, cores_allowed=range(cores_allowed + 1, 257))
 
 
@@ -236,123 +236,123 @@ async def test_missing_passcrypt_lines():
 
 
     # empty passphrase byte-strings are not allowed
-    context = "Empty passphrase was allowed."
-    with ignore(ValueError, if_else=violation(context)):
+    problem = "Empty passphrase was allowed."
+    with ignore(ValueError, if_else=violation(problem)):
         PasscryptSession(b"", salt, **s)
 
-    with ignore(ValueError, if_else=violation(context)):
+    with ignore(ValueError, if_else=violation(problem)):
         Passcrypt.new(b"", salt, **s)
 
-    async with aignore(ValueError, if_else=aviolation(context)):
+    async with aignore(ValueError, if_else=aviolation(problem)):
         await Passcrypt.anew(b"", salt, **s)
 
 
     # passphrases below the minimum length are not allowed
-    context = "A below minimum length passphrase was allowed."
-    with ignore(ValueError, if_else=violation(context)):
+    problem = "A below minimum length passphrase was allowed."
+    with ignore(ValueError, if_else=violation(problem)):
         PasscryptSession((MIN_PASSPHRASE_BYTES - 1) * b"p", salt, **s)
 
-    with ignore(ValueError, if_else=violation(context)):
+    with ignore(ValueError, if_else=violation(problem)):
         Passcrypt.new((MIN_PASSPHRASE_BYTES - 1) * b"p", salt, **s)
 
-    async with aignore(ValueError, if_else=aviolation(context)):
+    async with aignore(ValueError, if_else=aviolation(problem)):
         await Passcrypt.anew((MIN_PASSPHRASE_BYTES - 1) * b"p", salt, **s)
 
 
     # passphrases must be bytes
-    context = "Non-bytes passphrase was allowed."
-    with ignore(TypeError, if_else=violation(context)):
+    problem = "Non-bytes passphrase was allowed."
+    with ignore(TypeError, if_else=violation(problem)):
         PasscryptSession("a string passphrase", salt, **s)
 
-    with ignore(TypeError, if_else=violation(context)):
+    with ignore(TypeError, if_else=violation(problem)):
         Passcrypt.new("a string passphrase", salt, **s)
 
-    async with aignore(TypeError, if_else=aviolation(context)):
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await Passcrypt.anew("a string passphrase", salt, **s)
 
 
     # falsey salts are not allowed in methods which do not auto-generate
     # salts
-    context = "Empty salt was allowed."
-    with ignore(ValueError, if_else=violation(context)):
+    problem = "Empty salt was allowed."
+    with ignore(ValueError, if_else=violation(problem)):
         PasscryptSession(key, salt=b"", **s)
 
-    with ignore(ValueError, if_else=violation(context)):
+    with ignore(ValueError, if_else=violation(problem)):
         Passcrypt.new(key, salt=b"", **s)
 
-    async with aignore(ValueError, if_else=aviolation(context)):
+    async with aignore(ValueError, if_else=aviolation(problem)):
         await Passcrypt.anew(key, salt=b"", **s)
 
 
     # salts must be bytes
-    context = "Non-bytes salt was allowed."
-    with ignore(TypeError, if_else=violation(context)):
+    problem = "Non-bytes salt was allowed."
+    with ignore(TypeError, if_else=violation(problem)):
         PasscryptSession(key, "a string salt here", **s)
 
-    with ignore(TypeError, if_else=violation(context)):
+    with ignore(TypeError, if_else=violation(problem)):
         Passcrypt.new(key, "a string salt here", **s)
 
-    async with aignore(TypeError, if_else=aviolation(context)):
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await Passcrypt.anew(key, "a string salt here", **s)
 
 
     # aad values must be bytes
-    context = "A non-bytes type `aad` was allowed."
-    with ignore(TypeError, if_else=violation(context)):
+    problem = "A non-bytes type `aad` was allowed."
+    with ignore(TypeError, if_else=violation(problem)):
         PasscryptSession(key, salt, **{**s, "aad": "some string aad"})
 
-    with ignore(TypeError, if_else=violation(context)):
+    with ignore(TypeError, if_else=violation(problem)):
         Passcrypt.new(key, salt, **{**s, "aad": None})
 
-    async with aignore(TypeError, if_else=aviolation(context)):
+    async with aignore(TypeError, if_else=aviolation(problem)):
         await Passcrypt.anew(key, salt, **{**s, "aad": "some string aad"})
 
 
     # the mb cost must be at least the default minimum
-    context = "A `mb` cost below the minimum was allowed."
-    with ignore(ValueError, if_else=violation(context)):
+    problem = "A `mb` cost below the minimum was allowed."
+    with ignore(ValueError, if_else=violation(problem)):
         PasscryptSession(key, salt, **{**s, "mb": MIN_MB - 1})
 
-    with ignore(ValueError, if_else=violation(context)):
+    with ignore(ValueError, if_else=violation(problem)):
         Passcrypt.new(key, salt, **{**s, "mb": MIN_MB - 1})
 
-    async with aignore(ValueError, if_else=aviolation(context)):
+    async with aignore(ValueError, if_else=aviolation(problem)):
         await Passcrypt.anew(key, salt, **{**s, "mb": MIN_MB - 1})
 
 
     # the cpu cost must be at least the default minimum
-    context = "A `cpu` cost below the minimum was allowed."
-    with ignore(ValueError, if_else=violation(context)):
+    problem = "A `cpu` cost below the minimum was allowed."
+    with ignore(ValueError, if_else=violation(problem)):
         PasscryptSession(key, salt, **{**s, "cpu": MIN_CPU - 1})
 
-    with ignore(ValueError, if_else=violation(context)):
+    with ignore(ValueError, if_else=violation(problem)):
         Passcrypt.new(key, salt, **{**s, "cpu": MIN_CPU - 1})
 
-    async with aignore(ValueError, if_else=aviolation(context)):
+    async with aignore(ValueError, if_else=aviolation(problem)):
         await Passcrypt.anew(key, salt, **{**s, "cpu": MIN_CPU - 1})
 
 
     # the cores cost must be at least the default minimum
-    context = "A `cores` cost below the minimum was allowed."
-    with ignore(ValueError, if_else=violation(context)):
+    problem = "A `cores` cost below the minimum was allowed."
+    with ignore(ValueError, if_else=violation(problem)):
         PasscryptSession(key, salt, **{**s, "cores": MIN_CORES - 1})
 
-    with ignore(ValueError, if_else=violation(context)):
+    with ignore(ValueError, if_else=violation(problem)):
         Passcrypt.new(key, salt, **{**s, "cores": MIN_CORES - 1})
 
-    async with aignore(ValueError, if_else=aviolation(context)):
+    async with aignore(ValueError, if_else=aviolation(problem)):
         await Passcrypt.anew(key, salt, **{**s, "cores": MIN_CORES - 1})
 
 
     # the tag_size must be at least the default minimum
-    context = "A `tag_size` below the minimum was allowed."
-    with ignore(ValueError, if_else=violation(context)):
+    problem = "A `tag_size` below the minimum was allowed."
+    with ignore(ValueError, if_else=violation(problem)):
         PasscryptSession(key, salt, **{**s, "tag_size": MIN_TAG_SIZE - 1})
 
-    with ignore(ValueError, if_else=violation(context)):
+    with ignore(ValueError, if_else=violation(problem)):
         Passcrypt.new(key, salt, **{**s, "tag_size": MIN_TAG_SIZE - 1})
 
-    async with aignore(ValueError, if_else=aviolation(context)):
+    async with aignore(ValueError, if_else=aviolation(problem)):
         await Passcrypt.anew(key, salt, **{**s, "tag_size": MIN_TAG_SIZE - 1})
 
 
