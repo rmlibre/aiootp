@@ -755,13 +755,13 @@ class Passcrypt:
           |xxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| hashed `cpu` + 2
           |ooooooooooo'ooooooooooooooooooooooooooooooooooooo| number of times.
           |Fxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| after each pass an
-          |foooooooooo'ooooooooooooooooooooooooooooooooooooo| 84-byte digest is
-          |fxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| inserted into the
+          |foooooooooo'ooooooooooooooooooooooooooooooooooooo| 84-byte digest (F)
+          |fxxxxxxxxxx'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx| is inserted into the
           |foooooooooo'ooooooooooooooooooooooooooooooooooooo| cache, ruling out
                       |   ->                                  hashing state cycles.
                       | hash cpu + 2 # of times               Then a `tag_size`-
                       v                                       byte tag is output.
-                  H(cache)
+           H.update(cache)
 
           tag = H.digest(tag_size)
 
