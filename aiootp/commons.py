@@ -29,6 +29,7 @@ from os import linesep as sep
 from hashlib import sha3_256, sha3_512, shake_128, shake_256
 from .__constants import *
 from ._typing import Typing as t
+from ._exceptions import Issue
 
 
 class DeletedAttribute:
@@ -180,6 +181,28 @@ class Slots:
         )
 
 
+class FrozenSlots(Slots):
+    """
+    A version of the `Slots` class which enables instances of subclasses
+    to have attributes that are frozen once they're set.
+    """
+    __slots__ = ()
+
+    def __setattr__(self, name: str, value: t.Any) -> None:
+        """
+        Denies the setting attributes after they have already been set.
+        """
+        if hasattr(self, name):
+            raise Issue.cant_overwrite_existing_attribute(name)
+        object.__setattr__(self, name, value)
+
+    def __delattr__(self, name: str) -> None:
+        """
+        Denies the deletion of attributes after they have been set.
+        """
+        raise Issue.cant_overwrite_existing_attribute(name)
+
+
 class Namespace(Slots):
     """
     A simple wrapper for turning mappings into Namespace objects that
@@ -242,28 +265,33 @@ class Namespace(Slots):
         """
         return variable in self.__dict__
 
-    def __setitem__(self, variable, value) -> None:
+    def __setitem__(self, name: str, value: t.Any) -> None:
         """
         Transforms bracket item assignment into dotted assignment on the
-        Namespace's mapping.
-        """
-        setattr(self, variable, value)
-
-    def __getitem__(self, variable) -> t.Any:
-        """
-        Transforms bracket lookup into dotted access on the Namespace's
-        mapping.
+        instance.
         """
         try:
-            return self.__dict__[variable]
+            self.__dict__[name] = value
         except KeyError:
-            return getattr(self, variable)
+            setattr(self, name, value)
 
-    def __delitem__(self, variable=None) -> None:
+    def __getitem__(self, name: str) -> t.Any:
         """
-        Deletes the item ``variable`` from the instance dictionary.
+        Transforms bracket lookup into dotted access on the instance.
         """
-        del self.__dict__[variable]
+        try:
+            return self.__dict__[name]
+        except KeyError:
+            return getattr(self, name)
+
+    def __delitem__(self, name: str) -> None:
+        """
+        Deletes the item ``name`` from the instance.
+        """
+        try:
+            del self.__dict__[name]
+        except KeyError:
+            delattr(self, name)
 
     async def __aiter__(self) -> t.AsyncGenerator[None, t.Hashable]:
         """
@@ -373,6 +401,7 @@ constants = make_module(
         misc=make_module("misc", mapping=misc.__dict__),
         datasets=make_module("datasets", mapping=datasets.__dict__),
         passcrypt=make_module("passcrypt", mapping=passcrypt.__dict__),
+        slick256=make_module("slick256", mapping=slick256.__dict__),
         chunky2048=make_module("chunky2048", mapping=chunky2048.__dict__),
     ),
 )
@@ -382,6 +411,7 @@ extras = dict(
     Namespace=Namespace,
     OpenNamespace=OpenNamespace,
     Slots=Slots,
+    FrozenSlots=FrozenSlots,
     __doc__=__doc__,
     __package__=__package__,
     aimport_namespace=aimport_namespace,
