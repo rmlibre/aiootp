@@ -113,8 +113,8 @@ async def _asalt_multiply(*numbers: t.Iterable[int]) -> int:
     """
     global _mix, _mod, _seed, _offset
 
-    _mix ^= abs(sum((_seed, _offset, ns_time(), ns_counter(), *numbers)))
-    mix = _mix = _mix % _mod
+    mix = _mix ^ abs(sum((_seed, _offset, ns_time(), *numbers)))
+    mix = _mix = mix % _mod
     _seed ^= mix
     start = _seed
     _offset ^= _seed
@@ -137,8 +137,8 @@ def _salt_multiply(*numbers: t.Iterable[int]) -> int:
     """
     global _mix, _mod, _seed, _offset
 
-    _mix ^= abs(sum((_seed, _offset, ns_time(), ns_counter(), *numbers)))
-    mix = _mix = _mix % _mod
+    mix = _mix ^ abs(sum((_seed, _offset, ns_time(), *numbers)))
+    mix = _mix = mix % _mod
     _seed ^= mix
     start = _seed
     _offset ^= _seed
@@ -325,7 +325,7 @@ run(_asalt_multiply(_salt_multiply(*_numbers), *_numbers))
 _initial_entropy = deque([token_bits(1024), token_bits(1024)], maxlen=2)
 
 # ensure the device has created a static salt for GUID creation
-_static_salt_name = Domains.encode_constant(b"default_guid_name", size=16)
+_static_salt_name = Domains.encode_constant(b"default_guid_salt", size=16)
 _device_salt_path = SecurePath(key=_static_salt_name, _admin=True)
 _device_salt = read_salt_file(_device_salt_path)
 
