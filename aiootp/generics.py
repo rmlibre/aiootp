@@ -985,6 +985,8 @@ class Domains(DomainEncoder):
     SERVER_MESSAGE_KEY: bytes = _encode(SERVER_MESSAGE_KEY)
     EXTENDED_DH_EXCHANGE: bytes = _encode(EXTENDED_DH_EXCHANGE)
 
+    del _encode
+
 
 class Hasher:
     """
