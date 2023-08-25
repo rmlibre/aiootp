@@ -21,13 +21,11 @@ async def test_acsprng():
     assert len(entropy) == 128
     assert entropy.__class__ is bytes
 
-    entropy = await acsprng(b"")
-    assert len(entropy) == 64
-    assert entropy.__class__ is bytes
-
-    entropy = await acsprng("test")
-    assert len(entropy) == 64
-    assert entropy.__class__ is bytes
+    for datum in (token_bytes(32), token_bytes(32).hex(), token_bits(32)):
+        for size in (32, 64, 128, 256):
+            entropy = await acsprng(size, entropy=datum)
+            assert len(entropy) == size
+            assert entropy.__class__ is bytes
 
     key = await agenerate_key(freshness=0)
     assert len(key) == KEY_BYTES
@@ -65,13 +63,11 @@ def test_csprng():
     assert len(entropy) == 128
     assert entropy.__class__ is bytes
 
-    entropy = csprng(b"")
-    assert len(entropy) == 64
-    assert entropy.__class__ is bytes
-
-    entropy = csprng("test")
-    assert len(entropy) == 64
-    assert entropy.__class__ is bytes
+    for datum in (token_bytes(32), token_bytes(32).hex(), token_bits(32)):
+        for size in (32, 64, 128, 256):
+            entropy = csprng(size, entropy=datum)
+            assert len(entropy) == size
+            assert entropy.__class__ is bytes
 
     key = generate_key(freshness=0)
     assert len(key) == KEY_BYTES
