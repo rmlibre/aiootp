@@ -222,8 +222,8 @@ class Namespace(Slots):
         """
         if mapping.__class__ in JSON_DESERIALIZABLE_TYPES:
             mapping = json.loads(mapping)
-        self.__dict__.update(mapping)
-        self.__dict__.update(kwargs)
+        self.__dict__.update(mapping) if mapping else 0
+        self.__dict__.update(kwargs) if kwargs else 0
 
     @property
     def __all__(self) -> t.Generator[None, t.Hashable, None]:
