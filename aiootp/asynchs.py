@@ -24,6 +24,7 @@ __doc__ = (
 import os
 import asyncio
 import aiofiles
+from asyncio import run
 from time import sleep
 from time import time as s_time
 from time import time_ns as ns_time
@@ -64,7 +65,7 @@ _ONE_YEAR: int = 12 * _ONE_MONTH
 
 
 this_nanosecond = this_ns = lambda epoch=0: (
-    ns_time() - (int(epoch) if epoch else 0)
+    (ns_time() - int(epoch)) if epoch else ns_time()
 )
 this_microsecond = lambda epoch=0: this_ns(epoch) // _ONE_MICROSECOND
 this_millisecond = lambda epoch=0: this_ns(epoch) // _ONE_MILLISECOND
@@ -99,13 +100,6 @@ def serve(*a, **kw) -> None:
     Proxy's access to ``asyncio.get_event_loop().run_forever()``.
     """
     return event_loop().run_forever(*a, **kw)
-
-
-def run(coro) -> Typing.Any:
-    """
-    Proxy's access to ``asyncio.get_event_loop().run_until_complete()``.
-    """
-    return event_loop().run_until_complete(coro)
 
 
 def new_task(coro) -> asyncio.Task:
