@@ -18,6 +18,7 @@ __doc__ = (
 )
 
 
+import io
 import math
 import random as _random
 from collections import deque
@@ -31,15 +32,7 @@ from ._typing import Typing as t
 from .commons import OpenNamespace
 from .commons import make_module
 from .asynchs import Threads
-from .asynchs import (
-    asleep,
-    asyncio,
-    gather,
-    sleep,
-    run,
-    ns_time,
-    ns_counter,
-)
+from .asynchs import asleep, asyncio, gather, sleep, ns_time
 from .paths import SecurePath
 from .paths import read_salt_file
 from .generics import Domains, Hasher, Clock, MaskedClock, BytesIO
@@ -100,6 +93,28 @@ async def atoken_bytes(size: int) -> bytes:
     """
     await asleep()
     return token_bytes(size)
+
+
+async def atime_token(size: int) -> bytes:
+    """
+    Returns a `size`-byte value, where the first 8 bytes are a timestamp
+    in nanoseconds, & the final bytes are a (`size` - 8)-byte random
+    token.
+    """
+    timestamp = await ns_clock.amake_timestamp(size=SAFE_TIMESTAMP_BYTES)
+    token = await atoken_bytes(size - SAFE_TIMESTAMP_BYTES)
+    return timestamp + token
+
+
+def time_token(size: int) -> bytes:
+    """
+    Returns a `size`-byte value, where the first 8 bytes are a timestamp
+    in nanoseconds, & the final bytes are a (`size` - 8)-byte random
+    token.
+    """
+    timestamp = ns_clock.make_timestamp(size=SAFE_TIMESTAMP_BYTES)
+    token = token_bytes(size - SAFE_TIMESTAMP_BYTES)
+    return timestamp + token
 
 
 async def _asalt_multiply(*numbers: t.Iterable[int]) -> int:
@@ -188,7 +203,7 @@ class EntropyDaemon:
         entropy pool & the `secrets.token_bytes` function.
         """
         await asleep()
-        return await atoken_bytes(32) + self._pool[0] + self._pool[-1][:48]
+        return await atime_token(40) + self._pool[0] + self._pool[-1][:32]
 
     def _set_temporary_frequency(
         self,
@@ -249,11 +264,14 @@ class EntropyDaemon:
         """
         while True:
             seed = await self._anew_snapshot()
-            await _add_to_pool(await _entropy.ahash(seed), self._pool)
-            _xof.update(self._pool[0])
+            await _add_to_pool(
+                await _entropy.ahash(seed, size=64), self._pool
+            )
             await arandom_sleep(self._frequency)
-            await _add_to_pool(await _entropy.ahash(seed), self._pool)
-            _xof.update(self._pool[0])
+            seed += await ns_clock.amake_timestamp()
+            await _add_to_pool(
+                await _entropy.ahash(seed, size=64), self._pool
+            )
             if self._cancel:
                 break
 
@@ -294,14 +312,14 @@ async def _add_to_pool(
     entropy pool.
     """
     while entropy in entropy_pool:
-        entropy = _entropy.hash(entropy)
+        token = await ns_clock.amake_timestamp() + entropy
+        entropy = _entropy.hash(token, size=64)
         await arandom_sleep(0.001)
     entropy_pool.appendleft(entropy)
 
 
 # initialize the global hashing objects that also collect entropy
-_entropy = Hasher(token_bytes(304) + b"".join(_pool))
-_xof = Hasher(token_bytes(280) + b"".join(_pool), obj=shake_256)
+_entropy = Hasher(token_bytes(16 * SHAKE_256_BLOCKSIZE), obj=shake_256)
 
 # avert event loop clashes
 run = asyncio.new_event_loop().run_until_complete
@@ -316,8 +334,8 @@ ns_clock = MaskedClock(
 
 _mod = PRIMES[256][-1]
 _offset = token_bits(256)
-_mix = int.from_bytes(_entropy.hash(*_pool), BIG)
-_seed = int.from_bytes(_entropy.hash(*_pool)[:32], BIG)
+_mix = int.from_bytes(_entropy.hash(*_pool, size=32), BIG)
+_seed = int.from_bytes(_entropy.hash(*_pool, size=32), BIG)
 _numbers = (_mix, _seed, _offset)
 
 run(_asalt_multiply(_salt_multiply(*_numbers), *_numbers))
@@ -339,7 +357,7 @@ async def _asalt() -> int:
     Returns a low-grade entropy number from cached & ratcheted system
     entropy.
     """
-    entropy = _entropy.hash(token_bytes(32), *_pool)[:32]
+    entropy = _entropy.hash(await atime_token(40), *_pool, size=32)
     _initial_entropy.appendleft(int.from_bytes(entropy, BIG))
     return await _asalt_multiply(*_initial_entropy)
 
@@ -349,7 +367,7 @@ def _salt() -> int:
     Returns a low-grade entropy number from cached & ratcheted system
     entropy.
     """
-    entropy = _entropy.hash(token_bytes(32), *_pool)[:32]
+    entropy = _entropy.hash(time_token(40), *_pool, size=32)
     _initial_entropy.appendleft(int.from_bytes(entropy, BIG))
     return _salt_multiply(*_initial_entropy)
 
@@ -357,7 +375,9 @@ def _salt() -> int:
 async def arandom_number_generator(
     size: int = 64,
     *,
-    entropy: t.Any = _entropy.hash(run(_asalt()).to_bytes(2048, BIG)),
+    entropy: t.Any = _entropy.hash(
+        run(_asalt()).to_bytes(2048, BIG), size=64
+    ),
     freshness: int = 8,
 ) -> bytes:
     """
@@ -440,7 +460,7 @@ async def arandom_number_generator(
 
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     """
-    xof = _xof.copy()
+    xof = _entropy.copy()
     _entropy_daemon.set_temporary_frequency(0.001, duration=1)
 
     if entropy.__class__ is not bytes:
@@ -461,17 +481,14 @@ async def arandom_number_generator(
             await arandom_sleep(0.003)
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = [await multiple for multiple in multiples]
-            result = await big_modulation(seed, *multiples)
-            await _add_to_pool(
-                await acsprng(
-                    seed.to_bytes(64, BIG) + result.to_bytes(64, BIG)
-                )
-            )
+            element = await big_modulation(seed, *multiples)
+            result = seed.to_bytes(64, BIG) + element.to_bytes(64, BIG)
+            await _add_to_pool(await acsprng(entropy=result))
 
         async def add_to_pool() -> None:
-            seed = await xof.ahash(await atoken_bytes(32), size=32)
+            seed = await acsprng(32, entropy=entropy)
             await arandom_sleep(0.003)
-            await _add_to_pool(await acsprng(entropy + seed))
+            await _add_to_pool(await acsprng(entropy=seed))
 
         async def start_generator() -> None:
             tasks = deque()
@@ -481,26 +498,25 @@ async def arandom_number_generator(
                 tasks.appendleft(modular_multiplication())
                 for _ in range(10):
                     tasks.appendleft(add_to_pool())
-            await gather(
-                *sorted(tasks, key=lambda val: token_bytes(32)),
-                return_exceptions=True,
-            )
+            reader = io.BytesIO(await acsprng(32 * len(tasks))).read
+            await gather(*sorted(tasks, key=lambda val: reader(32)))
 
         await start_generator()
     else:
-        await _add_to_pool(await acsprng(entropy))
+        await _add_to_pool(await acsprng(entropy=entropy))
 
     # Prevent the possibility that multiple threads will retrieve the
     # same result if they each happen to interrupt each other multiple
     # times in between their update of _xof & their call for its digest
     # by using a unique copy.
-    return await xof.ahash(token_bytes(xof.block_size), *_pool, size=size)
+    token = await atime_token(SAFE_TIMESTAMP_BYTES + xof.block_size)
+    return await xof.ahash(token, *_pool, size=size)
 
 
 def random_number_generator(
     size: int = 64,
     *,
-    entropy: t.Any = _entropy.hash(_salt().to_bytes(2048, BIG)),
+    entropy: t.Any = _entropy.hash(_salt().to_bytes(2048, BIG), size=64),
     freshness: int = 8,
 ) -> bytes:
     """
@@ -583,61 +599,9 @@ def random_number_generator(
 
     **** **** **** **** **** **** **** **** **** **** **** **** ****
     """
-    xof = _xof.copy()
-    _entropy_daemon.set_temporary_frequency(0.001, duration=1)
-
-    if entropy.__class__ is not bytes:
-        entropy = repr(entropy).encode()
-
-    if freshness or not _pool:
-
-        async def create_unique_multiple(seed: int) -> int:
-            return await _asalt_multiply(size, seed, token_bits(256))
-
-        async def big_modulation(*args) -> int:
-            return await _asalt_multiply(
-                size, *args, await atoken_bits(256)
-            ) % await achoice(PRIMES[512])
-
-        async def modular_multiplication() -> None:
-            seed = await _asalt() % await achoice(PRIMES[512])
-            await arandom_sleep(0.003)
-            multiples = (create_unique_multiple(seed) for _ in range(3))
-            multiples = [await multiple for multiple in multiples]
-            result = await big_modulation(seed, *multiples)
-            await _add_to_pool(
-                await acsprng(
-                    seed.to_bytes(64, BIG) + result.to_bytes(64, BIG)
-                )
-            )
-
-        async def add_to_pool() -> None:
-            seed = await xof.ahash(await atoken_bytes(32), size=32)
-            await arandom_sleep(0.003)
-            await _add_to_pool(await acsprng(entropy + seed))
-
-        async def start_generator() -> None:
-            tasks = deque()
-            rounds = 8 if (freshness < 1) else freshness
-            for _ in range(rounds):
-                await asleep()
-                tasks.appendleft(modular_multiplication())
-                for _ in range(10):
-                    tasks.appendleft(add_to_pool())
-            await gather(
-                *sorted(tasks, key=lambda val: token_bytes(32)),
-                return_exceptions=True,
-            )
-
-        run(start_generator())  # <- RuntimeError in event loops
-    else:
-        run(_add_to_pool(csprng(entropy)))
-
-    # Prevent the possibility that multiple threads will retrieve the
-    # same result if they each happen to interrupt each other multiple
-    # times in between their update of _xof & their call for its digest
-    # by using a unique copy.
-    return xof.hash(token_bytes(xof.block_size), *_pool, size=size)
+    return run(
+        arandom_number_generator(size, entropy=entropy, freshness=freshness)
+    )
 
 
 async def agenerate_salt(size: int = SALT_BYTES) -> bytes:
@@ -1414,39 +1378,41 @@ def generate_key(size: int = KEY_BYTES, *, freshness: int = 8) -> bytes:
 
 
 async def acsprng(
-    entropy: t.Any = _entropy.hash(_salt().to_bytes(2048, BIG))[:32]
+    size: int = 64,
+    *,
+    entropy: t.Any = _entropy.hash(_salt().to_bytes(2048, BIG), size=32),
 ) -> bytes:
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
-    return a 64-byte cryptographically secure pseudo-random value.
+    return a `size`-byte cryptographically secure pseudo-random value.
     """
-    if entropy.__class__ is not bytes:
-        entropy = _pool[0] + repr(entropy).encode()
+    if entropy.__class__ is bytes:
+        entropy = await atime_token(40) + _pool[0] + entropy
     else:
-        entropy = _pool[0] + entropy
-    token = await atoken_bytes(32) + await ns_clock.amake_timestamp()
-    _entropy.update(token + entropy)
+        entropy = await atime_token(40) + _pool[0] + repr(entropy).encode()
+    _entropy.update(entropy)
     thread_safe_entropy = _entropy.copy()
-    thread_safe_entropy.update(token + entropy + _entropy.digest())
-    return thread_safe_entropy.digest()
+    thread_safe_entropy.update(entropy)
+    return thread_safe_entropy.digest(size)
 
 
 def csprng(
-    entropy: t.Any = run(arandom_number_generator(32, freshness=1))
+    size: int = 64,
+    *,
+    entropy: t.Any = run(arandom_number_generator(32, freshness=1)),
 ) -> bytes:
     """
     Takes in an arbitrary ``entropy`` value from the user to seed then
-    return a 64-byte cryptographically secure pseudo-random value.
+    return a `size`-byte cryptographically secure pseudo-random value.
     """
-    if entropy.__class__ is not bytes:
-        entropy = _pool[0] + repr(entropy).encode()
+    if entropy.__class__ is bytes:
+        entropy = time_token(40) + _pool[0] + entropy
     else:
-        entropy = _pool[0] + entropy
-    token = token_bytes(32) + ns_clock.make_timestamp()
-    _entropy.update(token + entropy)
+        entropy = time_token(40) + _pool[0] + repr(entropy).encode()
+    _entropy.update(entropy)
     thread_safe_entropy = _entropy.copy()
-    thread_safe_entropy.update(token + entropy + _entropy.digest())
-    return thread_safe_entropy.digest()
+    thread_safe_entropy.update(entropy)
+    return thread_safe_entropy.digest(size)
 
 
 extras = dict(
