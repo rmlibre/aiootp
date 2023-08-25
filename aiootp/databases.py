@@ -77,7 +77,7 @@ class DBDomains(DomainEncoder):
     CIPHER: bytes = _encode("cipher")
 
 
-class DBKDF(DomainKDF):
+class DBKDF(DomainKDF, salt_label=b"database_domain_kdf_salt"):
     """
     A specialized KDF type for performing various ``(Async)Database``
     operations.
