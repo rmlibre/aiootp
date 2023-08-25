@@ -202,7 +202,7 @@ class FrozenSlots(Slots):
         """
         Denies the deletion of attributes after they have been set.
         """
-        raise Issue.cant_overwrite_existing_attribute(name)
+        raise Issue.cant_delete_frozen_object_attribute(name)
 
 
 class Namespace(Slots):

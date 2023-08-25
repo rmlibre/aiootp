@@ -482,7 +482,7 @@ class Issue:
     def cant_delete_frozen_object_attribute(
         cls, name: str
     ) -> PermissionError:
-        issue = cls._CANT_MUTATE_ATTRIBUTE_OF_FROZEN_OBJECT
+        issue = cls._CANT_DELETE_FROZEN_OBJECT_ATTRIBUTE
         return PermissionError(issue.replace("NAME", repr(name)))
 
     @classmethod
