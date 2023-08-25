@@ -50,7 +50,6 @@ from asyncio import sleep as asleep
 from contextlib import contextmanager
 from .__dependencies import async_contextmanager
 from .__constants import *
-from .commons import Namespace
 
 
 class Metadata:
@@ -139,6 +138,8 @@ class AsyncRelayExceptions:
         if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
         finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
     ) -> None:
+        from .commons import Namespace
+
         async def placeholder(*a, **kw):
             return self._read_me
 
@@ -177,6 +178,8 @@ class RelayExceptions:
         if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
         finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
     ) -> None:
+        from .commons import Namespace
+
         def placeholder(*a, **kw):
             return self._read_me
 
@@ -426,18 +429,18 @@ class Issue:
 
     @classmethod
     def value_must(cls, name: str, context: t.Any) -> ValueError:
-        issue = cls._VALUE_MUST.replace("NAME", name)
+        issue = cls._VALUE_MUST.replace("NAME", repr(name))
         return ValueError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
     def must_set_value(cls, name: str, context: str) -> ValueError:
-        issue = cls._MUST_SET_VALUE.replace("NAME", str(name))
+        issue = cls._MUST_SET_VALUE.replace("NAME", repr(name))
         return ValueError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
     def no_value_specified(cls, name: str) -> ValueError:
         issue = cls._NO_VALUE_SPECIFIED
-        return ValueError(issue.replace("NAME", str(name)))
+        return ValueError(issue.replace("NAME", repr(name)))
 
     @classmethod
     def value_must_be_value(
@@ -452,7 +455,7 @@ class Issue:
 
     @classmethod
     def value_must_be_type(cls, name: str, clss: t.Any) -> TypeError:
-        issue = cls._VALUE_MUST_BE_TYPE.replace("NAME", str(name))
+        issue = cls._VALUE_MUST_BE_TYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
 
     @classmethod
@@ -463,21 +466,21 @@ class Issue:
     @classmethod
     def exceeded_blocksize(cls, blocksize: int = BLOCKSIZE) -> ValueError:
         issue = cls._EXCEEDED_BLOCKSIZE
-        return ValueError(issue.replace("BLOCKSIZE", str(blocksize)))
+        return ValueError(issue.replace("BLOCKSIZE", repr(blocksize)))
 
     @classmethod
     def cant_overwrite_existing_attribute(cls, name: str) -> ValueError:
         issue = cls._CANT_OVERWRITE_EXISTING_ATTRIBUTE
-        return ValueError(issue.replace("NAME", str(name)))
+        return ValueError(issue.replace("NAME", repr(name)))
 
     @classmethod
-    def unused_parameters(cls, params: str, context: str) -> ValueError:
+    def unused_parameters(cls, params: t.Any, context: str) -> ValueError:
         issue = cls._UNUSED_PARAMETERS.replace("PARAMETERS", repr(params))
         return ValueError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
     def invalid_blocksize(cls, size: int) -> ValueError:
-        issue = cls._INVALID_BLOCKSIZE.replace("SIZE", str(size))
+        issue = cls._INVALID_BLOCKSIZE.replace("SIZE", repr(size))
         return ValueError(issue.replace("DEFAULT", str(BLOCKSIZE)))
 
     @classmethod
@@ -695,13 +698,13 @@ class SHMACIssue:
 
     @classmethod
     def block_id_is_too_big(size: int) -> PermissionError:
-        issue = cls._BLOCK_ID_IS_TOO_BIG.replace("SIZE", str(size))
+        issue = cls._BLOCK_ID_IS_TOO_BIG.replace("SIZE", repr(size))
         issue = issue.replace("MAX", str(MAX_BLOCK_ID_BYTES))
         return PermissionError(issue)
 
     @classmethod
     def block_id_is_too_small(cls, size: int) -> PermissionError:
-        issue = cls._BLOCK_ID_IS_TOO_SMALL.replace("SIZE", str(size))
+        issue = cls._BLOCK_ID_IS_TOO_SMALL.replace("SIZE", repr(size))
         issue = issue.replace("MIN", str(MIN_BLOCK_ID_BYTES))
         return PermissionError(issue)
 
@@ -730,7 +733,7 @@ class CiphertextIssue:
     @classmethod
     def invalid_ciphertext_size(cls, size: int) -> ValueError:
         issue = cls._INVALID_CIPHERTEXT_SIZE
-        return ValueError(issue.replace("SIZE", str(size)))
+        return ValueError(issue.replace("SIZE", repr(size)))
 
 
 class TimestampIssue:
@@ -750,8 +753,8 @@ class TimestampIssue:
     def timestamp_expired(
         cls, unit: str, expired_by: int
     ) -> TimestampExpired:
-        issue = cls._TIMESTAMP_EXPIRED.replace("UNITS", str(unit))
-        error = TimestampExpired(issue.replace("TIME", str(expired_by)))
+        issue = cls._TIMESTAMP_EXPIRED.replace("UNITS", repr(unit))
+        error = TimestampExpired(issue.replace("TIME", repr(expired_by)))
         error.unit = unit
         error.expired_by = expired_by
         return error
@@ -956,8 +959,8 @@ class DatabaseIssue:
     _MISSING_PROFILE: str = "Profile doesn't exist or is corrupt."
     _TAG_FILE_DOESNT_EXIST: str = "TAG tag data isn't in the cache."
     _KEY_HAS_BEEN_DELETED: str = "The database keys have been deleted."
-    _CANT_DELETE_MAINTENANCE_FILES: str = (
-        "Can't delete database maintenance files."
+    _CANT_DELETE_MAINTENANCE_RECORDS: str = (
+        "Can't delete database maintenance records."
     )
     _INVALID_ENTRY_TYPE: str = (
         "Database entries must be JSON serializable or bytes types."
@@ -991,8 +994,8 @@ class DatabaseIssue:
         return PermissionError(cls._KEY_HAS_BEEN_DELETED)
 
     @classmethod
-    def cant_delete_maintenance_files(cls) -> PermissionError:
-        return PermissionError(cls._CANT_DELETE_MAINTENANCE_FILES)
+    def cant_delete_maintenance_records(cls) -> PermissionError:
+        return PermissionError(cls._CANT_DELETE_MAINTENANCE_RECORDS)
 
     @classmethod
     def invalid_entry_type(cls) -> TypeError:
@@ -1033,7 +1036,7 @@ class PackageSignerIssue:
         cls, filename: t.Union[str, Path]
     ) -> InvalidDigest:
         issue = cls._INVALID_FILE_DIGEST
-        return InvalidDigest(issue.replace("FILENAME", str(filename)))
+        return InvalidDigest(issue.replace("FILENAME", repr(filename)))
 
     @classmethod
     def package_hasnt_been_signed(cls) -> RuntimeError:
