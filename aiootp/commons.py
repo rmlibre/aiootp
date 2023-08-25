@@ -55,7 +55,7 @@ class Slots:
 
     __slots__ = ()
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, mapping: t.JSONSerializable = {}, **kwargs) -> None:
         """
         Maps the user-defined kwargs to the instance attributes. If a
         subclass defines a `__slots__` list, then only variables with
@@ -63,7 +63,9 @@ class Slots:
         classes with __slots__ can greatly increase memory efficiency if
         a system instantiates many objects of the class.
         """
-        for name, value in kwargs.items():
+        if mapping.__class__ in JSON_DESERIALIZABLE_TYPES:
+            mapping = json.loads(mapping)
+        for name, value in {**mapping, **kwargs}.items():
             setattr(self, name, value)
 
     def __bool__(self) -> bool:
@@ -218,7 +220,7 @@ class Namespace(Slots):
         Maps the user-defined mapping & kwargs to the Namespace's
         instance dictionary.
         """
-        if mapping.__class__ in {str, bytes, bytearray}:
+        if mapping.__class__ in JSON_DESERIALIZABLE_TYPES:
             mapping = json.loads(mapping)
         self.__dict__.update(mapping)
         self.__dict__.update(kwargs)
