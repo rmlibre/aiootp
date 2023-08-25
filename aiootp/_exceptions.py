@@ -398,6 +398,9 @@ class Issue:
     _CANT_OVERWRITE_EXISTING_ATTRIBUTE: str = (
         "Can't overwrite the existing NAME attribute."
     )
+    _CANT_DELETE_FROZEN_OBJECT_ATTRIBUTE: str = (
+        "Can't delete the NAME attribute of frozen object."
+    )
     _UNUSED_PARAMETERS: str = (
         "The PARAMETERS parameters are not used when CONTEXT."
     )
@@ -469,9 +472,18 @@ class Issue:
         return ValueError(issue.replace("BLOCKSIZE", repr(blocksize)))
 
     @classmethod
-    def cant_overwrite_existing_attribute(cls, name: str) -> ValueError:
+    def cant_overwrite_existing_attribute(
+        cls, name: str
+    ) -> PermissionError:
         issue = cls._CANT_OVERWRITE_EXISTING_ATTRIBUTE
-        return ValueError(issue.replace("NAME", repr(name)))
+        return PermissionError(issue.replace("NAME", repr(name)))
+
+    @classmethod
+    def cant_delete_frozen_object_attribute(
+        cls, name: str
+    ) -> PermissionError:
+        issue = cls._CANT_MUTATE_ATTRIBUTE_OF_FROZEN_OBJECT
+        return PermissionError(issue.replace("NAME", repr(name)))
 
     @classmethod
     def unused_parameters(cls, params: t.Any, context: str) -> ValueError:
