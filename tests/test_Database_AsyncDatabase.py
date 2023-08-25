@@ -12,112 +12,128 @@
 from test_initialization import *
 
 
+class TestDBKDF:
+    async def non_of_subkeys_are_the_same(self, kdf):
+        assert kdf.aead_key not in {kdf.auth_key, kdf.prf_key}
+        assert kdf.auth_key != kdf.prf_key
+
+    async def length_sum_of_all_subkeys_is_declared(self, kdf):
+        aead_key = kdf._AEAD_KEY_BYTES * b"a"
+        auth_key = kdf._AUTH_KEY_BYTES * b"b"
+        prf_key = kdf._PRF_KEY_BYTES * b"c"
+        sub_key_control = aead_key + auth_key + prf_key
+        assert all([aead_key, auth_key, prf_key])
+        assert kdf._KEY_BYTES == (len(aead_key) + len(auth_key) + len(prf_key))
+        assert kdf._KEY_BYTES == (
+            len(sub_key_control[kdf._AEAD_KEY_SLICE])
+            + len(sub_key_control[kdf._AUTH_KEY_SLICE])
+            + len(sub_key_control[kdf._PRF_KEY_SLICE])
+        )
+
+    async def subkeys_are_non_overlapping(self, kdf):
+        aead_key = kdf._AEAD_KEY_BYTES * b"a"
+        auth_key = kdf._AUTH_KEY_BYTES * b"b"
+        prf_key = kdf._PRF_KEY_BYTES * b"c"
+        sub_key_control = aead_key + auth_key + prf_key
+        assert all([aead_key, auth_key, prf_key])
+        assert aead_key not in {auth_key, prf_key}
+        assert auth_key != prf_key
+        assert sub_key_control[kdf._AEAD_KEY_SLICE] == aead_key
+        assert sub_key_control[kdf._AUTH_KEY_SLICE] == auth_key
+        assert sub_key_control[kdf._PRF_KEY_SLICE] == prf_key
+
+    async def test_async_subkeys_are_non_overlapping_correct_size(self, async_database):
+        async_kdf = async_database._AsyncDatabase__root_kdf.copy()
+        await self.non_of_subkeys_are_the_same(async_kdf)
+        await self.length_sum_of_all_subkeys_is_declared(async_kdf)
+        await self.subkeys_are_non_overlapping(async_kdf)
+
+    async def test_sync_subkeys_are_non_overlapping_correct_size(self, database):
+        kdf = database._Database__root_kdf.copy()
+        await self.non_of_subkeys_are_the_same(kdf)
+        await self.length_sum_of_all_subkeys_is_declared(kdf)
+        await self.subkeys_are_non_overlapping(kdf)
+
+
 class TestDatabaseCacheSystem:
-    async def test_async_clear_cache_clears_metatags_when_instructed(
-        self, async_database
-    ):
-        """
-        Setup: 1) a metatag exists AND both the metatag & its parent
-        have tags in their caches & saved on the filesystem.
+    async def cached_data_remains_unchanged(self, db, subdb):
+        assert plaintext_bytes
+        assert plaintext_bytes.__class__ is bytes
+        assert subdb[tag] == plaintext_bytes
+        assert test_data
+        assert test_data.__class__ is dict
+        assert db[tag] == test_data
 
-        Test: 2) clearing a database's cache clears its metatags' caches
-        when instructed.
+    async def clearing_cache_results_in_null_values(self, db, subdb):
+        if issubclass(db.__class__, AsyncDatabase):
+            await db.aclear_cache(metatags=True)
+        else:
+            db.clear_cache(metatags=True)
+        assert plaintext_bytes
+        assert plaintext_bytes.__class__ is bytes
+        assert subdb[tag] == None
+        assert test_data.__class__ is dict
+        assert db[tag] == None
 
-        Test: 3) clearing a database's cache doesn't clear its metatags'
-        caches when instructed not to.
-        """
-        # 1
-        child = await async_database.ametatag(metatag)
-        child[tag] = plaintext_bytes
-        async_database[tag] = test_data
-        test_data_copy = test_data.copy()
+    async def uncached_loading_from_disk_doesnt_change_data(self, db, subdb):
+        if issubclass(db.__class__, AsyncDatabase):
+            assert await subdb.aquery_tag(tag, cache=False) == plaintext_bytes
+            assert await db.aquery_tag(tag, cache=False) == test_data
+        else:
+            assert subdb.query_tag(tag, cache=False) == plaintext_bytes
+            assert db.query_tag(tag, cache=False) == test_data
+        assert subdb[tag] == None
+        assert db[tag] == None
+
+    async def cached_loading_from_disk_doesnt_change_data(self, db, subdb):
+        if issubclass(db.__class__, AsyncDatabase):
+            assert await subdb.aquery_tag(tag, cache=True) == plaintext_bytes
+            assert await db.aquery_tag(tag, cache=True) == test_data
+        else:
+            assert subdb.query_tag(tag, cache=True) == plaintext_bytes
+            assert db.query_tag(tag, cache=True) == test_data
+        assert subdb[tag] == plaintext_bytes
+        assert db[tag] == test_data
+
+    async def clear_cache_clears_metatags_when_instructed(self, db, subdb):
+        if issubclass(db.__class__, AsyncDatabase):
+            assert await subdb.aquery_tag(tag, cache=True) == plaintext_bytes
+            assert subdb[tag] == plaintext_bytes
+            await db.aclear_cache(metatags=False)
+            assert subdb[tag] == plaintext_bytes
+            await db.aclear_cache(metatags=True)
+            assert subdb[tag] == None
+            assert await subdb.aquery_tag(tag, cache=False) == plaintext_bytes
+        else:
+            assert subdb.query_tag(tag, cache=True) == plaintext_bytes
+            assert subdb[tag] == plaintext_bytes
+            db.clear_cache(metatags=False)
+            assert subdb[tag] == plaintext_bytes
+            db.clear_cache(metatags=True)
+            assert subdb[tag] == None
+            assert subdb.query_tag(tag, cache=False) == plaintext_bytes
+
+    async def test_async_cache_system(self, async_database):
+        subdb = await async_database.ametatag(metatag)
+        subdb[tag] = plaintext_bytes
+        async_database[tag] = test_data.copy()
         await async_database.asave_database()
+        await self.cached_data_remains_unchanged(async_database, subdb)
+        await self.clearing_cache_results_in_null_values(async_database, subdb)
+        await self.uncached_loading_from_disk_doesnt_change_data(async_database, subdb)
+        await self.cached_loading_from_disk_doesnt_change_data(async_database, subdb)
+        await self.clear_cache_clears_metatags_when_instructed(async_database, subdb)
 
-        assert plaintext_bytes
-        assert plaintext_bytes.__class__ is bytes
-        assert child[tag] == plaintext_bytes
-        assert test_data
-        assert test_data.__class__ is dict
-        assert async_database[tag] == test_data
-
-        # 2
-        await async_database.aclear_cache(metatags=True)
-        assert plaintext_bytes
-        assert plaintext_bytes.__class__ is bytes
-        assert child[tag] != plaintext_bytes
-        assert child[tag] == None
-        assert test_data_copy == test_data
-        assert test_data.__class__ is dict
-        assert async_database[tag] != test_data
-        assert async_database[tag] == None
-
-        # 3
-        await async_database.aquery_tag(tag, cache=True)
-        assert async_database[tag] == test_data
-
-        await child.aquery_tag(tag, cache=True)
-        assert child[tag] == plaintext_bytes
-
-        await async_database.aclear_cache(metatags=False)
-        assert plaintext_bytes
-        assert plaintext_bytes.__class__ is bytes
-        assert child[tag] == plaintext_bytes
-        assert test_data_copy == test_data
-        assert test_data.__class__ is dict
-        assert async_database[tag] != test_data
-        assert async_database[tag] == None
-
-    def test_clear_cache_clears_metatags_when_instructed(self, database):
-        """
-        Setup: 1) a metatag exists AND both the metatag & its parent
-        have tags in their caches & saved on the filesystem.
-
-        Test: 2) clearing a database's cache clears its metatags' caches
-        when instructed.
-
-        Test: 3) clearing a database's cache doesn't clear its metatags'
-        caches when instructed not to.
-        """
-        # 1
-        child = database.metatag(metatag)
-        child[tag] = plaintext_bytes
-        database[tag] = test_data
-        test_data_copy = test_data.copy()
+    async def test_sync_cache_system(self, database):
+        subdb = database.metatag(metatag)
+        subdb[tag] = plaintext_bytes
+        database[tag] = test_data.copy()
         database.save_database()
-
-        assert plaintext_bytes
-        assert plaintext_bytes.__class__ is bytes
-        assert child[tag] == plaintext_bytes
-        assert test_data
-        assert test_data.__class__ is dict
-        assert database[tag] == test_data
-
-        # 2
-        database.clear_cache(metatags=True)
-        assert plaintext_bytes
-        assert plaintext_bytes.__class__ is bytes
-        assert child[tag] != plaintext_bytes
-        assert child[tag] == None
-        assert test_data_copy == test_data
-        assert test_data.__class__ is dict
-        assert database[tag] != test_data
-        assert database[tag] == None
-
-        # 3
-        database.query_tag(tag, cache=True)
-        assert database[tag] == test_data
-
-        child.query_tag(tag, cache=True)
-        assert child[tag] == plaintext_bytes
-
-        database.clear_cache(metatags=False)
-        assert plaintext_bytes
-        assert plaintext_bytes.__class__ is bytes
-        assert child[tag] == plaintext_bytes
-        assert test_data_copy == test_data
-        assert test_data.__class__ is dict
-        assert database[tag] != test_data
-        assert database[tag] == None
+        await self.cached_data_remains_unchanged(database, subdb)
+        await self.clearing_cache_results_in_null_values(database, subdb)
+        await self.uncached_loading_from_disk_doesnt_change_data(database, subdb)
+        await self.cached_loading_from_disk_doesnt_change_data(database, subdb)
+        await self.clear_cache_clears_metatags_when_instructed(database, subdb)
 
 
 def test_Database_instance(database):
@@ -125,8 +141,7 @@ def test_Database_instance(database):
 
     # basic database functionalities work the same across reloads
     assert db._Database__root_kdf.sha3_256() == database._Database__root_kdf.sha3_256()
-    assert db._Database__kdf.sha3_256() == database._Database__kdf.sha3_256()
-    assert db._Database__root_kdf.sha3_256() != database._Database__kdf.sha3_256()
+    assert db._Database__root_kdf.sha3_256() != database._Database__root_kdf.sha3_256(aad=database._Database__root_salt)
     assert db._Database__root_salt == database._Database__root_salt
     assert db._root_filename == database._root_filename
     assert db.make_hmac(atag.encode()) == database.make_hmac(atag.encode())
@@ -139,8 +154,7 @@ async def test_AsyncDatabase_instance(database):
 
     # basic async database functionalities work the same across reloads
     assert db._AsyncDatabase__root_kdf.sha3_256() == database._Database__root_kdf.sha3_256()
-    assert db._AsyncDatabase__kdf.sha3_256() == database._Database__kdf.sha3_256()
-    assert db._AsyncDatabase__root_kdf.sha3_256() != database._Database__kdf.sha3_256()
+    assert db._AsyncDatabase__root_kdf.sha3_256() != database._Database__root_kdf.sha3_256(aad=database._Database__root_salt)
     assert db._AsyncDatabase__root_salt == database._Database__root_salt
     assert db._root_filename == database._root_filename
     assert await db.amake_hmac(tag.encode()) == database.make_hmac(tag.encode())
@@ -231,8 +245,29 @@ async def test_async_database_ciphers(async_database):
 
 
 async def test_async_tags_metatags():
+    # new, empty databases are falsey
     async_database = await AsyncDatabase(key * 2, preload=True)
+    assert not async_database
+    assert not async_database.tags
+    assert not async_database.metatags
+
+    # empty databases with metatag sub-databases are truthy
     achild = await async_database.ametatag(ametatag, preload=True)
+    assert async_database
+    assert not async_database.tags
+    assert async_database.metatags
+    assert not achild
+    assert not achild.tags
+    assert not achild.metatags
+
+    # non-empty databases are truthy
+    async_database[tag] = plaintext_bytes
+    assert async_database
+    assert async_database.tags
+    assert async_database.metatags
+    assert not achild
+    assert not achild.tags
+    assert not achild.metatags
 
     # async databases retrieve their stored data uncorrupted
     await async_database.aset_tag("bytes", plaintext_bytes, cache=False)
@@ -267,12 +302,38 @@ async def test_async_tags_metatags():
     assert achild[atag] == async_database.aclients[atag]
     assert achild[atag] is not async_database.aclients[atag]
 
+    # metatags are removed from the manifest after calling adelete_metatag
+    assert ametatag in async_database.metatags
+    await async_database.adelete_metatag(ametatag)
+    assert ametatag not in async_database.metatags
+
     await async_database.adelete_database()
 
 
 def test_sync_tags_metatags():
+    # new, empty databases are falsey
     database = Database(key * 2, preload=True)
+    assert not database
+    assert not database.tags
+    assert not database.metatags
+
+    # empty databases with metatag sub-databases are truthy
     child = database.metatag(metatag, preload=True)
+    assert database
+    assert not database.tags
+    assert database.metatags
+    assert not child
+    assert not child.tags
+    assert not child.metatags
+
+    # non-empty databases are truthy
+    database[tag] = plaintext_bytes
+    assert database
+    assert database.tags
+    assert database.metatags
+    assert not child
+    assert not child.tags
+    assert not child.metatags
 
     # databases retrieve their stored data uncorrupted
     database.set_tag("bytes", plaintext_bytes, cache=False)
@@ -306,6 +367,11 @@ def test_sync_tags_metatags():
     assert child[tag].__class__ is dict
     assert child[tag] == database.clients[tag]
     assert child[tag] is not database.clients[tag]
+
+    # metatags are removed from the manifest after calling delete_metatag
+    assert metatag in database.metatags
+    database.delete_metatag(metatag)
+    assert metatag not in database.metatags
 
     database.delete_database()
 
