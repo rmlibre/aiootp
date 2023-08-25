@@ -30,7 +30,6 @@ from ._containers import ProfileTokens
 from ._typing import Typing as t
 from ._typing import PathStr, OptionalPathStr
 from .paths import Path, DatabasePath, SecurePath, AsyncSecurePath
-from .paths import deniable_filename, adeniable_filename
 from .paths import read_salt_file, aread_salt_file
 from .paths import delete_salt_file, adelete_salt_file
 from .asynchs import AsyncInit, asleep, gather, aos
@@ -38,7 +37,7 @@ from .commons import Namespace
 from .commons import make_module
 from .gentools import aunpack
 from .randoms import generate_salt, agenerate_salt
-from .generics import Domains, DomainEncoder, BytesIO
+from .generics import DomainEncoder, BytesIO
 from .generics import hash_bytes, ahash_bytes
 from .generics import int_as_base, aint_as_base
 from .generics import canonical_pack, acanonical_pack
@@ -62,12 +61,10 @@ class DBDomains(DomainEncoder):
         constant, domain=b"database_constants", size=16
     )
 
+    DBKDF_SUBKEYS: bytes = _encode("dbkdf_subkeys")
     ROOT_KDF: bytes = _encode("root_kdf")
     ROOT_FILENAME: bytes = _encode("root_filename")
     ROOT_SALT: bytes = _encode("root_salt")
-    ROOT_SALT_FILENAME: bytes = _encode("root_salt_filename")
-    KDF: bytes = _encode("salted_kdf")
-    USER_KDF: bytes = _encode("user_kdf")
     METATAG: bytes = _encode("metatag")
     HMAC: bytes = _encode("hmac")
     GIST: bytes = _encode("profile_credential_gist")
@@ -88,34 +85,43 @@ class DBKDF(DomainKDF):
 
     __slots__ = ("aead_key", "auth_key", "prf_key")
 
-    _key_size: int = 296
-    _key_type: callable = shake_256
+    _AEAD_KEY_BYTES: int = 64
+    _AUTH_KEY_BYTES: int = 32
+    _PRF_KEY_BYTES: int = 32
 
-    _AEAD_KEY_SLICE: slice = slice(None, 168)
-    _AUTH_KEY_SLICE: slice = slice(168, 232)
-    _PRF_KEY_SLICE: slice = slice(232, None)
+    _KEY_BYTES: int = _AEAD_KEY_BYTES + _AUTH_KEY_BYTES + _PRF_KEY_BYTES
 
-    async def aupdate_key(self, entropy: bytes) -> "self":
-        """
-        Uses the base class to derive a stretched key which is divided
-        up in pieces, each with specific purposes.
-        """
-        await super().aupdate_key(entropy)
-        self.aead_key = self._key[self._AEAD_KEY_SLICE]
-        self.auth_key = self._key[self._AUTH_KEY_SLICE]
-        self.prf_key = self._key[self._PRF_KEY_SLICE]
-        return self
+    _AEAD_KEY_SLICE: slice = slice(_AEAD_KEY_BYTES)
+    _AUTH_KEY_SLICE: slice = slice(
+        _AEAD_KEY_BYTES, _AEAD_KEY_BYTES + _AUTH_KEY_BYTES
+    )
+    _PRF_KEY_SLICE: slice = slice(
+        _AEAD_KEY_BYTES + _AUTH_KEY_BYTES, _KEY_BYTES
+    )
 
-    def update_key(self, entropy: bytes) -> "self":
+    def __init__(
+        self, domain: bytes, *payload: t.Iterable[bytes], key: bytes
+    ) -> None:
         """
-        Uses the base class to derive a stretched key which is divided
-        up in pieces, each with specific purposes.
+        Caches copies of some domain-specific keys to avoid excessive
+        key derivations.
         """
-        super().update_key(entropy)
-        self.aead_key = self._key[self._AEAD_KEY_SLICE]
-        self.auth_key = self._key[self._AUTH_KEY_SLICE]
-        self.prf_key = self._key[self._PRF_KEY_SLICE]
-        return self
+        super().__init__(domain, *payload, key=key)
+        kdf_domain = DBDomains.DBKDF_SUBKEYS
+        key = self.shake_256(self._KEY_BYTES, kdf_domain, aad=key)
+        self.aead_key = key[self._AEAD_KEY_SLICE]
+        self.auth_key = key[self._AUTH_KEY_SLICE]
+        self.prf_key = key[self._PRF_KEY_SLICE]
+
+    def copy(self) -> "cls":
+        """
+        Copies over the values from the instance into a new instance.
+        """
+        new_self = super().copy()
+        new_self.aead_key = self.aead_key
+        new_self.auth_key = self.auth_key
+        new_self.prf_key = self.prf_key
+        return new_self
 
 
 class AsyncDatabase(metaclass=AsyncInit):
@@ -171,13 +177,29 @@ class AsyncDatabase(metaclass=AsyncInit):
     await db.adelete_database()
     """
 
+    __slots__ = (
+        "__dict__",
+        "_silent",
+        "_cache",
+        "_manifest",
+        "_corrupted_files",
+        "_is_metatag",
+        "_root_filename",
+        "_profile_tokens",
+        "_AsyncDatabase__root_kdf",
+        "_AsyncDatabase__root_salt",
+        "path",
+    )
+
     IO = BytesIO
     InvalidHMAC = InvalidHMAC
     InvalidSHMAC = InvalidSHMAC
     TimestampExpired = TimestampExpired
 
-    path: t.Path = DatabasePath()
+    _path: t.Path = DatabasePath()
 
+    _ROOT_SALT_BYTES: int = 24
+    _ROOT_SALT_BYTES_AS_BYTES: bytes = _ROOT_SALT_BYTES.to_bytes(1, BIG)
     _ROOT_SALT_LEDGERNAME: str = "0"
     _METATAGS_LEDGERNAME: str = "1"
 
@@ -196,7 +218,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         return cls.IO.bytes_to_filename(value)
 
     @classmethod
-    async def _asummon_device_salt(cls, path: PathStr = path) -> bytes:
+    async def _asummon_device_salt(cls, path: PathStr = _path) -> bytes:
         """
         Generates a salt which is unique for each unique ``path``
         directory that is given to this method. This is a static salt
@@ -249,7 +271,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         passphrase: bytes,
         salt: bytes,
         aad: bytes,
-        path: PathStr = path,
+        path: PathStr = _path,
         **passcrypt_settings: t.PasscryptNewSettingsType,
     ) -> ProfileTokens:
         """
@@ -291,7 +313,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         cores: int = passcrypt.DEFAULT_CORES,
         tag_size: int = KEY_BYTES,
         # database keyword arguments
-        path: PathStr = path,
+        path: PathStr = _path,
         preload: bool = False,
     ) -> "cls":
         """
@@ -339,7 +361,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         key: bytes,
         *,
         preload: bool = False,
-        path: PathStr = path,
+        path: PathStr = _path,
         metatag: bool = False,
         silent: bool = True,
     ) -> None:
@@ -390,8 +412,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         if given, else returns a copy of the default database directory
         `Path` object.
         """
+        await asleep()
         if path == None:
-            return Path(cls.path).absolute()
+            return Path(cls._path).absolute()
         return Path(path).absolute()
 
     async def _ainitialize_keys(self, key: bytes) -> None:
@@ -407,11 +430,6 @@ class AsyncDatabase(metaclass=AsyncInit):
                 FILENAME_HASH_BYTES, aad=DBDomains.ROOT_FILENAME
             )
         )
-        self._root_salt_filename = await self._aencode_filename(
-            kdf.shake_128(
-                FILENAME_HASH_BYTES, aad=DBDomains.ROOT_SALT_FILENAME
-            )
-        )
 
     @property
     def _root_path(self) -> Path:
@@ -422,9 +440,9 @@ class AsyncDatabase(metaclass=AsyncInit):
         return self.path / self._root_filename
 
     @property
-    def _maintenance_files(self) -> t.Set[str]:
+    def _maintenance_records(self) -> t.Set[str]:
         """
-        Returns the filenames of entries in the database that refer to
+        Returns the ledgernames of entries in the manifest that refer to
         administrative values used by objects to track and coordinate
         themselves internally.
         """
@@ -439,7 +457,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         manifest = self._manifest
         return {
             getattr(manifest, filename)
-            for filename in self._maintenance_files.symmetric_difference(
+            for filename in self._maintenance_records.symmetric_difference(
                 manifest
             )
         }
@@ -452,7 +470,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         return {
             filename
-            for filename in self._maintenance_files.symmetric_difference(
+            for filename in self._maintenance_records.symmetric_difference(
                 self._manifest.namespace
             )
         }
@@ -466,15 +484,6 @@ class AsyncDatabase(metaclass=AsyncInit):
             self._manifest.namespace.get(self._METATAGS_LEDGERNAME, [])
         )
 
-    @property
-    def _root_salt_path(self) -> Path:
-        """
-        Returns the path of the database's root salt file if the
-        instance is not a metatag.
-        """
-        if not self._is_metatag:
-            return self.path / self._root_salt_filename
-
     async def _aopen_manifest(self) -> t.JSONObject:
         """
         Loads an existing manifest file ledger from the filesystem.
@@ -487,65 +496,31 @@ class AsyncDatabase(metaclass=AsyncInit):
 
     async def _aload_root_salt(self) -> bytes:
         """
-        Pulls the root salt from the filesystem for a database instance,
-        or retrieves it from the manifest file if the database is a
-        metatag. Returns the result.
+        Returns the decoded raw bytes root salt from the manifest.
         """
-        if self._is_metatag:
-            await asleep()
-            salt = self._manifest[self._ROOT_SALT_LEDGERNAME]
-        else:
-            encrypted_salt = await self.IO.aread(path=self._root_salt_path)
-            aad = DBDomains.ROOT_SALT
-            key = self.__root_kdf.aead_key
-            salt = await Chunky2048(key).ajson_decrypt(
-                encrypted_salt, aad=aad
-            )
-        return bytes.fromhex(salt)
+        return await self.IO.aurlsafe_to_bytes(
+            self._manifest[self._ROOT_SALT_LEDGERNAME]
+        )
 
     async def _agenerate_root_salt(self) -> bytes:
         """
-        Returns a 32 byte hex salt for a metatag database, or a 64 byte
-        hex salt otherwise.
+        Returns a raw bytes random salt with length metadata appended to
+        be used as the instance's root salt.
         """
-        if self._is_metatag:
-            return await agenerate_salt(size=16)
-        else:
-            return await agenerate_salt(size=64)
+        return (
+            await agenerate_salt(size=self._ROOT_SALT_BYTES)
+            + self._ROOT_SALT_BYTES_AS_BYTES
+        )
 
     async def _ainstall_root_salt(self, salt: bytes) -> None:
         """
-        Gives the manifest knowledge of the database's root ``salt``.
-        This salt is the source of entropy for the database that is not
-        derived from the user's key that opens the database. This salt
-        is saved in the manifest if the database is a metatag, or the
-        salt is saved in its own file if the database is a main parent
-        database.
+        Stores in the manifest, with a URL-safe base64 encoding, the
+        ``salt`` value as its root salt. This the source of entropy for
+        the database which isn't derived from the user's login key.
         """
-        if self._is_metatag:
-            self._manifest[self._ROOT_SALT_LEDGERNAME] = salt.hex()
-        else:
-            self._manifest[self._ROOT_SALT_LEDGERNAME] = 0
-
-    async def _agenerate_salted_root_kdf(self) -> DBKDF:
-        """
-        Returns a kkdf that is derived from the database's main key &
-        the root salt's entropy.
-        """
-        kdf = self.__root_kdf.copy()
-        await kdf.aupdate_key(self.__root_salt)
-        return kdf
-
-    async def _agenerate_salted_user_kdf(self) -> DBKDF:
-        """
-        Create a KDF object accessible by the user, which is intended to
-        safely simplify their work of doing custom cryptographic
-        procedures.
-        """
-        kdf = self.__kdf.copy()
-        await kdf.aupdate_key(kdf._key + Domains.USER)
-        await kdf.aupdate(kdf._key, Domains.USER)
-        return kdf
+        self._manifest[self._ROOT_SALT_LEDGERNAME] = (
+            (await self.IO.abytes_to_urlsafe(salt)).decode()
+        )
 
     async def _aload_manifest(self) -> t.JSONObject:
         """
@@ -559,9 +534,6 @@ class AsyncDatabase(metaclass=AsyncInit):
             self._manifest = Namespace()
             self.__root_salt = await self._agenerate_root_salt()
             await self._ainstall_root_salt(self.__root_salt)
-
-        self.__kdf = await self._agenerate_salted_root_kdf()
-        self.kdf = await self._agenerate_salted_user_kdf()
 
     async def _ainitialize_metatags(self) -> None:
         """
@@ -585,7 +557,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         tag_values = (
             self.aquery_tag(tag, silent=silent, cache=True) for tag in tags
         )
-        await gather(*tag_values, return_exceptions=True)
+        await gather(*tag_values)
         return self
 
     async def aload_metatags(
@@ -606,7 +578,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             self.ametatag(metatag, preload=preload, silent=silent)
             for metatag in metatags_set
         )
-        await gather(*metatags, return_exceptions=True)
+        await gather(*metatags)
         return self
 
     async def aload_database(
@@ -625,7 +597,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         changes are discarded. This enables up-to-date bracket lookup of
         tag values without needing to await the `aquery_tag` method,
         but could be quite costly in terms of memory if databases &
-        thier metatags contain large amounts of data.
+        their metatags contain large amounts of data.
         """
         if manifest:
             await self._aload_manifest()
@@ -639,7 +611,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Derives the filename hash given a user-defined ``tag``.
         """
-        key = self.__kdf.prf_key
+        key = self.__root_kdf.prf_key + self.__root_salt
         aad = canonical_pack(
             DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
         )
@@ -651,7 +623,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Derives the filename hash given a user-defined ``tag``.
         """
-        key = self.__kdf.prf_key
+        key = self.__root_kdf.prf_key + self.__root_salt
         aad = await acanonical_pack(
             DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
         )
@@ -667,7 +639,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         if not data:
             raise Issue.no_value_specified("data")
-        key = self.__kdf.auth_key
+        key = self.__root_kdf.auth_key + self.__root_salt
         aad = await acanonical_pack(
             DBDomains.HMAC, aad, *data, blocksize=SHA3_256_BLOCKSIZE
         )
@@ -700,7 +672,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Encrypts the ``plaintext`` bytes with keys specific to the
         ``filename`` value & returns the ciphertext bytes.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await Chunky2048(key).abytes_encrypt(plaintext, aad=aad)
 
@@ -716,7 +688,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         specific to the ``filename`` value & returns the ciphertext
         bytes.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await Chunky2048(key).ajson_encrypt(plaintext, aad=aad)
 
@@ -732,7 +704,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         ``filename`` value & urlsafe base64 encodes the resulting
         ciphertext bytes.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await Chunky2048(key).amake_token(plaintext, aad=aad)
 
@@ -750,7 +722,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         amount of seconds that dictate the allowable age of the
         decrypted message.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await Chunky2048(key).abytes_decrypt(
             ciphertext, aad=aad, ttl=ttl
@@ -770,7 +742,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         ``ttl`` is the amount of seconds that dictate the allowable age
         of the decrypted message.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await Chunky2048(key).ajson_decrypt(
             ciphertext, aad=aad, ttl=ttl
@@ -790,7 +762,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         is the amount of seconds that dictate the allowable age of the
         decrypted message.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return await Chunky2048(key).aread_token(token, aad=aad, ttl=ttl)
 
@@ -875,8 +847,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         failures = False
         filename = await self.afilename(tag)
-        if filename in self._maintenance_files and not admin:
-            raise DatabaseIssue.cant_delete_maintenance_files()
+        if filename in self._maintenance_records and not admin:
+            raise DatabaseIssue.cant_delete_maintenance_records()
         try:
             value = await self.aquery_tag(tag, cache=False)
         except FileNotFoundError as error:
@@ -936,8 +908,8 @@ class AsyncDatabase(metaclass=AsyncInit):
         """
         Derives the metatag's database key given a user-defined ``tag``.
         """
-        aad = DBDomains.METATAG_KEY
-        return await self.__kdf.asha3_512(tag.encode(), aad=aad)
+        aad = canonical_pack(DBDomains.METATAG_KEY, self.__root_salt)
+        return await self.__root_kdf.asha3_512(tag.encode(), aad=aad)
 
     async def ametatag(
         self, tag: str, *, preload: bool = False, silent: bool = False
@@ -965,13 +937,13 @@ class AsyncDatabase(metaclass=AsyncInit):
         # It is now accessible from the parent by the tag ->
         assert offspring is parent.sub_database
         """
-        if tag in self.__class__.__dict__:
-            raise Issue.cant_overwrite_existing_attribute(tag)
-        elif tag in self.__dict__:
-            if issubclass(self.__dict__[tag].__class__, self.__class__):
+        if tag in self.__dir__():
+            if (
+                issubclass(getattr(self, tag).__class__, self.__class__)
+                and tag not in self.__class__.__dict__
+            ):
                 return self.__dict__[tag]
-            else:
-                raise Issue.cant_overwrite_existing_attribute(tag)
+            raise Issue.cant_overwrite_existing_attribute(tag)
         self.__dict__[tag] = await self.__class__(
             key=await self._ametatag_key(tag),
             preload=preload,
@@ -992,7 +964,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         sub_db = await self.ametatag(tag)
         await sub_db.adelete_database()
         self.__dict__.pop(tag)
-        self.metatags.remove(tag)
+        self._manifest[self._METATAGS_LEDGERNAME].remove(tag)
         return self
 
     async def _anullify(self) -> None:
@@ -1004,7 +976,20 @@ class AsyncDatabase(metaclass=AsyncInit):
         self._manifest.namespace.clear()
         self._cache.namespace.clear()
         self.__dict__.clear()
+        for attribute in self.__slots__:
+            if hasattr(self, attribute):
+                delattr(self, attribute)
         await asleep()
+
+    async def _adelete_profile_tokens(self) -> None:
+        """
+        Deletes the salt file that what created if this instance was
+        initialized with the `agenerate_profile` classmethod.
+        """
+        if hasattr(self, "_profile_tokens"):
+            salt_path = self._profile_tokens._salt_path
+            if salt_path.is_file():
+                await adelete_salt_file(salt_path)
 
     async def adelete_database(self) -> None:
         """
@@ -1016,12 +1001,8 @@ class AsyncDatabase(metaclass=AsyncInit):
             await sub_db.adelete_database()
         for filename in self._manifest.namespace:
             await self._adelete_file(filename, silent=True)
-        await self._adelete_file(self._root_salt_filename, silent=True)
         await self._adelete_file(self._root_filename, silent=True)
-        if hasattr(self, "_profile_tokens"):
-            salt_path = self._profile_tokens._salt_path
-            if salt_path.is_file():
-                await adelete_salt_file(salt_path)
+        await self._adelete_profile_tokens()
         await self._anullify()
 
     async def _aencrypt_manifest(self) -> bytes:
@@ -1045,26 +1026,12 @@ class AsyncDatabase(metaclass=AsyncInit):
             raise DatabaseIssue.invalid_write_attempt()
         await self.IO.awrite(path=self._root_path, data=ciphertext)
 
-    async def _asave_root_salt(self, salt: bytes) -> None:
-        """
-        Writes a non-metatag database instance's root salt to disk as a
-        separate file.
-        """
-        aad = DBDomains.ROOT_SALT
-        key = self.__root_kdf.aead_key
-        await self.IO.awrite(
-            path=self._root_salt_path,
-            data=await Chunky2048(key).ajson_encrypt(salt.hex(), aad=aad),
-        )
-
     async def _aclose_manifest(self) -> None:
         """
         Prepares for & writes the manifest ledger to disk. The manifest
         contains all database filenames & other metadata used to
         organize databases.
         """
-        if not self._is_metatag:
-            await self._asave_root_salt(self.__root_salt)
         manifest = await self._aencrypt_manifest()
         await self._asave_manifest(manifest)
 
@@ -1090,7 +1057,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         save = self._asave_file
         filenames = self._cache.namespace
         saves = (save(filename) for filename in filenames)
-        await gather(*saves, return_exceptions=True)
+        await gather(*saves)
 
     async def _asave_metatags(self) -> None:
         """
@@ -1100,7 +1067,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             getattr(self, metatag).asave_database()
             for metatag in self.metatags
         )
-        await gather(*saves, return_exceptions=True)
+        await gather(*saves)
 
     async def asave_tag(
         self, tag: str, *, admin: bool = False, drop_cache: bool = False
@@ -1124,11 +1091,7 @@ class AsyncDatabase(metaclass=AsyncInit):
         Writes the database's values to disk with transparent encryption.
         """
         await self._aclose_manifest()
-        await gather(
-            self._asave_metatags(),
-            self._asave_tags(),
-            return_exceptions=True,
-        )
+        await gather(self._asave_metatags(), self._asave_tags())
         return self
 
     async def amirror_database(self, database) -> "self":
@@ -1153,10 +1116,11 @@ class AsyncDatabase(metaclass=AsyncInit):
 
     def __bool__(self) -> bool:
         """
-        Returns True if the instance dictionary is populated or the
-        manifast is saved to the filesystem.
+        Returns `True` if the instance has any tags or metatags set.
         """
-        return bool(self.__dict__)
+        return bool(
+            (len(self) > 0) or self._manifest[self._METATAGS_LEDGERNAME]
+        )
 
     async def __aenter__(self) -> "self":
         """
@@ -1219,7 +1183,7 @@ class AsyncDatabase(metaclass=AsyncInit):
             (self.path / filename).unlink()
 
     __len__ = lambda self: (
-        len(self._manifest) - len(self._maintenance_files)
+        len(self._manifest) - len(self._maintenance_records)
     )
 
 
@@ -1276,13 +1240,29 @@ class Database:
     db.delete_database()
     """
 
+    __slots__ = (
+        "__dict__",
+        "_silent",
+        "_cache",
+        "_manifest",
+        "_corrupted_files",
+        "_is_metatag",
+        "_root_filename",
+        "_profile_tokens",
+        "_Database__root_kdf",
+        "_Database__root_salt",
+        "path",
+    )
+
     IO = BytesIO
     InvalidHMAC = InvalidHMAC
     InvalidSHMAC = InvalidSHMAC
     TimestampExpired = TimestampExpired
 
-    path: PathStr = DatabasePath()
+    _path: PathStr = DatabasePath()
 
+    _ROOT_SALT_BYTES: int = 24
+    _ROOT_SALT_BYTES_AS_BYTES: bytes = _ROOT_SALT_BYTES.to_bytes(1, BIG)
     _ROOT_SALT_LEDGERNAME: str = "0"
     _METATAGS_LEDGERNAME: str = "1"
 
@@ -1294,7 +1274,7 @@ class Database:
         return cls.IO.bytes_to_filename(value)
 
     @classmethod
-    def _summon_device_salt(cls, path: PathStr = path) -> bytes:
+    def _summon_device_salt(cls, path: PathStr = _path) -> bytes:
         """
         Generates a salt which is unique for each unique ``path``
         directory that is given to this method. This is a static salt
@@ -1345,7 +1325,7 @@ class Database:
         passphrase: bytes,
         salt: bytes,
         aad: bytes,
-        path: PathStr = path,
+        path: PathStr = _path,
         **passcrypt_settings: t.PasscryptNewSettingsType,
     ) -> ProfileTokens:
         """
@@ -1387,7 +1367,7 @@ class Database:
         cores: int = passcrypt.DEFAULT_CORES,
         tag_size: int = KEY_BYTES,
         # database keyword arguments
-        path: PathStr = path,
+        path: PathStr = _path,
         preload: bool = False,
     ) -> "cls":
         """
@@ -1435,7 +1415,7 @@ class Database:
         key: bytes,
         *,
         preload: bool = False,
-        path: PathStr = path,
+        path: PathStr = _path,
         metatag: bool = False,
         silent: bool = True,
     ) -> None:
@@ -1487,7 +1467,7 @@ class Database:
         `Path` object.
         """
         if path == None:
-            return Path(cls.path).absolute()
+            return Path(cls._path).absolute()
         return Path(path).absolute()
 
     def _initialize_keys(self, key: bytes) -> None:
@@ -1503,11 +1483,6 @@ class Database:
                 FILENAME_HASH_BYTES, aad=DBDomains.ROOT_FILENAME
             )
         )
-        self._root_salt_filename = self._encode_filename(
-            kdf.shake_128(
-                FILENAME_HASH_BYTES, aad=DBDomains.ROOT_SALT_FILENAME
-            )
-        )
 
     @property
     def _root_path(self) -> Path:
@@ -1518,9 +1493,9 @@ class Database:
         return self.path / self._root_filename
 
     @property
-    def _maintenance_files(self) -> t.Set[str]:
+    def _maintenance_records(self) -> t.Set[str]:
         """
-        Returns the filenames of entries in the database that refer to
+        Returns the ledgernames of entries in the manifest that refer to
         administrative values used by objects to track and coordinate
         themselves internally.
         """
@@ -1535,7 +1510,7 @@ class Database:
         manifest = self._manifest
         return {
             getattr(manifest, filename)
-            for filename in self._maintenance_files.symmetric_difference(
+            for filename in self._maintenance_records.symmetric_difference(
                 manifest
             )
         }
@@ -1549,7 +1524,7 @@ class Database:
         manifest = self._manifest.namespace
         return {
             filename
-            for filename in self._maintenance_files.symmetric_difference(
+            for filename in self._maintenance_records.symmetric_difference(
                 manifest
             )
         }
@@ -1563,15 +1538,6 @@ class Database:
             self._manifest.namespace.get(self._METATAGS_LEDGERNAME, [])
         )
 
-    @property
-    def _root_salt_path(self) -> Path:
-        """
-        Returns the path of the database's root salt file if the
-        instance is not a metatag.
-        """
-        if not self._is_metatag:
-            return self.path / self._root_salt_filename
-
     def _open_manifest(self) -> t.JSONObject:
         """
         Loads an existing manifest file ledger from the filesystem.
@@ -1583,62 +1549,31 @@ class Database:
 
     def _load_root_salt(self) -> bytes:
         """
-        Pulls the root salt from the filesystem for a database instance,
-        or retrieves it from the manifest file if the database is a
-        metatag. Returns the result.
+        Returns the decoded raw bytes root salt from the manifest.
         """
-        if self._is_metatag:
-            salt = self._manifest[self._ROOT_SALT_LEDGERNAME]
-        else:
-            encrypted_salt = self.IO.read(path=self._root_salt_path)
-            aad = DBDomains.ROOT_SALT
-            key = self.__root_kdf.aead_key
-            salt = Chunky2048(key).json_decrypt(encrypted_salt, aad=aad)
-        return bytes.fromhex(salt)
+        return self.IO.urlsafe_to_bytes(
+            self._manifest[self._ROOT_SALT_LEDGERNAME]
+        )
 
     def _generate_root_salt(self) -> bytes:
         """
-        Returns a 32 byte hex salt for a metatag database, or a 64 byte
-        hex salt otherwise.
+        Returns a raw bytes random salt with length metadata appended to
+        be used as the instance's root salt.
         """
-        if self._is_metatag:
-            return generate_salt(size=16)
-        else:
-            return generate_salt(size=64)
+        return (
+            generate_salt(size=self._ROOT_SALT_BYTES)
+            + self._ROOT_SALT_BYTES_AS_BYTES
+        )
 
     def _install_root_salt(self, salt: bytes) -> None:
         """
-        Gives the manifest knowledge of the database's root ``salt``.
-        This salt is the source of entropy for the database that is not
-        derived from the user's key that opens the database. This salt
-        is saved in the manifest if the database is a metatag, or the
-        salt is saved in its own file if the database is a main parent
-        database.
+        Stores in the manifest, with a URL-safe base64 encoding, the
+        ``salt`` value as its root salt. This the source of entropy for
+        the database which isn't derived from the user's login key.
         """
-        if self._is_metatag:
-            self._manifest[self._ROOT_SALT_LEDGERNAME] = salt.hex()
-        else:
-            self._manifest[self._ROOT_SALT_LEDGERNAME] = 0
-
-    def _generate_salted_root_kdf(self) -> DBKDF:
-        """
-        Returns a key that is derived from the database's main key &
-        the root salt's entropy.
-        """
-        kdf = self.__root_kdf.copy()
-        kdf.update_key(self.__root_salt)
-        return kdf
-
-    def _generate_salted_user_kdf(self) -> DBKDF:
-        """
-        Create a KDF object accessible by the user, which is intended to
-        safely simplify their work of doing custom cryptographic
-        procedures.
-        """
-        kdf = self.__kdf.copy()
-        kdf.update_key(kdf._key + Domains.USER)
-        kdf.update(kdf._key, Domains.USER)
-        return kdf
+        self._manifest[self._ROOT_SALT_LEDGERNAME] = (
+            self.IO.bytes_to_urlsafe(salt).decode()
+        )
 
     def _load_manifest(self) -> None:
         """
@@ -1652,9 +1587,6 @@ class Database:
             self._manifest = Namespace()
             self.__root_salt = self._generate_root_salt()
             self._install_root_salt(self.__root_salt)
-
-        self.__kdf = self._generate_salted_root_kdf()
-        self.kdf = self._generate_salted_user_kdf()
 
     def _initialize_metatags(self) -> None:
         """
@@ -1703,7 +1635,7 @@ class Database:
         changes are discarded. This enables up-to-date bracket lookup of
         tag values without needing to call the `query_tag` method,
         but could be quite costly in terms of memory if databases &
-        thier metatags contain large amounts of data.
+        their metatags contain large amounts of data.
         """
         if manifest:
             self._load_manifest()
@@ -1717,7 +1649,7 @@ class Database:
         """
         Derives the filename hash given a user-defined ``tag``.
         """
-        key = self.__kdf.prf_key
+        key = self.__root_kdf.prf_key + self.__root_salt
         aad = canonical_pack(
             DBDomains.FILENAME, tag.encode(), blocksize=SHA3_256_BLOCKSIZE
         )
@@ -1733,7 +1665,7 @@ class Database:
         """
         if not data:
             raise Issue.no_value_specified("data")
-        key = self.__kdf.auth_key
+        key = self.__root_kdf.auth_key + self.__root_salt
         aad = canonical_pack(
             DBDomains.HMAC, aad, *data, blocksize=SHA3_256_BLOCKSIZE
         )
@@ -1766,7 +1698,7 @@ class Database:
         Encrypts the ``plaintext`` bytes with keys specific to the
         ``filename`` value & returns the ciphertext bytes.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return Chunky2048(key).bytes_encrypt(plaintext, aad=aad)
 
@@ -1782,7 +1714,7 @@ class Database:
         specific to the ``filename`` value & returns the ciphertext
         bytes.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return Chunky2048(key).json_encrypt(plaintext, aad=aad)
 
@@ -1798,7 +1730,7 @@ class Database:
         ``filename`` value & urlsafe base64 encodes the resulting
         ciphertext bytes.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return Chunky2048(key).make_token(plaintext, aad=aad)
 
@@ -1816,7 +1748,7 @@ class Database:
         amount of seconds that dictate the allowable age of the
         decrypted message.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return Chunky2048(key).bytes_decrypt(ciphertext, aad=aad, ttl=ttl)
 
@@ -1834,7 +1766,7 @@ class Database:
         ``ttl`` is the amount of seconds that dictate the allowable age
         of the decrypted message.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return Chunky2048(key).json_decrypt(ciphertext, aad=aad, ttl=ttl)
 
@@ -1852,7 +1784,7 @@ class Database:
         is the amount of seconds that dictate the allowable age of the
         decrypted message.
         """
-        key = self.__kdf.aead_key
+        key = self.__root_kdf.aead_key + self.__root_salt
         aad = canonical_pack(DBDomains.CIPHER, filename.encode(), aad)
         return Chunky2048(key).read_token(token, aad=aad, ttl=ttl)
 
@@ -1940,8 +1872,8 @@ class Database:
         """
         failures = False
         filename = self.filename(tag)
-        if filename in self._maintenance_files and not admin:
-            raise DatabaseIssue.cant_delete_maintenance_files()
+        if filename in self._maintenance_records and not admin:
+            raise DatabaseIssue.cant_delete_maintenance_records()
         try:
             value = self.query_tag(tag, cache=False)
         except FileNotFoundError as error:
@@ -1997,8 +1929,8 @@ class Database:
         """
         Derives the metatag's database key given a user-defined ``tag``.
         """
-        aad = DBDomains.METATAG_KEY
-        return self.__kdf.sha3_512(tag.encode(), aad=aad)
+        aad = canonical_pack(DBDomains.METATAG_KEY, self.__root_salt)
+        return self.__root_kdf.sha3_512(tag.encode(), aad=aad)
 
     def metatag(
         self, tag: str, *, preload: bool = False, silent: bool = False
@@ -2026,13 +1958,13 @@ class Database:
         # It is now accessible from the parent by the tag ->
         assert offspring == parent.sub_database
         """
-        if tag in self.__class__.__dict__:
-            raise Issue.cant_overwrite_existing_attribute(tag)
-        elif tag in self.__dict__:
-            if issubclass(self.__dict__[tag].__class__, self.__class__):
+        if tag in self.__dir__():
+            if (
+                issubclass(getattr(self, tag).__class__, self.__class__)
+                and tag not in self.__class__.__dict__
+            ):
                 return self.__dict__[tag]
-            else:
-                raise Issue.cant_overwrite_existing_attribute(tag)
+            raise Issue.cant_overwrite_existing_attribute(tag)
         self.__dict__[tag] = self.__class__(
             key=self._metatag_key(tag),
             preload=preload,
@@ -2052,7 +1984,7 @@ class Database:
             raise DatabaseIssue.no_existing_metatag(tag)
         self.metatag(tag).delete_database()
         self.__dict__.pop(tag)
-        self.metatags.remove(tag)
+        self._manifest[self._METATAGS_LEDGERNAME].remove(tag)
         return self
 
     def _nullify(self) -> None:
@@ -2064,6 +1996,19 @@ class Database:
         self._manifest.namespace.clear()
         self._cache.namespace.clear()
         self.__dict__.clear()
+        for attribute in self.__slots__:
+            if hasattr(self, attribute):
+                delattr(self, attribute)
+
+    def _delete_profile_tokens(self) -> None:
+        """
+        Deletes the salt file that what created if this instance was
+        initialized with the `generate_profile` classmethod.
+        """
+        if getattr(self, "_profile_tokens", None):
+            salt_path = self._profile_tokens._salt_path
+            if salt_path.is_file():
+                delete_salt_file(salt_path)
 
     def delete_database(self) -> None:
         """
@@ -2074,12 +2019,8 @@ class Database:
             self.metatag(metatag, preload=False).delete_database()
         for filename in self._manifest.namespace:
             self._delete_file(filename, silent=True)
-        self._delete_file(self._root_salt_filename, silent=True)
         self._delete_file(self._root_filename, silent=True)
-        if getattr(self, "_profile_tokens", None):
-            salt_path = self._profile_tokens._salt_path
-            if salt_path.is_file():
-                delete_salt_file(salt_path)
+        self._delete_profile_tokens()
         self._nullify()
 
     def _encrypt_manifest(self) -> bytes:
@@ -2101,26 +2042,12 @@ class Database:
             raise DatabaseIssue.invalid_write_attempt()
         self.IO.write(path=self._root_path, data=ciphertext)
 
-    def _save_root_salt(self, salt: bytes) -> None:
-        """
-        Writes a non-metatag database instance's root salt to disk as a
-        separate file.
-        """
-        aad = DBDomains.ROOT_SALT
-        key = self.__root_kdf.aead_key
-        self.IO.write(
-            path=self._root_salt_path,
-            data=Chunky2048(key).json_encrypt(salt.hex(), aad=aad),
-        )
-
     def _close_manifest(self) -> None:
         """
         Prepares for & writes the manifest ledger to disk. The manifest
         contains all database filenames & other metadata used to
         organize databases.
         """
-        if not self._is_metatag:
-            self._save_root_salt(self.__root_salt)
         manifest = self._encrypt_manifest()
         self._save_manifest(manifest)
 
@@ -2205,10 +2132,11 @@ class Database:
 
     def __bool__(self) -> bool:
         """
-        Returns True if the instance dictionary is populated or the
-        manifast is saved to the filesystem.
+        Returns `True` if the instance has any tags or metatags set.
         """
-        return bool(self.__dict__)
+        return bool(
+            (len(self) > 0) or self._manifest[self._METATAGS_LEDGERNAME]
+        )
 
     def __enter__(self) -> "self":
         """
@@ -2248,7 +2176,7 @@ class Database:
     __delitem__ = pop_tag
     __setitem__ = vars()["set_tag"]
     __len__ = lambda self: (
-        len(self._manifest) - len(self._maintenance_files)
+        len(self._manifest) - len(self._maintenance_records)
     )
 
 
