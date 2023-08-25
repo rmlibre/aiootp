@@ -23,7 +23,6 @@ class SlotsExample(Slots):
     __slots__ = tuple(IDENTIFIER_ITEMS)
 
     class_variable: Typing.Any = "accessible"
-    ITEMS = IDENTIFIER_ITEMS
 
     async def aiter(self):
         return [name async for name in self]
@@ -33,16 +32,13 @@ class FrozenSlotsExample(FrozenSlots):
     __slots__ = tuple(IDENTIFIER_ITEMS)
 
     class_variable: Typing.Any = "accessible"
-    ITEMS = IDENTIFIER_ITEMS
 
     async def aiter(self):
         return [name async for name in self]
 
 
 class OpenNamespaceExample(OpenNamespace):
-
     class_variable: Typing.Any = "accessible"
-    ITEMS = IDENTIFIER_ITEMS
 
     async def aiter(self):
         return [name async for name in self]
@@ -51,48 +47,49 @@ class OpenNamespaceExample(OpenNamespace):
 # begin extracted test methods
 
 
-async def len_is_number_of_items_in_instance(cls, obj):
-    assert len(obj) == len(cls.ITEMS)
+async def len_is_number_of_items_in_instance(cls, obj, items):
+    assert len(obj) == len(items)
     assert len(obj) == sum(1 for name in obj)
     assert len(obj) == sum(1 for name in await obj.aiter())
 
 
-async def dir_is_list_of_keys_to_instance_values(cls, obj):
-    assert dir(obj) == list(cls.ITEMS)
+async def dir_is_list_of_keys_to_instance_values(cls, obj, items):
+    assert dir(obj) == list(items)
     assert dir(obj) == [*obj]
     assert dir(obj) == await obj.aiter()
 
 
-async def instances_store_key_values_like_dicts(cls, obj):
-    assert cls.ITEMS == {**obj}
+async def instances_store_key_values_like_dicts(cls, obj, items):
+    assert items == {**obj}
     assert [*obj] == [*obj.keys()]
     assert [obj[name] for name in obj] == [*obj.values()]
     assert [(name, obj[name]) for name in obj] == [*obj.items()]
 
 
-async def all_is_list_of_non_private_keys_to_instance_values(cls, obj):
-    assert all((key in obj) for key in cls.ITEMS)
-    assert all((key not in cls()) for key in cls.ITEMS)
+async def all_is_list_of_non_private_keys_to_instance_values(cls, obj, items):
+    assert all((key in obj) for key in items)
+    assert all((key not in cls()) for key in items)
     if hasattr(obj, "__all__"):
         assert [*obj.__dict__] == obj.__all__
         obj._private = True
         assert [*obj.__dict__] != obj.__all__
         assert "_private" not in obj.__all__
         assert "_private" in obj.__dict__
-        del obj._private
+        if "Frozen" not in cls.__qualname__:
+            del obj._private
 
 
-async def getattr_and_getitem_are_interchangable(cls, obj):
-    for name, value in cls.ITEMS.items():
+async def getattr_and_getitem_are_interchangable(cls, obj, items):
+    for name, value in items.items():
         assert name in obj
         if type(name) is str:
             assert getattr(obj, name) == value
         assert obj[name] == value
 
 
-async def instance_values_change_correctly_when_reset(cls, obj):
+async def instance_values_change_correctly_when_reset(cls, obj, items):
     assert obj
-    for name, value in cls.ITEMS.items():
+    for name, value in items.items():
         del obj[name]
         assert name not in obj
         obj[name] = 2 * value
@@ -105,10 +102,10 @@ async def instance_values_change_correctly_when_reset(cls, obj):
     assert not obj
 
 
-async def instance_values_cannot_be_changed_once_set(cls, obj):
+async def instance_values_cannot_be_changed_once_set(cls, obj, items):
     problem = "instance value was changed or deleted!"
     assert obj
-    for name, value in cls.ITEMS.items():
+    for name, value in items.items():
         with ignore(ValueError, if_else=violation(problem)):
             del obj[name]
         assert name in obj
@@ -120,7 +117,7 @@ async def instance_values_cannot_be_changed_once_set(cls, obj):
         assert obj[name] == value
 
 
-async def mask_kwarg_hides_instance_values_from_repr(cls, obj):
+async def mask_kwarg_hides_instance_values_from_repr(cls, obj, items):
     for name in obj:
         if str(name).startswith("_"):
             continue
@@ -130,7 +127,7 @@ async def mask_kwarg_hides_instance_values_from_repr(cls, obj):
         assert str(obj[name]) not in obj.__repr__(mask=True), name
 
 
-async def debug_control_toggles_hidden_repr(cls, obj):
+async def debug_control_toggles_hidden_repr(cls, obj, items):
         DebugControl.enable_debugging()
         assert all(
             (name in obj.__repr__() and str(obj[name]) in obj.__repr__())
@@ -143,62 +140,57 @@ async def debug_control_toggles_hidden_repr(cls, obj):
         )
 
 
-async def dunder_tests(cls, obj):
+async def dunder_tests(cls, obj, items):
     """
     Consolidate the tests into a general structure that can be run for
     the various types of namespace and slots classes.
     """
-    await len_is_number_of_items_in_instance(cls, obj)
-    await dir_is_list_of_keys_to_instance_values(cls, obj)
-    await instances_store_key_values_like_dicts(cls, obj)
-    await all_is_list_of_non_private_keys_to_instance_values(cls, obj)
-    await getattr_and_getitem_are_interchangable(cls, obj)
-    await mask_kwarg_hides_instance_values_from_repr(cls, obj)
+    await len_is_number_of_items_in_instance(cls, obj, items)
+    await dir_is_list_of_keys_to_instance_values(cls, obj, items)
+    await instances_store_key_values_like_dicts(cls, obj, items)
+    await all_is_list_of_non_private_keys_to_instance_values(cls, obj, items)
+    await getattr_and_getitem_are_interchangable(cls, obj, items)
+    await mask_kwarg_hides_instance_values_from_repr(cls, obj, items)
     if not issubclass(cls, OpenNamespace):
-        await debug_control_toggles_hidden_repr(cls, obj)
+        await debug_control_toggles_hidden_repr(cls, obj, items)
     assert obj["class_variable"] == "accessible"
-    if issubclass(cls, FrozenSlots):
-        await instance_values_cannot_be_changed_once_set(cls, obj)
+    if "Frozen" in cls.__qualname__:
+        await instance_values_cannot_be_changed_once_set(cls, obj, items)
     else:
-        await instance_values_change_correctly_when_reset(cls, obj)
+        await instance_values_change_correctly_when_reset(cls, obj, items)
     assert obj["class_variable"] == "accessible"
 
 
-class TestSlots:
+class BaseTestNamespaceClasses:
+    _type: t.Any
+
     async def test_dunders(self):
-        """
-        Default Slots dunder methods don't fail when used.
-        """
-        cls = SlotsExample
-        obj = cls(**IDENTIFIER_ITEMS)
-        await dunder_tests(cls, obj)
-
-        cls = FrozenSlotsExample
-        obj = cls(**IDENTIFIER_ITEMS)
-        await dunder_tests(cls, obj)
+        items = IDENTIFIER_ITEMS.copy()
+        await dunder_tests(self._type, self._type(items), items)
+        await dunder_tests(self._type, self._type(**items), items)
+        await dunder_tests(self._type, self._type(json.dumps(items)), items)
+        assert items == IDENTIFIER_ITEMS
 
 
-class TestOpenNamespace:
-    async def test_dunders(self):
-        """
-        Default Slots dunder methods don't fail when used.
-        """
-        cls = OpenNamespaceExample
-        obj = cls(**IDENTIFIER_ITEMS)
-        await dunder_tests(cls, obj)
+class BaseTestNonIdentifierNamespaceClasses(BaseTestNamespaceClasses):
+    _type: t.Any
 
-        # an object initialized with a mapping functions exactly the
-        # same as initializing with keyword arguments
-        obj = cls(json.dumps(dict(**IDENTIFIER_ITEMS)))
-        await dunder_tests(cls, obj)
+    async def test_dunders_with_non_identifier_items(self):
+        items = NON_IDENTIFIER_ITEMS.copy()
+        await dunder_tests(self._type, self._type(items), items)
+        assert items == NON_IDENTIFIER_ITEMS
 
-        # an object functions correctly with non-identifier keys stored
-        # in __dict__
-        control_items = NON_IDENTIFIER_ITEMS.copy()
-        cls.ITEMS = NON_IDENTIFIER_ITEMS
-        obj = cls(NON_IDENTIFIER_ITEMS)
-        await dunder_tests(cls, obj)
-        assert control_items == cls.ITEMS
+
+class TestSlots(BaseTestNamespaceClasses):
+    _type: t.Any = SlotsExample
+
+
+class TestFrozenSlots(BaseTestNamespaceClasses):
+    _type: t.Any = FrozenSlotsExample
+
+
+class TestOpenNamespace(BaseTestNonIdentifierNamespaceClasses):
+    _type: t.Any = OpenNamespaceExample
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
