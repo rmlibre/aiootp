@@ -106,13 +106,13 @@ async def instance_values_cannot_be_changed_once_set(cls, obj, items):
     problem = "instance value was changed or deleted!"
     assert obj
     for name, value in items.items():
-        with ignore(ValueError, if_else=violation(problem)):
+        with ignore(PermissionError, if_else=violation(problem)):
             del obj[name]
         assert name in obj
-        with ignore(ValueError, if_else=violation(problem)):
+        with ignore(PermissionError, if_else=violation(problem)):
             obj[name] = 2 * value
         assert obj[name] == value
-        with ignore(ValueError, if_else=violation(problem)):
+        with ignore(PermissionError, if_else=violation(problem)):
             obj[name] = value
         assert obj[name] == value
 
