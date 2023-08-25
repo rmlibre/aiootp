@@ -59,6 +59,7 @@ DebugControl.disable_debugging()
 
 
 # acknowledge private variables
+t = Typing
 Padding = _Padding
 StreamHMAC = _StreamHMAC
 SyntheticIV = _SyntheticIV
