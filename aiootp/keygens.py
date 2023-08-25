@@ -82,18 +82,20 @@ class KDF:
 
     __slots__ = ()
 
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(cls, *, salt_label: t.AnyStr) -> None:
         """
         Ensures subclasses can define custom key & base type hasher
         algorithms within their class bodies & have the blocksizes of
         those objects be recorded by the class correctly during
         definition time.
         """
-        cls._KEY_TYPE_BLOCKSIZE: int = cls._key_type().block_size
         cls._TYPE_BLOCKSIZE: int = cls._type().block_size
+        cls._new_payload: callable = cls._type(
+            Domains.encode_constant(salt_label, size=cls._TYPE_BLOCKSIZE)
+        ).copy
 
 
-class DomainKDF(KDF):
+class DomainKDF(KDF, salt_label=b"domain_kdf_salt"):
     """
     Creates objects able to derive domain & payload-specific keyed
     hashes. Payload updates are automatically canonicalized.
@@ -113,25 +115,36 @@ class DomainKDF(KDF):
 
     """
 
-    __slots__ = ("_domain", "_key", "_payload")
+    __slots__ = ("_domain", "_payload")
 
-    _key_size: int = 0  # for subclasses which use an XOF for keygen
-    _key_type: callable = sha3_512
     _type: callable = shake_256
 
-    def _initialize_payload(self, payload: t.Iterable[bytes]) -> None:
+    def _initialize_payload(
+        self, payload: t.Iterable[bytes], *, key: bytes
+    ) -> None:
         """
         Canonically encodes the key & first batch of input data to
         prepare a hashing object which will process all additional
         payload.
         """
-        payload_key = encode_key(self._key, self._TYPE_BLOCKSIZE)
+        kw = dict(blocksize=self._TYPE_BLOCKSIZE)
         payload = (
-            canonical_pack(*payload, blocksize=self._TYPE_BLOCKSIZE)
-            if payload
-            else b""
+            canonical_pack(self._domain, *payload, **kw) if payload else b""
         )
-        self._payload = self._type(payload_key + payload)
+        self._payload.update(key + payload)
+
+    def _process_key(self, key: bytes) -> bytes:
+        """
+        Transforms an input key into a uniform value the size of the
+        payload hashing object's blocksize.
+        """
+        return hash_bytes(
+            Domains.KDF,
+            self._domain,
+            key=key,
+            size=self._TYPE_BLOCKSIZE,
+            hasher=self._type,
+        )
 
     def __init__(
         self, domain: bytes, *payload: t.Iterable[bytes], key: bytes
@@ -142,9 +155,8 @@ class DomainKDF(KDF):
         canonically encoded by the class, in key derivation.
         """
         self._domain = domain
-        self._key = key
-        self.update_key(key)
-        self._initialize_payload(payload)
+        self._payload = self._new_payload()
+        self._initialize_payload(payload, key=self._process_key(key))
 
     def copy(self) -> "cls":
         """
@@ -152,19 +164,17 @@ class DomainKDF(KDF):
         separately in differing contexts.
         """
         kdf = self.__class__.__new__(self.__class__)
-        kdf._key = self._key
         kdf._domain = self._domain
         kdf._payload = self._payload.copy()
         return kdf
 
     async def aupdate(self, *payload: t.Iterable[bytes]) -> "self":
         """
-        Canonically update the payload object with the additional
-        arguments passed in as ``payload``. This allows large amounts of
-        data to be used for key derivation without a large in-memory
-        cost. Also, mitigates canonicalization attacks. Update calls,
-        input data & the order of both must match exactly to create the
-        same KDF state with two different objects.
+        Canonically updates the payload object with additional values.
+        This facilitates safe incorporation of arbitrary amounts of data
+        for key derivation. Update calls, input data & the order of both,
+        must match exactly to create matching KDF states in distinct
+        instances.
         """
         if not payload:
             raise Issue.value_must("update payload", "not be empty")
@@ -175,47 +185,16 @@ class DomainKDF(KDF):
 
     def update(self, *payload: t.Iterable[bytes]) -> "self":
         """
-        Canonically update the payload object with the additional
-        arguments passed in as ``payload``. This allows large amounts of
-        data to be used for key derivation without a large in-memory
-        cost. Also, mitigates canonicalization attacks. Update calls,
-        input data & the order of both must match exactly to create the
-        same KDF state with two different objects.
+        Canonically updates the payload object with additional values.
+        This facilitates safe incorporation of arbitrary amounts of data
+        for key derivation. Update calls, input data & the order of both,
+        must match exactly to create matching KDF states in distinct
+        instances.
         """
         if not payload:
             raise Issue.value_must("update payload", "not be empty")
         self._payload.update(
             canonical_pack(*payload, blocksize=self._TYPE_BLOCKSIZE)
-        )
-        return self
-
-    async def aupdate_key(self, entropy: bytes) -> "self":
-        """
-        Derive's a new instance key from the its domain, current key &
-        the provided ``entropy``.
-        """
-        self._key = await ahash_bytes(
-            Domains.KDF,
-            self._domain,
-            entropy,
-            key=self._key + entropy,
-            hasher=self._key_type,
-            size=self._key_size,
-        )
-        return self
-
-    def update_key(self, entropy: bytes) -> "self":
-        """
-        Derive's a new instance key from the its domain, current key &
-        the provided ``entropy``.
-        """
-        self._key = hash_bytes(
-            Domains.KDF,
-            self._domain,
-            entropy,
-            key=self._key + entropy,
-            hasher=self._key_type,
-            size=self._key_size,
         )
         return self
 
@@ -229,8 +208,7 @@ class DomainKDF(KDF):
             self._domain,
             aad,
             *data,
-            self._payload.digest(SHA3_256_BLOCKSIZE),
-            key=self._key + aad,
+            key=self._payload.digest(SHA3_256_BLOCKSIZE) + aad,
             hasher=sha3_256,
         )
 
@@ -244,8 +222,7 @@ class DomainKDF(KDF):
             self._domain,
             aad,
             *data,
-            self._payload.digest(SHA3_256_BLOCKSIZE),
-            key=self._key + aad,
+            key=self._payload.digest(SHA3_256_BLOCKSIZE) + aad,
             hasher=sha3_256,
         )
 
@@ -259,8 +236,7 @@ class DomainKDF(KDF):
             self._domain,
             aad,
             *data,
-            self._payload.digest(SHA3_512_BLOCKSIZE),
-            key=self._key + aad,
+            key=self._payload.digest(SHA3_512_BLOCKSIZE) + aad,
             hasher=sha3_512,
         )
 
@@ -274,8 +250,7 @@ class DomainKDF(KDF):
             self._domain,
             aad,
             *data,
-            self._payload.digest(SHA3_512_BLOCKSIZE),
-            key=self._key + aad,
+            key=self._payload.digest(SHA3_512_BLOCKSIZE) + aad,
             hasher=sha3_512,
         )
 
@@ -289,9 +264,8 @@ class DomainKDF(KDF):
             self._domain,
             aad,
             *data,
-            self._payload.digest(SHAKE_128_BLOCKSIZE),
             size=size,
-            key=self._key + aad,
+            key=self._payload.digest(SHAKE_128_BLOCKSIZE) + aad,
             hasher=shake_128,
         )
 
@@ -305,9 +279,8 @@ class DomainKDF(KDF):
             self._domain,
             aad,
             *data,
-            self._payload.digest(SHAKE_128_BLOCKSIZE),
             size=size,
-            key=self._key + aad,
+            key=self._payload.digest(SHAKE_128_BLOCKSIZE) + aad,
             hasher=shake_128,
         )
 
@@ -321,9 +294,8 @@ class DomainKDF(KDF):
             self._domain,
             aad,
             *data,
-            self._payload.digest(SHAKE_256_BLOCKSIZE),
             size=size,
-            key=self._key + aad,
+            key=self._payload.digest(SHAKE_256_BLOCKSIZE) + aad,
             hasher=shake_256,
         )
 
@@ -337,9 +309,8 @@ class DomainKDF(KDF):
             self._domain,
             aad,
             *data,
-            self._payload.digest(SHAKE_256_BLOCKSIZE),
             size=size,
-            key=self._key + aad,
+            key=self._payload.digest(SHAKE_256_BLOCKSIZE) + aad,
             hasher=shake_256,
         )
 
