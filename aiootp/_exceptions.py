@@ -395,11 +395,11 @@ class Issue:
     _EXCEEDED_BLOCKSIZE: str = (
         "Data block MUST NOT exceed BLOCKSIZE bytes."
     )
-    _CANT_OVERWRITE_EXISTING_ATTRIBUTE: str = (
-        "Can't overwrite the existing NAME attribute."
+    _CANT_REASSIGN_ATTRIBUTE: str = (
+        "Can't re-assign the existing NAME attribute."
     )
-    _CANT_DELETE_FROZEN_OBJECT_ATTRIBUTE: str = (
-        "Can't delete the NAME attribute of frozen object."
+    _CANT_DEASSIGN_ATTRIBUTE : str = (
+        "Can't de-assign the existing NAME attribute."
     )
     _UNUSED_PARAMETERS: str = (
         "The PARAMETERS parameters are not used when CONTEXT."
@@ -472,17 +472,13 @@ class Issue:
         return ValueError(issue.replace("BLOCKSIZE", repr(blocksize)))
 
     @classmethod
-    def cant_overwrite_existing_attribute(
-        cls, name: str
-    ) -> PermissionError:
-        issue = cls._CANT_OVERWRITE_EXISTING_ATTRIBUTE
+    def cant_reassign_attribute(cls, name: str) -> PermissionError:
+        issue = cls._CANT_REASSIGN_ATTRIBUTE
         return PermissionError(issue.replace("NAME", repr(name)))
 
     @classmethod
-    def cant_delete_frozen_object_attribute(
-        cls, name: str
-    ) -> PermissionError:
-        issue = cls._CANT_DELETE_FROZEN_OBJECT_ATTRIBUTE
+    def cant_deassign_attribute(cls, name: str) -> PermissionError:
+        issue = cls._CANT_DEASSIGN_ATTRIBUTE
         return PermissionError(issue.replace("NAME", repr(name)))
 
     @classmethod

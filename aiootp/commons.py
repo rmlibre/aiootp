@@ -195,14 +195,14 @@ class FrozenSlots(Slots):
         Denies the setting attributes after they have already been set.
         """
         if hasattr(self, name):
-            raise Issue.cant_overwrite_existing_attribute(name)
+            raise Issue.cant_reassign_attribute(name)
         object.__setattr__(self, name, value)
 
     def __delattr__(self, name: str) -> None:
         """
         Denies the deletion of attributes after they have been set.
         """
-        raise Issue.cant_delete_frozen_object_attribute(name)
+        raise Issue.cant_deassign_attribute(name)
 
 
 class Namespace(Slots):

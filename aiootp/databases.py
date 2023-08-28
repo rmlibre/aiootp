@@ -943,7 +943,7 @@ class AsyncDatabase(metaclass=AsyncInit):
                 and tag not in self.__class__.__dict__
             ):
                 return self.__dict__[tag]
-            raise Issue.cant_overwrite_existing_attribute(tag)
+            raise Issue.cant_reassign_attribute(tag)
         self.__dict__[tag] = await self.__class__(
             key=await self._ametatag_key(tag),
             preload=preload,
@@ -1964,7 +1964,7 @@ class Database:
                 and tag not in self.__class__.__dict__
             ):
                 return self.__dict__[tag]
-            raise Issue.cant_overwrite_existing_attribute(tag)
+            raise Issue.cant_reassign_attribute(tag)
         self.__dict__[tag] = self.__class__(
             key=self._metatag_key(tag),
             preload=preload,
