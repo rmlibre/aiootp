@@ -281,7 +281,7 @@ class UnmaskedGUID(Slots):
         return super().__repr__(mask=False)
 
     def __hash__(self) -> int:
-        return int.from_bytes(b"".join(self.values()), BIG)
+        return int.from_bytes(self.sort_key, BIG)
 
     def __eq__(self, other: "cls") -> bool:
         return self.sort_key == other.sort_key
