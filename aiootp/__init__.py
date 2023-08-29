@@ -29,8 +29,10 @@ __PUBLIC_X25519_KEY__ = (
 
 
 __doc__ = (
-    "aiootp - An asynchronous crypto and anonymity library. Home of the"
-    " Chunky2048 pseudo one-time pad stream cipher."
+    "aiootp is an application agnostic — async-compatible — anonymity &"
+    " cryptography library, providing access to high-level Pythonic uti"
+    "lities to simplify the tasks of secure data processing, communicat"
+    "ion & storage."
 )
 
 
@@ -82,6 +84,7 @@ del paths
 del databases
 del __constants
 del __dependencies
+del __ciphers
 del __engagement
 del __ui_coordination
 
