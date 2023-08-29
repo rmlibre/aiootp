@@ -117,17 +117,17 @@ class Slots:
         """
         from ._debuggers import DebugControl
 
-        if not mask or DebugControl.is_debugging():
+        if mask and not DebugControl.is_debugging():
             items = f',{sep}    '.join(
-                f"{var}={repr(val)}"
+                f"{var}="
+                f"{OMITTED} of {type(val)} "
+                f"{(val and 'is <truthy>') or 'is <falsey>'}"
                 for var, val in self.items()
                 if not str(var).startswith("_")
             )
         else:
             items = f',{sep}    '.join(
-                f"{var}="
-                f"{OMITTED} of {type(val)} "
-                f"{(val and 'is <truthy>') or 'is <falsey>'}"
+                f"{var}={repr(val)}"
                 for var, val in self.items()
                 if not str(var).startswith("_")
             )
@@ -203,6 +203,180 @@ class FrozenSlots(Slots):
         Denies the deletion of attributes after they have been set.
         """
         raise Issue.cant_deassign_attribute(name)
+
+
+class Config(FrozenSlots):
+    """
+    Creates frozen instances for storing static cacheable settings. This
+    facilitates highly configurable objects with declarative, structured
+    composition instead of deep class hierarchies. The cacheability
+    improves runtime performance, while also allowing configuration to
+    be defined with data, separating setup logic from object behavior.
+
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
+
+    from aiootp.commons import Config, ConfigMap
+
+    class CalculatorConfig(Config):
+        __slots__ = ("UNIT_SYSTEM", "LANGUAGE")
+
+        _UNIT_SYSTEMS = unit_translation_repository()
+        _LANGUAGES = language_repository()
+
+        def __init__(self, *, unit_system: str, language: str) -> None:
+            self.UNIT_SYSTEM = self._UNIT_SYSTEMS[unit_system]
+            self.LANGUAGE = self._LANGUAGES[language]
+
+    class Calculator(BaseCalculator):
+        __slots__ = ("config",)
+
+        _configs = ConfigMap(
+            english_us=CalculatorConfig(
+                unit_system="imperial", language="english"
+            ),
+            english_uk=CalculatorConfig(
+                unit_system="metric", language="english"
+            ),
+            config_type=CalculatorConfig,
+        )
+
+        def __init__(self, *, config_id: typing.Hashable) -> None:
+            self.config = self._configs[config_id]
+
+    calculator = Calculator(config_id="english_us")
+    """
+
+    __slots__ = ("config_id",)
+
+    def __repr__(self, *, mask: bool = False) -> str:
+        return super().__repr__(mask=mask)
+
+    def set_config_id(self, config_id: t.Hashable) -> None:
+        """
+        Gives the instance knowledge of its own `config_id` reference
+        that's used by configuration trackers like `ConfigMap`.
+        """
+        if not hasattr(self, "config_id"):
+            self.config_id = config_id
+        elif config_id != self.config_id:
+            raise Issue.value_must(f"{config_id=}", "equal declaration")
+
+
+class ConfigMap:
+    """
+    A container type which is the interface to predefined settings that
+    are referenced by configuration IDs. This facilitates highly
+    configurable objects with declarative, structured composition
+    instead of deep class hierarchies. The cacheability improves runtime
+    performance, while also allowing configuration to be defined with
+    data, separating setup logic from object behavior.
+
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
+
+    from aiootp.commons import Config, ConfigMap
+
+    class CalculatorConfig(Config):
+        __slots__ = ("UNIT_SYSTEM", "LANGUAGE")
+
+        _UNIT_SYSTEMS = unit_translation_repository()
+        _LANGUAGES = language_repository()
+
+        def __init__(self, *, unit_system: str, language: str) -> None:
+            self.UNIT_SYSTEM = self._UNIT_SYSTEMS[unit_system]
+            self.LANGUAGE = self._LANGUAGES[language]
+
+    class Calculator(BaseCalculator):
+        __slots__ = ("config",)
+
+        _configs = ConfigMap(
+            english_us=CalculatorConfig(
+                unit_system="imperial", language="english"
+            ),
+            english_uk=CalculatorConfig(
+                unit_system="metric", language="english"
+            ),
+            config_type=CalculatorConfig,
+        )
+
+        def __init__(self, *, config_id: typing.Hashable) -> None:
+            self.config = self._configs[config_id]
+
+    calculator = Calculator(config_id="english_us")
+    """
+
+    __slots__ = ("__dict__",)
+
+    def __init__(
+        self,
+        mapping: t.Mapping[t.Hashable, t.Any] = {},
+        *,
+        config_type: type,
+        **kw,
+    ) -> None:
+        """
+        Defines the configurations to be stored in the instance from the
+        provided mappings of config IDs to config objects.
+        """
+        self.__dict__["config_type"] = config_type
+        if mapping.__class__ in JSON_DESERIALIZABLE_TYPES:
+            mapping = json.loads(mapping)
+        for config_id, config in {**mapping, **kw}.items():
+            self[config_id] = config
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__qualname__}({self.__dict__})"
+
+    def __contains__(self, config_id: t.Hashable) -> bool:
+        """
+        Boolean search for a configuration by its `config_id` reference.
+        """
+        return config_id in self.__dict__
+
+    def __getitem__(self, config_id: t.Hashable) -> t.Any:
+        """
+        Retrieves a configuration by its `config_id` reference.
+        """
+        try:
+            return self.__dict__[config_id]
+        except KeyError as error:
+            raise Issue.invalid_value(f"{config_id=}") from error
+
+    def __setitem__(self, config_id: t.Hashable, config: t.Any) -> None:
+        """
+        Sets a `config` by its `config_id` reference. If the `config_id`
+        is already in the instance, then `PermissionError` is raised.
+        """
+        instance = self.__dict__
+        if config_id in instance:
+            raise Issue.cant_reassign_attribute(f"{config_id=}")
+        elif not issubclass(config.__class__, self.config_type):
+            raise Issue.value_must_be_type("config", self.config_type)
+        config.set_config_id(config_id)
+        instance[config_id] = config
+
+    def __delitem__(self, config_id: t.Hashable) -> None:
+        """
+        Denies deletion of a configuration & raises `PermissionError`.
+        """
+        raise Issue.cant_deassign_attribute(f"{config_id=}")
+
+    def __setattr__(self, config_id: str, config: t.Any) -> None:
+        """
+        Denies setting of a configuration & raises `PermissionError`.
+        """
+        raise Issue.cant_reassign_attribute(f"{config_id=}")
+
+    def __delattr__(self, config_id: str) -> None:
+        """
+        Denies deletion of a configuration & raises `PermissionError`.
+        """
+        raise Issue.cant_deassign_attribute(f"{config_id=}")
 
 
 class Namespace(Slots):
@@ -414,6 +588,8 @@ extras = dict(
     OpenNamespace=OpenNamespace,
     Slots=Slots,
     FrozenSlots=FrozenSlots,
+    Config=Config,
+    ConfigMap=ConfigMap,
     __doc__=__doc__,
     __package__=__package__,
     aimport_namespace=aimport_namespace,
