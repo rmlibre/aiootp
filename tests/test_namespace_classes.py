@@ -37,6 +37,15 @@ class FrozenSlotsExample(FrozenSlots):
         return [name async for name in self]
 
 
+class ConfigExample(Config):
+    __slots__ = tuple(IDENTIFIER_ITEMS)
+
+    class_variable: Typing.Any = "accessible"
+
+    async def aiter(self):
+        return [name async for name in self]
+
+
 class OpenNamespaceExample(OpenNamespace):
     class_variable: Typing.Any = "accessible"
 
@@ -118,6 +127,7 @@ async def instance_values_cannot_be_changed_once_set(cls, obj, items):
 
 
 async def mask_kwarg_hides_instance_values_from_repr(cls, obj, items):
+    DebugControl.disable_debugging()
     for name in obj:
         if str(name).startswith("_"):
             continue
@@ -128,16 +138,29 @@ async def mask_kwarg_hides_instance_values_from_repr(cls, obj, items):
 
 
 async def debug_control_toggles_hidden_repr(cls, obj, items):
-        DebugControl.enable_debugging()
-        assert all(
-            (name in obj.__repr__() and str(obj[name]) in obj.__repr__())
-            for name in obj
-        )
-        DebugControl.disable_debugging()
-        assert all(
-            (name in obj.__repr__() and str(obj[name]) not in obj.__repr__())
-            for name in obj
-        )
+    DebugControl.enable_debugging()
+    assert all(
+        (str(name) in obj.__repr__() and str(obj[name]) in obj.__repr__())
+        for name in obj
+    )
+    DebugControl.disable_debugging()
+    assert all(
+        (str(name) in obj.__repr__() and str(obj[name]) not in obj.__repr__())
+        for name in obj
+    )
+
+
+async def debug_control_doesnt_toggle_open_repr(cls, obj, items):
+    DebugControl.enable_debugging()
+    assert all(
+        (str(name) in obj.__repr__() and str(obj[name]) in obj.__repr__())
+        for name in obj
+    )
+    DebugControl.disable_debugging()
+    assert all(
+        (str(name) in obj.__repr__() and str(obj[name]) in obj.__repr__())
+        for name in obj
+    )
 
 
 async def dunder_tests(cls, obj, items):
@@ -151,10 +174,12 @@ async def dunder_tests(cls, obj, items):
     await all_is_list_of_non_private_keys_to_instance_values(cls, obj, items)
     await getattr_and_getitem_are_interchangable(cls, obj, items)
     await mask_kwarg_hides_instance_values_from_repr(cls, obj, items)
-    if not issubclass(cls, OpenNamespace):
+    if not issubclass(cls, (OpenNamespace, Config)):
         await debug_control_toggles_hidden_repr(cls, obj, items)
+    else:
+        await debug_control_doesnt_toggle_open_repr(cls, obj, items)
     assert obj["class_variable"] == "accessible"
-    if "Frozen" in cls.__qualname__:
+    if issubclass(cls, (FrozenSlots, Config)):
         await instance_values_cannot_be_changed_once_set(cls, obj, items)
     else:
         await instance_values_change_correctly_when_reset(cls, obj, items)
@@ -187,6 +212,10 @@ class TestSlots(BaseTestNamespaceClasses):
 
 class TestFrozenSlots(BaseTestNamespaceClasses):
     _type: t.Any = FrozenSlotsExample
+
+
+class TestConfig(BaseTestNamespaceClasses):
+    _type: t.Any = ConfigExample
 
 
 class TestOpenNamespace(BaseTestNonIdentifierNamespaceClasses):
