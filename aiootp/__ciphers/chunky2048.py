@@ -1,5 +1,7 @@
-# This file is part of aiootp, an asynchronous crypto and anonymity
-# library. Home of the Chunky2048 psuedo one-time pad stream cipher.
+# This file is part of aiootp:
+# an application agnostic — async-compatible — anonymity & cryptography
+# library, providing access to high-level Pythonic utilities to simplify
+# the tasks of secure data processing, communication & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
@@ -23,7 +25,7 @@ import json
 import base64
 from collections import deque
 from secrets import token_bytes
-from hashlib import sha3_256, sha3_512, shake_128, shake_256
+from hashlib import shake_128
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 from aiootp.__constants import *
@@ -34,7 +36,6 @@ from aiootp.paths import Path, DatabasePath
 from aiootp.asynchs import AsyncInit, asleep, gather
 from aiootp.commons import DeletedAttribute
 from aiootp.commons import make_module
-from aiootp.gentools import comprehension
 from aiootp.gentools import data as _data
 from aiootp.gentools import adata
 from aiootp.gentools import unpack, aunpack
@@ -53,6 +54,8 @@ from aiootp.generics import bytes_as_int, abytes_as_int
 from aiootp.generics import canonical_pack, acanonical_pack
 from aiootp.generics import bytes_are_equal, abytes_are_equal
 from aiootp.generics import fullblock_ljust, afullblock_ljust
+
+from .base_classes import CipherKDFs
 
 
 clock = Clock(SECONDS)
@@ -119,108 +122,38 @@ def single_use_key_bundle(
     return KeySaltAAD(key, salt, aad)
 
 
-class Chunky2048KDFs:
+class Chunky2048KDFs(CipherKDFs, name="chunky2048", config=chunky2048):
     """
     A private type which is responsible for initializing the keystream
     key-derivation & mac objects for the `Chunky2048` cipher.
     """
 
-    __slots__ = ("_summary", "_key")
-
-    # Cause ciphertexts to be unique & plaintexts to be scrambled for
-    # any distinct variations of the cipher if the package is modified.
-    # IMPORTANT FOR SECURITY. (https://eprint.iacr.org/2016/292.pdf)
-    # DO NOT OVERRIDE TO PROVIDE ITER-OP.
-    METADATA: bytes = canonical_pack(
-        int_as_bytes(EPOCH_NS, size=16),
-        int_as_bytes(BLOCKSIZE, size=2),
-        int_as_bytes(BLOCK_ID_BYTES, size=1),
-        int_as_bytes(SHMAC_BYTES, size=1),
-        int_as_bytes(SALT_BYTES, size=1),
-        int_as_bytes(IV_BYTES, size=1),
-        int_as_bytes(TIMESTAMP_BYTES, size=1),
-        int_as_bytes(SIV_KEY_BYTES, size=2),
-        int_as_bytes(MIN_PADDING_BLOCKS, size=2),
-        pad=b"",
-        int_bytes=1,
+    __slots__ = (
+        "keyed_seed_kdf",
+        "keyed_left_kdf",
+        "keyed_right_kdf",
+        "keyed_shmac_mac",
     )
 
-    _new_seed_kdf: callable = shake_128(
-        Domains.encode_constant(
-            b"seed_kdf_salt",
-            domain=b"chunky2048",
-            aad=METADATA,
-            size=SHAKE_128_BLOCKSIZE,
-        )
-    ).copy
-    _new_left_kdf: callable = shake_128(
-        Domains.encode_constant(
-            b"left_kdf_salt",
-            domain=b"chunky2048",
-            aad=METADATA,
-            size=SHAKE_128_BLOCKSIZE,
-        )
-    ).copy
-    _new_right_kdf: callable = shake_128(
-        Domains.encode_constant(
-            b"right_kdf_salt",
-            domain=b"chunky2048",
-            aad=METADATA,
-            size=SHAKE_128_BLOCKSIZE,
-        )
-    ).copy
-    _new_shmac_mac: callable = shake_128(
-        Domains.encode_constant(
-            b"shmac_mac_salt",
-            domain=b"chunky2048",
-            aad=METADATA,
-            size=SHAKE_128_BLOCKSIZE,
-        )
-    ).copy
-
-    _KDF_TYPES = {
-        # This offset is intended to reduce the potential control an
-        # adversary can exert when the StreamHMAC object's digest is
-        # being xor'd into the seed_kdf's state by spreading each update
-        # in half over two different blocks.
-        # ----------------------------------vvvvvvvvvvvvvvv
-        SEED_KDF: (_new_seed_kdf, SEED_PAD, SEED_KDF_OFFSET),
-        LEFT_KDF: (_new_left_kdf, LEFT_PAD, b""),
-        RIGHT_KDF: (_new_right_kdf, RIGHT_PAD, b""),
-        SHMAC: (_new_shmac_mac, SHMAC_PAD, b""),
-    }
-
-    def __init__(self, summary: bytes, *, key: bytes) -> None:
+    def __init__(self, key: bytes) -> None:
         """
         Stores the full metadata & values summary provided by the
         `KeyAADBundle`.
         """
-        self._summary = summary
-        self._key = key
+        self.keyed_seed_kdf = self.key_base_kdf(SEED_KDF, key=key)
+        self.keyed_left_kdf = self.key_base_kdf(LEFT_KDF, key=key)
+        self.keyed_right_kdf = self.key_base_kdf(RIGHT_KDF, key=key)
+        self.keyed_shmac_mac = self.key_base_kdf(SHMAC_MAC, key=key)
 
-    def __iter__(self) -> t.Iterable[SHAKE_128_TYPE]:
+    def new_session(self, summary: bytes) -> t.Iterable[SHAKE_128_TYPE]:
         """
         Yields a set of fresh seed, left & right KDFs & the shmac for
         the instance's given summary.
         """
-        yield self._initialize_chunky2048_kdf(SEED_KDF)
-        yield self._initialize_chunky2048_kdf(LEFT_KDF)
-        yield self._initialize_chunky2048_kdf(RIGHT_KDF)
-        yield self._initialize_chunky2048_kdf(SHMAC)
-
-    def _initialize_chunky2048_kdf(self, kdf_name: str) -> SHAKE_128_TYPE:
-        """
-        A generalized KDF initializer which works for the seed, left &
-        right KDFs, & the StreamHMAC MAC.
-        """
-        factory, pad, offset = self._KDF_TYPES[kdf_name]
-        kdf = factory()
-        kdf.update(
-            encode_key(self._key, kdf.block_size, pad=pad)
-            + fullblock_ljust(self._summary, kdf.block_size, pad=pad)
-            + offset
-        )
-        return kdf
+        yield self.randomize_keyed_kdf(self.keyed_seed_kdf, summary)
+        yield self.randomize_keyed_kdf(self.keyed_left_kdf, summary)
+        yield self.randomize_keyed_kdf(self.keyed_right_kdf, summary)
+        yield self.randomize_keyed_kdf(self.keyed_shmac_mac, summary)
 
 
 class KeyAADBundle:
@@ -343,7 +276,7 @@ class KeyAADBundle:
         # encode key material, salt & aad with their length metadata
         summary = canonical_pack(*self, pad=b"", int_bytes=4)
         # keystream kdfs
-        kdfs = Chunky2048KDFs(summary, key=self._bundle.key)
+        kdfs = Chunky2048KDFs(key=self._bundle.key).new_session(summary)
         keys.seed_kdf, keys.left_kdf, keys.right_kdf, keys.shmac_mac = kdfs
 
     async def _agenerate_algorithm_keys(self) -> None:
@@ -355,7 +288,7 @@ class KeyAADBundle:
         """
         keys = self.__keys
         # init keystream
-        keys.keystream = keystream = abytes_keys.root(self)
+        keys.keystream = keystream = abytes_keys(self)
         keys.primer_key = primer_key = await keystream.asend(None)  # 256-bytes
         if len(primer_key) != BLOCKSIZE:
             raise Issue.invalid_length("keystream key", BLOCKSIZE)
@@ -369,7 +302,7 @@ class KeyAADBundle:
         """
         keys = self.__keys
         # init keystream
-        keys.keystream = keystream = bytes_keys.root(self)
+        keys.keystream = keystream = bytes_keys(self)
         keys.primer_key = primer_key = keystream.send(None)  # 256-bytes
         if len(primer_key) != BLOCKSIZE:
             raise Issue.invalid_length("keystream key", BLOCKSIZE)
@@ -411,12 +344,30 @@ class KeyAADBundle:
             raise KeyAADIssue.keystream_already_registered()
         self._registers.register("keystream", True)
 
-    @property
-    def _keys(self) -> t.Generator[None, SHAKE_128_TYPE, None]:
+    def _keystream_ratchets(self) -> t.Tuple[
+        t.Callable[[bytes], None],
+        t.Callable[[int], bytes],
+        t.Callable[[bytes], None],
+        t.Callable[[int], bytes],
+        t.Callable[[bytes], None],
+        t.Callable[[int], bytes],
+    ]:
         """
-        Returns the private iterable of the KDFs used by `Chunky2048`.
+        Returns the method pointers of three ``hashlib.shake_128`` objects
+        that have been primed in different ways with the ``key_bundle``'s
+        `key`, `salt`, `aad` & `iv` values.
+
+        The returned values are used to construct a key ratchet algorithm.
         """
-        return self.__keys.__iter__()
+        seed_kdf, left_kdf, right_kdf = self.__keys
+        return (
+            seed_kdf.update,
+            seed_kdf.digest,
+            left_kdf.update,
+            left_kdf.digest,
+            right_kdf.update,
+            right_kdf.digest,
+        )
 
     @property
     def _kdf(self) -> SEED_KDF_TYPE:
@@ -496,60 +447,6 @@ class KeyAADBundle:
         return self._iv
 
 
-async def akeystream_ratchets(key_bundle: KeyAADBundle) -> t.Tuple[
-    t.Callable[[bytes], None],
-    t.Callable[[int], bytes],
-    t.Callable[[bytes], None],
-    t.Callable[[int], bytes],
-    t.Callable[[bytes], None],
-    t.Callable[[int], bytes],
-]:
-    """
-    Returns the method pointers of three ``hashlib.shake_128`` objects
-    that have been primed in different ways with the ``key_bundle``'s
-    `key`, `salt`, `aad` & `iv` values.
-
-    The returned values are used to construct a key ratchet algorithm.
-    """
-    await asleep()
-    seed_kdf, left_kdf, right_kdf = key_bundle._keys
-    return (
-        seed_kdf.update,
-        seed_kdf.digest,
-        left_kdf.update,
-        left_kdf.digest,
-        right_kdf.update,
-        right_kdf.digest,
-    )
-
-
-def keystream_ratchets(key_bundle: KeyAADBundle) -> t.Tuple[
-    t.Callable[[bytes], None],
-    t.Callable[[int], bytes],
-    t.Callable[[bytes], None],
-    t.Callable[[int], bytes],
-    t.Callable[[bytes], None],
-    t.Callable[[int], bytes],
-]:
-    """
-    Returns the method pointers of three ``hashlib.shake_128`` objects
-    that have been primed in different ways with the ``key_bundle``'s
-    `key`, `salt`, `aad` & `iv` values.
-
-    The returned values are used to construct a key ratchet algorithm.
-    """
-    seed_kdf, left_kdf, right_kdf = key_bundle._keys
-    return (
-        seed_kdf.update,
-        seed_kdf.digest,
-        left_kdf.update,
-        left_kdf.digest,
-        right_kdf.update,
-        right_kdf.digest,
-    )
-
-
-@comprehension()
 async def abytes_keys(
     key_bundle: t.Optional[KeyAADBundle] = None
 ) -> t.AsyncGenerator[bytes, bytes]:
@@ -561,17 +458,6 @@ async def abytes_keys(
     hashing of the permutation of the salt, aad, iv & user key, previous
     hashed results, & the ``entropy`` users may send into this generator
     as a coroutine.
-
-     _____________________________________
-    |                                     |
-    |     Usage Example: As a CSPRNG      |
-    |_____________________________________|
-
-    keystream = aiootp.abytes_keys()  # REPEATS OUTPUTS IF COPIED INTO A
-    async for subkey in keystream:    # NEWLY FORKED PROCESS
-        assert len(subkey) == 256
-        assert type(subkey) is bytes
-        new_subkey = await keystream(b"user can add more entropy here")
 
      _____________________________________
     |                                     |
@@ -610,8 +496,6 @@ async def abytes_keys(
     Do this procedure for the left & right kdfs, retrieve & concatenate
     their outputs, repeat this cycle each iteration.
     """
-    if not key_bundle:
-        key_bundle = KeyAADBundle(aad=Domains.PRNG)
     key_bundle._register_keystream()
     (
         s_update,
@@ -620,7 +504,7 @@ async def abytes_keys(
         l_digest,
         r_update,
         r_digest,
-    ) = await akeystream_ratchets(key_bundle)
+    ) = key_bundle._keystream_ratchets()
     while True:
         ratchet_key = s_digest(SEED_KDF_DOUBLE_BLOCKSIZE)  # extract 336 bytes
         l_update(ratchet_key[LEFT_RATCHET_KEY_SLICE])   # update with 168 even index bytes
@@ -633,7 +517,6 @@ async def abytes_keys(
         # last 168 bytes -----------------------^^^^^^^^^^^^^^^^^^^^^^
 
 
-@comprehension()
 def bytes_keys(
     key_bundle: t.Optional[KeyAADBundle] = None
 ) -> t.Generator[bytes, bytes, None]:
@@ -645,17 +528,6 @@ def bytes_keys(
     hashing of the permutation of the salt, aad, iv & user key, previous
     hashed results, & the ``entropy`` users may send into this generator
     as a coroutine.
-
-     _____________________________________
-    |                                     |
-    |     Usage Example: As a CSPRNG      |
-    |_____________________________________|
-
-    keystream = aiootp.bytes_keys()  # REPEATS OUTPUTS IF COPIED INTO A
-    for subkey in keystream:         # NEWLY FORKED PROCESS
-        assert len(subkey) == 256
-        assert type(subkey) is bytes
-        new_subkey = keystream(b"user can add more entropy here")
 
      _____________________________________
     |                                     |
@@ -694,8 +566,6 @@ def bytes_keys(
     Do this procedure for the left & right KDFs, retrieve & concatenate
     their outputs, repeat this cycle each iteration.
     """
-    if not key_bundle:
-        key_bundle = KeyAADBundle(aad=Domains.PRNG)
     key_bundle._register_keystream()
     (
         s_update,
@@ -704,7 +574,7 @@ def bytes_keys(
         l_digest,
         r_update,
         r_digest,
-    ) = keystream_ratchets(key_bundle)
+    ) = key_bundle._keystream_ratchets()
     while True:
         ratchet_key = s_digest(SEED_KDF_DOUBLE_BLOCKSIZE)  # extract 336 bytes
         l_update(ratchet_key[LEFT_RATCHET_KEY_SLICE])   # update with 168 even index bytes
