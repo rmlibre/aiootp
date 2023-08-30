@@ -5,12 +5,14 @@
 
 
 
-aiootp - An asynchronous crypto and anonymity library. Home of the Chunky2048 pseudo one-time pad stream cipher.
-================================================================================================================
+aiootp — an asynchronous anonymity & cryptography library.
+==========================================================
 
-``aiootp`` is an async compatible and application agnostic library that provides access to pythonic, high-level cryptographic utilities to simplify the tasks of secure data processing and storage.
+``aiootp`` is an application agnostic — async-compatible — anonymity & cryptography library, providing access to high-level Pythonic utilities to simplify the tasks of secure data processing, communication & storage.
 
-This library is home to an online, salt reuse / misuse resistant, tweakable AEAD stream cipher, which we've called ``Chunky2048``. It's an implementation of a **pseudo one-time pad**, that's intended to be a simple and efficient cipher that's indistinguishable from a one-time pad. We hope to give users and applications empowering developer-friendly tools with strong and biased defaults, and in so doing, increase the overall security, privacy and anonymity in the digital world. Users will find ``aiootp`` to be easy to write, easy to read, & fun.
+It is also the home of a family of online, salt reuse / misuse resistant, tweakable & committing AEAD ciphers. The first is a 256-byte block-wise stream cipher, named ``Chunky2048``. The second is the 32-byte hybrid block-stream cipher, ``Slick256``. The design goals behind this family of ciphers are to be simple & efficient while maintaining wide security margins & indistinguishability from a one-time pad.
+
+We hope to give users & applications empowering developer-friendly tools with strong, biased defaults. In so doing, increase the overall security, privacy & anonymity in the digital world. Users will find ``aiootp`` to be easy to write, easy to read, & fun.
 
 
 
@@ -18,7 +20,7 @@ This library is home to an online, salt reuse / misuse resistant, tweakable AEAD
 Important Disclaimer
 --------------------
 
-``aiootp`` is experimental software that works with Python 3.7+. It's a work in progress. Its algorithms and programming API could change with future updates, and it isn't bug free. ``aiootp`` provides security tools and misc utilities that're designed to be developer-friendly and privacy preserving. As a security tool, ``aiootp`` needs to be tested and reviewed extensively by the programming and cryptography communities to ensure its implementations are sound. We provide no guarantees. This software hasn't yet been audited by third-party security professionals.
+``aiootp`` is experimental software that works with Python 3.7+. It's a work in progress. Its algorithms & programming API are likely to change with future updates, & it isn't bug free. ``aiootp`` provides security tools & misc utilities that're designed to be developer-friendly & privacy preserving. As a security tool, ``aiootp`` needs to be tested & improved extensively by the programming & cryptography communities to ensure its implementations are sound. We provide no guarantees. This software hasn't yet been audited by third-party security professionals.
 
 
 
