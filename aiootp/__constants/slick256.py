@@ -1,7 +1,5 @@
-# This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# This file is part of aiootp, an asynchronous crypto and anonymity
+# library. Home of the Chunky2048 psuedo one-time pad stream cipher.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
@@ -11,7 +9,7 @@
 #
 
 
-__doc__  =  "Aggregated Chunky2048 constants."
+__doc__  =  "Aggregated Slick256 constants."
 
 
 from math import ceil
@@ -35,44 +33,38 @@ TIMESTAMP = "timestamp"
 TIMESTAMP_BYTES = 4  # measures seconds
 
 SIV_KEY = "siv_key"
-SIV_KEY_BYTES = 16
+SIV_KEY_BYTES = 11
 
 
 HEADER = "header"
 
 SHMAC = "shmac"
-SHMAC_BYTES = 32
+SHMAC_BYTES = 16
 
 BLOCK_ID = "block_id"
-BLOCK_ID_BYTES = 24
+BLOCK_ID_BYTES = 16
 MAX_BLOCK_ID_BYTES = 32
-MIN_BLOCK_ID_BYTES = 16
+MIN_BLOCK_ID_BYTES = 8
 BLOCK_ID_PAD = b"\xb8"
 
 SALT = "salt"
-SALT_BYTES = 16
+SALT_BYTES = 8
 
 IV = "iv"
-IV_BYTES = 16
+IV_BYTES = 8
 
 
-SEED_KDF = "seed_kdf"
-SEED_KDF_TYPE = type(shake_128())
-SEED_PAD = b"\xac"
-SEED_KDF_OFFSET = shake_128().block_size // 2
-SEED_KDF_HASHER = shake_128
+FRONT_KDF = "front_seed_kdf"
+FRONT_KDF_TYPE = type(shake_128())
+FRONT_PAD = b"\x5c"
+FRONT_KDF_OFFSET = 0
+FRONT_KDF_HASHER = shake_128
 
-LEFT_KDF = "left_kdf"
-LEFT_KDF_TYPE = type(shake_128())
-LEFT_PAD = b"\x5c"
-LEFT_KDF_OFFSET = 0
-LEFT_KDF_HASHER = shake_128
-
-RIGHT_KDF = "right_kdf"
-RIGHT_KDF_TYPE = type(shake_128())
-RIGHT_PAD = b"\x36"
-RIGHT_KDF_OFFSET = 0
-RIGHT_KDF_HASHER = shake_128
+BACK_KDF = "back_seed_kdf"
+BACK_KDF_TYPE = type(shake_128())
+BACK_PAD = b"\x36"
+BACK_KDF_OFFSET = 0
+BACK_KDF_HASHER = shake_128
 
 SHMAC_MAC = "shmac_mac"
 SHMAC_TYPE = type(shake_128())
@@ -81,12 +73,12 @@ SHMAC_MAC_OFFSET = 0
 SHMAC_MAC_HASHER = shake_128
 
 
-CHUNKY_2048 = "Chunky2048"
+SLICK_256 = "Slick256"
 DECRYPTION = "decryption"
 ENCRYPTION = "encryption"
 PLAINTEXT = "plaintext"
 CIPHERTEXT = "ciphertext"
-BLOCKSIZE = 256
+BLOCKSIZE = 32
 MIN_PADDING_BLOCKS = 0
 
 
@@ -126,38 +118,26 @@ IV_NIBBLES = 2 * IV_BYTES
 IV_SLICE = slice(SHMAC_BYTES + SALT_BYTES, HEADER_BYTES)
 
 
-SEED_KDF_BLOCKSIZE = shake_128().block_size
-SEED_KDF_DOUBLE_BLOCKSIZE = 2 * SEED_KDF_BLOCKSIZE
-SEED_RATCHET_KEY_SLICE = slice(SEED_KDF_BLOCKSIZE, None)
+FRONT_KDF_BLOCKSIZE = FRONT_KDF_HASHER().block_size
 
-LEFT_KDF_BLOCKSIZE = shake_128().block_size
-LEFT_RATCHET_KEY_SLICE = slice(0, None, 2)  # Even index bytes
+BACK_KDF_BLOCKSIZE = BACK_KDF_HASHER().block_size
 
-RIGHT_KDF_BLOCKSIZE = shake_128().block_size
-RIGHT_RATCHET_KEY_SLICE = slice(1, None, 2)  # Odd index bytes
-
-SHMAC_BLOCKSIZE = shake_128().block_size
+SHMAC_BLOCKSIZE = SHMAC_MAC_HASHER().block_size
 SHMAC_DOUBLE_BLOCKSIZE = 2 * SHMAC_BLOCKSIZE
 
 
 KDF_SETTINGS = SimpleNamespace(**{
-    SEED_KDF: SimpleNamespace(
-        pad=SEED_PAD,
-        offset=SEED_PAD * SEED_KDF_OFFSET,
-        blocksize=SEED_KDF_BLOCKSIZE,
-        hasher=SEED_KDF_HASHER,
+    FRONT_KDF: SimpleNamespace(
+        pad=FRONT_PAD,
+        offset=FRONT_PAD * FRONT_KDF_OFFSET,
+        blocksize=FRONT_KDF_BLOCKSIZE,
+        hasher=FRONT_KDF_HASHER,
     ),
-    LEFT_KDF: SimpleNamespace(
-        pad=LEFT_PAD,
-        offset=LEFT_PAD * LEFT_KDF_OFFSET,
-        blocksize=LEFT_KDF_BLOCKSIZE,
-        hasher=LEFT_KDF_HASHER,
-    ),
-    RIGHT_KDF: SimpleNamespace(
-        pad=RIGHT_PAD,
-        offset=RIGHT_PAD * RIGHT_KDF_OFFSET,
-        blocksize=RIGHT_KDF_BLOCKSIZE,
-        hasher=RIGHT_KDF_HASHER,
+    BACK_KDF: SimpleNamespace(
+        pad=BACK_PAD,
+        offset=BACK_PAD * BACK_KDF_OFFSET,
+        blocksize=BACK_KDF_BLOCKSIZE,
+        hasher=BACK_KDF_HASHER,
     ),
     SHMAC_MAC: SimpleNamespace(
         pad=SHMAC_PAD,
@@ -176,31 +156,23 @@ PADDING_SENTINEL_BYTES = MIN_PADDING_BLOCKS + SENTINEL_BYTES_PER_BLOCKSIZE
 MIN_STREAM_QUEUE = MIN_PADDING_BLOCKS + 1
 
 
-if INNER_HEADER_BYTES % 2:
-    # `SyntheticIV` calculations require the len(inner_header) to be
-    # even, otherwise plaintext bytes could be leaked when salt reuse
-    # / misuse resistance fails.
-    raise ValueError("INNER_HEADER_BYTES *cannot* be an odd number!")
-elif BLOCKSIZE % 2:
-    # The keystream consists of a left & right KDF which produce equal
-    # length keys equal to half the blocksize. An odd number blocksize
-    # could leak plaintext as the keys may not sum to the blocksize.
-    # It also introduces an unnecessary bias.
-    raise ValueError("BLOCKSIZE *cannot* be an odd number!")
-elif BLOCKSIZE <= 0:
+if BLOCKSIZE <= 0:
     # A negative or zero blocksize cannot make sense.
     raise ValueError("BLOCKSIZE *cannot* be 0 or negative!")
-elif LEFT_KDF_BLOCKSIZE != RIGHT_KDF_BLOCKSIZE:
-    # The output KDFs have to produce equal digest outputs.
-    raise ValueError("left & right blocksizes *must* be equal!")
-elif BLOCKSIZE > (LEFT_KDF_BLOCKSIZE + RIGHT_KDF_BLOCKSIZE):
+elif BLOCKSIZE > FRONT_KDF_BLOCKSIZE:
     # The blocksize of the output KDFs is intimately connected with the
     # arguments of secuirty of the cipher. Particularly, exposing an
     # amount of bytes larger than their internal blocksize, to XOR with
     # plaintext, can only have negative impacts on security.
     raise ValueError(
-        "BLOCKSIZE *must* sum to <= the left + right blocksizes!"
+        "The output BLOCKSIZE of the cipher *must* be <= the internal "
+        "KDF blocksizes!"
     )
+elif (
+    (SHMAC_BLOCKSIZE != FRONT_KDF_BLOCKSIZE)
+    or (FRONT_KDF_BLOCKSIZE != BACK_KDF_BLOCKSIZE)
+):
+    raise ValueError("cipher KDF blocksizes *must* be equal!")
 elif (BLOCKSIZE - INNER_HEADER_BYTES) < 16:
     # The inner-header must fit in the first block, therefore the
     # blocksize of the cipher cannot be smaller than it. But, the
@@ -214,6 +186,6 @@ elif (BLOCKSIZE - INNER_HEADER_BYTES) < 16:
 
 
 # Create a binding to the module's name for UI
-chunky2048 = {n: v for n, v in globals().items() if n[0].isupper()}
-chunky2048["__all__"] = [*chunky2048]
+slick256 = {n: v for n, v in globals().items() if n[0].isupper()}
+slick256["__all__"] = [*slick256]
 
