@@ -1,5 +1,7 @@
-# This file is part of aiootp, an asynchronous crypto and anonymity
-# library. Home of the Chunky2048 psuedo one-time pad stream cipher.
+# This file is part of aiootp:
+# an application agnostic — async-compatible — anonymity & cryptography
+# library, providing access to high-level Pythonic utilities to simplify
+# the tasks of secure data processing, communication & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
@@ -866,6 +868,7 @@ class DomainEncoder:
         *,
         domain: bytes = b"",
         aad: bytes = DEFAULT_AAD,
+        pad: bytes = b"\x00",
     ) -> bytes:
         """
         Receives a `str` or `bytes`-type ``constant``, encodes & hashes
@@ -885,7 +888,13 @@ class DomainEncoder:
         if constant.__class__ is not bytes:
             constant = constant.encode()
         return await ahash_bytes(
-            cls._DOMAIN, domain, aad, constant, hasher=shake_128, size=size
+            cls._DOMAIN,
+            domain,
+            aad,
+            constant,
+            hasher=shake_128,
+            size=size,
+            pad=pad,
         )
 
     @classmethod
@@ -896,6 +905,7 @@ class DomainEncoder:
         *,
         domain: bytes = b"",
         aad: bytes = DEFAULT_AAD,
+        pad: bytes = b"\x00",
     ) -> bytes:
         """
         Receives a `str` or `bytes`-type ``constant``, encodes & hashes
@@ -915,7 +925,13 @@ class DomainEncoder:
         if constant.__class__ is not bytes:
             constant = constant.encode()
         return hash_bytes(
-            cls._DOMAIN, domain, aad, constant, hasher=shake_128, size=size
+            cls._DOMAIN,
+            domain,
+            aad,
+            constant,
+            hasher=shake_128,
+            size=size,
+            pad=pad,
         )
 
 
