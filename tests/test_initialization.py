@@ -52,8 +52,8 @@ _globals.update(gentools.__dict__)
 _globals.update(generics.__dict__)
 _globals.update(ciphers.__dict__)
 _globals.update(keygens.__dict__)
-_globals.update(_original_globals)
 _globals.update(builtins.__dict__)
+_globals.update(_original_globals)
 
 
 # Use enable_debugging method to run tests in debug mode. May cause noticable slowdown.
