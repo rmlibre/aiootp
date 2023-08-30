@@ -1,5 +1,7 @@
-# This file is part of aiootp, an asynchronous crypto and anonymity
-# library. Home of the Chunky2048 psuedo one-time pad stream cipher.
+# This file is part of aiootp:
+# an application agnostic — async-compatible — anonymity & cryptography
+# library, providing access to high-level Pythonic utilities to simplify
+# the tasks of secure data processing, communication & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
@@ -333,7 +335,7 @@ ns_clock = MaskedClock(
 )
 
 _mod = PRIMES[256][-1]
-_offset = token_bits(256)
+_offset = token_bits(256) | (1 << 256)  # ensure non-zero offset
 _mix = int.from_bytes(_entropy.hash(*_pool, size=32), BIG)
 _seed = int.from_bytes(_entropy.hash(*_pool, size=32), BIG)
 _numbers = (_mix, _seed, _offset)
