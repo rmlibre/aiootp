@@ -1107,9 +1107,9 @@ Elliptic curve 25519 diffie-hellman exchange protocols.
 
     assert (
 
-        clients_kdf.sha3_512(context=b"test")
+        clients_kdf.sha3_512(aad=b"test")
 
-        == servers_kdf.sha3_512(context=b"test")
+        == servers_kdf.sha3_512(aad=b"test")
 
     )
 
