@@ -634,13 +634,22 @@ def afunc_timer(func):
     |            Usage Example:           |
     |_____________________________________|
 
-    @afunc_timer
-    async def add(x=4, y=6):
-        return x + y
+    >>> @afunc_timer
+    ... async def add(x=4, y=6):
+    ...     return x + y
+    ...
+    >>> await add(1, 10)
 
-    # Performance statistics & debug info for the async function will be
-    # gathered & printed to the screen whenever it's processed.
-    await add()
+    Test #1
+    Time Start:    2023-08-30 02:30:15.654865
+    Function:      add
+    <function add at 0xa5b6f5bb8caa>
+    add
+    Time Elapsed:         2.6226043701171875e-06 seconds.
+    Average Elapsed Time: 2.6226043701171875e-06 seconds.
+    Standard Deviation:   0.0 seconds.
+    Return Value:  10
+    Calling Function: arun
     """
     debugger = AsyncDebugTools()
 
@@ -663,13 +672,22 @@ def func_timer(func):
     |            Usage Example:           |
     |_____________________________________|
 
-    @func_timer
-    def add(x=4, y=6):
-        return x + y
+    >>> @func_timer
+    ... def add(x=4, y=6):
+    ...     return x + y
+    ...
+    >>> add(1, 10)
 
-    # Performance statistics & debug info for the function will be
-    # gathered & printed to the screen whenever it's called.
-    add(1, 10)
+    Test #1
+    Time Start:    2023-08-30 02:30:15.654865
+    Function:      add
+    <function add at 0xa5b6f5bb8caa>
+    add
+    Time Elapsed:         2.6226043701171875e-06 seconds.
+    Average Elapsed Time: 2.6226043701171875e-06 seconds.
+    Standard Deviation:   0.0 seconds.
+    Return Value:  10
+    Calling Function: run
     """
     debugger = DebugTools()
 
