@@ -27,16 +27,16 @@ from collections import deque
 from secrets import choice, token_bytes
 from secrets import randbits as token_bits
 from hashlib import sha3_256, sha3_512, shake_256
-from .__constants import *
+from ._constants import *
+from ._typing import Typing as t
 from ._exceptions import *
 from ._containers import UnmaskedGUID
-from ._typing import Typing as t
+from ._paths import SecurePath
+from ._paths import read_salt_file
 from .commons import OpenNamespace
 from .commons import make_module
 from .asynchs import Threads
 from .asynchs import asleep, asyncio, gather, sleep, ns_time
-from .paths import SecurePath
-from .paths import read_salt_file
 from .generics import Domains, Hasher, Clock, MaskedClock, BytesIO
 from .generics import bytes_as_int, int_as_bytes, hash_bytes
 
@@ -761,9 +761,9 @@ class SequenceID:
 
     seed = token_bytes(32)
     kdf = DomainKDF(b"movie-collection", seed, key=session.shared_key)
-    cipher = ChaCha20Poly1305(kdf.sha3_256(context=b"server-encryption-key"))
+    cipher = ChaCha20Poly1305(kdf.sha3_256(aad=b"server-encryption-key"))
     sid = SequenceID(
-        salt=kdf.shake_256(12, context=b"server-sequence-ids"), size=12
+        salt=kdf.shake_256(12, aad=b"server-sequence-ids"), size=12
     )
 
     yield seed
@@ -1417,11 +1417,15 @@ def csprng(
     return thread_safe_entropy.digest(size)
 
 
-extras = dict(
+module_api = dict(
     GUID=GUID,
     SequenceID=SequenceID,
     _EntropyDaemon=EntropyDaemon,
+    __all__=__all__,
     __doc__=__doc__,
+    __name__=__name__,
+    __spec__=__spec__,
+    __loader__=__loader__,
     __package__=__package__,
     _agenerate_raw_guid=agenerate_raw_guid,
     _generate_raw_guid=generate_raw_guid,
@@ -1444,7 +1448,4 @@ extras = dict(
     uniform=uniform,
     unique_range=unique_range,
 )
-
-
-randoms = make_module("randoms", mapping=extras)
 
