@@ -18,8 +18,8 @@ __doc__ = (
     "A collection of asyncio & concurrency references to simplify their"
     " standard usage in this package. This module can be used to replac"
     "e the default event loop policy, for instance, to run uvloop or ch"
-    "ange async frameworks. The default asyncio loop is available in ``"
-    "default_event_loop``."
+    "ange async frameworks. The default asyncio loop is available in `d"
+    "efault_event_loop`."
 )
 
 
@@ -42,9 +42,9 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from inspect import isawaitable as is_awaitable
 from inspect import iscoroutinefunction as is_async_function
 from ._exceptions import *
-from ._typing import Typing
+from ._typing import Typing as t
 from ._debuggers import DebugControl
-from .commons import OpenNamespace, amake_module
+from .commons import OpenNamespace
 
 
 # Can toggle asyncio's debug mode using DebugControl.enable_debugging()
@@ -63,12 +63,11 @@ _ONE_MINUTE: int = 60 * _ONE_SECOND
 _ONE_HOUR: int = 60 * _ONE_MINUTE
 _ONE_DAY: int = 24 * _ONE_HOUR
 _ONE_MONTH: int = 30 * _ONE_DAY
-_ONE_YEAR: int = 12 * _ONE_MONTH
+_ONE_YEAR: int = 365 * _ONE_DAY
 
 
-this_nanosecond = this_ns = lambda epoch=0: (
-    (ns_time() - int(epoch)) if epoch else ns_time()
-)
+# `epoch` is measured in nanoseconds since the UNIX epoch
+this_nanosecond = this_ns = lambda epoch=0: ns_time() - int(epoch)
 this_microsecond = lambda epoch=0: this_ns(epoch) // _ONE_MICROSECOND
 this_millisecond = lambda epoch=0: this_ns(epoch) // _ONE_MILLISECOND
 this_second = lambda epoch=0: this_ns(epoch) // _ONE_SECOND
@@ -99,14 +98,14 @@ def reset_event_loop() -> None:
 
 def serve(*a, **kw) -> None:
     """
-    Proxy's access to ``asyncio.get_event_loop().run_forever()``.
+    Proxy's access to `asyncio.get_event_loop().run_forever()`.
     """
     return event_loop().run_forever(*a, **kw)
 
 
 def new_task(coro) -> asyncio.Task:
     """
-    Proxy's access to ``asyncio.get_event_loop().create_taksk()``.
+    Proxy's access to `asyncio.get_event_loop().create_task()`.
     """
     return event_loop().create_task(coro)
 
@@ -118,9 +117,7 @@ def stop() -> None:
     event_loop().stop()
 
 
-def wrap_in_executor(
-    function
-) -> Typing.Coroutine[Typing.Any, Typing.Any, Typing.Any]:
+def wrap_in_executor(function) -> t.Coroutine[t.Any, t.Any, t.Any]:
     """
     A decorator that wraps synchronous blocking IO functions so they
     will run in an executor. This was adapted from the ``aiofiles``
@@ -142,11 +139,11 @@ def wrap_in_executor(
     return runner
 
 
-def make_os_async(namespace=None) -> Typing.Mapping[str, Typing.Coroutine]:
+def make_os_async(namespace=None) -> t.Mapping[str, t.Coroutine]:
     """
-    Wraps file operations from the ``os`` module in a decorator that
-    runs those methods in an async executor. This was adapted from the
-    ``aiofiles`` package:
+    Wraps file operations from the `os` module in a decorator that runs
+    those methods in an async executor. This was adapted from the
+    `aiofiles` package:
 
     https://github.com/Tinche/aiofiles/blob/master/aiofiles/os.py
 
@@ -173,13 +170,13 @@ def make_os_async(namespace=None) -> Typing.Mapping[str, Typing.Coroutine]:
     return namespace
 
 
-# create a version of ``os`` module with asynchronous file IO methods
+# create a version of `os` module with asynchronous file IO methods
 aos = make_os_async()
 
 
 class AsyncInit(type):
     """
-    A metaclass which allows classes to use asynchronous ``__init__``
+    A metaclass which allows classes to use asynchronous `__init__`
     methods. Inspired by David Beazley.
     """
 
@@ -237,9 +234,9 @@ class Processes:
     @classmethod
     async def asubmit(cls, func, *args, probe_frequency=None, **kwargs):
         """
-        Submits an async, or synchronous ``func`` to a process pool or
+        Submits an async, or synchronous `func` to a process pool or
         thread pool, depending on the class that calls this method, with
-        the supplied ``*args`` & ``**kwargs``, then returns the `Future`
+        the supplied `*args` & `**kwargs`, then returns the `Future`
         object that's created.
         """
         async def aresult():
@@ -264,11 +261,10 @@ class Processes:
     @classmethod
     def submit(cls, func, *args, probe_frequency=None, **kwargs):
         """
-        Submits a synchronous ``func`` to a process pool or thread pool,
+        Submits a synchronous `func` to a process pool or thread pool,
         depending on the class that calls this method, with the supplied
-        ``*args`` & ``**kwargs``, then returns the `Future` object
-        that's created. ``probe_frequency`` is a no-op in this method
-        for parity with other methods of the class.
+        `*args` & `**kwargs`, then returns the `Future` object that's
+        created.
         """
         def result():
             while not future.done():
@@ -397,11 +393,15 @@ class Threads(Processes):
     BrokenPool = thread.BrokenThreadPool
 
 
-extras = dict(
+module_api = dict(
     AsyncInit=AsyncInit,
     Processes=Processes,
     Threads=Threads,
+    __all__=__all__,
     __doc__=__doc__,
+    __name__=__name__,
+    __spec__=__spec__,
+    __loader__=__loader__,
     __package__=__package__,
     aiofiles=aiofiles,
     aos=aos,
@@ -424,10 +424,5 @@ extras = dict(
     s_counter=s_counter,
     s_time=s_time,
     wrap_in_executor=wrap_in_executor,
-)
-
-
-asynchs = asyncio.new_event_loop().run_until_complete(
-    amake_module("asynchs", mapping=extras)
 )
 
