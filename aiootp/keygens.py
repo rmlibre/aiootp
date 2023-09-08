@@ -47,13 +47,13 @@ from pathlib import Path
 from secrets import token_bytes
 from functools import wraps, partial
 from hashlib import sha384, sha3_256, sha3_512, shake_128, shake_256
-from .__constants import *
+from ._constants import *
 from ._exceptions import *
 from ._typing import Typing as t
 from ._containers import PasscryptHash, PasscryptSettings
 from ._containers import PackageSignerFiles, PackageSignerScope
 from .asynchs import sleep, asleep, Processes
-from .commons import Slots, OpenNamespace
+from .commons import Slots, OpenNamespace, FrozenInstance
 from .commons import make_module
 from .gentools import Comprende, comprehension
 from .gentools import data, adata
@@ -76,7 +76,7 @@ ns_clock = Clock(NANOSECONDS)
 day_clock = Clock(DAYS, epoch=0)
 
 
-class KDF:
+class KDF(FrozenInstance):
     """
     A base type for passing KDF-related class attributes to subclasses
     in a consistent manner.
@@ -257,7 +257,7 @@ class DomainKDF(KDF, salt_label=b"domain_kdf_salt"):
         )
 
     async def ashake_128(
-        self, size: int, *data: t.Iterable[bytes], aad: bytes = b""
+        self, *data: t.Iterable[bytes], size: int, aad: bytes = b""
     ) -> bytes:
         """
         Return the keyed shake_128 hash of the instance's state.
@@ -272,7 +272,7 @@ class DomainKDF(KDF, salt_label=b"domain_kdf_salt"):
         )
 
     def shake_128(
-        self, size: int, *data: t.Iterable[bytes], aad: bytes = b""
+        self, *data: t.Iterable[bytes], size: int, aad: bytes = b""
     ) -> bytes:
         """
         Return the keyed shake_128 hash of the instance's state.
@@ -287,7 +287,7 @@ class DomainKDF(KDF, salt_label=b"domain_kdf_salt"):
         )
 
     async def ashake_256(
-        self, size: int, *data: t.Iterable[bytes], aad: bytes = b""
+        self, *data: t.Iterable[bytes], size: int, aad: bytes = b""
     ) -> bytes:
         """
         Return the keyed shake_256 hash of the instance's state.
@@ -302,7 +302,7 @@ class DomainKDF(KDF, salt_label=b"domain_kdf_salt"):
         )
 
     def shake_256(
-        self, size: int, *data: t.Iterable[bytes], aad: bytes = b""
+        self, *data: t.Iterable[bytes], size: int, aad: bytes = b""
     ) -> bytes:
         """
         Return the keyed shake_256 hash of the instance's state.
@@ -335,7 +335,7 @@ async def akeyed_choices(
         int_as_bytes(total_choices),
         int_as_bytes(selection_size),
         key=key,
-    ).ashake_256(16 * selection_size, aad=Domains.PRNG)
+    ).ashake_256(size=16 * selection_size, aad=Domains.PRNG)
     async for index in adata.root(key, size=16):
         yield choices[bytes_as_int(index) % total_choices]
 
@@ -358,7 +358,7 @@ def keyed_choices(
         int_as_bytes(total_choices),
         int_as_bytes(selection_size),
         key=key,
-    ).shake_256(16 * selection_size, aad=Domains.PRNG)
+    ).shake_256(size=16 * selection_size, aad=Domains.PRNG)
     for index in data.root(key, size=16):
         yield choices[bytes_as_int(index) % total_choices]
 
@@ -426,7 +426,7 @@ def mnemonic(
     return [*keyed_choices(words, size, domain=domain, key=key)]
 
 
-class PasscryptSession(Slots):
+class PasscryptSession(FrozenInstance):
     """
     Hanldes the initialization of running the `Passcrypt` hashing
     algorithm with sets of given user parameters.
@@ -447,7 +447,7 @@ class PasscryptSession(Slots):
         "proof",
     )
 
-    vars().update({var: passcrypt[var] for var in passcrypt})
+    vars().update({var: val for var, val in passcrypt.__dict__.items()})
 
     _PASSCRYPT_KDF_SALT: bytes = Domains.encode_constant(
         b"passcrypt_kdf_salt", size=SHAKE_128_BLOCKSIZE
@@ -774,7 +774,9 @@ class Passcrypt:
 
     __slots__ = ()
 
-    vars().update({f"_{var}": passcrypt[var] for var in passcrypt})
+    vars().update(
+        {f"_{var}": val for var, val in passcrypt.__dict__.items()}
+    )
 
     # An operator of a passphrase database may add a static secret value
     # to the class, referred to as a `pepper`. That value can be set in
@@ -1477,7 +1479,7 @@ class Passcrypt:
             raise PasscryptIssue.verification_failed()
 
 
-class PasscryptInstance:
+class PasscryptInstance(FrozenInstance):
     """
     Gives the user objects which mirrors calls to `Passcrypt` methods
     with automated passing of instance settings.
@@ -1733,7 +1735,7 @@ class Curve25519:
         )
 
 
-class Base25519:
+class Base25519(FrozenInstance):
     """
     Collects the shared functionality between the ``X25519`` & ``Ed25519``
     classes.
@@ -2922,15 +2924,21 @@ class PackageVerifier:
         self._signing_key.verify(self._signature, self._checksum)
 
 
-extras = dict(
+module_api = dict(
     _KeyAADBundle=KeyAADBundle,
     DomainKDF=DomainKDF,
     Ed25519=Ed25519,
     PackageSigner=PackageSigner,
     PackageVerifier=PackageVerifier,
     Passcrypt=Passcrypt,
+    PasscryptSession=PasscryptSession,
     X25519=X25519,
+    __all__=__all__,
     __doc__=__doc__,
+    __file__=__file__,
+    __name__=__name__,
+    __spec__=__spec__,
+    __loader__=__loader__,
     __package__=__package__,
     abytes_keys=abytes_keys,
     agenerate_key=agenerate_key,
@@ -2939,7 +2947,4 @@ extras = dict(
     generate_key=generate_key,
     mnemonic=mnemonic,
 )
-
-
-keygens = make_module("keygens", mapping=extras)
 
