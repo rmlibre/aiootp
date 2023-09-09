@@ -1639,19 +1639,7 @@ class Curve25519:
         object from the cryptography package.
         """
         await asleep()
-        key_types = (
-            X25519PrivateKey,
-            Ed25519PrivateKey,
-            X25519PublicKey,
-            Ed25519PublicKey,
-        )
-        if not issubclass(key.__class__, key_types):
-            raise Issue.value_must_be_type("key", key_types)
-        elif hasattr(key, "public_key"):
-            public_key = key.public_key()
-        else:
-            public_key = key
-        return public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
+        return cls.public_bytes(key)
 
     @classmethod
     def public_bytes(
@@ -1677,10 +1665,9 @@ class Curve25519:
         if not issubclass(key.__class__, key_types):
             raise Issue.value_must_be_type("key", key_types)
         elif hasattr(key, "public_key"):
-            public_key = key.public_key()
+            return key.public_key().public_bytes(**cls._PUBLIC_BYTES_ENUM)
         else:
-            public_key = key
-        return public_key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
+            return key.public_bytes(**cls._PUBLIC_BYTES_ENUM)
 
     @classmethod
     async def asecret_bytes(
@@ -1691,10 +1678,7 @@ class Curve25519:
         or ``Ed25519PrivateKey`` from the cryptography package.
         """
         await asleep()
-        key_types = (X25519PrivateKey, Ed25519PrivateKey)
-        if not issubclass(secret_key.__class__, key_types):
-            raise Issue.value_must_be_type("secret_key", key_types)
-        return secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
+        return cls.secret_bytes(secret_key)
 
     @classmethod
     def secret_bytes(
@@ -1707,28 +1691,29 @@ class Curve25519:
         key_types = (X25519PrivateKey, Ed25519PrivateKey)
         if not issubclass(secret_key.__class__, key_types):
             raise Issue.value_must_be_type("secret_key", key_types)
-        return secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
+        else:
+            return secret_key.private_bytes(**cls._PRIVATE_BYTES_ENUM)
 
-    @staticmethod
+    @classmethod
     async def aexchange(
-        secret_key: X25519PrivateKey, public_key: bytes
+        cls, secret_key: X25519PrivateKey, public_key: bytes
     ) -> bytes:
         """
         Returns the shared key bytes derived from an elliptic curve key
         exchange with the user's ``secret_key`` key, & their communicating
-        peer's ``public_key`` public key's bytes or hex value.
+        peer's ``public_key`` bytes.
         """
         await asleep()
-        return secret_key.exchange(
-            X25519PublicKey.from_public_bytes(public_key)
-        )
+        return cls.exchange(secret_key=secret_key, public_key=public_key)
 
-    @staticmethod
-    def exchange(secret_key: X25519PrivateKey, public_key: bytes) -> bytes:
+    @classmethod
+    def exchange(
+        cls, secret_key: X25519PrivateKey, public_key: bytes
+    ) -> bytes:
         """
         Returns the shared key bytes derived from an elliptic curve key
         exchange with the user's ``secret_key`` key, & their communicating
-        peer's ``public_key`` public key's bytes or hex value.
+        peer's ``public_key`` bytes.
         """
         return secret_key.exchange(
             X25519PublicKey.from_public_bytes(public_key)
@@ -1753,7 +1738,6 @@ class Base25519(FrozenInstance):
     def _process_public_key(
         self,
         public_key: t.Union[
-            str,
             bytes,
             X25519PrivateKey,
             Ed25519PrivateKey,
@@ -1762,51 +1746,44 @@ class Base25519(FrozenInstance):
         ],
     ) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
         """
-        Accepts a ``public_key`` in either hex, bytes, ``X25519PublicKey``,
+        Accepts a ``public_key`` in either bytes, ``X25519PublicKey``,
         ``X25519PrivateKey``, ``Ed25519PublicKey`` or ``Ed25519PrivateKey``
         format. Returns an instantiaed public key associated with the
-        subclass inhereting this method.
+        subclass inheriting this method.
         """
-        if not public_key:
-            raise Issue.no_value_specified("public key")
-        elif public_key.__class__ is str:
-            public_key = bytes.fromhex(public_key)
-        elif issubclass(
+        if issubclass(
             public_key.__class__,
             (self.PublicKey, self.SecretKey, self.__class__)
         ):
             public_key = self._Curve25519.public_bytes(public_key)
-        elif public_key.__class__ is not bytes:
+            return self.PublicKey.from_public_bytes(public_key)
+        elif public_key.__class__ is bytes:
+            return self.PublicKey.from_public_bytes(public_key)
+        else:
             raise Issue.value_must_be_type("public_key", "valid key type")
-        return self.PublicKey.from_public_bytes(public_key)
 
     def _process_secret_key(
         self,
-        secret_key: t.Union[
-            str, bytes, X25519PrivateKey, Ed25519PrivateKey
-        ],
+        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
     ) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
         """
-        Accepts a ``secret_key`` in either hex, bytes, ``X25519PrivateKey``
+        Accepts a ``secret_key`` in either bytes, ``X25519PrivateKey``
         or ``Ed25519PrivateKey`` format. Returns an instantiaed secret
-        key associated with the subclass inhereting this method.
+        key associated with the subclass inheriting this method.
         """
-        if not secret_key:
-            raise Issue.no_value_specified("secret key")
-        elif secret_key.__class__ is str:
-            secret_key = bytes.fromhex(secret_key)
-        elif issubclass(
+        if issubclass(
             secret_key.__class__, (self.SecretKey, self.__class__)
         ):
             secret_key = self._Curve25519.secret_bytes(secret_key)
-        elif secret_key.__class__ is not bytes:
+            return self.SecretKey.from_private_bytes(secret_key)
+        elif secret_key.__class__ is bytes:
+            return self.SecretKey.from_private_bytes(secret_key)
+        else:
             raise Issue.value_must_be_type("secret_key", "valid key type")
-        return self.SecretKey.from_private_bytes(secret_key)
 
     async def aimport_public_key(
         self,
         public_key: t.Union[
-            str,
             bytes,
             X25519PrivateKey,
             Ed25519PrivateKey,
@@ -1816,19 +1793,15 @@ class Base25519(FrozenInstance):
     ) -> "self":
         """
         Populates an instance from the received ``public_key`` that is
-        of either hex, bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
+        of either bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
         ``Ed25519PublicKey`` or ``Ed25519PrivateKey`` type.
         """
         await asleep()
-        if hasattr(self, "_public_key"):
-            raise Issue.value_already_set("public key", "the instance")
-        self._public_key = self._process_public_key(public_key)
-        return self
+        return self.import_public_key(public_key)
 
     def import_public_key(
         self,
         public_key: t.Union[
-            str,
             bytes,
             X25519PrivateKey,
             Ed25519PrivateKey,
@@ -1838,7 +1811,7 @@ class Base25519(FrozenInstance):
     ) -> "self":
         """
         Populates an instance from the received ``public_key`` that is
-        of either hex, bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
+        of either bytes, ``X25519PublicKey``, ``X25519PrivateKey``,
         ``Ed25519PublicKey`` or ``Ed25519PrivateKey`` type.
         """
         if hasattr(self, "_public_key"):
@@ -1848,13 +1821,11 @@ class Base25519(FrozenInstance):
 
     async def aimport_secret_key(
         self,
-        secret_key: t.Union[
-            str, bytes, X25519PrivateKey, Ed25519PrivateKey
-        ],
+        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
     ) -> "self":
         """
         Populates an instance from the received ``secret_key`` that is
-        of either hex, bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
+        of either bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
         type.
         """
         await asleep()
@@ -1868,13 +1839,11 @@ class Base25519(FrozenInstance):
 
     def import_secret_key(
         self,
-        secret_key: t.Union[
-            str, bytes, X25519PrivateKey, Ed25519PrivateKey
-        ],
+        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
     ) -> "self":
         """
         Populates an instance from the received ``secret_key`` that is
-        of either hex, bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
+        of either bytes, ``X25519PrivateKey`` or ``Ed25519PrivateKey``
         type.
         """
         if hasattr(self, "_public_key") or hasattr(self, "_secret_key"):
@@ -1889,7 +1858,7 @@ class Base25519(FrozenInstance):
     def secret_key(self) -> t.Union[X25519PrivateKey, Ed25519PrivateKey]:
         """
         Returns the instantiated & populated SecretKey of the associated
-        sublass inhereting this method.
+        subclass inheriting this method.
         """
         return self._secret_key
 
@@ -1897,7 +1866,7 @@ class Base25519(FrozenInstance):
     def public_key(self) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
         """
         Returns the instantiated & populated PublicKey of the associated
-        sublass inhereting this method.
+        subclass inheriting this method.
         """
         return self._public_key
 
@@ -1905,7 +1874,7 @@ class Base25519(FrozenInstance):
     def secret_bytes(self) -> bytes:
         """
         Returns the secret bytes of the instance's instantiated &
-        populated SecretKey of the associated sublass inhereting this
+        populated SecretKey of the associated subclass inheriting this
         method.
         """
         return self._Curve25519.secret_bytes(self._secret_key)
@@ -1914,7 +1883,7 @@ class Base25519(FrozenInstance):
     def public_bytes(self) -> bytes:
         """
         Returns the public bytes of the instance's instantiated &
-        populated PublicKey of the associated sublass inhereting this
+        populated PublicKey of the associated subclass inheriting this
         method.
         """
         return self._Curve25519.public_bytes(self._public_key)
@@ -2023,7 +1992,7 @@ class Ed25519(Base25519):
         signature: bytes,
         data: bytes,
         *,
-        public_key: t.Union[None, str, bytes, Ed25519PublicKey] = None,
+        public_key: t.Union[None, bytes, Ed25519PublicKey] = None,
     ) -> None:
         """
         Receives a ``signature`` to verify data with the instance's
@@ -2031,20 +2000,15 @@ class Ed25519(Base25519):
         used, then that key is used instead of the instance key to run
         the verification.
         """
-        if public_key:
-            await asleep()
-            public_key = self._process_public_key(public_key)
-        else:
-            public_key = self.public_key
         await asleep()
-        public_key.verify(signature, data)
+        self.verify(signature=signature, data=data, public_key=public_key)
 
     def verify(
         self,
         signature: bytes,
         data: bytes,
         *,
-        public_key: t.Union[None, str, bytes, Ed25519PublicKey] = None,
+        public_key: t.Union[None, bytes, Ed25519PublicKey] = None,
     ) -> None:
         """
         Receives a ``signature`` to verify data with the instance's
@@ -2072,7 +2036,7 @@ class X25519(Base25519):
     user_alice = X25519().generate()
     # Alice wants to create a shared key with Bob. So, Alice sends the
     # public key bytes of her new key to bob ->
-    internet.send(user_alice.public_bytes.hex())
+    internet.send(user_alice.public_bytes)
 
     # In a land far away ->
     alices_message = internet.receive()
@@ -2081,7 +2045,7 @@ class X25519(Base25519):
     # the exchange & sends the public bytes back to Alice ->
     user_bob = await X25519().agenerate()
     shared_key = user_bob.exchange(alices_message)
-    internet.send(user_bob.public_bytes.hex())
+    internet.send(user_bob.public_bytes)
 
     # When Alice receives Bob's public key & finishes the exchange, they
     # will have a shared symmetric key to encrypt messages to one
