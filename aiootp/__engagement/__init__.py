@@ -20,5 +20,17 @@ __doc__ = (
 )
 
 
-from ._report_security_issue import report_security_issue
+from ._report_security_issue import *
+
+
+module_api = dict(
+    __all__=__all__,
+    __doc__=__doc__,
+    __file__=__file__,
+    __name__=__name__,
+    __spec__=__spec__,
+    __loader__=__loader__,
+    __package__=__package__,
+    report_security_issue=report_security_issue,
+)
 

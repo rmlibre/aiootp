@@ -11,16 +11,19 @@
 #
 
 
-import aiootp
-from aiootp import *
-from constants import *
-from misc import *
+__all__ = ["report_security_issue"]
+
 
 import sys
 import json
 from getpass import getpass
 from collections import deque
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+
+from aiootp import __PUBLIC_X25519_KEY__
+from aiootp import Domains, DomainKDF, X25519, Database
+from aiootp._constants import CONVERSATION, PERIOD_KEYS, PERIOD_KEY
+from aiootp.generics import BytesIO, Padding, Clock, canonical_pack
 
 
 def report_security_issue() -> None:
@@ -32,7 +35,7 @@ def report_security_issue() -> None:
     # generate an ephemeral X25519 key & exchange it with the aiootp
     # public key
     your_public_key: X25519 = X25519().generate()
-    aiootp_public_key: bytes = bytes.fromhex(aiootp.__PUBLIC_X25519_KEY__)
+    aiootp_public_key: bytes = bytes.fromhex(__PUBLIC_X25519_KEY__)
     raw_shared_key: bytes = your_public_key.exchange(aiootp_public_key)
 
     # get credentials from user to create an encrypted database
@@ -110,35 +113,37 @@ def report_security_issue() -> None:
         "\nplease type or paste your message here. hit CTRL-D (or "
         "\nCTRL-Z on Windows) to finish the message:\n"
     )
-    message: bytes = b"".join(line.encode() for line in sys.stdin)
+    message: bytes = Padding.pad_plaintext(
+        canonical_pack(
+            your_email_address,
+            b"".join(line.encode() for line in sys.stdin),
+        )
+    )
 
-    # derive the report's keys
-    date: bytes = generics.Clock("days").make_timestamp(size=4)
-    guid: bytes = GUID(size=12).new()
+    # derive the user's report keys
+    date: bytes = Clock("days").make_timestamp(size=4)
     shared_kdf: DomainKDF = DomainKDF(
         Domains.USER,
         date,
-        guid,
         your_public_key.public_bytes,
         aiootp_public_key,
         key=raw_shared_key,
     )
-    key: bytes = shared_kdf.sha3_256(aad=b"user_encryption_key")
+    siv: bytes = shared_kdf.sha3_256(message, aad=b"message_siv")
+    key: bytes = shared_kdf.sha3_256(siv, aad=b"encryption_key")
 
     # encrypt the message payload
     encrypted_message: bytes = ChaCha20Poly1305(key).encrypt(
-        nonce=guid,
-        data=generics.Padding.pad_plaintext(generics.canonical_pack(your_email_address, message)),
-        associated_data=your_public_key.public_bytes,
+        nonce=siv[:12], data=message, associated_data=siv
     )
 
     # display ciphertext payload, what to expect & thank yous
     print("\nexcellent! here's the json message you can email to us:\n")
     print(json.dumps(dict(
-        date=generics.BytesIO.bytes_to_urlsafe(date).decode(),
-        guid=generics.BytesIO.bytes_to_urlsafe(guid).decode(),
-        public_key=generics.BytesIO.bytes_to_urlsafe(your_public_key.public_bytes).decode(),
-        encrypted_message=generics.BytesIO.bytes_to_urlsafe(encrypted_message).decode(),
+        date=BytesIO.bytes_to_urlsafe(date).decode(),
+        public_key=BytesIO.bytes_to_urlsafe(your_public_key.public_bytes).decode(),
+        siv=BytesIO.bytes_to_urlsafe(siv).decode(),
+        encrypted_message=BytesIO.bytes_to_urlsafe(encrypted_message).decode(),
     ), indent=4))
     print("\nsend it to either rmlibre@riseup.net or gonzo.development@protonmail.com")
 
@@ -146,4 +151,16 @@ def report_security_issue() -> None:
         "\nthanks for your report! you should receive a response "
         "\nwithin two weeks. your secret key has been saved locally."
     )
+
+
+module_api = dict(
+    __all__=__all__,
+    __doc__=__doc__,
+    __file__=__file__,
+    __name__=__name__,
+    __spec__=__spec__,
+    __loader__=__loader__,
+    __package__=__package__,
+    report_security_issue=report_security_issue,
+)
 
