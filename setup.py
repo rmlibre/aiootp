@@ -1,12 +1,12 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -25,20 +25,8 @@ from aiootp import (
 from aiootp import PackageSigner, PackageVerifier
 
 
-with open("PREADME.rst", "r") as preadme:
-    long_description = preadme.read()
-
-
-with open("FAQ.rst", "r") as faq:
-    long_description += faq.read()
-
-
-with open("CHANGES.rst", "r") as changelog:
-    long_description += changelog.read()
-
-
 with open("README.rst", "w+") as readme:
-    readme.write(long_description)
+    long_description = readme.read()
 
 
 if getpass("sign package? (y/N) ").lower().strip().startswith("y"):
@@ -64,7 +52,7 @@ if getpass("sign package? (y/N) ").lower().strip().startswith("y"):
     )
 
     if getpass("is the signing key already saved on this device? (Y/n) ").lower().strip().startswith("n"):
-        signer.update_signing_key(getpass("signing key: ").strip())
+        signer.update_signing_key(bytes.fromhex(getpass("signing key: ").strip()))
 
     while getpass("update public credentials? (y/N) ").lower().strip().startswith("y"):
         signer.update_public_credentials(
@@ -105,10 +93,10 @@ setup(
     maintainer_email="gonzo.development@protonmail.ch",
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     tests_require=["pytest>=7.2.0", "pytest-asyncio>=0.20.0"],
     install_requires=["aiofiles>=0.6.0", "cryptography>=3.4.6"],
-    options={"bdist_wheel": {"python_tag": "py37.py38.py39.py310.py311"}},
+    options={"bdist_wheel": {"python_tag": "py38.py39.py310.py311.py312"}},
     classifiers=[
         "Framework :: AsyncIO",
         "Framework :: IPython",
