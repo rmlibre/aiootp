@@ -1,20 +1,125 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
 from test_initialization import *
 
+from aiootp._constants.datasets import Tables
+from aiootp.generics.transform import abase_as_int, base_as_int
+from aiootp.generics.transform import aint_as_base, int_as_base
+
+
+class TestBaseConversions:
+
+    async def test_base_as_int_correctness(self) -> None:
+        for string, answer, table in (
+            ("0", 0, Tables.HEX),
+            ("a31b", 41755, Tables.HEX),
+            ("ff", 255, Tables.HEX),
+            (b"\x00", 0, Tables.BYTES),
+            (b"\xa3\x1b", 41755, Tables.BYTES),
+            (b"\xff", 255, Tables.BYTES),
+        ):
+            assert answer == await abase_as_int(string, table=table)
+            assert answer == base_as_int(string, table=table)
+
+        problem = (
+            "A character not a part of the base's table didn't error."
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+            await abase_as_int("g", table=Tables.HEX)
+        with Ignore(ValueError, if_else=violation(problem)):
+            base_as_int("g", table=Tables.HEX)
+
+    async def test_int_as_base_correctness(self) -> None:
+        for number, answer, table in (
+            (0, "0", Tables.HEX),
+            (41755, "a31b", Tables.HEX),
+            (255, "ff", Tables.HEX),
+            (0, b"\x00", Tables.BYTES),
+            (41755, b"\xa3\x1b", Tables.BYTES),
+            (255, b"\xff", Tables.BYTES),
+        ):
+            assert answer == await aint_as_base(number, table=table)
+            assert answer == int_as_base(number, table=table)
+
+
+class TestDomains:
+
+    async def test_encoding_methods(self) -> None:
+        for constant in (b"", "string constant...", b"bytes constant..."):
+            for aad in (b"", b"associated data..."):
+                for domain in (b"", b"domain..."):
+                    assert (
+                        await Domains.aencode_constant(constant, aad=aad, domain=domain)
+                        ==  Domains.encode_constant(constant, aad=aad, domain=domain)
+                    )
+
+
+class TestCanonicalPack:
+
+    async def test_empty_pad_is_invalid(self):
+        problem = "An empty padding value didn't raise a `TypeError`!"
+        with Ignore(TypeError, if_else=violation(problem)):
+            canonical_pack(b"test", pad=b"")
+        async with Ignore(TypeError, if_else=violation(problem)):
+            await acanonical_pack(b"test", pad=b"")
+
+    async def test_zero_blocksize_is_invalid(self):
+        problem = "A negative blocksize value didn't raise a `OverflowError`!"
+        with Ignore(ZeroDivisionError, if_else=violation(problem)):
+            canonical_pack(b"test", blocksize=0)
+        async with Ignore(ZeroDivisionError, if_else=violation(problem)):
+            await acanonical_pack(b"test", blocksize=0)
+
+    async def test_negative_integer_blocksize_is_invalid(self):
+        test_values = (-168, -136, -2, -1)
+        problem = "A negative blocksize value didn't raise a `OverflowError`!"
+        for blocksize in test_values:
+            with Ignore(OverflowError, if_else=violation(problem)):
+                canonical_pack(b"test", blocksize=blocksize)
+            async with Ignore(OverflowError, if_else=violation(problem)):
+                await acanonical_pack(b"test", blocksize=blocksize)
+
+    async def test_float_blocksize_is_invalid(self):
+        test_values = (-2.0, -1.0, 0.0, 1.0, 2.0)
+        problem = "A float blocksize value didn't raise an `AttributeError`!"
+        for blocksize in test_values:
+            with Ignore(AttributeError, if_else=violation(problem)):
+                canonical_pack(b"test", blocksize=blocksize)
+            async with Ignore(AttributeError, if_else=violation(problem)):
+                await acanonical_pack(b"test", blocksize=blocksize)
+
+    async def test_minimum_size_given_by_item_count_declaration(self):
+        minimum_inputs = ((), (b"",), (b"", b""), (b"", b"", b""))
+        tested_int_bytes = (1, 4, 8)
+        problem = (
+            "An item count declaration which exceeds the count which is"
+            "possible given the small size of the packing was allowed."
+        )
+        for data in minimum_inputs:
+            for int_bytes in tested_int_bytes:
+                test = canonical_pack(*data, int_bytes=int_bytes)
+                with Ignore(CanonicalEncodingError, if_else=violation(problem)):
+                    canonical_unpack((test[0] + 1).to_bytes(1, BIG) + test[1:])
+                test = canonical_pack(*data, int_bytes=int_bytes)
+                async with Ignore(CanonicalEncodingError, if_else=violation(problem)):
+                    await acanonical_unpack((test[0] + 1).to_bytes(1, BIG) + test[1:])
+
+
 
 async def test_canonical_packs():
+    PACK_PAD_INDEX = 33
+
     TEST_KEYS = [token_bytes(64) for _ in range(4)]
     HASHERS = (sha3_256, sha3_512, shake_128, shake_256)
 
@@ -34,8 +139,8 @@ async def test_canonical_packs():
 
     # the options can be used together
     assert (
-        canonical_unpack(canonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16), int_bytes=16)
-        == await acanonical_unpack(await acanonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16), int_bytes=16)
+        canonical_unpack(canonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16))
+        == await acanonical_unpack(await acanonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16))
     )
 
     test_inputs = [
@@ -44,7 +149,7 @@ async def test_canonical_packs():
     ]
     test_int_bytes = [1, 2, 3, 4]
     test_blocksizes = [SHA3_256_BLOCKSIZE, SHA3_512_BLOCKSIZE, SHAKE_128_BLOCKSIZE, SHAKE_256_BLOCKSIZE]
-    test_pads = [b"", b"\x01", b"\x80", b"\xff"]
+    test_pads = [b"\x01", b"\x80", b"\xff"]
 
     for inputs in test_inputs:
         # similar inputs do no produce the same output
@@ -54,7 +159,7 @@ async def test_canonical_packs():
             assert result != aresult
 
             # but the items are still packed correctly & interoperably
-            assert inputs == list(canonical_unpack(aresult, int_bytes=int_bytes))
+            assert inputs == list(canonical_unpack(aresult))
             assert inputs == list(await acanonical_unpack(result))
         for blocksize in test_blocksizes:
             result = canonical_pack(*inputs)
@@ -117,7 +222,7 @@ async def test_canonical_packs():
             # dependent on the size of integers used to represent item
             # lengths
             assert type(result) is bytes
-            assert result[4 * int_bytes] == DEFAULT_PAD[0]
+            assert result[4 * int_bytes + 1] == DEFAULT_PAD[0]
         for blocksize in test_blocksizes:
             result = canonical_pack(*inputs, blocksize=blocksize)
             aresult = await acanonical_pack(*inputs, blocksize=blocksize)
@@ -138,129 +243,12 @@ async def test_canonical_packs():
                 result = canonical_pack(*inputs, pad=pad, int_bytes=int_bytes)
                 aresult = await acanonical_pack(*inputs, pad=pad, int_bytes=int_bytes)
                 assert result == aresult
-                assert (result[4 * int_bytes] == pad[0]) if pad else 1
+                assert (result[4 * int_bytes + 1] == pad[0]) if pad else 1
 
     pad = b"Z"
     items = (b"testing", b"pad", b"character", b"location", b"in", b"result")
     packing = bytearray(canonical_pack(*items, pad=pad))
     assert packing[PACK_PAD_INDEX] == pad[0]
-
-
-class TestHasher:
-    """
-    Implements unit tests for the Hasher class.
-    """
-
-    HASH_TYPES = {hasher for hasher in HASHER_TYPES.values() if hasher().digest_size}
-    XOF_TYPES = {xof for xof in HASHER_TYPES.values() if not xof().digest_size}
-
-    _test_data = (b"", b"test data")
-    _test_container_data = ((), (b"", b""), (b"test", b"data"))
-
-    def _test_cases(self, hasher_types: set, data_examples: tuple):
-        """
-        Abstract the nested iterating over test case permutations into
-        a generator.
-        """
-        for hasher in hasher_types:
-            for data in data_examples:
-                yield hasher, data
-
-    def test_xofs_work(self):
-        """
-        Ensure the class can be initialized & used identically to how
-        an XOF hashing object can be.
-        """
-        for hasher, data in self._test_cases(self.XOF_TYPES, self._test_data):
-            control = hasher(data)
-            test = Hasher(data, obj=hasher)
-
-            throw_data = f"{hasher=} {data=}"
-            assert control.digest(32) == test.digest(32), throw_data
-
-    def test_non_xofs_work(self):
-        """
-        Ensure the class can be initialized & used identically to how
-        a non-XOF hashing object can be.
-        """
-        for hasher, data in self._test_cases(self.HASH_TYPES, self._test_data):
-            control = hasher(data)
-            test = Hasher(data, obj=hasher)
-
-            throw_data = f"{hasher=} {data=}"
-            assert control.digest() == test.digest(), throw_data
-
-    async def test_xof_ahash_method(self):
-        """
-        The hash method canonically encodes the provided data along with
-        the requested size of digest as inputs to the instance object.
-        """
-        size = 32
-        size_as_bytes = size.to_bytes(8, BIG)
-        for hasher, data in self._test_cases(self.XOF_TYPES, self._test_container_data):
-            control = hasher()
-            control.update(canonical_pack(size_as_bytes, *data, blocksize=control.block_size))
-
-            test = Hasher(obj=hasher)
-
-            throw_data = f"{hasher=} {data=} {test=}"
-            assert control.digest(32) == await test.ahash(*data, size=32), throw_data
-
-            # Unique requested sizes change the entire associated digests
-            test_copy = test.copy()
-            assert test_copy.digest(16) == test.digest(16), throw_data
-            assert await test_copy.ahash(*data, size=16) == await test.ahash(*data, size=16), throw_data
-            assert await test_copy.ahash(*data, size=16) != (await test.ahash(*data, size=17))[:16], throw_data
-
-    def test_xof_hash_method(self):
-        """
-        The hash method canonically encodes the provided data along with
-        the requested size of digest as inputs to the instance object.
-        """
-        size = 32
-        size_as_bytes = size.to_bytes(8, BIG)
-        for hasher, data in self._test_cases(self.XOF_TYPES, self._test_container_data):
-            control = hasher()
-            control.update(canonical_pack(size_as_bytes, *data, blocksize=control.block_size))
-
-            test = Hasher(obj=hasher)
-
-            throw_data = f"{hasher=} {data=} {test=}"
-            assert control.digest(32) == test.hash(*data, size=32), throw_data
-
-            # Unique requested sizes change the entire associated digests
-            test_copy = test.copy()
-            assert test_copy.digest(16) == test.digest(16), throw_data
-            assert test_copy.hash(*data, size=16) == test.hash(*data, size=16)
-            assert test_copy.hash(*data, size=16) != test.hash(*data, size=17)[:16]
-
-    async def test_non_xof_ahash_method(self):
-        """
-        The ahash method canonically encodes the provided data as inputs
-        to the non-XOF instance object.
-        """
-        for hasher, data in self._test_cases(self.HASH_TYPES, self._test_container_data):
-            control = hasher()
-            control.update(canonical_pack(*data, blocksize=control.block_size))
-
-            test = Hasher(obj=hasher)
-
-            throw_data = f"{hasher=} {data=}"
-            assert control.digest() == await test.ahash(*data), throw_data
-
-    def test_non_xof_hash_method(self):
-        """
-        The hash method canonically encodes the provided data as inputs
-        to the non-XOF instance object.
-        """
-        for hasher, data in self._test_cases(self.HASH_TYPES, self._test_container_data):
-            control = hasher()
-            control.update(canonical_pack(*data, blocksize=control.block_size))
-
-            test = Hasher(obj=hasher)
-
-            throw_data = f"{hasher=} {data=}"
-            assert control.digest() == test.hash(*data), throw_data
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

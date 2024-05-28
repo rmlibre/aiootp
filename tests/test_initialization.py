@@ -1,27 +1,23 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
 import sys
-import hmac
 import json
 import pytest
-import base64
+import hashlib
 import builtins
-from math import ceil
 from pathlib import Path
 from functools import partial
-from collections import deque
-from secrets import token_bytes, randbits
 from hashlib import sha3_256, sha3_512, shake_128, shake_256
 
 
@@ -29,89 +25,132 @@ _PACKAGE_PATH = str(Path(__file__).absolute().parent.parent)
 sys.path.insert(0, _PACKAGE_PATH)
 
 
-_original_globals = globals().copy()
-_globals = globals()
-
-
 import aiootp
-_globals.update(aiootp.__dict__)
-_globals.update(_debuggers.__dict__)
-_globals.update(_exceptions.__dict__)
-_globals.update(_containers.__dict__)
-_globals.update(_paths.__dict__)
-_globals.update(_typing.__dict__)
-_globals.update(commons.__dict__)
-_globals.update(constants.__dict__)
-_globals.update(misc.__dict__)
-_globals.update(datasets.__dict__)
-_globals.update(passcrypt.__dict__)
-_globals.update(chunky2048.__dict__)
-_globals.update(asynchs.__dict__)
-_globals.update(randoms.__dict__)
-_globals.update(gentools.__dict__)
-_globals.update(generics.__dict__)
-_globals.update(ciphers.__dict__)
-_globals.update(keygens.__dict__)
-_globals.update(builtins.__dict__)
-_globals.update(_original_globals)
+from aiootp import *
+from aiootp._paths import *
+from aiootp._typing import *
+from aiootp._constants.misc import *
+from aiootp._constants.datasets import *
+from aiootp._exceptions import *
+from aiootp._gentools import aunpack, unpack, batch, abatch
+from aiootp._permutations import *
+from aiootp._debug_control import DebugControl
+from aiootp.commons.slots import Slots, FrozenSlots
+from aiootp.commons.namespaces import Namespace, OpenNamespace
+from aiootp.commons.configs import Config, ConfigMap
+from aiootp.asynchs import Processes, Threads, Clock
+from aiootp.asynchs import run, asleep, get_process_id, get_thread_id
+from aiootp.generics import *
+from aiootp.generics import ByteIO
+from aiootp.generics.canon import acanonical_pack, canonical_pack
+from aiootp.generics.canon import acanonical_unpack, canonical_unpack
+from aiootp.generics.canon import aencode_key, encode_key
+from aiootp.generics.transform import axi_mix, xi_mix
+from aiootp.randoms import *
+from aiootp.randoms.simple import *
+from aiootp.ciphers import Ciphertext, Padding
 
 
 # Use enable_debugging method to run tests in debug mode. May cause noticable slowdown.
 DebugControl.disable_debugging()
 
 
-# acknowledge private variables
-t = Typing
-Padding = _Padding
-StreamHMAC = _StreamHMAC
-SyntheticIV = _SyntheticIV
-abytes_decipher = _abytes_decipher
-bytes_decipher = _bytes_decipher
-abytes_encipher = _abytes_encipher
-bytes_encipher = _bytes_encipher
-aplaintext_stream = _aplaintext_stream
-plaintext_stream = _plaintext_stream
-KeyAADBundle = _KeyAADBundle
-
-
 # create static values for this test session
-violation = lambda problem: partial(raise_exception, AssertionError(problem))
-aviolation = lambda problem: partial(araise_exception, AssertionError(problem))
+t = Typing
 
-_entropy = csprng() + token_bytes(32)
+violation = lambda problem: lambda relay: raise_exception(AssertionError(f"{problem} : {repr(relay)}"))
 
-key = keygens.generate_key()
-salt = randoms.generate_salt()
-aad = sha3_256(key + salt).digest()
-akey_bundle = run(KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).async_mode())
-key_bundle = KeyAADBundle(key=key, salt=salt, aad=aad, allow_dangerous_determinism=True).sync_mode()
-cipher = Chunky2048(key)
+
+class MemoizedCipher(FrozenSlots):
+    __slots__ = ("config", "cipher", "salt", "aad")
+
+    def __init__(self, cipher_type: type) -> None:
+        self.config = cipher_type._config
+        self.cipher = cipher_type(key=csprng())
+        self.salt = csprng(self.config.SALT_BYTES)
+        self.aad = f"testing {self.config.NAME}".encode()
+
+    def __iter__(
+        self
+    ) -> t.Generator[
+        None, t.Union[t.ConfigType, t.CipherInterfaceType, bytes], None
+    ]:
+        yield self.config
+        yield self.cipher
+        yield self.salt
+        yield self.aad
+
+
+key = csprng(168)
+dual_output_ciphers = [MemoizedCipher(Chunky2048)]
+shake_permute_ciphers = [MemoizedCipher(Slick256)]
+all_ciphers = [*dual_output_ciphers, *shake_permute_ciphers]
+dual_output_cipher_names = [
+    conf.NAME for (conf, _,_,_) in dual_output_ciphers
+]
+shake_permute_cipher_names = [
+    conf.NAME for (conf, _,_,_) in shake_permute_ciphers
+]
 
 
 chunky2048_test_vector_0 = OpenNamespace(
-    plaintext=b"it is not a doctrine to be preached, but a deed to be done.",
+    plaintext=(
+        b"it is not a doctrine to be preached, but a deed to be done."
+    ),
     key=bytes.fromhex(
         "54868dc506d99611adb67f1b41eda44fd7151e135860a6d791cad6df6715bd"
         "5204713bc2b064e88a429b93aaa282d9cc7c0c5cdaaffb65cc268b7acedd5e"
         "531a"
     ),
     shmac=bytes.fromhex(
-        "8f8b51a2ed191396358ffd69118fdba1eae5bdcb16b2a0cce92927f5ddf548"
-        "20"
+        "f791571464dd45754e16d8e6dea2f1a05204dca2510589be012bc5117dfd98"
+        "e8"
     ),
-    salt=bytes.fromhex("cf3761d57860bdbcd27084fa1527d119"),
-    iv=bytes.fromhex("0ef1d4ad1929752fa12946ff82c3f9a1"),
+    salt=bytes.fromhex(
+        "cf3761d57860bdbc"
+    ),
+    iv=bytes.fromhex(
+        "e09d2eee03ae82e6"
+    ),
     aad=b"test_vector_I",
     ciphertext=bytes.fromhex(
-        "6ca043ee2e4a7861dc2d21ae0f4c34338bf1a549970f0c37d285d6b202d137"
-        "80932b592b54e78661ab71c5c7f7e2a35e42a432b8af4422bb3a0d0b4be4ef"
-        "d246201eeb1b5f06c3de0dc4053afbb9f1fc0666fb28aa18089d2b52feb91a"
-        "d18a0cca76dda2aba19456029b86b13d4a4f8d4a1c8d62268b3331e3a61972"
-        "945bc122db294ac8d9633602518ebbd5b605232fc707debcbf9df967f2ddb2"
-        "27bd252da0849ce810e628e3ebfaa574d59993c882dfec1ef6a0b6dbf6c1ac"
-        "fb75498f0c037eabaca6b318ec9cec3e175fcb0784fe8eda8e73f2923ebf5b"
-        "7f88f367064072e7312f976f16789bd13117d1bc27547a05e14e4ac245bd55"
-        "e9c985cebac2e1d1"
+        "1ce9033362f402390f872fa4f20de14d8a13f32f3906dd302a275b2c62f9f5"
+        "f1a8ddb61871a2bab61dffaa2b414c2ca68601a61d9670a944619fc5105469"
+        "b95e63c494326678e865a751d2ab0cac40439aa51cec3a8aa9e4cf0255ea96"
+        "659a4cce41e2c8dac09f97d5bb05efb39bcf6043c6cd18364f0ecc0c721160"
+        "e8204e333b1e336c55bd9a09ba1c0ce08805cc924c1925ad238b785ad17e6c"
+        "064b2fe8676dc2fff3a3a895381cbf8d5aa04970c4f210ae323a5274c8f703"
+        "4167ba0f7042e17d748d68327d2219c83bf4e4fb9f5d36c0b0c5ca661db09c"
+        "b887d2bd39589d2e12f7a799b2e3e1cad7a7dbfd4c9d1a46de6ed5e51d7561"
+        "70de526f4c4fa9fb"
+    ),
+)
+
+
+slick256_test_vector_0 = OpenNamespace(
+    plaintext=(
+        b"it is not a doctrine to be preached, but a deed to be done."
+    ),
+    key=bytes.fromhex(
+        "54868dc506d99611adb67f1b41eda44fd7151e135860a6d791cad6df6715bd"
+        "5204713bc2b064e88a429b93aaa282d9cc7c0c5cdaaffb65cc268b7acedd5e"
+        "531a"
+    ),
+    shmac=bytes.fromhex(
+        "5e6011b3b1ae4314b4192a1e6a18b2ca8130bc5cafcd7287"
+    ),
+    salt=bytes.fromhex(
+        "cf3761d57860bdbc"
+    ),
+    iv=bytes.fromhex(
+        "dda31acd46832df9"
+    ),
+    aad=b"test_vector_I",
+    ciphertext=bytes.fromhex(
+        "f73e7361a73af3eeabc88247555e06fc5bdaea10482c8351eab3ee9cfcc6fe"
+        "f678b1171e6458fcef3d27896bee262769a742f8ffce51cd44db2a8e5673f4"
+        "5770df4b907683c881049f15a92bed514613378ec4beb07766e809b5f68e1e"
+        "326bc7"
     ),
 )
 
@@ -133,9 +172,10 @@ ametatag = "a" + metatag
 
 username = b"test suite"
 passphrase = b"terrible low entropy passphrase"
-PROFILE = dict(username=username, passphrase=passphrase, salt=salt, aad=aad)
+PROFILE = dict(username=username, passphrase=passphrase, salt=salt_0, aad=b"testing passcrypt")
 LOW_PASSCRYPT_SETTINGS = OpenNamespace(mb=1, cpu=1, cores=1)
 PROFILE_AND_SETTINGS = {**PROFILE, **LOW_PASSCRYPT_SETTINGS}
+
 passcrypt_test_vector_0 = OpenNamespace(
     mb=2,
     cpu=2,
@@ -157,15 +197,15 @@ passcrypt_test_vector_0 = OpenNamespace(
         "bff2135410a51bb2"
     ),
     tag=bytes.fromhex(
-        "eda6730dd46c00c135bd37caf74ba037935375e73bccfd3b6b7a726eebe179"
-        "3132db573a3925659a4c4178f5372e81d46b9580d17b612a887bb341af3521"
-        "84db69046f018858dbffd6cd6e54933baceb3b6ef3c03928c53e2cf1e93435"
-        "9380f5eb8cf680337048a2d15d3c945dbac6190fc1a0ecad9dd5a79d444a7d"
-        "6c8abfc69bc378aaf6fdca7611be1aec69c6d1930cbc8781030dcbfec9d190"
-        "f9e164c155e8efc204416eff616cbf447733223027221c550ae02542b4f982"
-        "e09e677c56b98451b235d98a7c62190216da5f635e8ec34bf833e1f0e6b3f9"
-        "165a81ae5655d56f2787097dfbbaeb54afd89b2af4d92fe477529aeb093ee0"
-        "bfb2a20574e86587fa"
+        "4b3b9a627021735a7a0c2f595bab62135b2fb918711309da9e98e5336fa18a"
+        "394e165a9d2a00750d4fd52d4e26562f44d1850327e7e583f1f69b35ea4483"
+        "3f00efc01cdfebfeca15f09e377a786ce4a3efa8b0e945f4b07a420bc2c878"
+        "c6f29bd2e0dd6156a9575450c913722606cf03bb2f9a951e384e17638a3b16"
+        "0cb88199a7c3f099e7be390101e1933662c523e1cd61ba78d77a15607a1b3f"
+        "7ec2f53486c8537fccba1da9fff7aac32c65170237b429de52a9f596cc8ea9"
+        "95a877503ffd6e04caaef3ceacc1cdc0828243e37d82d263517f5336567a19"
+        "54e5515a7a33a820f620b118b74c7089ec1f7c00207659b9b5a737db7cb1ca"
+        "aaa01a51b2b8641014"
     ),
     hash_passphrase_result=bytes.fromhex(
         "000a59139c6031290000010101ffb3c100b7670ef0c9e15bf877a80d78342a"
@@ -176,15 +216,15 @@ passcrypt_test_vector_0 = OpenNamespace(
         "9bb247d4493502b4460f3826a094ac50faa39b8473629ae782d7fb3bb6c69d"
         "faf68a52f06bc3f92d5c88d99a1f064d377dd894ee14993cf4d72cd78a4401"
         "d519a78fca5b2d7b4b6557e75507ab94021f2fcb29a10d87c0deca93607e33"
-        "9c1dd67d2db939ee926028712073bff2135410a51bb2eda6730dd46c00c135"
-        "bd37caf74ba037935375e73bccfd3b6b7a726eebe1793132db573a3925659a"
-        "4c4178f5372e81d46b9580d17b612a887bb341af352184db69046f018858db"
-        "ffd6cd6e54933baceb3b6ef3c03928c53e2cf1e934359380f5eb8cf6803370"
-        "48a2d15d3c945dbac6190fc1a0ecad9dd5a79d444a7d6c8abfc69bc378aaf6"
-        "fdca7611be1aec69c6d1930cbc8781030dcbfec9d190f9e164c155e8efc204"
-        "416eff616cbf447733223027221c550ae02542b4f982e09e677c56b98451b2"
-        "35d98a7c62190216da5f635e8ec34bf833e1f0e6b3f9165a81ae5655d56f27"
-        "87097dfbbaeb54afd89b2af4d92fe477529aeb093ee0bfb2a20574e86587fa"
+        "9c1dd67d2db939ee926028712073bff2135410a51bb24b3b9a627021735a7a"
+        "0c2f595bab62135b2fb918711309da9e98e5336fa18a394e165a9d2a00750d"
+        "4fd52d4e26562f44d1850327e7e583f1f69b35ea44833f00efc01cdfebfeca"
+        "15f09e377a786ce4a3efa8b0e945f4b07a420bc2c878c6f29bd2e0dd6156a9"
+        "575450c913722606cf03bb2f9a951e384e17638a3b160cb88199a7c3f099e7"
+        "be390101e1933662c523e1cd61ba78d77a15607a1b3f7ec2f53486c8537fcc"
+        "ba1da9fff7aac32c65170237b429de52a9f596cc8ea995a877503ffd6e04ca"
+        "aef3ceacc1cdc0828243e37d82d263517f5336567a1954e5515a7a33a820f6"
+        "20b118b74c7089ec1f7c00207659b9b5a737db7cb1caaaa01a51b2b8641014"
     ),
 )
 
@@ -199,12 +239,12 @@ passcrypt_test_vector_1 = OpenNamespace(
     passphrase=b"test vector passphrase II",
     salt=bytes.fromhex("ca926bc906fa14b886eb"),
     tag=bytes.fromhex(
-        "9c114371f791116b82c0bc1e9b0829857b993dd714b7491a4c57fd31677eb8"
-        "2d"
+        "597dd54fabbeddd3605b3c2bd4ac2c476ac457978ddabf31ccd4a3b8f33942"
+        "e8"
     ),
     hash_passphrase_result=bytes.fromhex(
-        "000a59328da314c9000002020209ca926bc906fa14b886eb9c114371f79111"
-        "6b82c0bc1e9b0829857b993dd714b7491a4c57fd31677eb82d"
+        "000a59328da314c9000002020209ca926bc906fa14b886eb597dd54fabbedd"
+        "d3605b3c2bd4ac2c476ac457978ddabf31ccd4a3b8f33942e8"
     ),
 )
 
@@ -218,10 +258,10 @@ passcrypt_test_vector_2 = OpenNamespace(
     timestamp=bytes.fromhex("000a59529a517df8"),
     passphrase=b"test vector passphrase III",
     salt=bytes.fromhex("80345361"),
-    tag=bytes.fromhex("b0c4ad63135c3be0be3751606035dc4a"),
+    tag=bytes.fromhex("4a9f3a8ad7b60afcdc2400fd3e0f3ff4"),
     hash_passphrase_result=bytes.fromhex(
-        "000a59529a517df800000303030380345361b0c4ad63135c3be0be37516060"
-        "35dc4a"
+        "000a59529a517df8000003030303803453614a9f3a8ad7b60afcdc2400fd3e"
+        "0f3ff4"
     ),
 )
 
@@ -245,17 +285,17 @@ passcrypt_test_vector_3 = OpenNamespace(
     timestamp=bytes.fromhex("000a59a53cfe5ecd"),
     passphrase=b"test vector passphrase IIII",
     salt=bytes.fromhex("fbd2ee954afb48c3"),
-    tag=bytes.fromhex("466052a6ae5490470983bd1f6826ba6464d8ebd1c7ec602a"),
+    tag=bytes.fromhex("527a0138c531ea8c027fcad351fd11674c686a16265b5368"),
     hash_passphrase_result=bytes.fromhex(
-        "000a59a53cfe5ecd000000040407fbd2ee954afb48c3466052a6ae54904709"
-        "83bd1f6826ba6464d8ebd1c7ec602a"
+        "000a59a53cfe5ecd000000040407fbd2ee954afb48c3527a0138c531ea8c02"
+        "7fcad351fd11674c686a16265b5368"
     ),
 )
 
 byte_leakage = 16 * b"\x00"
 string_leakage = 16 * "0".encode()
-plaintext_bytes = b"\xff" +  BLOCKSIZE * b"\x00"
-plaintext_string = "f" + BLOCKSIZE * "0"
+plaintext_bytes = b"\xff" + 256 * b"\x00"
+plaintext_string = "f" + 256 * "0"
 test_data = {
     "floats": 10000.243,
     "ints": list(range(-16, 16, 8)),
@@ -269,13 +309,15 @@ atest_data = test_data.copy()
 
 
 # Creating timestamped values early so later testing has to wait less time
-test_json_ciphertext = cipher.json_encrypt(test_data, aad=aad)
-atest_json_ciphertext = run(cipher.ajson_encrypt(atest_data, aad=aad))
-test_token_ciphertext = cipher.make_token(plaintext_bytes, aad=aad)
-atest_token_ciphertext = run(cipher.amake_token(plaintext_bytes, aad=aad))
+ttl_test_cipher = choice(all_ciphers)
+test_json_ciphertext = ttl_test_cipher.cipher.json_encrypt(test_data, aad=ttl_test_cipher.aad)
+atest_json_ciphertext = run(ttl_test_cipher.cipher.ajson_encrypt(atest_data, aad=ttl_test_cipher.aad))
+test_token_ciphertext = ttl_test_cipher.cipher.make_token(plaintext_bytes, aad=ttl_test_cipher.aad)
+atest_token_ciphertext = run(ttl_test_cipher.cipher.amake_token(plaintext_bytes, aad=ttl_test_cipher.aad))
 
-aexpired_passcrypt_hash = run(Passcrypt.ahash_passphrase(passphrase_0, mb=1, cores=1))
-expired_passcrypt_hash = Passcrypt.hash_passphrase(passphrase_0, mb=1, cores=1)
+light_pcrypt = Passcrypt(mb=1, cpu=1, cores=1, tag_size=32)
+aexpired_passcrypt_hash = run(light_pcrypt.ahash_passphrase(passphrase_0))
+expired_passcrypt_hash = light_pcrypt.hash_passphrase(passphrase_0)
 
 clock = Clock(SECONDS, epoch=EPOCH_NS)
 ns_clock = Clock(NANOSECONDS, epoch=EPOCH_NS)
@@ -305,5 +347,38 @@ def async_database():
     run(db.adelete_database())
 
 
-__all__ = [n for n in globals() if not n.startswith("__")]
+@pytest.fixture(scope="function")
+def path():
+    file_path = Path("byte_io_testing_path.txt").absolute()
+
+    if not file_path.is_file():
+        file_path.write_bytes(b"")
+
+    yield file_path
+
+    if file_path.is_file():
+        file_path.unlink()
+
+
+class ExampleConfig(Config):
+    __slots__ = ("NUMBER", "STRING")
+
+    slots_types = dict(NUMBER=int, STRING=str)
+
+    def __init__(self, number: int, string: str) -> None:
+        self.NUMBER = number
+        self.STRING = string
+
+
+@pytest.fixture(scope="function")
+def config():
+    yield ExampleConfig(number=420, string="word")
+
+
+@pytest.fixture(scope="function")
+def mapping():
+    yield ConfigMap(config_type=ExampleConfig)
+
+
+__all__ = [n for n in globals() if not n.startswith("_")]
 

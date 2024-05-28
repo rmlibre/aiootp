@@ -1,12 +1,12 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -15,49 +15,21 @@ from test_initialization import *
 
 
 class TestDBKDF:
-    async def non_of_subkeys_are_the_same(self, kdf):
-        assert kdf.aead_key not in {kdf.auth_key, kdf.prf_key}
-        assert kdf.auth_key != kdf.prf_key
 
-    async def length_sum_of_all_subkeys_is_declared(self, kdf):
-        aead_key = kdf._AEAD_KEY_BYTES * b"a"
-        auth_key = kdf._AUTH_KEY_BYTES * b"b"
-        prf_key = kdf._PRF_KEY_BYTES * b"c"
-        sub_key_control = aead_key + auth_key + prf_key
-        assert all([aead_key, auth_key, prf_key])
-        assert kdf._KEY_BYTES == (len(aead_key) + len(auth_key) + len(prf_key))
-        assert kdf._KEY_BYTES == (
-            len(sub_key_control[kdf._AEAD_KEY_SLICE])
-            + len(sub_key_control[kdf._AUTH_KEY_SLICE])
-            + len(sub_key_control[kdf._PRF_KEY_SLICE])
-        )
-
-    async def subkeys_are_non_overlapping(self, kdf):
-        aead_key = kdf._AEAD_KEY_BYTES * b"a"
-        auth_key = kdf._AUTH_KEY_BYTES * b"b"
-        prf_key = kdf._PRF_KEY_BYTES * b"c"
-        sub_key_control = aead_key + auth_key + prf_key
-        assert all([aead_key, auth_key, prf_key])
-        assert aead_key not in {auth_key, prf_key}
-        assert auth_key != prf_key
-        assert sub_key_control[kdf._AEAD_KEY_SLICE] == aead_key
-        assert sub_key_control[kdf._AUTH_KEY_SLICE] == auth_key
-        assert sub_key_control[kdf._PRF_KEY_SLICE] == prf_key
-
-    async def test_async_subkeys_are_non_overlapping_correct_size(self, async_database):
-        async_kdf = async_database._AsyncDatabase__root_kdf.copy()
-        await self.non_of_subkeys_are_the_same(async_kdf)
-        await self.length_sum_of_all_subkeys_is_declared(async_kdf)
-        await self.subkeys_are_non_overlapping(async_kdf)
-
-    async def test_sync_subkeys_are_non_overlapping_correct_size(self, database):
-        kdf = database._Database__root_kdf.copy()
-        await self.non_of_subkeys_are_the_same(kdf)
-        await self.length_sum_of_all_subkeys_is_declared(kdf)
-        await self.subkeys_are_non_overlapping(kdf)
+    async def test_salt_label_makes_state_unique(self, database):
+        key = csprng()
+        domain = b"testing"
+        kdf = DomainKDF(domain, key=key)
+        dbkdf = type(database._root_kdf)(domain, key=key)
+        for sync_method in ("sha3_256", "sha3_512", "shake_128", "shake_256"):
+            if "shake" in sync_method:
+                assert getattr(kdf, sync_method)(size=64) != getattr(dbkdf, sync_method)(size=64)
+            else:
+                assert getattr(kdf, sync_method)() != getattr(dbkdf, sync_method)()
 
 
 class TestDatabaseCacheSystem:
+
     async def cached_data_remains_unchanged(self, db, subdb):
         assert plaintext_bytes
         assert plaintext_bytes.__class__ is bytes
@@ -73,9 +45,9 @@ class TestDatabaseCacheSystem:
             db.clear_cache(metatags=True)
         assert plaintext_bytes
         assert plaintext_bytes.__class__ is bytes
-        assert subdb[tag] == None
+        assert subdb[tag] is None
         assert test_data.__class__ is dict
-        assert db[tag] == None
+        assert db[tag] is None
 
     async def uncached_loading_from_disk_doesnt_change_data(self, db, subdb):
         if issubclass(db.__class__, AsyncDatabase):
@@ -84,8 +56,8 @@ class TestDatabaseCacheSystem:
         else:
             assert subdb.query_tag(tag, cache=False) == plaintext_bytes
             assert db.query_tag(tag, cache=False) == test_data
-        assert subdb[tag] == None
-        assert db[tag] == None
+        assert subdb[tag] is None
+        assert db[tag] is None
 
     async def cached_loading_from_disk_doesnt_change_data(self, db, subdb):
         if issubclass(db.__class__, AsyncDatabase):
@@ -104,7 +76,7 @@ class TestDatabaseCacheSystem:
             await db.aclear_cache(metatags=False)
             assert subdb[tag] == plaintext_bytes
             await db.aclear_cache(metatags=True)
-            assert subdb[tag] == None
+            assert subdb[tag] is None
             assert await subdb.aquery_tag(tag, cache=False) == plaintext_bytes
         else:
             assert subdb.query_tag(tag, cache=True) == plaintext_bytes
@@ -112,7 +84,7 @@ class TestDatabaseCacheSystem:
             db.clear_cache(metatags=False)
             assert subdb[tag] == plaintext_bytes
             db.clear_cache(metatags=True)
-            assert subdb[tag] == None
+            assert subdb[tag] is None
             assert subdb.query_tag(tag, cache=False) == plaintext_bytes
 
     async def test_async_cache_system(self, async_database):
@@ -138,15 +110,300 @@ class TestDatabaseCacheSystem:
         await self.clear_cache_clears_metatags_when_instructed(database, subdb)
 
 
+class TestDatabaseInitialization:
+
+    async def test_async_key_size_limits(self):
+        problem = "a key that's too small was allowed"
+        token = token_bytes(64)
+        for size in (0, 1, 2, 4, 8, 16, 31, MIN_KEY_BYTES - 1):
+            key = token[:size]
+            async with Ignore(ValueError, if_else=violation(f"{problem} at {len(key)} bytes")):
+                db = await AsyncDatabase(key)
+
+    def test_sync_key_size_limits(self):
+        problem = "a key that's too small was allowed"
+        token = token_bytes(64)
+        for size in (0, 1, 2, 4, 8, 16, 31, MIN_KEY_BYTES - 1):
+            key = token[:size]
+            with Ignore(ValueError, if_else=violation(f"{problem} at {len(key)} bytes")):
+                db = Database(key)
+
+
+class TestDatabases:
+
+    async def test_async_reload_manifest_drops_uncommitted_changes(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        manifest = async_database._manifest
+        manifest["change"] = True
+        assert "change" in manifest
+
+        await async_database.aload_database(manifest=True)
+        assert "change" in manifest
+        assert "change" not in async_database._manifest
+
+    async def test_sync_reload_manifest_drops_uncommitted_changes(
+        self, database: Database
+    ) -> None:
+        manifest = database._manifest
+        manifest["change"] = True
+        assert "change" in manifest
+
+        database.load_database(manifest=True)
+        assert "change" in manifest
+        assert "change" not in database._manifest
+
+    async def test_async_non_existent_tag_query_doesnt_throw_on_silent(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        tag = "non_existent"
+        assert tag not in async_database
+        assert None == await async_database.aquery_tag(tag, silent=True)
+
+        problem = (
+            "Non-existent tag query doesn't throw when silent flag not set."
+        )
+        with Ignore(LookupError, if_else=violation(problem)):
+            await async_database.aquery_tag(tag)
+
+    async def test_sync_non_existent_tag_query_doesnt_throws_on_silent(
+        self, database: Database
+    ) -> None:
+        tag = "non_existent"
+        assert tag not in database
+        assert None == database.query_tag(tag, silent=True)
+
+        problem = (
+            "Non-existent tag query doesn't throw when silent flag not set."
+        )
+        with Ignore(LookupError, if_else=violation(problem)):
+            database.query_tag(tag)
+
+    async def test_async_pop_doesnt_throw_on_silent(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        tag = "test_tag"
+        data = b"test_data..."
+        assert tag not in async_database
+        assert None == await async_database.apop_tag(tag, silent=True)
+
+        await async_database.aset_tag(tag, data)
+        await async_database.asave_database()
+        assert data == await async_database.apop_tag(tag)
+        problem = (
+            "Pop tag doesn't throw when silent flag not set."
+        )
+        with Ignore(LookupError, if_else=violation(problem)):
+            await async_database.apop_tag(tag)
+
+    async def test_sync_pop_doesnt_throw_on_silent(
+        self, database: Database
+    ) -> None:
+        tag = "test_tag"
+        data = b"test_data..."
+        assert tag not in database
+        assert None == database.pop_tag(tag, silent=True)
+
+        database.set_tag(tag, data)
+        database.save_database()
+        assert data == database.pop_tag(tag)
+        problem = (
+            "Pop tag doesn't throw when silent flag not set."
+        )
+        with Ignore(LookupError, if_else=violation(problem)):
+            database.pop_tag(tag)
+
+    async def test_async_rollback_returns_previously_committed_state(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        tag = "test_tag"
+        data = ["test", "data"]
+        await async_database.apop_tag(tag, silent=True)
+        async_database[tag] = list(data)
+        assert data == async_database[tag]
+
+        async_database[tag].append("mutated")
+        assert data + ["mutated"] == async_database[tag]
+
+        await async_database.arollback_tag(tag, cache=True)
+        assert None == async_database[tag]
+
+        async_database[tag] = list(data)
+        await async_database.asave_database()
+        assert data == async_database[tag]
+
+        async_database[tag].append("mutated")
+        assert data + ["mutated"] == async_database[tag]
+
+        await async_database.arollback_tag(tag, cache=True)
+        assert data == async_database[tag]
+
+    async def test_sync_rollback_returns_previously_committed_state(
+        self, database: Database
+    ) -> None:
+        tag = "test_tag"
+        data = ["test", "data"]
+        database.pop_tag(tag, silent=True)
+        database[tag] = list(data)
+        assert data == database[tag]
+
+        database[tag].append("mutated")
+        assert data + ["mutated"] == database[tag]
+
+        database.rollback_tag(tag, cache=True)
+        assert None == database[tag]
+
+        database[tag] = list(data)
+        database.save_database()
+        assert data == database[tag]
+
+        database[tag].append("mutated")
+        assert data + ["mutated"] == database[tag]
+
+        database.rollback_tag(tag, cache=True)
+        assert data == database[tag]
+
+    async def test_async_filenames_shows_all_set_tags(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        data = None
+        async with async_database as db:
+            tags = [f"tag_{i}" for i in range(32)]
+            filenames = [await db.afilename(tag) for tag in tags]
+            for tag in tags:
+                db[tag] = data
+            assert db.filenames.issuperset(filenames)
+
+    async def test_sync_filenames_shows_all_set_tags(
+        self, database: Database
+    ) -> None:
+        data = None
+        with database as db:
+            tags = [f"tag_{i}" for i in range(32)]
+            filenames = [db.filename(tag) for tag in tags]
+            for tag in tags:
+                db[tag] = data
+            assert db.filenames.issuperset(filenames)
+
+    async def test_async_metatag_cant_point_to_non_database_type(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        class NonDatabaseType:
+            pass
+
+        problem = (
+            "A non-database type metatag was assessed as a metatag."
+        )
+        metatag = "tested_attribute"
+        async_database.tested_attribute = NonDatabaseType()
+        with Ignore(NameError, if_else=violation(problem)):
+            await async_database.ametatag(metatag)
+        del async_database.tested_attribute
+
+    async def test_sync_metatag_cant_point_to_non_database_type(
+        self, database: Database
+    ) -> None:
+        class NonDatabaseType:
+            pass
+
+        problem = (
+            "A non-database type metatag was assessed as a metatag."
+        )
+        metatag = "tested_attribute"
+        database.tested_attribute = NonDatabaseType()
+        with Ignore(NameError, if_else=violation(problem)):
+            database.metatag(metatag)
+        del database.tested_attribute
+
+    async def test_async_delete_non_existent_metatag_throws_error(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        problem = (
+            "A deletion of a non-existent metatag didn't throw an error."
+        )
+        metatag = "tested_metatag"
+        with Ignore(LookupError, if_else=violation(problem)):
+            await async_database.adelete_metatag(metatag)
+
+    async def test_sync_delete_non_existent_metatag_throws_error(
+        self, database: Database
+    ) -> None:
+        problem = (
+            "A deletion of a non-existent metatag didn't throw an error."
+        )
+        metatag = "tested_metatag"
+        with Ignore(LookupError, if_else=violation(problem)):
+            database.delete_metatag(metatag)
+
+    async def test_async_save_non_existent_tag_throws_error(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        problem = (
+            "A save of a non-existent tag didn't throw an error."
+        )
+        tag = "tested_tag"
+        await async_database.apop_tag(tag, silent=True)
+        with Ignore(LookupError, if_else=violation(problem)):
+            await async_database.asave_tag(tag)
+
+    async def test_sync_save_non_existent_tag_throws_error(
+        self, database: Database
+    ) -> None:
+        problem = (
+            "A save of a non-existent tag didn't throw an error."
+        )
+        tag = "tested_tag"
+        database.pop_tag(tag, silent=True)
+        with Ignore(LookupError, if_else=violation(problem)):
+            database.save_tag(tag)
+
+    async def test_async_delitem_removes_tags(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        problem = (
+            "A save of a non-existent tag didn't throw an error."
+        )
+        tag = "tested_tag"
+        data = b"tested_data..."
+        async_database[tag] = data
+        await async_database.asave_database()
+        assert data == async_database[tag]
+        assert (
+            async_database._path / await async_database.afilename(tag)
+        ).is_file()
+
+        del async_database[tag]
+        assert None == async_database[tag]
+        assert not (
+            async_database._path / await async_database.afilename(tag)
+        ).is_file()
+
+    async def test_sync_delitem_removes_tags(
+        self, database: AsyncDatabase
+    ) -> None:
+        problem = (
+            "A save of a non-existent tag didn't throw an error."
+        )
+        tag = "tested_tag"
+        data = b"tested_data..."
+        database[tag] = data
+        database.save_database()
+        assert data == database[tag]
+        assert (database._path / database.filename(tag)).is_file()
+
+        del database[tag]
+        assert None == database[tag]
+        assert not (database._path / database.filename(tag)).is_file()
+
+
 def test_Database_instance(database):
     db = Database(key=key, preload=True)
 
     # basic database functionalities work the same across reloads
-    assert db._Database__root_kdf.sha3_256() == database._Database__root_kdf.sha3_256()
-    assert db._Database__root_kdf.sha3_256() != database._Database__root_kdf.sha3_256(aad=database._Database__root_salt)
-    assert db._Database__root_salt == database._Database__root_salt
+    assert db._root_kdf.sha3_256() == database._root_kdf.sha3_256()
+    assert db._root_kdf.sha3_256() != database._root_kdf.sha3_256(aad=database._root_salt)
+    assert db._root_salt == database._root_salt
     assert db._root_filename == database._root_filename
-    assert db.make_hmac(atag.encode()) == database.make_hmac(atag.encode())
     assert db.filename(atag) == database.filename(atag)
     assert db._metatag_key(atag) == database._metatag_key(atag)
 
@@ -155,11 +412,10 @@ async def test_AsyncDatabase_instance(database):
     db = await AsyncDatabase(key=key, preload=True)
 
     # basic async database functionalities work the same across reloads
-    assert db._AsyncDatabase__root_kdf.sha3_256() == database._Database__root_kdf.sha3_256()
-    assert db._AsyncDatabase__root_kdf.sha3_256() != database._Database__root_kdf.sha3_256(aad=database._Database__root_salt)
-    assert db._AsyncDatabase__root_salt == database._Database__root_salt
+    assert db._root_kdf.sha3_256() == database._root_kdf.sha3_256()
+    assert db._root_kdf.sha3_256() != database._root_kdf.sha3_256(aad=database._root_salt)
+    assert db._root_salt == database._root_salt
     assert db._root_filename == database._root_filename
-    assert await db.amake_hmac(tag.encode()) == database.make_hmac(tag.encode())
     assert await db.afilename(tag) == database.filename(tag)
     assert await db._ametatag_key(tag) == database._metatag_key(tag)
 
@@ -167,20 +423,22 @@ async def test_AsyncDatabase_instance(database):
 def test_database_ciphers(database):
     # database ciphertexts are unique
     db = database
+    cipher = Chunky2048(key)
+    c = cipher._config
     filename = db.filename(tag)
-    encrypted_data = db.json_encrypt(test_data, filename=filename, aad=DEFAULT_AAD)
+    encrypted_data = db.json_encrypt(test_data, filename=filename, aad=b"")
     db[tag] = test_data
     db.save_database()
     encrypted_file = db._query_ciphertext(filename)
     assert encrypted_file != encrypted_data
-    assert encrypted_file[SHMAC_SLICE] != encrypted_data[SHMAC_SLICE]
-    assert encrypted_file[SALT_SLICE] != encrypted_data[SALT_SLICE]
-    assert encrypted_file[IV_SLICE] != encrypted_data[IV_SLICE]
-    assert encrypted_file[CIPHERTEXT_SLICE] != encrypted_data[CIPHERTEXT_SLICE]
+    assert encrypted_file[c.SHMAC_SLICE] != encrypted_data[c.SHMAC_SLICE]
+    assert encrypted_file[c.SALT_SLICE] != encrypted_data[c.SALT_SLICE]
+    assert encrypted_file[c.IV_SLICE] != encrypted_data[c.IV_SLICE]
+    assert encrypted_file[c.CIPHERTEXT_SLICE] != encrypted_data[c.CIPHERTEXT_SLICE]
 
     # database ciphers recover json data correctly
-    assert test_data == db.json_decrypt(encrypted_file, filename=filename, aad=DEFAULT_AAD)
-    assert test_data == db.json_decrypt(encrypted_data, filename=filename, aad=DEFAULT_AAD)
+    assert test_data == db.json_decrypt(encrypted_file, filename=filename, aad=b"")
+    assert test_data == db.json_decrypt(encrypted_data, filename=filename, aad=b"")
     assert type(test_data) is dict
 
     # database ciphers recover bytes data correctly
@@ -209,19 +467,22 @@ def test_database_ciphers(database):
 async def test_async_database_ciphers(async_database):
     # async database ciphertexts are unique
     db = async_database
+    cipher = Chunky2048(key)
+    c = cipher._config
     filename = await db.afilename(tag)
-    encrypted_data = await db.ajson_encrypt(test_data, filename=filename, aad=DEFAULT_AAD)
+    encrypted_data = await db.ajson_encrypt(test_data, filename=filename, aad=b"")
     db[tag] = test_data
     await db.asave_database()
     encrypted_file = await db._aquery_ciphertext(filename)
     assert encrypted_file != encrypted_data
-    assert encrypted_file[SHMAC_SLICE] != encrypted_data[SHMAC_SLICE]
-    assert encrypted_file[SALT_SLICE] != encrypted_data[SALT_SLICE]
-    assert encrypted_file[IV_SLICE] != encrypted_data[IV_SLICE]
+    assert encrypted_file[c.SHMAC_SLICE] != encrypted_data[c.SHMAC_SLICE]
+    assert encrypted_file[c.SALT_SLICE] != encrypted_data[c.SALT_SLICE]
+    assert encrypted_file[c.IV_SLICE] != encrypted_data[c.IV_SLICE]
+    assert encrypted_file[c.CIPHERTEXT_SLICE] != encrypted_data[c.CIPHERTEXT_SLICE]
 
     # async database ciphers recover json data correctly
-    assert test_data == await db.ajson_decrypt(encrypted_file, filename=filename, aad=DEFAULT_AAD)
-    assert test_data == await db.ajson_decrypt(encrypted_data, filename=filename, aad=DEFAULT_AAD)
+    assert test_data == await db.ajson_decrypt(encrypted_file, filename=filename, aad=b"")
+    assert test_data == await db.ajson_decrypt(encrypted_data, filename=filename, aad=b"")
 
     # async database ciphers recover bytes data correctly
     encrypted_binary_data = await db.abytes_encrypt(
@@ -452,68 +713,6 @@ async def test_user_profiles(database):
     assert not user_copy._root_path.is_file()
     assert not user_copy._profile_tokens._salt_path.is_file()
     assert not (user_copy.path / user_copy.filename(tag)).is_file()
-
-
-class TestHMACMethods:
-    def test_sync_hmac_methods_are_sound(self, database):
-        """
-        Sync HMAC methods provide soundness of data validation.
-        """
-        inputs = token_bytes(32)
-        tag = database.make_hmac(inputs)
-
-        # sync validation doesn't fail
-        database.test_hmac(tag, inputs)
-
-        # sync hmac tags fail when inputs type is altered
-        problem = "Data type alteration not caught!"
-        with ignore(TypeError, if_else=violation(problem)):
-            database.test_hmac(tag, str(inputs))
-
-        # sync hmac tags fail when inputs are altered
-        iinputs = int.from_bytes(inputs, BIG)
-        problem = "Data value alteration not caught!"
-        for bit in range(iinputs.bit_length()):
-            with ignore(database.InvalidHMAC, if_else=violation(problem)):
-                database.test_hmac(tag, (iinputs ^ (1 << bit)).to_bytes(32, BIG))
-
-        # sync hmac tags fail when they are altered
-        itag = int.from_bytes(tag, BIG)
-        problem = "Tag alteration not caught!"
-        for bit in range(itag.bit_length()):
-            with ignore(database.InvalidHMAC, if_else=violation(problem)):
-                altered_tag = (itag ^ (1 << bit)).to_bytes(32, BIG)
-                database.test_hmac(altered_tag, inputs)
-
-    async def test_async_hmac_methods_are_sound(self, async_database):
-        """
-        Async HMAC methods provide soundness of data validation.
-        """
-        ainputs = token_bytes(32)
-        atag = await async_database.amake_hmac(ainputs)
-
-        # async validation doesn't fail
-        await async_database.atest_hmac(atag, ainputs)
-
-        # async hmac tags fail when inputs type is altered
-        problem = "Async data type alteration not caught!"
-        async with aignore(TypeError, if_else=aviolation(problem)):
-            await async_database.atest_hmac(atag, str(ainputs))
-
-        # async hmac tags fail when inputs are altered
-        aiinputs = int.from_bytes(ainputs, BIG)
-        problem = "Async data value alteration not caught!"
-        for bit in range(aiinputs.bit_length()):
-            async with aignore(async_database.InvalidHMAC, if_else=aviolation(problem)):
-                await async_database.atest_hmac(atag, (aiinputs ^ (1 << bit)).to_bytes(32, BIG))
-
-        # async hmac tags fail when they are altered
-        aitag = int.from_bytes(atag, BIG)
-        problem = "Async tag alteration not caught!"
-        for abit in range(aitag.bit_length()):
-            async with aignore(async_database.InvalidHMAC, if_else=aviolation(problem)):
-                altered_tag = (aitag ^ (1 << abit)).to_bytes(32, BIG)
-                await async_database.atest_hmac(altered_tag, ainputs)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

@@ -1,17 +1,49 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
+from hashlib import shake_128
+
 from test_initialization import *
+
+from aiootp.randoms.threading_safe_entropy_pool import ThreadingSafeEntropyPool
+
+
+class TestThreadingSafeEntropyPool:
+    cls = ThreadingSafeEntropyPool
+
+    async def test_hasher_methods(self) -> None:
+        token = token_bytes(32)
+        obj = self.cls(token, obj=shake_128, pool=[token])
+        hasher = obj._obj.copy()
+        obj_copy = obj.copy()
+        assert obj.name == hasher.name
+        assert obj.name == obj_copy.name
+        assert obj.block_size == hasher.block_size
+        assert obj.block_size == obj_copy.block_size
+        assert obj.digest_size == hasher.digest_size
+        assert obj.digest_size == obj_copy.digest_size
+        assert obj.digest(32) == hasher.digest(32)
+        assert obj.digest(32) == obj_copy.digest(32)
+        assert obj.hexdigest(32) == hasher.hexdigest(32)
+        assert obj.hexdigest(32) == obj_copy.hexdigest(32)
+
+        obj.update(token)
+        obj_copy.update(token)
+        hasher.update(token)
+        assert obj.digest(32) == hasher.digest(32)
+        assert obj.digest(32) == obj_copy.digest(32)
+        assert obj.hexdigest(32) == hasher.hexdigest(32)
+        assert obj.hexdigest(32) == obj_copy.hexdigest(32)
 
 
 async def test_acsprng():
@@ -28,14 +60,6 @@ async def test_acsprng():
             entropy = await acsprng(size, entropy=datum)
             assert len(entropy) == size
             assert entropy.__class__ is bytes
-
-    key = await agenerate_key(freshness=0)
-    assert len(key) == KEY_BYTES
-    assert key.__class__ is bytes
-
-    problem = f"Allowed to generate a key less than {MIN_KEY_BYTES}"
-    async with aignore(ValueError, if_else=aviolation(problem)):
-        key = await agenerate_key(size=MIN_KEY_BYTES - 1, freshness=0)
 
     async def try_to_make_duplicate_readouts():
         """
@@ -71,14 +95,6 @@ def test_csprng():
             assert len(entropy) == size
             assert entropy.__class__ is bytes
 
-    key = generate_key(freshness=0)
-    assert len(key) == KEY_BYTES
-    assert key.__class__ is bytes
-
-    problem = f"Allowed to generate a key less than {MIN_KEY_BYTES} bytes."
-    with ignore(ValueError, if_else=violation(problem)):
-        key = generate_key(size=MIN_KEY_BYTES - 1, freshness=0)
-
     def try_to_make_duplicate_readouts():
         """
         The async csprng doesn't produce duplicate outputs when run in
@@ -96,151 +112,6 @@ def test_csprng():
     Threads.gather(
         *[try_to_make_duplicate_readouts for _ in range(32)]
     )
-
-
-async def test_async_generate_raw_guid_constraints_upheld():
-    for size in range(0, MAX_RAW_GUID_BYTES + 10, 2):
-        for timestamp_bytes in range(0, 16, 2):
-            valid_size = MIN_RAW_GUID_BYTES <= size <= MAX_RAW_GUID_BYTES
-            valid_timestamp_bytes = timestamp_bytes <= size
-            try:
-                guid = await randoms._agenerate_raw_guid(size, timestamp_bytes=timestamp_bytes)
-            except ValueError:
-                assert (not valid_size) or (not valid_timestamp_bytes)
-            except OverflowError:
-                min_timestamp_bytes = ceil(ns_clock.time().bit_length() / 8)
-                assert timestamp_bytes < min_timestamp_bytes
-            else:
-                assert valid_size and valid_timestamp_bytes
-
-
-def test_generate_raw_guid_constraints_upheld():
-    for size in range(0, MAX_RAW_GUID_BYTES + 10, 2):
-        for timestamp_bytes in range(0, 16, 2):
-            valid_size = MIN_RAW_GUID_BYTES <= size <= MAX_RAW_GUID_BYTES
-            valid_timestamp_bytes = timestamp_bytes <= size
-            try:
-                guid = randoms._generate_raw_guid(size, timestamp_bytes=timestamp_bytes)
-            except ValueError:
-                assert (not valid_size) or (not valid_timestamp_bytes)
-            except OverflowError:
-                min_timestamp_bytes = ceil(ns_clock.time().bit_length() / 8)
-                assert timestamp_bytes < min_timestamp_bytes
-            else:
-                assert valid_size and valid_timestamp_bytes
-
-
-async def test_guids_uniqueness():
-    assert 16 == len(GUID().new())
-    assert 16 == len(await GUID().anew())
-
-    # simulate the monotonic nature of a timestamp to test the uniqueness
-    # of the algorithm outputs for all inputs between two multiples of
-    # the prime used for that size category
-
-    def raw_guid_simulator():
-        nonlocal i
-
-        i += 1
-        return i
-
-    # lowering the default minimum size to be able to efficiently do a
-    # complete search of a salt space & the impacts of each possible
-    # change in salt on uniqueness of outputs
-    GUID._MIN_SIZE = 1
-    GUID._MIN_RAW_SIZE = 0
-    GUID._MIN_SALT_SIZE = 1
-    GUID._COUNTER_BYTES = 0
-
-    # testing all the combinations is impossible, in general, but even
-    # testing all two byte combinations is prohibitively slow. However,
-    # these variables can be customized to run extended tests
-    MIN_TEST_BYTES = 1
-    MAX_TEST_BYTES = 1
-
-    # change to `True` if a random location within each search space is
-    # desired
-    start_at_random_location: bool = False
-
-    previous_salts = []
-
-    # these values do not change in the tests, but are displayed to
-    # visually declare where their byte values are located in relation
-    # to the raw guid which contains the timestamp & random bytes
-    node_number = 0
-    counter = 0
-
-    for size in range(MIN_TEST_BYTES, MAX_TEST_BYTES + 1):
-        start = token_bits(8 * size) if start_at_random_location else 0
-        for salt_test in bytes_range.root(start, 256**size, size=size):
-            i = -1
-
-            guid = GUID(salt=salt_test, size=size)
-            _size, gen, prime, subprime = guid._session_configuration
-            assert size == _size
-
-            isalt, osalt, xsalt = guid._encode_salt(guid._salt, prime, size)
-            assert previous_salts != [isalt, osalt, xsalt]
-            assert all([isalt, osalt])
-
-            #                    |--------------- `size`-bytes ---------------|
-            inner_guid = lambda: (node_number + raw_guid_simulator() + counter)
-            _key = lambda: (
-                xsalt ^ ((isalt * inner_guid() + osalt) % prime)
-            ).to_bytes(size, BIG)
-
-            history = set()
-            for j in range(prime):
-                result = _key()
-                assert result not in history, (
-                    f"salt_test={salt_test}--isalt={isalt}--osalt={osalt}--"
-                    f"xsalt={xsalt}--size={size}--j={j}--i={i}--result={result}"
-                )
-                history.add(result)
-
-            previous_salts = [isalt, osalt, xsalt]
-
-    GUID._MIN_SIZE = MIN_GUID_BYTES
-    GUID._MIN_RAW_SIZE = MIN_RAW_GUID_BYTES
-    GUID._MIN_SALT_SIZE = 16
-    GUID._COUNTER_BYTES = 1
-
-
-async def test_guid_unmask():
-    for size in range(GUID._MIN_SIZE, GUID._MAX_SIZE + 1):
-        for node_number in range(0, 256, 16):
-            salt = token_bytes(max([size, 16]))
-            guid_gen = GUID(size=size, node_number=node_number)
-            guid = guid_gen.new()
-            encoded_guid = guid_gen.new(encode=True)
-            unmasked_guid = guid_gen.unmask(guid)
-            decoded_unmasked_guid = guid_gen.unmask(encoded_guid, decode=True)
-
-            # sync & async unmasking are the same
-            assert unmasked_guid == await guid_gen.aunmask(guid)
-            assert decoded_unmasked_guid == await guid_gen.aunmask(encoded_guid, decode=True)
-
-            # the counter starts at 1 & increments every call to new
-            assert unmasked_guid.counter == b"\x01"
-            assert decoded_unmasked_guid.counter  == b"\x02"
-
-            # the node number is correctly retrieved by unmasking
-            assert unmasked_guid.node_number == node_number.to_bytes(1, BIG)
-            assert unmasked_guid.node_number == decoded_unmasked_guid.node_number
-
-            # nanosecond timestamps are retrieved correctly & are always
-            # increasing
-            normalize = lambda timestamp: (int.from_bytes(timestamp, BIG) - guid_gen._clock._mask).to_bytes(SAFE_TIMESTAMP_BYTES, BIG)
-            assert ns_clock.make_timestamp() > normalize(unmasked_guid.timestamp)
-            assert ns_clock.make_timestamp() > normalize(decoded_unmasked_guid.timestamp)
-
-            # every new guid is always unmasked to a value which is
-            # larger than all previous guids
-            assert guid_gen.unmask(guid_gen.new()) > unmasked_guid
-            assert (
-                guid_gen.unmask(guid_gen.new(encode=True), decode=True)
-                > decoded_unmasked_guid
-            )
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

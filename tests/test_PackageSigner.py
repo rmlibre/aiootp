@@ -1,24 +1,26 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
 from test_initialization import *
+from aiootp._paths import DatabasePath
+from aiootp.keygens.passcrypt.config import passcrypt_spec
 
 
 def test_sign_and_verify():
     try:
         test_key = token_bytes(64)
         test_salt = token_bytes(64)
-        test_directory = _paths.DatabasePath()
+        test_directory = DatabasePath()
 
         signer = PackageSigner(
             package=aiootp.__package__,
@@ -32,7 +34,7 @@ def test_sign_and_verify():
         assert all(name in _repr for name in signer._scope)
 
         problem = "Allowed to retrieve a signature before connecting to the database."
-        with ignore(RuntimeError, if_else=violation(problem)):
+        with Ignore(RuntimeError, if_else=violation(problem)):
             signer._signature
 
         signer.connect_to_secure_database(
@@ -40,17 +42,17 @@ def test_sign_and_verify():
             passphrase=test_key,
             salt=test_salt,
             path=test_directory,
-            mb=MIN_MB,
+            mb=passcrypt_spec.MIN_MB,
             cpu=2,
         )
         signer.update_public_credentials(x25519_public_key=aiootp.__PUBLIC_X25519_KEY__)
 
         problem = "Allowed to retrieve a signing key before its creation."
-        with ignore(LookupError, if_else=violation(problem)):
+        with Ignore(LookupError, if_else=violation(problem)):
             signer.signing_key
 
         problem = "Allowed to retrieve a signature before signing."
-        with ignore(RuntimeError, if_else=violation(problem)):
+        with Ignore(RuntimeError, if_else=violation(problem)):
             signer._signature
 
         test_signing_key = signer.generate_signing_key()
@@ -59,18 +61,16 @@ def test_sign_and_verify():
         signer.update_signing_key(test_signing_key)
         signer.update_signing_key(signer.signing_key.secret_key)
         signer.update_signing_key(signer.signing_key.secret_bytes)
-        signer.update_signing_key(signer.signing_key.secret_bytes.hex())
 
         problem = "a type other than str, bytes, Ed25519PrivateKey or an Ed25519 object was allowed for update_signing_key"
-        with ignore(TypeError, if_else=violation(problem)):
+        with Ignore(TypeError, if_else=violation(problem)):
             signer.update_signing_key(bytearray(signer.signing_key.secret_bytes))
 
         filename_sheet = """
         include tests/test_initialization.py
         include tests/test_aiootp.py
         include tests/test_generics.py
-        include tests/test_BytesIO.py
-        include tests/test_Comprende.py
+        include tests/test_ByteIO.py
         include tests/test_misc_in_generics.py
         include tests/test_randoms.py
         include tests/test_misc_in_randoms.py
@@ -83,7 +83,7 @@ def test_sign_and_verify():
         include tests/test_passcrypt_apasscrypt.py
         """.strip().split("\n")
 
-        test_path = _paths.Path(__file__).parent.parent
+        test_path = Path(__file__).parent.parent
         for line in filename_sheet:
             filename = line.strip().split(" ")[-1]
             with open(test_path / filename, "rb") as source_file:
@@ -92,7 +92,7 @@ def test_sign_and_verify():
 
                 # added file hashes are available from the files attribute
                 # by their filename
-                assert filename in signer.files.namespace
+                assert filename in signer.files
                 assert signer.files[filename].digest() != signer._Hasher().digest()
                 assert signer.files[filename].digest() == signer._Hasher(file_data).digest()
 
@@ -117,7 +117,7 @@ def test_sign_and_verify():
         # summary checksum alteration fails
         summary["checksum"] = summary["checksum"][::-1]
         problem = "Summary alteration uncaught!"
-        with ignore(ValueError, if_else=violation(problem)):
+        with Ignore(ValueError, if_else=violation(problem)):
             verifier.verify_summary(summary)
 
         # returning the checksum to the original value succeeds
@@ -129,7 +129,7 @@ def test_sign_and_verify():
 
         # altering the signature does not work
         problem = "Signature alteration went uncaught!"
-        with ignore(verifier.InvalidSignature, if_else=violation(problem)):
+        with Ignore(verifier.InvalidSignature, if_else=violation(problem)):
             fake_summary = {**summary, "signature": token_bytes(64).hex()}
             verifier.verify_summary(fake_summary)
 
@@ -141,7 +141,7 @@ def test_sign_and_verify():
         # altering the signing key fails
         summary["signing_key"] = X25519().generate().public_bytes.hex()
         problem = "Changed signing_key went uncaught!"
-        with ignore(ValueError, if_else=violation(problem)):
+        with Ignore(ValueError, if_else=violation(problem)):
             verifier.verify_summary(summary)
 
         # returning to the original signing key succeeds
@@ -155,12 +155,36 @@ def test_sign_and_verify():
         signature = signer.db[PACKAGE][VERSIONS][VERSION]
         signer.db[PACKAGE][VERSIONS][VERSION] = token_bytes(32).hex()
         problem = "altered signature not detected during summarization!"
-        with ignore(ValueError, if_else=violation(problem)):
+        with Ignore(ValueError, if_else=violation(problem)):
             signer.summarize()
 
         # returning the signature works
         signer.db[PACKAGE][VERSIONS][VERSION] = signature
         signer.summarize()
+
+        # verifier detects wrong file digest
+        signer.sign_package()
+        signer.db.save_database()
+        summary = signer.summarize()
+        filename = list(summary[CHECKSUMS])[-1]
+        summary[CHECKSUMS][filename] = signer._Hasher().hexdigest()
+        problem = (
+            "An invalid file digest wasn't detected."
+        )
+        with Ignore(InvalidDigest, if_else=violation(problem)):
+            verifier._verify_file_checksums(summary)
+
+        # verifier throws error if path is specified without also
+        # specifying direct file validation.
+        problem = (
+            "A verifier was initialized with conflicting flags."
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+            PackageVerifier(
+                signer.signing_key.public_bytes,
+                path=test_path,
+                verify_files=False,
+            )
     finally:
         signer.db.delete_database()
 

@@ -1,111 +1,194 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
+from random import randrange
+
 from test_initialization import *
+
+from aiootp._gentools import abatch, batch
+
+
+class TestStreamHMACStates:
+
+    async def test_key_bundle_must_be_correct_subclass(self) -> None:
+        class FalseKeyAADBundle:
+            pass
+
+        problem = (
+            "An invalid key_bundle type was allowed."
+        )
+        for (config, cipher, salt, aad) in all_ciphers:
+            key_bundle = FalseKeyAADBundle()
+            with Ignore(TypeError, if_else=violation(problem)):
+                cipher._StreamHMAC(key_bundle)
+
+    async def test_sync_shmac_cant_be_registered_more_than_once(
+        self
+    ) -> None:
+        problem = (
+            "A SHMAC object was allowed to be used more than once."
+        )
+        for (config, cipher, salt, aad) in all_ciphers:
+            key_bundle = cipher._KeyAADBundle(cipher._kdfs).sync_mode()
+            shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
+            plaintext = cipher._padding.pad_plaintext(b"")
+            data = batch(plaintext, size=config.BLOCKSIZE)
+            b"".join(cipher._Junction.bytes_encipher(data, shmac=shmac))
+            data = batch(plaintext, size=config.BLOCKSIZE)
+            with Ignore(PermissionError, if_else=violation(problem)):
+                b"".join(cipher._Junction.bytes_encipher(data, shmac=shmac))
+
+    async def test_result_cant_be_retrieved_before_finalization(self) -> None:
+        problem = (
+            "Retrieving a result before finalization was allowed."
+        )
+        for (config, cipher, salt, aad) in all_ciphers:
+            key_bundle = cipher._KeyAADBundle(
+                cipher._kdfs, salt=salt, aad=aad
+            ).sync_mode()
+            shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
+            with Ignore(PermissionError, if_else=violation(problem)):
+                shmac.result
+
+    async def test_cant_finalize_more_than_once(self) -> None:
+        problem = (
+            "Multiple finalization calls were allowed."
+        )
+        for (config, cipher, salt, aad) in all_ciphers:
+            key_bundle = cipher._KeyAADBundle(
+                cipher._kdfs, salt=salt, aad=aad
+            ).sync_mode()
+            shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
+            shmac.finalize()
+            with Ignore(PermissionError, if_else=violation(problem)):
+                shmac.finalize()
+            with Ignore(PermissionError, if_else=violation(problem)):
+                await shmac.afinalize()
+
+    async def test_untrusted_shmac_must_be_bytes(self) -> None:
+        problem = (
+            "A non-bytes untrusted shmac was allowed."
+        )
+        for (config, cipher, salt, aad) in all_ciphers:
+            key_bundle = cipher._KeyAADBundle(
+                cipher._kdfs, salt=salt, aad=aad
+            ).sync_mode()
+            shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
+            shmac.finalize()
+            with Ignore(TypeError, if_else=violation(problem)):
+                shmac.test_shmac(shmac.result.hex())
+            with Ignore(TypeError, if_else=violation(problem)):
+                await shmac.atest_shmac(shmac.result.hex())
 
 
 async def test_detection_of_ciphertext_modification():
-    aciphertext = Ciphertext(await cipher.abytes_encrypt(plaintext_bytes))
 
-    ######
-    ###### ciphertext container packs async ciphertexts correctly
-    act = b"".join(aciphertext.values())
-    assert all(aciphertext.values())
-    assert act == b"".join(
-        [aciphertext.shmac, aciphertext.salt, aciphertext.iv, aciphertext.ciphertext]
-    )
+    for (config, cipher, salt, aad) in all_ciphers:
+        aciphertext = Ciphertext(
+            await cipher.abytes_encrypt(plaintext_bytes), config=config
+        )
 
-    # async ciphertext doesn't obviously contain plaintext
-    for chunk in gentools.data.root(plaintext_bytes, size=10):
-        assert chunk not in act
-    byte_leakage not in act
+        ######
+        ###### ciphertext container packs async ciphertexts correctly
+        act = b"".join(aciphertext.values())
+        assert all(aciphertext.values())
+        assert act == b"".join(
+            [aciphertext.shmac, aciphertext.salt, aciphertext.iv, aciphertext.ciphertext]
+        )
 
-    # async decryption of correct data doesn't fail
-    assert plaintext_bytes == await cipher.abytes_decrypt(act)
+        # async ciphertext doesn't obviously contain plaintext
+        for chunk in batch(plaintext_bytes, size=10):
+            assert chunk not in act
+        byte_leakage not in act
 
-    # sync decryption of async ciphertext doesn't fail
-    assert plaintext_bytes == cipher.bytes_decrypt(act)
+        # async decryption of correct data doesn't fail
+        assert plaintext_bytes == await cipher.abytes_decrypt(act)
 
-    ######
-    ###### async decryption of altered ciphertext fails
-    aict = int.from_bytes(act, BIG)
-    problem = "Async ciphertext alteration not caught!"
-    for abit in range(0, aict.bit_length(), 16):
-        with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(problem)):
-            altered_act = (aict ^ (1 << abit)).to_bytes(len(act), BIG)
-            await cipher.abytes_decrypt(altered_act)
+        # sync decryption of async ciphertext doesn't fail
+        assert plaintext_bytes == cipher.bytes_decrypt(act)
 
-    # async decryption of ciphertext lengthened to invalid size fails
-    problem = "Invalid size lengthened sync ciphertext allowed"
-    for extra_bytes in range(1, BLOCKSIZE):
-        with ignore(ValueError, if_else=violation(problem)):
-            await cipher.abytes_decrypt(act + token_bytes(extra_bytes))
+        ######
+        ###### async decryption of altered ciphertext fails
+        aict = int.from_bytes(act, BIG)
+        problem = "Async ciphertext alteration not caught!"
+        for abit in range(0, aict.bit_length(), 16):
+            with Ignore(cipher.InvalidSHMAC, if_else=violation(problem)):
+                altered_act = (aict ^ (1 << abit)).to_bytes(len(act), BIG)
+                await cipher.abytes_decrypt(altered_act)
 
-    # sync decryption of ciphertext shortened to invalid size fails
-    problem = "Invalid size shortened sync ciphertext allowed"
-    for fewer_bytes in range(1, BLOCKSIZE):
-        with ignore(ValueError, if_else=violation(problem)):
-            await cipher.abytes_decrypt(act[:-fewer_bytes])
+        # async decryption of ciphertext lengthened to invalid size fails
+        problem = "Invalid size lengthened sync ciphertext allowed"
+        for extra_bytes in range(1, config.BLOCKSIZE):
+            with Ignore(cipher._Ciphertext.InvalidCiphertextSize, if_else=violation(problem)):
+                await cipher.abytes_decrypt(act + token_bytes(extra_bytes))
 
-    ######
-    ###### test the ciphertext container class
-    ciphertext = Ciphertext(cipher.bytes_encrypt(plaintext_bytes))
+        # sync decryption of ciphertext shortened to invalid size fails
+        problem = "Invalid size shortened sync ciphertext allowed"
+        for fewer_bytes in range(1, config.BLOCKSIZE):
+            with Ignore(cipher._Ciphertext.InvalidCiphertextSize, if_else=violation(problem)):
+                await cipher.abytes_decrypt(act[:-fewer_bytes])
 
-    # ciphertext container packs sync ciphertexts correctly
-    ct = b"".join(ciphertext.values())
-    assert all(ciphertext.values())
-    assert ct == b"".join(
-        [ciphertext.shmac, ciphertext.salt, ciphertext.iv, ciphertext.ciphertext]
-    )
+        ######
+        ###### test the ciphertext container class
+        ciphertext = Ciphertext(
+            cipher.bytes_encrypt(plaintext_bytes), config=config
+        )
 
-    # sync ciphertext doesn't obviously contain plaintext
-    for chunk in gentools.data.root(plaintext_bytes, size=10):
-        assert chunk not in ct
-    byte_leakage not in ct
+        # ciphertext container packs sync ciphertexts correctly
+        ct = b"".join(ciphertext.values())
+        assert all(ciphertext.values())
+        assert ct == b"".join(
+            [ciphertext.shmac, ciphertext.salt, ciphertext.iv, ciphertext.ciphertext]
+        )
 
-    # sync decryption of correct data doesn't fail
-    assert plaintext_bytes == cipher.bytes_decrypt(ct)
+        # sync ciphertext doesn't obviously contain plaintext
+        for chunk in batch(plaintext_bytes, size=10):
+            assert chunk not in ct
+        byte_leakage not in ct
 
-    # async decryption of sync ciphertext doesn't fail
-    assert plaintext_bytes == await cipher.abytes_decrypt(ct)
+        # sync decryption of correct data doesn't fail
+        assert plaintext_bytes == cipher.bytes_decrypt(ct)
 
-    ######
-    ###### sync decryption of altered ciphertext fails
-    ict = int.from_bytes(ct, BIG)
-    problem = "Sync ciphertext alteration not caught!"
-    for bit in range(0, ict.bit_length(), 16):
-        with ignore(StreamHMAC.InvalidSHMAC, if_else=violation(problem)):
-            altered_ct = (ict ^ (1 << bit)).to_bytes(len(ct), BIG)
-            cipher.bytes_decrypt(altered_ct)
+        # async decryption of sync ciphertext doesn't fail
+        assert plaintext_bytes == await cipher.abytes_decrypt(ct)
 
-    # sync decryption of ciphertext lengthened to invalid size fails
-    problem = "Invalid size lengthened sync ciphertext allowed"
-    for extra_bytes in range(1, BLOCKSIZE):
-        with ignore(ValueError, if_else=violation(problem)):
-            cipher.bytes_decrypt(ct + token_bytes(extra_bytes))
+        ######
+        ###### sync decryption of altered ciphertext fails
+        ict = int.from_bytes(ct, BIG)
+        problem = "Sync ciphertext alteration not caught!"
+        for bit in range(0, ict.bit_length(), 16):
+            with Ignore(cipher.InvalidSHMAC, if_else=violation(problem)):
+                altered_ct = (ict ^ (1 << bit)).to_bytes(len(ct), BIG)
+                cipher.bytes_decrypt(altered_ct)
 
-    # sync decryption of ciphertext shortened to invalid size fails
-    problem = "Invalid size shortened sync ciphertext allowed"
-    for fewer_bytes in range(1, BLOCKSIZE):
-        with ignore(ValueError, if_else=violation(problem)):
-            cipher.bytes_decrypt(ct[:-fewer_bytes])
+        # sync decryption of ciphertext lengthened to invalid size fails
+        problem = "Invalid size lengthened sync ciphertext allowed"
+        for extra_bytes in range(1, config.BLOCKSIZE):
+            with Ignore(ValueError, if_else=violation(problem)):
+                cipher.bytes_decrypt(ct + token_bytes(extra_bytes))
+
+        # sync decryption of ciphertext shortened to invalid size fails
+        problem = "Invalid size shortened sync ciphertext allowed"
+        for fewer_bytes in range(1, config.BLOCKSIZE):
+            with Ignore(ValueError, if_else=violation(problem)):
+                cipher.bytes_decrypt(ct[:-fewer_bytes])
 
 
-async def aciphertext_stream():
-    key_bundle = await KeyAADBundle(key, aad=aad).async_mode()
-    shmac = StreamHMAC(key_bundle)._for_encryption()
-    datastream = aplaintext_stream(plaintext_bytes)
-    cipherstream = abytes_encipher(datastream, shmac=shmac)
+async def aciphertext_stream(config, cipher, salt, aad):
+    key_bundle = await cipher._KeyAADBundle(cipher._kdfs, aad=aad).async_mode()
+    shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
+    datastream = abatch(await cipher._padding.apad_plaintext(plaintext_bytes), size=config.BLOCKSIZE)
+    cipherstream = cipher._Junction.abytes_encipher(datastream, shmac=shmac)
 
     first_ciphertext_block = await cipherstream.asend(None)
     yield key_bundle.salt, key_bundle.iv
@@ -120,11 +203,11 @@ async def aciphertext_stream():
         )
 
 
-def ciphertext_stream():
-    key_bundle = KeyAADBundle(key, aad=aad).sync_mode()
-    shmac = enc_hmac = StreamHMAC(key_bundle)._for_encryption()
-    datastream = plaintext_stream(plaintext_bytes)
-    cipherstream = bytes_encipher(datastream, shmac=shmac)
+def ciphertext_stream(config, cipher, salt, aad):
+    key_bundle = cipher._KeyAADBundle(cipher._kdfs, aad=aad).sync_mode()
+    shmac = enc_hmac = cipher._StreamHMAC(key_bundle)._for_encryption()
+    datastream = batch(cipher._padding.pad_plaintext(plaintext_bytes), size=config.BLOCKSIZE)
+    cipherstream = cipher._Junction.bytes_encipher(datastream, shmac=shmac)
 
     first_ciphertext_block = cipherstream.send(None)
     yield key_bundle.salt, key_bundle.iv
@@ -140,229 +223,324 @@ def ciphertext_stream():
 
 
 async def test_async_block_ids_during_deciphering():
-    cipherstream = aciphertext_stream()
-    salt, iv = await cipherstream.asend(None)
-    key_bundle = await KeyAADBundle(key, salt=salt, aad=aad, iv=iv).async_mode()
-    shmac = StreamHMAC(key_bundle)._for_decryption()
 
-    ciphertext = []
-    deciphering = abytes_decipher(aunpack(ciphertext), shmac=shmac)
+    for (config, cipher, salt, aad) in all_ciphers:
+        cipherstream = aciphertext_stream(config, cipher, salt, aad)
+        salt, iv = await cipherstream.asend(None)
+        key_bundle = await cipher._KeyAADBundle(cipher._kdfs, salt=salt, aad=aad, iv=iv).async_mode()
+        shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
 
-    padded_plaintext = b""
-    async for block_id, ciphertext_block in cipherstream:
-        await shmac.atest_next_block_id(block_id, ciphertext_block)
-        ciphertext.append(ciphertext_block)
-        padded_plaintext += await deciphering.asend(None)
+        ciphertext = []
+        deciphering = cipher._Junction.abytes_decipher(aunpack(ciphertext), shmac=shmac)
 
-        # altering the block_id fails
-        problem = "Block id was modified without notice!"
-        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(problem)):
-            fake_block_id = await axi_mix(block_id + b"\x01", size=BLOCK_ID_BYTES)
-            await shmac.atest_next_block_id(fake_block_id, ciphertext_block)
+        padded_plaintext = b""
+        async for block_id, ciphertext_block in cipherstream:
+            await shmac.atest_next_block_id(block_id, ciphertext_block)
+            ciphertext.append(ciphertext_block)
+            padded_plaintext += await deciphering.asend(None)
 
-        # a block_id that is too short fails
-        problem = "An insufficient size block id was allowed!"
-        with ignore(PermissionError, if_else=violation(problem)):
-            truncated_block_id = block_id[:MIN_BLOCK_ID_BYTES - 1]
-            await shmac.atest_next_block_id(truncated_block_id, ciphertext_block)
+            # altering the block_id fails
+            problem = "Block id was modified without notice!"
+            with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
+                fake_block_id = await axi_mix(block_id + b"\x01", size=config.BLOCK_ID_BYTES)
+                await shmac.atest_next_block_id(fake_block_id, ciphertext_block)
 
-        # alterting the ciphertext_block fails
-        problem = "Block was modified without notice!"
-        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(problem)):
-            fake_block = await axi_mix(ciphertext_block + b"\x01", size=BLOCKSIZE)
-            await shmac.atest_next_block_id(block_id, fake_block)
+            # a block_id that is too short fails
+            problem = "An insufficient size block ID was allowed!"
+            with Ignore(PermissionError, if_else=violation(problem)):
+                truncated_block_id = block_id[:config.MIN_BLOCK_ID_BYTES - 1]
+                await shmac.atest_next_block_id(truncated_block_id, ciphertext_block)
 
-    assert plaintext_bytes == await Padding.adepad_plaintext(
-        padded_plaintext
-    )
+            # a block_id that is too large fails
+            problem = "An too large block ID was allowed!"
+            with Ignore(PermissionError, if_else=violation(problem)):
+                expanded_block_id = (config.MAX_BLOCK_ID_BYTES + 1) * b"\xff"
+                await shmac.atest_next_block_id(expanded_block_id, ciphertext_block)
 
-    problem = "MAC object accessible after finalization!"
-    tag = await shmac.afinalize()
-    await shmac.atest_shmac(tag)
-    with ignore(PermissionError, if_else=violation(problem)):
-        shmac._mac.digest()
+            # a non-bytes block_id fails
+            problem = "A non-bytes block ID was allowed!"
+            with Ignore(TypeError, if_else=violation(problem)):
+                await shmac.atest_next_block_id(block_id.hex(), ciphertext_block)
+
+            # alterting the ciphertext_block fails
+            problem = "Block was modified without notice!"
+            with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
+                fake_block = await axi_mix(ciphertext_block + b"\x01", size=config.BLOCKSIZE)
+                await shmac.atest_next_block_id(block_id, fake_block)
+
+        assert plaintext_bytes == await cipher._padding.adepad_plaintext(
+            padded_plaintext
+        )
+
+        problem = "MAC object accessible after finalization!"
+        tag = await shmac.afinalize()
+        await shmac.atest_shmac(tag)
+        with Ignore(AttributeError, if_else=violation(problem)):
+            shmac._mac.digest()
 
 
 def test_sync_block_ids_during_deciphering():
-    stream = ciphertext_stream()
-    salt, iv = stream.send(None)
-    key_bundle = KeyAADBundle(key, salt=salt, aad=aad, iv=iv).sync_mode()
-    shmac = StreamHMAC(key_bundle)._for_decryption()
 
-    ciphertext = []
-    deciphering = bytes_decipher(unpack(ciphertext), shmac=shmac)
+    for (config, cipher, salt, aad) in all_ciphers:
+        stream = ciphertext_stream(config, cipher, salt, aad)
+        salt, iv = stream.send(None)
+        key_bundle = cipher._KeyAADBundle(cipher._kdfs, salt=salt, aad=aad, iv=iv).sync_mode()
+        shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
 
-    padded_plaintext = b""
-    for block_id, ciphertext_block in stream:
-        shmac.test_next_block_id(block_id, ciphertext_block)
-        ciphertext.append(ciphertext_block)
-        padded_plaintext += deciphering.send(None)
+        ciphertext = []
+        deciphering = cipher._Junction.bytes_decipher(unpack(ciphertext), shmac=shmac)
 
-        # altering the block_id fails
-        problem = "Block id was modified without notice!"
-        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(problem)):
-            fake_block_id = xi_mix(block_id + b"\x01", size=BLOCK_ID_BYTES)
-            shmac.test_next_block_id(fake_block_id, ciphertext_block)
+        padded_plaintext = b""
+        for block_id, ciphertext_block in stream:
+            shmac.test_next_block_id(block_id, ciphertext_block)
+            ciphertext.append(ciphertext_block)
+            padded_plaintext += deciphering.send(None)
 
-        # a block_id that is too short fails
-        problem = "An insufficient size block id was allowed!"
-        with ignore(PermissionError, if_else=violation(problem)):
-            truncated_block_id = block_id[:MIN_BLOCK_ID_BYTES - 1]
-            shmac.test_next_block_id(truncated_block_id, ciphertext_block)
+            # altering the block_id fails
+            problem = "Block id was modified without notice!"
+            with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
+                fake_block_id = xi_mix(block_id + b"\x01", size=config.BLOCK_ID_BYTES)
+                shmac.test_next_block_id(fake_block_id, ciphertext_block)
 
-        # alterting the ciphertext_block fails
-        problem = "Block was modified without notice!"
-        with ignore(StreamHMAC.InvalidBlockID, if_else=violation(problem)):
-            fake_block = xi_mix(ciphertext_block + b"\x01", size=BLOCKSIZE)
-            shmac.test_next_block_id(block_id, fake_block)
+            # a block_id that is too short fails
+            problem = "An insufficient size block ID was allowed!"
+            with Ignore(PermissionError, if_else=violation(problem)):
+                truncated_block_id = block_id[:config.MIN_BLOCK_ID_BYTES - 1]
+                shmac.test_next_block_id(truncated_block_id, ciphertext_block)
 
-    assert plaintext_bytes == Padding.depad_plaintext(padded_plaintext)
+            # a block_id that is too large fails
+            problem = "An too large block ID was allowed!"
+            with Ignore(PermissionError, if_else=violation(problem)):
+                expanded_block_id = (config.MAX_BLOCK_ID_BYTES + 1) * b"\xff"
+                shmac.test_next_block_id(expanded_block_id, ciphertext_block)
 
-    problem = "MAC object accessible after finalization!"
-    tag = shmac.finalize()
-    shmac.test_shmac(tag)
-    with ignore(PermissionError, if_else=violation(problem)):
-        shmac._mac.digest()
+            # a non-bytes block_id fails
+            problem = "A non-bytes block ID was allowed!"
+            with Ignore(TypeError, if_else=violation(problem)):
+                shmac.test_next_block_id(block_id.hex(), ciphertext_block)
+
+            # alterting the ciphertext_block fails
+            problem = "Block was modified without notice!"
+            with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
+                fake_block = xi_mix(ciphertext_block + b"\x01", size=config.BLOCKSIZE)
+                shmac.test_next_block_id(block_id, fake_block)
+
+        assert plaintext_bytes == cipher._padding.depad_plaintext(padded_plaintext)
+
+        problem = "MAC object accessible after finalization!"
+        tag = shmac.finalize()
+        shmac.test_shmac(tag)
+        with Ignore(AttributeError, if_else=violation(problem)):
+            shmac._mac.digest()
 
 
 def test_sync_cipher_decipher_streams():
-    # buffering protocol works for varying sizes
-    for i in range(0, 512 - INNER_HEADER_BYTES - 1, unique_range(1, 64)):
-        stream_enc = CipherStream(key)
-        pt_enc = i * b"a"
-        stream_enc.buffer(pt_enc)
 
-        stream_dec = DecipherStream(
-            key, salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
-        )
-        for var in ("salt", "iv", "aad", "PACKETSIZE"):
-            assert getattr(stream_enc, var) == getattr(stream_dec, var)
-        pt_dec = b""
-        join = b"".join
-        for id_ct in stream_enc:
-            stream_dec.buffer(join(id_ct))
-            for pt in stream_dec:
-                pt_dec += pt
-        for id_ct in stream_enc.finalize():
-            stream_dec.buffer(join(id_ct))
-        for pt in stream_dec.finalize():
-            pt_dec += pt
-        assert pt_dec == pt_enc
+    # buffering protocol works for varying sizes
+    for (config, cipher, salt, aad) in all_ciphers:
+        for i in range(0, 512 - config.INNER_HEADER_BYTES - 1, randrange(1, 64)):
+            stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
+            pt_enc = i * b"a"
+            stream_enc.buffer(pt_enc)
+
+            stream_dec = cipher.stream_decrypt(
+                salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
+            )
+            for var in ("salt", "iv", "aad", "PACKETSIZE"):
+                assert getattr(stream_enc, var) == getattr(stream_dec, var)
+            pt_dec = b""
+            join = b"".join
+            for id_ct in stream_enc:
+                stream_dec.buffer(join(id_ct))
+                for pt in stream_dec:
+                    pt_dec += pt
+            try:
+                for id_ct in stream_enc.finalize():
+                    stream_dec.buffer(join(id_ct))
+                for pt in stream_dec.finalize():
+                    pt_dec += pt
+
+                problem = (
+                    "Processing was allowed to continue after finalization."
+                )
+                with Ignore(InterruptedError, if_else=violation(problem)):
+                    stream_enc.buffer(pt_enc)
+                with Ignore(InterruptedError, if_else=violation(problem)):
+                    stream_dec.buffer(id_ct[1])
+            except AssertionError as error:
+                raise error
+            assert pt_enc == pt_dec, f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
 
 
 async def test_async_cipher_decipher_streams():
+
     # buffering protocol works for varying sizes
-    for i in range(0, 512 - INNER_HEADER_BYTES - 1, unique_range(1, 64)):
-        stream_enc = await AsyncCipherStream(key, salt=salt, aad=aad)
-        pt_enc = i * b"a"
+    for (config, cipher, salt, aad) in all_ciphers:
+        for i in range(0, 512 - config.INNER_HEADER_BYTES - 1, randrange(1, 64)):
+            stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
+            pt_enc = i * b"a"
+            await stream_enc.abuffer(pt_enc)
+
+            stream_dec = await cipher.astream_decrypt(
+                salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
+            )
+            for var in ("salt", "iv", "aad", "PACKETSIZE"):
+                assert getattr(stream_enc, var) == getattr(stream_dec, var)
+            pt_dec = b""
+            join = b"".join
+            async for id_ct in stream_enc:
+                await stream_dec.abuffer(join(id_ct))
+                async for pt in stream_dec:
+                    pt_dec += pt
+            async for id_ct in stream_enc.afinalize():
+                await stream_dec.abuffer(join(id_ct))
+            async for pt in stream_dec.afinalize():
+                pt_dec += pt
+
+            problem = (
+                "Processing was allowed to continue after finalization."
+            )
+            with Ignore(InterruptedError, if_else=violation(problem)):
+                await stream_enc.abuffer(pt_enc)
+            with Ignore(InterruptedError, if_else=violation(problem)):
+                await stream_dec.abuffer(id_ct[1])
+            assert pt_enc == pt_dec, f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
+
+
+async def test_async_encipher_sync_decipher_interop():
+
+    # inter-op between async encryption & sync decryption doesn't fail
+    for (config, cipher, salt, aad) in all_ciphers:
+        stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
+        pt_enc = plaintext_bytes
         await stream_enc.abuffer(pt_enc)
 
-        stream_dec = await AsyncDecipherStream(
-            key, salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
+        stream_dec = cipher.stream_decrypt(
+            salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
         )
         for var in ("salt", "iv", "aad", "PACKETSIZE"):
             assert getattr(stream_enc, var) == getattr(stream_dec, var)
         pt_dec = b""
         join = b"".join
-        async for id_ct in stream_enc:
-            await stream_dec.abuffer(join(id_ct))
-            async for pt in stream_dec:
+
+        async for block_id, block in stream_enc:
+            # the cipher can be resumed after the failure state of an
+            # InvalidBlockID exception is recovered & the correct data
+            # is supplied to the buffer
+            problem = "An altered block_id was not detected"
+            fake_block_id = xi_mix(block_id + b"\x01", size=len(block_id))
+            with Ignore(InvalidBlockID, if_else=violation(problem)) as relay:
+                stream_dec.buffer(fake_block_id + block)
+            assert fake_block_id == relay.error.failure_state.block_id
+            assert block == relay.error.failure_state.block
+            assert 0 == len(relay.error.failure_state.buffer())
+
+            problem = "An altered block was not detected"
+            fake_block = xi_mix(block + b"\x01", size=len(block))
+            with Ignore(InvalidBlockID, if_else=violation(problem)) as relay:
+                stream_dec.buffer(block_id + fake_block)
+            assert block_id == relay.error.failure_state.block_id
+            assert fake_block == relay.error.failure_state.block
+            assert 0 == len(relay.error.failure_state.buffer())
+
+            # correct data is processed without failure
+            stream_dec.buffer(block_id + block)
+            for pt in stream_dec:
                 pt_dec += pt
         async for id_ct in stream_enc.afinalize():
-            await stream_dec.abuffer(join(id_ct))
-        async for pt in stream_dec.afinalize():
+            stream_dec.buffer(join(id_ct))
+        for pt in stream_dec.finalize():
             pt_dec += pt
+
+        problem = (
+            "Processing was allowed to continue after finalization."
+        )
+        with Ignore(InterruptedError, if_else=violation(problem)):
+            await stream_enc.abuffer(pt_enc)
+        with Ignore(InterruptedError, if_else=violation(problem)):
+            stream_dec.buffer(id_ct[1])
         assert pt_dec == pt_enc
 
 
-async def test_async_encipher_sync_decipher_interop():
-    # inter-op between async encryption & sync decryption doesn't fail
-    stream_enc = await AsyncCipherStream(key, salt=salt, aad=aad)
-    pt_enc = plaintext_bytes
-    await stream_enc.abuffer(pt_enc)
-
-    stream_dec = DecipherStream(
-        key, salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
-    )
-    for var in ("salt", "iv", "aad", "PACKETSIZE"):
-        assert getattr(stream_enc, var) == getattr(stream_dec, var)
-    pt_dec = b""
-    join = b"".join
-
-    async for block_id, block in stream_enc:
-        # the cipher can be resumed after the failure state of an
-        # InvalidBlockID exception is recovered & the correct data
-        # is supplied to the buffer
-        problem = "An altered block_id was not detected"
-        fake_block_id = xi_mix(block_id + b"\x01", size=len(block_id))
-        with ignore(InvalidBlockID, if_else=violation(problem)) as relay:
-            stream_dec.buffer(fake_block_id + block)
-        assert fake_block_id == relay.error.failure_state.block_id
-        assert block == relay.error.failure_state.block
-        assert 0 == len(relay.error.failure_state.buffer())
-
-        problem = "An altered block was not detected"
-        fake_block = xi_mix(block + b"\x01", size=len(block))
-        with ignore(InvalidBlockID, if_else=violation(problem)) as relay:
-            stream_dec.buffer(block_id + fake_block)
-        assert block_id == relay.error.failure_state.block_id
-        assert fake_block == relay.error.failure_state.block
-        assert 0 == len(relay.error.failure_state.buffer())
-
-        # correct data is processed without failure
-        stream_dec.buffer(block_id + block)
-        for pt in stream_dec:
-            pt_dec += pt
-    async for id_ct in stream_enc.afinalize():
-        stream_dec.buffer(join(id_ct))
-    for pt in stream_dec.finalize():
-        pt_dec += pt
-    assert pt_dec == pt_enc
-
-
 async def test_sync_encipher_async_decipher_interop():
+
     # inter-op between sync encryption & async decryption doesn't fail
-    stream_enc = CipherStream(key)
-    pt_enc = plaintext_bytes
-    stream_enc.buffer(pt_enc)
+    for (config, cipher, salt, aad) in all_ciphers:
+        stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
+        pt_enc = plaintext_bytes
+        stream_enc.buffer(pt_enc)
 
-    stream_dec = await AsyncDecipherStream(
-        key, salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
-    )
-    for var in ("salt", "iv", "aad", "PACKETSIZE"):
-        assert getattr(stream_enc, var) == getattr(stream_dec, var)
-    pt_dec = b""
-    join = b"".join
+        stream_dec = await cipher.astream_decrypt(
+            salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
+        )
+        for var in ("salt", "iv", "aad", "PACKETSIZE"):
+            assert getattr(stream_enc, var) == getattr(stream_dec, var)
+        pt_dec = b""
+        join = b"".join
 
-    for block_id, block in stream_enc:
-        # the cipher can be resumed after the failure state of an
-        # InvalidBlockID exception is recovered & the correct data
-        # is supplied to the buffer
-        problem = "An altered block_id was not detected"
-        fake_block_id = xi_mix(block_id + b"\x01", size=len(block_id))
-        async with aignore(InvalidBlockID, if_else=aviolation(problem)) as relay:
-            await stream_dec.abuffer(fake_block_id + block)
-        assert fake_block_id == relay.error.failure_state.block_id
-        assert block == relay.error.failure_state.block
-        assert 0 == len(relay.error.failure_state.buffer())
+        for block_id, block in stream_enc:
+            # the cipher can be resumed after the failure state of an
+            # InvalidBlockID exception is recovered & the correct data
+            # is supplied to the buffer
+            problem = "An altered block_id was not detected"
+            fake_block_id = xi_mix(block_id + b"\x01", size=len(block_id))
+            async with Ignore(InvalidBlockID, if_else=violation(problem)) as relay:
+                await stream_dec.abuffer(fake_block_id + block)
+            assert fake_block_id == relay.error.failure_state.block_id
+            assert block == relay.error.failure_state.block
+            assert 0 == len(relay.error.failure_state.buffer())
 
-        problem = "An altered block was not detected"
-        fake_block = xi_mix(block + b"\x01", size=len(block))
-        async with aignore(InvalidBlockID, if_else=aviolation(problem)) as relay:
-            await stream_dec.abuffer(block_id + fake_block)
-        assert block_id == relay.error.failure_state.block_id
-        assert fake_block == relay.error.failure_state.block
-        assert 0 == len(relay.error.failure_state.buffer())
+            problem = "An altered block was not detected"
+            fake_block = xi_mix(block + b"\x01", size=len(block))
+            async with Ignore(InvalidBlockID, if_else=violation(problem)) as relay:
+                await stream_dec.abuffer(block_id + fake_block)
+            assert block_id == relay.error.failure_state.block_id
+            assert fake_block == relay.error.failure_state.block
+            assert 0 == len(relay.error.failure_state.buffer())
 
-        # correct data is processed without failure
-        await stream_dec.abuffer(block_id + block)
-        async for pt in stream_dec:
+            # correct data is processed without failure
+            await stream_dec.abuffer(block_id + block)
+            async for pt in stream_dec:
+                pt_dec += pt
+        for id_ct in stream_enc.finalize():
+            await stream_dec.abuffer(join(id_ct))
+        async for pt in stream_dec.afinalize():
             pt_dec += pt
-    for id_ct in stream_enc.finalize():
-        await stream_dec.abuffer(join(id_ct))
-    async for pt in stream_dec.afinalize():
-        pt_dec += pt
-    assert pt_dec == pt_enc
+
+        problem = (
+            "Processing was allowed to continue after finalization."
+        )
+        with Ignore(InterruptedError, if_else=violation(problem)):
+            stream_enc.buffer(pt_enc)
+        with Ignore(InterruptedError, if_else=violation(problem)):
+            await stream_dec.abuffer(id_ct[1])
+        assert pt_dec == pt_enc
+
+
+async def test_calling_aupdate_before_setting_mode_causes_error() -> None:
+    for (config, cipher, salt, aad) in all_ciphers:
+        key_bundle = await cipher._KeyAADBundle(
+            cipher._kdfs, salt=salt, aad=aad
+        ).async_mode()
+
+        problem = (
+            "An async shmac update was allowed without setting mode."
+        )
+        with Ignore(PermissionError, if_else=violation(problem)):
+            await cipher._StreamHMAC(key_bundle)._aupdate(token_bytes(168))
+
+
+async def test_calling_update_before_setting_mode_causes_error() -> None:
+    for (config, cipher, salt, aad) in all_ciphers:
+        key_bundle = cipher._KeyAADBundle(
+            cipher._kdfs, salt=salt, aad=aad
+        ).sync_mode()
+
+        problem = (
+            "A sync shmac update was allowed without setting mode."
+        )
+        with Ignore(PermissionError, if_else=violation(problem)):
+            cipher._StreamHMAC(key_bundle)._update(token_bytes(168))
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

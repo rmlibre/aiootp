@@ -11,11 +11,7 @@
 #
 
 
-from test_initialization import *
-from test_passcrypt_apasscrypt import *
-from test_X25519_Ed25519 import *
-from test_PackageSigner import *
-from test_misc_in_keygens import *
+from test_Typing import *
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
