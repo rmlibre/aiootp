@@ -1,12 +1,12 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
@@ -31,33 +31,30 @@ __PUBLIC_X25519_KEY__ = (
 
 
 __doc__ = (
-    "aiootp is an application agnostic — async-compatible — anonymity &"
-    " cryptography library, providing access to high-level Pythonic uti"
-    "lities to simplify the tasks of secure data processing, communicat"
-    "ion & storage."
+    "a high-level async cryptographic anonymity library to scale, simplify, "
+    "& automate privacy best practices for secure data & identity processing, "
+    "communication, & storage."
 )
 
 
+import sys
+
 from .commons import *
-from .paths import *
+from .commons import remake_subpackage
 from .asynchs import *
-from .gentools import *
 from .generics import *
 from .randoms import *
 from .ciphers import *
 from .keygens import *
 from .databases import *
-from .__ui_coordination import *
+from .__engagement.issue_reporting import report_security_issue
 
 
 __all__ = [
     "commons",
     *commons.__all__,
-    *paths.__all__,
     "asynchs",
     *asynchs.__all__,
-    "gentools",
-    *gentools.__all__,
     "generics",
     *generics.__all__,
     "randoms",
@@ -66,27 +63,63 @@ __all__ = [
     *ciphers.__all__,
     "keygens",
     *keygens.__all__,
+    "databases",
     *databases.__all__,
 ]
 
 
-from .__engagement._report_security_issue import report_security_issue
-from ._debuggers import _debuggers
-from .commons import commons
-from .paths import paths as _paths
-from .asynchs  import asynchs
-from .gentools import gentools
-from .generics import generics
-from .randoms import randoms
-from .ciphers import ciphers
-from .keygens import keygens
+subpackages = dict(
+    _constants=_constants,
+    _permutations=_permutations,
+    commons=commons,
+    asynchs=asynchs,
+    generics=generics,
+    randoms=randoms,
+    ciphers=ciphers,
+    keygens=keygens,
+    databases=databases,
+)
 
 
-del paths
+modules = dict(
+    _typing=_typing,
+    _exceptions=_exceptions,
+    _debug_control=_debug_control,
+    _gentools=_gentools,
+    _paths=_paths,
+)
+
+
+module_api = dict(
+    **{
+        name: globals()[name]
+        for name in __all__
+        if not hasattr(globals()[name], "__spec__")
+    },
+    __all__=__all__,
+    __doc__=__doc__,
+    __file__=__file__,
+    __name__=__name__,
+    __spec__=__spec__,
+    __author__=__author__,
+    __loader__=__loader__,
+    __license__=__license__,
+    __package__=__package__,
+    __version__=__version__,
+    __PUBLIC_ED25519_KEY__=__PUBLIC_ED25519_KEY__,
+    __PUBLIC_X25519_KEY__=__PUBLIC_X25519_KEY__,
+    report_security_issue=report_security_issue,
+)
+
+
+aiootp = remake_subpackage(sys.modules[__name__])
+
+
+del sys
 del databases
-del __constants
-del __dependencies
-del __ciphers
+del subpackages
+del modules
+del module_api
 del __engagement
-del __ui_coordination
+del remake_subpackage
 
