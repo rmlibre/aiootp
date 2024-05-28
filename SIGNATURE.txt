@@ -1,11 +1,11 @@
 {
-    "checksum": "15b8955408ec353103b57133a86c9c5563372b804344196a985cd497b63d293e7829b1caac5e3c90ba30d91c8cece741",
+    "checksum": "20f859dbe6ad8bff6ffc2289e5609318380a26db23a987c36601f45133c4ffeff8d1f93798c1633307ccf4e9487bcee2",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "847eb6d28bcf866b958cac4946bce170c6724b7e1249d82ea5c540fbf481915b6284a1988d46f7a5b53ac5065f31a85c",
         "FAQ.rst": "9dd3aaeb03738297ca0b38aa051a6097efa9afe7e81adc78b73afb5c2318f87dd7fee3b206774acbeb1066de9e6df92c",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
-        "MANIFEST.in": "58023d2524f0f04b599e500b9c4e8ffa8e1d279121efd64d41a4d0d23b3038e2721ce1ecb68fae1586ba47790f7f3786",
+        "MANIFEST.in": "eb785008a1526433ce179a8b9ef5080478a1ecd06e2224a0b1b8e835e0cbef1ad44d43f102770588295ca5e1d5e04c8f",
         "README.rst": "a8e8e528cf14a6f45ffcc0a993a47ba875c5786ff3627994f2a7eee1d1ea7ccda1c7a297fb02d13b885930fcd33b912e",
         "SECURITY.md": "d18e0412316ce59f508ffd30bc4750ee5aa8b4ef6b61de70b1f9d6e6527c519f32772c7f199b08b20fc407979c08a702",
         "aiootp/__engagement/__init__.py": "8eb1c04b11afb9efb3da69404629d1ade4c3bf2cc79a92653ce065d17e5da5302c644c8fbe09b97475c3ac55d9921b7c",
@@ -117,7 +117,7 @@
         "tests/test_Processes_Threads.py": "b80d6b2e23b60deff65f948b20de422cc79508ca15400f28950b99fbb664d5ee52f5119f8d1f74734d7584a1093da0a9",
         "tests/test_SequenceID.py": "0661f8ac904c68445848c403e6aa0c77e261fd88075dc537b9ee42d5f7f7405dcd63df004faff0d600b082a2260ae708",
         "tests/test_StreamHMAC.py": "b1bec8d7b378b285b46583b0d4adb8ffd928eb6bd667c205a0ade33b3d824b45c4761650a8452ea47c7ba942350d52ff",
-        "tests/test_Typing.py": "211c751ba2e4e469d034d6f7d408833ee13e9bbddd1daae2ef334b63e939c3683e70fc3ce705331de45e19ba7149811f",
+        "tests/test_Typing_class.py": "211c751ba2e4e469d034d6f7d408833ee13e9bbddd1daae2ef334b63e939c3683e70fc3ce705331de45e19ba7149811f",
         "tests/test_X25519_Ed25519.py": "a8bb38bc6bf47eb769770634dff16536649dbc569f3e224b690ff98eb17be2f7844c00d42530bcf33ba742d893c31357",
         "tests/test_affine_permutations.py": "46b4fc440a2d05802725c5a812f06d58f87562d4f8800934a87c270577db1f79de9d77af7c444e309381a91b860d6752",
         "tests/test_aiootp.py": "e1b4fd34e3351c4530085f7bce77fc56835b1afe8db4edc261988a1715236cca42a94ccefe62dbe1f06cfa15d74a100d",
@@ -143,12 +143,12 @@
         "tests/test_permutations.py": "f9261eaa557889f147d245039c15828c2c38323ba28a32a0e47324296e89681ca8ac7d858e7dc23feffa5f4d7daa589b",
         "tests/test_randoms.py": "7e8ef0c1df05bb58c2ddc55a67fe65b3a4d62514cf3cd2f2dd03078bd278ce3da2aefcd54f992dbc05079f4e388dd4da",
         "tests/test_time_to_live.py": "822b1b8aeb78c2cf42704c5e190cec2e56de9336b03d2b9835f18a669c83c9e073e37ca9dbb3fbaa9cd105e475b64a1e",
-        "tests/test_typing.py": "ace0d7602b1673865c95ccc94d4da1e4081736bdebb8637b3a8859aa4461ec3d89effbf1583ad24bb600497998b91b33"
+        "tests/test_typing.py": "74e6503a89c4d2b88adc15687786eab85f3ccd1c15879f6783a0b4d17b775256a565f048f6642c042d04496932555be1"
     },
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 1,
+        "build_number": 2,
         "date": 19871,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -156,5 +156,5 @@
         "version": "0.23.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "49dfa93a2535af4aba23fbc72cbe75d5c7644837876dd184373b29c46d824839164ddde25fec5de3e7c5024eab315426ac6e53596d27367c3ee9e251c70efa06"
+    "signature": "36ebbe1b26244b4d8e689ca6e567c8800890e8716ff4443e9addc4b0d28be9aeb24ca07e2129785ee58dde1922adf47fc2b4491f094cabc45a7569e01a28080e"
 }
