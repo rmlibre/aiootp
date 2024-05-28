@@ -1,17 +1,20 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
 __all__ = ["report_security_issue"]
+
+
+__doc__ = "Functionalities to engage with users & security researchers."
 
 
 import sys
@@ -21,9 +24,12 @@ from collections import deque
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 from aiootp import __PUBLIC_X25519_KEY__
-from aiootp import Domains, DomainKDF, X25519, Database
+from aiootp import Domains, DomainKDF, X25519, Database, Chunky2048
+from aiootp._constants import CHUNKY_2048
 from aiootp._constants import CONVERSATION, PERIOD_KEYS, PERIOD_KEY
-from aiootp.generics import BytesIO, Padding, Clock, canonical_pack
+from aiootp.asynchs import Clock
+from aiootp.generics import ByteIO, canonical_pack
+from aiootp.ciphers.padding import Padding
 
 
 def report_security_issue() -> None:
@@ -113,7 +119,7 @@ def report_security_issue() -> None:
         "\nplease type or paste your message here. hit CTRL-D (or "
         "\nCTRL-Z on Windows) to finish the message:\n"
     )
-    message: bytes = Padding.pad_plaintext(
+    message: bytes = Padding(Chunky2048._config).pad_plaintext(
         canonical_pack(
             your_email_address,
             b"".join(line.encode() for line in sys.stdin),
@@ -138,12 +144,12 @@ def report_security_issue() -> None:
     )
 
     # display ciphertext payload, what to expect & thank yous
-    print("\nexcellent! here's the json message you can email to us:\n")
+    print("\n\nExcellent! here's the json message you can email to us:\n")
     print(json.dumps(dict(
-        date=BytesIO.bytes_to_urlsafe(date).decode(),
-        public_key=BytesIO.bytes_to_urlsafe(your_public_key.public_bytes).decode(),
-        siv=BytesIO.bytes_to_urlsafe(siv).decode(),
-        encrypted_message=BytesIO.bytes_to_urlsafe(encrypted_message).decode(),
+        date=ByteIO.bytes_to_urlsafe(date).decode(),
+        public_key=ByteIO.bytes_to_urlsafe(your_public_key.public_bytes).decode(),
+        siv=ByteIO.bytes_to_urlsafe(siv).decode(),
+        encrypted_message=ByteIO.bytes_to_urlsafe(encrypted_message).decode(),
     ), indent=4))
     print("\nsend it to either rmlibre@riseup.net or gonzo.development@protonmail.com")
 
