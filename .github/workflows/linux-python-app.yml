@@ -13,7 +13,7 @@ jobs:
       max-parallel: 10
       matrix:
         python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x"]
-        os: [ubuntu-latest, ubuntu-20.04]
+        os: [ubuntu-latest, ubuntu-22.04]
     steps:
     - uses: actions/checkout@v3
     - name: setup python ${{ matrix.python-version }}
