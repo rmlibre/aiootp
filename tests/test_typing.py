@@ -11,7 +11,7 @@
 #
 
 
-from test_Typing import *
+from test_Typing_class import *
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
