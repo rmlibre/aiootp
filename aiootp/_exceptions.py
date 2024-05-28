@@ -1,57 +1,64 @@
 # This file is part of aiootp:
-# an application agnostic — async-compatible — anonymity & cryptography
-# library, providing access to high-level Pythonic utilities to simplify
-# the tasks of secure data processing, communication & storage.
+# a high-level async cryptographic anonymity library to scale, simplify,
+# & automate privacy best practices for secure data & identity processing,
+# communication, & storage.
 #
 # Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 # Copyright © 2019-2021 Gonzo Investigative Journalism Agency, LLC
 #            <gonzo.development@protonmail.ch>
-#           © 2019-2023 Richard Machado <rmlibre@riseup.net>
+#           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 # All rights reserved.
 #
 
 
 __all__ = [
     "AuthenticationFailed",
+    "CanonicalEncodingError",
     "CanonicalIssue",
     "CipherStreamIssue",
-    "CiphertextIssue",
     "DatabaseIssue",
+    "Ignore",
     "ImproperPassphrase",
     "InvalidBlockID",
-    "InvalidHMAC",
+    "InvalidCiphertextSize",
+    "InvalidDigest",
     "InvalidPassphrase",
     "InvalidSHMAC",
+    "InvalidSignature",
     "Issue",
     "KeyAADIssue",
     "Metadata",
     "PackageSignerIssue",
-    "PaddingIssue",
     "PasscryptIssue",
-    "TimestampIssue",
     "ReturnValue",
     "SHMACIssue",
     "TimestampExpired",
-    "aignore",
-    "araise_exception",
-    "ignore",
+    "TypeUncheckableAtRuntime",
+    "UndefinedRequiredAttributes",
     "raise_exception",
 ]
 
 
 __doc__ = (
-    "Organizes the package's exceptions in declarative classes & expres"
-    "sive methods on those classes."
+    "Organizes the package's exceptions in declarative & expressive "
+    "classes & methods."
 )
 
 
 import json
-import typing as t
+import asyncio
 from pathlib import Path
-from asyncio import sleep as asleep
-from contextlib import contextmanager
-from .__dependencies import async_contextmanager
-from .__constants import *
+from cryptography.exceptions import InvalidSignature
+
+from ._typing import Typing as t
+
+
+def raise_exception(obj: Exception) -> None:
+    """
+    Simply provides a callable which raises `obj` turning the raise
+    statement into an expression.
+    """
+    raise obj
 
 
 class Metadata:
@@ -69,243 +76,161 @@ class Metadata:
         self.size = len(value) if hasattr(value, "__len__") else None
 
 
-def is_exception(obj) -> bool:
+class Ignore:
     """
-    Returns a bool of whether ``obj`` is an exception object.
-    """
-    return hasattr(obj, "__cause__")
-
-
-async def araise_exception(obj: Exception) -> None:
-    """
-    Simply provides a callable which raises ``obj`` turning the raise
-    statement into an expression.
-    """
-    raise obj
-
-
-def raise_exception(obj: Exception) -> None:
-    """
-    Simply provides a callable which raises ``obj`` turning the raise
-    statement into an expression.
-    """
-    raise obj
-
-
-def display_exception_info(error) -> None:
-    """
-    Prints out debug information of exceptions.
-    """
-    print("Error Type:", error.__class__)
-    print("Error Args:", error.args)
-    print("Error Cause:", error.__cause__)
-    print("Error Value:", repr(getattr(error, "value", None)))
-    print("Error Attributes:", [n for n in dir(error) if not n[0] == "_"])
-
-
-class PlaceholderException(Exception):
-    """
-    Empty, unused placeholder exception.
-    """
-
-
-class AsyncRelayExceptions:
-    """
-    Creates objects which can run user-specified async code in the event
-    of an exception, the absence of an exception, or at the end of a
-    context.
-    """
-
-    __slots__ = (
-        "aexcept_code", "aelse_code", "afinally_code", "error", "message_bus"
-    )
-
-    _read_me = f"""
-    Overwrite {__slots__[:3]} methods with custom async functions.
-    They will proc in ``aiootp.generics.aignore`` async context manager
-    when:
-
-    1.  {__slots__[0]} - the ignored exceptions are raised within the
-    context.
-
-    2.  {__slots__[1]} - if no exception is raised within the context.
-
-    But always,
-    3.  {__slots__[2]} - at the end of the context.
-    """
-
-    def __init__(
-        self,
-        if_except: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-        if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-        finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-    ) -> None:
-        from .commons import Namespace
-
-        async def placeholder(*a, **kw):
-            return self._read_me
-
-        self.message_bus = Namespace()
-        self.aexcept_code = if_except if if_except else placeholder
-        self.aelse_code = if_else if if_else else placeholder
-        self.afinally_code = finally_run if finally_run else placeholder
-
-
-class RelayExceptions:
-    """
-    Creates objects which can run user-specified code in the event of an
-    exception, the absence of an exception, or at the end of a context.
-    """
-
-    __slots__ = (
-        "except_code", "else_code", "finally_code", "error", "message_bus"
-    )
-
-    _read_me = f"""
-    Overwrite {__slots__[:3]} methods with custom functions.
-    They will proc in ``aiootp.generics.ignore`` context manager when:
-
-    1.  {__slots__[0]} - the ignored exceptions are raised within the
-    context.
-
-    2.  {__slots__[1]} - if no exception is raised within the context.
-
-    But always,
-    3.  {__slots__[2]} - at the end of the context.
-    """
-
-    def __init__(
-        self,
-        if_except: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-        if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-        finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-    ) -> None:
-        from .commons import Namespace
-
-        def placeholder(*a, **kw):
-            return self._read_me
-
-        self.message_bus = Namespace()
-        self.except_code = if_except if if_except else placeholder
-        self.else_code = if_else if if_else else placeholder
-        self.finally_code = finally_run if finally_run else placeholder
-
-
-@async_contextmanager
-async def aignore(
-    *exceptions: t.Iterable[Exception],
-    if_except: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-    if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-    finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-) -> t.AsyncContextManager:
-    """
+    Allows specialized surpressing & handling of exceptions.
      _____________________________________
     |                                     |
     |            Usage Example:           |
     |_____________________________________|
 
-    async with aignore(TypeError):
-        c = a + b
-        # exception is surpressed if adding a and b raises a TypeError
+    with Ignore(TypeError):
+        c = None + "Hello"
+        # exception within context is surpressed if it's a `TypeError`
 
     Or, dynamically choose which exceptions to catch, and call custom
-    cleanup code. ->
+    cleanup code.
 
-    async def cleanup(error=None):
-        await database.asave()
+    def cleanup(relay: Ignore):
+        if issubclass(relay.error.__class__, PermissionError):
+            return False
+        else:
+            db.save_database()
+            return True
 
-    async with ignore(DynamicException, IOError) as error_relay:
-        error_relay.aexcept_code = cleanup
-        # This will close ``database`` if either DynamicException or
-        # IOError are raised within the block.
+    with Ignore(IOError, PermissionError) as relay:
+        relay.except_code = cleanup
+        # Analogous to `with Ignore(IOError, if_except=cleanup):`
+        # Runs `cleanup` if the specified type of error is raised. If
+        # `cleanup` returns `True` the exception is surpressed.
 
-        error_relay.afinally_code = cleanup
-        # This will ensure close is called on ``database`` in a finally
-        # block.
+        relay.else_code = cleanup
+        # Analogous to `with Ignore(IOError, if_else=cleanup):`
+        # Runs `cleanup` if no exception is raised in the context.
 
-    async with aignore(IOError, if_except=cleanup) as relay:
-        # Or more cleanly, pass the function to be run during an
-        # exception into ``if_except``.
+        relay.finally_code = cleanup
+        # Analogous to `with Ignore(IOError, finally_run=cleanup):`
+        # Always runs `cleanup` at the end of the context.
 
-    async with aignore(IOError, finally_run=cleanup) as relay:
-        # Similarly, to declare a function to run in the finally block.
+    async def acleanup(relay: Ignore):
+        ...
+
+    async with Ignore(IOError, PermissionError, if_except=acleanup):
+        ...
     """
-    try:
-        exceptions = exceptions if exceptions else PlaceholderException
-        relay = AsyncRelayExceptions(if_except, if_else, finally_run)
-        await asleep(0)
-        yield relay
-    except exceptions as error:
-        relay.error = error
-        error.message_bus = relay.message_bus
-        await relay.aexcept_code(error)
-    except Exception as error:
-        relay.error = error
-        error.message_bus = relay.message_bus
-        raise error
-    finally:
+
+    __slots__ = (
+        "ignored_exceptions",
+        "except_code",
+        "else_code",
+        "finally_code",
+        "bus",
+        "error",
+        "traceback",
+    )
+
+    class _PlaceholderHandler:
+        """
+        Stand-in handler when one isn't specified.
+        """
+
+        def __await__(self) -> "self":
+            yield
+            return self
+
+        def __call__(self, *a, **kw) -> "self":
+            return self
+
+        def __bool__(self) -> bool:
+            return True
+
+    def __init__(
+        self,
+        *exceptions: t.Container,
+        if_except: t.Union[None, t.Callable[[Exception], t.Any]] = None,
+        if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
+        finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
+    ) -> None:
+        placeholder = self._PlaceholderHandler()
+        self.ignored_exceptions = exceptions
+        self.bus = t.Namespace()
+        self.except_code = (
+            placeholder if if_except is None else if_except
+        )
+        self.else_code = (
+            placeholder if if_else is None else if_else
+        )
+        self.finally_code = (
+            placeholder if finally_run is None else finally_run
+        )
+
+    def __repr__(self) -> str:
+        return repr(getattr(self, "error", None))
+
+    async def __aenter__(self) -> "self":
+        """
+        Open an async context.
+        """
+        await asyncio.sleep(0)
+        return self
+
+    def __enter__(self) -> "self":
+        """
+        Open a sync context.
+        """
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: t.Optional[type] = None,
+        exc_value: t.Optional[Exception] = None,
+        traceback: t.Optional[t.TracebackType] = None,
+    ) -> None:
+        """
+        Allows the controlled handling of raised exceptions within the
+        context. If an exception specified by the instance is raised,
+        the `if_except` method must return a `bool`: returning `True`
+        surpresses the propagation of the exception, returning `False`
+        does not.
+        """
         try:
-            0 if hasattr(relay, "error") else await relay.aelse_code()
+            if exc_type is None:
+                await self.else_code(self)
+            else:
+                self.error = exc_value
+                self.traceback = traceback
+                if issubclass(exc_type, self.ignored_exceptions):
+                    return await self.except_code(self)
+                else:
+                    raise exc_value
         finally:
-            await relay.afinally_code()
+            await self.finally_code(self)
 
-
-@contextmanager
-def ignore(
-    *exceptions: t.Iterable[Exception],
-    if_except: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-    if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-    finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-) -> t.ContextManager:
-    """
-     _____________________________________
-    |                                     |
-    |            Usage Example:           |
-    |_____________________________________|
-
-    with ignore(TypeError):
-        c = a + b
-        # exception is surpressed if adding a and b raises a TypeError
-
-    Or, dynamically choose which exceptions to catch, and call custom
-    cleanup code. ->
-
-    def cleanup(error=None):
-        database.save()
-
-    with ignore(DynamicException, IOError) as error_relay:
-        error_relay.except_code = cleanup
-        # This will close ``database`` if either DynamicException or
-        # IOError are raised within the block.
-
-        error_relay.finally_code = cleanup
-        # This will ensure close is called on ``database`` in a finally
-        # block.
-
-    with ignore(DynamicException, IOError, if_except=cleanup) as relay:
-        # Or more cleanly, pass the function to be run during an
-        # exception into ``if_except``.
-
-    with ignore(DynamicException, IOError, finally_run=cleanup) as relay:
-        # Similarly, to declare a function to run in the finally block.
-    """
-    try:
-        exceptions = exceptions if exceptions else PlaceholderException
-        relay = RelayExceptions(if_except, if_else, finally_run)
-        yield relay
-    except exceptions as error:
-        relay.error = error
-        error.message_bus = relay.message_bus
-        relay.except_code(error)
-    except Exception as error:
-        relay.error = error
-        error.message_bus = relay.message_bus
-        raise error
-    finally:
+    def __exit__(
+        self,
+        exc_type: t.Optional[type] = None,
+        exc_value: t.Optional[Exception] = None,
+        traceback: t.Optional[t.TracebackType] = None,
+    ) -> None:
+        """
+        Allows the controlled handling of raised exceptions within the
+        context. If an exception specified by the instance is raised,
+        the `if_except` method must return a `bool`: returning `True`
+        surpresses the propagation of the exception, returning `False`
+        does not.
+        """
         try:
-            0 if hasattr(relay, "error") else relay.else_code()
+            if exc_type is None:
+                self.else_code(self)
+            else:
+                self.error = exc_value
+                self.traceback = traceback
+                if issubclass(exc_type, self.ignored_exceptions):
+                    return self.except_code(self)
+                else:
+                    raise exc_value
         finally:
-            relay.finally_code()
+            self.finally_code(self)
 
 
 class CanonicalEncodingError(ValueError):
@@ -328,6 +253,14 @@ class TimestampExpired(TimeoutError):
     current time minus a validation method's `ttl` parameter.
     """
 
+    _DEFAULT_MESSAGE: str = "Timestamp expired by <TIME> UNITS."
+
+    def __init__(self, units: str, expired_by: int) -> None:
+        self.units = units
+        self.expired_by = expired_by
+        message = self._DEFAULT_MESSAGE.replace("UNITS", repr(units))
+        super().__init__(message.replace("TIME", repr(expired_by)))
+
 
 class AuthenticationFailed(ValueError):
     """
@@ -346,13 +279,6 @@ class InvalidSHMAC(AuthenticationFailed):
     """
     An exception raised when at the end of processing a stream of
     ciphertext, a `shmac` tag is invalidated by the `StreamHMAC` object.
-    """
-
-
-class InvalidHMAC(AuthenticationFailed):
-    """
-    An exception raised when a `(a)test_hmac` method detects an
-    incorrect `untrusted_hmac`.
     """
 
 
@@ -377,6 +303,68 @@ class ImproperPassphrase(ValueError):
     """
 
 
+class UndefinedRequiredAttributes(AttributeError):
+    """
+    Captures the undefined attribute names within the raised exception.
+    """
+
+    __slots__ = ("undefined_attributes",)
+
+    _MESSAGE_TEMPLATE: str = (
+        "The following required attributes remained undefined after "
+        "object initialization: UNDEFINED_ATTRIBUTES."
+    )
+
+    def __init__(self, *undefined_attributes: str) -> None:
+        self.undefined_attributes = undefined_attributes
+        super().__init__(
+            self
+            ._MESSAGE_TEMPLATE
+            .replace("UNDEFINED_ATTRIBUTES", repr(undefined_attributes))
+        )
+
+
+class InvalidCiphertextSize(ValueError):
+    """
+    Thrown with the invalid size stored in an attribute.
+    """
+
+    __slots__ = ("size",)
+
+    _MESSAGE_TEMPLATE: str = (
+        "The given ciphertext length of SIZE isn't a valid size."
+    )
+
+    def __init__(self, size: int) -> None:
+        self.size = size
+        super().__init__(self._MESSAGE_TEMPLATE.replace("SIZE", repr(size)))
+
+
+class TypeUncheckableAtRuntime(TypeError):
+    """
+    Some types, like those which use square brackets in their definition,
+    cannot be checked with `isinstance`. This exception is raised when
+    such types are defined on variables which need to be type-checked at
+    runtime.
+    """
+
+    _MESSAGE_TEMPLATE: str = (
+        "The NAME variable's type was declared using VALUE_TYPE, which "
+        "isn't checkable at runtime. Perhaps use a `Protocol` decorated "
+        "with `@typing.runtime_checkable` instead?"
+    )
+
+    def __init__(self, name: str, value_type: type) -> None:
+        self.name = name
+        self.value_type = value_type
+        super().__init__(
+            self
+            ._MESSAGE_TEMPLATE
+            .replace("NAME", repr(name))
+            .replace("VALUE_TYPE", repr(value_type))
+        )
+
+
 class Issue:
     """
     A class to help with the readability of raising general issues with
@@ -389,8 +377,6 @@ class Issue:
     _INVALID_LENGTH: str = "len(NAME) != LENGTH."
     _VALUE_MUST: str = "The NAME value must CONTEXT."
     _MUST_SET_VALUE: str = "Must set NAME for CONTEXT."
-    _NO_VALUE_SPECIFIED: str = "No NAME was specified."
-    _VALUE_MUST_BE_VALUE: str = "The NAME value must be a VALUE."
     _STREAM_IS_EMPTY: str = "An invalid emtpy stream was provided."
     _VALUE_MUST_BE_TYPE: str = "The NAME value must be a TYPE object."
     _VALUE_ALREADY_SET: str = "The OBJECT is already set to CONTEXT."
@@ -406,15 +392,6 @@ class Issue:
     _UNUSED_PARAMETERS: str = (
         "The PARAMETERS parameters are not used when CONTEXT."
     )
-    _INVALID_BLOCKSIZE: str = (
-        "An invalid block of SIZE bytes was produced. Blocks must be DE"
-        "FAULT bytes."
-    )
-    _UNSAFE_DETERMINISM: str = (
-        "Must enable dangerous determinism to use a custom salt. Provid"
-        "ing both a key & salt risks salt reuse / misuse, which is NOT "
-        "safe."
-    )
     _BROKEN_POOL_RESTARTED: str = (
         "The process pool was broken & has now been restarted. Try agai"
         "n."
@@ -428,9 +405,9 @@ class Issue:
         return ValueError(issue)
 
     @classmethod
-    def invalid_length(cls, name: str, size: int) -> ValueError:
+    def invalid_length(cls, name: str, length: int) -> ValueError:
         issue = cls._INVALID_LENGTH.replace("NAME", name)
-        return ValueError(issue.replace("LENGTH", repr(size)))
+        return ValueError(issue.replace("LENGTH", repr(length)))
 
     @classmethod
     def value_must(cls, name: str, context: t.Any) -> ValueError:
@@ -441,18 +418,6 @@ class Issue:
     def must_set_value(cls, name: str, context: str) -> ValueError:
         issue = cls._MUST_SET_VALUE.replace("NAME", repr(name))
         return ValueError(issue.replace("CONTEXT", str(context)))
-
-    @classmethod
-    def no_value_specified(cls, name: str) -> ValueError:
-        issue = cls._NO_VALUE_SPECIFIED
-        return ValueError(issue.replace("NAME", repr(name)))
-
-    @classmethod
-    def value_must_be_value(
-        cls, name: str, value: t.Any
-    ) -> ValueError:
-        issue = cls._VALUE_MUST_BE_VALUE.replace("NAME", str(name))
-        return ValueError(issue.replace("VALUE", repr(value)))
 
     @classmethod
     def stream_is_empty(cls) -> ValueError:
@@ -469,9 +434,9 @@ class Issue:
         return PermissionError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
-    def exceeded_blocksize(cls, blocksize: int = BLOCKSIZE) -> ValueError:
+    def exceeded_blocksize(cls, blocksize: int) -> OverflowError:
         issue = cls._EXCEEDED_BLOCKSIZE
-        return ValueError(issue.replace("BLOCKSIZE", repr(blocksize)))
+        return OverflowError(issue.replace("BLOCKSIZE", repr(blocksize)))
 
     @classmethod
     def cant_reassign_attribute(cls, name: str) -> PermissionError:
@@ -489,17 +454,8 @@ class Issue:
         return ValueError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
-    def invalid_blocksize(cls, size: int) -> ValueError:
-        issue = cls._INVALID_BLOCKSIZE.replace("SIZE", repr(size))
-        return ValueError(issue.replace("DEFAULT", str(BLOCKSIZE)))
-
-    @classmethod
-    def unsafe_determinism(cls) -> PermissionError:
-        return PermissionError(cls._UNSAFE_DETERMINISM)
-
-    @classmethod
     def broken_pool_restarted(cls) -> RuntimeError:
-        return RuntimeError(cls._BROKEN_POOL_RESTARTED)
+        return RuntimeError(cls._BROKEN_POOL_RESTARTED)  # pragme: no cover
 
 
 class CanonicalIssue:
@@ -553,17 +509,20 @@ class CanonicalIssue:
 class KeyAADIssue:
     """
     A class to help with the readability of raising issues related to
-    `Chunky2048` `keys`, `salt` & `aad` values with more precise error
+    `Chunky2048` `keys`, `salt`, & `aad` values with more precise error
     messages for users.
     """
 
     __slots__ = ()
 
-    _INVALID_KEY: str = (
-        f"The ``key`` must be at least {MIN_KEY_BYTES} bytes."
+    _INVALID_KEY_SIZE: str = (
+        "`key` was KEY_SIZE bytes, but must be at least MIN_SIZE bytes."
     )
-    _INVALID_SALT: str = (
-        f"The ``salt`` must be a {SALT_BYTES}-byte value."
+    _INVALID_SALT_SIZE: str = (
+        "The `salt` must be a SALT_SIZE-byte value."
+    )
+    _ALREADY_REGISTERED: str = (
+        "The shmac has already been registered."
     )
     _MODE_ISNT_CORRECT: str = (
         "The KDF mode must be set to MODE to use MODE key derivation."
@@ -572,29 +531,20 @@ class KeyAADIssue:
         "KeyAADBundle objects need to be set to either sync or async mo"
         "des prior to querying their derived keys."
     )
-    _VALIDATOR_ALREADY_REGISTERED: str = (
-        "This KeyAADBundle object was registered for use by another val"
-        "idator object. Create a new bundle with fresh randomness inste"
-        "ad."
-    )
-    _KEYSTREAM_ALREADY_REGISTERED: str = (
-        "This KeyAADBundle object was already registered for use by ano"
-        "ther keystream. Create a new bundle with fresh randomness inst"
-        "ead."
-    )
-    _MUST_CREATE_A_NEW_OBJECT_EXPLICITLY: str = (
-        "Cipher contexts are more safely changed by explicitly creating"
-        " a new key bundle instance with different values than by chang"
-        "ing the NAME value of an existing instance."
-    )
 
     @classmethod
-    def invalid_key(cls) -> ValueError:
-        return ValueError(cls._INVALID_KEY)
+    def invalid_key_size(cls, size: int, min_size: int) -> ValueError:
+        issue = cls._INVALID_KEY_SIZE.replace("MIN_SIZE", repr(min_size))
+        return ValueError(issue.replace("KEY_SIZE", repr(size)))
 
     @classmethod
-    def invalid_salt(cls, SALT_BYTES: int) -> ValueError:
-        return ValueError(cls._INVALID_SALT)
+    def invalid_salt_size(cls, size: int) -> ValueError:
+        issue = cls._INVALID_SALT_SIZE
+        return ValueError(issue.replace("SALT_SIZE", repr(size)))
+
+    @classmethod
+    def shmac_already_registered(cls) -> PermissionError:
+        return PermissionError(cls._ALREADY_REGISTERED)
 
     @classmethod
     def mode_isnt_correct(cls, mode: str) -> ValueError:
@@ -604,50 +554,6 @@ class KeyAADIssue:
     @classmethod
     def no_kdf_mode_declared(cls) -> RuntimeError:
         return RuntimeError(cls._NO_KDF_MODE_DECLARED)
-
-    @classmethod
-    def validator_already_registered(cls) -> PermissionError:
-        return PermissionError(cls._VALIDATOR_ALREADY_REGISTERED)
-
-    @classmethod
-    def keystream_already_registered(cls) -> PermissionError:
-        return PermissionError(cls._KEYSTREAM_ALREADY_REGISTERED)
-
-    @classmethod
-    def must_create_a_new_object_explicitly(
-        cls, name: str
-    ) -> PermissionError:
-        issue = cls._MUST_CREATE_A_NEW_OBJECT_EXPLICITLY
-        return PermissionError(issue.replace("NAME", str(name)))
-
-
-class PaddingIssue:
-    """
-    A class to help with the readability of raising issues related to
-    the `Padding` class & the padding of plaintexts.
-    """
-
-    __slots__ = ()
-
-    _MIN_PLAINTEXT_BUFFER_NOT_ACHEIVED: str = (
-        "Must buffer at least 232 bytes of plaintext into the stream so"
-        " it can be padded correctly. If the end of the plaintext has a"
-        "lready been reached, then call `(a)finalize` on the stream."
-    )
-    _MIN_CIPHERTEXT_BUFFER_NOT_ACHEIVED: str = (
-        "Must buffer at least 512 bytes of ciphertext into the stream s"
-        "o the underlying plaintext can be depadded correctly. If the e"
-        "nd of the ciphertext has already been reached, then call `(a)f"
-        "inalize` on the stream."
-    )
-
-    @classmethod
-    def min_plaintext_buffer_not_acheived(cls) -> ValueError:
-        return ValueError(cls._MIN_PLAINTEXT_BUFFER_NOT_ACHEIVED)
-
-    @classmethod
-    def min_ciphertext_buffer_not_acheived(cls) -> ValueError:
-        return ValueError(cls._MIN_CIPHERTEXT_BUFFER_NOT_ACHEIVED)
 
 
 class SHMACIssue:
@@ -661,23 +567,20 @@ class SHMACIssue:
 
     _NO_CIPHER_MODE_DECLARED: str = "No cipher mode has been declared."
     _ALREADY_FINALIZED: str = "The validator has already been finalized."
-    _USE_FINAL_RESULT: str = (
-        _ALREADY_FINALIZED + " Use the final result instead."
-    )
     _VALIDATION_INCOMPLETE: str = (
         "Can't produce a result before finalization."
     )
     _INVALID_IV_USAGE: str = (
-        "The ``siv`` must be manually passed into the validator during "
+        "The `iv` must be manually passed into the validator during "
         "*decryption*, & only during decryption."
-    )
-    _BLOCK_ID_IS_TOO_BIG: str = (
-        "A block id of SIZE bytes is too big. It can be at most MAX byt"
-        "es."
     )
     _BLOCK_ID_IS_TOO_SMALL: str = (
         "A block id of SIZE bytes is too small. It must be at least "
         "MIN bytes to securely authenticate a block."
+    )
+    _BLOCK_ID_IS_TOO_BIG: str = (
+        "A block id of SIZE bytes is too big. It can be at most MAX byt"
+        "es."
     )
     _INVALID_SHMAC: str = (
         "Invalid StreamHMAC hash for the given ciphertext."
@@ -695,27 +598,27 @@ class SHMACIssue:
         return PermissionError(cls._ALREADY_FINALIZED)
 
     @classmethod
-    def use_final_result_instead(cls) -> PermissionError:
-        return PermissionError(cls._USE_FINAL_RESULT)
-
-    @classmethod
     def validation_incomplete(cls) -> PermissionError:
         return PermissionError(cls._VALIDATION_INCOMPLETE)
 
     @classmethod
-    def invalid_siv_usage(cls) -> PermissionError:
+    def invalid_iv_usage(cls) -> PermissionError:
         return PermissionError(cls._INVALID_IV_USAGE)
 
     @classmethod
-    def block_id_is_too_big(size: int) -> PermissionError:
-        issue = cls._BLOCK_ID_IS_TOO_BIG.replace("SIZE", repr(size))
-        issue = issue.replace("MAX", str(MAX_BLOCK_ID_BYTES))
+    def block_id_is_too_small(
+        cls, size: int, min_size: int
+    ) -> PermissionError:
+        issue = cls._BLOCK_ID_IS_TOO_SMALL.replace("SIZE", repr(size))
+        issue = issue.replace("MIN", repr(min_size))
         return PermissionError(issue)
 
     @classmethod
-    def block_id_is_too_small(cls, size: int) -> PermissionError:
-        issue = cls._BLOCK_ID_IS_TOO_SMALL.replace("SIZE", repr(size))
-        issue = issue.replace("MIN", str(MIN_BLOCK_ID_BYTES))
+    def block_id_is_too_big(
+        cls, size: int, max_size: int
+    ) -> PermissionError:
+        issue = cls._BLOCK_ID_IS_TOO_BIG.replace("SIZE", repr(size))
+        issue = issue.replace("MAX", repr(max_size))
         return PermissionError(issue)
 
     @classmethod
@@ -725,56 +628,6 @@ class SHMACIssue:
     @classmethod
     def invalid_block_id(cls) -> InvalidBlockID:
         return InvalidBlockID(cls._INVALID_BLOCK_ID)
-
-
-class CiphertextIssue:
-    """
-    A class to help with the readability of raising issues related to
-    processing & validating ciphertexts.
-    """
-
-    __slots__ = ()
-
-    _INVALID_CIPHERTEXT_SIZE: str = (
-        "The given ciphertext of length SIZE is not a multiple of the b"
-        "locksize minus the header bytes."
-    )
-
-    @classmethod
-    def invalid_ciphertext_size(cls, size: int) -> ValueError:
-        issue = cls._INVALID_CIPHERTEXT_SIZE
-        return ValueError(issue.replace("SIZE", repr(size)))
-
-
-class TimestampIssue:
-    """
-    A class to help with the readability of raising issues related to
-    processing & validating timestamps.
-    """
-
-    __slots__ = ()
-
-    _TIMESTAMP_EXPIRED: str = "Timestamp expired by <TIME> UNITS."
-    _INVALID_TIMESTAMP_FORMAT: str = (
-        f"Invalid timestamp format! It must be BYTES bytes long."
-    )
-
-    @classmethod
-    def timestamp_expired(
-        cls, unit: str, expired_by: int
-    ) -> TimestampExpired:
-        issue = cls._TIMESTAMP_EXPIRED.replace("UNITS", repr(unit))
-        error = TimestampExpired(issue.replace("TIME", repr(expired_by)))
-        error.unit = unit
-        error.expired_by = expired_by
-        return error
-
-    @classmethod
-    def invalid_timestamp_format(
-        cls, timestamp_bytes: int = TIMESTAMP_BYTES
-    ) -> ValueError:
-        issue = cls._INVALID_TIMESTAMP_FORMAT
-        return ValueError(issue.replace("BYTES", str(timestamp_bytes)))
 
 
 class CipherStreamIssue:
@@ -787,25 +640,13 @@ class CipherStreamIssue:
     __slots__ = ()
 
     _STREAM_HAS_BEEN_CLOSED: str = (
-        "The stream has been closed. Cannot add more ``data`` to the bu"
+        "The stream has been closed. Cannot add more `data` to the bu"
         "ffer of an already closed stream."
-    )
-    _INVALID_BUFFER_SIZE: str = (
-        "The buffer must only be updated with a # of bytes that is a mu"
-        "ltiple of MULTIPLE, the given buffer of BUFFER_SIZE bytes is i"
-        "nvalid."
     )
 
     @classmethod
     def stream_has_been_closed(cls) -> InterruptedError:
         return InterruptedError(cls._STREAM_HAS_BEEN_CLOSED)
-
-    @classmethod
-    def invalid_buffer_size(cls, buffer_size: int) -> ValueError:
-        issue = cls._INVALID_BUFFER_SIZE
-        issue = issue.replace("MULTIPLE", str(PACKETSIZE))
-        issue = issue.replace("BUFFER_SIZE", str(buffer_size))
-        return ValueError(issue)
 
 
 class PasscryptIssue:
@@ -829,13 +670,24 @@ class PasscryptIssue:
         "print(my_new_passphrase)\n"
         "b'review-letter-blast-giant-connect-ring-balcony-frown'"
     )
-    _IMPROPER_SALT: str = "len(salt) must be >= 8 and <= 256"
-    _INVALID_MB: str = "mb:MB must be int >= 1 and <= 256**3"
-    _INVALID_CPU: str = "cpu:CPU must be int >= 2 and <= 256"
-    _INVALID_CORES: str = "cores:CORES must be int >= 1 and <= 256"
-    _INVALID_TAG_SIZE: str = "tag_size:SIZE must be int >= 16"
-    _INVALID_SALT_SIZE: str = "salt_size:SIZE must be int >= 4 and <= 256"
-    _DECODING_FAILED: str = "Hash decoder returned failure: FAILURE."
+    _IMPROPER_SALT: str = (
+        "len(salt) must be >= MIN_SALT_SIZE and <= MAX_SALT_SIZE"
+    )
+    _INVALID_MB: str = (
+        "mb:MB must be int >= MIN_MB and <= MAX_MB"
+    )
+    _INVALID_CPU: str = (
+        "cpu:CPU must be int >= MIN_CPU and <= MAX_CPU"
+    )
+    _INVALID_CORES: str = (
+        "cores:CORES must be int >= MIN_CORES and <= MAX_CORES"
+    )
+    _INVALID_TAG_SIZE: str = (
+        "tag_size:SIZE must be int >= MIN_TAG_SIZE"
+    )
+    _INVALID_SALT_SIZE: str = (
+        "salt_size:SIZE must be int >= MIN_SALT_SIZE and <= MAX_SALT_SIZE"
+    )
     _UNTRUSTED_RESOURCE_CONSUMPTION: str = (
         "The PARAMETER parameter was blocked from being processed becau"
         "se it fell outside of the allowed range of resource consumptio"
@@ -872,68 +724,107 @@ class PasscryptIssue:
         "    Passcrypt.verify(hashed_pw, pw)\n"
     )
     _VERIFICATION_FAILED: str = (
-        "Passphrase verification failed! The hash of the passphrase & t"
-        "he passcrypt hash did not match!"
+        "Passphrase verification failed! The hash of the passphrase & "
+        "the passcrypt hash did not match!"
     )
 
     @classmethod
     def improper_passphrase(cls, metadata: Metadata) -> ValueError:
+        from .keygens.passcrypt.config import passcrypt_spec as c
+
         if metadata.type is not bytes:
-            return Issue.value_must_be_type("``passphrase``", bytes)
-        else:
-            issue = cls._IMPROPER_PASSPHRASE
-            missing = MIN_PASSPHRASE_BYTES - metadata.size
-            error = ImproperPassphrase(issue.replace("NEED", str(missing)))
-            error.missing = missing
-            return error
+            return Issue.value_must_be_type("`passphrase`", bytes)
+        issue = cls._IMPROPER_PASSPHRASE
+        missing = c.MIN_PASSPHRASE_BYTES - metadata.size
+        error = ImproperPassphrase(issue.replace("NEED", str(missing)))
+        error.missing = missing
+        return error
 
     @classmethod
     def improper_salt(cls, metadata: Metadata) -> ValueError:
+        from .keygens.passcrypt.config import passcrypt_spec as c
+
         if metadata.type is not bytes:
-            return Issue.value_must_be_type("``salt``", bytes)
-        return ValueError(cls._IMPROPER_SALT)
+            return Issue.value_must_be_type("`salt`", bytes)
+        return ValueError(
+            cls
+            ._IMPROPER_SALT
+            .replace("MIN_SALT_SIZE", repr(c.MIN_SALT_SIZE))
+            .replace("MAX_SALT_SIZE", repr(c.MAX_SALT_SIZE))
+        )
 
     @classmethod
     def improper_aad(cls) -> TypeError:
-        return Issue.value_must_be_type("``aad``", bytes)
+        return Issue.value_must_be_type("`aad`", bytes)
 
     @classmethod
     def invalid_mb(cls, mb: int) -> ValueError:
+        from .keygens.passcrypt.config import passcrypt_spec as c
+
         if mb.__class__ is not int:
-            return Issue.value_must_be_type("``mb``", int)
-        return ValueError(cls._INVALID_MB.replace("MB", repr(mb)))
+            return Issue.value_must_be_type("`mb`", int)
+        return ValueError(
+            cls
+            ._INVALID_MB
+            .replace("MIN_MB", repr(c.MIN_MB))
+            .replace("MAX_MB", repr(c.MAX_MB))
+            .replace("MB", repr(mb))
+        )
 
     @classmethod
     def invalid_cpu(cls, cpu: int) -> ValueError:
+        from .keygens.passcrypt.config import passcrypt_spec as c
+
         if cpu.__class__ is not int:
-            return Issue.value_must_be_type("``cpu``", int)
-        return ValueError(cls._INVALID_CPU.replace("CPU", repr(cpu)))
+            return Issue.value_must_be_type("`cpu`", int)
+        return ValueError(
+            cls
+            ._INVALID_CPU
+            .replace("MIN_CPU", repr(c.MIN_CPU))
+            .replace("MAX_CPU", repr(c.MAX_CPU))
+            .replace("CPU", repr(cpu))
+        )
 
     @classmethod
     def invalid_cores(cls, cores: int) -> ValueError:
+        from .keygens.passcrypt.config import passcrypt_spec as c
+
         if cores.__class__ is not int:
-            return Issue.value_must_be_type("``cores``", int)
-        issue = cls._INVALID_CORES
-        return ValueError(issue.replace("CORES", repr(cores)))
+            return Issue.value_must_be_type("`cores`", int)
+        return ValueError(
+            cls
+            ._INVALID_CORES
+            .replace("MIN_CORES", repr(c.MIN_CORES))
+            .replace("MAX_CORES", repr(c.MAX_CORES))
+            .replace("CORES", repr(cores))
+        )
 
     @classmethod
     def invalid_tag_size(cls, tag_size: int) -> ValueError:
+        from .keygens.passcrypt.config import passcrypt_spec as c
+
         if tag_size.__class__ is not int:
-            return Issue.value_must_be_type("``tag_size``", int)
-        issue = cls._INVALID_TAG_SIZE
-        return ValueError(issue.replace("SIZE", repr(tag_size)))
+            return Issue.value_must_be_type("`tag_size`", int)
+        return ValueError(
+            cls
+            ._INVALID_TAG_SIZE
+            .replace("MIN_TAG_SIZE", repr(c.MIN_TAG_SIZE))
+            .replace("SIZE", repr(tag_size))
+        )
 
     @classmethod
     def invalid_salt_size(cls, salt_size: int) -> ValueError:
-        if salt_size.__class__ is not int:
-            return Issue.value_must_be_type("``salt_size``", int)
-        issue = cls._INVALID_SALT_SIZE
-        return ValueError(issue.replace("SIZE", repr(salt_size)))
+        from .keygens.passcrypt.config import passcrypt_spec as c
 
-    @classmethod
-    def decoding_failed(cls, failure: str) -> ValueError:
-        issue = cls._DECODING_FAILED
-        return ValueError(issue.replace("FAILURE", repr(failure)))
+        if salt_size.__class__ is not int:
+            return Issue.value_must_be_type("`salt_size`", int)
+        return ValueError(
+            cls
+            ._INVALID_SALT_SIZE
+            .replace("MIN_SALT_SIZE", repr(c.MIN_SALT_SIZE))
+            .replace("MAX_SALT_SIZE", repr(c.MAX_SALT_SIZE))
+            .replace("SIZE", repr(salt_size))
+        )
 
     @classmethod
     def untrusted_resource_consumption(
@@ -962,27 +853,10 @@ class DatabaseIssue:
 
     __slots__ = ()
 
-    _INVALID_HMAC: str = "Invalid HMAC hash for the given data."
-    _INVALID_WRITE_ATTEMPT: str = "Invalid write attempted."
     _FILE_NOT_FOUND: str = "The NAME filename was not located."
     _NO_EXISTING_METATAG: str = "No metatag database named TAG."
     _MISSING_PROFILE: str = "Profile doesn't exist or is corrupt."
     _TAG_FILE_DOESNT_EXIST: str = "TAG tag data isn't in the cache."
-    _KEY_HAS_BEEN_DELETED: str = "The database keys have been deleted."
-    _CANT_DELETE_MAINTENANCE_RECORDS: str = (
-        "Can't delete database maintenance records."
-    )
-    _INVALID_ENTRY_TYPE: str = (
-        "Database entries must be JSON serializable or bytes types."
-    )
-
-    @classmethod
-    def invalid_hmac(cls) -> InvalidHMAC:
-        return InvalidHMAC(cls._INVALID_HMAC)
-
-    @classmethod
-    def invalid_write_attempt(cls) -> PermissionError:
-        return PermissionError(cls._INVALID_WRITE_ATTEMPT)
 
     @classmethod
     def file_not_found(cls, filename: str) -> LookupError:
@@ -999,18 +873,6 @@ class DatabaseIssue:
         issue = cls._TAG_FILE_DOESNT_EXIST
         return LookupError(issue.replace("TAG", repr(tag)))
 
-    @classmethod
-    def key_has_been_deleted(cls) -> PermissionError:
-        return PermissionError(cls._KEY_HAS_BEEN_DELETED)
-
-    @classmethod
-    def cant_delete_maintenance_records(cls) -> PermissionError:
-        return PermissionError(cls._CANT_DELETE_MAINTENANCE_RECORDS)
-
-    @classmethod
-    def invalid_entry_type(cls) -> TypeError:
-        return TypeError(cls._INVALID_ENTRY_TYPE)
-
 
 class PackageSignerIssue:
     """
@@ -1022,8 +884,8 @@ class PackageSignerIssue:
     __slots__ = ()
 
     _INVALID_FILE_DIGEST: str = (
-        "The summary & the hash digest of the given file don't match: F"
-        "ILENAME."
+        "The summary & the hash digest of the given file don't match: "
+        "FILENAME."
     )
     _PACKAGE_HASNT_BEEN_SIGNED: str = (
         "This version of the package must be signed before querying its"
@@ -1033,12 +895,12 @@ class PackageSignerIssue:
         "The `PackageSigner` instance's signing key hasn't been set."
     )
     _OUT_OF_SYNC_PACKAGE_SIGNATURE: str = (
-        "The calculated package signature is out of sync with the curre"
-        "nt checksum of the package summary."
+        "The calculated package signature is out of sync with the "
+        "current checksum of the package summary."
     )
     _MUST_CONNECT_TO_SECURE_DATABASE: str = (
-        "Must first connect to the package signing session's secure dat"
-        "abase before it can be updated or queried."
+        "Must first connect to the package signing session's secure "
+        "database before it can be updated or queried."
     )
 
     @classmethod
@@ -1063,4 +925,39 @@ class PackageSignerIssue:
     @classmethod
     def must_connect_to_secure_database(cls) -> RuntimeError:
         return RuntimeError(cls._MUST_CONNECT_TO_SECURE_DATABASE)
+
+
+module_api = dict(
+    AuthenticationFailed=t.add_type(AuthenticationFailed),
+    CanonicalEncodingError=t.add_type(CanonicalEncodingError),
+    CanonicalIssue=t.add_type(CanonicalIssue),
+    CipherStreamIssue=t.add_type(CipherStreamIssue),
+    DatabaseIssue=t.add_type(DatabaseIssue),
+    Ignore=t.add_type(Ignore),
+    ImproperPassphrase=t.add_type(ImproperPassphrase),
+    InvalidBlockID=t.add_type(InvalidBlockID),
+    InvalidCiphertextSize=t.add_type(InvalidCiphertextSize),
+    InvalidDigest=t.add_type(InvalidDigest),
+    InvalidPassphrase=t.add_type(InvalidPassphrase),
+    InvalidSHMAC=t.add_type(InvalidSHMAC),
+    InvalidSignature=t.add_type(InvalidSignature),
+    Issue=t.add_type(Issue),
+    KeyAADIssue=t.add_type(KeyAADIssue),
+    Metadata=t.add_type(Metadata),
+    PackageSignerIssue=t.add_type(PackageSignerIssue),
+    PasscryptIssue=t.add_type(PasscryptIssue),
+    ReturnValue=t.add_type(ReturnValue),
+    SHMACIssue=t.add_type(SHMACIssue),
+    TimestampExpired=t.add_type(TimestampExpired),
+    TypeUncheckableAtRuntime=t.add_type(TypeUncheckableAtRuntime),
+    UndefinedRequiredAttributes=t.add_type(UndefinedRequiredAttributes),
+    __all__=__all__,
+    __doc__=__doc__,
+    __file__=__file__,
+    __name__=__name__,
+    __spec__=__spec__,
+    __loader__=__loader__,
+    __package__=__package__,
+    raise_exception=raise_exception,
+)
 
