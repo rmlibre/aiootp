@@ -65,14 +65,16 @@ efficiently fix the issue:
 please type or paste your message here. hit CTRL-D (or
 CTRL-Z on Windows) to finish the message:
 
+Here is my message & detailed report to the team.
+
 
 excellent! here's the json message you can email to us:
 
 {
-    "date": "AAAAHw",
-    "guid": "_Q1e3epWumnPwFfA",
-    "public_key": "cpbZ_QeZiUVNVH7EFA53UBV1LXtG1bLTIt1GKGPUiTs",
-    "encrypted_message": "sURARqMZOFY2-grwJcfUuf1OEr9Z8k9wskmfd6CgVEeRdvf2gVIR5c3_qxp8rBSyWJyR2Y-qwj8BV1RTIh4V5XapDM8zDlRhxgZjQmRthUe_9KeaTfmxhdQ64YesDsQ6XotEfBN7VLYlWGvc3agnr8BhRAf54erH3b562OXVvcHZIGJy0IN6qM5JJobESopCzQLsDoXNRcdiArnRxZGiIYDTsF5F3i_EElVZopv1TI4FCCqsMq8Q-GTVTd9z628-IjWjq_-7hWKJ-_ZEVc-cEZn90BfJfZ3FhfwgPg3FYpM1iALr8Iq1oDzx_oSPa-uzEE5IWWxLwM5rCA-bkhmnlevQ0O3XNZxpvLhGBN4uwCA"
+    "date": "AAACAQ",
+    "public_key": "lQgAb8Xg5EHSJYjlj4QlOKlMgqHsxZuJBwr8MjgT5QA",
+    "siv": "ciodgIg13h-YUIernVsMhAXljPuNuBOKaDHVlLZl5no",
+    "encrypted_message": "rc1v2PNMwonw9wG0ob4Qg96iHVzVQc8YCO0sBnLA-XtSx0ijCfjEVDtHmO-8jyKTAH1cJGgejb1CTQdVpwmLfYXnohBSyHGzcU8qWZaQqeZ2KvJRcQRiLzBKorfKHZUCRa2eRnHPy8fD5FURFYwnbfwbbOYrLfm4OWZOae1XSpALAYmWoJv55BnwtSs77k5bFz3XIwoVvfiRtMIPJKH85FPCQ8fNbvk-gV1Wck1ilEgpEaOkMgdv_c1KalRFXzVT4P6KjdIW4eC0n2q02lArihsLpDpI1t1b7QIfyA7OsxWn3SAx2FCGK7F8pMD6Gbesa0nwwOtUry9r7t4Pr6wA7kEce_uPOb-li6tfykw2a5s"
 }
 
 send it to either rmlibre@riseup.net or gonzo.development@protonmail.com
