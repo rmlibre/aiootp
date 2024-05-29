@@ -12,6 +12,7 @@
 
 
 import time
+import warnings
 from test_initialization import *
 
 
@@ -49,13 +50,23 @@ class EqualTimingExperiment:
         )
 
 
-class TestPlatformCounter:
+class TestAPlatformCounter:
 
     def test_is_monotonic(self) -> None:
         assert time.get_clock_info("perf_counter").monotonic == True
 
     def test_is_nanosecond_precise(self) -> None:
-        assert time.get_clock_info("perf_counter").resolution <= 1e-09
+        global HI_RES_TIME
+
+        problem = (
+            "Platform perf counter doesn't have nanosecond resolution."
+        )
+        resolution_warning = lambda: warnings.warn(problem) or True
+        HI_RES_TIME = False
+        with Ignore(AssertionError, if_except=resolution_warning):
+            assert time.get_clock_info("perf_counter").resolution <= 1e-09
+            HI_RES_TIME = True
+        assert time.get_clock_info("perf_counter").resolution <= 1e-07
 
 
 class TestPlatformTime:
@@ -108,7 +119,10 @@ class TestClockConversions:
         iterations = tuple(range(number_of_tests))
         right_now = Clock(NANOSECONDS).time
         tests = [right_now() for test in iterations]
-        assert number_of_tests == len(set(tests))
+        if HI_RES_TIME:
+            assert number_of_tests == len(set(tests))
+        else:
+            assert number_of_tests <= 10 * len(set(tests))
         assert tests == sorted(tests)
 
     def test_nanoseconds_correctness(self) -> None:
