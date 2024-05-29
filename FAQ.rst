@@ -29,7 +29,7 @@ A: It's been designed to work with any size of key >= 64 bytes.
 Q: What's up with the ``AsyncDatabase`` / ``Database``?
 -------------------------------------------------------
 
-A: The idea is to create an intuitive, Pythonic interface to a transparently encrypted & decrypted key-value persistence tool that also cryptographically obscures metadata. They natively support persist raw bytes or JSON serializable data. They're also very well suited for async & distributed use-cases, since they organize collections of independent files for all of their data & administrative subdivisions. They're still works in progress, albeit very nifty ones.
+A: The idea is to create an intuitive, Pythonic interface to a transparently encrypted & decrypted key-value persistence tool that also cryptographically obscures metadata. They natively support raw bytes & JSON serializable data. They're also very well suited for async, concurrent, & distributed use-cases, since they organize collections of independent files for all of their data & administrative subdivisions. They're still works in progress, albeit very nifty ones.
 
 
 
