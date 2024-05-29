@@ -4,6 +4,24 @@
 
 
 
+Changes for version 0.23.01
+---------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+- None
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+- Bump declared compatible Python versions in packaging metadata to 3.8 - 3.12.
+
+
+
+
 Changes for version 0.23.0
 --------------------------
 
