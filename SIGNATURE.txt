@@ -1,16 +1,16 @@
 {
-    "checksum": "568dd0473046143554437a8f997f112f110fd814b342d8049657efea407cb539ca8937f5c007c3fc4ed393f48e799af5",
+    "checksum": "a124010bb431417365cf71db54bc4ac79b0d3fe25c459fadea447b578cfe208971c806693356a5e12bb74168cd62ac58",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
-        "CHANGES.rst": "fd63cd182c83a5103330497781bea95aebf72c956c0fb11b8bed1de24f4b428e9d333d82d1aa00978217b990151d8f07",
-        "FAQ.rst": "9dd3aaeb03738297ca0b38aa051a6097efa9afe7e81adc78b73afb5c2318f87dd7fee3b206774acbeb1066de9e6df92c",
+        "CHANGES.rst": "ab567eb55b1c9b9260e31743b23d11defd48c600207a096bc9c1c1cac66605e788c08be330fd775b8047aa1700756992",
+        "FAQ.rst": "2f15dac97fb9bdc64d36204e11d617f0363ef221b071eec9cfb1a5951955169c1633d92bceae7c674974800e4bfaffff",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
         "MANIFEST.in": "eb785008a1526433ce179a8b9ef5080478a1ecd06e2224a0b1b8e835e0cbef1ad44d43f102770588295ca5e1d5e04c8f",
         "README.rst": "e1edaf2c30d38a53eaaa1740ab9db5453f0c94e97875ecaa41427332b5c7f9638c4f616c5fde9f87cde01a3b551df123",
         "SECURITY.md": "d18e0412316ce59f508ffd30bc4750ee5aa8b4ef6b61de70b1f9d6e6527c519f32772c7f199b08b20fc407979c08a702",
         "aiootp/__engagement/__init__.py": "8eb1c04b11afb9efb3da69404629d1ade4c3bf2cc79a92653ce065d17e5da5302c644c8fbe09b97475c3ac55d9921b7c",
         "aiootp/__engagement/issue_reporting.py": "def63af267af8a6fc6dc6c5370afc09d87d8482d77bd6a6c96fce53685d0562e81a3744684a5ed281a944ea2a5733738",
-        "aiootp/__init__.py": "a944c3d36343be4f0e79ffc3e4a062dd3dbd3d87ae6c1a62588a8153793d1e02605a74556531c7cb903a2a3787b73d14",
+        "aiootp/__init__.py": "cdd2f35eaf5018e9e3e47ef8368e52fc252c40556f5562826c69c5d43e45d2350f5e5651e96645c4cdb38a4bac191342",
         "aiootp/_constants/__init__.py": "8154414438c8949894109fc33920c801a55df1d56eb4eed0a52c899db441e50c1f8e321beeb802997f72764f6fa466bd",
         "aiootp/_constants/datasets.py": "9d7c2956ba371448c8efa71e54c30eace72cbf41e8780008d36ce3e1b09b97e057486d87202708acc66c7271c51ec1bd",
         "aiootp/_constants/misc.py": "a4f364fa232f9d313b40fdd62debac6239593cbf0c538421198a867694ff8b95f1b57650b803135657e0aab1049ff313",
@@ -153,8 +153,8 @@
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
         "package": "aiootp",
-        "version": "0.23.1"
+        "version": "0.23.2"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "fa22d78230a243fe02ee540d797d7e757d307b707b19da40b1f63758a87818441494f2f1a5e56a2bc74665fa9dc4bd199da463803f45e83045ea5abf0625cc0b"
+    "signature": "38bb399e8d8adbf025755431fd3209d99d0a20dc55d622570f053b5319a40cd650492129b05b7cbe3e2ff00e47dfb5293eac18525ee7358dd1413d9b1936c90d"
 }
