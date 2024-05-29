@@ -18,6 +18,7 @@ __doc__ = "A controller for toggling debug mode."
 
 
 import warnings
+
 from ._typing import Typing as t
 
 
