@@ -1,5 +1,5 @@
 {
-    "checksum": "9f133e3df89db012fa553291622d43c3feea78f367a4f0d6919d439652b472c49d0bc41b1fe1b004dd0ff506c75c03ea",
+    "checksum": "604e8c3a6b14b9de0897eb5c0b4efdf3bdf7e05f0964e888ec2ce9bd043dc1ff81560aa1e5d6c26f3fd50d7c2b8103db",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "fd63cd182c83a5103330497781bea95aebf72c956c0fb11b8bed1de24f4b428e9d333d82d1aa00978217b990151d8f07",
@@ -105,7 +105,7 @@
         "aiootp/randoms/threading_safe_entropy_pool.py": "f6504503c5d45bddcc5df3e8370924daeec07dc10dbe1d6f2b7bae668817f59bbb281f415cd197de6793c414a3ebfd3c",
         "aiootp/tor/README_TOR.rst": "d6f1d1a2ecbca1c69f1fa222d91c1c1eba51d3ba742283fd1b0de0539462594a433d53ea4f306d1794d5fd9c5dfb56a6",
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
-        "setup.cfg": "6a564d29858088adec42e5c51006b69dd631fed387bce16ac15b70ab067983d9cbb4f7042dd570eeda0b17ea41ccb0a6",
+        "setup.cfg": "0ab367029b7ee314518326db1d13c255cc8314a3de46aee3806d3029a2eb9830741e98902fae6dcfb4ad65410bd3e95c",
         "setup.py": "1b8f555e3f51d1c196574572aba09c312c4c0162753b8fddc5369992bcd1ed85e7f8d25ccf2b1a4b60856d7499a07f4b",
         "tests/pytest.ini": "707d3ce22f019e0bada73661b7adc85b9af00f7aacbc1d005c1a41e77964d533a2adbf00f7620044051af1b521961e22",
         "tests/test_ByteIO.py": "d3d8a059010bb3e7911c7262761cfe91085f7a759c6f673f5904fff68a9b333aa0c92d36bbeaede7f3192c9d22c6bf9e",
@@ -156,5 +156,5 @@
         "version": "0.23.1"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "36075079eb7a59cdbdcc4f2888adcdf209c1b89b673dc8b8e706a64b40bb55d93bd51f4e73aa8e92b0439b87d6f0abf9ac22cb98d9c8b77690d58f4be2884c00"
+    "signature": "e5ed284c87a191512d5ba9625bc5add01fa75b9abefc85531d2812a96b9b8dd047aef9523d17a0cf01025eff95d97a011b0c7c47de076c507bdf59b5fbfaca0a"
 }
