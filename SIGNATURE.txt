@@ -1,5 +1,5 @@
 {
-    "checksum": "0bc2732d2f7e3ad5cbbbf1c2f2e65fef7ea6924a2942b535537fc0f1ef143a27fe486eeb3636b89c078a3594e0b3a465",
+    "checksum": "f91229a52c9df7a7f585f847848c1056bac30c1573fc9709dfae2946722340a72a3883b319c62634714f1dace0f1d5f7",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "847eb6d28bcf866b958cac4946bce170c6724b7e1249d82ea5c540fbf481915b6284a1988d46f7a5b53ac5065f31a85c",
@@ -109,7 +109,7 @@
         "setup.py": "88cf00f0d2bfa6ce7e24ab2915591e44f057b4a33b90f0b19b1a44811bac6ef5f7c3a53b5224337a2639dfa50ccbdd6d",
         "tests/pytest.ini": "707d3ce22f019e0bada73661b7adc85b9af00f7aacbc1d005c1a41e77964d533a2adbf00f7620044051af1b521961e22",
         "tests/test_ByteIO.py": "d3d8a059010bb3e7911c7262761cfe91085f7a759c6f673f5904fff68a9b333aa0c92d36bbeaede7f3192c9d22c6bf9e",
-        "tests/test_Clock.py": "fefc27b997b5dfc1148cd3465e4b66d9483391532f23c57f79cd2c92a04e503ea90ef4ffd0c04cf31503c400a9c36be8",
+        "tests/test_Clock.py": "a569942d75a758befb825cd85bce40c94c11217ce6822ef105501c22508d5bb12f0fb8ad9ee49d2918fa65bc7f422561",
         "tests/test_Database_AsyncDatabase.py": "c3146f777eff99f452a924f5aa2fae5d5390c8a4d71b8c6c0936e551dc13b94cd161398b62006c0354744564771190bd",
         "tests/test_GUID.py": "d5673cd4ad7946dce8dadc3bcd4a44296a380efa1a05a0343f8fbc745530e21a71c0212a56e226e5f4b9685bff932486",
         "tests/test_PackageSigner.py": "e3c64aa0fc1f9ef742cdce2aa6868add066201a937727b461fed2db627d0a65e480b59a01a2891441c8cec376254971f",
@@ -148,7 +148,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 3,
+        "build_number": 4,
         "date": 19872,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -156,5 +156,5 @@
         "version": "0.23.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "5503a0af4af7aed518724561ec9dae0ad0c598e121dbc2cf809f1b70e2e91cee06e1a5b404a78587b61d3fcd7c3fd8a919b5019ea7cf487632d110f1801f0408"
+    "signature": "8099daf3f43074170e58d0d1a84df1d273ce3f1fc75592293e9a0c3988a9707edfaa3824248341c6cf520c243a9e2a6312cf206acfeac4145fe030e804f82109"
 }
