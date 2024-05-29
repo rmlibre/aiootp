@@ -46,7 +46,7 @@ class EqualTimingExperiment:
     ) -> range:
         return range(
             control_conversion(self.early_control, epoch=self.epoch),
-            control_conversion(self.late_control, epoch=self.epoch) + 1,
+            control_conversion(self.late_control, epoch=self.epoch) + 2,
         )
 
 
