@@ -17,7 +17,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- Fixes to the correctness & completeness of package documentation.
 
 
 
@@ -64,6 +64,7 @@ Minor Changes
 
 - Fixes to the correctness & completeness of type hints.
 - Fixes to the correctness & completeness of doc strings.
+- Fixes to the correctness & completeness of package documentation.
 - Expansion & cleaning of test suite, reaching 99% line coverage.
 
 
