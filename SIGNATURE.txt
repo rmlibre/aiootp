@@ -1,5 +1,5 @@
 {
-    "checksum": "604e8c3a6b14b9de0897eb5c0b4efdf3bdf7e05f0964e888ec2ce9bd043dc1ff81560aa1e5d6c26f3fd50d7c2b8103db",
+    "checksum": "2c137af919a947da275c0046eedcc057b8a5349e693648f804d3cb1268f0b74b2d640266e546f7883dde6169cc829c5d",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "fd63cd182c83a5103330497781bea95aebf72c956c0fb11b8bed1de24f4b428e9d333d82d1aa00978217b990151d8f07",
@@ -119,7 +119,7 @@
         "tests/test_StreamHMAC.py": "b1bec8d7b378b285b46583b0d4adb8ffd928eb6bd667c205a0ade33b3d824b45c4761650a8452ea47c7ba942350d52ff",
         "tests/test_Typing_class.py": "211c751ba2e4e469d034d6f7d408833ee13e9bbddd1daae2ef334b63e939c3683e70fc3ce705331de45e19ba7149811f",
         "tests/test_X25519_Ed25519.py": "a8bb38bc6bf47eb769770634dff16536649dbc569f3e224b690ff98eb17be2f7844c00d42530bcf33ba742d893c31357",
-        "tests/test_affine_permutations.py": "46b4fc440a2d05802725c5a812f06d58f87562d4f8800934a87c270577db1f79de9d77af7c444e309381a91b860d6752",
+        "tests/test_affine_permutations.py": "11a39c1cf5632d1faa15de086c934e150ec0489f8c7ba4a567c747a235d6b333038ec3049db15837f0afe0bf80450be2",
         "tests/test_aiootp.py": "e1b4fd34e3351c4530085f7bce77fc56835b1afe8db4edc261988a1715236cca42a94ccefe62dbe1f06cfa15d74a100d",
         "tests/test_asynchs.py": "4f91e555fd91966dcb1e1334c2405fa58c386bf26f04eb02bd30a021d4c730d63a31a8980121b6f70733aa81b1b19d38",
         "tests/test_cipher_configs.py": "be343956d26ba4bdb03efefc62d9a22e774da4c690481c901fd640cf21c17f13b7c67e278055d0e038e267d0935a96ff",
@@ -156,5 +156,5 @@
         "version": "0.23.1"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "e5ed284c87a191512d5ba9625bc5add01fa75b9abefc85531d2812a96b9b8dd047aef9523d17a0cf01025eff95d97a011b0c7c47de076c507bdf59b5fbfaca0a"
+    "signature": "260cac2b2fed4bef31aa3771027fb2e1caa9acb38f76b9a89c85dd94e3fd905cb3ef389c253295c19f5adaadf9ca277513d38e658a09f7345378e3ccfc55760c"
 }
