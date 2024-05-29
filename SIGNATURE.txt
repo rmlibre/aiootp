@@ -1,16 +1,16 @@
 {
-    "checksum": "95bbc5e92173b8cef0dd52cfd2641bc8a0b21afa887844ac79e9f2cc1c54664840606946e28fba22ce9a4e65d2c9a1d4",
+    "checksum": "9f133e3df89db012fa553291622d43c3feea78f367a4f0d6919d439652b472c49d0bc41b1fe1b004dd0ff506c75c03ea",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
-        "CHANGES.rst": "847eb6d28bcf866b958cac4946bce170c6724b7e1249d82ea5c540fbf481915b6284a1988d46f7a5b53ac5065f31a85c",
+        "CHANGES.rst": "fd63cd182c83a5103330497781bea95aebf72c956c0fb11b8bed1de24f4b428e9d333d82d1aa00978217b990151d8f07",
         "FAQ.rst": "9dd3aaeb03738297ca0b38aa051a6097efa9afe7e81adc78b73afb5c2318f87dd7fee3b206774acbeb1066de9e6df92c",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
         "MANIFEST.in": "eb785008a1526433ce179a8b9ef5080478a1ecd06e2224a0b1b8e835e0cbef1ad44d43f102770588295ca5e1d5e04c8f",
-        "README.rst": "a8e8e528cf14a6f45ffcc0a993a47ba875c5786ff3627994f2a7eee1d1ea7ccda1c7a297fb02d13b885930fcd33b912e",
+        "README.rst": "e1edaf2c30d38a53eaaa1740ab9db5453f0c94e97875ecaa41427332b5c7f9638c4f616c5fde9f87cde01a3b551df123",
         "SECURITY.md": "d18e0412316ce59f508ffd30bc4750ee5aa8b4ef6b61de70b1f9d6e6527c519f32772c7f199b08b20fc407979c08a702",
         "aiootp/__engagement/__init__.py": "8eb1c04b11afb9efb3da69404629d1ade4c3bf2cc79a92653ce065d17e5da5302c644c8fbe09b97475c3ac55d9921b7c",
         "aiootp/__engagement/issue_reporting.py": "def63af267af8a6fc6dc6c5370afc09d87d8482d77bd6a6c96fce53685d0562e81a3744684a5ed281a944ea2a5733738",
-        "aiootp/__init__.py": "84b4ae4be93bb5f80c9ad2b89bfab768e3924783b0c9420e8da856b7d287632efd4aa333a694bb0e8eb079614be47593",
+        "aiootp/__init__.py": "a944c3d36343be4f0e79ffc3e4a062dd3dbd3d87ae6c1a62588a8153793d1e02605a74556531c7cb903a2a3787b73d14",
         "aiootp/_constants/__init__.py": "8154414438c8949894109fc33920c801a55df1d56eb4eed0a52c899db441e50c1f8e321beeb802997f72764f6fa466bd",
         "aiootp/_constants/datasets.py": "9d7c2956ba371448c8efa71e54c30eace72cbf41e8780008d36ce3e1b09b97e057486d87202708acc66c7271c51ec1bd",
         "aiootp/_constants/misc.py": "a4f364fa232f9d313b40fdd62debac6239593cbf0c538421198a867694ff8b95f1b57650b803135657e0aab1049ff313",
@@ -106,7 +106,7 @@
         "aiootp/tor/README_TOR.rst": "d6f1d1a2ecbca1c69f1fa222d91c1c1eba51d3ba742283fd1b0de0539462594a433d53ea4f306d1794d5fd9c5dfb56a6",
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
         "setup.cfg": "6a564d29858088adec42e5c51006b69dd631fed387bce16ac15b70ab067983d9cbb4f7042dd570eeda0b17ea41ccb0a6",
-        "setup.py": "88cf00f0d2bfa6ce7e24ab2915591e44f057b4a33b90f0b19b1a44811bac6ef5f7c3a53b5224337a2639dfa50ccbdd6d",
+        "setup.py": "1b8f555e3f51d1c196574572aba09c312c4c0162753b8fddc5369992bcd1ed85e7f8d25ccf2b1a4b60856d7499a07f4b",
         "tests/pytest.ini": "707d3ce22f019e0bada73661b7adc85b9af00f7aacbc1d005c1a41e77964d533a2adbf00f7620044051af1b521961e22",
         "tests/test_ByteIO.py": "d3d8a059010bb3e7911c7262761cfe91085f7a759c6f673f5904fff68a9b333aa0c92d36bbeaede7f3192c9d22c6bf9e",
         "tests/test_Clock.py": "a43093889a00b10660ef412845ca4ebfe2113eaf29ddae42d8f8514230ccbf321670df74d2af888460c8899850069dad",
@@ -148,13 +148,13 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 6,
+        "build_number": 0,
         "date": 19872,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
         "package": "aiootp",
-        "version": "0.23.0"
+        "version": "0.23.1"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "c8298477bbb6c1c967ac9cd16dc29cb45edaa024b8f164bb99779a7b02e646309d3d49d45925124150f317c6a0a772f6a06c82a2475f315177df583ff930c507"
+    "signature": "36075079eb7a59cdbdcc4f2888adcdf209c1b89b673dc8b8e706a64b40bb55d93bd51f4e73aa8e92b0439b87d6f0abf9ac22cb98d9c8b77690d58f4be2884c00"
 }
