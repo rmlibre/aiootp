@@ -145,7 +145,7 @@ class TestAffineXORChain:
         aff = self._type(key=key, config_id=SIZE)
         assert aff.config.DOMAIN == DOMAIN == (aff._aff_in._MAX + 1)
         await self.validate_latin_square_property(aff, SIZE, DOMAIN)
-        await aff.aupdate_increment(token_bits(8 * SIZE))
+        await aff.aupdate_increment(choice(list(range(1, DOMAIN))))
         await self.validate_latin_square_property(aff, SIZE, DOMAIN)
         # # Optional Extended Full-Domain Tests
         # failures = []
