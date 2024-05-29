@@ -1,5 +1,5 @@
 {
-    "checksum": "8a7da5455050e2c0872197c7771730e67ca012130620945397e3fc7ab1732c5ec1a476c16c7ded32b8b347031234d284",
+    "checksum": "95bbc5e92173b8cef0dd52cfd2641bc8a0b21afa887844ac79e9f2cc1c54664840606946e28fba22ce9a4e65d2c9a1d4",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "847eb6d28bcf866b958cac4946bce170c6724b7e1249d82ea5c540fbf481915b6284a1988d46f7a5b53ac5065f31a85c",
@@ -83,7 +83,7 @@
         "aiootp/keygens/curve_25519/x25519.py": "5a376f4f1181d8d29070a9b1372d8e519c3831c72a1ebf0fab370309f12f297bb40043be9bfe3d2e3f1743b6cca20be8",
         "aiootp/keygens/domain_kdf.py": "5d60385f1326fff8c9d7875bbd3288d75e2680b1791bc1991518771070b509938cc20f0229a2e07cc942bb68191e1d22",
         "aiootp/keygens/mnemonics.py": "ab207d3d1d0adff828f6c877965464d04a7fc15ffce7d5a837e0ae177a8187aad9b2e7cfd09dbb01756c872999b50b90",
-        "aiootp/keygens/package_signing.py": "b3a4cb343c1ca6ab80fc26b07a35bafa0fb9fc82c93202782a726af249410ee549827e30ea3568b4ec6206b74a1a4720",
+        "aiootp/keygens/package_signing.py": "cb91cc200a753f45ffc0b06db8d5297f47b59a912e879bb5e26c1e1cd01c9f5cb81c94fd097c55d9425f8ab6dc2a6eab",
         "aiootp/keygens/passcrypt/__init__.py": "5d3cdecd6197a080207543e263e1255190e292a87510a1890bdf54f55d92ef2b4352b6183bf60d8c8a86efce00695b92",
         "aiootp/keygens/passcrypt/config.py": "c2fd3da1043a326a932dcb8039729967992c8adc0a1e63e10a41eed05b53c497d938e21ab7e1fb613f9ff9f8eba66ad1",
         "aiootp/keygens/passcrypt/hash_format.py": "72b9175346fdab5f69549840554482c73335f7a80bba4834bfbcc33b2817fb38cf858a08f6e6116ecf4a34a5f7d4aaee",
@@ -148,7 +148,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 5,
+        "build_number": 6,
         "date": 19872,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -156,5 +156,5 @@
         "version": "0.23.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "35bb5c00b7b54b213ea42554ece8180795003e82bacebf03f4195d0692befd0cede575a490bde68fb1c1a14b363a20d27a79b1ebc8b6362ec6deb96a6a59dc0f"
+    "signature": "c8298477bbb6c1c967ac9cd16dc29cb45edaa024b8f164bb99779a7b02e646309d3d49d45925124150f317c6a0a772f6a06c82a2475f315177df583ff930c507"
 }
