@@ -17,6 +17,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Code formatting fixes.
 - Fixes to the correctness & completeness of package documentation.
 
 
