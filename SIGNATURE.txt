@@ -1,5 +1,5 @@
 {
-    "checksum": "20f859dbe6ad8bff6ffc2289e5609318380a26db23a987c36601f45133c4ffeff8d1f93798c1633307ccf4e9487bcee2",
+    "checksum": "0bc2732d2f7e3ad5cbbbf1c2f2e65fef7ea6924a2942b535537fc0f1ef143a27fe486eeb3636b89c078a3594e0b3a465",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "847eb6d28bcf866b958cac4946bce170c6724b7e1249d82ea5c540fbf481915b6284a1988d46f7a5b53ac5065f31a85c",
@@ -30,7 +30,7 @@
         "aiootp/asynchs/clocks.py": "8f923da2b6b22ebff54234847a7d9a720d1decb3e754ffad5b7309dab8ee086e47d4bf15b9b28eee362aade8874e59e7",
         "aiootp/asynchs/concurrency_interface.py": "0c0b90de5827cf5d7433666bd57a2ba81789b5278b4113476ca4eb55818522c3eac3f96a02caf3588dfaa2507823f86d",
         "aiootp/asynchs/loops.py": "f57614649fdfbd14e819ae790aa4b64d4beac86a6165b4b4d2f84dd921cddf3f31abbfc539e47c166685e2da0d953f6a",
-        "aiootp/asynchs/processes.py": "a59a9eda30519239fcef67524bd204f91ac827d287861df90ff722341f71481d382d1abfc2fdfbb3ae8bfb24536bdcd3",
+        "aiootp/asynchs/processes.py": "8a5904b34a945c681d9ef266aa54cea2de43c4384fc951b7ea1072743064a706881ceb4f5c81ec43a56e3faf9dfd33d9",
         "aiootp/asynchs/threads.py": "f1cb72cfb265bcd85e72518c21d2170339a65c79c5a03d75d41df68d0a1f8afab15dcbaa9810248a3f07318a70244ebc",
         "aiootp/ciphers/__init__.py": "06a26ae16defa75fd1c443804754c535df0bfa6d9c3e3240b8a0a543c62fe4e2eff32390e8ed33fa89021291e02d68fc",
         "aiootp/ciphers/chunky_2048.py": "e8b76ac6c600bebf22cfcb546cebd69621a14b24de79951c6ca80d3d8c8d42ad5d61eca1d4e87aaa98de2c291e393994",
@@ -109,7 +109,7 @@
         "setup.py": "88cf00f0d2bfa6ce7e24ab2915591e44f057b4a33b90f0b19b1a44811bac6ef5f7c3a53b5224337a2639dfa50ccbdd6d",
         "tests/pytest.ini": "707d3ce22f019e0bada73661b7adc85b9af00f7aacbc1d005c1a41e77964d533a2adbf00f7620044051af1b521961e22",
         "tests/test_ByteIO.py": "d3d8a059010bb3e7911c7262761cfe91085f7a759c6f673f5904fff68a9b333aa0c92d36bbeaede7f3192c9d22c6bf9e",
-        "tests/test_Clock.py": "8cf654941e8b3b9702cf56c0410fdf21926dfe6155c9646576fa2a5b60c699a76449fd85fb1bc5d6a5f636e4bf5a13cf",
+        "tests/test_Clock.py": "fefc27b997b5dfc1148cd3465e4b66d9483391532f23c57f79cd2c92a04e503ea90ef4ffd0c04cf31503c400a9c36be8",
         "tests/test_Database_AsyncDatabase.py": "c3146f777eff99f452a924f5aa2fae5d5390c8a4d71b8c6c0936e551dc13b94cd161398b62006c0354744564771190bd",
         "tests/test_GUID.py": "d5673cd4ad7946dce8dadc3bcd4a44296a380efa1a05a0343f8fbc745530e21a71c0212a56e226e5f4b9685bff932486",
         "tests/test_PackageSigner.py": "e3c64aa0fc1f9ef742cdce2aa6868add066201a937727b461fed2db627d0a65e480b59a01a2891441c8cec376254971f",
@@ -148,13 +148,13 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 2,
-        "date": 19871,
+        "build_number": 3,
+        "date": 19872,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
         "package": "aiootp",
         "version": "0.23.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "36ebbe1b26244b4d8e689ca6e567c8800890e8716ff4443e9addc4b0d28be9aeb24ca07e2129785ee58dde1922adf47fc2b4491f094cabc45a7569e01a28080e"
+    "signature": "5503a0af4af7aed518724561ec9dae0ad0c598e121dbc2cf809f1b70e2e91cee06e1a5b404a78587b61d3fcd7c3fd8a919b5019ea7cf487632d110f1801f0408"
 }
