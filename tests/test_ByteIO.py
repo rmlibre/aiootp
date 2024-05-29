@@ -16,7 +16,8 @@ from base64 import urlsafe_b64encode, urlsafe_b64decode
 from test_initialization import *
 
 
-data = token_bytes(choice([*range(24, 33)]))
+NON_ZERO_PREFIX = choice(list(range(1, 256))).to_bytes(1, BIG)
+data = NON_ZERO_PREFIX + token_bytes(choice(list(range(23, 33))))
 encoded_data = urlsafe_b64encode(data)
 
 
