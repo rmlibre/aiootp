@@ -4,6 +4,24 @@
 
 
 
+Changes for version 0.23.2
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+- None
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+- None
+
+
+
+
 Changes for version 0.23.1
 --------------------------
 
@@ -18,6 +36,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - Bump declared compatible Python versions in packaging metadata to 3.8 - 3.12.
+- Fix tests that were fragile to edge cases.
 
 
 
