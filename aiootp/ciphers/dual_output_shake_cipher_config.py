@@ -22,6 +22,7 @@ __doc__ = (
 
 from math import ceil
 from hashlib import shake_128
+from secrets import token_bytes
 
 from aiootp._typing import Typing as t
 from aiootp._constants import NamespaceMapping, BIG
@@ -488,6 +489,37 @@ class DualOutputShakeCipherConfig(Config):
                 " at least 16-bytes for the plaintext!", remainder
             )
 
+    def _ensure_siv_measurements_are_correct(self) -> None:
+        """
+        Sanity check that the SIV algorithm component measurements line
+        up as intended.
+        """
+        block = token_bytes(self.BLOCKSIZE)
+        header = block[self.INNER_HEADER_SLICE]
+        masked_header = token_bytes(self.INNER_HEADER_BYTES)
+        key = token_bytes(self.SHMAC_DOUBLE_BLOCKSIZE)
+        l_capacity = key[self.EMBEDDED_LEFT_CAPACITY_SLICE]
+        r_capacity = key[self.EMBEDDED_RIGHT_CAPACITY_SLICE]
+        ciphertext = masked_header + (
+            int.from_bytes(key[self.FIRST_KEY_SLICE], BIG)
+            ^ int.from_bytes(block[self.FIRST_CONTENT_SLICE], BIG)
+        ).to_bytes(self.FIRST_CONTENT_BYTES, BIG)
+        if len(ciphertext) != self.BLOCKSIZE:
+            raise ValueError("Derived SIV measurements were invalid!")
+        elif (
+            len(l_capacity + ciphertext + r_capacity)
+            != self.SHMAC_DOUBLE_BLOCKSIZE
+        ):
+            raise ValueError("Derived SIV measurements were invalid!")
+        elif (
+            len(
+                header
+                + masked_header
+                + token_bytes(self.SHMAC_BLOCKSIZE)[self.SIV_DIGEST_SLICE]
+            ) != self.SHMAC_BLOCKSIZE
+        ):
+            raise ValueError("Derived SIV measurements were invalid!")
+
     def _perform_correctness_checks(self) -> None:
         """
         Perform validity checks for the provided values & subsequent
@@ -501,6 +533,7 @@ class DualOutputShakeCipherConfig(Config):
         self._ensure_inner_header_leaves_adequate_space()
         self._ensure_min_block_id_size_isnt_larger_than_max()
         self._ensure_inner_header_leaves_adequate_space()
+        self._ensure_siv_measurements_are_correct()
 
     def _ensure_all_attributes_have_been_defined(self) -> None:
         """
