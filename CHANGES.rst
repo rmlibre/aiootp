@@ -18,6 +18,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - Code formatting fixes.
+- Add preemptive validity checks for SIV algorithm measurements.
 - Fixes to the correctness & completeness of package documentation.
 
 
