@@ -61,7 +61,7 @@ class TestAPlatformCounter:
         problem = (
             "Platform perf counter doesn't have nanosecond resolution."
         )
-        resolution_warning = lambda: warnings.warn(problem) or True
+        resolution_warning = lambda relay: warnings.warn(problem) or True
         HI_RES_TIME = False
         with Ignore(AssertionError, if_except=resolution_warning):
             assert time.get_clock_info("perf_counter").resolution <= 1e-09
@@ -133,9 +133,13 @@ class TestClockConversions:
                 experiment_timer=clock.time,
                 epoch=epoch,
             )
-            assert test.experiment in test.correct_range(
+            span = test.correct_range(
                 control_conversion=self.seconds_to_nanoseconds
             )
+            if HI_RES_TIME:
+                assert test.experiment in span
+            else:
+                assert test.experiment in range(span.start - 200, span.stop + 200)
 
     def test_microseconds_correctness(self) -> None:
         for epoch in EPOCHS_TESTED:
