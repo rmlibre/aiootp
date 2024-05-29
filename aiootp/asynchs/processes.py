@@ -17,6 +17,7 @@ __all__ = ["Processes", "get_process_id"]
 __doc__ = "A multi-processing interface."
 
 
+import multiprocessing
 from os import getpid as get_process_id
 from multiprocessing import Process, Manager
 import concurrent.futures.process as process
@@ -25,6 +26,9 @@ from concurrent.futures import ProcessPoolExecutor
 from aiootp._typing import Typing as t
 
 from .concurrency_interface import ConcurrencyInterface
+
+
+multiprocessing.set_start_method("fork")
 
 
 class Processes(ConcurrencyInterface):
