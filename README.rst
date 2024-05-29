@@ -10,22 +10,9 @@ aiootp — an async privacy, anonymity, & cryptography library.
 
 ``aiootp`` is a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.
 
-It's home to a family of novel online, salt misuse-reuse resistant, tweakable, & fully committing, AEAD ciphers. A 256-byte block-wise stream cipher named ``Chunky2048``. And, a robust 32-byte hybrid block-cipher / stream-cipher called ``Slick256``. The design goals behind this family of ciphers are to be simple & efficient while maintaining wide security margins, aiming towards incorporating information theoretic undecidability guarantees where possible.
+It's home to a family of novel online, salt misuse-reuse resistant, tweakable, & fully context committing, AEAD ciphers. A 256-byte block-wise stream cipher named ``Chunky2048``. And, a robust 32-byte hybrid block-cipher / stream-cipher called ``Slick256``. The design goals behind this family of ciphers are to be simple & efficient while maintaining wide security margins, aiming towards incorporating information theoretic undecidability guarantees where possible.
 
 We hope to give users & applications empowering developer-friendly privacy enhancing tools with strong, biased defaults. In so doing, increase the overall security, privacy, & anonymity in the digital world. Users will find ``aiootp`` to be easy to write, easy to read, & fun.
-
-
-
-
-.. note::
-
-    ``aiootp`` is **experimental software** that works with Python 3.8+. It's a work in progress. Its algorithms & programming API are likely to change with future updates, & it isn't bug free.
-
-    ``aiootp`` provides security tools & misc utilities that're designed to be developer-friendly & privacy preserving.
-
-    As a security tool, ``aiootp`` needs to be tested & improved extensively by the programming & cryptography communities to ensure its implementations are sound. We provide no guarantees.
-
-    This software hasn't yet been audited by third-party security professionals.
 
 
 
@@ -70,7 +57,7 @@ Quick Install
 
 .. code-block:: shell
 
-    $ sudo apt-get install python3-setuptools python3-pip
+    $ sudo apt-get install python3 python3-setuptools python3-pip
 
     $ pip3 install --user --upgrade pip typing aiootp
 
@@ -82,11 +69,26 @@ Run Tests
 
 .. code-block:: shell
 
+    $ pip3 install --user --upgrade pytest pytest-asyncio coverage
+
     $ cd <path>/aiootp-main/tests
 
     $ coverage run --source aiootp -p -m pytest -vv test_aiootp.py
 
-    $ coverage combine
+    $ coverage combine && coverage html && coverage report
+
+
+
+
+.. warning::
+
+    ``aiootp`` is **experimental software** that works with Python 3.8+. It's a work in progress. Its algorithms & programming API are likely to change with future updates, & it isn't bug free.
+
+    ``aiootp`` provides security tools & misc utilities that're designed to be developer-friendly & privacy preserving.
+
+    As a security tool, ``aiootp`` needs to be tested & improved extensively by the programming & cryptography communities to ensure its implementations are sound. We provide no guarantees.
+
+    This software hasn't yet been audited by third-party security professionals.
 
 
 
