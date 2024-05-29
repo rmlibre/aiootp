@@ -1,5 +1,5 @@
 {
-    "checksum": "2c137af919a947da275c0046eedcc057b8a5349e693648f804d3cb1268f0b74b2d640266e546f7883dde6169cc829c5d",
+    "checksum": "568dd0473046143554437a8f997f112f110fd814b342d8049657efea407cb539ca8937f5c007c3fc4ed393f48e799af5",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "fd63cd182c83a5103330497781bea95aebf72c956c0fb11b8bed1de24f4b428e9d333d82d1aa00978217b990151d8f07",
@@ -108,7 +108,7 @@
         "setup.cfg": "0ab367029b7ee314518326db1d13c255cc8314a3de46aee3806d3029a2eb9830741e98902fae6dcfb4ad65410bd3e95c",
         "setup.py": "1b8f555e3f51d1c196574572aba09c312c4c0162753b8fddc5369992bcd1ed85e7f8d25ccf2b1a4b60856d7499a07f4b",
         "tests/pytest.ini": "707d3ce22f019e0bada73661b7adc85b9af00f7aacbc1d005c1a41e77964d533a2adbf00f7620044051af1b521961e22",
-        "tests/test_ByteIO.py": "d3d8a059010bb3e7911c7262761cfe91085f7a759c6f673f5904fff68a9b333aa0c92d36bbeaede7f3192c9d22c6bf9e",
+        "tests/test_ByteIO.py": "ac1aa9124f8c46975360000fbb74f5c0305cd7480cd499fe4d5a96550ab2b7f9ac233ee4626cb001d1f10d9732299283",
         "tests/test_Clock.py": "a43093889a00b10660ef412845ca4ebfe2113eaf29ddae42d8f8514230ccbf321670df74d2af888460c8899850069dad",
         "tests/test_Database_AsyncDatabase.py": "c3146f777eff99f452a924f5aa2fae5d5390c8a4d71b8c6c0936e551dc13b94cd161398b62006c0354744564771190bd",
         "tests/test_GUID.py": "d5673cd4ad7946dce8dadc3bcd4a44296a380efa1a05a0343f8fbc745530e21a71c0212a56e226e5f4b9685bff932486",
@@ -148,7 +148,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 0,
+        "build_number": 1,
         "date": 19872,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -156,5 +156,5 @@
         "version": "0.23.1"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "260cac2b2fed4bef31aa3771027fb2e1caa9acb38f76b9a89c85dd94e3fd905cb3ef389c253295c19f5adaadf9ca277513d38e658a09f7345378e3ccfc55760c"
+    "signature": "fa22d78230a243fe02ee540d797d7e757d307b707b19da40b1f63758a87818441494f2f1a5e56a2bc74665fa9dc4bd199da463803f45e83045ea5abf0625cc0b"
 }
