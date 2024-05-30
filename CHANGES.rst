@@ -22,6 +22,7 @@ Minor Changes
 - Remove deprecated code.
 - Add preemptive validity checks for SIV algorithm measurements.
 - Fixes to the correctness & completeness of doc strings.
+- Fixes to the correctness & completeness of package tests.
 - Fixes to the correctness & completeness of package documentation.
 
 
