@@ -33,7 +33,8 @@ from .domain_kdf import *
 from .passcrypt import *
 from .mnemonics import *
 from .curve_25519 import *
-from .package_signing import *
+from .package_signer import *
+from .package_verifier import *
 
 
 subpackages = dict(curve_25519=curve_25519, passcrypt=passcrypt)
@@ -42,7 +43,8 @@ subpackages = dict(curve_25519=curve_25519, passcrypt=passcrypt)
 modules = dict(
     domain_kdf=domain_kdf,
     mnemonics=mnemonics,
-    package_signing=package_signing,
+    package_signer=package_signer,
+    package_verifier=package_verifier,
 )
 
 

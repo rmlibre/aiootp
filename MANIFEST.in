@@ -86,7 +86,8 @@ include aiootp/ciphers/chunky_2048.py
 include aiootp/keygens/__init__.py
 include aiootp/keygens/domain_kdf.py
 include aiootp/keygens/mnemonics.py
-include aiootp/keygens/package_signing.py
+include aiootp/keygens/package_signer.py
+include aiootp/keygens/package_verifier.py
 include aiootp/keygens/curve_25519/__init__.py
 include aiootp/keygens/curve_25519/adapter.py
 include aiootp/keygens/curve_25519/shared_interface.py
