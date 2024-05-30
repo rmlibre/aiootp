@@ -93,7 +93,7 @@ def this_year(epoch: int = 0) -> int:
 class Clock(FrozenInstance):
     """
     A class whose objects are used for creating & measuring bytes-type
-    timestamps, with configurable the units & epoch of measure.
+    timestamps, with configurable time units & epoch of measure.
 
      _____________________________________
     |                                     |
