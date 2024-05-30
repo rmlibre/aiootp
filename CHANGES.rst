@@ -29,12 +29,6 @@ Changes for version 0.23.1
 --------------------------
 
 
-Major Changes
-^^^^^^^^^^^^^
-
-- None
-
-
 Minor Changes
 ^^^^^^^^^^^^^
 
