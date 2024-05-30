@@ -19,6 +19,7 @@ Minor Changes
 
 - Dispersed ``keygens/package_signing.py`` module into separate ``keygens/package_signer.py`` & ``keygens/package_verifier.py`` modules.
 - Code formatting fixes.
+- Remove deprecated code.
 - Add preemptive validity checks for SIV algorithm measurements.
 - Fixes to the correctness & completeness of doc strings.
 - Fixes to the correctness & completeness of package documentation.

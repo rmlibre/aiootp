@@ -15,7 +15,6 @@ __all__ = [
     "AsyncInit",
     "asleep",
     "asyncio",
-    "default_event_loop",
     "gather",
     "event_loop",
     "get_event_loop_id",
@@ -44,7 +43,6 @@ from aiootp._debug_control import DebugControl
 
 event_loop = asyncio.get_event_loop
 get_event_loop_id = lambda: id(event_loop())
-default_event_loop = event_loop()
 new_event_loop = asyncio.new_event_loop
 gather = asyncio.gather
 new_future = asyncio.ensure_future
@@ -116,7 +114,6 @@ module_api = dict(
     __package__=__package__,
     asleep=asleep,
     asyncio=asyncio,
-    default_event_loop=default_event_loop,
     gather=gather,
     event_loop=event_loop,
     get_event_loop_id=get_event_loop_id,
