@@ -28,12 +28,18 @@ async def test_mnemonic():
     assert len(phrase12.split(b"-")) == 12
 
 
-    problem = "Can supply passcrypt settings to sync mnemonic when not given passphrase"
+    problem = (
+        "Can supply passcrypt settings to sync mnemonic when not given "
+        "passphrase."
+    )
     with Ignore(ValueError, if_else=violation(problem)) as relay:
         phrase12 = b"-".join(mnemonic(size=12, **passcrypt_settings)).title()
     assert "parameters are not used" in relay.error.args[0]
 
-    problem = "Can supply passcrypt settings to async mnemonic when not given passphrase"
+    problem = (
+        "Can supply passcrypt settings to async mnemonic when not given "
+        "passphrase."
+    )
     with Ignore(ValueError, if_else=violation(problem)) as relay:
         aphrase12 = b"-".join(await amnemonic(size=12, **passcrypt_settings)).title()
     assert "parameters are not used" in relay.error.args[0]
@@ -69,7 +75,9 @@ async def test_DomainKDF():
     aad = b"testing DomainKDF" + csprng(token_bits(6))
     test_data = (b"input tests", token_bytes(32), token_bytes(32))
 
-    problem = "empty kdf updates were allowed!"
+    problem = (
+        "Empty KDF updates were allowed."
+    )
     with Ignore(ValueError, if_else=violation(problem)):
         await kdf.aupdate()
     with Ignore(ValueError, if_else=violation(problem)):
@@ -102,9 +110,4 @@ async def test_DomainKDF():
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-
-
-
-
-
 

@@ -108,7 +108,9 @@ def test_chunky2048_min_padding_blocks_option():
     assert plaintext == cipher.bytes_decrypt(ciphertext)
     assert len(ciphertext) == config.HEADER_BYTES + (extra_padding + 1) * config.BLOCKSIZE
 
-    problem = "Differently configured ciphers allowed to interop"
+    problem = (
+        "Differently configured ciphers allowed to interop."
+    )
     with Ignore(cipher.InvalidSHMAC, if_else=violation(problem)):
         control_cipher = Chunky2048(key)
         control_config = control_cipher._config
@@ -170,7 +172,9 @@ def test_slick256_min_padding_blocks_option():
     assert plaintext == cipher.bytes_decrypt(ciphertext)
     assert len(ciphertext) == config.HEADER_BYTES + (extra_padding + 1) * config.BLOCKSIZE
 
-    problem = "Differently configured ciphers allowed to interop"
+    problem = (
+        "Differently configured ciphers allowed to interop."
+    )
     with Ignore(cipher.InvalidSHMAC, if_else=violation(problem)):
         control_cipher = Slick256(key)
         control_config = control_cipher._config

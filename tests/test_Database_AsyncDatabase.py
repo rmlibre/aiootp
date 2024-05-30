@@ -113,7 +113,9 @@ class TestDatabaseCacheSystem:
 class TestDatabaseInitialization:
 
     async def test_async_key_size_limits(self):
-        problem = "a key that's too small was allowed"
+        problem = (
+            "a key that's too small was allowed."
+        )
         token = token_bytes(64)
         for size in (0, 1, 2, 4, 8, 16, 31, MIN_KEY_BYTES - 1):
             key = token[:size]
@@ -121,7 +123,9 @@ class TestDatabaseInitialization:
                 db = await AsyncDatabase(key)
 
     def test_sync_key_size_limits(self):
-        problem = "a key that's too small was allowed"
+        problem = (
+            "a key that's too small was allowed."
+        )
         token = token_bytes(64)
         for size in (0, 1, 2, 4, 8, 16, 31, MIN_KEY_BYTES - 1):
             key = token[:size]
@@ -190,6 +194,7 @@ class TestDatabases:
         await async_database.aset_tag(tag, data)
         await async_database.asave_database()
         assert data == await async_database.apop_tag(tag)
+
         problem = (
             "Pop tag doesn't throw when silent flag not set."
         )
@@ -207,6 +212,7 @@ class TestDatabases:
         database.set_tag(tag, data)
         database.save_database()
         assert data == database.pop_tag(tag)
+
         problem = (
             "Pop tag doesn't throw when silent flag not set."
         )

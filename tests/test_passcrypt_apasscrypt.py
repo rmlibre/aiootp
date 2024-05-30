@@ -106,12 +106,16 @@ class TestPasscryptMetadataHashes:
         )
 
     async def test_wrong_passphrase_fails_async(self) -> None:
-        problem = "An invalid passphrase passed async verification!"
+        problem = (
+            "An invalid passphrase passed async verification."
+        )
         with Ignore(Passcrypt.InvalidPassphrase, if_else=violation(problem)):
             await Passcrypt.averify(self.ametadata_hash, self.passphrase + b"\x00")
 
     async def test_wrong_passphrase_fails_sync(self) -> None:
-        problem = "An invalid passphrase passed sync verification!"
+        problem = (
+            "An invalid passphrase passed sync verification."
+        )
         with Ignore(Passcrypt.InvalidPassphrase, if_else=violation(problem)):
             Passcrypt.verify(
                 self.metadata_hash,
@@ -121,7 +125,10 @@ class TestPasscryptMetadataHashes:
 
     async def test_async_mb_resource_limitations(self) -> None:
         mb_allowed = passcrypt_settings.mb
-        problem = f"The `mb` was allowed to exceed the resource limit of {mb_allowed - 1}"
+        problem = (
+            "The `mb` was allowed to exceed the resource limit of "
+            f"{mb_allowed - 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             await Passcrypt.averify(
                 self.ametadata_hash,
@@ -130,7 +137,10 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = f"The `mb` was allowed to fall below the resource limit of {mb_allowed + 1}"
+        problem = (
+            "The `mb` was allowed to fall below the resource limit of "
+            f"{mb_allowed + 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             await Passcrypt.averify(
                 self.ametadata_hash,
@@ -141,7 +151,10 @@ class TestPasscryptMetadataHashes:
 
     async def test_sync_mb_resource_limitations(self) -> None:
         mb_allowed = passcrypt_settings.mb
-        problem = f"The `mb` was allowed to exceed the resource limit of {mb_allowed - 1}"
+        problem = (
+            "The `mb` was allowed to exceed the resource limit of "
+            f"{mb_allowed - 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             Passcrypt.verify(
                 self.metadata_hash,
@@ -150,7 +163,10 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = f"The `mb` was allowed to fall below the resource limit of {mb_allowed + 1}"
+        problem = (
+            "The `mb` was allowed to fall below the resource limit of "
+            f"{mb_allowed + 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             Passcrypt.verify(
                 self.metadata_hash,
@@ -161,7 +177,10 @@ class TestPasscryptMetadataHashes:
 
     async def test_async_cpu_resource_limitations(self) -> None:
         cpu_allowed = passcrypt_settings.cpu
-        problem = f"The `cpu` was allowed to exceed the resource limit of {cpu_allowed - 1}"
+        problem = (
+            "The `cpu` was allowed to exceed the resource limit of "
+            f"{cpu_allowed - 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             await Passcrypt.averify(
                 self.ametadata_hash,
@@ -170,7 +189,10 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = f"The `cpu` was allowed to fall below the resource limit of {cpu_allowed + 1}"
+        problem = (
+            "The `cpu` was allowed to fall below the resource limit of "
+            f"{cpu_allowed + 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             await Passcrypt.averify(
                 self.ametadata_hash,
@@ -181,7 +203,10 @@ class TestPasscryptMetadataHashes:
 
     async def test_sync_cpu_resource_limitations(self) -> None:
         cpu_allowed = passcrypt_settings.cpu
-        problem = f"The `cpu` was allowed to exceed the resource limit of {cpu_allowed - 1}"
+        problem = (
+            "The `cpu` was allowed to exceed the resource limit of "
+            f"{cpu_allowed - 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             Passcrypt.verify(
                 self.metadata_hash,
@@ -190,7 +215,10 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = f"The `cpu` was allowed to fall below the resource limit of {cpu_allowed + 1}"
+        problem = (
+            "The `cpu` was allowed to fall below the resource limit of "
+            f"{cpu_allowed + 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             Passcrypt.verify(
                 self.metadata_hash,
@@ -201,7 +229,10 @@ class TestPasscryptMetadataHashes:
 
     async def test_async_cores_resource_limitations(self) -> None:
         cores_allowed = passcrypt_settings.cores
-        problem = f"The `cores` was allowed to exceed the resource limit of {cores_allowed - 1}"
+        problem = (
+            "The `cores` was allowed to exceed the resource limit of "
+            f"{cores_allowed - 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             await Passcrypt.averify(
                 self.ametadata_hash,
@@ -210,7 +241,10 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = f"The `cores` was allowed to fall below the resource limit of {cores_allowed + 1}"
+        problem = (
+            "The `cores` was allowed to fall below the resource limit of "
+            f"{cores_allowed + 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             await Passcrypt.averify(
                 self.ametadata_hash,
@@ -221,7 +255,10 @@ class TestPasscryptMetadataHashes:
 
     async def test_sync_cores_resource_limitations(self) -> None:
         cores_allowed = passcrypt_settings.cores
-        problem = f"The `cores` was allowed to exceed the resource limit of {cores_allowed - 1}"
+        problem = (
+            "The `cores` was allowed to exceed the resource limit of "
+            f"{cores_allowed - 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             Passcrypt.verify(
                 self.metadata_hash,
@@ -230,7 +267,10 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = f"The `cores` was allowed to fall below the resource limit of {cores_allowed + 1}"
+        problem = (
+            "The `cores` was allowed to fall below the resource limit of "
+            f"{cores_allowed + 1}."
+        )
         with Ignore(ResourceWarning, if_else=violation(problem)):
             Passcrypt.verify(
                 self.metadata_hash,
@@ -303,7 +343,9 @@ class TestPasscryptInputsOutputs:
     settings = dict(**pcrypt._settings, config=pcrypt._config)
 
     async def test_empty_passphrase_isnt_allowed(self) -> None:
-        problem = "Empty passphrase was allowed."
+        problem = (
+            "Empty passphrase was allowed."
+        )
         with Ignore(Passcrypt.ImproperPassphrase, if_else=violation(problem)):
             PasscryptSession(b"", self.salt, aad=b"", **self.settings)
 
@@ -314,7 +356,9 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew(b"", self.salt)
 
     async def test_min_passphrase_length(self) -> None:
-        problem = "A below minimum length passphrase was allowed."
+        problem = (
+            "A below minimum length passphrase was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             PasscryptSession(
                 (config.MIN_PASSPHRASE_BYTES - 1) * b"p",
@@ -329,7 +373,9 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew((config.MIN_PASSPHRASE_BYTES - 1) * b"p", self.salt)
 
     async def test_passphrase_must_be_bytes(self) -> None:
-        problem = "Non-bytes passphrase was allowed."
+        problem = (
+            "Non-bytes passphrase was allowed."
+        )
         with Ignore(TypeError, if_else=violation(problem)):
             PasscryptSession(
                 "a string passphrase", self.salt, **self.settings
@@ -348,7 +394,9 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew("a string passphrase", self.salt)
 
     async def test_falsey_salts_not_allowed(self) -> None:
-        problem = "Empty salt was allowed."
+        problem = (
+            "Empty salt was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             PasscryptSession(key, salt=b"", **self.settings)
 
@@ -359,7 +407,9 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew(key, salt=b"")
 
     async def test_salt_must_be_bytes(self) -> None:
-        problem = "Non-bytes salt was allowed."
+        problem = (
+            "Non-bytes salt was allowed."
+        )
         with Ignore(TypeError, if_else=violation(problem)):
             PasscryptSession(key, "a string salt here", **self.settings)
 
@@ -376,7 +426,9 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew(key, "a string salt here")
 
     async def test_aad_must_be_bytes(self) -> None:
-        problem = "A non-bytes type `aad` was allowed."
+        problem = (
+            "A non-bytes type `aad` was allowed."
+        )
         with Ignore(TypeError, if_else=violation(problem)):
             PasscryptSession(
                 key, self.salt, aad="some string aad", **self.settings
@@ -397,7 +449,9 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_mb(None), TypeError)
 
     async def test_min_mb(self) -> None:
-        problem = "A `mb` cost below the minimum was allowed."
+        problem = (
+            "A `mb` cost below the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MIN_MB - 1,
@@ -408,7 +462,9 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_max_mb(self) -> None:
-        problem = "A `mb` cost above the minimum was allowed."
+        problem = (
+            "A `mb` cost above the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MAX_MB + 1,
@@ -424,7 +480,9 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_cpu(None), TypeError)
 
     async def test_min_cpu(self) -> None:
-        problem = "A `cpu` cost below the minimum was allowed."
+        problem = (
+            "A `cpu` cost below the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MIN_MB,
@@ -435,7 +493,9 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_max_cpu(self) -> None:
-        problem = "A `cpu` cost above the minimum was allowed."
+        problem = (
+            "A `cpu` cost above the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MIN_MB,
@@ -451,7 +511,9 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_cores(None), TypeError)
 
     async def test_min_cores(self) -> None:
-        problem = "A `cores` cost below the minimum was allowed."
+        problem = (
+            "A `cores` cost below the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MIN_MB,
@@ -462,7 +524,9 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_max_cores(self) -> None:
-        problem = "A `cores` cost above the minimum was allowed."
+        problem = (
+            "A `cores` cost above the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MIN_MB,
@@ -478,7 +542,9 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_tag_size(None), TypeError)
 
     async def test_min_tag_size(self) -> None:
-        problem = "A `tag_size` below the minimum was allowed."
+        problem = (
+            "A `tag_size` below the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MIN_MB,
@@ -494,7 +560,9 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_salt_size(None), TypeError)
 
     async def test_min_salt_size(self) -> None:
-        problem = "A `salt_size` below the minimum was allowed."
+        problem = (
+            "A `salt_size` below the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MIN_MB,
@@ -505,7 +573,9 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_max_salt_size(self) -> None:
-        problem = "A `salt_size` above the minimum was allowed."
+        problem = (
+            "A `salt_size` above the minimum was allowed."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             Passcrypt(
                 mb=self.config.MIN_MB,

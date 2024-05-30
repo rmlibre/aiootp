@@ -71,10 +71,11 @@ class TestConfigMap:
     def test_config_id_cannot_change(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
+        problem = (
+            "config_id changed without error."
+        )
         config_id = 1
         mapping[config_id] = config
-
-        problem = "config_id changed without error."
         with Ignore(ValueError, if_else=violation(problem)):
             config.CONFIG_ID = 2
 
@@ -83,19 +84,21 @@ class TestConfigMap:
     def test_config_must_be_config_subclass(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
+        problem = (
+            "non-`Config` subclass was allowed to be registered."
+        )
         config_id = 1
-
-        problem = "non-`Config` subclass was allowed to be registered."
         with Ignore(TypeError, if_else=violation(problem)):
             mapping[config_id] = FalseConfig()
 
     def test_cannot_be_reassigned(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
+        problem = (
+            "a config was allowed to be reassigned to the map."
+        )
         config_id = 1
         mapping[config_id] = config
-
-        problem = "a config was allowed to be reassigned to the map."
         with Ignore(PermissionError, if_else=violation(problem)):
             mapping[config_id] = ExampleConfig(number=111, string="abd")
 

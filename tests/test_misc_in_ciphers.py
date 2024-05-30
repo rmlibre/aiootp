@@ -96,6 +96,10 @@ class TestDatastreamLimits:
     async def test_async_too_large_plaintext_block_overflows_validated_transform(
         self
     ) -> None:
+        problem = (
+            "An async plaintext block larger than blocksize didn't "
+            "overflow."
+        )
         for (config, cipher, salt, aad) in dual_output_ciphers:
             BLOCKSIZE = config.BLOCKSIZE
             for mode, kw in (
@@ -105,10 +109,6 @@ class TestDatastreamLimits:
                 akey_bundle = await cipher._KeyAADBundle(cipher._kdfs, **kw).async_mode()
                 shmac = getattr(cipher._StreamHMAC(akey_bundle), mode)()
 
-                problem = (
-                    "An async plaintext block larger than blocksize didn't "
-                    "overflow."
-                )
                 with Ignore(OverflowError, if_else=violation(problem)):
                     await shmac._avalidated_transform(
                         b"\xff" + token_bytes(BLOCKSIZE),
@@ -118,6 +118,10 @@ class TestDatastreamLimits:
     async def test_sync_too_large_plaintext_block_overflows_validated_transform(
         self
     ) -> None:
+        problem = (
+            "A sync plaintext block larger than blocksize didn't "
+            "overflow."
+        )
         for (config, cipher, salt, aad) in dual_output_ciphers:
             BLOCKSIZE = config.BLOCKSIZE
             for mode, kw in (
@@ -127,10 +131,6 @@ class TestDatastreamLimits:
                 key_bundle = cipher._KeyAADBundle(cipher._kdfs, **kw).sync_mode()
                 shmac = getattr(cipher._StreamHMAC(key_bundle), mode)()
 
-                problem = (
-                    "A sync plaintext block larger than blocksize didn't "
-                    "overflow."
-                )
                 with Ignore(OverflowError, if_else=violation(problem)):
                     shmac._validated_transform(
                         b"\xff" + token_bytes(BLOCKSIZE),

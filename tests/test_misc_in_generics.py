@@ -68,22 +68,28 @@ class TestDomains:
 class TestCanonicalPack:
 
     async def test_empty_pad_is_invalid(self):
-        problem = "An empty padding value didn't raise a `TypeError`!"
+        problem = (
+            "An empty padding value didn't raise a `TypeError`."
+        )
         with Ignore(TypeError, if_else=violation(problem)):
             canonical_pack(b"test", pad=b"")
         async with Ignore(TypeError, if_else=violation(problem)):
             await acanonical_pack(b"test", pad=b"")
 
     async def test_zero_blocksize_is_invalid(self):
-        problem = "A negative blocksize value didn't raise a `OverflowError`!"
+        problem = (
+            "A negative blocksize value didn't raise a `OverflowError`."
+        )
         with Ignore(ZeroDivisionError, if_else=violation(problem)):
             canonical_pack(b"test", blocksize=0)
         async with Ignore(ZeroDivisionError, if_else=violation(problem)):
             await acanonical_pack(b"test", blocksize=0)
 
     async def test_negative_integer_blocksize_is_invalid(self):
+        problem = (
+            "A negative blocksize value didn't raise a `OverflowError`."
+        )
         test_values = (-168, -136, -2, -1)
-        problem = "A negative blocksize value didn't raise a `OverflowError`!"
         for blocksize in test_values:
             with Ignore(OverflowError, if_else=violation(problem)):
                 canonical_pack(b"test", blocksize=blocksize)
@@ -91,8 +97,10 @@ class TestCanonicalPack:
                 await acanonical_pack(b"test", blocksize=blocksize)
 
     async def test_float_blocksize_is_invalid(self):
+        problem = (
+            "A float blocksize value didn't raise an `AttributeError`."
+        )
         test_values = (-2.0, -1.0, 0.0, 1.0, 2.0)
-        problem = "A float blocksize value didn't raise an `AttributeError`!"
         for blocksize in test_values:
             with Ignore(AttributeError, if_else=violation(problem)):
                 canonical_pack(b"test", blocksize=blocksize)
@@ -100,12 +108,12 @@ class TestCanonicalPack:
                 await acanonical_pack(b"test", blocksize=blocksize)
 
     async def test_minimum_size_given_by_item_count_declaration(self):
-        minimum_inputs = ((), (b"",), (b"", b""), (b"", b"", b""))
-        tested_int_bytes = (1, 4, 8)
         problem = (
             "An item count declaration which exceeds the count which is"
             "possible given the small size of the packing was allowed."
         )
+        minimum_inputs = ((), (b"",), (b"", b""), (b"", b"", b""))
+        tested_int_bytes = (1, 4, 8)
         for data in minimum_inputs:
             for int_bytes in tested_int_bytes:
                 test = canonical_pack(*data, int_bytes=int_bytes)

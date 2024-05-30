@@ -34,7 +34,10 @@ def test_sign_and_verify():
         _repr = repr(signer)
         assert all(name in _repr for name in signer._scope)
 
-        problem = "Allowed to retrieve a signature before connecting to the database."
+        problem = (
+            "Allowed to retrieve a signature before connecting to the "
+            "database."
+        )
         with Ignore(RuntimeError, if_else=violation(problem)):
             signer._signature
 
@@ -48,11 +51,15 @@ def test_sign_and_verify():
         )
         signer.update_public_credentials(x25519_public_key=aiootp.__PUBLIC_X25519_KEY__)
 
-        problem = "Allowed to retrieve a signing key before its creation."
+        problem = (
+            "Allowed to retrieve a signing key before its creation."
+        )
         with Ignore(LookupError, if_else=violation(problem)):
             signer.signing_key
 
-        problem = "Allowed to retrieve a signature before signing."
+        problem = (
+            "Allowed to retrieve a signature before signing."
+        )
         with Ignore(RuntimeError, if_else=violation(problem)):
             signer._signature
 
@@ -63,7 +70,10 @@ def test_sign_and_verify():
         signer.update_signing_key(signer.signing_key.secret_key)
         signer.update_signing_key(signer.signing_key.secret_bytes)
 
-        problem = "a type other than str, bytes, Ed25519PrivateKey or an Ed25519 object was allowed for update_signing_key"
+        problem = (
+            "A type other than str, bytes, Ed25519PrivateKey or an "
+            "Ed25519 object was allowed for update_signing_key."
+        )
         with Ignore(TypeError, if_else=violation(problem)):
             signer.update_signing_key(bytearray(signer.signing_key.secret_bytes))
 
@@ -117,7 +127,9 @@ def test_sign_and_verify():
 
         # summary checksum alteration fails
         summary["checksum"] = summary["checksum"][::-1]
-        problem = "Summary alteration uncaught!"
+        problem = (
+            "Summary alteration uncaught."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             verifier.verify_summary(summary)
 
@@ -129,7 +141,9 @@ def test_sign_and_verify():
         verifier.verify_summary(json.dumps(summary))
 
         # altering the signature does not work
-        problem = "Signature alteration went uncaught!"
+        problem = (
+            "Signature alteration went uncaught."
+        )
         with Ignore(verifier.InvalidSignature, if_else=violation(problem)):
             fake_summary = {**summary, "signature": token_bytes(64).hex()}
             verifier.verify_summary(fake_summary)
@@ -141,7 +155,9 @@ def test_sign_and_verify():
 
         # altering the signing key fails
         summary["signing_key"] = X25519().generate().public_bytes.hex()
-        problem = "Changed signing_key went uncaught!"
+        problem = (
+            "Changed signing_key went uncaught."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             verifier.verify_summary(summary)
 
@@ -155,7 +171,9 @@ def test_sign_and_verify():
         PACKAGE = signer._scope.package
         signature = signer.db[PACKAGE][VERSIONS][VERSION]
         signer.db[PACKAGE][VERSIONS][VERSION] = token_bytes(32).hex()
-        problem = "altered signature not detected during summarization!"
+        problem = (
+            "Altered signature not detected during summarization."
+        )
         with Ignore(ValueError, if_else=violation(problem)):
             signer.summarize()
 
