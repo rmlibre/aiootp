@@ -26,7 +26,7 @@ from aiootp._typing import Typing as t
 from aiootp._constants.misc import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._exceptions import Issue, TimestampExpired
 from aiootp._exceptions import InvalidBlockID, InvalidSHMAC
-from aiootp._gentools import batch, abatch
+from aiootp._gentools import abatch, batch
 from aiootp.commons import FrozenInstance, Config
 from aiootp.generics import ByteIO
 

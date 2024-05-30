@@ -25,7 +25,6 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
 from aiootp import __PUBLIC_X25519_KEY__
 from aiootp import Domains, DomainKDF, X25519, Database, Chunky2048
-from aiootp._constants import CHUNKY_2048
 from aiootp._constants import CONVERSATION, PERIOD_KEYS, PERIOD_KEY
 from aiootp.asynchs import Clock
 from aiootp.generics import ByteIO, canonical_pack

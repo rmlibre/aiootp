@@ -23,7 +23,7 @@ from collections import deque
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._exceptions import Issue, CipherStreamIssue
-from aiootp._gentools import popleft, apopleft, batch, abatch
+from aiootp._gentools import apopleft, popleft, abatch, batch
 from aiootp.asynchs import AsyncInit, asleep
 
 from .cipher_stream_properties import AuthFail, CipherStreamProperties

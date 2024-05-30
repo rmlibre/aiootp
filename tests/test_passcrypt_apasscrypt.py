@@ -12,6 +12,7 @@
 
 
 from test_initialization import *
+
 from aiootp.keygens.passcrypt import PasscryptHash
 from aiootp.keygens.passcrypt.sessions_manager import PasscryptProcesses
 from aiootp.keygens.passcrypt.config import passcrypt_spec as config

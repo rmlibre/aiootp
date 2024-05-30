@@ -41,7 +41,7 @@ from hmac import compare_digest as bytes_are_equal
 from aiootp._typing import Typing as t
 from aiootp._constants import LITTLE, BIG, INT_BYTES
 from aiootp._exceptions import Issue, CanonicalIssue
-from aiootp._gentools import batch, abatch, arange
+from aiootp._gentools import abatch, batch, arange
 from aiootp.asynchs import asleep
 
 

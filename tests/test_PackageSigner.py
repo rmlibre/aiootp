@@ -12,6 +12,7 @@
 
 
 from test_initialization import *
+
 from aiootp._paths import DatabasePath
 from aiootp.keygens.passcrypt.config import passcrypt_spec
 

@@ -27,7 +27,7 @@ __doc__ = "Functions to transform the representation of data."
 from aiootp._typing import Typing as t
 from aiootp._constants import BIG, Tables
 from aiootp._exceptions import Issue
-from aiootp._gentools import batch, abatch
+from aiootp._gentools import abatch, batch
 from aiootp.asynchs import asleep
 
 

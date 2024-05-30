@@ -29,8 +29,7 @@ from aiootp._constants import NamespaceMapping, BIG
 from aiootp._exceptions import UndefinedRequiredAttributes
 from aiootp.asynchs import Clock
 from aiootp.commons import Config
-from aiootp.generics import Domains
-from aiootp.generics import canonical_pack
+from aiootp.generics import Domains, canonical_pack
 
 from .cipher_kdfs import ShakeConfig
 

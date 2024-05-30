@@ -26,8 +26,8 @@ from aiootp._typing import Typing as t
 from aiootp._constants import HASHER_TYPES
 from aiootp._exceptions import Issue
 from aiootp.commons import FrozenInstance
-from aiootp.generics import Domains, hash_bytes, ahash_bytes
-from aiootp.generics import canonical_pack, acanonical_pack
+from aiootp.generics import Domains, ahash_bytes, hash_bytes
+from aiootp.generics import acanonical_pack, canonical_pack
 
 
 class HashTupleKDF(FrozenInstance):
