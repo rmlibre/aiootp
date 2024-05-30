@@ -45,7 +45,7 @@ class StreamJunction(FrozenInstance):
         streams this package's ciphers.
 
         WARNING: `data` MUST produce plaintext in blocksize chunks or
-        smaller per iteration or security WILL BE BROKEN by directly
+        smaller per iteration or security MAY BE BROKEN by directly
         leaking plaintext. The cipher is designed for plaintext be
         padded using the `Padding` class.
 
@@ -72,10 +72,10 @@ class StreamJunction(FrozenInstance):
         A low-level function which returns a sync generator that streams
         this package's ciphers.
 
-        WARNING: `data` MUST produce plaintext in chunks of 256 bytes
-        or less per iteration or security WILL BE BROKEN by directly
-        leaking plaintext. The cipher is designed for plaintext be padded
-        using the `Padding` class.
+        WARNING: `data` MUST produce plaintext in blocksize chunks or
+        smaller per iteration or security MAY BE BROKEN by directly
+        leaking plaintext. The cipher is designed for plaintext be
+        padded using the `Padding` class.
 
         WARNING: The `finalize` or `afinalize` methods must be called on
         the `shmac` once all of the cipehrtext has been created /
