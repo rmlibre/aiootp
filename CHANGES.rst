@@ -12,7 +12,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - Dispersed ``keygens/package_signing.py`` module into separate ``keygens/package_signer.py`` & ``keygens/package_verifier.py`` modules.
-- Apply preliminary quick fix to cross-platform errors in `asynchs/aos.py` module.
+- Apply preliminary quick fixes to cross-platform errors in `asynchs` subpackage.
 
 
 Minor Changes
