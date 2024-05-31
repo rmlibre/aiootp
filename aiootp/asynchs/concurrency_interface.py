@@ -212,8 +212,8 @@ class ConcurrencyInterface:
     ) -> t.List[t.Any]:
         """
         Sumbits all of the async or synchronous `functions` to the
-        `Processes._process_pool` or `Threads._thread_pool` with the
-        given `args` & `kwargs`.
+        `Processes._pool` or `Threads._pool` with the given `args` &
+        `kwargs`.
         """
         tasks = [
             await cls.asubmit(func, *args, **kwargs) for func in functions
@@ -232,8 +232,8 @@ class ConcurrencyInterface:
         kwargs: t.Mapping[t.Hashable, t.Any] = {},
     ) -> t.List[t.Any]:
         """
-        Sumbits all the `functions` to the `Processes._process_pool`
-        or `Threads._thread_pool` with the given `args` & `kwargs`.
+        Sumbits all the `functions` to the `Processes._pool` or
+        `Threads._pool` with the given `args` & `kwargs`.
         """
         tasks = [cls.submit(func, *args, **kwargs) for func in functions]
         try:
