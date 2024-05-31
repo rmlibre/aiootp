@@ -1,5 +1,5 @@
 {
-    "checksum": "766f9327e735b056fdf5494d8c24f4c7b2bf8a2e99223292acd3073cb183575541f9059a27ac6c42bfc488f4ddbaedd1",
+    "checksum": "d813d0f48f6002753598c411826decf687ac87a1cf39b2effec068de677a334748531602b5900ce90a6bd5b9daf84a42",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "5fea87fea0c29cc3aa5d1b4f34dce9989e1b48b5170f03b6a3ceb2e240ccf453ce670cb2cfb62a21e5c6a0a6257f50b9",
@@ -30,7 +30,7 @@
         "aiootp/asynchs/clocks.py": "5b9d0ddca83b888dcdc4e61627cbb827cd8280245098e80c631a524d9880c70ba8869de2e8da1ebb7636e9e1c96ebc0b",
         "aiootp/asynchs/concurrency_interface.py": "d2d9764beab84b8f34a5d0d24be3e6c298373515a2954400056f6eeee001a546a571cfc09f8763da0e29ba594141d58d",
         "aiootp/asynchs/loops.py": "35d1445d554b70a554d3d7c1a0c9316087cf97eda8729e5dddfdb13bcb8961aa65e0dd538007e48bbfda402f240b6f7b",
-        "aiootp/asynchs/processes.py": "5569a9a16bc8745b0f1735c2d11a34365b04be877ff482529429406cb8428e20011a03370bc15eaa03b17f05457126e9",
+        "aiootp/asynchs/processes.py": "78334a20a4dcee7232b393b1f729428c3be913e1be005af5271fe0dfaf817a8acf9d9d60f1a251ce81f825772d960b57",
         "aiootp/asynchs/threads.py": "f1cb72cfb265bcd85e72518c21d2170339a65c79c5a03d75d41df68d0a1f8afab15dcbaa9810248a3f07318a70244ebc",
         "aiootp/ciphers/__init__.py": "06a26ae16defa75fd1c443804754c535df0bfa6d9c3e3240b8a0a543c62fe4e2eff32390e8ed33fa89021291e02d68fc",
         "aiootp/ciphers/chunky_2048.py": "e8b76ac6c600bebf22cfcb546cebd69621a14b24de79951c6ca80d3d8c8d42ad5d61eca1d4e87aaa98de2c291e393994",
@@ -149,7 +149,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 7,
+        "build_number": 8,
         "date": 19874,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -157,5 +157,5 @@
         "version": "0.23.2"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "99b7c8540612916c49d2c0653efec857e285d94754a1bd8b336961dde4f1fdb46a2ebeb9e4da874a46988c621b0c8b2f0c3708b9818b27e97b7adbe3b1183904"
+    "signature": "64b5bdc3808de13207a048a46814052b2fae4070d0d8fb47e56df8d3cd2351b4411af3322e1a948dd5beb50fc6e132892a67fd9dceb43213cb6988a7b932bc02"
 }
