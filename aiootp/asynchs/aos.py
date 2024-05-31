@@ -41,9 +41,11 @@ __doc__ = (
 
 
 import os
+import warnings
 from functools import wraps, partial
 
 from aiootp._typing import Typing as t
+from aiootp.asynchs import asleep
 
 from .loops import event_loop
 
@@ -64,14 +66,28 @@ def wrap_in_executor(function) -> t.Coroutine[t.Any, t.Any, t.Any]:
     return runner
 
 
-chmod = wrap_in_executor(os.chmod)
-chown = wrap_in_executor(os.chown)
+async def not_implemented_placeholder(*a: t.Any, **kw: t.Any) -> None:
+    await asleep()
+    warnings.warn("Function not supported by OS.")
+
+
+try:
+    chmod = wrap_in_executor(os.chmod)
+    chown = wrap_in_executor(os.chown)
+    sendfile = wrap_in_executor(os.sendfile)
+except AttributeError:
+    # OS doesn't support UNIX-style file permissions
+    # TODO: implement cross-platform solution
+    chmod = not_implemented_placeholder     # pragma: no cover
+    chown = not_implemented_placeholder     # pragma: no cover
+    sendfile = not_implemented_placeholder  # pragma: no cover
+
+
 makedirs = wrap_in_executor(os.makedirs)
 mkdir = wrap_in_executor(os.mkdir)
 rename = wrap_in_executor(os.rename)
 remove = wrap_in_executor(os.remove)
 rmdir = wrap_in_executor(os.rmdir)
-sendfile = wrap_in_executor(os.sendfile)
 stat = wrap_in_executor(os.stat)
 
 

@@ -11,13 +11,13 @@ Changes for version 0.23.2
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- Dispersed ``keygens/package_signing.py`` module into separate ``keygens/package_signer.py`` & ``keygens/package_verifier.py`` modules.
+- Apply preliminary quick fix to cross-platform errors in `asynchs/aos.py` module.
 
 
 Minor Changes
 ^^^^^^^^^^^^^
 
-- Dispersed ``keygens/package_signing.py`` module into separate ``keygens/package_signer.py`` & ``keygens/package_verifier.py`` modules.
 - Code formatting fixes.
 - Remove deprecated code.
 - Add preemptive validity checks for SIV algorithm measurements.
