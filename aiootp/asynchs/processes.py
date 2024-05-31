@@ -30,10 +30,7 @@ from .concurrency_interface import ConcurrencyInterface
 multiprocessing.freeze_support()
 
 
-def context() -> t.Union[
-    multiprocessing.context.ForkContext,
-    multiprocessing.context.SpawnContext,
-]:
+def context() -> multiprocessing.context.BaseContext:
     """
     Try returning the best available multiprocessing context for the OS.
     """
