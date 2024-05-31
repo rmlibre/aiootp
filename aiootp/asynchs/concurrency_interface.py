@@ -43,33 +43,33 @@ class ConcurrencyInterface:
     BrokenPool: type
 
     @staticmethod
-    def _return_async_result(_func, /, *args, **kwargs):
+    def _run_async_func(func, /, *args, _state, **kwargs) -> None:
         """
         Used by the class to handle retreiving return values from new
-        async processes / threads spawned using a pool.
+        async or sync processes / threads spawned using a pool.
         """
-        run = new_event_loop().run_until_complete
-        return run(_func(*args, **kwargs))
-
-    @classmethod
-    def _run_async_func(cls, _func, /, *args, _state, **kwargs) -> None:
-        """
-        Used by the class to handle retreiving return values from new
-        processes spawned, even if the target function is async.
-        """
-        if is_async_function(_func):
+        if is_async_function(func):
             run = new_event_loop().run_until_complete
-            _state.append(run(_func(*args, **kwargs)))
+            _state.append(run(func(*args, **kwargs)))
         else:
-            cls._run_func(_func, *args, _state=_state, **kwargs)
+            _state.append(func(*args, **kwargs))
 
     @staticmethod
-    def _run_func(_func, /, *args, _state, **kwargs) -> None:
+    def _run_func(func, /, *args, _state, **kwargs) -> None:
         """
         Used by the class to handle retreiving return values from new
-        processes spawned.
+        sync processes / threads spawned using a pool.
         """
-        _state.append(_func(*args, **kwargs))
+        _state.append(func(*args, **kwargs))
+
+    @staticmethod
+    def _return_state(runner, func, /, _state, *args, **kwargs):
+        """
+        Used by the class to handle retreiving return values from new
+        processes spawned using the process pool.
+        """
+        runner(func, *args, **kwargs, _state=_state)
+        return _state.pop()
 
     @classmethod
     def _process_probe_delay(
@@ -164,15 +164,15 @@ class ConcurrencyInterface:
                 await asleep(delay)
             return future.result()
 
-        if is_async_function(func):
-            run = cls._return_async_result
-            future = cls.submit(
-                run, func, *args, probe_delay=probe_delay, **kwargs
-            )
-        else:
-            future = cls.submit(
-                func, *args, probe_delay=probe_delay, **kwargs
-            )
+        state = cls._Manager().list()
+        future = cls._pool.submit(
+            cls._return_state,
+            cls._run_async_func,
+            func,
+            *args,
+            _state=state,
+            **kwargs,
+        )
         future.aresult = aresult
         return future
 
@@ -198,7 +198,15 @@ class ConcurrencyInterface:
                 sleep(delay)
             return future._original_result()
 
-        future = cls._pool.submit(func, *args, **kwargs)
+        state = cls._Manager().list()
+        future = cls._pool.submit(
+            cls._return_state,
+            cls._run_func,
+            func,
+            *args,
+            _state=state,
+            **kwargs,
+        )
         future._original_result = future.result
         future.result = result
         return future

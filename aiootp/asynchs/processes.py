@@ -27,20 +27,6 @@ from aiootp._typing import Typing as t
 from .concurrency_interface import ConcurrencyInterface
 
 
-multiprocessing.freeze_support()
-
-
-def context() -> multiprocessing.context.BaseContext:
-    """
-    Try returning the best available multiprocessing context for the OS.
-    """
-    try:
-        return multiprocessing.get_context("fork")
-    except ValueError:
-        # OS doesn't support the "fork" context.
-        return multiprocessing.get_context("spawn")  # pragma: no cover
-
-
 class Processes(ConcurrencyInterface):
     """
     Simplifies spawning & returning the values procuded by `Process` &
@@ -53,19 +39,10 @@ class Processes(ConcurrencyInterface):
     _Manager: type = multiprocessing.Manager
 
     _default_probe_delay: t.PositiveRealNumber = 0.005
-    _pool: t.PoolExecutorType = ProcessPoolExecutor(mp_context=context())
+    _pool: t.PoolExecutorType = ProcessPoolExecutor()
     _type: type = multiprocessing.Process
 
     BrokenPool: type = process.BrokenProcessPool
-
-    @classmethod
-    def reset_pool(cls) -> None:
-        """
-        When a process or thread pool is broken by an abruptly exited,
-        this method can be called to reset the class' pool object with
-        a new instance.
-        """
-        cls._pool = cls._pool.__class__(mp_context=context())
 
 
 module_api = dict(
