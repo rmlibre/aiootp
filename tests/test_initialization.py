@@ -11,6 +11,12 @@
 #
 
 
+import multiprocessing
+
+
+multiprocessing.freeze_support()
+
+
 import sys
 import json
 import pytest
