@@ -15,11 +15,19 @@ from test_initialization import *
 
 
 async def aget_ids() -> int:
+    from aiootp.asynchs import asleep
+    from aiootp.asynchs.threads import get_thread_id
+    from aiootp.asynchs.processes import get_process_id
+
     await asleep()
     return dict(process_id=get_process_id(), thread_id=get_thread_id())
 
 
 def get_ids() -> int:
+    from aiootp.asynchs import asleep
+    from aiootp.asynchs.threads import get_thread_id
+    from aiootp.asynchs.processes import get_process_id
+
     return dict(process_id=get_process_id(), thread_id=get_thread_id())
 
 

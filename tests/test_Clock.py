@@ -57,23 +57,33 @@ class TestAPlatformCounter:
         assert time.get_clock_info("perf_counter").monotonic == True
 
     def test_is_nanosecond_precise(self) -> None:
-        global HI_RES_TIME
+        global HI_RES_COUNTER
 
         problem = (
             "Platform perf counter doesn't have nanosecond resolution."
         )
         resolution_warning = lambda relay: warnings.warn(problem) or True
-        HI_RES_TIME = False
+        HI_RES_COUNTER = False
         with Ignore(AssertionError, if_except=resolution_warning):
             assert time.get_clock_info("perf_counter").resolution <= 1e-09
-            HI_RES_TIME = True
+            HI_RES_COUNTER = True
         assert time.get_clock_info("perf_counter").resolution <= 1e-07
 
 
-class TestPlatformTime:
+class TestAPlatformTime:
 
     def test_is_at_least_millisecond_precise(self) -> None:
-        assert time.get_clock_info("time").resolution <= 1e-03
+        global HI_RES_TIME
+
+        problem = (
+            "Platform time doesn't have at least millisecond resolution."
+        )
+        resolution_warning = lambda relay: warnings.warn(problem) or True
+        HI_RES_TIME = False
+        with Ignore(AssertionError, if_except=resolution_warning):
+            assert time.get_clock_info("time").resolution <= 1e-03
+            HI_RES_TIME = True
+        assert time.get_clock_info("time").resolution <= 1 / 64
 
 
 class TestClockConversions:
@@ -120,9 +130,9 @@ class TestClockConversions:
         iterations = tuple(range(number_of_tests))
         right_now = Clock(NANOSECONDS).time
         tests = [right_now() for test in iterations]
-        if HI_RES_TIME:
+        if HI_RES_COUNTER:
             assert number_of_tests == len(set(tests))
-        else:
+        elif HI_RES_TIME:
             assert number_of_tests <= 10 * len(set(tests))
         assert tests == sorted(tests)
 
@@ -137,7 +147,7 @@ class TestClockConversions:
             span = test.correct_range(
                 control_conversion=self.seconds_to_nanoseconds
             )
-            if HI_RES_TIME:
+            if HI_RES_COUNTER:
                 assert test.experiment in span
             else:
                 assert test.experiment in range(span.start - 200, span.stop + 200)
