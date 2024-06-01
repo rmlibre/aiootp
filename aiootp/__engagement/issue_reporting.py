@@ -34,7 +34,7 @@ from aiootp.ciphers.padding import Padding
 def report_security_issue() -> None:
     # allow the user to configure aiootp to report a bug, but not be
     # obligated to.
-    if not input("want to report a security issue? (y/N) ").lower().strip().startswith("y"):
+    if not input("Want to report a security issue? (y/N) ").lower().strip().startswith("y"):
         return
 
     # generate an ephemeral X25519 key & exchange it with the aiootp
@@ -45,13 +45,13 @@ def report_security_issue() -> None:
 
     # get credentials from user to create an encrypted database
     print(
-        "\nwe'll ask for your email address & a passphrase to encrypt"
+        "\nWe'll ask for your email address & a passphrase to encrypt"
         "\nthe keys, that will be generated automatically, locally on"
         "\nyour device."
     )
 
     mb: str = input(
-        "\nhow much RAM, in Mebibytes (1 MiB == 1024*1024 B), would you"
+        "\nHow much RAM, in Mebibytes (1 MiB == 1024*1024 B), would you"
         "\nlike to use to hash this passphrase?"
         "\n1024 Mebibytes (1 GiB) is recommended, but choose according"
         "\nto what your machine has available, & how much you'd like"
@@ -65,23 +65,23 @@ def report_security_issue() -> None:
         try:
             mb: int = max([int(mb), 1])
             if input(
-                f"\nare you sure you'd like to use {mb} MiB of RAM to hash this"
+                f"\nAre you sure you'd like to use {mb} MiB of RAM to hash this"
                 "\npassphrase? (Y/n) "
             ).lower().strip().startswith("n"):
-                raise PermissionError
+                raise PermissionError()
             break
         except ValueError:
-            print(f"Try again, {mb} is not a valid number.")
+            print(f"\nTry again, {mb} is not a valid number.")
         except PermissionError:
-            print("Ok, let's try again.")
+            print("\nOk, let's try again.")
         mb: str = input(
-            "\nhow much RAM, in Mebibytes (1 MiB == 1024*1024 B), would "
+            "\nHow much RAM, in Mebibytes (1 MiB == 1024*1024 B), would "
             "\nyou like to use to hash this passphrase? "
         )
 
-    your_email_address: bytes = input("your email address: ").encode()
+    your_email_address: bytes = input("\nYour email address: ").encode()
     PASSPHRASE_PROMPT: str = (
-        "your passphrase to continue the conversation (hidden): "
+        "\nYour passphrase to continue the conversation (hidden): "
     )
 
     # open a local encrypted database for the user to store the keys
@@ -106,16 +106,16 @@ def report_security_issue() -> None:
 
     # receive the security issue report
     print(
-        "\nplease include the following information to help us to "
+        "\nPlease include the following information to help us to "
         "\nefficiently fix the issue:\n"
-        "\n* type of attack(s) enabled by the issue"
-        "\n* name of source file(s) which participate in the issue"
-        "\n* step-by-step instructions to reproduce the issue"
-        "\n* proof-of-concept or exploit code (if possible)"
-        "\n* whether or not you'd like an email response"
+        "\n* Type of attack(s) enabled by the issue"
+        "\n* Name of source file(s) which participate in the issue"
+        "\n* Step-by-step instructions to reproduce the issue"
+        "\n* Proof-of-concept or exploit code (if possible)"
+        "\n* Whether or not you'd like an email response"
     )
     print(
-        "\nplease type or paste your message here. hit CTRL-D (or "
+        "\nPlease type or paste your message here. Hit CTRL-D (or "
         "\nCTRL-Z on Windows) to finish the message:\n"
     )
     message: bytes = Padding(Chunky2048._config).pad_plaintext(
@@ -143,18 +143,18 @@ def report_security_issue() -> None:
     )
 
     # display ciphertext payload, what to expect & thank yous
-    print("\n\nExcellent! here's the json message you can email to us:\n")
+    print("\n\nExcellent! Here's the JSON message you can email to us:\n")
     print(json.dumps(dict(
         date=ByteIO.bytes_to_urlsafe(date).decode(),
         public_key=ByteIO.bytes_to_urlsafe(your_public_key.public_bytes).decode(),
         siv=ByteIO.bytes_to_urlsafe(siv).decode(),
         encrypted_message=ByteIO.bytes_to_urlsafe(encrypted_message).decode(),
     ), indent=4))
-    print("\nsend it to either rmlibre@riseup.net or gonzo.development@protonmail.com")
+    print("\nSend it to either rmlibre@riseup.net or gonzo.development@protonmail.com")
 
     print(
-        "\nthanks for your report! you should receive a response "
-        "\nwithin two weeks. your secret key has been saved locally."
+        "\nThanks for your report! You should receive a response "
+        "\nwithin two weeks. Your secret key has been saved locally."
     )
 
 
