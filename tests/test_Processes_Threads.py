@@ -107,16 +107,16 @@ class BasicTestSuite:
             self._type.new(csprng, probe_delay=-1)
 
 
-class TestProcesses(BasicTestSuite):
-    _type: type = Processes
-    _id_name: str = "process_id"
-
-
 if platform.system() != "Windows":
 
-    class TestThreads(BasicTestSuite):
-        _type: type = Threads
-        _id_name: str = "thread_id"
+    class TestProcesses(BasicTestSuite):
+        _type: type = Processes
+        _id_name: str = "process_id"
+
+
+class TestThreads(BasicTestSuite):
+    _type: type = Threads
+    _id_name: str = "thread_id"
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
