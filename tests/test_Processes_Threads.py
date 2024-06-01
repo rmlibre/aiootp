@@ -24,7 +24,6 @@ async def aget_ids() -> int:
 
 
 def get_ids() -> int:
-    from aiootp.asynchs import asleep
     from aiootp.asynchs.threads import get_thread_id
     from aiootp.asynchs.processes import get_process_id
 
