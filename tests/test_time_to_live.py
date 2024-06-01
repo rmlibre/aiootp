@@ -11,9 +11,6 @@
 #
 
 
-import os
-import platform
-
 from test_initialization import *
 
 
@@ -88,17 +85,6 @@ class TestZPasscryptTimeToLive:
             relay = ignored
             Passcrypt.verify(expired_passcrypt_hash, passphrase_0, ttl=1)
         assert relay.error.expired_by >= 1
-
-
-class TestZZZExitTests:
-
-    async def test_zzz_exit_tests(self) -> None:
-        """
-        The test suite doesn't exit on some platforms. This is part of
-        troubleshooting resolutions to such cross-platform errors.
-        """
-        if platform.system() != "Linux":
-            os._exit(0)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

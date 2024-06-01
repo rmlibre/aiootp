@@ -14,6 +14,10 @@
 import multiprocessing
 
 
+try:
+    multiprocessing.set_start_method("fork", force=True)
+except ValueError:
+    multiprocessing.set_start_method("spawn", force=True)
 multiprocessing.freeze_support()
 
 
