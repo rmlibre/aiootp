@@ -380,21 +380,18 @@ def test_sync_cipher_decipher_streams():
                 stream_dec.buffer(join(id_ct))
                 for pt in stream_dec:
                     pt_dec += pt
-            try:
-                for id_ct in stream_enc.finalize():
-                    stream_dec.buffer(join(id_ct))
-                for pt in stream_dec.finalize():
-                    pt_dec += pt
+            for id_ct in stream_enc.finalize():
+                stream_dec.buffer(join(id_ct))
+            for pt in stream_dec.finalize():
+                pt_dec += pt
 
-                problem = (
-                    "Processing was allowed to continue after finalization."
-                )
-                with Ignore(InterruptedError, if_else=violation(problem)):
-                    stream_enc.buffer(pt_enc)
-                with Ignore(InterruptedError, if_else=violation(problem)):
-                    stream_dec.buffer(id_ct[1])
-            except AssertionError as error:
-                raise error
+            problem = (
+                "Processing was allowed to continue after finalization."
+            )
+            with Ignore(InterruptedError, if_else=violation(problem)):
+                stream_enc.buffer(pt_enc)
+            with Ignore(InterruptedError, if_else=violation(problem)):
+                stream_dec.buffer(id_ct[1])
             assert pt_enc == pt_dec, f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
 
 
