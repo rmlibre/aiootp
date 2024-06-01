@@ -11,11 +11,15 @@
 #
 
 
+import math
 import time
 import warnings
 
 from test_initialization import *
 
+
+TIME_RESOLUTION = time.get_clock_info("time").resolution
+TIME_VARIANCE = math.ceil(TIME_RESOLUTION / 1e-09)
 
 YEAR_WITH_LEAP_DAYS = 365.24225
 
@@ -57,32 +61,24 @@ class TestAPlatformCounter:
         assert time.get_clock_info("perf_counter").monotonic == True
 
     def test_is_nanosecond_precise(self) -> None:
-        global HI_RES_COUNTER
-
         problem = (
             "Platform perf counter doesn't have nanosecond resolution."
         )
         resolution_warning = lambda relay: warnings.warn(problem) or True
-        HI_RES_COUNTER = False
         with Ignore(AssertionError, if_except=resolution_warning):
             assert time.get_clock_info("perf_counter").resolution <= 1e-09
-            HI_RES_COUNTER = True
         assert time.get_clock_info("perf_counter").resolution <= 1e-07
 
 
 class TestAPlatformTime:
 
     def test_is_at_least_millisecond_precise(self) -> None:
-        global HI_RES_TIME
-
         problem = (
             "Platform time doesn't have at least millisecond resolution."
         )
         resolution_warning = lambda relay: warnings.warn(problem) or True
-        HI_RES_TIME = False
         with Ignore(AssertionError, if_except=resolution_warning):
             assert time.get_clock_info("time").resolution <= 1e-03
-            HI_RES_TIME = True
         assert time.get_clock_info("time").resolution <= 1 / 64
 
 
@@ -130,9 +126,9 @@ class TestClockConversions:
         iterations = tuple(range(number_of_tests))
         right_now = Clock(NANOSECONDS).time
         tests = [right_now() for test in iterations]
-        if HI_RES_COUNTER:
+        if TIME_RESOLUTION <= 1e-07:
             assert number_of_tests == len(set(tests))
-        elif HI_RES_TIME:
+        elif TIME_RESOLUTION <= 1e-03:
             assert number_of_tests <= 10 * len(set(tests))
         assert tests == sorted(tests)
 
@@ -147,10 +143,13 @@ class TestClockConversions:
             span = test.correct_range(
                 control_conversion=self.seconds_to_nanoseconds
             )
-            if HI_RES_COUNTER:
+            if TIME_RESOLUTION <= 1e-09:
                 assert test.experiment in span
             else:
-                assert test.experiment in range(span.start - 200, span.stop + 200)
+                assert test.experiment in range(
+                    span.start - TIME_VARIANCE,
+                    span.stop + TIME_VARIANCE,
+                )
 
     def test_microseconds_correctness(self) -> None:
         for epoch in EPOCHS_TESTED:
