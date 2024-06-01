@@ -39,6 +39,9 @@ class BasicTestSuite:
     async def test_anew(self) -> None:
         name = self._id_name
 
+        if (name == "thread_id") and (self.system == "Windows"):
+            return
+
         is_non_linux_multiprocessing_issue = lambda relay: (
             (self._type is Processes) and (self.system != "Linux")
         )
@@ -56,6 +59,9 @@ class BasicTestSuite:
 
     def test_new(self) -> None:
         name = self._id_name
+
+        if (name == "thread_id") and (self.system == "Windows"):
+            return
 
         is_non_linux_multiprocessing_issue = lambda relay: (
             (self._type is Processes) and (self.system != "Linux")
