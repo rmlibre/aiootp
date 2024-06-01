@@ -18,6 +18,7 @@ __doc__ = "A multi-threading interface."
 
 
 from threading import Thread
+from collections import deque
 import concurrent.futures.thread as thread
 from _thread import get_ident as get_thread_id
 from concurrent.futures import ThreadPoolExecutor
@@ -39,13 +40,14 @@ class Threads(ConcurrencyInterface):
     class _Manager:
         """
         This type is for parity with the `Processes` class' use of the
-        `multiprocessing.Manager`. It returns a list so state can be
-        passed around from spawned threads to calling code.
+        `multiprocessing.Manager`. It returns an atomic list-like
+        container so state can be passed around from spawned threads to
+        calling code.
         """
 
         @staticmethod
-        def list():
-             return []
+        def list() -> t.Sequence[t.Any]:
+             return deque(maxlen=1)
 
     _default_probe_delay: t.PositiveRealNumber = 0.001
     _pool: t.PoolExecutorType = ThreadPoolExecutor()
