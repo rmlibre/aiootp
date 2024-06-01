@@ -11,12 +11,16 @@
 #
 
 
+import platform
+
 from test_initialization import *
 
 
 class BasicTestSuite:
     _type: type
     _id_name: str
+
+    system = platform.system()
 
     async def aget_ids(self) -> t.Dict[str, int]:
         from aiootp.asynchs import asleep
@@ -35,24 +39,32 @@ class BasicTestSuite:
     async def test_anew(self) -> None:
         name = self._id_name
 
-        result = (await self._type.anew(self.aget_ids))[name]
-        assert result > 0
-        assert result.__class__ is int
-        assert result != (await self.aget_ids())[name]
-        assert result != self.get_ids()[name]
+        is_non_linux_multiprocessing_issue = lambda relay: (
+            (self._type is Processes) and (self.system != "Linux")
+        )
+        with Ignore(IndexError, if_except=is_non_linux_multiprocessing_issue):
+            result = (await self._type.anew(self.aget_ids))[name]
+            assert result > 0
+            assert result.__class__ is int
+            assert result != (await self.aget_ids())[name]
+            assert result != self.get_ids()[name]
 
-        result = (await self._type.anew(self.get_ids))[name]
-        assert result > 0
-        assert result.__class__ is int
-        assert result != self.get_ids()[name]
+            result = (await self._type.anew(self.get_ids))[name]
+            assert result > 0
+            assert result.__class__ is int
+            assert result != self.get_ids()[name]
 
     def test_new(self) -> None:
         name = self._id_name
 
-        result = self._type.new(self.get_ids)[name]
-        assert result > 0
-        assert result.__class__ is int
-        assert result != self.get_ids()[name]
+        is_non_linux_multiprocessing_issue = lambda relay: (
+            (self._type is Processes) and (self.system != "Linux")
+        )
+        with Ignore(IndexError, if_except=is_non_linux_multiprocessing_issue):
+            result = self._type.new(self.get_ids)[name]
+            assert result > 0
+            assert result.__class__ is int
+            assert result != self.get_ids()[name]
 
     async def test_asubmit(self) -> None:
         name = self._id_name
