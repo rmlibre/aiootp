@@ -14,77 +14,75 @@
 from test_initialization import *
 
 
-async def aget_ids() -> int:
-    from aiootp.asynchs import asleep
-    from aiootp.asynchs.threads import get_thread_id
-    from aiootp.asynchs.processes import get_process_id
-
-    await asleep()
-    return dict(process_id=get_process_id(), thread_id=get_thread_id())
-
-
-def get_ids() -> int:
-    from aiootp.asynchs.threads import get_thread_id
-    from aiootp.asynchs.processes import get_process_id
-
-    return dict(process_id=get_process_id(), thread_id=get_thread_id())
-
-
 class BasicTestSuite:
     _type: type
     _id_name: str
 
+    async def aget_ids(self) -> t.Dict[str, int]:
+        from aiootp.asynchs import asleep
+        from aiootp.asynchs.threads import get_thread_id
+        from aiootp.asynchs.processes import get_process_id
+
+        await asleep()
+        return dict(process_id=get_process_id(), thread_id=get_thread_id())
+
+    def get_ids(self) -> t.Dict[str, int]:
+        from aiootp.asynchs.threads import get_thread_id
+        from aiootp.asynchs.processes import get_process_id
+
+        return dict(process_id=get_process_id(), thread_id=get_thread_id())
+
     async def test_anew(self) -> None:
         name = self._id_name
 
-        result = (await self._type.anew(aget_ids))[name]
+        result = (await self._type.anew(self.aget_ids))[name]
         assert result > 0
         assert result.__class__ is int
-        assert result != (await aget_ids())[name]
-        assert result != get_ids()[name]
+        assert result != (await self.aget_ids())[name]
+        assert result != self.get_ids()[name]
 
-        result = (await self._type.anew(get_ids))[name]
+        result = (await self._type.anew(self.get_ids))[name]
         assert result > 0
         assert result.__class__ is int
-        assert result != get_ids()[name]
+        assert result != self.get_ids()[name]
 
     def test_new(self) -> None:
         name = self._id_name
 
-        result = self._type.new(get_ids)[name]
+        result = self._type.new(self.get_ids)[name]
         assert result > 0
         assert result.__class__ is int
-        assert result != get_ids()[name]
+        assert result != self.get_ids()[name]
 
     async def test_asubmit(self) -> None:
         name = self._id_name
         self._type.reset_pool()
 
-        fut = await self._type.asubmit(aget_ids)
+        fut = await self._type.asubmit(self.aget_ids)
         result = (await fut.aresult())[name]
         assert result == fut.result()[name]
         assert result > 0
         assert result.__class__ is int
-        assert result != (await aget_ids())[name]
-        assert result != get_ids()[name]
+        assert result != (await self.aget_ids())[name]
+        assert result != self.get_ids()[name]
 
-        fut = await self._type.asubmit(get_ids)
+        fut = await self._type.asubmit(self.get_ids)
         result = (await fut.aresult())[name]
         assert result == fut.result()[name]
         assert result > 0
         assert result.__class__ is int
-        assert result != (await aget_ids())[name]
-        assert result != get_ids()[name]
+        assert result != (await self.aget_ids())[name]
+        assert result != self.get_ids()[name]
 
     def test_submit(self) -> None:
         name = self._id_name
         self._type.reset_pool()
 
-        fut = self._type.submit(get_ids)
+        fut = self._type.submit(self.get_ids)
         result = fut.result()[name]
         assert result > 0
         assert result.__class__ is int
-        assert result != get_ids()[name]
+        assert result != self.get_ids()[name]
 
     async def test_probe_delay_must_be_positive(self) -> None:
         problem = (
