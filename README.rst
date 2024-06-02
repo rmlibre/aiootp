@@ -10,7 +10,7 @@ aiootp — an async privacy, anonymity, & cryptography library.
 
 ``aiootp`` is a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.
 
-It's home to a family of novel online, salt misuse-reuse resistant, tweakable, & fully context committing, AEAD ciphers. A 256-byte block-wise stream cipher named ``Chunky2048``. And, a robust 32-byte hybrid block-cipher / stream-cipher called ``Slick256``. The design goals behind this family of ciphers are to be simple & efficient while maintaining wide security margins, aiming towards incorporating information theoretic undecidability guarantees where possible.
+It's home to a family of novel online, salt misuse-reuse resistant, tweakable, & fully context committing AEAD ciphers. A 256-byte block-wise stream cipher named ``Chunky2048``. And, a robust 32-byte hybrid block-cipher / stream-cipher called ``Slick256``. The design goals behind this family of ciphers are to be simple & efficient, while achieving modern security notions, wide security margins, & aiming towards incorporating information theoretic undecidability guarantees where possible.
 
 We hope to give users & applications empowering developer-friendly privacy enhancing tools with strong, biased defaults. In so doing, increase the overall security, privacy, & anonymity in the digital world. Users will find ``aiootp`` to be easy to write, easy to read, & fun.
 
