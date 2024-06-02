@@ -1,5 +1,5 @@
 {
-    "checksum": "7421d5fc7fd536f27c4759573278904a10367b1a99df24afa2a583d817e86df6c9ac342b64deff9749bffef41bfcc2f0",
+    "checksum": "3e38cc8c3e0f9cde5ff074d6977c42adaa994fbfcb846981e94e5f3e86ce9ebe0a7035b77be4f99d9a949b622e0678d8",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "cc7c8c3d2c9732c8f7f544a5145a2e07edc94e4f0fc6e5ccfe1991a4d9902194908011475937cf3300a635c8b1a3588d",
@@ -43,7 +43,7 @@
         "aiootp/ciphers/decipher_streams.py": "4d87b28ca79ee30eca2bfd66a4930acea78869e5ce495c88bb57e330d8bc30d9da22ea27352e1936926f6a330dce465b",
         "aiootp/ciphers/dual_output_shake_cipher.py": "788f160fce8e02c3373cd9fbe55d119311114cf9771b3f6f4600cfad63bb515f7326e11468db836b013292cde3b64504",
         "aiootp/ciphers/dual_output_shake_cipher_config.py": "768b121ee3dbd69cc2b4613f58c4146adffa8b31c538b61b8f1977e81fbcc96e7d13e8aac876aa3403c1a6d4ab5fdb00",
-        "aiootp/ciphers/key_bundle.py": "c8b442b4bbaef4404156415b47fbb22831d7c03947e6aeb7053fba77328bfff9953a0f9d7800b17366512fb193294fae",
+        "aiootp/ciphers/key_bundle.py": "b286e8fed58eb16ed7a0e5ca0f41a683a8f7e82fcd9c8017f7b5819c70ce77b579ecc8acd7250c6b9b1e904dd89e4120",
         "aiootp/ciphers/padding.py": "82b9d1c0cbf8e03e1fc2299ab6546ec1edbac25e8502e41f27f8cb44d2fa3d441c02541e73b68276bbae7d2e7fa21f49",
         "aiootp/ciphers/shake_permute_cipher.py": "be1c13fba77cdb53c8a96bcf7e99fec56933c72c7135c34f400ae48a381ec041fa8cc2512aa94ddf1897575acf07e866",
         "aiootp/ciphers/shake_permute_cipher_config.py": "adb7b35998388b64791506dba142a58700fef0538a3eea3c4f80dc4155849fb7107ba1f79dd16bb658ac11c98f2dabe7",
@@ -149,7 +149,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 0,
+        "build_number": 1,
         "date": 19876,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -157,5 +157,5 @@
         "version": "0.23.3"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "3eaf989b726405f97098148ea875c4bb0b2fa295a27cd12fa50ce21a1c8664ef4219631e38aa18eea9f4d8a424f71d416e4a69bd9970689f917bb7e5fe08fd02"
+    "signature": "7ab123cdf4cb6afc6bb4a0a02b6b4b74962f89e80b195826bc61c6aab7206e2dcb847dc86a17448eb18bdb37cd4471baa3fb77ab3b12f59cd6fa1538ec0d3a01"
 }
