@@ -71,9 +71,7 @@ Run Tests
 
     $ pip3 install --user --upgrade pytest pytest-asyncio coverage
 
-    $ cd <path>/aiootp-main/tests
-
-    $ coverage run --source aiootp -p -m pytest -vv test_aiootp.py
+    $ coverage run --source aiootp -p -m pytest -vv tests/test_aiootp.py
 
     $ coverage combine && coverage html && coverage report
 
@@ -88,7 +86,7 @@ Run Tests
 
     As a security tool, ``aiootp`` needs to be tested & improved extensively by the programming & cryptography communities to ensure its implementations are sound. We provide no guarantees.
 
-    This software hasn't yet been audited by third-party security professionals.
+    This software hasn't yet been audited by 3rd-party security professionals.
 
 
 

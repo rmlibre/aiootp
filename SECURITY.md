@@ -102,7 +102,7 @@ Communications are preferred to be in English, or with language declared(, and, 
 #### Licensed under the AGPLv3: https://www.gnu.org/licenses/agpl-3.0.html
 #### Copyright
 ####           © 2019-2021 Gonzo Investigative Journalism Agency, LLC <gonzo.development@protonmail.ch>
-####           © 2019-2024 Richard Machado <rmlibre@riseup.net>
+####           © 2019-2024 Ricchi (Richard) Machado <rmlibre@riseup.net>
 
 ### All rights reserved.
 
