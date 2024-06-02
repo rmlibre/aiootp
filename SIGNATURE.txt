@@ -1,16 +1,16 @@
 {
-    "checksum": "64250cbc53ab26575f5fb4d7ef590a1b21a02320dab736c1b7db68fe3fcba39d7091565812d40cfa6ddceee9c9a4d9ad",
+    "checksum": "01699c0d9c5a1c4f5c98726dc8a4fa83de9da125ab80386686f7a54f86a2cef0f236cb8485931ef008498eeb10db5d22",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
-        "CHANGES.rst": "5fea87fea0c29cc3aa5d1b4f34dce9989e1b48b5170f03b6a3ceb2e240ccf453ce670cb2cfb62a21e5c6a0a6257f50b9",
+        "CHANGES.rst": "aa4d86cd63d8e99aebd26a5329859f91518ff8fa255cd22ee67fc14f54f09e175ca19d4243f94aec20542a6d997bb9f3",
         "FAQ.rst": "2f15dac97fb9bdc64d36204e11d617f0363ef221b071eec9cfb1a5951955169c1633d92bceae7c674974800e4bfaffff",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
         "MANIFEST.in": "b38e28870d46935cb7b0a0dc0df2f11b67c8221c8058fb5695c66b53663bc6f52fc1be1ce1412c1cccf8e6e50e0758b0",
-        "README.rst": "e1edaf2c30d38a53eaaa1740ab9db5453f0c94e97875ecaa41427332b5c7f9638c4f616c5fde9f87cde01a3b551df123",
-        "SECURITY.md": "650e55c92da03a43ec336655e93e6057e88a5dba7b138eed2e1be63854d215b53699ce97bf18a434346ae70067dc4ab4",
+        "README.rst": "f093cbf0c326c481d735d5d614f1d6b557fea005391c450aafc7481de92f2275693b753fd59a147c3efe6ab8301064cc",
+        "SECURITY.md": "579a0ba6850e077a295f95de6ac9965c210c1cd411e6df5923eaeb8d93a482ce370ec5764e4f2d84847edfd92e437230",
         "aiootp/__engagement/__init__.py": "8eb1c04b11afb9efb3da69404629d1ade4c3bf2cc79a92653ce065d17e5da5302c644c8fbe09b97475c3ac55d9921b7c",
         "aiootp/__engagement/issue_reporting.py": "50d3dc0ca5cda9fb3e5b728e1c366e548512e4fbea9b75b0a9f75efae3376f356bc8e3c9979edde9678fe96a5aef3c6c",
-        "aiootp/__init__.py": "cdd2f35eaf5018e9e3e47ef8368e52fc252c40556f5562826c69c5d43e45d2350f5e5651e96645c4cdb38a4bac191342",
+        "aiootp/__init__.py": "783c7b59080837cfe2ac7df608d6d59c00bffbcac96148a5f4ce0616f94318b9e548be282019899b67ecc12b9c8ccedf",
         "aiootp/_constants/__init__.py": "8154414438c8949894109fc33920c801a55df1d56eb4eed0a52c899db441e50c1f8e321beeb802997f72764f6fa466bd",
         "aiootp/_constants/datasets.py": "9d7c2956ba371448c8efa71e54c30eace72cbf41e8780008d36ce3e1b09b97e057486d87202708acc66c7271c51ec1bd",
         "aiootp/_constants/misc.py": "a4f364fa232f9d313b40fdd62debac6239593cbf0c538421198a867694ff8b95f1b57650b803135657e0aab1049ff313",
@@ -67,7 +67,7 @@
         "aiootp/db/README_DATABASES.rst": "44a58bf7be669e41fc102605c8396b128503a85a3fa4ccdec712d38cd85f95b8f3e40f2443913774987cf310cd5753d9",
         "aiootp/generics/__init__.py": "878c0b5ed89267194c4f170d459335d73d6beea1f1887d7c07681c7fffd0c7ccd18bb686f3bc3d2b22b149b1fcefa120",
         "aiootp/generics/byte_io.py": "499b5a8c5261593e0d8aa87eff7157bd9bdb36a0885696afc19f219b90ddd628695184c0e50100f951cbdbbe20380d92",
-        "aiootp/generics/canon.py": "ee80da5f9605d9872c406d74ff508892485f23a2b65394523a4f54c7a1ca0d767a8fee1b401befdbcd1e063b75d29fc6",
+        "aiootp/generics/canon.py": "59357396e9e2f2f8f304f1a3e00f81b00e48252744b29c610e6a9138a45562ae483333749c8067ef8c7a19fbdea393d1",
         "aiootp/generics/domains.py": "e240ff2a7ea281dbdc749c819b2e1b029c3b10598b887ce7e1b0c3fb963e69b7aa4c6306b68a0b1b7625cc611c7ddfa5",
         "aiootp/generics/hashing.py": "f987b90ba3d7d6da9c4c03fd6b99ce86f4e457248b60456eb30bedea4034e1e237d6b17f72257247385ee993bac48200",
         "aiootp/generics/transform.py": "68b904b5568f15806ee6af67df70f04eb8a2e7194ab3da24eef56a1bae308b3308afbfbbf861c1d8c802dbb3fe11b4ce",
@@ -149,13 +149,13 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 11,
-        "date": 19875,
+        "build_number": 0,
+        "date": 19876,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
         "package": "aiootp",
-        "version": "0.23.2"
+        "version": "0.23.3"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "be4739ec32ea947157e7d429901e4225d5deac68434ab40197c33b0e8e7918ecac07cf969a3fd6e86cbee283f95bdd600dedacf8f3edecf408f5fbff40e23909"
+    "signature": "f45a8bccff0fe842287a98c9c4b74124e530111e70b9d1f3c31cd7652a80028e413881dbf5c1f17146944e3d54466c78c527152e9f03822f56af5172d758870c"
 }
