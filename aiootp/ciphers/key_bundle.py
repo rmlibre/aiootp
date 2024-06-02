@@ -24,7 +24,6 @@ from aiootp._constants import DEFAULT_AAD, ASYNC, SYNC
 from aiootp._exceptions import Issue, KeyAADIssue
 from aiootp.commons import FrozenInstance, FrozenSlots, OpenFrozenSlots
 from aiootp.generics import canonical_pack
-from aiootp.randoms import csprng
 
 from .cipher_kdfs import CipherKDFs
 
