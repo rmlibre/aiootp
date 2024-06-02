@@ -91,7 +91,7 @@ class Ignore:
     Or, dynamically choose which exceptions to catch, and call custom
     cleanup code.
 
-    def cleanup(relay: Ignore):
+    def cleanup(relay: Ignore) -> bool:
         if issubclass(relay.error.__class__, PermissionError):
             return False
         else:
@@ -112,7 +112,7 @@ class Ignore:
         # Analogous to `with Ignore(IOError, finally_run=cleanup):`
         # Always runs `cleanup` at the end of the context.
 
-    async def acleanup(relay: Ignore):
+    async def acleanup(relay: Ignore) -> bool:
         ...
 
     async with Ignore(IOError, PermissionError, if_except=acleanup):
