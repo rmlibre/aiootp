@@ -141,11 +141,11 @@ async def acanonical_pack(
     int_bytes: int = INT_BYTES,
 ) -> bytes:
     """
-    Returns a joined iterable of bytes-type `items` with encoded
-    length metadata of the iterable & each item attached. The result is
-    right-padded with `pad` to a multiple of the `blocksize`.  This
-    can be used to prevent canonicalization attacks when processing hash
-    inputs.
+    Returns a joined iterable of bytes-type `items` with encoded length
+    metadata of the iterable & each item attached. The result is right-
+    padded with `pad` to a multiple of the `blocksize`. This can be used
+    to prevent canonicalization & length extension attacks when hashing
+    arbitrary collections of inputs.
 
     https://soatok.blog/2021/07/30/canonicalization-attacks-against-macs
     -and-signatures/
@@ -184,11 +184,11 @@ def canonical_pack(
     int_bytes: int = INT_BYTES,
 ) -> bytes:
     """
-    Returns a joined iterable of bytes-type `items` with encoded
-    length metadata of the iterable & each item attached. The result is
-    right-padded with `pad` to a multiple of the `blocksize`.  This
-    can be used to prevent canonicalization attacks when processing hash
-    inputs.
+    Returns a joined iterable of bytes-type `items` with encoded length
+    metadata of the iterable & each item attached. The result is right-
+    padded with `pad` to a multiple of the `blocksize`. This can be used
+    to prevent canonicalization & length extension attacks when hashing
+    arbitrary collections of inputs.
 
     https://soatok.blog/2021/07/30/canonicalization-attacks-against-macs
     -and-signatures/

@@ -17,6 +17,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Improvements & fixes to doc strings.
 - Improvements & fixes to package documentation.
 
 
