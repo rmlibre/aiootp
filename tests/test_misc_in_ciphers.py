@@ -280,9 +280,12 @@ class TestSaltMisuseReuseResistance:
             # the vulnerable first block of ciphertexts is always unique
             assert len(ciphertexts) == self.number_of_tests
 
-            # the most vulnerable first INNER_HEADER-bytes of ciphertexts are
-            # also always unique
-            inner_headers = {ciphertext[config.INNER_HEADER_SLICE] for ciphertext in ciphertexts}
+            # the most vulnerable first INNER_HEADER-bytes of ciphertexts
+            # are also always unique
+            inner_headers = {
+                ciphertext[config.INNER_HEADER_SLICE]
+                for ciphertext in ciphertexts
+            }
             assert len(inner_headers) == self.number_of_tests
 
     async def test_async_single_component_resistance(self) -> None:
