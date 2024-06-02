@@ -222,69 +222,68 @@ class TestCipherInputs:
                 )
 
 
-async def test_salt_reuse_resistance_given_by_sivs_only():
-    number_of_tests = 256
+class TestSaltMisuseReuseResistance:
+    number_of_tests: int = 256
 
-    for (config, cipher, salt, aad) in all_ciphers:
-        iv = token_bytes(config.IV_BYTES)
-        kw = dict(kdfs=cipher._kdfs, salt=salt, iv=iv)
+    async def test_async_siv_only_resistance(self) -> None:
+        for (config, cipher, salt, aad) in all_ciphers:
+            iv = token_bytes(config.IV_BYTES)
+            kw = dict(kdfs=cipher._kdfs, salt=salt, iv=iv)
 
-        # ASYNC
-        # aggregate the first ciphertext block of a collection of async
-        # ciphertexts instantiated with the same key, salt, aad & iv
-        aciphertexts = set()
-        for _ in range(number_of_tests):
-            plaintext = await cipher._padding.astart_padding() + (
-                (config.BLOCKSIZE - config.INNER_HEADER_BYTES) * b"\x00"
-            )
-            key_bundle = await cipher._KeyAADBundle(**kw).async_mode()
-            object.__setattr__(key_bundle._bundle, "iv_is_fresh", True)
-            ciphertext = await cipher._Junction.abytes_encipher(
-                abatch(plaintext, size=config.BLOCKSIZE),
-                shmac=cipher._StreamHMAC(key_bundle)._for_encryption(),
-            ).asend(None)
-            aciphertexts.add(ciphertext)
+            # aggregate the first ciphertext block of a collection of async
+            # ciphertexts instantiated with the same key, salt, aad & iv
+            aciphertexts = set()
+            for _ in range(self.number_of_tests):
+                plaintext = await cipher._padding.astart_padding() + (
+                    (config.BLOCKSIZE - config.INNER_HEADER_BYTES) * b"\x00"
+                )
+                key_bundle = await cipher._KeyAADBundle(**kw).async_mode()
+                object.__setattr__(key_bundle._bundle, "iv_is_fresh", True)
+                ciphertext = await cipher._Junction.abytes_encipher(
+                    abatch(plaintext, size=config.BLOCKSIZE),
+                    shmac=cipher._StreamHMAC(key_bundle)._for_encryption(),
+                ).asend(None)
+                aciphertexts.add(ciphertext)
 
-        assert all(len(block) == config.BLOCKSIZE for block in aciphertexts)
+            # the vulnerable first block of async ciphertexts is always
+            # unique
+            assert len(aciphertexts) == self.number_of_tests
 
-        # the vulnerable first block of async ciphertexts is always
-        # unique
-        assert len(aciphertexts) == number_of_tests
+            # the most vulnerable first INNER_HEADER-bytes of async
+            # ciphertexts are also always unique
+            ainner_headers = {
+                aciphertext[config.INNER_HEADER_SLICE]
+                for aciphertext in aciphertexts
+            }
+            assert len(ainner_headers) == self.number_of_tests
 
-        # the most vulnerable first INNER_HEADER-bytes of async
-        # ciphertexts are also always unique
-        ainner_headers = {
-            aciphertext[config.INNER_HEADER_SLICE]
-            for aciphertext in aciphertexts
-        }
-        assert len(ainner_headers) == number_of_tests
+    async def test_sync_siv_only_resistance(self) -> None:
+        for (config, cipher, salt, aad) in all_ciphers:
+            iv = token_bytes(config.IV_BYTES)
+            kw = dict(kdfs=cipher._kdfs, salt=salt, iv=iv)
 
+            # aggregate the first ciphertext block of a collection of
+            # ciphertexts instantiated with the same key, salt, aad & iv
+            ciphertexts = set()
+            for _ in range(self.number_of_tests):
+                plaintext = cipher._padding.start_padding() + (
+                    (config.BLOCKSIZE - config.INNER_HEADER_BYTES) * b"\x00"
+                )
+                key_bundle = cipher._KeyAADBundle(**kw).sync_mode()
+                object.__setattr__(key_bundle._bundle, "iv_is_fresh", True)
+                ciphertext = cipher._Junction.bytes_encipher(
+                    batch(plaintext, size=config.BLOCKSIZE),
+                    shmac=cipher._StreamHMAC(key_bundle)._for_encryption(),
+                ).send(None)
+                ciphertexts.add(ciphertext)
 
-        # SYNC
-        # aggregate the first ciphertext block of a collection of
-        # ciphertexts instantiated with the same key, salt, aad & iv
-        ciphertexts = set()
-        for _ in range(number_of_tests):
-            plaintext = cipher._padding.start_padding() + (
-                (config.BLOCKSIZE - config.INNER_HEADER_BYTES) * b"\x00"
-            )
-            key_bundle = cipher._KeyAADBundle(**kw).sync_mode()
-            object.__setattr__(key_bundle._bundle, "iv_is_fresh", True)
-            ciphertext = cipher._Junction.bytes_encipher(
-                batch(plaintext, size=config.BLOCKSIZE),
-                shmac=cipher._StreamHMAC(key_bundle)._for_encryption(),
-            ).send(None)
-            ciphertexts.add(ciphertext)
+            # the vulnerable first block of ciphertexts is always unique
+            assert len(ciphertexts) == self.number_of_tests
 
-        assert all(len(block) == config.BLOCKSIZE for block in ciphertexts)
-
-        # the vulnerable first block of ciphertexts is always unique
-        assert len(ciphertexts) == number_of_tests
-
-        # the most vulnerable first INNER_HEADER-bytes of ciphertexts are
-        # also always unique
-        inner_headers = {ciphertext[config.INNER_HEADER_SLICE] for ciphertext in ciphertexts}
-        assert len(inner_headers) == number_of_tests
+            # the most vulnerable first INNER_HEADER-bytes of ciphertexts are
+            # also always unique
+            inner_headers = {ciphertext[config.INNER_HEADER_SLICE] for ciphertext in ciphertexts}
+            assert len(inner_headers) == self.number_of_tests
 
 
 class TestCipherModes:
