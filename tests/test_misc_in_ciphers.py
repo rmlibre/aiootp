@@ -285,6 +285,88 @@ class TestSaltMisuseReuseResistance:
             inner_headers = {ciphertext[config.INNER_HEADER_SLICE] for ciphertext in ciphertexts}
             assert len(inner_headers) == self.number_of_tests
 
+    async def test_async_single_component_resistance(self) -> None:
+        for (config, cipher, static_salt, static_aad) in all_ciphers:
+            static_iv = token_bytes(config.IV_BYTES)
+            static_plaintext = config.BLOCKSIZE * b"\x00"
+            kw = dict(
+                kdfs=cipher._kdfs,
+                salt=static_salt,
+                iv=static_iv,
+                aad=static_aad,
+            )
+            # aggregate first ciphertext blocks created with all static
+            # randomizer components except one.
+            for component, size in (
+                ("salt", config.SALT_BYTES),
+                ("aad", 16),
+                ("iv", config.IV_BYTES),
+            ):
+                aciphertexts = set()
+
+                for _ in range(self.number_of_tests):
+                    key_bundle = await cipher._KeyAADBundle(
+                        **{**kw, **{component: token_bytes(size)}}
+                    ).async_mode()
+                    object.__setattr__(key_bundle._bundle, "iv_is_fresh", True)
+                    aciphertext = await cipher._Junction.abytes_encipher(
+                        abatch(static_plaintext, size=config.BLOCKSIZE),
+                        shmac=cipher._StreamHMAC(key_bundle)._for_encryption(),
+                    ).asend(None)
+                    aciphertexts.add(aciphertext)
+
+                # the vulnerable first block of ciphertexts is always unique
+                assert len(aciphertexts) == self.number_of_tests
+
+                # the most vulnerable first INNER_HEADER-bytes of ciphertexts
+                # are also always unique
+                inner_headers = {
+                    aciphertext[config.INNER_HEADER_SLICE]
+                    for aciphertext in aciphertexts
+                }
+                assert len(inner_headers) == self.number_of_tests
+
+    async def test_sync_single_component_resistance(self) -> None:
+        for (config, cipher, static_salt, static_aad) in all_ciphers:
+            static_iv = token_bytes(config.IV_BYTES)
+            static_plaintext = config.BLOCKSIZE * b"\x00"
+            kw = dict(
+                kdfs=cipher._kdfs,
+                salt=static_salt,
+                iv=static_iv,
+                aad=static_aad,
+            )
+            # aggregate first ciphertext blocks created with all static
+            # randomizer components except one.
+            for component, size in (
+                ("salt", config.SALT_BYTES),
+                ("aad", 16),
+                ("iv", config.IV_BYTES),
+            ):
+                ciphertexts = set()
+
+                for _ in range(self.number_of_tests):
+                    key_bundle = cipher._KeyAADBundle(
+                        **{**kw, **{component: token_bytes(size)}}
+                    ).sync_mode()
+                    object.__setattr__(key_bundle._bundle, "iv_is_fresh", True)
+                    ciphertext = cipher._Junction.bytes_encipher(
+                        batch(static_plaintext, size=config.BLOCKSIZE),
+                        shmac=cipher._StreamHMAC(key_bundle)._for_encryption(),
+                    ).send(None)
+                    ciphertexts.add(ciphertext)
+
+                # the vulnerable first block of ciphertexts is always unique
+                assert len(ciphertexts) == self.number_of_tests
+
+                # the most vulnerable first INNER_HEADER-bytes of ciphertexts
+                # are also always unique
+                inner_headers = {
+                    ciphertext[config.INNER_HEADER_SLICE]
+                    for ciphertext in ciphertexts
+                }
+                assert len(inner_headers) == self.number_of_tests
+
 
 class TestCipherModes:
 
