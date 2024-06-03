@@ -565,16 +565,16 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         associated file in the database directory.
         """
         failures = []
-        track_failure = lambda error: failures.append(error) or True
+        track_failure = lambda relay: failures.append(relay.error) or True
         filename = await self.afilename(tag)
         value = await self.aquery_tag(tag, cache=False, silent=True)
         with Ignore(KeyError, AttributeError, if_except=track_failure):
             del self._manifest[filename]
         with Ignore(KeyError, AttributeError, if_except=track_failure):
             del self._cache[filename]
-        with Ignore(AttributeError, FileNotFoundError, if_except=track_failure):
+        with Ignore(FileNotFoundError, if_except=track_failure):
             await self._adelete_file(filename)
-        if failures and not silent:
+        if (not silent) and (len(failures) == 3):
             raise DatabaseIssue.tag_file_doesnt_exist(tag)
         return value
 

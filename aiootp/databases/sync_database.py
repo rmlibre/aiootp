@@ -541,7 +541,7 @@ class Database(DatabaseProperties):
         associated file in the database directory.
         """
         failures = []
-        track_failure = lambda error: failures.append(error) or True
+        track_failure = lambda relay: failures.append(relay.error) or True
         filename = self.filename(tag)
         value = self.query_tag(tag, cache=False, silent=True)
         with Ignore(KeyError, AttributeError, if_except=track_failure):
@@ -550,7 +550,7 @@ class Database(DatabaseProperties):
             del self._cache[filename]
         with Ignore(FileNotFoundError, if_except=track_failure):
             self._delete_file(filename)
-        if failures and not silent:
+        if (not silent) and (len(failures) == 3):
             raise DatabaseIssue.tag_file_doesnt_exist(tag)
         return value
 
