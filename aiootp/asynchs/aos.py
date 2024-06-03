@@ -45,9 +45,8 @@ import warnings
 from functools import wraps, partial
 
 from aiootp._typing import Typing as t
-from aiootp.asynchs import asleep
 
-from .loops import event_loop
+from .loops import asleep, event_loop
 
 
 def wrap_in_executor(function) -> t.Coroutine[t.Any, t.Any, t.Any]:
