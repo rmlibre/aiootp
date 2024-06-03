@@ -99,7 +99,7 @@ class SequenceID(FrozenInstance):
         """
         Initialized the keyed permutation.
         """
-        self.config = c = self._configs[config_id]
+        self.config = self._configs[config_id]
         self._permutation = self._initialize_permutation(key)
 
     async def anew(self, value: int) -> bytes:
