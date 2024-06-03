@@ -856,7 +856,7 @@ class DatabaseIssue:
     _FILE_NOT_FOUND: str = "The NAME filename was not located."
     _NO_EXISTING_METATAG: str = "No metatag database named TAG."
     _MISSING_PROFILE: str = "Profile doesn't exist or is corrupt."
-    _TAG_FILE_DOESNT_EXIST: str = "TAG tag data isn't in the cache."
+    _TAG_FILE_DOESNT_EXIST: str = "TAG tag data isn't in the database."
 
     @classmethod
     def file_not_found(cls, filename: str) -> LookupError:
