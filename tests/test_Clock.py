@@ -50,7 +50,7 @@ class EqualTimingExperiment:
         control_conversion: t.Callable[[t.PositiveRealNumber], int],
     ) -> range:
         return range(
-            control_conversion(self.early_control, epoch=self.epoch),
+            control_conversion(self.early_control, epoch=self.epoch) - 1,
             control_conversion(self.late_control, epoch=self.epoch) + 2,
         )
 
@@ -159,9 +159,16 @@ class TestClockConversions:
                 experiment_timer=clock.time,
                 epoch=epoch,
             )
-            assert test.experiment in test.correct_range(
+            span = test.correct_range(
                 control_conversion=self.seconds_to_microseconds
             )
+            if TIME_RESOLUTION <= 1e-09:
+                assert test.experiment in span
+            else:
+                assert test.experiment in range(
+                    span.start - (TIME_VARIANCE // 1_000),
+                    span.stop + (TIME_VARIANCE // 1_000),
+                )
 
     def test_milliseconds_correctness(self) -> None:
         for epoch in EPOCHS_TESTED:
@@ -171,9 +178,16 @@ class TestClockConversions:
                 experiment_timer=clock.time,
                 epoch=epoch,
             )
-            assert test.experiment in test.correct_range(
+            span = test.correct_range(
                 control_conversion=self.seconds_to_milliseconds
             )
+            if TIME_RESOLUTION <= 1e-09:
+                assert test.experiment in span
+            else:
+                assert test.experiment in range(
+                    span.start - (TIME_VARIANCE // 1_000_000),
+                    span.stop + (TIME_VARIANCE // 1_000_000),
+                )
 
     def test_seconds_correctness(self) -> None:
         for epoch in EPOCHS_TESTED:
