@@ -91,7 +91,7 @@ def wrap_in_executor(
 ) -> t.Coroutine[t.Any, t.Any, t.Any]:
     """
     A decorator that wraps synchronous blocking IO functions so they
-    will run in an executor.
+    will run in an async executor.
     """
 
     @wraps(function)
