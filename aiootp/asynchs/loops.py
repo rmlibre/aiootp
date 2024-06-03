@@ -72,11 +72,11 @@ def reset_event_loop() -> None:
     set_event_loop(new_event_loop())
 
 
-def serve(*a: t.Any, **kw: t.Any) -> None:
+def serve() -> None:
     """
     Proxy's access to `asyncio.get_event_loop().run_forever()`.
     """
-    event_loop().run_forever(*a, **kw)
+    event_loop().run_forever()
 
 
 def new_task(coro: t.Awaitable) -> asyncio.Task:
