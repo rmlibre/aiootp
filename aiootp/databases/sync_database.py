@@ -183,7 +183,6 @@ class Database(DatabaseProperties):
             don't prevent a user from logging in.
         """
         self._silent = silent
-        self._corrupted_files = {}
         self._cache = Namespace()
         self._manifest = Namespace()
         self.path = self._format_path(path)
@@ -491,7 +490,6 @@ class Database(DatabaseProperties):
             path = self.path / filename
             return self.IO.read(path=path)
         except FileNotFoundError as corrupt_database:
-            self._corrupted_files[filename] = True
             if not silent:
                 raise DatabaseIssue.file_not_found(filename)
 

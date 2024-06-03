@@ -38,14 +38,13 @@ class DatabaseProperties:
 
     __slots__ = (
         "__dict__",
-        "_silent",
         "_cache",
-        "_manifest",
-        "_corrupted_files",
         "_is_metatag",
+        "_manifest",
         "_profile_tokens",
         "_root_kdf",
         "_root_salt",
+        "_silent",
         "path",
     )
 
