@@ -30,6 +30,20 @@ class RawGUID(FrozenInstance):
     """
     Creates a unique bytes value by combining a timestamp, random bytes,
     an instance-specific node-ID, & an incrementing counter.
+
+     _____________________________________
+    |                                     |
+    |   Format Diagram: Default Raw GUID  |
+    |_____________________________________|
+     __________________________________________________________________
+    |                         |                    |         |         |
+    |      timestamp (ns)     |       token        | node-id |  ticker |
+    |-------------------------|--------------------|---------|---------|
+    |         8-bytes         |       6-bytes      |  1-byte |  1-byte |
+    |_________________________|____________________|_________|_________|
+    |                                                                  |
+    |                          16-bytes                                |
+    |__________________________________________________________________|
     """
 
     __slots__ = ("tick", "node_id", "config")
