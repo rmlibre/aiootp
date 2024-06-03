@@ -26,6 +26,7 @@ __all__ = [
     "serve",
     "set_event_loop",
     "sleep",
+    "wrap_in_executor",
 ]
 
 
@@ -34,6 +35,7 @@ __doc__ = "Asynchrony event loop tools."
 
 import asyncio
 from time import sleep
+from functools import wraps, partial
 from asyncio import sleep as _asleep
 from asyncio import run, set_event_loop
 
@@ -84,6 +86,24 @@ def new_task(coro: t.Awaitable) -> asyncio.Task:
     return event_loop().create_task(coro)
 
 
+def wrap_in_executor(
+    function: t.Callable[..., t.Any]
+) -> t.Coroutine[t.Any, t.Any, t.Any]:
+    """
+    A decorator that wraps synchronous blocking IO functions so they
+    will run in an executor.
+    """
+
+    @wraps(function)
+    async def runner(*args, **kwargs):
+        partial_function = partial(function, *args, **kwargs)
+        return await event_loop().run_in_executor(
+            executor=None, func=partial_function
+        )
+
+    return runner
+
+
 class AsyncInit(type):
     """
     A metaclass which allows classes to use asynchronous `__init__`
@@ -118,5 +138,6 @@ module_api = dict(
     serve=serve,
     set_event_loop=set_event_loop,
     sleep=sleep,
+    wrap_in_executor=wrap_in_executor,
 )
 

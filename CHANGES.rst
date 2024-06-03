@@ -17,6 +17,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Move ``wrap_in_executor`` from ``asynchs.aos`` to ``asynchs.loops``.
 - Remove ``asynchs.loops.stop``, add ``asynchs.loops.set_event_loop``.
 - Improvements & fixes to type hints.
 - Improvements & fixes to doc strings.

@@ -21,7 +21,6 @@ __all__ = [
     "rmdir",
     "sendfile",
     "stat",
-    "wrap_in_executor",
 ]
 
 
@@ -42,27 +41,10 @@ __doc__ = (
 
 import os
 import warnings
-from functools import wraps, partial
 
 from aiootp._typing import Typing as t
 
-from .loops import asleep, event_loop
-
-
-def wrap_in_executor(function) -> t.Coroutine[t.Any, t.Any, t.Any]:
-    """
-    A decorator that wraps synchronous blocking IO functions so they
-    will run in an executor.
-    """
-
-    @wraps(function)
-    async def runner(*args, **kwargs):
-        partial_function = partial(function, *args, **kwargs)
-        return await event_loop().run_in_executor(
-            executor=None, func=partial_function
-        )
-
-    return runner
+from .loops import asleep, wrap_in_executor
 
 
 async def not_implemented_placeholder(*a: t.Any, **kw: t.Any) -> None:
@@ -104,6 +86,5 @@ module_api = dict(
     rmdir=rmdir,
     sendfile=sendfile,
     stat=stat,
-    wrap_in_executor=wrap_in_executor,
 )
 
