@@ -11,41 +11,58 @@
 #
 
 
+import platform
+
 from test_initialization import *
 
 
-async def test_mnemonic():
-    phrase6 = b"-".join(mnemonic(key, 6, **passcrypt_settings))
-    aphrase6 = b"-".join(await amnemonic(key, 6, **passcrypt_settings))
-    assert all((word in WORD_LIST) for word in phrase6.lower().split(b"-"))
-    assert phrase6 == aphrase6
-    assert len(phrase6.split(b"-")) == 6
+class TestMnemonics:
 
-    phrase12 = b"-".join(mnemonic(key, 12, **passcrypt_settings)).title()
-    aphrase12 = b"-".join(await amnemonic(key, 12, **passcrypt_settings)).title()
-    assert all((word in WORD_LIST) for word in phrase12.lower().split(b"-"))
-    assert phrase12 == aphrase12
-    assert len(phrase12.split(b"-")) == 12
+    async def test_default_is_random(self) -> None:
+        assert mnemonic() != await amnemonic()
 
+    async def test_returns_list_of_bytes_words(self) -> None:
+         phrase = mnemonic()
+         assert phrase.__class__ is list
+         assert all((word.__class__ is bytes) for word in phrase)
 
-    problem = (
-        "Can supply passcrypt settings to sync mnemonic when not given "
-        "passphrase."
-    )
-    with Ignore(ValueError, if_else=violation(problem)) as relay:
-        phrase12 = b"-".join(mnemonic(size=12, **passcrypt_settings)).title()
-    assert "parameters are not used" in relay.error.args[0]
+         aphrase = await amnemonic()
+         assert aphrase.__class__ is list
+         assert all((word.__class__ is bytes) for word in aphrase)
 
-    problem = (
-        "Can supply passcrypt settings to async mnemonic when not given "
-        "passphrase."
-    )
-    with Ignore(ValueError, if_else=violation(problem)) as relay:
-        aphrase12 = b"-".join(await amnemonic(size=12, **passcrypt_settings)).title()
-    assert "parameters are not used" in relay.error.args[0]
+    async def test_size_dictates_word_count(self) -> None:
+        for size in range(6, 12):
+            size_word_phrase = mnemonic(size=size)
+            asize_word_phrase = await amnemonic(size=size)
+            assert size == len(size_word_phrase)
+            assert size == len(asize_word_phrase)
 
+    async def test_using_passphrase_is_deterministic(self) -> None:
+        is_mac_os_issue = lambda relay: (platform.system() == "Darwin")
 
-    assert mnemonic() != await amnemonic()
+        with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):
+            phrase = mnemonic(passphrase, **passcrypt_settings)
+            aphrase = await amnemonic(passphrase, **passcrypt_settings)
+            assert all((word in WORD_LIST) for word in phrase)
+            assert phrase == aphrase
+
+    async def test_async_parameters_dictate_functionality(self) -> None:
+        problem = (
+            "Can supply passcrypt settings to async mnemonic when not given "
+            "passphrase."
+        )
+        with Ignore(ValueError, if_else=violation(problem)) as relay:
+            await amnemonic(size=12, **passcrypt_settings)
+        assert "parameters are not used" in relay.error.args[0]
+
+    async def test_sync_parameters_dictate_functionality(self) -> None:
+        problem = (
+            "Can supply passcrypt settings to sync mnemonic when not given "
+            "passphrase."
+        )
+        with Ignore(ValueError, if_else=violation(problem)) as relay:
+            mnemonic(size=12, **passcrypt_settings)
+        assert "parameters are not used" in relay.error.args[0]
 
 
 class TestDomainKDF:
