@@ -24,8 +24,8 @@ __all__ = [
     "reset_event_loop",
     "run",
     "serve",
+    "set_event_loop",
     "sleep",
-    "stop",
 ]
 
 
@@ -33,18 +33,18 @@ __doc__ = "Asynchrony event loop tools."
 
 
 import asyncio
-from asyncio import run
 from time import sleep
 from asyncio import sleep as _asleep
+from asyncio import run, set_event_loop
 
 from aiootp._typing import Typing as t
 from aiootp._debug_control import DebugControl
 
 
 event_loop = asyncio.get_event_loop
+gather = asyncio.gather
 get_event_loop_id = lambda: id(event_loop())
 new_event_loop = asyncio.new_event_loop
-gather = asyncio.gather
 new_future = asyncio.ensure_future
 
 
@@ -67,28 +67,21 @@ def reset_event_loop() -> None:
     """
     Sets a new event loops for asyncio.
     """
-    asyncio.set_event_loop(new_event_loop())
+    set_event_loop(new_event_loop())
 
 
-def serve(*a, **kw) -> None:
+def serve(*a: t.Any, **kw: t.Any) -> None:
     """
     Proxy's access to `asyncio.get_event_loop().run_forever()`.
     """
     event_loop().run_forever(*a, **kw)
 
 
-def new_task(coro) -> asyncio.Task:
+def new_task(coro: t.Awaitable) -> asyncio.Task:
     """
     Proxy's access to `asyncio.get_event_loop().create_task()`.
     """
     return event_loop().create_task(coro)
-
-
-def stop() -> None:
-    """
-    Stops the currently running event loop.
-    """
-    event_loop().stop()
 
 
 class AsyncInit(type):
@@ -97,9 +90,9 @@ class AsyncInit(type):
     methods. Inspired by David Beazley.
     """
 
-    async def __call__(cls, *args, **kwargs):
-        self = cls.__new__(cls, *args, **kwargs)
-        await self.__init__(*args, **kwargs)
+    async def __call__(cls, *a: t.Any, **kw: t.Any) -> "self":
+        self = cls.__new__(cls, *a, **kw)
+        await self.__init__(*a, **kw)
         return self
 
 
@@ -123,7 +116,7 @@ module_api = dict(
     reset_event_loop=reset_event_loop,
     run=run,
     serve=serve,
+    set_event_loop=set_event_loop,
     sleep=sleep,
-    stop=stop,
 )
 
