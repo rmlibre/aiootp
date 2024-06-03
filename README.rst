@@ -218,19 +218,29 @@ Learning how to manage tags stored in the cache vs. saved to disk is essential.
 .. code-block:: python
 
     # stores data in the cache ->
+
     await db.aset_tag("new_tag", ["data", "goes", "here"])
 
+
     # reads from disk if not in the cache ->
+
     await db.aquery_tag("new_tag")
     >>> ['data', 'goes', 'here']
 
+
     # saved in the cache, still not to disk ->
+
     tag_path = db.path / await db.afilename("new_tag")
+
     assert "new_tag" in db
+
     assert not tag_path.is_file()
 
+
     # now it gets saved to disk ->
+
     await db.asave_tag("new_tag")
+
     assert tag_path.is_file()
 
 
@@ -269,48 +279,80 @@ Access to data is open to the user, so care must be taken not to let external AP
 _`Metatags` ....................................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Metatags are used to organize data by string names & domain separate cryptographic material. They are fully-fledged databases all on their own, with their own distinct key material too. They're accessible from the parent through an attribute that's added to the parent instance with the same name as the metatag. When the parent is saved, or deleted, then their descendants are also.
+Metatags are used to organize data by string names & domain-separated cryptographic material. They're fully-fledged databases all on their own, with their own distinct key material too. They're accessible from the parent through an attribute that's added to the parent instance with the same name as the metatag. When the parent is saved, or deleted, then their descendants are also.
 
 
 .. code-block:: python
 
-    db_0 = await db.ametatag("process_0")
-    db_1 = await db.ametatag("process_1")
-    db_2 = await db.ametatag("process_2")
+    async with db:
+
+        db_0 = await db.ametatag("process_0")
+
+        assert db_0 is db.process_0
 
 
-They can contain their own sets of tags (and metatags).
+        db_1 = await db.ametatag("process_1")
 
-.. code-block:: python
+        assert db_1 is db.process_1
 
-    db_0["data"] = ["process", "0", "data"]
-    db_1["data"] = ["process", "1", "data"]
-    db_2["data"] = ["process", "2", "data"]
 
-    assert db_0["data"] == db.process_0["data"]
-    assert db_0["data"] != db_1["data"]
-    assert db_1["data"] != db_2["data"]
-    assert db_0["data"] != db_2["data"]
     assert all(
+
         isinstance(metatag, AsyncDatabase)
-        for matatag in [db_0, db_1, db_2]
+
+        for metatag in [db_0, db_1]
+
     )
 
-    sub_db = await db_0.ametatag("sub_metatag")
-    db.process_0.metatags
-    >>> {'sub_metatag'}
+
+They can contain their own sets of tags (and metatags). If metatags, or tags, are used as partitions that are accessed across distributed or concurrent contexts, it's highly recommended that each partition have only one distinct caller or object reference with write & cache access.
+
+.. code-block:: python
+
+    db = await AsyncDatabase(key)  # distinct object reference
+
+    assert db_0 is not db.process_0
+
+    assert db_1 is not db.process_1
+
+
+    async with db_0:
+
+        db_0["data"] = b"data added within process 0."
+
+    #      cache access                            disk read
+    #       vvvvvvvvvv                            vvvvvvvvvvv
+    assert db_0["data"] == await db.process_0.aquery_tag("data")
+
+
+    async with db_1:
+
+        db_1["data"] = b"data added within process 1."
+
+    #      cache access                            disk read
+    #       vvvvvvvvvv                            vvvvvvvvvvv
+    assert db_1["data"] == await db.process_1.aquery_tag("data")
 
 
 Deleting a metatag from an instance recursively deletes all of its own tags & metatags.
 
 .. code-block:: python
 
+    metatag_manifest_file = db_0._root_path
+
+    assert hasattr(db, "process_0")
+
+    assert metatag_manifest_file.is_file()
+
+
     await db.adelete_metatag("process_0")
 
     db.metatags
-    >>> {'process_1', 'process_2'}
+    >>> {'process_1'}
 
     assert not hasattr(db, "process_0")
+
+    assert not metatag_manifest_file.is_file()
 
 
     #
