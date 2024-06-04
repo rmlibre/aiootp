@@ -85,7 +85,6 @@ class TestDomainKDF:
         assert updated_kdf.sha3_512(aad=self.aad) != initialized_kdf.sha3_512(aad=self.aad)
 
 
-
 async def test_DomainKDF():
     # additional optional data can be added to hashing methods
     kdf = DomainKDF(b"test", key=key)
@@ -123,7 +122,6 @@ async def test_DomainKDF():
     assert kdf.sha3_512() != await kdf.asha3_512(aad=aad)
     assert kdf.shake_128(size=32) != await kdf.ashake_128(aad=aad, size=32)
     assert kdf.shake_256(size=32) != await kdf.ashake_256(aad=aad, size=32)
-
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
