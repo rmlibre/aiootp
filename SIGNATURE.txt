@@ -1,5 +1,5 @@
 {
-    "checksum": "c92c081e0c97dd56584745ce8e0ad5ce4906886767cade5453c513dd00971862fa4df0773bc2ae18e0005b8f5e45e7a2",
+    "checksum": "a7c2fce1490c271f2f74bb34decdc463017a1d0704305155f42da168adebb2501eb5f386f594f2e914c371ffb82c75f5",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "62938026934a65aceea2d60359fb1474799366ae078bdb63f00b0ce9654e2dc915b93fd5e7c2c311d7621034293e345e",
@@ -137,7 +137,7 @@
         "tests/test_misc_in_ciphers.py": "d46b0d661103fddacbf17cacc0285d4f771d64b23c1ba9260f3a49b7fa9cf35a528ebc8a7d1c9608c7a7c0bea985967f",
         "tests/test_misc_in_generics.py": "2a43c05683d21f59aa3460a1c7d0698091e76bf6a0c19bc27c223bd72b7154c1aa80dfcc41e10ee4bf5515d154f9134e",
         "tests/test_misc_in_gentools.py": "3c59306b632e95d5207d604896f1033aab213c82f78cb69db9cd498bec52bb731c0a87404068c8ef3e67acb0f20bab51",
-        "tests/test_misc_in_keygens.py": "faa42bac83e80b2e997a95fe04a1013c588d08823e0114dd7ad8b042dfdb45dc5726711215b20109e0f0f350005ac4ae",
+        "tests/test_misc_in_keygens.py": "775323e7b92ebc06ddef690afe454719f54af44a2c671429224cbf7b91128b69db2ef0f5c7e0a9e4a5fc1edabe9a306c",
         "tests/test_misc_in_randoms.py": "4b9510badd966c43a6bd8274a897f056ef991a05f2a59194929c6f6607293a56f302b3fefff16218f80904542b767a50",
         "tests/test_namespace_classes.py": "393d9d4340b6028058cf2a10a4b517355f0579261b506e8f88027edcc8200a9343f3c812c19791fac56e8f8d183a0f0b",
         "tests/test_passcrypt_apasscrypt.py": "55137a44e97aaff97272e3df7805cbc69d78cf50b58e4f3353235ab4d7745fc3ace4dda35bc2caf4ec85e83fa3a5df6d",
@@ -149,13 +149,13 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 3,
-        "date": 19877,
+        "build_number": 4,
+        "date": 19878,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
         "package": "aiootp",
         "version": "0.23.3"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "f259b82f9e6b26f807a415252b0f12f64d7ab62b4faff476083cb82a282cf30185a43ab470a3376bea5c5d23a84036cdccf0dc5d5a74aa30550a7f99cc3d7401"
+    "signature": "6002b26f004bf80fd40438751af2cce62e87277961cca904aa126af8350e142cc46801406b2fc0b73241781870b5625312c2f4e7d02a712d2033092870a5cd03"
 }
