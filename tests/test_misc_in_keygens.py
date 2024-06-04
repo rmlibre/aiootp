@@ -70,7 +70,18 @@ class TestDomainKDF:
     aad: bytes = b"associated data..."
     domain: bytes = b"domain..."
     data: bytes = b"data..."
+    inputs: t.Iterable[bytes] = (csprng(), csprng(), csprng())
     key: bytes = csprng()
+    kdf: DomainKDF = DomainKDF(domain, data, key=key)
+
+    async def test_empty_updates_arent_allowed(self) -> None:
+        problem = (
+            "Empty KDF updates were allowed."
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+            await self.kdf.aupdate()
+        with Ignore(ValueError, if_else=violation(problem)):
+            self.kdf.update()
 
     async def test_update_alters_state_distinctly(self) -> None:
         aupdated_kdf = DomainKDF(self.domain, key=self.key)
@@ -85,44 +96,29 @@ class TestDomainKDF:
         updated_kdf.update(self.data)
         assert updated_kdf.sha3_512(aad=self.aad) != initialized_kdf.sha3_512(aad=self.aad)
 
+    async def test_same_inputs_produce_same_outputs(self) -> None:
+        assert self.kdf.sha3_256(*self.inputs) == await self.kdf.asha3_256(*self.inputs)
+        assert self.kdf.sha3_512(*self.inputs) == await self.kdf.asha3_512(*self.inputs)
+        assert self.kdf.shake_128(*self.inputs, size=32) == await self.kdf.ashake_128(*self.inputs, size=32)
+        assert self.kdf.shake_256(*self.inputs, size=32) == await self.kdf.ashake_256(*self.inputs, size=32)
 
-async def test_DomainKDF():
-    # additional optional data can be added to hashing methods
-    kdf = DomainKDF(b"test", key=key)
-    aad = b"testing DomainKDF" + csprng(token_bits(6))
-    test_data = (b"input tests", token_bytes(32), token_bytes(32))
+    async def test_same_aad_produces_same_outputs(self) -> None:
+        assert self.kdf.sha3_256(aad=self.aad) == await self.kdf.asha3_256(aad=self.aad)
+        assert self.kdf.sha3_512(aad=self.aad) == await self.kdf.asha3_512(aad=self.aad)
+        assert self.kdf.shake_128(aad=self.aad, size=32) == await self.kdf.ashake_128(aad=self.aad, size=32)
+        assert self.kdf.shake_256(aad=self.aad, size=32) == await self.kdf.ashake_256(aad=self.aad, size=32)
 
-    problem = (
-        "Empty KDF updates were allowed."
-    )
-    with Ignore(ValueError, if_else=violation(problem)):
-        await kdf.aupdate()
-    with Ignore(ValueError, if_else=violation(problem)):
-        kdf.update()
+    async def test_different_inputs_produce_different_outputs(self) -> None:
+        assert self.kdf.sha3_256() != await self.kdf.asha3_256(*self.inputs)
+        assert self.kdf.sha3_512() != await self.kdf.asha3_512(*self.inputs)
+        assert self.kdf.shake_128(size=32) != await self.kdf.ashake_128(*self.inputs, size=32)
+        assert self.kdf.shake_256(size=32) != await self.kdf.ashake_256(*self.inputs, size=32)
 
-    # async and sync methods produce the same outputs given the same inputs
-    assert kdf.sha3_256(*test_data) == await kdf.asha3_256(*test_data)
-    assert kdf.sha3_512(*test_data) == await kdf.asha3_512(*test_data)
-    assert kdf.shake_128(*test_data, size=32) == await kdf.ashake_128(*test_data, size=32)
-    assert kdf.shake_256(*test_data, size=32) == await kdf.ashake_256(*test_data, size=32)
-
-    # async and sync methods produce the same outputs given the same aad
-    assert kdf.sha3_256(aad=aad) == await kdf.asha3_256(aad=aad)
-    assert kdf.sha3_512(aad=aad) == await kdf.asha3_512(aad=aad)
-    assert kdf.shake_128(aad=aad, size=32) == await kdf.ashake_128(aad=aad, size=32)
-    assert kdf.shake_256(aad=aad, size=32) == await kdf.ashake_256(aad=aad, size=32)
-
-    # hashing methods produce different outputs given the different inputs
-    assert kdf.sha3_256() != await kdf.asha3_256(*test_data)
-    assert kdf.sha3_512() != await kdf.asha3_512(*test_data)
-    assert kdf.shake_128(size=32) != await kdf.ashake_128(*test_data, size=32)
-    assert kdf.shake_256(size=32) != await kdf.ashake_256(*test_data, size=32)
-
-    # hashing methods produce different outputs given the different aad
-    assert kdf.sha3_256() != await kdf.asha3_256(aad=aad)
-    assert kdf.sha3_512() != await kdf.asha3_512(aad=aad)
-    assert kdf.shake_128(size=32) != await kdf.ashake_128(aad=aad, size=32)
-    assert kdf.shake_256(size=32) != await kdf.ashake_256(aad=aad, size=32)
+    async def test_different_aad_produces_different_outputs(self) -> None:
+        assert self.kdf.sha3_256() != await self.kdf.asha3_256(aad=self.aad)
+        assert self.kdf.sha3_512() != await self.kdf.asha3_512(aad=self.aad)
+        assert self.kdf.shake_128(size=32) != await self.kdf.ashake_128(aad=self.aad, size=32)
+        assert self.kdf.shake_256(size=32) != await self.kdf.ashake_256(aad=self.aad, size=32)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
