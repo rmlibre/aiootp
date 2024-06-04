@@ -24,10 +24,12 @@ class TestMnemonics:
     async def test_returns_list_of_bytes_words(self) -> None:
          phrase = mnemonic()
          assert phrase.__class__ is list
+         assert all((word in WORD_LIST) for word in phrase)
          assert all((word.__class__ is bytes) for word in phrase)
 
          aphrase = await amnemonic()
          assert aphrase.__class__ is list
+         assert all((word in WORD_LIST) for word in aphrase)
          assert all((word.__class__ is bytes) for word in aphrase)
 
     async def test_size_dictates_word_count(self) -> None:
@@ -43,7 +45,6 @@ class TestMnemonics:
         with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):
             phrase = mnemonic(passphrase, **passcrypt_settings)
             aphrase = await amnemonic(passphrase, **passcrypt_settings)
-            assert all((word in WORD_LIST) for word in phrase)
             assert phrase == aphrase
 
     async def test_async_parameters_dictate_functionality(self) -> None:
@@ -52,7 +53,7 @@ class TestMnemonics:
             "passphrase."
         )
         with Ignore(ValueError, if_else=violation(problem)) as relay:
-            await amnemonic(size=12, **passcrypt_settings)
+            await amnemonic(**passcrypt_settings)
         assert "parameters are not used" in relay.error.args[0]
 
     async def test_sync_parameters_dictate_functionality(self) -> None:
@@ -61,7 +62,7 @@ class TestMnemonics:
             "passphrase."
         )
         with Ignore(ValueError, if_else=violation(problem)) as relay:
-            mnemonic(size=12, **passcrypt_settings)
+            mnemonic(**passcrypt_settings)
         assert "parameters are not used" in relay.error.args[0]
 
 
