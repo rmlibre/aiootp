@@ -404,7 +404,7 @@ As databases grow in the number of tags, metatags & the size of data within, it 
 
         await db.ametatag("exercise_routines")
 
-        db.exercise_routines["gardening"] = {"days": ["moday", "wednesday"]}
+        db.exercise_routines["gardening"] = {"days": ["monday", "wednesday"]}
 
         db.exercise_routines["swimming"] = {"days": ["thursday", "saturday"]}
 
@@ -441,10 +441,10 @@ As databases grow in the number of tags, metatags & the size of data within, it 
         >>> None
 
         await uncached_db.exercise_routines.aquery_tag("gardening", cache=True)
-        >>> {"days": ["moday", "wednesday"]}
+        >>> {"days": ["monday", "wednesday"]}
 
         uncached_db.exercise_routines["gardening"]
-        >>> {"days": ["moday", "wednesday"]}
+        >>> {"days": ["monday", "wednesday"]}
 
 
         # But, tags can also be queried without caching their values,
