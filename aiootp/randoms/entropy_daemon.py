@@ -42,14 +42,14 @@ class EntropyDaemon:
 
     __slots__ = (
         "_cache",
-        "_pool",
-        "_gadget",
+        "_cancel",
         "_currently_mutating_frequency",
+        "_daemon",
         "_frequency_mutation_deadline",
+        "_gadget",
         "_initial_max_delay",
         "_max_delay",
-        "_daemon",
-        "_cancel",
+        "_pool",
     )
 
     def __init__(
