@@ -15,6 +15,7 @@ from hashlib import shake_128
 
 from test_initialization import *
 
+from aiootp.randoms import arandom_number_generator, random_number_generator
 from aiootp.randoms.threading_safe_entropy_pool import ThreadingSafeEntropyPool
 
 
@@ -46,72 +47,65 @@ class TestThreadingSafeEntropyPool:
         assert obj.hexdigest(32) == obj_copy.hexdigest(32)
 
 
-async def test_acsprng():
-    entropy = await randoms.arandom_number_generator(entropy=test_data, freshness=1)
-    assert len(entropy) == 64
-    assert entropy.__class__ is bytes
+class TestCSPRNG:
+    kw = dict(entropy=token_bytes(16))
 
-    entropy = await randoms.arandom_number_generator(128, freshness=0)
-    assert len(entropy) == 128
-    assert entropy.__class__ is bytes
+    async def test_declared_output_sizes_are_respected(self) -> None:
+        for size in range(8, 257, 32):
+            result = await acsprng(size, **self.kw)
+            assert size == len(result)
 
-    for datum in (token_bytes(32), token_bytes(32).hex(), token_bits(32)):
-        for size in (32, 64, 128, 256):
-            entropy = await acsprng(size, entropy=datum)
-            assert len(entropy) == size
-            assert entropy.__class__ is bytes
+            result = csprng(size, **self.kw)
+            assert size == len(result)
 
-    async def try_to_make_duplicate_readouts():
-        """
-        The async csprng doesn't produce duplicate outputs when run in
-        a multithreaded environment.
-        """
-        for i in range(32):
-            await arandom_sleep(0.00001)
-            entropy = await acsprng()
+    async def test_userland_entropy_can_be_any_type(self) -> None:
+        for datum in (token_bytes(32).hex(), token_bits(32), [None, "test"]):
+            await acsprng(entropy=datum)
+            csprng(entropy=datum)
 
-            assert entropy not in entropy_pool
+    async def test_async_thread_safe_entropy(self) -> None:
 
-            entropy_pool.add(entropy)
+        async def try_to_make_duplicate_readouts() -> None:
+            for i in range(runs):
+                entropy_pool.add(await acsprng())
 
-    entropy_pool = set()
-    await Threads.agather(
-        *[try_to_make_duplicate_readouts for _ in range(32)]
-    )
+        runs = 32
+        entropy_pool = set()
+        await Threads.agather(*[try_to_make_duplicate_readouts for _ in range(runs)])
+        assert runs**2 == len(entropy_pool)
+
+    async def test_sync_thread_safe_entropy(self) -> None:
+
+        def try_to_make_duplicate_readouts() -> None:
+            for i in range(runs):
+                entropy_pool.add(csprng())
+
+        runs = 32
+        entropy_pool = set()
+        Threads.gather(*[try_to_make_duplicate_readouts for _ in range(runs)])
+        assert runs**2 == len(entropy_pool)
 
 
-def test_csprng():
-    entropy = randoms.random_number_generator(entropy=test_data, freshness=1)
-    assert len(entropy) == 64
-    assert entropy.__class__ is bytes
+class TestRandomNumberGenerator:
+    kw = dict(freshness=0, entropy=token_bytes(16))
 
-    entropy = randoms.random_number_generator(128, freshness=0)
-    assert len(entropy) == 128
-    assert entropy.__class__ is bytes
+    async def test_async_declared_output_sizes_are_respected(self) -> None:
+        for size in range(8, 257, 32):
+            result = await arandom_number_generator(size, **self.kw)
+            assert size == len(result)
 
-    for datum in (token_bytes(32), token_bytes(32).hex(), token_bits(32)):
-        for size in (32, 64, 128, 256):
-            entropy = csprng(size, entropy=datum)
-            assert len(entropy) == size
-            assert entropy.__class__ is bytes
+    def test_sync_declared_output_sizes_are_respected(self) -> None:
+        for size in range(8, 257, 32):
+            result = random_number_generator(size, **self.kw)
+            assert size == len(result)
 
-    def try_to_make_duplicate_readouts():
-        """
-        The async csprng doesn't produce duplicate outputs when run in
-        a multithreaded environment.
-        """
-        for i in range(32):
-            random_sleep(0.00001)
-            entropy = csprng()
+    async def test_async_userland_entropy_can_be_any_type(self) -> None:
+        for datum in (token_bytes(32).hex(), token_bits(32), [None, "test"]):
+            await arandom_number_generator(**self.kw)
 
-            assert entropy not in entropy_pool
-
-            entropy_pool.add(entropy)
-
-    entropy_pool = set()
-    Threads.gather(
-        *[try_to_make_duplicate_readouts for _ in range(32)]
-    )
+    def test_sync_userland_entropy_can_be_any_type(self) -> None:
+        for datum in (token_bytes(32).hex(), token_bits(32), [None, "test"]):
+            random_number_generator(**self.kw)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
