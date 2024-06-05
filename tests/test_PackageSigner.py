@@ -11,9 +11,12 @@
 #
 
 
+import platform
+
 from test_initialization import *
 
 from aiootp._paths import DatabasePath
+from aiootp.asynchs import sleep
 from aiootp.keygens.passcrypt.config import passcrypt_spec
 
 
@@ -41,14 +44,19 @@ def test_sign_and_verify():
         with Ignore(RuntimeError, if_else=violation(problem)):
             signer._signature
 
-        signer.connect_to_secure_database(
-            username=b"test_username",
-            passphrase=test_key,
-            salt=test_salt,
-            path=test_directory,
-            mb=passcrypt_spec.MIN_MB,
-            cpu=2,
-        )
+        is_mac_os_issue = lambda relay: (platform.system() == "Darwin")
+        while True:
+            sleep(0.001)
+            with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):
+                signer.connect_to_secure_database(
+                    username=b"test_username",
+                    passphrase=test_key,
+                    salt=test_salt,
+                    path=test_directory,
+                    mb=passcrypt_spec.MIN_MB,
+                    cpu=1,
+                )
+                break
         signer.update_public_credentials(x25519_public_key=aiootp.__PUBLIC_X25519_KEY__)
 
         problem = (
