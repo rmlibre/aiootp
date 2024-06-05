@@ -51,9 +51,11 @@ module_api = dict(
     __package__=__package__,
     abytes_are_equal=abytes_are_equal,
     acanonical_pack=acanonical_pack,
+    acanonical_unpack=acanonical_unpack,
     ahash_bytes=ahash_bytes,
     bytes_are_equal=bytes_are_equal,
     canonical_pack=canonical_pack,
+    canonical_unpack=canonical_unpack,
     hash_bytes=hash_bytes,
 )
 

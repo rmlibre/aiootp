@@ -17,6 +17,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Add ``(a)canonical_unpack`` references to ``generics``, communicating their higher-level usefulness.
 - Rename ``test_passcrypt_apasscrypt.py`` to ``test_Passcrypt.py``.
 - Improvements & fixes to package tests.
 - Improvements & fixes to package documentation.
