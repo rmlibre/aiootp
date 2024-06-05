@@ -110,7 +110,11 @@ class TestPasscryptMetadataHashes:
             "An invalid passphrase passed async verification."
         )
         with Ignore(Passcrypt.InvalidPassphrase, if_else=violation(problem)):
-            await Passcrypt.averify(self.ametadata_hash, self.passphrase + b"\x00")
+            await Passcrypt.averify(
+                self.ametadata_hash,
+                self.passphrase + b"\x00",
+                config=self.config,
+            )
 
     async def test_wrong_passphrase_fails_sync(self) -> None:
         problem = (
