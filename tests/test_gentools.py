@@ -78,7 +78,7 @@ class TestInspectTools:
         assert gentools.is_iterator(iterator)
 
 
-class TestCountGenerators:
+class TestGenerators:
 
     async def test_bytes_count(self) -> None:
         for start in (0, 33, 256, 1024):
