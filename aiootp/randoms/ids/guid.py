@@ -70,18 +70,43 @@ class GUID(FrozenInstance):
     |            Usage Example:           |
     |_____________________________________|
 
+    from io import StringIO
     from aiootp import GUID
+
+    # Simple usage:
+
+    def standard_guid_format(guid: bytes) -> str:
+        read = StringIO(guid.hex()).read
+        return "-".join(read(section) for section in (8, 4, 4, 4, 12))
+
+    guids = GUID()
+    print(standard_guid_format(guids.new()))
+    8b36d9e4-cd73-8f67-631a-94e7b088c50a
+
+    # Advanced usage:
 
     size = 16
     dds = distributed_database_system
     assert len(dds.shared_key) == GUID.key_size(size)
-    guid = aiootp.GUID(key=dds.shared_key, node_id=local_db.id)
-    assert len(guid.new()) == size
+    guids = GUID(key=dds.shared_key, node_id=local_db.id)
+    assert len(guids.new()) == size
 
     for table in local_db.tables:
         for record in table.new_records:
-            record.dds_primary_key = guid.new()
+            record.dds_primary_key = guids.new()
             dds.merge(table, record)
+
+    # Unmasking GUIDs
+
+    guids = GUID(node_id=b"\xfc")
+    guid = guids.new()
+    print(guids.read(guid))
+    RawGUIDContainer(
+        timestamp=b'\x00\xa0(\xfc\x18\x17\x173',
+        token=b"q\xc4\xb45Q'",
+        node_id=b'\xfc',
+        ticker=b'\x01',
+    )
     """
 
     __slots__ = ("_raw_guid", "_permutation", "config")
