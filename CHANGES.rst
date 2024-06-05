@@ -21,6 +21,7 @@ Minor Changes
 - Rename ``test_passcrypt_apasscrypt.py`` to ``test_Passcrypt.py``.
 - Improvements & fixes to package tests.
 - Improvements & fixes to package documentation.
+- Improvements & fixes to code formatting & style.
 
 
 
