@@ -15,7 +15,6 @@ import io
 from collections import deque
 
 from test_initialization import *
-from test_misc_in_gentools import *
 
 from aiootp import _gentools as gentools
 

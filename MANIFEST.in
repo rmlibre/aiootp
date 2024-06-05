@@ -137,7 +137,6 @@ include tests/test_Processes_Threads.py
 include tests/test_GUID.py
 include tests/test_SequenceID.py
 include tests/test_misc_in_ciphers.py
-include tests/test_misc_in_gentools.py
 include tests/test_namespace_classes.py
 include tests/test_affine_permutations.py
 include tests/test_PackageSigner.py
