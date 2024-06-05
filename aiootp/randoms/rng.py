@@ -47,14 +47,14 @@ _pool = deque((token_bytes(32) for _ in range(32)), maxlen=32)
 
 
 # initialize the global SHA3 hashing object that also collects entropy
-_entropy = ThreadingSafeEntropyPool(
+_gadget = ThreadingSafeEntropyPool(
     token_bytes(3 * SHAKE_256_BLOCKSIZE), obj=shake_256, pool=_pool
 )
 
 
 # begin the entropy gathering daemon
 _entropy_daemon = EntropyDaemon(
-    entropy=_entropy, entropy_pool=_pool, max_delay=1
+    entropy=_gadget, entropy_pool=_pool, max_delay=1
 ).start()
 _entropy_daemon.set_temporary_max_delay(max_delay=0.001, duration=2)
 
@@ -66,8 +66,8 @@ _run = new_event_loop().run_until_complete
 async def acsprng(
     size: int = 64,
     *,
-    entropy: t.Any = _entropy.hash(
-        _salt(pool=_pool, gadget=_entropy).to_bytes(32, BIG), size=16
+    entropy: t.Any = _gadget.hash(
+        _salt(pool=_pool, gadget=_gadget).to_bytes(32, BIG), size=16
     ),
 ) -> bytes:
     """
@@ -79,8 +79,8 @@ async def acsprng(
         token = await acanonical_token() + entropy
     else:
         token = await acanonical_token() + repr(entropy).encode()
-    _entropy.update(token)
-    thread_safe_entropy = _entropy._obj.copy()
+    _gadget.update(token)
+    thread_safe_entropy = _gadget._obj.copy()
     thread_safe_entropy.update(token + _pool[0])
     return thread_safe_entropy.digest(size)
 
@@ -88,8 +88,8 @@ async def acsprng(
 def csprng(
     size: int = 64,
     *,
-    entropy: t.Any = _entropy.hash(
-        _salt(pool=_pool, gadget=_entropy).to_bytes(32, BIG), size=16
+    entropy: t.Any = _gadget.hash(
+        _salt(pool=_pool, gadget=_gadget).to_bytes(32, BIG), size=16
     ),
 ) -> bytes:
     """
@@ -101,8 +101,8 @@ def csprng(
         token = canonical_token() + entropy
     else:
         token = canonical_token() + repr(entropy).encode()
-    _entropy.update(token)
-    thread_safe_entropy = _entropy._obj.copy()
+    _gadget.update(token)
+    thread_safe_entropy = _gadget._obj.copy()
     thread_safe_entropy.update(token + _pool[0])
     return thread_safe_entropy.digest(size)
 
@@ -175,7 +175,7 @@ async def arandom_number_generator(
             )
 
         async def modular_multiplication() -> None:
-            seed = await _asalt(pool=_pool, gadget=_entropy)
+            seed = await _asalt(pool=_pool, gadget=_gadget)
             await arandom_sleep(0.003)
             multiples = (create_unique_multiple(seed) for _ in range(3))
             multiples = [await multiple for multiple in multiples]
