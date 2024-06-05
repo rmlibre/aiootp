@@ -232,11 +232,10 @@ async def acycle(
             await asyncio.sleep(0)
             yield result
             results.append(result)
-    if results:
-        while True:
-            for result in results:
-                await asyncio.sleep(0)
-                yield result
+    while results:
+        for result in results:
+            await asyncio.sleep(0)
+            yield result
 
 
 def cycle(iterable: t.Iterable[t.Any]) -> t.Generator[None, t.Any, None]:
@@ -247,10 +246,9 @@ def cycle(iterable: t.Iterable[t.Any]) -> t.Generator[None, t.Any, None]:
     for result in iterable:
         yield result
         results.append(result)
-    if results:
-        while True:
-            for result in results:
-                yield result
+    while results:
+        for result in results:
+            yield result
 
 
 async def abytes_count(
