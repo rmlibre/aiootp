@@ -23,33 +23,23 @@ from hashlib import sha3_256, sha3_512, shake_128, shake_256
 from . import NamespaceMapping, collect_non_private_constants
 
 
-# Config Constants:
-BYTE_ORDER = "big"
-BIG = "big"
-LITTLE = "little"
-
 INT_BYTES = 8
 B_TO_MB_RATIO = 1024 * 1024
 
 BYTES_FLAG = b"\x01\x02"
 BYTES_FLAG_SIZE = 2
 
+FILENAME_HASH_BYTES = 24
+
 EPOCH = 1672531200  # Sun, 01 Jan 2023 00:00:00 UTC
 SAFE_TIMESTAMP_BYTES: int = 8
+DEFAULT_TTL: int = 0
+DEFAULT_TIMEOUT: int = 0
 NS_TO_S_RATIO: int = 1_000_000_000
 
 
-FILENAME = "filename"
-FILENAME_HASH_BYTES = 24
-
-JSON_DESERIALIZABLE_TYPES = {str, bytes, bytearray}
-
-MESSAGE_ID = "message_id"
-MESSAGE_ID_BYTES = 32
-
 OMITTED = "<omitted>"
 
-PORT = 8081
 TB_PORT = 9150
 TOR_PORT = 9050
 
@@ -77,11 +67,6 @@ SHAKE_256_TYPE = type(shake_256())
 MIN_KEY_BYTES = 64
 DEFAULT_AAD = b""
 
-TTL = "ttl"
-DEFAULT_TTL = 0
-TIMEOUT = "timeout"
-DEFAULT_TIMEOUT = 0
-
 
 # String Names:
 ACTIVE = "active_connection"
@@ -93,6 +78,7 @@ AIOOTP = "aiootp"
 ASYNC = "asynchronous"
 AUTHENTICATED_ASSOCIATED_DATA = "authenticated_associated_data"
 AUTHENTICATION = "authentication"
+BIG = "big"
 BLOCK_ID = "block_id"
 CHANNEL = "channel"
 CHANNELS = "channels"
@@ -134,6 +120,7 @@ EQUALITY = "equality"
 EXTENDED_DH_EXCHANGE = "extended_diffie_hellman_exchange"
 FAILED = "failed"
 FILE_KEY = "file_key"
+FILENAME = "filename"
 GUEST = "guest"
 GUID_CLOCK_MASK = "guid_clock_mask"
 GUID_SALT = "guid_salt"
@@ -154,11 +141,13 @@ KEEP_ALIVE = "keep_alive"
 KEY_ID = "key_id"
 KEYSTREAM = "keystream"
 LISTENING = "listening"
+LITTLE = "little"
 MAINTAINING = "maintaining"
 MANIFEST = "manifest"
 MANUAL = "manual_mode"
 MAX_INACTIVITY = "max_inactivity"
 MB = "mb"
+MESSAGE_ID = "message_id"
 MESSAGE_KEY = "message_key"
 MESSAGE_NUMBER = "message_number"
 MESSAGE = "message"
@@ -245,8 +234,10 @@ SYNC = "synchronous"
 TAG = "tag"
 TAG_SIZE = "tag_size"
 THREAD_SAFE_ENTROPY = "thread_safe_entropy"
+TIMEOUT = "timeout"
 TIMESTAMP = "timestamp"
 TOKEN = "token"
+TTL = "ttl"
 UNSENT_MESSAGES = "unsent_messages"
 URL = "url"
 USER = "user"
