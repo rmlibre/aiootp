@@ -141,7 +141,7 @@ include tests/test_misc_in_gentools.py
 include tests/test_namespace_classes.py
 include tests/test_affine_permutations.py
 include tests/test_PackageSigner.py
-include tests/test_passcrypt_apasscrypt.py
+include tests/test_Passcrypt.py
 include tests/test_misc_in_randoms.py
 include tests/test_commons.py
 include tests/test_randoms.py

@@ -91,7 +91,7 @@ def test_sign_and_verify():
         include tests/test_X25519_Ed25519.py
         include tests/test_high_level_encryption.py
         include tests/test_misc_in_ciphers.py
-        include tests/test_passcrypt_apasscrypt.py
+        include tests/test_Passcrypt.py
         """.strip().split("\n")
 
         test_path = Path(__file__).parent.parent
