@@ -54,7 +54,7 @@ _gadget = ThreadingSafeEntropyPool(
 
 # begin the entropy gathering daemon
 _entropy_daemon = EntropyDaemon(
-    entropy=_gadget, entropy_pool=_pool, max_delay=1
+    gadget=_gadget, entropy_pool=_pool, max_delay=1
 ).start()
 _entropy_daemon.set_temporary_max_delay(max_delay=0.001, duration=2)
 

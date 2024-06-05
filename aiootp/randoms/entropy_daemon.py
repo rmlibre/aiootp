@@ -43,7 +43,7 @@ class EntropyDaemon:
     __slots__ = (
         "_cache",
         "_pool",
-        "_entropy",
+        "_gadget",
         "_currently_mutating_frequency",
         "_frequency_mutation_deadline",
         "_initial_max_delay",
@@ -56,14 +56,14 @@ class EntropyDaemon:
         self,
         *,
         entropy_pool: t.Deque[bytes],
-        entropy: ThreadingSafeEntropyPool,
+        gadget: ThreadingSafeEntropyPool,
         max_delay: t.PositiveRealNumber = 1,
     ) -> None:
         """
         Prepares an instance to safely start a background thread.
         """
         self._pool = entropy_pool
-        self._entropy = entropy
+        self._gadget = gadget
         self._cache = deque(maxlen=2)
         self._cancel = False
         self._currently_mutating_frequency = False
@@ -139,7 +139,7 @@ class EntropyDaemon:
         """
         while True:
             self._cache.appendleft(await self._new_snapshot())
-            entropy = await self._entropy.ahash(*self._cache, size=32)
+            entropy = await self._gadget.ahash(*self._cache, size=32)
             self._pool.appendleft(entropy)
             await self._acknowledge_temporary_frequency_deadline()
             await arandom_sleep(self._max_delay)
