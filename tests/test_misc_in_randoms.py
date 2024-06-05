@@ -125,11 +125,11 @@ class TestRandomNumberGenerator:
 
     async def test_async_userland_entropy_can_be_any_type(self) -> None:
         for datum in (token_bytes(32).hex(), token_bits(32), [None, "test"]):
-            await arandom_number_generator(**self.kw)
+            await arandom_number_generator(freshness=0, entropy=datum)
 
     def test_sync_userland_entropy_can_be_any_type(self) -> None:
         for datum in (token_bytes(32).hex(), token_bits(32), [None, "test"]):
-            random_number_generator(**self.kw)
+            random_number_generator(freshness=0, entropy=datum)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
