@@ -33,7 +33,9 @@ class AffinePermutation(FrozenInstance):
     """
     Creates instances which perform invertible, bijective, keyed affine
     permutations on integers within a given byte-domain.
-
+    --------
+    WARNING: Alone, this permutation is insufficient to mask inputs, or
+    -------- protect from key recovery upon viewing outputs.
      _____________________________________
     |                                     |
     |            Usage Example:           |
