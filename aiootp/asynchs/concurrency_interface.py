@@ -75,10 +75,8 @@ class ConcurrencyInterface:
         state.append(func(*args, **kwargs))
 
     @staticmethod
-    def _return_state(
-        runner: t.Callable[..., t.Any],
+    def _get_result(
         func: t.Callable[..., t.Any],
-        state: t.Sequence[t.Any],
         /,
         *args: t.Any,
         **kwargs: t.Any,
@@ -87,8 +85,11 @@ class ConcurrencyInterface:
         Used by the class to handle retreiving return values from new
         processes spawned using the process pool.
         """
-        runner(func, state, *args, **kwargs)
-        return state.pop()
+        if is_async_function(func):
+            run = new_event_loop().run_until_complete
+            return run(func(*args, **kwargs))
+        else:
+            return func(*args, **kwargs)
 
     @classmethod
     def _process_probe_delay(
@@ -184,14 +185,7 @@ class ConcurrencyInterface:
             return future.result()
 
         state = cls._Manager().list()
-        future = cls._pool.submit(
-            cls._return_state,
-            cls._run_async_func,
-            func,
-            state,
-            *args,
-            **kwargs,
-        )
+        future = cls._pool.submit(cls._get_result, func, *args, **kwargs)
         future.aresult = aresult
         return future
 
@@ -218,14 +212,7 @@ class ConcurrencyInterface:
             return future._original_result()
 
         state = cls._Manager().list()
-        future = cls._pool.submit(
-            cls._return_state,
-            cls._run_func,
-            func,
-            state,
-            *args,
-            **kwargs,
-        )
+        future = cls._pool.submit(func, *args, **kwargs)
         future._original_result = future.result
         future.result = result
         return future
