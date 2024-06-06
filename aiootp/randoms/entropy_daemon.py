@@ -156,8 +156,7 @@ class EntropyDaemon:
         state = Threads._Manager().list()
         self._daemon = Threads._type(
             target=Threads._run_async_func,
-            args=[self._araw_loop],
-            kwargs=dict(_state=state),
+            args=[self._araw_loop, state],
         )
         self._daemon.daemon = True
         self._daemon.start()

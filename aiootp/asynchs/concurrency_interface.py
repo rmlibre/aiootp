@@ -43,33 +43,52 @@ class ConcurrencyInterface:
     BrokenPool: type
 
     @staticmethod
-    def _run_async_func(func, /, *args, _state, **kwargs) -> None:
+    def _run_async_func(
+        func: t.Callable[..., t.Any],
+        state: t.Sequence[t.Any],
+        /,
+        *args: t.Any,
+        **kwargs: t.Any,
+    ) -> None:
         """
         Used by the class to handle retreiving return values from new
         async or sync processes / threads spawned using a pool.
         """
         if is_async_function(func):
             run = new_event_loop().run_until_complete
-            _state.append(run(func(*args, **kwargs)))
+            state.append(run(func(*args, **kwargs)))
         else:
-            _state.append(func(*args, **kwargs))
+            state.append(func(*args, **kwargs))
 
     @staticmethod
-    def _run_func(func, /, *args, _state, **kwargs) -> None:
+    def _run_func(
+        func: t.Callable[..., t.Any],
+        state: t.Sequence[t.Any],
+        /,
+        *args: t.Any,
+        **kwargs: t.Any,
+    ) -> None:
         """
         Used by the class to handle retreiving return values from new
         sync processes / threads spawned using a pool.
         """
-        _state.append(func(*args, **kwargs))
+        state.append(func(*args, **kwargs))
 
     @staticmethod
-    def _return_state(runner, func, /, _state, *args, **kwargs):
+    def _return_state(
+        runner: t.Callable[..., t.Any],
+        func: t.Callable[..., t.Any],
+        state: t.Sequence[t.Any],
+        /,
+        *args: t.Any,
+        **kwargs: t.Any,
+    ) -> t.Any:
         """
         Used by the class to handle retreiving return values from new
         processes spawned using the process pool.
         """
-        runner(func, *args, **kwargs, _state=_state)
-        return _state.pop()
+        runner(func, state, *args, **kwargs)
+        return state.pop()
 
     @classmethod
     def _process_probe_delay(
@@ -105,8 +124,8 @@ class ConcurrencyInterface:
         state = cls._Manager().list()
         task = cls._type(
             target=cls._run_async_func,
-            args=(func, *args),
-            kwargs=dict(**kwargs, _state=state),
+            args=(func, state, *args),
+            kwargs=kwargs,
         )
         task.start()
         while task.is_alive():
@@ -133,8 +152,8 @@ class ConcurrencyInterface:
         state = cls._Manager().list()
         task = cls._type(
             target=cls._run_func,
-            args=(func, *args),
-            kwargs=dict(**kwargs, _state=state),
+            args=(func, state, *args),
+            kwargs=kwargs,
         )
         task.start()
         while task.is_alive():
@@ -169,8 +188,8 @@ class ConcurrencyInterface:
             cls._return_state,
             cls._run_async_func,
             func,
+            state,
             *args,
-            _state=state,
             **kwargs,
         )
         future.aresult = aresult
@@ -203,8 +222,8 @@ class ConcurrencyInterface:
             cls._return_state,
             cls._run_func,
             func,
+            state,
             *args,
-            _state=state,
             **kwargs,
         )
         future._original_result = future.result
