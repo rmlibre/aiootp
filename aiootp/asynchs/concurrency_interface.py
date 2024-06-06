@@ -58,7 +58,7 @@ class ConcurrencyInterface:
             raise Issue.value_must("probe_delay", "be > 0")
 
     @staticmethod
-    def _run_async_func(
+    def _arun_func(
         func: t.Callable[..., t.Any],
         state: t.Sequence[t.Any],
         /,
@@ -109,7 +109,7 @@ class ConcurrencyInterface:
         delay = cls._process_probe_delay(probe_delay)
         state = cls._Manager().list()
         task = cls._type(
-            target=cls._run_async_func,
+            target=cls._arun_func,
             args=(func, state, *args),
             kwargs=kwargs,
         )
