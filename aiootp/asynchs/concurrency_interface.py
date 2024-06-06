@@ -164,6 +164,30 @@ class ConcurrencyInterface:
         task.join()
         return state.pop()
 
+    @staticmethod
+    def _package_result_methods(
+        future: Future, /, *, probe_delay: t.PositiveRealNumber
+    ) -> Future:
+        """
+        Inserts methods in the `future` returned from a pool submission
+        to provide a consistent interface for retrieving results.
+        """
+
+        async def aresult() -> t.Any:
+            while not future.done():
+                await asleep(probe_delay)
+            return future._original_result()
+
+        def result() -> t.Any:
+            while not future.done():
+                sleep(probe_delay)
+            return future._original_result()
+
+        future._original_result = future.result
+        future.aresult = aresult
+        future.result = result
+        return future
+
     @classmethod
     async def asubmit(
         cls,
@@ -179,17 +203,9 @@ class ConcurrencyInterface:
         the supplied `*args` & `**kwargs`, then returns the `Future`
         object that's created.
         """
-
-        async def aresult():
-            delay = cls._process_probe_delay(probe_delay)
-            while not future.done():
-                await asleep(delay)
-            return future.result()
-
-        state = cls._Manager().list()
+        delay = cls._process_probe_delay(probe_delay)
         future = cls._pool.submit(cls._get_result, func, *args, **kwargs)
-        future.aresult = aresult
-        return future
+        return cls._package_result_methods(future, probe_delay=delay)
 
     @classmethod
     def submit(
@@ -206,18 +222,9 @@ class ConcurrencyInterface:
         `*args` & `**kwargs`, then returns the `Future` object that's
         created.
         """
-
-        def result():
-            delay = cls._process_probe_delay(probe_delay)
-            while not future.done():
-                sleep(delay)
-            return future._original_result()
-
-        state = cls._Manager().list()
+        delay = cls._process_probe_delay(probe_delay)
         future = cls._pool.submit(func, *args, **kwargs)
-        future._original_result = future.result
-        future.result = result
-        return future
+        return cls._package_result_methods(future, probe_delay=delay)
 
     @classmethod
     async def agather(
