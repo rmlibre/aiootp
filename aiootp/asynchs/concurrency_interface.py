@@ -233,6 +233,7 @@ class ConcurrencyInterface:
     @classmethod
     async def agather(
         cls,
+        /,
         *functions: t.Callable[..., t.Any],
         args: t.Iterable[t.Any] = (),
         kwargs: t.Mapping[t.Hashable, t.Any] = {},
@@ -254,6 +255,7 @@ class ConcurrencyInterface:
     @classmethod
     def gather(
         cls,
+        /,
         *functions: t.Callable[..., t.Any],
         args: t.Iterable[t.Any] = (),
         kwargs: t.Mapping[t.Hashable, t.Any] = {},
@@ -270,7 +272,7 @@ class ConcurrencyInterface:
                 task.cancel()
 
     @classmethod
-    def reset_pool(cls) -> None:
+    def reset_pool(cls, /) -> None:
         """
         When a process or thread pool is broken by an abruptly exited,
         this method can be called to reset the class' pool object with
