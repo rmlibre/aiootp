@@ -55,9 +55,9 @@ class AffinePermutation(FrozenInstance):
     """
 
     __slots__ = (
-        "_additive_key",
         "_MAX",
         "_PRIME",
+        "_additive_key",
         "config",
     )
 
