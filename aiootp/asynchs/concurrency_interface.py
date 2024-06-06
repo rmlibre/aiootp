@@ -51,8 +51,9 @@ class ConcurrencyInterface:
         **kwargs: t.Any,
     ) -> None:
         """
-        Used by the class to handle retreiving return values from new
-        async or sync processes / threads spawned using a pool.
+        Used by the class to retrieve return values from an async or
+        sync `func` run in a new process / thread by storing the result
+        in a shared `state` container.
         """
         if is_async_function(func):
             run = new_event_loop().run_until_complete
@@ -69,8 +70,9 @@ class ConcurrencyInterface:
         **kwargs: t.Any,
     ) -> None:
         """
-        Used by the class to handle retreiving return values from new
-        sync processes / threads spawned using a pool.
+        Used by the class to retrieve return values from a sync `func`
+        run in a new process / thread by storing the result in a shared
+        `state` container.
         """
         state.append(func(*args, **kwargs))
 
@@ -82,8 +84,8 @@ class ConcurrencyInterface:
         **kwargs: t.Any,
     ) -> t.Any:
         """
-        Used by the class to handle retreiving return values from new
-        processes spawned using the process pool.
+        Returns the result of `func` run in a new process / thread using
+        the class' pool.
         """
         if is_async_function(func):
             run = new_event_loop().run_until_complete
