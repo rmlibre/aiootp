@@ -52,17 +52,7 @@ async def not_implemented_placeholder(*a: t.Any, **kw: t.Any) -> None:
     warnings.warn("Function not supported by OS.")
 
 
-for name in (
-    "chmod",
-    "chown",
-    "makedirs",
-    "mkdir",
-    "rename",
-    "remove",
-    "rmdir",
-    "sendfile",
-    "stat",
-):
+for name in __all__:
     if hasattr(os, name):
         globals()[name] = wrap_in_executor(getattr(os, name))
     else:
