@@ -12,10 +12,12 @@
 
 
 from hashlib import shake_128
+from collections import deque
 
 from test_initialization import *
 
 from aiootp.asynchs.clocks import s_counter
+from aiootp.randoms.entropy_daemon import EntropyDaemon
 from aiootp.randoms.simple import arandom_sleep, random_sleep
 from aiootp.randoms.threading_safe_entropy_pool import ThreadingSafeEntropyPool
 from aiootp.randoms.rng import arandom_number_generator, random_number_generator
@@ -69,6 +71,34 @@ class TestThreadingSafeEntropyPool:
         assert obj.digest(32) == obj_copy.digest(32)
         assert obj.hexdigest(32) == hasher.hexdigest(32)
         assert obj.hexdigest(32) == obj_copy.hexdigest(32)
+
+
+class TestEntropyDaemon:
+    pool = deque([csprng(32), csprng(32)], maxlen=32)
+    gadget = ThreadingSafeEntropyPool(csprng(), obj=shake_128, pool=pool)
+    daemon = EntropyDaemon(
+        entropy_pool=pool, gadget=gadget, max_delay=0.075
+    ).start()
+
+    async def test_temporary_max_delay_limits(self) -> None:
+        problem = (
+            "A negative temporary delay was allowed."
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+            self.daemon.set_temporary_max_delay(-1)
+
+    async def test_max_delay_limits(self) -> None:
+        problem = (
+            "A negative delay was allowed."
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+            self.daemon.set_max_delay(-1)
+
+    async def test_zcancel_stops_daemon(self) -> None:
+        assert self.daemon._daemon.is_alive()
+        self.daemon.cancel()
+        await asleep(self.daemon._max_delay + 0.002)
+        assert not self.daemon._daemon.is_alive()
 
 
 class TestCSPRNG:

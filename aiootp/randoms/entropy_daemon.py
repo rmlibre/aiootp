@@ -91,7 +91,7 @@ class EntropyDaemon:
             self._max_delay = self._initial_max_delay
             self._currently_mutating_frequency = False
         elif delay_skips_deadline:
-            self._max_delay = deadline_delta
+            self._max_delay = deadline_delta  # pragma: no cover
 
     def set_temporary_max_delay(
         self,
