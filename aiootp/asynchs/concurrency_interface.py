@@ -42,6 +42,21 @@ class ConcurrencyInterface:
 
     BrokenPool: type
 
+    @classmethod
+    def _process_probe_delay(
+        cls, value: t.Optional[t.PositiveRealNumber], /
+    ) -> t.PositiveRealNumber:
+        """
+        Ensures the probe frequency is positive & returns it, if it's
+        specified. Otherwise, returns the class' default value.
+        """
+        if value is None:
+            return cls._default_probe_delay
+        elif value > 0:
+            return value
+        else:
+            raise Issue.value_must("probe_delay", "be > 0")
+
     @staticmethod
     def _run_async_func(
         func: t.Callable[..., t.Any],
@@ -75,38 +90,6 @@ class ConcurrencyInterface:
         `state` container.
         """
         state.append(func(*args, **kwargs))
-
-    @staticmethod
-    def _get_result(
-        func: t.Callable[..., t.Any],
-        /,
-        *args: t.Any,
-        **kwargs: t.Any,
-    ) -> t.Any:
-        """
-        Returns the result of `func` run in a new process / thread using
-        the class' pool.
-        """
-        if is_async_function(func):
-            run = new_event_loop().run_until_complete
-            return run(func(*args, **kwargs))
-        else:
-            return func(*args, **kwargs)
-
-    @classmethod
-    def _process_probe_delay(
-        cls, value: t.Optional[t.PositiveRealNumber], /
-    ) -> t.PositiveRealNumber:
-        """
-        Ensures the probe frequency is positive & returns it, if it's
-        specified. Otherwise, returns the class' default value.
-        """
-        if value is None:
-            return cls._default_probe_delay
-        elif value > 0:
-            return value
-        else:
-            raise Issue.value_must("probe_delay", "be > 0")
 
     @classmethod
     async def anew(
@@ -163,6 +146,23 @@ class ConcurrencyInterface:
             sleep(delay)
         task.join()
         return state.pop()
+
+    @staticmethod
+    def _get_result(
+        func: t.Callable[..., t.Any],
+        /,
+        *args: t.Any,
+        **kwargs: t.Any,
+    ) -> t.Any:
+        """
+        Returns the result of `func` run in a new process / thread using
+        the class' pool.
+        """
+        if is_async_function(func):
+            run = new_event_loop().run_until_complete
+            return run(func(*args, **kwargs))
+        else:
+            return func(*args, **kwargs)
 
     @staticmethod
     def _package_result_methods(
