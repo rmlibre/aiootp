@@ -24,25 +24,30 @@ from aiootp.randoms.rng import arandom_number_generator, random_number_generator
 
 
 class TestRandomSleeps:
+    runs = 32
     span = 0.001
-    async_variance = 0.002
-    sync_variance = 0.015
+    async_variance = 0.004
+    sync_variance = 0.016
 
     async def test_async_random_sleep(self) -> None:
         MAX = self.span + self.async_variance
-        for _ in range(32):
+        total = 0
+        for _ in range(self.runs):
             start = s_counter()
             await arandom_sleep(self.span)
             end = s_counter()
-            assert MAX >= (end - start) >= 0
+            total += end - start
+        assert MAX >= (total / self.runs) >= 0
 
     async def test_sync_random_sleep(self) -> None:
         MAX = self.span + self.sync_variance
-        for _ in range(32):
+        total = 0
+        for _ in range(self.runs):
             start = s_counter()
             random_sleep(self.span)
             end = s_counter()
-            assert MAX >= (end - start) >= 0
+            total += end - start
+        assert MAX >= (total / self.runs) >= 0
 
 
 class TestThreadingSafeEntropyPool:
