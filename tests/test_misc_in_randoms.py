@@ -11,7 +11,6 @@
 #
 
 
-import platform
 import warnings
 from hashlib import shake_128
 from collections import deque
