@@ -1,5 +1,5 @@
 {
-    "checksum": "161ede74ce40f32dfb7126e6d9a700430a45118a676a67b2284b3c507b33d290c0d4efabd9c2f69980cc58a1a9629997",
+    "checksum": "51c5a559211631198fc82b185a636e7839f9f52c9e44030255aa31d124e54bb7a416140b6c43d042106a1fde50f72ec7",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "2b670e7baa09091f752239e0b5fc946e61bf54d9fb4c30510e4954004c5c78753bc567a2607c019846d8c7ae6d109a8f",
@@ -138,7 +138,7 @@
         "tests/test_misc_in_ciphers.py": "d46b0d661103fddacbf17cacc0285d4f771d64b23c1ba9260f3a49b7fa9cf35a528ebc8a7d1c9608c7a7c0bea985967f",
         "tests/test_misc_in_generics.py": "2a43c05683d21f59aa3460a1c7d0698091e76bf6a0c19bc27c223bd72b7154c1aa80dfcc41e10ee4bf5515d154f9134e",
         "tests/test_misc_in_keygens.py": "f4ad34672459c4e2058ffe17cc95477268b267a5b33d406e086eae16f640d76d200488d3f88e2c85b1a6d7d95c87f55b",
-        "tests/test_misc_in_randoms.py": "6b7a613797827b470ab556cc9a2f13a84c64d3ab4f4479235d7e358617555952e12e50ba5732df1d5da50943bcfb6ea9",
+        "tests/test_misc_in_randoms.py": "dbdbac546424e64a81ced83c5588777700c2f0e71447a2c4659adea2ff63c75b4850aeb42f77c103e9810010c331fd71",
         "tests/test_namespace_classes.py": "393d9d4340b6028058cf2a10a4b517355f0579261b506e8f88027edcc8200a9343f3c812c19791fac56e8f8d183a0f0b",
         "tests/test_permutations.py": "f9261eaa557889f147d245039c15828c2c38323ba28a32a0e47324296e89681ca8ac7d858e7dc23feffa5f4d7daa589b",
         "tests/test_randoms.py": "7e8ef0c1df05bb58c2ddc55a67fe65b3a4d62514cf3cd2f2dd03078bd278ce3da2aefcd54f992dbc05079f4e388dd4da",
@@ -148,7 +148,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 9,
+        "build_number": 10,
         "date": 19881,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -156,5 +156,5 @@
         "version": "0.23.4"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "140ee28c4e4d8253907946da73532609a46c985040b614dc6d3853ba1bfbc02b62dcd37c89fc5f94754e3b34671ce1b9103140fe2983cbb2d02adc80a21b6d0f"
+    "signature": "0d61fd7764ec08f3cb774be7202ef171d36309e5fc08247a2c7d87a218a52d87ee1bd2c30fd567e5ea30b1586936528a77db568dd00030d45cd1533149eb9b0d"
 }
