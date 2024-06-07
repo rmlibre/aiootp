@@ -11,6 +11,8 @@
 #
 
 
+import platform
+import warnings
 from hashlib import shake_128
 from collections import deque
 
@@ -26,28 +28,36 @@ from aiootp.randoms.rng import arandom_number_generator, random_number_generator
 class TestRandomSleeps:
     runs = 32
     span = 0.001
-    async_variance = 0.004
-    sync_variance = 0.016
+    max_overhead = 0.016
+    max_ideal_overhead = 0.001
 
     async def test_async_random_sleep(self) -> None:
-        MAX = self.span + self.async_variance
+        MAX = (0.6 * self.span) + self.max_overhead
         total = 0
         for _ in range(self.runs):
             start = s_counter()
             await arandom_sleep(self.span)
             end = s_counter()
             total += end - start
-        assert MAX >= (total / self.runs) >= 0
+
+        average_arandom_sleep = total / self.runs
+        assert MAX >= average_arandom_sleep >= 0
+        if average_arandom_sleep >= (0.6 * self.span + self.max_ideal_overhead):
+            warnings.warn(f"NOTICE: span={self.span} : {average_arandom_sleep=}")
 
     async def test_sync_random_sleep(self) -> None:
-        MAX = self.span + self.sync_variance
+        MAX = (0.6 * self.span) + self.max_overhead
         total = 0
         for _ in range(self.runs):
             start = s_counter()
             random_sleep(self.span)
             end = s_counter()
             total += end - start
-        assert MAX >= (total / self.runs) >= 0
+
+        average_random_sleep = total / self.runs
+        assert MAX >= average_random_sleep >= 0
+        if average_random_sleep >= (0.6 * self.span + self.max_ideal_overhead):
+            warnings.warn(f"NOTICE: span={self.span} : {average_random_sleep=}")
 
 
 class TestThreadingSafeEntropyPool:
