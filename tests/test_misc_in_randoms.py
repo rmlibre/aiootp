@@ -91,15 +91,14 @@ class TestEntropyDaemon:
     pool = deque([csprng(32), csprng(32)], maxlen=32)
     gadget = ThreadingSafeEntropyPool(csprng(), obj=shake_128, pool=pool)
     daemon = EntropyDaemon(
-        entropy_pool=pool, gadget=gadget, max_delay=0.075
-    ).start()
+        entropy_pool=pool, gadget=gadget, max_delay=0.025
+    )
 
-    async def test_temporary_max_delay_limits(self) -> None:
-        problem = (
-            "A negative temporary delay was allowed."
-        )
-        with Ignore(ValueError, if_else=violation(problem)):
-            self.daemon.set_temporary_max_delay(-1)
+    async def test_aaa_start_daemon(self) -> None:
+        assert not hasattr(self.daemon, "_daemon")
+        self.daemon.start()
+        assert hasattr(self.daemon, "_daemon")
+        assert self.daemon._daemon.is_alive()
 
     async def test_max_delay_limits(self) -> None:
         problem = (
@@ -108,10 +107,28 @@ class TestEntropyDaemon:
         with Ignore(ValueError, if_else=violation(problem)):
             self.daemon.set_max_delay(-1)
 
-    async def test_zcancel_stops_daemon(self) -> None:
+    async def test_temporary_max_delay_limits(self) -> None:
+        problem = (
+            "A negative temporary delay was allowed."
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+            self.daemon.set_temporary_max_delay(-1)
+
+    async def test_temporary_max_delay_reverts_after_duration(self) -> None:
+        duration = 0.001
+        initial_delay = self.daemon._max_delay
+        new_delay = initial_delay / 2
+        self.daemon.set_temporary_max_delay(new_delay, duration=duration)
+
+        assert new_delay == self.daemon._max_delay
+        max_wait_time = initial_delay + new_delay + duration
+        await asleep(max_wait_time)
+        assert initial_delay == self.daemon._max_delay
+
+    async def test_zzz_cancel_stops_daemon(self) -> None:
         assert self.daemon._daemon.is_alive()
         self.daemon.cancel()
-        await asleep(self.daemon._max_delay + 0.002)
+        await asleep(2 * self.daemon._max_delay)
         assert not self.daemon._daemon.is_alive()
 
 
