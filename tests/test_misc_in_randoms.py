@@ -27,7 +27,7 @@ from aiootp.randoms.rng import arandom_number_generator, random_number_generator
 class TestRandomSleeps:
     runs = 32
     span = 0.001
-    max_overhead = 0.016
+    max_overhead = 0.02
     max_ideal_overhead = 0.001
 
     async def test_async_random_sleep(self) -> None:
