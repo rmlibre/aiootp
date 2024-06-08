@@ -8,6 +8,12 @@ Changes for version 0.23.4
 --------------------------
 
 
+Major Changes
+^^^^^^^^^^^^^
+
+- Provide ``Clock`` interface for determining relative time resolution adequacy, & add warning about system time resolution inadequacy harming ``GUID`` uniqueness.
+
+
 Minor Changes
 ^^^^^^^^^^^^^
 
