@@ -31,10 +31,10 @@ from aiootp.asynchs import Clock
 if not Clock(NANOSECONDS).has_adequate_resolution():
     warnings.warn(
         f"\nBEWARE: Nanosecond clocks require better time resolution than "
-        f"what's available from the system time resolution of "
-        f"{Clock._SYSTEM_TIME_RESOLUTION}. \nSeveral of the package's "
-        f"tools, such as GUIDs, need fine resolution to function correctly "
-        f"& satisfy their stated guarantees."
+        f"what's available from the system's time resolution of "
+        f"{Clock._SYSTEM_TIME_RESOLUTION} seconds/tick. \nSeveral of the "
+        f"package's tools, such as GUIDs, need fine resolution to function "
+        f"correctly & satisfy their stated guarantees."
     )
 
 
