@@ -156,7 +156,7 @@ class EntropyDaemon:
         state = Threads._Manager().list()
         self._daemon = Threads._type(
             target=Threads._arun_func,
-            args=[self._araw_loop, state],
+            args=(self._araw_loop, state),
         )
         self._daemon.daemon = True
         self._daemon.start()
