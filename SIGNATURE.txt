@@ -1,5 +1,5 @@
 {
-    "checksum": "ed269dc5b026873a865c3f088f59cc345e1c425fd9a767d1781441df389a65332213370a3d4bd38f966a5b5793b626b5",
+    "checksum": "5318f8347e8159634353f7ba199992c3ae47d9e6123e85050d097ff79b6ef62ec00673d12798d2f597b66806ac0d639c",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "f87705dd07ba7fd39096dee7d61e743d42aad6a0cca302e45f600a758dcbed8e90ee7d915331baed9ff20d28c3510829",
@@ -138,7 +138,7 @@
         "tests/test_misc_in_ciphers.py": "d46b0d661103fddacbf17cacc0285d4f771d64b23c1ba9260f3a49b7fa9cf35a528ebc8a7d1c9608c7a7c0bea985967f",
         "tests/test_misc_in_generics.py": "2a43c05683d21f59aa3460a1c7d0698091e76bf6a0c19bc27c223bd72b7154c1aa80dfcc41e10ee4bf5515d154f9134e",
         "tests/test_misc_in_keygens.py": "f4ad34672459c4e2058ffe17cc95477268b267a5b33d406e086eae16f640d76d200488d3f88e2c85b1a6d7d95c87f55b",
-        "tests/test_misc_in_randoms.py": "c3aa3865749e34a6828ec33ced5886a0eb5df06fe9d853d2131ff9da7add6a92a033049ecdf3d98c2b4c169a2fdbcf97",
+        "tests/test_misc_in_randoms.py": "a56d1d7f4cfd4824744b8f234c7b06b95b4001c7684205000d6bd5d5439af302692fdf879a21958a178950e5d8dd1ba3",
         "tests/test_namespace_classes.py": "393d9d4340b6028058cf2a10a4b517355f0579261b506e8f88027edcc8200a9343f3c812c19791fac56e8f8d183a0f0b",
         "tests/test_permutations.py": "f9261eaa557889f147d245039c15828c2c38323ba28a32a0e47324296e89681ca8ac7d858e7dc23feffa5f4d7daa589b",
         "tests/test_randoms.py": "7e8ef0c1df05bb58c2ddc55a67fe65b3a4d62514cf3cd2f2dd03078bd278ce3da2aefcd54f992dbc05079f4e388dd4da",
@@ -148,7 +148,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 13,
+        "build_number": 14,
         "date": 19882,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -156,5 +156,5 @@
         "version": "0.23.4"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "ad0b255393a0189d58b8d6512490c1713908af6f4c5494c1feda2784e7018c7b06c340ff1dd65bea1fb910a04606d413c3b4c681424654a739308e7ccf7a9609"
+    "signature": "8bb7206f360eba381940b40feafdc9f743791d386e23741d717b8139025b640a501f73533c252485b3d59fa99849a11f585838bd1760127837c8ef862a75140f"
 }
