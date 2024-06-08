@@ -30,7 +30,7 @@ __all__ = [
 __doc__ = "Time & timestamping tools."
 
 
-from time import time_ns
+from time import time_ns, get_clock_info
 from time import perf_counter as s_counter
 from time import perf_counter_ns as ns_counter
 
@@ -140,18 +140,22 @@ class Clock(FrozenInstance):
     # Sun, 01 Jan 2023 00:00:00 UTC
     """
 
-    __slots__ = ("_time", "_epoch", "_units")
+    __slots__ = ("_epoch", "_resolution_needed", "_time", "_units")
+
+    _SYSTEM_TIME_RESOLUTION: t.PositiveRealNumber = get_clock_info(
+        "time"
+    ).resolution
 
     _times: t.Mapping[str, t.Callable[[int], int]] = FrozenNamespace(
-        years=this_year,
-        months=this_month,
-        days=this_day,
-        hours=this_hour,
-        minutes=this_minute,
-        seconds=this_second,
-        milliseconds=this_millisecond,
-        microseconds=this_microsecond,
-        nanoseconds=this_nanosecond,
+        years=(this_year, _ONE_YEAR / _ONE_SECOND),
+        months=(this_month, _ONE_MONTH / _ONE_SECOND),
+        days=(this_day, 24 * 60 * 60),
+        hours=(this_hour, 60 * 60),
+        minutes=(this_minute, 60),
+        seconds=(this_second, 1),
+        milliseconds=(this_millisecond, 1e-3),
+        microseconds=(this_microsecond, 1e-6),
+        nanoseconds=(this_nanosecond, 1e-9),
     )
 
     TimestampExpired: type = TimestampExpired
@@ -165,15 +169,22 @@ class Clock(FrozenInstance):
         """
         if units not in self._times:
             raise Issue.invalid_value("time units", units)
-        self._units = units
-        self._time = self._times[units]
         self._epoch = epoch
+        self._time, self._resolution_needed = self._times[units]
+        self._units = units
 
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__qualname__}("
             f"{repr(self._units)}, epoch={self._epoch})"
         )
+
+    def has_adequate_resolution(self) -> bool:
+        """
+        Reports on whether the system's time resolution in fine enough
+        to accurately work with the requested time units.
+        """
+        return self._resolution_needed >= self._SYSTEM_TIME_RESOLUTION
 
     async def atime(self) -> int:
         """

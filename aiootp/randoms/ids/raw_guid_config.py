@@ -18,6 +18,7 @@ __doc__ = "A configuration type for `RawGUID`."
 
 
 import io
+import warnings
 from secrets import token_bytes
 
 from aiootp._typing import Typing as t
@@ -25,6 +26,16 @@ from aiootp._constants import NANOSECONDS, BIG
 from aiootp._exceptions import Issue
 from aiootp.commons import Config, OpenFrozenSlots
 from aiootp.asynchs import Clock
+
+
+if not Clock(NANOSECONDS).has_adequate_resolution():
+    warnings.warn(
+        f"\nBEWARE: Nanosecond clocks require better time resolution than "
+        f"what's available from the system time resolution of "
+        f"{Clock._SYSTEM_TIME_RESOLUTION}. \nSeveral of the package's "
+        f"tools, such as GUIDs, need fine resolution to function correctly "
+        f"& satisfy their stated guarantees."
+    )
 
 
 class RawGUIDConfig(Config):
