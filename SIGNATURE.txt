@@ -1,8 +1,8 @@
 {
-    "checksum": "41ac7fcc0bf972b1a28801cc15914f3efecb597d25545bfd2ecc25ec94da9570be137e32a25717bc3c9e8a156a76caf5",
+    "checksum": "bc6d5eabe8c591f1ac70c6c45a19d8cae4ba143156f3b7f8002c1437e7020846dbb334ce6d0c969858d96a470c19cc8b",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
-        "CHANGES.rst": "f87705dd07ba7fd39096dee7d61e743d42aad6a0cca302e45f600a758dcbed8e90ee7d915331baed9ff20d28c3510829",
+        "CHANGES.rst": "8436fa54d170d98d1522a1b7eccb39ec39b7ba8d5cc83ee17540a92d9f6b0e138faa9c4e51fb918a844dd8e6fad92175",
         "FAQ.rst": "2f15dac97fb9bdc64d36204e11d617f0363ef221b071eec9cfb1a5951955169c1633d92bceae7c674974800e4bfaffff",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
         "MANIFEST.in": "0aa6f2077c4c33efacd93a25c7d2d731f4e89ec211048d022e3bcda8997adee42bfeff2d8741db0dab0daf848fc9346e",
@@ -148,7 +148,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 15,
+        "build_number": 16,
         "date": 19882,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -156,5 +156,5 @@
         "version": "0.23.4"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "bc567cbaeca70338d977afcd3ff09dc0dad9ba3498fe2690fb75255e2200414d1a36d29a990330c8b39fc8e232debcfaf99f3ed9e048ba48036663f668923e07"
+    "signature": "06bfec809ff6a5a9f9f152e0e1994ad398f1839138bdbd5366ae21e56a3319be5b4bad490a9d700bc09b5301e4f486d17888e820ad9dc4d815d800c663d70f0e"
 }
