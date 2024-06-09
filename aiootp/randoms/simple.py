@@ -79,7 +79,7 @@ def random_sleep(seconds: t.PositiveRealNumber = 1) -> t.Any:
 
 async def atoken_bits(k: int) -> int:
     """
-    Returns `k` number of bits from `secrets.randbits`.
+    Returns `k` entropic bits from `secrets.randbits`.
     """
     await asleep()
     return token_bits(k=k)
@@ -87,7 +87,7 @@ async def atoken_bits(k: int) -> int:
 
 async def atoken_bytes(nbytes: int) -> bytes:
     """
-    Returns `nbytes` bytes of `secrets.token_bytes` entropy.
+    Returns `nbytes` entropic bytes from `secrets.token_bytes`.
     """
     await asleep()
     return token_bytes(nbytes=nbytes)
