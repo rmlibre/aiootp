@@ -63,16 +63,16 @@ async def achoice(seq: t.Sequence[t.Any]) -> t.Any:
 
 async def arandom_sleep(seconds: t.PositiveRealNumber = 1) -> t.Any:
     """
-    Asynchronously sleeps for a psuedo-random number of `seconds`. After
-    the sleep time elapses, `result` is returned.
+    Asynchronously sleeps for a psuedo-random duration less than the
+    provided maximum number of `seconds`.
     """
     await asleep(seconds * await auniform(0, 1))
 
 
 def random_sleep(seconds: t.PositiveRealNumber = 1) -> t.Any:
     """
-    Synchronously sleeps for a psuedo-random number of `seconds`. After
-    the sleep time elapses, `result` is returned.
+    Synchronously sleeps for a psuedo-random duration less than the
+    provided maximum number of `seconds`.
     """
     sleep(seconds * uniform(0, 1))
 
