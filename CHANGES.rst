@@ -18,6 +18,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - Simplify & update internal functionality that also removes a vanishingly unlikely infinite loop condition.
+- Utilize unused package seed during package initialization.
 - Improvements & fixes to doc strings.
 - Improvements & fixes to package documentation.
 

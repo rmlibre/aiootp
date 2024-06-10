@@ -39,7 +39,8 @@ from .simple import atoken_bits, token_bytes, arandom_sleep
 from .simple import acanonical_token, canonical_token, achoice
 from .threading_safe_entropy_pool import ThreadingSafeEntropyPool
 from .entropy_daemon import EntropyDaemon
-from ._early_salts import _salt, _asalt, _asalt_multiply, _package_seed_path
+from ._early_salts import _salt, _asalt, _asalt_multiply
+from ._early_salts import _package_seed, _package_seed_path
 
 
 # initialize rudimentary global entropy pool
@@ -48,7 +49,9 @@ _pool = deque((token_bytes(32) for _ in range(32)), maxlen=32)
 
 # initialize the global SHA3 hashing object that also collects entropy
 _gadget = ThreadingSafeEntropyPool(
-    token_bytes(3 * SHAKE_256_BLOCKSIZE), obj=shake_256, pool=_pool
+    _package_seed + token_bytes(3 * SHAKE_256_BLOCKSIZE),
+    obj=shake_256,
+    pool=_pool,
 )
 
 
