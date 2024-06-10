@@ -42,7 +42,7 @@ from aiootp.commons import FrozenNamespace, FrozenInstance
 from .loops import asleep
 
 
-_YEAR_WITH_LEAP_DAYS: int = 365.24225
+_YEAR_WITH_LEAP_DAYS: float = 365.24225
 _ONE_NANOSECOND: int = 1
 _ONE_MICROSECOND: int = 1_000
 _ONE_MILLISECOND: int = 1_000_000
@@ -50,8 +50,8 @@ _ONE_SECOND: int = 1_000_000_000
 _ONE_MINUTE: int = 60 * _ONE_SECOND
 _ONE_HOUR: int = 60 * _ONE_MINUTE
 _ONE_DAY: int = 24 * _ONE_HOUR
-_ONE_MONTH: int = (_YEAR_WITH_LEAP_DAYS * _ONE_DAY) / 12
-_ONE_YEAR: int = _YEAR_WITH_LEAP_DAYS * _ONE_DAY
+_ONE_MONTH: float = (_YEAR_WITH_LEAP_DAYS * _ONE_DAY) / 12
+_ONE_YEAR: float = _YEAR_WITH_LEAP_DAYS * _ONE_DAY
 
 
 def this_nanosecond(epoch: int = 0) -> int:
