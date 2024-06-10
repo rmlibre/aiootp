@@ -39,8 +39,7 @@ _package_seed = read_salt_file(_package_seed_path)
 
 
 # prepare global salted multiply values
-_MAX = (1 << 256) - 1
-_mod = PRIMES[257][0]
+_MOD = 1 << 256
 _offset = token_bits(256) | (1 << 256)  # ensure always a non-zero offset
 _mix = int.from_bytes(token_bytes(32), BIG)
 _seed = int.from_bytes(token_bytes(32), BIG)
@@ -55,22 +54,18 @@ async def _asalt_multiply(*numbers: int, pool: t.Sequence[bytes]) -> int:
     plaintext attacks on the calculations usings the hashes of those
     permutations.
     """
-    global _mix, _mod, _seed, _offset
+    global _mix, _seed, _offset
 
-    mix = _mix ^ abs(sum((_seed, _offset, ns_counter(), *numbers)))
-    mix = _mix = (mix ^ int.from_bytes(pool[0], BIG)) % _mod
+    mix = _mix ^ abs(sum((ns_counter() * _offset, *_int_pool, *numbers)))
+    mix = _mix = (mix ^ int.from_bytes(pool[0], BIG)) % _MOD
     _seed ^= mix
     start = _seed
     _offset ^= _seed
     for number in numbers:
         await asleep()
         mix += _offset
-        start = ((number ^ mix) * (start ^ mix))
-    result = (start ^ _seed) % _mod
-    while result > _MAX:
-        await asleep()                                  # pragma: no cover
-        result = (result + _seed) % _mod                # pragma: no cover
-    return result
+        start = (start ^ mix) * (number ^ mix)
+    return _seed ^ ((start ^ mix) % _MOD)
 
 
 def _salt_multiply(*numbers: int, pool: t.Sequence[bytes]) -> int:
@@ -82,20 +77,17 @@ def _salt_multiply(*numbers: int, pool: t.Sequence[bytes]) -> int:
     plaintext attacks on the calculations usings the hashes of those
     permutations.
     """
-    global _mix, _mod, _seed, _offset
+    global _mix, _seed, _offset
 
-    mix = _mix ^ abs(sum((_seed, _offset, ns_counter(), *numbers)))
-    mix = _mix = (mix ^ int.from_bytes(pool[0], BIG)) % _mod
+    mix = _mix ^ abs(sum((ns_counter() * _offset, *_int_pool, *numbers)))
+    mix = _mix = (mix ^ int.from_bytes(pool[0], BIG)) % _MOD
     _seed ^= mix
     start = _seed
     _offset ^= _seed
     for number in numbers:
         mix += _offset
-        start = ((number ^ mix) * (start ^ mix))
-    result = (start ^ _seed) % _mod
-    while result > _MAX:
-        result = (result + _seed) % _mod                # pragma: no cover
-    return result
+        start = (start ^ mix) * (number ^ mix)
+    return _seed ^ ((start ^ mix) % _MOD)
 
 
 async def _asalt(

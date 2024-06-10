@@ -17,6 +17,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Simplify & update internal functionality that also removes a vanishingly unlikely infinite loop condition.
 - Improvements & fixes to doc strings.
 - Improvements & fixes to package documentation.
 
