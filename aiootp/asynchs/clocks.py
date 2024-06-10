@@ -146,7 +146,7 @@ class Clock(FrozenInstance):
         "time"
     ).resolution
 
-    _times: t.Mapping[str, t.Callable[[int], int]] = FrozenNamespace(
+    _times: FrozenNamespace = FrozenNamespace(
         years=(this_year, _ONE_YEAR / _ONE_SECOND),
         months=(this_month, _ONE_MONTH / _ONE_SECOND),
         days=(this_day, 24 * 60 * 60),
