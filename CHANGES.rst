@@ -22,6 +22,7 @@ Minor Changes
 - Improvements & fixes to type hints.
 - Improvements & fixes to doc strings.
 - Improvements & fixes to package documentation.
+- Improvements & fixes to code formatting & style.
 
 
 
