@@ -36,6 +36,12 @@ class TestOnlineCipherInterfaces:
                 pt_dec = b""
                 join = b"".join
                 for id_ct in stream_enc:
+                    problem = (
+                        "Invalid packet sizes were allowed."
+                    )
+                    with Ignore(ValueError, if_else=violation(problem)):
+                        stream_dec.buffer(join(id_ct)[:stream_dec.PACKETSIZE - 1])
+
                     stream_dec.buffer(join(id_ct))
                     for pt in stream_dec:
                         pt_dec += pt
@@ -71,6 +77,12 @@ class TestOnlineCipherInterfaces:
                 pt_dec = b""
                 join = b"".join
                 async for id_ct in stream_enc:
+                    problem = (
+                        "Invalid packet sizes were allowed."
+                    )
+                    with Ignore(ValueError, if_else=violation(problem)):
+                        await stream_dec.abuffer(join(id_ct)[:stream_dec.PACKETSIZE - 1])
+
                     await stream_dec.abuffer(join(id_ct))
                     async for pt in stream_dec:
                         pt_dec += pt
