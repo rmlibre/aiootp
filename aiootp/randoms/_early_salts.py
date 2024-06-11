@@ -40,7 +40,7 @@ _package_seed = read_salt_file(_package_seed_path)
 
 # prepare global salted multiply values
 _MOD = 1 << 256
-_offset = token_bits(256) | (1 << 256)  # ensure always a non-zero offset
+_offset = (1 << 256) | token_bits(256)  # ensure always a non-zero offset
 _mix = int.from_bytes(_package_seed, BIG)
 _seed = int.from_bytes(token_bytes(32), BIG)
 
