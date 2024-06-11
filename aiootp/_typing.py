@@ -114,6 +114,60 @@ class SupportsPopleft(Protocol):
 
 
 @typing.runtime_checkable
+class IgnoreType(Protocol):
+
+    @property
+    def ignored_exceptions(self) -> typing.Tuple[Exception]:
+        pass  # pragma: no cover
+
+    @property
+    def except_code(self) -> typing.Callable[..., bool]:
+        pass  # pragma: no cover
+
+    @property
+    def else_code(self) -> typing.Callable[..., typing.Any]:
+        pass  # pragma: no cover
+
+    @property
+    def finally_code(self) -> typing.Callable[..., typing.Any]:
+        pass  # pragma: no cover
+
+    @property
+    def bus(self) -> typing.Mapping[typing.Hashable, typing.Any]:
+        pass  # pragma: no cover
+
+    @property
+    def error(self) -> typing.Optional[Exception]:
+        pass  # pragma: no cover
+
+    @property
+    def traceback(self) -> typing.Optional[types.TracebackType]:
+        pass  # pragma: no cover
+
+    async def __aenter__(self) -> "self":
+        pass  # pragma: no cover
+
+    def __enter__(self) -> "self":
+        pass  # pragma: no cover
+
+    async def __aexit__(
+        self,
+        exc_type: typing.Optional[type] = None,
+        exc_value: typing.Optional[Exception] = None,
+        traceback: typing.Optional[types.TracebackType] = None,
+    ) -> bool:
+        pass  # pragma: no cover
+
+    def __exit__(
+        self,
+        exc_type: typing.Optional[type] = None,
+        exc_value: typing.Optional[Exception] = None,
+        traceback: typing.Optional[types.TracebackType] = None,
+    ) -> bool:
+        pass  # pragma: no cover
+
+
+@typing.runtime_checkable
 class PoolExecutorType(Protocol):
     def map(
         self,
