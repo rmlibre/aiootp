@@ -16,6 +16,7 @@ from test_high_level_encryption import *
 from test_Padding import *
 from test_StreamHMAC import *
 from test_cipher_configs import *
+from test_online_cipher_interfaces import *
 from test_misc_in_ciphers import *
 
 

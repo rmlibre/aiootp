@@ -20,8 +20,10 @@ Minor Changes
 - Simplify & update internal functionality that also removes a vanishingly unlikely infinite loop condition.
 - Utilize unused package seed during package initialization.
 - Improve the derivation algorithm for the ``AffinePermutation`` 's  multiplicative key.
+- Refactor & add tests into a new ``test_online_cipher_interfaces.py`` testing module.
 - Improvements & fixes to type hints.
 - Improvements & fixes to doc strings.
+- Improvements & fixes to package tests.
 - Improvements & fixes to package documentation.
 - Improvements & fixes to code formatting & style.
 
