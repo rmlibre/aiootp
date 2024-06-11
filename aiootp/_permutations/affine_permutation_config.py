@@ -66,10 +66,10 @@ class AffinePermutationConfig(Config):
     @staticmethod
     def _make_multiplier_mask(bit_length: int) -> int:
         """
-        Returns an integer mask to remove half of the bits of the
-        most significant bits of a multiplier. This will reduce the
-        chance of leakage when the product is combined with the
-        addition key before modular reduction.
+        Returns an integer mask to remove half of the most significant
+        bits of a multiplier. This will reduce the side-channel leakage
+        of the product when it's combined with the addition key before
+        modular reduction.
         """
         top_bit = 1 << (bit_length // 2)
         mask = top_bit - 1
@@ -93,28 +93,29 @@ class AffinePermutationConfig(Config):
     @classmethod
     def is_likely_safe_multiplier(cls, multiplier: int, prime: int) -> bool:
         """
-        Returns `True` if a `multiplier` key is odd for all `prime`
-        choices > `5`, smaller than the `prime`, at least ~half the bit-
-        length of the `prime`, & is only `1` if the `prime` is `2`.
-        Otherwise, returns `False`.
+        Returns `True` if a `multiplier` key is odd, about ~half the bit-
+        length of the `prime`, & has a bit pattern with about an equal
+        number of 1s & 0s with some clumping. Otherwise returns `False`.
         """
-        if prime < 2:
-            raise Issue.value_must("prime", "be > 1")
-        flips = cls._count_bit_switches(multiplier)
-        span = int(log2(prime.bit_length()) - 1)
-        top, bottom = flips + span, flips - span
+        if prime < 257:
+            raise Issue.value_must("prime", "be > 256")
+        prime_size = prime.bit_length()
+        sqrt_prime = 1 << (prime_size // 2)
+        bit_flips = cls._count_bit_switches(multiplier)
+        span = int(log2(prime_size) - 1)
+        max_flips, min_flips = bit_flips + span, bit_flips - span
         return bool(
-            (prime <= 5 or multiplier & 1)  # odd for almost all primes
-            and (0 < multiplier < prime)
-            and (top > (prime.bit_length() / 4) > bottom)
+            (multiplier & 1)
+            and ((sqrt_prime << 2) > multiplier > sqrt_prime)
+            and (max_flips > (prime_size / 4) > min_flips)
         )
 
     def _derive_new_multiplier(self, prime: int) -> int:
         """
-        Derives the static multiplicative & inverse keys for a provided
-        prime number, the size of the instance permutation, & an
-        instance's associated data. This amortizes derivation costs
-        since finding the inverse is a relatively expensive.
+        Derives the static multiplicative key for a provided `prime`
+        number, the size of the instance permutation, & its associated
+        data. This amortizes the relatively expensive derivation costs
+        of finding the multiplicative key, & its inverse.
         """
         encode = lambda i: Domains.encode_constant(
             f"multiplicative_key_{i}_{prime}",
