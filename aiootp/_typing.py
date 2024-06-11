@@ -109,6 +109,7 @@ class AsyncOrSyncIterable(metaclass=_AsyncOrSyncIterableMeta):
 
 @typing.runtime_checkable
 class SupportsPopleft(Protocol):
+
     def popleft(self) -> typing.Any:
         pass  # pragma: no cover
 
@@ -169,6 +170,7 @@ class IgnoreType(Protocol):
 
 @typing.runtime_checkable
 class PoolExecutorType(Protocol):
+
     def map(
         self,
         fn: typing.Callable[..., typing.Any],
@@ -193,6 +195,7 @@ class PoolExecutorType(Protocol):
 
 @typing.runtime_checkable
 class ConfigType(Protocol):
+
     @property
     def config_id(self) -> typing.Hashable:
         pass  # pragma: no cover
@@ -218,6 +221,7 @@ class ConfigType(Protocol):
 
 @typing.runtime_checkable
 class HasherType(Protocol):
+
     @property
     def name(self) -> str:
         pass  # pragma: no cover
@@ -245,6 +249,7 @@ class HasherType(Protocol):
 
 @typing.runtime_checkable
 class XOFType(Protocol):
+
     @property
     def name(self) -> str:
         pass  # pragma: no cover
@@ -271,6 +276,7 @@ class XOFType(Protocol):
 
 
 class EntropyHashingType(XOFType):
+
     async def ahash(self, *data: bytes, size: int) -> bytes:
         pass  # pragma: no cover
 
@@ -280,6 +286,7 @@ class EntropyHashingType(XOFType):
 
 @typing.runtime_checkable
 class DomainKDFType(Protocol):
+
     def copy(self) -> "cls":
         pass  # pragma: no cover
 
@@ -320,6 +327,7 @@ class DomainKDFType(Protocol):
 
 @typing.runtime_checkable
 class ClockType(Protocol):
+
     async def atime(self) -> int:
         pass  # pragma: no cover
 
@@ -345,6 +353,7 @@ class ClockType(Protocol):
 
 @typing.runtime_checkable
 class PaddingType(Protocol):
+
     async def astart_padding(self) -> bytes:
         pass  # pragma: no cover
 
@@ -384,6 +393,7 @@ class PaddingType(Protocol):
 
 @typing.runtime_checkable
 class PermutationType(Protocol):
+
     @classmethod
     def key_size(cls, config_id: typing.Hashable) -> int:
         pass  # pragma: no cover
@@ -397,6 +407,7 @@ class PermutationType(Protocol):
 
 @typing.runtime_checkable
 class StreamHMACType(Protocol):
+
     @property
     def config(self) -> ConfigType:
         pass  # pragma: no cover
@@ -446,6 +457,7 @@ class StreamHMACType(Protocol):
 
 @typing.runtime_checkable
 class SyntheticIVType(Protocol):
+
     @classmethod
     async def avalidated_transform(
         cls, datastream: AsyncDatastream, shmac: StreamHMACType, **kw
@@ -461,6 +473,7 @@ class SyntheticIVType(Protocol):
 
 @typing.runtime_checkable
 class AsyncCipherStreamingType(Protocol):
+
     @property
     def salt(self) -> bytes:
         pass  # pragma: no cover
@@ -491,6 +504,7 @@ class AsyncCipherStreamingType(Protocol):
 
 @typing.runtime_checkable
 class CipherStreamingType(Protocol):
+
     @property
     def salt(self) -> bytes:
         pass  # pragma: no cover
@@ -521,6 +535,7 @@ class CipherStreamingType(Protocol):
 
 @typing.runtime_checkable
 class CipherInterfaceType(Protocol):
+
     async def abytes_encrypt(
         self,
         data: bytes,
@@ -614,6 +629,7 @@ class CipherInterfaceType(Protocol):
 
 @typing.runtime_checkable
 class PublicSignerType(Protocol):
+
     def public_bytes(self, encoding, format) -> bytes:
         pass  # pragma: no cover
 
@@ -626,6 +642,7 @@ class PublicSignerType(Protocol):
 
 @typing.runtime_checkable
 class SecretSignerType(Protocol):
+
     def public_key(self) -> PublicSignerType:
         pass  # pragma: no cover
 
@@ -641,6 +658,7 @@ class SecretSignerType(Protocol):
 
 @typing.runtime_checkable
 class AsymmetricKeyType(Protocol):
+
     async def aimport_public_key(
         self,
         public_key: typing.Union[bytes, PublicSignerType, SecretSignerType],
@@ -695,6 +713,7 @@ class AsymmetricKeyType(Protocol):
 
 
 class SignerType(AsymmetricKeyType):
+
     async def asign(self, data: bytes) -> bytes:
         pass  # pragma: no cover
 
@@ -721,6 +740,7 @@ class SignerType(AsymmetricKeyType):
 
 
 class KeyExchangeType(AsymmetricKeyType):
+
     @classmethod
     async def adh2_client(cls, peer_identity_key: bytes) -> None:  # TODO: return type & classes
         pass  # pragma: no cover
@@ -758,6 +778,7 @@ class KeyExchangeType(AsymmetricKeyType):
 
 @typing.runtime_checkable
 class AsyncDatabaseType(Protocol):
+
     async def aload_tags(self, *, silent: bool) -> "self":
         pass  # pragma: no cover
 
@@ -820,6 +841,7 @@ class AsyncDatabaseType(Protocol):
 
 @typing.runtime_checkable
 class DatabaseType(Protocol):
+
     def load_tags(self, *, silent: bool) -> "self":
         pass  # pragma: no cover
 
