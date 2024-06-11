@@ -146,14 +146,13 @@ class Ignore:
 
     def __init__(
         self,
-        *exceptions: t.Container,
-        if_except: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-        if_else: t.Union[None, t.Callable[[Exception], t.Any]] = None,
-        finally_run: t.Union[None, t.Callable[[Exception], t.Any]] = None,
+        *exceptions: Exception,
+        if_except: t.Optional[t.Callable[[t.IgnoreType], t.Any]] = None,
+        if_else: t.Optional[t.Callable[[t.IgnoreType], t.Any]] = None,
+        finally_run: t.Optional[t.Callable[[t.IgnoreType], t.Any]] = None,
     ) -> None:
         placeholder = self._PlaceholderHandler()
         self.ignored_exceptions = exceptions
-        self.bus = t.Namespace()
         self.except_code = (
             placeholder if if_except is None else if_except
         )
@@ -163,6 +162,9 @@ class Ignore:
         self.finally_code = (
             placeholder if finally_run is None else finally_run
         )
+        self.bus = t.Namespace()
+        self.error = None
+        self.traceback = None
 
     def __repr__(self) -> str:
         return repr(getattr(self, "error", None))
@@ -185,7 +187,7 @@ class Ignore:
         exc_type: t.Optional[type] = None,
         exc_value: t.Optional[Exception] = None,
         traceback: t.Optional[t.TracebackType] = None,
-    ) -> None:
+    ) -> bool:
         """
         Allows the controlled handling of raised exceptions within the
         context. If an exception specified by the instance is raised,
@@ -211,7 +213,7 @@ class Ignore:
         exc_type: t.Optional[type] = None,
         exc_value: t.Optional[Exception] = None,
         traceback: t.Optional[t.TracebackType] = None,
-    ) -> None:
+    ) -> bool:
         """
         Allows the controlled handling of raised exceptions within the
         context. If an exception specified by the instance is raised,
