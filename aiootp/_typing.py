@@ -35,6 +35,12 @@ except AttributeError:  # pragma: no cover
     Protocol = typing_extensions.Protocol  # pragma: no cover
 
 
+try:
+    Self = typing.Self
+except AttributeError:  # pragma: no cover
+    Self = typing_extensions.Self  # pragma: no cover
+
+
 Base64URLSafe = NewType("Base64URLSafe", typing.Union[str, bytes])
 
 
@@ -921,11 +927,9 @@ def _transpose_types_modules_types(
     """
     Inserts the types from the standard library's `types` module.
     """
-    types_modules_types = {
-        name: getattr(types, name) for name in types.__all__
-        if name[0].isupper()
-    }
-    class_dict.update(types_modules_types)
+    for name in types.__all__:
+        if name[0].isupper():
+            class_dict[name] = getattr(types, name)
 
 
 def _transpose_typing_modules_types(
@@ -934,14 +938,13 @@ def _transpose_typing_modules_types(
     """
     Inserts the types from the standard library's `typing` module.
     """
-    typing_types = {
-        name: value for name, value in typing.__dict__.items()
-        if (
-            ("typing." in str(value) or "collections.abc." in str(value))
-            and name[0].isupper()
-        )
-    }
-    class_dict.update(typing_types)
+    for name in typing.__all__:
+        if name[0].isupper():
+            class_dict[name] = getattr(typing, name)
+    if typing is not typing_extensions:
+        for name in typing_extensions.__all__:
+            if name[0].isupper():
+                class_dict[name] = getattr(typing_extensions, name)
 
 
 class Typing:
