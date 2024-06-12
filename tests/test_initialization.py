@@ -76,7 +76,7 @@ class MemoizedCipher(FrozenSlots):
 
     def __init__(self, cipher_type: type) -> None:
         self.config = cipher_type._config
-        self.cipher = cipher_type(key=csprng())
+        self.cipher = cipher_type(key=key)
         self.salt = csprng(self.config.SALT_BYTES)
         self.aad = f"testing {self.config.NAME}".encode()
 
