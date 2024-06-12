@@ -105,7 +105,7 @@ class Database(DatabaseProperties):
         # database keyword arguments
         path: t.OptionalPathStr = None,
         preload: bool = False,
-    ) -> "cls":
+    ) -> t.Cls:
         """
         Creates & loads a profile database for a user from the `tokens`
         passed in.
@@ -590,7 +590,7 @@ class Database(DatabaseProperties):
 
     def metatag(
         self, tag: str, *, preload: bool = False, silent: bool = False
-    ) -> "cls":
+    ) -> t.Cls:
         """
         Allows a user to create offspring of a database instance to
         organize data by a name `tag` & domain separate cryptographic

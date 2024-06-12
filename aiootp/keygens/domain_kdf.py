@@ -149,7 +149,7 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         """
         self._initialize_payload(domain, data, key=key)
 
-    def copy(self) -> "cls":
+    def copy(self) -> t.Cls:
         """
         Copies the instance state into a new object which can be updated
         separately in differing contexts.

@@ -296,7 +296,7 @@ class EntropyHashingType(XOFType):
 @typing.runtime_checkable
 class DomainKDFType(Protocol):
 
-    def copy(self) -> "cls":
+    def copy(self) -> Cls:
         pass  # pragma: no cover
 
     async def aupdate(self, *data: bytes) -> Self:
@@ -833,7 +833,7 @@ class AsyncDatabaseType(Protocol):
 
     async def ametatag(
         self, tag: str, *, preload: bool, silent: bool
-    ) -> "cls":
+    ) -> Cls:
         pass  # pragma: no cover
 
     async def adelete_metatag(self, tag: str) -> Self:
@@ -896,7 +896,7 @@ class DatabaseType(Protocol):
 
     def metatag(
         self, tag: str, *, preload: bool, silent: bool
-    ) -> "cls":
+    ) -> Cls:
         pass  # pragma: no cover
 
     def delete_metatag(self, tag: str) -> Self:

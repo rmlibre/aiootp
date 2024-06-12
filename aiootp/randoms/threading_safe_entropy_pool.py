@@ -88,7 +88,7 @@ class ThreadingSafeEntropyPool(FrozenInstance):
         """
         return self._obj.hexdigest
 
-    def copy(self) -> "cls":
+    def copy(self) -> t.Cls:
         """
         Allows the user to create a copy instance of the hashing object.
         """
