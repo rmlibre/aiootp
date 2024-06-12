@@ -21,7 +21,7 @@ from test_initialization import *
 
 class TestZCipherTimeToLive:
 
-    async def test_async_json_decrypt(self):
+    async def test_async_json_decrypt(self) -> None:
         problem = (
             "Life-time for async json ciphertext is malfunctioning."
         )
@@ -32,7 +32,7 @@ class TestZCipherTimeToLive:
             )
         assert relay.error.expired_by >= 1
 
-    async def test_sync_json_decrypt(self):
+    async def test_sync_json_decrypt(self) -> None:
         problem = (
             "Life-time for sync json ciphertext is malfunctioning."
         )
@@ -43,7 +43,7 @@ class TestZCipherTimeToLive:
             )
         assert relay.error.expired_by >= 1
 
-    async def test_async_read_token(self):
+    async def test_async_read_token(self) -> None:
         problem = (
             "Life-time for async tokens is malfunctioning."
         )
@@ -54,7 +54,7 @@ class TestZCipherTimeToLive:
             )
         assert relay.error.expired_by >= 1
 
-    async def test_sync_read_token(self):
+    async def test_sync_read_token(self) -> None:
         problem = (
             "Life-time for sync tokens is malfunctioning."
         )
