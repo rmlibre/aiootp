@@ -279,6 +279,38 @@ class TestCipherConfigs:
             with Ignore(cipher.InvalidSHMAC, if_else=violation(problem)):
                 control_cipher.bytes_decrypt(ciphertext, aad=aad)
 
+    async def test_large_siv_key_is_supported(self) -> None:
+        control_config, control_cipher, salt, aad = MemoizedCipher(Slick256)
+        config = new_config_copy(control_config, siv_key_bytes=28)
+
+        class LargeSIVKeyCipher(control_cipher.__class__):
+            __slots__ = ()
+            _config: t.ConfigType = config
+
+        cipher = LargeSIVKeyCipher(key)
+
+        plaintext = b"siv key test"
+        ciphertext = cipher.bytes_encrypt(plaintext, salt=salt, aad=aad)
+        assert plaintext == cipher.bytes_decrypt(ciphertext, aad=aad)
+
+        enc_stream = await cipher.astream_encrypt(salt=salt, aad=aad)
+        ciphertext = b"".join([b"".join(id_ct) async for id_ct in await enc_stream.abuffer(plaintext)])
+        ciphertext += b"".join([b"".join(id_ct) async for id_ct in enc_stream.afinalize()])
+        dec_stream = await cipher.astream_decrypt(salt=salt, aad=aad, iv=enc_stream.iv)
+        result = b"".join([block async for block in await dec_stream.abuffer(ciphertext)])
+        result += b"".join([block async for block in dec_stream.afinalize()])
+        await dec_stream.shmac.atest_shmac(enc_stream.shmac.result)
+        assert plaintext == result
+
+        enc_stream = cipher.stream_encrypt(salt=salt, aad=aad)
+        ciphertext = b"".join(b"".join(id_ct) for id_ct in enc_stream.buffer(plaintext))
+        ciphertext += b"".join(b"".join(id_ct) for id_ct in enc_stream.finalize())
+        dec_stream = cipher.stream_decrypt(salt=salt, aad=aad, iv=enc_stream.iv)
+        result = b"".join(dec_stream.buffer(ciphertext))
+        result += b"".join(dec_stream.finalize())
+        dec_stream.shmac.test_shmac(enc_stream.shmac.result)
+        assert plaintext == result
+
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 
