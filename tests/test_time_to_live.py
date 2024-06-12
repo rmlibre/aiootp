@@ -65,6 +65,33 @@ class TestZCipherTimeToLive:
             )
         assert relay.error.expired_by >= 1
 
+    async def test_async_cipher_stream(self) -> None:
+        problem = (
+            "Life-time for async cipher streams is malfunctioning."
+        )
+        enc_stream, ciphertext = attl_cipher_stream, attl_stream_ciphertext
+        with Ignore(TimestampExpired, if_else=violation(problem)) as ignored:
+            relay = ignored
+            dec_stream = await ttl_test_cipher.cipher.astream_decrypt(
+                salt=enc_stream.salt, aad=enc_stream.aad, iv=enc_stream.iv, ttl=1
+            )
+            await dec_stream.abuffer(ciphertext)
+            plaintext = b"".join([block async for block in dec_stream])
+        assert relay.error.expired_by >= 1
+
+    async def test_sync_cipher_stream(self) -> None:
+        problem = (
+            "Life-time for sync cipher streams is malfunctioning."
+        )
+        enc_stream, ciphertext = ttl_cipher_stream, ttl_stream_ciphertext
+        with Ignore(TimestampExpired, if_else=violation(problem)) as ignored:
+            relay = ignored
+            dec_stream = ttl_test_cipher.cipher.stream_decrypt(
+                salt=enc_stream.salt, aad=enc_stream.aad, iv=enc_stream.iv, ttl=1
+            )
+            plaintext = b"".join(dec_stream.buffer(ciphertext))
+        assert relay.error.expired_by >= 1
+
 
 class TestZPasscryptTimeToLive:
 
