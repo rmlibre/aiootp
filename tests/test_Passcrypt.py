@@ -597,5 +597,27 @@ class TestPasscryptInputsOutputs:
         ) == SHAKE_128_BLOCKSIZE
 
 
+class TestPasscryptConcurrencyInterface:
+    pcrypt = Passcrypt(**passcrypt_settings, tag_size=32)
+
+    async def test_async_broken_pool_is_restarted(self) -> None:
+        problem = (
+            "The algorithm wasn't halted by a broken process pool."
+        )
+        Processes._pool._broken = True
+        with Ignore(RuntimeError, if_else=violation(problem)):
+            await self.pcrypt.ahash_passphrase(passphrase)
+        assert not Processes._pool._broken
+
+    async def test_sync_broken_pool_is_restarted(self) -> None:
+        problem = (
+            "The algorithm wasn't halted by a broken process pool."
+        )
+        Processes._pool._broken = True
+        with Ignore(RuntimeError, if_else=violation(problem)):
+            self.pcrypt.hash_passphrase(passphrase)
+        assert not Processes._pool._broken
+
+
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 
