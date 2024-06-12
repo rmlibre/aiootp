@@ -320,10 +320,10 @@ atest_data = test_data.copy()
 
 # Creating timestamped values early so later testing has to wait less time
 ttl_test_cipher = choice(all_ciphers)
-test_json_ciphertext = ttl_test_cipher.cipher.json_encrypt(test_data, aad=ttl_test_cipher.aad)
 atest_json_ciphertext = run(ttl_test_cipher.cipher.ajson_encrypt(atest_data, aad=ttl_test_cipher.aad))
-test_token_ciphertext = ttl_test_cipher.cipher.make_token(plaintext_bytes, aad=ttl_test_cipher.aad)
+test_json_ciphertext = ttl_test_cipher.cipher.json_encrypt(test_data, aad=ttl_test_cipher.aad)
 atest_token_ciphertext = run(ttl_test_cipher.cipher.amake_token(plaintext_bytes, aad=ttl_test_cipher.aad))
+test_token_ciphertext = ttl_test_cipher.cipher.make_token(plaintext_bytes, aad=ttl_test_cipher.aad)
 
 light_pcrypt = Passcrypt(mb=1, cpu=1, cores=1, tag_size=32)
 aexpired_passcrypt_hash = run(light_pcrypt.ahash_passphrase(passphrase_0))
