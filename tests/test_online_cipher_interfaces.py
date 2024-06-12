@@ -21,7 +21,6 @@ class TestOnlineCipherInterfaces:
     async def test_sync_cipher_decipher_streams_with_varied_data_sizes(
         self
     ) -> None:
-
         for (config, cipher, salt, aad) in all_ciphers:
             for i in range(0, 512 - config.INNER_HEADER_BYTES - 1, randrange(1, 64)):
                 stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
@@ -62,7 +61,6 @@ class TestOnlineCipherInterfaces:
     async def test_async_cipher_decipher_streams_with_varied_data_sizes(
         self
     ) -> None:
-
         for (config, cipher, salt, aad) in all_ciphers:
             for i in range(0, 512 - config.INNER_HEADER_BYTES - 1, randrange(1, 64)):
                 stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
@@ -103,7 +101,6 @@ class TestOnlineCipherInterfaces:
     async def test_async_encipher_sync_decipher_interop(
         self
     ) -> None:
-
         for (config, cipher, salt, aad) in all_ciphers:
             stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
             pt_enc = plaintext_bytes
@@ -154,7 +151,6 @@ class TestOnlineCipherInterfaces:
     async def test_sync_encipher_async_decipher_interop(
         self
     ) -> None:
-
         for (config, cipher, salt, aad) in all_ciphers:
             stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
             pt_enc = plaintext_bytes
