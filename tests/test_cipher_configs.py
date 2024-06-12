@@ -265,6 +265,8 @@ class TestCipherConfigs:
         )
         for (control_config, control_cipher, salt, aad) in all_ciphers:
             config = new_config_copy(control_config, name="AlteredCipher")
+            assert config.PACKED_METADATA != control_config.PACKED_METADATA
+            assert config.SHMAC_KDF_CONFIG.factory().digest(32) != control_config.SHMAC_KDF_CONFIG.factory().digest(32)
 
             class AlteredCipher(control_cipher.__class__):
                 __slots__ = ()
@@ -273,9 +275,6 @@ class TestCipherConfigs:
             cipher = AlteredCipher(key)
             plaintext = b"kdf test"
             ciphertext = cipher.bytes_encrypt(plaintext, salt=salt, aad=aad)
-            assert config.PACKED_METADATA != control_config.PACKED_METADATA
-            assert config.SHMAC_KDF_CONFIG.factory().digest(32) != control_config.SHMAC_KDF_CONFIG.factory().digest(32)
-
             with Ignore(cipher.InvalidSHMAC, if_else=violation(problem)):
                 control_cipher.bytes_decrypt(ciphertext, aad=aad)
 
