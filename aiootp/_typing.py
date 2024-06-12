@@ -41,6 +41,9 @@ except AttributeError:  # pragma: no cover
     Self = typing_extensions.Self  # pragma: no cover
 
 
+Cls = NewType("Cls", Self)
+
+
 Base64URLSafe = NewType("Base64URLSafe", typing.Union[str, bytes])
 
 
