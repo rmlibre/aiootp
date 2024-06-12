@@ -242,6 +242,43 @@ class TestCipherConfigs:
             with Ignore(UndefinedRequiredAttributes, if_else=violation(problem)):
                 config._ensure_all_attributes_have_been_defined()
 
+    async def test_min_padding_blocks_alters_min_ciphertext_size(self) -> None:
+        extra_padding = token_bits(3) or 1
+        for (_config, _cipher, salt, aad) in all_ciphers:
+            config = new_config_copy(_config, min_padding_blocks=extra_padding)
+
+            class ExtraPaddingCipher(_cipher.__class__):
+                __slots__ = ()
+                _config: t.ConfigType = config
+
+            cipher = ExtraPaddingCipher(key)
+            plaintext = b"padding test"
+            assert len(plaintext) < (config.BLOCKSIZE - config.INNER_HEADER_BYTES - config.SENTINEL_BYTES)
+
+            ciphertext = cipher.bytes_encrypt(plaintext)
+            assert len(ciphertext) == config.HEADER_BYTES + (extra_padding + 1) * config.BLOCKSIZE
+            assert plaintext == cipher.bytes_decrypt(ciphertext)
+
+    async def test_altered_config_alters_initial_kdf_states(self) -> None:
+        problem = (
+            "Differently configured ciphers allowed to interop."
+        )
+        for (control_config, control_cipher, salt, aad) in all_ciphers:
+            config = new_config_copy(control_config, name="AlteredCipher")
+
+            class AlteredCipher(control_cipher.__class__):
+                __slots__ = ()
+                _config: t.ConfigType = config
+
+            cipher = AlteredCipher(key)
+            plaintext = b"kdf test"
+            ciphertext = cipher.bytes_encrypt(plaintext, salt=salt, aad=aad)
+            assert config.PACKED_METADATA != control_config.PACKED_METADATA
+            assert config.SHMAC_KDF_CONFIG.factory().digest(32) != control_config.SHMAC_KDF_CONFIG.factory().digest(32)
+
+            with Ignore(cipher.InvalidSHMAC, if_else=violation(problem)):
+                control_cipher.bytes_decrypt(ciphertext, aad=aad)
+
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
 
