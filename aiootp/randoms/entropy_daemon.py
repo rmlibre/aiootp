@@ -98,7 +98,7 @@ class EntropyDaemon:
         max_delay: t.PositiveRealNumber = 0.001,
         *,
         duration: t.PositiveRealNumber = 1,
-    ) -> "self":
+    ) -> t.Self:
         """
         Sets a temporary maximum number of seconds a started entropy
         daemon will pseudo-randomly sleep in-between each iteration. The
@@ -115,7 +115,7 @@ class EntropyDaemon:
 
     def set_max_delay(
         self, max_delay: t.PositiveRealNumber = 1
-    ) -> "self":
+    ) -> t.Self:
         """
         Sets the maximum number of seconds a started entropy daemon will
         pseudo-randomly sleep in-between each iteration. Setting
@@ -146,7 +146,7 @@ class EntropyDaemon:
             if self._cancel:
                 return
 
-    def start(self) -> "self":
+    def start(self) -> t.Self:
         """
         Runs an entropy updating & gathering thread in the background.
 
@@ -162,7 +162,7 @@ class EntropyDaemon:
         self._daemon.start()
         return self
 
-    def cancel(self) -> "self":
+    def cancel(self) -> t.Self:
         """
         Cancels the background thread.
         """

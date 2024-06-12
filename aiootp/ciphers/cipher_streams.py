@@ -216,7 +216,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
             if len(block) != BLOCKSIZE:
                 break
 
-    async def abuffer(self, data: bytes) -> "self":
+    async def abuffer(self, data: bytes) -> t.Self:
         """
         Prepares the input plaintext `data` for encryption by dividing
         it into blocksize chunks & taking plaintext measuremenets for
@@ -435,7 +435,7 @@ class CipherStream(CipherStreamProperties):
             if len(block) != BLOCKSIZE:
                 break
 
-    def buffer(self, data: bytes) -> "self":
+    def buffer(self, data: bytes) -> t.Self:
         """
         Prepares the input plaintext `data` for encryption by dividing
         it into blocksize chunks & taking plaintext measuremenets for

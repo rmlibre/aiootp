@@ -151,10 +151,10 @@ class IgnoreType(Protocol):
     def traceback(self) -> typing.Optional[types.TracebackType]:
         pass  # pragma: no cover
 
-    async def __aenter__(self) -> "self":
+    async def __aenter__(self) -> Self:
         pass  # pragma: no cover
 
-    def __enter__(self) -> "self":
+    def __enter__(self) -> Self:
         pass  # pragma: no cover
 
     async def __aexit__(
@@ -296,10 +296,10 @@ class DomainKDFType(Protocol):
     def copy(self) -> "cls":
         pass  # pragma: no cover
 
-    async def aupdate(self, *data: bytes) -> "self":
+    async def aupdate(self, *data: bytes) -> Self:
         pass  # pragma: no cover
 
-    def update(self, *data: bytes) -> "self":
+    def update(self, *data: bytes) -> Self:
         pass  # pragma: no cover
 
     async def asha3_256(self, *data: bytes, aad: bytes) -> bytes:
@@ -501,10 +501,10 @@ class AsyncCipherStreamingType(Protocol):
     ) -> typing.AsyncGenerator[None, typing.Tuple[bytes, bytes]]:
         pass  # pragma: no cover
 
-    async def abuffer(self, data: bytes) -> "self":
+    async def abuffer(self, data: bytes) -> Self:
         pass  # pragma: no cover
 
-    async def afinalize(self) -> "self":
+    async def afinalize(self) -> Self:
         pass  # pragma: no cover
 
 
@@ -532,10 +532,10 @@ class CipherStreamingType(Protocol):
     ) -> typing.Generator[None, typing.Tuple[bytes, bytes], None]:
         pass  # pragma: no cover
 
-    def buffer(self, data: bytes) -> "self":
+    def buffer(self, data: bytes) -> Self:
         pass  # pragma: no cover
 
-    def finalize(self) -> "self":
+    def finalize(self) -> Self:
         pass  # pragma: no cover
 
 
@@ -668,25 +668,25 @@ class AsymmetricKeyType(Protocol):
     async def aimport_public_key(
         self,
         public_key: typing.Union[bytes, PublicSignerType, SecretSignerType],
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     def import_public_key(
         self,
         public_key: typing.Union[bytes, PublicSignerType, SecretSignerType],
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     async def aimport_secret_key(
         self,
         secret_key: typing.Union[bytes, SecretSignerType],
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     def import_secret_key(
         self,
         secret_key: typing.Union[bytes, SecretSignerType],
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     @property
@@ -711,10 +711,10 @@ class AsymmetricKeyType(Protocol):
     def has_public_key(self) -> bool:
         pass  # pragma: no cover
 
-    async def agenerate(self) -> "self":
+    async def agenerate(self) -> Self:
         pass  # pragma: no cover
 
-    def generate(self) -> "self":
+    def generate(self) -> Self:
         pass  # pragma: no cover
 
 
@@ -785,12 +785,12 @@ class KeyExchangeType(AsymmetricKeyType):
 @typing.runtime_checkable
 class AsyncDatabaseType(Protocol):
 
-    async def aload_tags(self, *, silent: bool) -> "self":
+    async def aload_tags(self, *, silent: bool) -> Self:
         pass  # pragma: no cover
 
     async def aload_metatags(
         self, *, preload: bool, silent: bool
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     async def aload_database(
@@ -799,7 +799,7 @@ class AsyncDatabaseType(Protocol):
         manifest: bool,
         silent: bool,
         preload: bool,
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     async def afilename(self, tag: str) -> str:
@@ -807,7 +807,7 @@ class AsyncDatabaseType(Protocol):
 
     async def aset_tag(
         self, tag: str, data: JSONSerializable, *, cache: bool
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     async def aquery_tag(
@@ -822,10 +822,10 @@ class AsyncDatabaseType(Protocol):
 
     async def arollback_tag(
         self, tag: str, *, cache: bool
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
-    async def aclear_cache(self, *, metatags: bool) -> "self":
+    async def aclear_cache(self, *, metatags: bool) -> Self:
         pass  # pragma: no cover
 
     async def ametatag(
@@ -833,7 +833,7 @@ class AsyncDatabaseType(Protocol):
     ) -> "cls":
         pass  # pragma: no cover
 
-    async def adelete_metatag(self, tag: str) -> "self":
+    async def adelete_metatag(self, tag: str) -> Self:
         pass # pragma: no cover
 
     async def adelete_database(self) -> None:
@@ -841,19 +841,19 @@ class AsyncDatabaseType(Protocol):
 
     async def asave_tag(
         self, tag: str, *, admin: bool, drop_cache: bool
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
 
 @typing.runtime_checkable
 class DatabaseType(Protocol):
 
-    def load_tags(self, *, silent: bool) -> "self":
+    def load_tags(self, *, silent: bool) -> Self:
         pass  # pragma: no cover
 
     def load_metatags(
         self, *, preload: bool, silent: bool
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     def load_database(
@@ -862,7 +862,7 @@ class DatabaseType(Protocol):
         manifest: bool,
         silent: bool,
         preload: bool,
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     def filename(self, tag: str) -> str:
@@ -870,7 +870,7 @@ class DatabaseType(Protocol):
 
     def set_tag(
         self, tag: str, data: JSONSerializable, *, cache: bool
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
     def query_tag(
@@ -885,10 +885,10 @@ class DatabaseType(Protocol):
 
     def rollback_tag(
         self, tag: str, *, cache: bool
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
-    def clear_cache(self, *, metatags: bool) -> "self":
+    def clear_cache(self, *, metatags: bool) -> Self:
         pass  # pragma: no cover
 
     def metatag(
@@ -896,7 +896,7 @@ class DatabaseType(Protocol):
     ) -> "cls":
         pass  # pragma: no cover
 
-    def delete_metatag(self, tag: str) -> "self":
+    def delete_metatag(self, tag: str) -> Self:
         pass # pragma: no cover
 
     def delete_database(self) -> None:
@@ -904,7 +904,7 @@ class DatabaseType(Protocol):
 
     def save_tag(
         self, tag: str, *, admin: bool, drop_cache: bool
-    ) -> "self":
+    ) -> Self:
         pass  # pragma: no cover
 
 

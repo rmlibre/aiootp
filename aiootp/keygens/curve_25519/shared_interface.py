@@ -97,7 +97,7 @@ class Base25519(FrozenInstance):
             t.X25519PublicKey,
             t.Ed25519PublicKey,
         ],
-    ) -> "self":
+    ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
         of either bytes, `X25519PublicKey`, `X25519PrivateKey`,
@@ -115,7 +115,7 @@ class Base25519(FrozenInstance):
             t.X25519PublicKey,
             t.Ed25519PublicKey,
         ],
-    ) -> "self":
+    ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
         of either bytes, `X25519PublicKey`, `X25519PrivateKey`,
@@ -130,7 +130,7 @@ class Base25519(FrozenInstance):
     async def aimport_secret_key(
         self,
         secret_key: t.Union[bytes, t.X25519PrivateKey, t.Ed25519PrivateKey],
-    ) -> "self":
+    ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
         of either bytes, `X25519PrivateKey` or `Ed25519PrivateKey`
@@ -148,7 +148,7 @@ class Base25519(FrozenInstance):
     def import_secret_key(
         self,
         secret_key: t.Union[bytes, t.X25519PrivateKey, t.Ed25519PrivateKey],
-    ) -> "self":
+    ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
         of either bytes, `X25519PrivateKey` or `Ed25519PrivateKey`

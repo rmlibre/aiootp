@@ -277,7 +277,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
             append(block)
             queue_result(await cipher(None))
 
-    async def abuffer(self, data: bytes) -> "self":
+    async def abuffer(self, data: bytes) -> t.Self:
         """
         Prepares the input ciphertext `data` for decryption by
         dividing it into blocksize chunks & validating each packet's
@@ -554,7 +554,7 @@ class DecipherStream(CipherStreamProperties):
             append(block)
             queue_result(cipher(None))
 
-    def buffer(self, data: bytes) -> "self":
+    def buffer(self, data: bytes) -> t.Self:
         """
         Prepares the input ciphertext `data` for decryption by
         dividing it into blocksize chunks & validating each packet's

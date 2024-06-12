@@ -131,7 +131,7 @@ class PasscryptSession(FrozenInstance):
             pad=self.config.PASSCRYPT_PAD,
         )
 
-    def prepare_session(self) -> "self":
+    def prepare_session(self) -> t.Self:
         """
         Canonically hash the parameters to the function & calculate the
         dimensionality of the cache from the given settings.
@@ -147,7 +147,7 @@ class PasscryptSession(FrozenInstance):
         self.proof.update(parameters)
         return self
 
-    def allocate_ram(self) -> "self":
+    def allocate_ram(self) -> t.Self:
         """
         Builds a virtual 2d memory cache out of a 1d bytearray to do
         efficient & in-place memory overwrites of segments of the cache

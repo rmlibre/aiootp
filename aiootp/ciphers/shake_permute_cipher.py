@@ -88,7 +88,7 @@ class ShakePermuteKeyAADBundle(KeyAADBundle):
 
     _Session: type = ShakePermuteSessionKDFs
 
-    async def async_mode(self) -> "self":
+    async def async_mode(self) -> t.Self:
         """
         Sets the instance to run async SHAKE permute mode key derivation.
         """
@@ -96,7 +96,7 @@ class ShakePermuteKeyAADBundle(KeyAADBundle):
         self._mode.set_async_mode()
         return self
 
-    def sync_mode(self) -> "self":
+    def sync_mode(self) -> t.Self:
         """
         Sets the instance to run sync SHAKE permute mode key derivation.
         """

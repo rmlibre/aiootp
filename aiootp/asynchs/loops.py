@@ -110,7 +110,7 @@ class AsyncInit(type):
     methods. Inspired by David Beazley.
     """
 
-    async def __call__(cls, *a: t.Any, **kw: t.Any) -> "self":
+    async def __call__(cls, *a: t.Any, **kw: t.Any) -> t.Self:
         self = cls.__new__(cls, *a, **kw)
         await self.__init__(*a, **kw)
         return self

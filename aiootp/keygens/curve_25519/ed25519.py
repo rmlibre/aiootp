@@ -76,7 +76,7 @@ class Ed25519(Base25519):
     PublicKey = Curve25519.Ed25519PublicKey
     SecretKey = Curve25519.Ed25519PrivateKey
 
-    async def agenerate(self) -> "self":
+    async def agenerate(self) -> t.Self:
         """
         Generates a new secret key used for signing bytes data &
         populates the instance with it & its associated public key. This
@@ -87,7 +87,7 @@ class Ed25519(Base25519):
         await self.aimport_secret_key(key)
         return self
 
-    def generate(self) -> "self":
+    def generate(self) -> t.Self:
         """
         Generates a new secret key used for signing bytes data &
         populates the instance with it & its associated public key. This

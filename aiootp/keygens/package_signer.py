@@ -256,7 +256,7 @@ class PackageSigner:
         salt: bytes = b"",
         path: t.OptionalPathStr = None,
         **passcrypt_settings,
-    ) -> "self":
+    ) -> t.Self:
         """
         Opens an encrypted database connection using the Passcrypt
         passphrase-based key derivation function, a `passphrase` & any
@@ -280,7 +280,7 @@ class PackageSigner:
         finally:
             return self
 
-    def update_scope(self, **scopes) -> "self":
+    def update_scope(self, **scopes) -> t.Self:
         """
         Updates the package scopes to qualify the package signature of
         the current package version within the instance.
@@ -290,7 +290,7 @@ class PackageSigner:
 
     def update_public_credentials(
         self, **credentials: t.Dict[str, t.JSONSerializable]
-    ) -> "self":
+    ) -> t.Self:
         """
         Updates the public credentials to be associated with the package
         signature & stores them in the instance's database cache. The
@@ -302,7 +302,7 @@ class PackageSigner:
 
     def update_signing_key(
         self, signing_key: t.Union[str, bytes, t.SecretSignerType, Ed25519],
-    ) -> "self":
+    ) -> t.Self:
         """
         Updates the package's secret signing key as an encrypted token
         within the instance's database cache. The database must be saved
@@ -317,7 +317,7 @@ class PackageSigner:
         ).decode()
         return self
 
-    def add_file(self, filename: str, file_data: bytes) -> "self":
+    def add_file(self, filename: str, file_data: bytes) -> t.Self:
         """
         Stores a `filename` & the hash object of the file's bytes type
         contents in the instance's `files` attribute mapping.
@@ -325,7 +325,7 @@ class PackageSigner:
         self.files[filename] = self._Hasher(file_data)
         return self
 
-    def sign_package(self) -> "self":
+    def sign_package(self) -> t.Self:
         """
         Signs the package summary checksum & stores it in the instance's
         secure database cache. The database must be saved separately to

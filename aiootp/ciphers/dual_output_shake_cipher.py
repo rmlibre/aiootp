@@ -180,7 +180,7 @@ class DualOutputKeyAADBundle(KeyAADBundle):
             r_update(ratchet_key[RIGHT_RATCHET_KEY_SLICE])  # update with 168 odd index bytes
             ratchet_key = yield l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
 
-    async def async_mode(self) -> "self":
+    async def async_mode(self) -> t.Self:
         """
         Sets the instance to run async dual-output mode key derivation.
         """
@@ -189,7 +189,7 @@ class DualOutputKeyAADBundle(KeyAADBundle):
         self._mode.set_async_mode()
         return self
 
-    def sync_mode(self) -> "self":
+    def sync_mode(self) -> t.Self:
         """
         Sets the instance to run sync dual-output mode key derivation.
         """

@@ -158,7 +158,7 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         kdf._payload = self._payload.copy()
         return kdf
 
-    async def aupdate(self, *data: bytes) -> "self":
+    async def aupdate(self, *data: bytes) -> t.Self:
         """
         Canonically updates the payload object with additional values.
         Update calls, input data & the order of both, must match exactly
@@ -172,7 +172,7 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         )
         return self
 
-    def update(self, *data: bytes) -> "self":
+    def update(self, *data: bytes) -> t.Self:
         """
         Canonically updates the payload object with additional values.
         Update calls, input data & the order of both, must match exactly

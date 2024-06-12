@@ -105,7 +105,7 @@ class PasscryptHash(FrozenSlots):
         tag = getattr(self, "tag", None)
         return len(tag) if tag else None
 
-    def import_hash(self, passcrypt_hash: bytes) -> "self":
+    def import_hash(self, passcrypt_hash: bytes) -> t.Self:
         """
         Populates the instance state from the decoded values represented
         in the bytes-type `passcrypt_hash`. These hashes contain the

@@ -134,11 +134,11 @@ class Ignore:
         Stand-in handler when one isn't specified.
         """
 
-        def __await__(self) -> "self":
+        def __await__(self) -> t.Self:
             yield
             return self
 
-        def __call__(self, *a, **kw) -> "self":
+        def __call__(self, *a, **kw) -> t.Self:
             return self
 
         def __bool__(self) -> bool:
@@ -169,14 +169,14 @@ class Ignore:
     def __repr__(self) -> str:
         return repr(getattr(self, "error", None))
 
-    async def __aenter__(self) -> "self":
+    async def __aenter__(self) -> t.Self:
         """
         Open an async context.
         """
         await asyncio.sleep(0)
         return self
 
-    def __enter__(self) -> "self":
+    def __enter__(self) -> t.Self:
         """
         Open a sync context.
         """

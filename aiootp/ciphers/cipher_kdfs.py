@@ -76,7 +76,7 @@ class ShakeConfig(Config):
 
     def prepare_factory(
         self, config_id: bytes, packed_metadata: bytes
-    ) -> "self":
+    ) -> t.Self:
         """
         Domain separates each KDF with a unique salt based on the
         relative name of the KDF & the configuration metadata of the

@@ -74,7 +74,7 @@ class X25519(Base25519):
     PublicKey = Curve25519.X25519PublicKey
     SecretKey = Curve25519.X25519PrivateKey
 
-    async def agenerate(self) -> "self":
+    async def agenerate(self) -> t.Self:
         """
         Generates a new secret key used for a single elliptic curve
         diffie-hellman exchange, or as an argument to one of the 3dh or
@@ -87,7 +87,7 @@ class X25519(Base25519):
         await self.aimport_secret_key(key)
         return self
 
-    def generate(self) -> "self":
+    def generate(self) -> t.Self:
         """
         Generates a new secret key used for a single elliptic curve
         diffie-hellman exchange, or as an argument to one of the 3dh or

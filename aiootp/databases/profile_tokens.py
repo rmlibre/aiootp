@@ -102,7 +102,7 @@ class AsyncProfileTokens(FrozenSlots):
         aad: bytes,
         path: t.PathStr,
         **passcrypt_settings,
-    ) -> "self":
+    ) -> t.Self:
         """
         Runs a very expensive key derivation function to build keys
         for users to open a database with only access to potentially
@@ -202,7 +202,7 @@ class ProfileTokens(FrozenSlots):
         aad: bytes,
         path: t.PathStr,
         **passcrypt_settings,
-    ) -> "self":
+    ) -> t.Self:
         """
         Runs a very expensive key derivation function to build keys
         for users to open a database with only access to potentially

@@ -279,7 +279,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         if not self.metatags:
             self._manifest[self._METATAGS_LEDGERNAME] = []
 
-    async def aload_tags(self, *, silent: bool = False) -> "self":
+    async def aload_tags(self, *, silent: bool = False) -> t.Self:
         """
         Specifically loads all of the database's tag values into the
         cache.
@@ -297,7 +297,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def aload_metatags(
         self, *, preload: bool = True, silent: bool = False
-    ) -> "self":
+    ) -> t.Self:
         """
         Specifically loads all of the database's metatag values into the
         cache. If the `preload` keyword argument is falsey then the
@@ -322,7 +322,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         manifest: bool = False,
         silent: bool = False,
         preload: bool = True,
-    ) -> "self":
+    ) -> t.Self:
         """
         Does initial loading of the database. If `manifest` is `True`,
         then the instance's manifest is reloaded from disk & unsaved
@@ -496,7 +496,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def aset_tag(
         self, tag: str, data: t.JSONSerializable, *, cache: bool = True
-    ) -> "self":
+    ) -> t.Self:
         """
         Allows users to add the value `data` under the name `tag`
         into the database.
@@ -578,7 +578,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def arollback_tag(
         self, tag: str, *, cache: bool = False
-    ) -> "self":
+    ) -> t.Self:
         """
         Clears the new `tag` data from the cache which undoes any
         recent changes. If the `tag` data was never saved to disk,
@@ -595,7 +595,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             await self.aquery_tag(tag, cache=True) if cache else 0
         return self
 
-    async def aclear_cache(self, *, metatags: bool = True) -> "self":
+    async def aclear_cache(self, *, metatags: bool = True) -> t.Self:
         """
         Clears all recent changes in the cache, but this doesn't clear
         a database's metatag caches unless `metatags` is truthy.
@@ -659,7 +659,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             getattr(self._manifest, self._METATAGS_LEDGERNAME).append(tag)
         return self.__dict__[tag]
 
-    async def adelete_metatag(self, tag: str) -> "self":
+    async def adelete_metatag(self, tag: str) -> t.Self:
         """
         Removes the descendant database named `tag`.
         """
@@ -773,7 +773,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def asave_tag(
         self, tag: str, *, admin: bool = False, drop_cache: bool = False
-    ) -> "self":
+    ) -> t.Self:
         """
         Writes the cached value for a user-specified `tag` to the user
         filesystem.
@@ -788,7 +788,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
                 delattr(self._cache, filename)
         return self
 
-    async def asave_database(self) -> "self":
+    async def asave_database(self) -> t.Self:
         """
         Writes the database's values to disk with transparent encryption.
         """
@@ -796,7 +796,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         await gather(self._asave_metatags(), self._asave_tags())
         return self
 
-    async def __aenter__(self) -> "self":
+    async def __aenter__(self) -> t.Self:
         """
         The context manager automatically writes database changes made
         by a user to disk.

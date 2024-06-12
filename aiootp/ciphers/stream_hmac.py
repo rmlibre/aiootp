@@ -116,7 +116,7 @@ class StreamHMAC:
             raise SHMACIssue.validation_incomplete()
         return self._result
 
-    def _for_encryption(self) -> "self":
+    def _for_encryption(self) -> t.Self:
         """
         Instructs the SHMAC instance to prepare itself for validating
         ciphertext while encrypting.
@@ -132,7 +132,7 @@ class StreamHMAC:
         self._avalidated_transform = self._aencipher_then_hash
         return self
 
-    def _for_decryption(self) -> "self":
+    def _for_decryption(self) -> t.Self:
         """
         Instructs the SHMAC instance to prepare itself for validating
         ciphertext while decrypting.
@@ -166,7 +166,7 @@ class StreamHMAC:
         """
         raise SHMACIssue.no_cipher_mode_declared()
 
-    async def _aupdate_mac(self, ciphertext_block: bytes) -> "self":
+    async def _aupdate_mac(self, ciphertext_block: bytes) -> t.Self:
         """
         This method is called automatically when an instance is passed
         into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
@@ -179,7 +179,7 @@ class StreamHMAC:
         self._current_digest = mac.digest(self.config.SHMAC_BLOCKSIZE)
         return self
 
-    def _update_mac(self, ciphertext_block: bytes) -> "self":
+    def _update_mac(self, ciphertext_block: bytes) -> t.Self:
         """
         This method is called automatically when an instance is passed
         into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
