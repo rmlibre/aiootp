@@ -244,16 +244,28 @@ class TestCipherConfigs:
 
     async def test_min_padding_blocks_alters_min_ciphertext_size(self) -> None:
         extra_padding = token_bits(3) or 1
-        for (_config, _cipher, salt, aad) in all_ciphers:
-            config = new_config_copy(_config, min_padding_blocks=extra_padding)
+        for (control_config, control_cipher, salt, aad) in all_ciphers:
+            config = new_config_copy(control_config, min_padding_blocks=extra_padding)
 
-            class ExtraPaddingCipher(_cipher.__class__):
+            class ExtraPaddingCipher(control_cipher.__class__):
                 __slots__ = ()
                 _config: t.ConfigType = config
 
             cipher = ExtraPaddingCipher(key)
             plaintext = b"padding test"
-            assert len(plaintext) < (config.BLOCKSIZE - config.INNER_HEADER_BYTES - config.SENTINEL_BYTES)
+            assert len(plaintext) < (
+                control_config.BLOCKSIZE
+                - control_config.INNER_HEADER_BYTES
+                - control_config.SENTINEL_BYTES
+            )
+            assert len(plaintext) < (
+                config.BLOCKSIZE
+                - config.INNER_HEADER_BYTES
+                - config.SENTINEL_BYTES
+            )
+
+            control_ciphertext = control_cipher.bytes_encrypt(plaintext)
+            assert len(control_ciphertext) == control_config.HEADER_BYTES + control_config.BLOCKSIZE
 
             ciphertext = cipher.bytes_encrypt(plaintext)
             assert len(ciphertext) == config.HEADER_BYTES + (extra_padding + 1) * config.BLOCKSIZE
