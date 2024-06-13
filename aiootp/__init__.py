@@ -69,6 +69,7 @@ __all__ = [
 
 
 subpackages = dict(
+    _typing=_typing,
     _constants=_constants,
     _permutations=_permutations,
     commons=commons,
@@ -82,7 +83,6 @@ subpackages = dict(
 
 
 modules = dict(
-    _typing=_typing,
     _exceptions=_exceptions,
     _debug_control=_debug_control,
     _gentools=_gentools,

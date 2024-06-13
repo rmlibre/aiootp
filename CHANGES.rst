@@ -11,7 +11,7 @@ Changes for version 0.23.5
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- Refactor internal ``_typing.py`` module into a subpackage.
 
 
 Minor Changes
