@@ -112,7 +112,7 @@ class Typing:
             and hasattr(new_type, "__prepare__")
         )
         if not has_type_attributes:
-            raise TypeError(f"{repr(new_type)} is not a type.")  # pragma: no cover
+            raise TypeError(f"{repr(new_type)} is not a type.")
 
     @classmethod
     def add_type(cls, new_type: type) -> type:
@@ -131,8 +131,8 @@ class Typing:
         message: Typing.MessageType = b"Hello, World!"
         """
         name = new_type.__qualname__
-        cls._test_type_name(name)
         cls._test_type(new_type)
+        cls._test_type_name(name)
         setattr(cls, name, new_type)
         return new_type
 
