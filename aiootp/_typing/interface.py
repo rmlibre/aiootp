@@ -83,6 +83,21 @@ class Typing:
     runtime_checkable = typing.runtime_checkable
 
     @classmethod
+    def _test_type(cls, new_type: type) -> None:
+        """
+        Throws `TypeError` if `new_type` doesn't have class-type
+        attributes.
+        """
+        has_type_attributes = (
+            hasattr(new_type, "mro")
+            and hasattr(new_type, "__mro__")
+            and hasattr(new_type, "__bases__")
+            and hasattr(new_type, "__prepare__")
+        )
+        if not has_type_attributes:
+            raise TypeError(f"{repr(new_type)} is not a type.")
+
+    @classmethod
     def _test_type_name(cls, name: str) -> None:
         """
         Assures new type additions to the class are unique & title or
@@ -98,21 +113,6 @@ class Typing:
             raise AttributeError(f"{repr(name)} is already defined.")
         elif is_mixed_case or not is_capitalized:
             raise ValueError(f"{repr(name)} must be title or capital-cased")
-
-    @classmethod
-    def _test_type(cls, new_type: type) -> None:
-        """
-        Throws `TypeError` if `new_type` doesn't have class-type
-        attributes.
-        """
-        has_type_attributes = (
-            hasattr(new_type, "mro")
-            and hasattr(new_type, "__mro__")
-            and hasattr(new_type, "__bases__")
-            and hasattr(new_type, "__prepare__")
-        )
-        if not has_type_attributes:
-            raise TypeError(f"{repr(new_type)} is not a type.")
 
     @classmethod
     def add_type(cls, new_type: type) -> type:
