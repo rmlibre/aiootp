@@ -24,21 +24,10 @@ from typing import NewType
 
 
 try:
-    import typing_extensions
-except ModuleNotFoundError:  # pragma: no cover
-    typing_extensions = typing  # pragma: no cover
-
-
-try:
-    Protocol = typing.Protocol
-except AttributeError:  # pragma: no cover
-    Protocol = typing_extensions.Protocol  # pragma: no cover
-
-
-try:
     Self = typing.Self
 except AttributeError:  # pragma: no cover
-    Self = typing_extensions.Self  # pragma: no cover
+    Self = "Self"       # pragma: no cover
+    # To be removed when Python 3.11 is oldest supported version.
 
 
 Cls = NewType("Cls", Self)
@@ -77,10 +66,6 @@ def _transpose_typing_modules_types(
     for name in typing.__all__:
         if name[0].isupper():
             class_dict[name] = getattr(typing, name)
-    if typing is not typing_extensions:
-        for name in typing_extensions.__all__:
-            if name[0].isupper():
-                class_dict[name] = getattr(typing_extensions, name)
 
 
 class Typing:
