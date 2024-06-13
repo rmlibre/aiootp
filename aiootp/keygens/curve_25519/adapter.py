@@ -121,31 +121,6 @@ class Curve25519:
         else:
             return secret_key.private_bytes_raw()
 
-    @classmethod
-    async def aexchange(
-        cls, secret_key: X25519PrivateKey, public_key: bytes
-    ) -> bytes:
-        """
-        Returns the shared key bytes derived from an elliptic curve key
-        exchange with the user's `secret_key` key, & their communicating
-        peer's `public_key` bytes.
-        """
-        await asleep()
-        return cls.exchange(secret_key=secret_key, public_key=public_key)
-
-    @classmethod
-    def exchange(
-        cls, secret_key: X25519PrivateKey, public_key: bytes
-    ) -> bytes:
-        """
-        Returns the shared key bytes derived from an elliptic curve key
-        exchange with the user's `secret_key` key, & their communicating
-        peer's `public_key` bytes.
-        """
-        return secret_key.exchange(
-            X25519PublicKey.from_public_bytes(public_key)
-        )
-
 
 module_api = dict(
     Curve25519=t.add_type(Curve25519),

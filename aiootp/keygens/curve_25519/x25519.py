@@ -75,7 +75,7 @@ class X25519(Base25519):
     SecretKey = Curve25519.X25519PrivateKey
 
     async def aexchange(
-        self, public_key: t.Union[t.X25519PublicKey, bytes, str]
+        self, public_key: t.Union[t.X25519PublicKey, bytes]
     ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the
@@ -83,23 +83,24 @@ class X25519(Base25519):
         exchange & returns the resulting secret shared bytes.
         """
         await asleep()
-        public_key = self._process_public_key(public_key)
-        return await self._Curve25519.aexchange(
-            self._secret_key,
-            await self._Curve25519.apublic_bytes(public_key),
+        if public_key.__class__ is not bytes:
+            public_key = self._Curve25519.public_bytes(public_key)
+        return self._secret_key.exchange(
+            self.PublicKey.from_public_bytes(public_key)
         )
 
     def exchange(
-        self, public_key: t.Union[t.X25519PublicKey, bytes, str]
+        self, public_key: t.Union[t.X25519PublicKey, bytes]
     ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the
         instance's secret key to do an elliptic curve diffie-hellman
         exchange & returns the resulting secret shared bytes.
         """
-        public_key = self._process_public_key(public_key)
-        return self._Curve25519.exchange(
-            self._secret_key, self._Curve25519.public_bytes(public_key)
+        if public_key.__class__ is not bytes:
+            public_key = self._Curve25519.public_bytes(public_key)
+        return self._secret_key.exchange(
+            self.PublicKey.from_public_bytes(public_key)
         )
 
     @classmethod
