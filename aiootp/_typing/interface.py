@@ -25,8 +25,8 @@ from typing import NewType
 
 try:
     Self = typing.Self
-except AttributeError:  # pragma: no cover
-    Self = "Self"       # pragma: no cover
+except AttributeError:              # pragma: no cover
+    Self = NewType("Self", "Self")  # pragma: no cover
     # To be removed when Python 3.11 is oldest supported version.
 
 
