@@ -17,6 +17,31 @@ from test_Clock import TIME_RESOLUTION
 from aiootp.randoms.ids.raw_guid_config import RawGUIDContainer
 
 
+class TestGUIDConfig:
+
+    async def test_permutation_cid_can_be_specified(self) -> None:
+        for permutation_config_id in (14, 15, 17, 20):
+            config = t.GUIDConfig(
+                config_id=16,
+                size=16,
+                raw_guid_type=t.RawGUID,
+                permutation_type=t.FastAffineXORChain,
+                permutation_config_id=permutation_config_id,
+            )
+            assert permutation_config_id == config.PERMUTATION_CONFIG_ID
+
+    async def test_raw_cid_can_be_specified(self) -> None:
+        for raw_guid_config_id in (14, 15, 17, 20):
+            config = t.GUIDConfig(
+                config_id=16,
+                size=16,
+                raw_guid_type=t.RawGUID,
+                permutation_type=t.FastAffineXORChain,
+                raw_guid_config_id=raw_guid_config_id,
+            )
+            assert raw_guid_config_id == config.RAW_GUID_CONFIG_ID
+
+
 class TestGUID:
 
     async def test_unmasking_inverts_the_applied_permutation(self) -> None:
