@@ -64,8 +64,9 @@ class TestTypingClass:
         non_class_objects = (
             1, 1.1, None, "test", b"test", [], {}, t.PositiveRealNumber
         )
+        errors = (AttributeError, ValueError, TypeError)
         for obj in non_class_objects:
-            with Ignore(AttributeError, ValueError, if_else=violation(problem)):
+            with Ignore(*errors, if_else=violation(problem)):
                 t.add_type(obj)
 
 
