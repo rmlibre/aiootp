@@ -47,44 +47,8 @@ class Curve25519:
     Ed25519PublicKey = Ed25519PublicKey
     Ed25519PrivateKey = Ed25519PrivateKey
 
-    cryptography = cryptography
     exceptions = cryptography.exceptions
-    hazmat = cryptography.hazmat
     serialization = serialization
-
-    @staticmethod
-    async def aed25519_key() -> Ed25519PrivateKey:
-        """
-        Returns an `Ed25519PrivateKey` from the cryptography package
-        used to make elliptic curve signatures of data.
-        """
-        await asleep()
-        return Ed25519PrivateKey.generate()
-
-    @staticmethod
-    def ed25519_key() -> Ed25519PrivateKey:
-        """
-        Returns an `Ed25519PrivateKey` from the cryptography package
-        used to make elliptic curve signatures of data.
-        """
-        return Ed25519PrivateKey.generate()
-
-    @staticmethod
-    async def ax25519_key() -> X25519PrivateKey:
-        """
-        Returns a `X25519PrivateKey` from the cryptography package for
-        use in an elliptic curve diffie-hellman exchange.
-        """
-        await asleep()
-        return X25519PrivateKey.generate()
-
-    @staticmethod
-    def x25519_key() -> X25519PrivateKey:
-        """
-        Returns a `X25519PrivateKey` from the cryptography package for
-        use in an elliptic curve diffie-hellman exchange.
-        """
-        return X25519PrivateKey.generate()
 
     @classmethod
     async def apublic_bytes(

@@ -162,6 +162,20 @@ class Base25519(FrozenInstance):
         )
         return self
 
+    async def agenerate(self) -> t.Self:
+        """
+        Populates the instance with a newly generated private key.
+        """
+        await self.aimport_secret_key(self.SecretKey.generate())
+        return self
+
+    def generate(self) -> t.Self:
+        """
+        Populates the instance with a newly generated private key.
+        """
+        self.import_secret_key(self.SecretKey.generate())
+        return self
+
     @property
     def secret_key(self) -> t.Union[t.X25519PrivateKey, t.Ed25519PrivateKey]:
         """

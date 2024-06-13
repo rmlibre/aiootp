@@ -74,32 +74,6 @@ class X25519(Base25519):
     PublicKey = Curve25519.X25519PublicKey
     SecretKey = Curve25519.X25519PrivateKey
 
-    async def agenerate(self) -> t.Self:
-        """
-        Generates a new secret key used for a single elliptic curve
-        diffie-hellman exchange, or as an argument to one of the 3dh or
-        2dh generators in X25519.protocols. This populates the instance
-        with the secret key & its associated public key. This method
-        returns the instance for convenience in instantiating a stateful
-        object with await X25519().agenerate().
-        """
-        key = await self._Curve25519.ax25519_key()
-        await self.aimport_secret_key(key)
-        return self
-
-    def generate(self) -> t.Self:
-        """
-        Generates a new secret key used for a single elliptic curve
-        diffie-hellman exchange, or as an argument to one of the 3dh or
-        2dh generators in X25519.protocols. This populates the instance
-        with the secret key & its associated public key. This method
-        returns the instance for convenience in instantiating a stateful
-        object with await X25519().generate().
-        """
-        key = self._Curve25519.x25519_key()
-        self.import_secret_key(key)
-        return self
-
     async def aexchange(
         self, public_key: t.Union[t.X25519PublicKey, bytes, str]
     ) -> bytes:
