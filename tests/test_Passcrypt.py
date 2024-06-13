@@ -13,6 +13,7 @@
 
 from test_initialization import *
 
+from aiootp._constants.misc import B_TO_MB_RATIO
 from aiootp.keygens.passcrypt import PasscryptHash
 from aiootp.keygens.passcrypt.sessions_manager import PasscryptProcesses
 from aiootp.keygens.passcrypt.config import passcrypt_spec as config
@@ -617,6 +618,60 @@ class TestPasscryptConcurrencyInterface:
         with Ignore(RuntimeError, if_else=violation(problem)):
             self.pcrypt.hash_passphrase(passphrase)
         assert not Processes._pool._broken
+
+
+class TestPasscryptSession:
+
+    class MockLengthOfDataExperimentsOnRam:
+
+        def __init__(self) -> None:
+            self.total_data_ingested = 0
+
+        def __getitem__(self, slice_of_data: slice) -> int:
+            start = 0 if slice_of_data.start is None else slice_of_data.start
+            stop = 0 if slice_of_data.stop is None else slice_of_data.stop
+            return abs(stop - start)
+
+        def extend(self, size_of_data: int) -> None:
+            self.total_data_ingested += size_of_data
+
+    class MockLengthOfDataExperimentsOnProof:
+
+        def __init__(self) -> None:
+            self.total_data_ingested = 0
+            self.total_data_output = 0
+
+        def update(self, size_of_data: int) -> None:
+            self.total_data_ingested += size_of_data
+
+        def digest(self, size_of_data: int) -> int:
+            self.total_data_output += size_of_data
+            return size_of_data
+
+    class MockSelf(t.Namespace):
+
+        def __setattr__(self, name: str, value: t.Any) -> None:
+            if name == "ram" and name in self:
+                pass
+            else:
+                self[name] = value
+
+    async def test_allocate_ram_can_handle_above_max_sha3_output_size(
+        self
+    ) -> None:
+        max_size = (B_TO_MB_RATIO * 512 - 1)
+        multiples_of_max_size = 3
+        mock_ram = self.MockLengthOfDataExperimentsOnRam()
+        mock_proof = self.MockLengthOfDataExperimentsOnProof()
+        mock_self = self.MockSelf(
+            ram=mock_ram,
+            proof=mock_proof,
+            total_size=max_size * multiples_of_max_size,
+        )
+        PasscryptSession.allocate_ram(mock_self)
+        assert mock_self.total_size == mock_ram.total_data_ingested
+        assert mock_self.total_size == mock_proof.total_data_output
+        assert 168 * multiples_of_max_size == mock_proof.total_data_ingested
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
