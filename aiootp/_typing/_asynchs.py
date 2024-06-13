@@ -20,6 +20,8 @@ __doc__ = (
 )
 
 
+from concurrent.futures._base import Future
+
 from .interface import Typing as t
 
 
@@ -61,7 +63,7 @@ class PoolExecutorType(t.Protocol):
         /,
         *args: t.Any,
         **kwargs: t.Any,
-    ) -> t.Any:
+    ) -> Future:
         pass  # pragma: no cover
 
 
@@ -94,6 +96,7 @@ class ClockType(t.Protocol):
 module_api = dict(
     AsyncOrSyncIterable=t.add_type(AsyncOrSyncIterable),
     ClockType=t.add_type(ClockType),
+    Future=t.add_type(Future),
     PoolExecutorType=t.add_type(PoolExecutorType),
     __all__=__all__,
     __doc__=__doc__,

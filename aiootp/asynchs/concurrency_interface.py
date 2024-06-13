@@ -18,7 +18,6 @@ __doc__ = "A general interface for multi-threading & multi-processing."
 
 
 from time import sleep
-from concurrent.futures._base import Future
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
@@ -166,8 +165,8 @@ class ConcurrencyInterface:
 
     @staticmethod
     def _package_result_methods(
-        future: Future, /, *, probe_delay: t.PositiveRealNumber
-    ) -> Future:
+        future: t.Future, /, *, probe_delay: t.PositiveRealNumber
+    ) -> t.Future:
         """
         Inserts methods in the `future` returned from a pool submission
         to provide a consistent interface for retrieving results.
@@ -196,7 +195,7 @@ class ConcurrencyInterface:
         *args: t.Any,
         probe_delay: t.Optional[t.PositiveRealNumber] = None,
         **kwargs: t.Any,
-    ) -> Future:
+    ) -> t.Future:
         """
         Submits an async, or synchronous `func` to a process pool or
         thread pool, depending on the class that calls this method, with
@@ -215,7 +214,7 @@ class ConcurrencyInterface:
         *args: t.Any,
         probe_delay: t.Optional[t.PositiveRealNumber] = None,
         **kwargs: t.Any,
-    ) -> Future:
+    ) -> t.Future:
         """
         Submits a synchronous `func` to a process pool or thread pool,
         depending on the class that calls this method, with the supplied
@@ -279,7 +278,6 @@ class ConcurrencyInterface:
 
 module_api = dict(
     ConcurrencyInterface=t.add_type(ConcurrencyInterface),
-    Future=t.add_type(Future),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,
