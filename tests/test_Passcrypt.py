@@ -654,7 +654,7 @@ class TestPasscryptSession:
             if name == "ram" and name in self:
                 pass
             else:
-                self[name] = value
+                object.__setattr__(self, name, value)
 
     async def test_allocate_ram_can_handle_above_max_sha3_output_size(
         self
