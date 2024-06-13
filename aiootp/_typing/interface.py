@@ -27,7 +27,7 @@ try:
     Self = typing.Self
 except AttributeError:              # pragma: no cover
     Self = NewType("Self", "Self")  # pragma: no cover
-    # To be removed when Python 3.11 is oldest supported version.
+    # TODO: Remove when Python 3.11 is oldest supported version.
 
 
 Cls = NewType("Cls", Self)
