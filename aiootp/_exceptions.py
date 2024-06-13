@@ -147,9 +147,9 @@ class Ignore:
     def __init__(
         self,
         *exceptions: Exception,
-        if_except: t.Optional[t.Callable[[t.IgnoreType], t.Any]] = None,
-        if_else: t.Optional[t.Callable[[t.IgnoreType], t.Any]] = None,
-        finally_run: t.Optional[t.Callable[[t.IgnoreType], t.Any]] = None,
+        if_except: t.Optional[t.Callable[[t.Self], t.Any]] = None,
+        if_else: t.Optional[t.Callable[[t.Self], t.Any]] = None,
+        finally_run: t.Optional[t.Callable[[t.Self], t.Any]] = None,
     ) -> None:
         placeholder = self._PlaceholderHandler()
         self.ignored_exceptions = exceptions
