@@ -11,8 +11,12 @@
 #
 
 
+import io
+from collections import deque
+
 from test_initialization import *
 
+from aiootp._constants.misc import BIG
 from aiootp._constants.datasets import Tables
 from aiootp.generics.transform import abase_as_int, base_as_int
 from aiootp.generics.transform import aint_as_base, int_as_base
@@ -63,6 +67,88 @@ class TestDomains:
                         await Domains.aencode_constant(constant, aad=aad, domain=domain)
                         ==  Domains.encode_constant(constant, aad=aad, domain=domain)
                     )
+
+
+class TestEncodingUtilities:
+
+    async def test_key_must_not_be_falsey(self) -> None:
+        problem = (
+            "A falsey key was allowed."
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+            await generics.canon.aencode_key(key=b"", blocksize=32)
+        with Ignore(ValueError, if_else=violation(problem)):
+            generics.canon.encode_key(key=b"", blocksize=32)
+
+    async def test_item_size_mismatches_caught_during_decoding(
+        self
+    ) -> None:
+        problem = (
+            "A mismatch between item length & declared length was allowed."
+        )
+        int_bytes = 1
+        item = b"test"
+        item_length = len(item).to_bytes(int_bytes, BIG)
+        single_encoded_item = item_length + item[:-1]
+        with Ignore(ValueError, if_else=violation(problem)):
+            [item async for item in generics.canon.adecode_items(
+                read=io.BytesIO(single_encoded_item).read,
+                item_count=1,
+                int_bytes=1,
+            )]
+        with Ignore(ValueError, if_else=violation(problem)):
+            list(generics.canon.decode_items(
+                read=io.BytesIO(single_encoded_item).read,
+                item_count=1,
+                int_bytes=1,
+            ))
+
+    async def test_missing_padding_metadata_throws_error(self) -> None:
+        problem = (
+            "Padding test ran without the necessary metadata."
+        )
+        blocksize = (32).to_bytes(1, BIG)
+        pad = b"\x00"
+        with Ignore(ValueError, if_else=violation(problem)):
+            generics.canon.test_canonical_padding(
+                read=io.BytesIO().read,
+                items=deque([blocksize]),
+                total_size=64,
+            )
+
+    async def test_non_blocksize_multiple_declared_length_throws_error(
+        self
+    ) -> None:
+        problem = (
+            "Padding test ran with a length declaration not equal to a "
+            "multiple of the blocksize."
+        )
+        blocksize = (32).to_bytes(1, BIG)
+        pad = b"\x00"
+        with Ignore(ValueError, if_else=violation(problem)):
+            generics.canon.test_canonical_padding(
+                read=io.BytesIO().read,
+                items=deque([blocksize, pad]),
+                total_size=67,
+            )
+
+    async def test_declared_pad_value_must_be_all_that_remains(self) -> None:
+        problem = (
+            "Padding test ran with an invalid padding value."
+        )
+        blocksize = (32).to_bytes(1, BIG)
+        pad = b"\x00"
+        generics.canon.test_canonical_padding(
+            read=io.BytesIO(32 * pad).read,
+            items=deque([blocksize, pad]),
+            total_size=64,
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+            generics.canon.test_canonical_padding(
+                read=io.BytesIO(32 * b"A").read,
+                items=deque([blocksize, pad]),
+                total_size=64,
+            )
 
 
 class TestCanonicalPack:
