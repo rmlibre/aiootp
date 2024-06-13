@@ -14,6 +14,22 @@
 from test_initialization import *
 
 
+class TestSequenceIDConfig:
+    kw = dict(config_id=16, permutation_type=t.FastAffineXORChain)
+
+    async def test_permutation_cid_defaults_to_instance_cid(self) -> None:
+        config = t.SequenceIDConfig(size=16, **self.kw)
+        assert 16 == config.PERMUTATION_CONFIG_ID
+
+    async def test_size_must_be_within_bounded(self) -> None:
+        problem = (
+            "A size out of bounds was allowed."
+        )
+        for bad_size in (-1, 0, 4097):
+            with Ignore(ValueError, if_else=violation(problem)):
+                t.SequenceIDConfig(size=bad_size, **self.kw)
+
+
 class TestSequenceID:
 
     async def test_inversion_correctness(self) -> None:
