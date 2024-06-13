@@ -11,7 +11,7 @@
 #
 
 
-__all__ = ["AsyncOrSyncIterable", "ClockType", "PoolExecutorType"]
+__all__ = ["AsyncOrSyncIterable", "ClockType", "Future", "PoolExecutorType"]
 
 
 __doc__ = (
