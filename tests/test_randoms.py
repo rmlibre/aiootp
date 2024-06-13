@@ -13,6 +13,7 @@
 
 from test_initialization import *
 from test_SequenceID import *
+from test_RawGUID import *
 from test_GUID import *
 from test_misc_in_randoms import *
 

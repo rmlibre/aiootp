@@ -144,6 +144,7 @@ include tests/test_gentools.py
 include tests/test_misc_in_keygens.py
 include tests/test_keygens.py
 include tests/test_Processes_Threads.py
+include tests/test_RawGUID.py
 include tests/test_GUID.py
 include tests/test_SequenceID.py
 include tests/test_online_cipher_interfaces.py
