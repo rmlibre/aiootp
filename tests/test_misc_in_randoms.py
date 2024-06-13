@@ -174,6 +174,17 @@ class TestCSPRNG:
 class TestRandomNumberGenerator:
     kw = dict(freshness=0, entropy=token_bytes(16))
 
+    async def test_freshness_must_be_positive_int(self) -> None:
+        problem = (
+            "A non-positive `freshness` value was allowed."
+        )
+        for bad_freshness in (b"-2", "1.0"):
+            with Ignore(TypeError, if_else=violation(problem)):
+                await arandom_number_generator(freshness=bad_freshness)
+        for bad_freshness in (-1, False, 1.0):
+            with Ignore(ValueError, if_else=violation(problem)):
+                await arandom_number_generator(freshness=bad_freshness)
+
     async def test_async_declared_output_sizes_are_respected(self) -> None:
         for size in range(8, 257, 32):
             result = await arandom_number_generator(size, **self.kw)
