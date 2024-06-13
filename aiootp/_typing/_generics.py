@@ -92,7 +92,7 @@ class HasherType(t.Protocol):
     def digest_size(self) -> int:
         pass  # pragma: no cover
 
-    def copy(self, /) -> "HasherType":
+    def copy(self, /) -> t.Self:
         pass  # pragma: no cover
 
     def update(self, data: bytes, /) -> None:
@@ -105,26 +105,11 @@ class HasherType(t.Protocol):
         pass  # pragma: no cover
 
 
-@t.runtime_checkable
-class XOFType(t.Protocol):
-
-    @property
-    def name(self) -> str:
-        pass  # pragma: no cover
-
-    @property
-    def block_size(self) -> int:
-        pass  # pragma: no cover
+class XOFType(HasherType):
 
     @property
     def digest_size(self) -> int:
         return 0  # pragma: no cover
-
-    def copy(self, /) -> "XOFType":
-        pass  # pragma: no cover
-
-    def update(self, data: bytes, /) -> None:
-        pass  # pragma: no cover
 
     def digest(self, size: int, /) -> bytes:
         pass  # pragma: no cover
