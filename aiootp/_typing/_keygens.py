@@ -14,6 +14,7 @@
 __all__ = [
     "AsymmetricKeyType",
     "DomainKDFType",
+    "KeyExchangeProtocolType",
     "KeyExchangeType",
     "PublicSignerType",
     "SecretSignerType",
@@ -183,46 +184,42 @@ class SignerType(AsymmetricKeyType):
         pass  # pragma: no cover
 
 
+@t.runtime_checkable
+class KeyExchangeProtocolType(t.Protocol):
+
+    async def asend(self, *keys: bytes) -> t.Union[t.Tuple[bytes], bytes]:
+        pass  # pragma: no cover
+
+    def send(self, *keys: bytes) -> t.Union[t.Tuple[bytes], bytes]:
+        pass  # pragma: no cover
+
+    async def areceive(self, *keys: bytes) -> DomainKDFType:
+        pass  # pragma: no cover
+
+    def receive(self, *keys: bytes) -> DomainKDFType:
+        pass  # pragma: no cover
+
+
 class KeyExchangeType(AsymmetricKeyType):
 
     @classmethod
-    async def adh2_client(cls, peer_identity_key: bytes) -> None:  # TODO: return type & classes
+    def dh2_client(cls) -> KeyExchangeProtocolType:
         pass  # pragma: no cover
 
-    @classmethod
-    def dh2_client(cls, peer_identity_key: bytes) -> None:  # TODO: return type & classes
+    def dh2_server(self) -> KeyExchangeProtocolType:
         pass  # pragma: no cover
 
-    async def adh2_server(
-        self, peer_identity_key: bytes, peer_ephemeral_key: bytes
-    ) -> None:
+    def dh3_client(self) -> KeyExchangeProtocolType:
         pass  # pragma: no cover
 
-    def dh2_server(
-        self, peer_identity_key: bytes, peer_ephemeral_key: bytes
-    ) -> None:
-        pass  # pragma: no cover
-
-    async def adh3_client(self, peer_identity_key: bytes) -> None:  # TODO: return type & classes
-        pass  # pragma: no cover
-
-    def dh3_client(self, peer_identity_key: bytes) -> None:  # TODO: return type & classes
-        pass  # pragma: no cover
-
-    async def adh3_server(
-        self, peer_identity_key: bytes, peer_ephemeral_key: bytes
-    ) -> None:
-        pass  # pragma: no cover
-
-    def dh3_server(
-        self, peer_identity_key: bytes, peer_ephemeral_key: bytes
-    ) -> None:
+    def dh3_server(self) -> KeyExchangeProtocolType:
         pass  # pragma: no cover
 
 
 module_api = dict(
     AsymmetricKeyType=t.add_type(AsymmetricKeyType),
     DomainKDFType=t.add_type(DomainKDFType),
+    KeyExchangeProtocolType=t.add_type(KeyExchangeProtocolType),
     KeyExchangeType=t.add_type(KeyExchangeType),
     PublicSignerType=t.add_type(PublicSignerType),
     SecretSignerType=t.add_type(SecretSignerType),
