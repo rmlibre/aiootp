@@ -71,9 +71,9 @@ class Ed25519(Base25519):
 
     __slots__ = ("_public_key", "_secret_key")
 
-    InvalidSignature = t.InvalidSignature
-    PublicKey = t.Ed25519PublicKey
-    SecretKey = t.Ed25519PrivateKey
+    InvalidSignature: type = t.InvalidSignature
+    PublicKey: type = t.Ed25519PublicKey
+    SecretKey: type = t.Ed25519PrivateKey
 
     async def asign(self, data: bytes) -> bytes:
         """

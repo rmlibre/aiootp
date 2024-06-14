@@ -70,8 +70,8 @@ class X25519(Base25519):
     _TripleDiffieHellmanClient: type = TripleDiffieHellmanClient
     _TripleDiffieHellmanServer: type = TripleDiffieHellmanServer
 
-    PublicKey = t.X25519PublicKey
-    SecretKey = t.X25519PrivateKey
+    PublicKey: type = t.X25519PublicKey
+    SecretKey: type = t.X25519PrivateKey
 
     async def aexchange(
         self, public_key: t.Union[t.X25519PublicKey, bytes]

@@ -68,9 +68,7 @@ class PackageVerifier:
 
     def __init__(
         self,
-        public_signing_key: t.Union[
-            str, bytes, t.PublicSignerType, t.SignerType
-        ],
+        public_signing_key: t.Union[bytes, t.PublicKeyType, t.SignerType],
         *,
         path: t.OptionalPathStr = None,
         verify_files: bool = True,

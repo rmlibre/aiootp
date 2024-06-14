@@ -16,8 +16,8 @@ __all__ = [
     "DomainKDFType",
     "KeyExchangeProtocolType",
     "KeyExchangeType",
-    "PublicSignerType",
-    "SecretSignerType",
+    "PublicKeyType",
+    "SecretKeyType",
     "SignerType",
 ]
 
@@ -73,7 +73,7 @@ class DomainKDFType(t.Protocol):
 
 
 @t.runtime_checkable
-class PublicSignerType(t.Protocol):
+class PublicKeyType(t.Protocol):
 
     def public_bytes(self, encoding, format) -> bytes:
         pass  # pragma: no cover
@@ -81,15 +81,9 @@ class PublicSignerType(t.Protocol):
     def public_bytes_raw(self) -> bytes:
         pass  # pragma: no cover
 
-    def verify(self, signature: bytes, data: bytes) -> None:
-        pass  # pragma: no cover
-
 
 @t.runtime_checkable
-class SecretSignerType(t.Protocol):
-
-    def public_key(self) -> PublicSignerType:
-        pass  # pragma: no cover
+class SecretKeyType(t.Protocol):
 
     def private_bytes(self, encoding, format) -> bytes:
         pass  # pragma: no cover
@@ -97,7 +91,7 @@ class SecretSignerType(t.Protocol):
     def private_bytes_raw(self) -> bytes:
         pass  # pragma: no cover
 
-    def sign(self, data: bytes) -> bytes:
+    def public_key(self) -> PublicKeyType:
         pass  # pragma: no cover
 
 
@@ -105,35 +99,37 @@ class SecretSignerType(t.Protocol):
 class AsymmetricKeyType(t.Protocol):
 
     async def aimport_public_key(
-        self,
-        public_key: t.Union[bytes, PublicSignerType, SecretSignerType],
+        self, public_key: t.Union[bytes, PublicKeyType, SecretKeyType]
     ) -> t.Self:
         pass  # pragma: no cover
 
     def import_public_key(
-        self,
-        public_key: t.Union[bytes, PublicSignerType, SecretSignerType],
+        self, public_key: t.Union[bytes, PublicKeyType, SecretKeyType]
     ) -> t.Self:
         pass  # pragma: no cover
 
     async def aimport_secret_key(
-        self,
-        secret_key: t.Union[bytes, SecretSignerType],
+        self, secret_key: t.Union[bytes, SecretKeyType]
     ) -> t.Self:
         pass  # pragma: no cover
 
     def import_secret_key(
-        self,
-        secret_key: t.Union[bytes, SecretSignerType],
+        self, secret_key: t.Union[bytes, SecretKeyType]
     ) -> t.Self:
         pass  # pragma: no cover
 
-    @property
-    def secret_key(self) -> t.Union[SecretSignerType]:
+    async def agenerate(self) -> t.Self:
+        pass  # pragma: no cover
+
+    def generate(self) -> t.Self:
         pass  # pragma: no cover
 
     @property
-    def public_key(self) -> t.Union[PublicSignerType]:
+    def secret_key(self) -> t.Union[SecretKeyType]:
+        pass  # pragma: no cover
+
+    @property
+    def public_key(self) -> t.Union[PublicKeyType]:
         pass  # pragma: no cover
 
     @property
@@ -150,12 +146,6 @@ class AsymmetricKeyType(t.Protocol):
     def has_public_key(self) -> bool:
         pass  # pragma: no cover
 
-    async def agenerate(self) -> t.Self:
-        pass  # pragma: no cover
-
-    def generate(self) -> t.Self:
-        pass  # pragma: no cover
-
 
 class SignerType(AsymmetricKeyType):
 
@@ -170,7 +160,7 @@ class SignerType(AsymmetricKeyType):
         signature: bytes,
         data: bytes,
         *,
-        public_key: t.Union[None, bytes, PublicSignerType],
+        public_key: t.Union[None, bytes, PublicKeyType],
     ) -> None:
         pass  # pragma: no cover
 
@@ -179,7 +169,7 @@ class SignerType(AsymmetricKeyType):
         signature: bytes,
         data: bytes,
         *,
-        public_key: t.Union[None, bytes, PublicSignerType],
+        public_key: t.Union[None, bytes, PublicKeyType],
     ) -> None:
         pass  # pragma: no cover
 
@@ -221,8 +211,8 @@ module_api = dict(
     DomainKDFType=t.add_type(DomainKDFType),
     KeyExchangeProtocolType=t.add_type(KeyExchangeProtocolType),
     KeyExchangeType=t.add_type(KeyExchangeType),
-    PublicSignerType=t.add_type(PublicSignerType),
-    SecretSignerType=t.add_type(SecretSignerType),
+    PublicKeyType=t.add_type(PublicKeyType),
+    SecretKeyType=t.add_type(SecretKeyType),
     SignerType=t.add_type(SignerType),
     __all__=__all__,
     __doc__=__doc__,

@@ -131,7 +131,7 @@ class PackageSigner:
         }
 
     @classmethod
-    def generate_signing_key(cls) -> t.SecretSignerType:
+    def generate_signing_key(cls) -> t.SecretKeyType:
         """
         Generates a new `Ed25519` secret signing key object.
         """
@@ -171,7 +171,7 @@ class PackageSigner:
         return self.db[self._scope.package][self._PUBLIC_CREDENTIALS]
 
     @property
-    def signing_key(self) -> t.SecretSignerType:
+    def signing_key(self) -> t.SecretKeyType:
         """
         Returns the package's secret signing key from the instance's
         encrypted database in an `Ed25519` object.
@@ -301,7 +301,7 @@ class PackageSigner:
         return self
 
     def update_signing_key(
-        self, signing_key: t.Union[str, bytes, t.SecretSignerType, Ed25519],
+        self, signing_key: t.Union[bytes, t.SecretKeyType, Ed25519]
     ) -> t.Self:
         """
         Updates the package's secret signing key as an encrypted token
