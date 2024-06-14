@@ -45,8 +45,8 @@ class Base25519(FrozenInstance):
 
     def _process_public_key(
         self,
-        public_key: t.Union[bytes, X25519PublicKey, Ed25519PublicKey],
-    ) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
+        public_key: t.Union[bytes, Ed25519PublicKey, X25519PublicKey],
+    ) -> t.Union[Ed25519PublicKey, X25519PublicKey]:
         """
         If `public_key` is either of `bytes` or `self.PublicKey` type,
         returns an instance of `self.PublicKey`. Otherwise raises
@@ -62,7 +62,7 @@ class Base25519(FrozenInstance):
 
     def _process_secret_key(
         self,
-        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
+        secret_key: t.Union[bytes, Ed25519PrivateKey, X25519PrivateKey],
     ) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
         """
         If `secret_key` is either of `bytes` or `self.SecretKey` type,
@@ -79,7 +79,7 @@ class Base25519(FrozenInstance):
 
     async def aimport_public_key(
         self,
-        public_key: t.Union[bytes, X25519PublicKey, Ed25519PublicKey],
+        public_key: t.Union[bytes, Ed25519PublicKey, X25519PublicKey],
     ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
@@ -90,7 +90,7 @@ class Base25519(FrozenInstance):
 
     def import_public_key(
         self,
-        public_key: t.Union[bytes, X25519PublicKey, Ed25519PublicKey],
+        public_key: t.Union[bytes, Ed25519PublicKey, X25519PublicKey],
     ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
@@ -104,7 +104,7 @@ class Base25519(FrozenInstance):
 
     async def aimport_secret_key(
         self,
-        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
+        secret_key: t.Union[bytes, Ed25519PrivateKey, X25519PrivateKey],
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
@@ -115,7 +115,7 @@ class Base25519(FrozenInstance):
 
     def import_secret_key(
         self,
-        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
+        secret_key: t.Union[bytes, Ed25519PrivateKey, X25519PrivateKey],
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
@@ -142,14 +142,14 @@ class Base25519(FrozenInstance):
         return self
 
     @property
-    def secret_key(self) -> t.Union[X25519PrivateKey, Ed25519PrivateKey]:
+    def secret_key(self) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
         """
         Returns the instance's secret key object.
         """
         return self._secret_key
 
     @property
-    def public_key(self) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
+    def public_key(self) -> t.Union[Ed25519PublicKey, X25519PublicKey]:
         """
         Returns the instance's public key object.
         """
