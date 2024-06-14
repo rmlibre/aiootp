@@ -43,6 +43,9 @@ class Base25519(FrozenInstance):
     PublicKey: type = None
     SecretKey: type = None
 
+    def __init__(self) -> None:
+        pass
+
     def _process_secret_key(
         self, secret_key: t.Union[bytes, Ed25519PrivateKey, X25519PrivateKey]
     ) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
