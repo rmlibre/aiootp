@@ -28,7 +28,6 @@ from aiootp import Domains, DomainKDF, X25519, Database, Chunky2048
 from aiootp._constants import CONVERSATION, PERIOD_KEYS, PERIOD_KEY
 from aiootp.asynchs import Clock
 from aiootp.generics import ByteIO, canonical_pack
-from aiootp.ciphers.padding import Padding
 
 
 def report_security_issue() -> None:
@@ -118,7 +117,7 @@ def report_security_issue() -> None:
         "\nPlease type or paste your message here. Hit CTRL-D (or "
         "\nCTRL-Z on Windows) to finish the message:\n"
     )
-    message: bytes = Padding(Chunky2048._config).pad_plaintext(
+    message: bytes = Chunky2048._padding.pad_plaintext(
         canonical_pack(
             your_email_address,
             b"".join(line.encode() for line in sys.stdin),
