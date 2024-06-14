@@ -44,7 +44,8 @@ class Base25519(FrozenInstance):
     SecretKey: type = None
 
     def __init__(self) -> None:
-        pass
+        self._secret_key = None
+        self._public_key = None
 
     def _process_secret_key(
         self, secret_key: t.Union[bytes, Ed25519PrivateKey, X25519PrivateKey]
@@ -97,8 +98,11 @@ class Base25519(FrozenInstance):
         Populates an instance from the received `secret_key` that is
         of either `bytes` or `self.SecretKey` type.
         """
-        self._secret_key = self._process_secret_key(secret_key)
-        self._public_key = self._secret_key.public_key()
+        if self.has_public_key():
+            raise Issue.cant_reassign_attribute("public_key")
+        insert = object.__setattr__
+        insert(self, "_secret_key", self._process_secret_key(secret_key))
+        insert(self, "_public_key", self._secret_key.public_key())
         return self
 
     async def aimport_public_key(
@@ -118,8 +122,11 @@ class Base25519(FrozenInstance):
         Populates an instance from the received `public_key` that is
         of either `bytes` or `self.PublicKey` type.
         """
-        self._secret_key = None
-        self._public_key = self._process_public_key(public_key)
+        if self.has_public_key():
+            raise Issue.cant_reassign_attribute("public_key")
+        insert = object.__setattr__
+        insert(self, "_secret_key", None)
+        insert(self, "_public_key", self._process_public_key(public_key))
         return self
 
     async def agenerate(self) -> t.Self:
@@ -168,13 +175,13 @@ class Base25519(FrozenInstance):
         """
         Returns a boolean of whether the instance contains a secret key.
         """
-        return getattr(self, "_secret_key", None) is not None
+        return self._secret_key is not None
 
     def has_public_key(self) -> bool:
         """
         Returns a boolean of whether the instance contains a public key.
         """
-        return getattr(self, "_public_key", None) is not None
+        return self._public_key is not None
 
 
 module_api = dict(
