@@ -117,10 +117,10 @@ class Ed25519(Base25519):
         used, then that key is used instead of the instance key to run
         the verification.
         """
-        if public_key:
-            public_key = self._process_public_key(public_key)
-        else:
+        if public_key is None:
             public_key = self.public_key
+        else:
+            public_key = self._process_public_key(public_key)
         public_key.verify(signature, data)
 
 
