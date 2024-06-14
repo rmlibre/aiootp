@@ -133,8 +133,8 @@ def report_security_issue() -> None:
         aiootp_public_key,
         key=raw_shared_key,
     )
-    siv: bytes = shared_kdf.sha3_256(message, aad=b"message_siv")
-    key: bytes = shared_kdf.sha3_256(siv, aad=b"encryption_key")
+    siv: bytes = shared_kdf.sha3_256(message, aad=Domains.SIV)
+    key: bytes = shared_kdf.sha3_256(siv, aad=Domains.ENCRYPTION_KEY)
 
     # encrypt the message payload
     encrypted_message: bytes = ChaCha20Poly1305(key).encrypt(
