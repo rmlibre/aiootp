@@ -43,22 +43,6 @@ class Base25519(FrozenInstance):
     PublicKey: type = None
     SecretKey: type = None
 
-    def _process_public_key(
-        self, public_key: t.Union[bytes, Ed25519PublicKey, X25519PublicKey]
-    ) -> t.Union[Ed25519PublicKey, X25519PublicKey]:
-        """
-        If `public_key` is either of `bytes` or `self.PublicKey` type,
-        returns an instance of `self.PublicKey`. Otherwise raises
-        `TypeError`.
-        """
-        cls = public_key.__class__
-        if cls is bytes:
-            return self.PublicKey.from_public_bytes(public_key)
-        elif issubclass(cls, self.PublicKey):
-            return public_key
-        else:
-            raise Issue.value_must_be_type("public_key", "valid key type")
-
     def _process_secret_key(
         self, secret_key: t.Union[bytes, Ed25519PrivateKey, X25519PrivateKey]
     ) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
@@ -75,28 +59,21 @@ class Base25519(FrozenInstance):
         else:
             raise Issue.value_must_be_type("secret_key", "valid key type")
 
-    async def aimport_public_key(
+    def _process_public_key(
         self, public_key: t.Union[bytes, Ed25519PublicKey, X25519PublicKey]
-    ) -> t.Self:
+    ) -> t.Union[Ed25519PublicKey, X25519PublicKey]:
         """
-        Populates an instance from the received `public_key` that is
-        of either `bytes` or `self.PublicKey` type.
+        If `public_key` is either of `bytes` or `self.PublicKey` type,
+        returns an instance of `self.PublicKey`. Otherwise raises
+        `TypeError`.
         """
-        await asleep()
-        return self.import_public_key(public_key)
-
-    def import_public_key(
-        self, public_key: t.Union[bytes, Ed25519PublicKey, X25519PublicKey]
-    ) -> t.Self:
-        """
-        Populates an instance from the received `public_key` that is
-        of either `bytes` or `self.PublicKey` type.
-        """
-        if self.has_public_key():
-            raise Issue.value_already_set("public key", "the instance")
-        self._secret_key = None
-        self._public_key = self._process_public_key(public_key)
-        return self
+        cls = public_key.__class__
+        if cls is bytes:
+            return self.PublicKey.from_public_bytes(public_key)
+        elif issubclass(cls, self.PublicKey):
+            return public_key
+        else:
+            raise Issue.value_must_be_type("public_key", "valid key type")
 
     async def aimport_secret_key(
         self,
@@ -121,6 +98,29 @@ class Base25519(FrozenInstance):
             raise Issue.value_already_set("key", "the instance")
         self._secret_key = self._process_secret_key(secret_key)
         self._public_key = self._secret_key.public_key()
+        return self
+
+    async def aimport_public_key(
+        self, public_key: t.Union[bytes, Ed25519PublicKey, X25519PublicKey]
+    ) -> t.Self:
+        """
+        Populates an instance from the received `public_key` that is
+        of either `bytes` or `self.PublicKey` type.
+        """
+        await asleep()
+        return self.import_public_key(public_key)
+
+    def import_public_key(
+        self, public_key: t.Union[bytes, Ed25519PublicKey, X25519PublicKey]
+    ) -> t.Self:
+        """
+        Populates an instance from the received `public_key` that is
+        of either `bytes` or `self.PublicKey` type.
+        """
+        if self.has_public_key():
+            raise Issue.value_already_set("public key", "the instance")
+        self._secret_key = None
+        self._public_key = self._process_public_key(public_key)
         return self
 
     async def agenerate(self) -> t.Self:
