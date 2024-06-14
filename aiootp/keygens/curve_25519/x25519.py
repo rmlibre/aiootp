@@ -21,7 +21,6 @@ from aiootp._typing import Typing as t
 from aiootp.asynchs import asleep
 from aiootp.keygens.domain_kdf import DomainKDF
 
-from .adapter import Curve25519
 from .shared_interface import Base25519
 from .double_diffie_hellman_client import DoubleDiffieHellmanClient
 from .double_diffie_hellman_server import DoubleDiffieHellmanServer
@@ -71,8 +70,8 @@ class X25519(Base25519):
     _TripleDiffieHellmanClient: type = TripleDiffieHellmanClient
     _TripleDiffieHellmanServer: type = TripleDiffieHellmanServer
 
-    PublicKey = Curve25519.X25519PublicKey
-    SecretKey = Curve25519.X25519PrivateKey
+    PublicKey = t.X25519PublicKey
+    SecretKey = t.X25519PrivateKey
 
     async def aexchange(
         self, public_key: t.Union[t.X25519PublicKey, bytes]
@@ -83,11 +82,9 @@ class X25519(Base25519):
         exchange & returns the resulting secret shared bytes.
         """
         await asleep()
-        if public_key.__class__ is not bytes:
-            public_key = self._Curve25519.public_bytes(public_key)
-        return self._secret_key.exchange(
-            self.PublicKey.from_public_bytes(public_key)
-        )
+        if public_key.__class__ is bytes:
+            public_key = self.PublicKey.from_public_bytes(public_key)
+        return self._secret_key.exchange(public_key)
 
     def exchange(
         self, public_key: t.Union[t.X25519PublicKey, bytes]
@@ -97,11 +94,9 @@ class X25519(Base25519):
         instance's secret key to do an elliptic curve diffie-hellman
         exchange & returns the resulting secret shared bytes.
         """
-        if public_key.__class__ is not bytes:
-            public_key = self._Curve25519.public_bytes(public_key)
-        return self._secret_key.exchange(
-            self.PublicKey.from_public_bytes(public_key)
-        )
+        if public_key.__class__ is bytes:
+            public_key = self.PublicKey.from_public_bytes(public_key)
+        return self._secret_key.exchange(public_key)
 
     @classmethod
     def dh2_client(cls) -> DoubleDiffieHellmanClient:

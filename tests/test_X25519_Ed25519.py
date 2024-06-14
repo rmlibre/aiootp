@@ -20,35 +20,6 @@ OTHER_TYPE_MAPPING = {Ed25519.__name__: X25519, X25519.__name__: Ed25519}
 async def basic_async_tests(tested_class):
     secret_key_a = await tested_class().agenerate()
 
-    # the Curve25519 class handles pulling correct values from the
-    # cryptography package
-    assert (
-        secret_key_a.secret_bytes
-        == await secret_key_a._Curve25519.asecret_bytes(secret_key_a.secret_key)
-    )
-    assert (
-        secret_key_a.public_bytes
-        == await secret_key_a._Curve25519.apublic_bytes(secret_key_a.public_key)
-    )
-
-    problem = (
-        "An invalid type was allowed to be used to extract secret bytes."
-    )
-    async with Ignore(TypeError, if_else=violation(problem)):
-        await secret_key_a._Curve25519.asecret_bytes(secret_key_a.public_key)
-
-    problem = (
-        "An invalid type was allowed to be used to extract secret bytes."
-    )
-    async with Ignore(TypeError, if_else=violation(problem)):
-        await secret_key_a._Curve25519.asecret_bytes(secret_key_a)
-
-    problem = (
-        "An invalid type was allowed to be used to extract public bytes."
-    )
-    async with Ignore(TypeError, if_else=violation(problem)):
-        await secret_key_a._Curve25519.apublic_bytes(secret_key_a)
-
     problem = (
         "An invalid type was allowed to be imported as a secret key."
     )
@@ -151,35 +122,6 @@ async def basic_async_tests(tested_class):
 
 def basic_sync_tests(tested_class):
     secret_key_b = tested_class().generate()
-
-    # the Curve25519 class handles pulling correct values from the
-    # cryptography package
-    assert (
-        secret_key_b.secret_bytes
-        == secret_key_b._Curve25519.secret_bytes(secret_key_b.secret_key)
-    )
-    assert (
-        secret_key_b.public_bytes
-        == secret_key_b._Curve25519.public_bytes(secret_key_b.public_key)
-    )
-
-    problem = (
-        "An invalid type was allowed to be used to extract secret bytes."
-    )
-    with Ignore(TypeError, if_else=violation(problem)):
-        secret_key_b._Curve25519.secret_bytes(secret_key_b.public_key)
-
-    problem = (
-        "An invalid type was allowed to be used to extract secret bytes."
-    )
-    with Ignore(TypeError, if_else=violation(problem)):
-        secret_key_b._Curve25519.secret_bytes(secret_key_b)
-
-    problem = (
-        "An invalid type was allowed to be used to extract public bytes."
-    )
-    with Ignore(TypeError, if_else=violation(problem)):
-        secret_key_b._Curve25519.public_bytes(secret_key_b)
 
     # Testing equality of sync constructors
     key_b_from_secret_object = tested_class().import_secret_key(secret_key_b.secret_key)
@@ -286,13 +228,18 @@ async def test_X25519(database, async_database):
 
     # exchange methods create shared keys from different instances'
     # secret key object
-    shared_key_a = secret_key_a.exchange(secret_key_b.secret_key)
-    shared_key_b = secret_key_b.exchange(secret_key_a.secret_key)
-    assert bytes_are_equal(shared_key_a, shared_key_b)
+    problem = (
+        "A secret key was used in an interface expecting a public key."
+    )
+    with Ignore(TypeError, if_else=violation(problem)):
+        secret_key_a.exchange(secret_key_b.secret_key)
+    with Ignore(TypeError, if_else=violation(problem)):
+        secret_key_b.exchange(secret_key_a.secret_key)
 
-    shared_key_a = await secret_key_a.aexchange(secret_key_b.secret_key)
-    shared_key_b = await secret_key_b.aexchange(secret_key_a.secret_key)
-    assert await abytes_are_equal(shared_key_a, shared_key_b)
+    with Ignore(TypeError, if_else=violation(problem)):
+        await secret_key_a.aexchange(secret_key_b.secret_key)
+    with Ignore(TypeError, if_else=violation(problem)):
+        await secret_key_b.aexchange(secret_key_a.secret_key)
 
 
 class TestDiffieHellmanProtocols:

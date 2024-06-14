@@ -21,7 +21,6 @@ from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
 from aiootp.asynchs import asleep
 
-from .adapter import Curve25519
 from .shared_interface import Base25519
 
 
@@ -73,8 +72,8 @@ class Ed25519(Base25519):
     __slots__ = ("_public_key", "_secret_key")
 
     InvalidSignature = t.InvalidSignature
-    PublicKey = Curve25519.Ed25519PublicKey
-    SecretKey = Curve25519.Ed25519PrivateKey
+    PublicKey = t.Ed25519PublicKey
+    SecretKey = t.Ed25519PrivateKey
 
     async def asign(self, data: bytes) -> bytes:
         """

@@ -99,7 +99,6 @@ include aiootp/keygens/mnemonics.py
 include aiootp/keygens/package_signer.py
 include aiootp/keygens/package_verifier.py
 include aiootp/keygens/curve_25519/__init__.py
-include aiootp/keygens/curve_25519/adapter.py
 include aiootp/keygens/curve_25519/shared_interface.py
 include aiootp/keygens/curve_25519/ed25519.py
 include aiootp/keygens/curve_25519/double_diffie_hellman_client.py

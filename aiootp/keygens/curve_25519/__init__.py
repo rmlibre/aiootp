@@ -19,7 +19,6 @@ __doc__ = (
 )
 
 
-from .adapter import *
 from .shared_interface import *
 from .ed25519 import *
 from .double_diffie_hellman_client import *
@@ -30,7 +29,6 @@ from .x25519 import *
 
 
 modules = dict(
-    adapter=adapter,
     double_diffie_hellman_client=double_diffie_hellman_client,
     double_diffie_hellman_server=double_diffie_hellman_server,
     ed25519=ed25519,

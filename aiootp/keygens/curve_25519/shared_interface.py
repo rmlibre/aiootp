@@ -19,12 +19,17 @@ __doc__ = (
 )
 
 
+from cryptography.hazmat.primitives.asymmetric.x25519 import (
+    X25519PublicKey, X25519PrivateKey
+)
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PublicKey, Ed25519PrivateKey
+)
+
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
 from aiootp.asynchs import asleep
 from aiootp.commons import FrozenInstance
-
-from .adapter import Curve25519
 
 
 class Base25519(FrozenInstance):
@@ -35,10 +40,6 @@ class Base25519(FrozenInstance):
 
     __slots__ = ("_public_key", "_secret_key")
 
-    _Curve25519 = Curve25519
-
-    _exceptions = Curve25519.exceptions
-
     PublicKey = None
     SecretKey = None
 
@@ -46,45 +47,40 @@ class Base25519(FrozenInstance):
         self,
         public_key: t.Union[
             bytes,
-            t.X25519PrivateKey,
-            t.Ed25519PrivateKey,
-            t.X25519PublicKey,
-            t.Ed25519PublicKey,
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
         ],
-    ) -> t.Union[t.X25519PublicKey, t.Ed25519PublicKey]:
+    ) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
         """
         Accepts a `public_key` in either bytes, `X25519PublicKey`,
         `X25519PrivateKey`, `Ed25519PublicKey` or `Ed25519PrivateKey`
         format. Returns an instantiaed public key associated with the
         subclass inheriting this method.
         """
-        if issubclass(
-            public_key.__class__,
-            (self.PublicKey, self.SecretKey, self.__class__)
-        ):
-            public_key = self._Curve25519.public_bytes(public_key)
+        cls = public_key.__class__
+        if cls is bytes:
             return self.PublicKey.from_public_bytes(public_key)
-        elif public_key.__class__ is bytes:
-            return self.PublicKey.from_public_bytes(public_key)
+        elif issubclass(cls, self.PublicKey):
+            return public_key
         else:
             raise Issue.value_must_be_type("public_key", "valid key type")
 
     def _process_secret_key(
         self,
-        secret_key: t.Union[bytes, t.X25519PrivateKey, t.Ed25519PrivateKey],
-    ) -> t.Union[t.Ed25519PrivateKey, t.X25519PrivateKey]:
+        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
+    ) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
         """
         Accepts a `secret_key` in either bytes, `X25519PrivateKey`
         or `Ed25519PrivateKey` format. Returns an instantiaed secret
         key associated with the subclass inheriting this method.
         """
-        if issubclass(
-            secret_key.__class__, (self.SecretKey, self.__class__)
-        ):
-            secret_key = self._Curve25519.secret_bytes(secret_key)
+        cls = secret_key.__class__
+        if cls is bytes:
             return self.SecretKey.from_private_bytes(secret_key)
-        elif secret_key.__class__ is bytes:
-            return self.SecretKey.from_private_bytes(secret_key)
+        elif issubclass(cls, self.SecretKey):
+            return secret_key
         else:
             raise Issue.value_must_be_type("secret_key", "valid key type")
 
@@ -92,10 +88,10 @@ class Base25519(FrozenInstance):
         self,
         public_key: t.Union[
             bytes,
-            t.X25519PrivateKey,
-            t.Ed25519PrivateKey,
-            t.X25519PublicKey,
-            t.Ed25519PublicKey,
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
         ],
     ) -> t.Self:
         """
@@ -110,10 +106,10 @@ class Base25519(FrozenInstance):
         self,
         public_key: t.Union[
             bytes,
-            t.X25519PrivateKey,
-            t.Ed25519PrivateKey,
-            t.X25519PublicKey,
-            t.Ed25519PublicKey,
+            X25519PrivateKey,
+            Ed25519PrivateKey,
+            X25519PublicKey,
+            Ed25519PublicKey,
         ],
     ) -> t.Self:
         """
@@ -129,7 +125,7 @@ class Base25519(FrozenInstance):
 
     async def aimport_secret_key(
         self,
-        secret_key: t.Union[bytes, t.X25519PrivateKey, t.Ed25519PrivateKey],
+        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
@@ -138,16 +134,14 @@ class Base25519(FrozenInstance):
         """
         await asleep()
         if hasattr(self, "_public_key") or hasattr(self, "_secret_key"):
-            raise Issue.value_already_set(f"key", "the instance")
+            raise Issue.value_already_set("key", "the instance")
         self._secret_key = self._process_secret_key(secret_key)
-        self._public_key = self.PublicKey.from_public_bytes(
-            await self._Curve25519.apublic_bytes(self._secret_key)
-        )
+        self._public_key = self._secret_key.public_key()
         return self
 
     def import_secret_key(
         self,
-        secret_key: t.Union[bytes, t.X25519PrivateKey, t.Ed25519PrivateKey],
+        secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
@@ -155,11 +149,9 @@ class Base25519(FrozenInstance):
         type.
         """
         if hasattr(self, "_public_key") or hasattr(self, "_secret_key"):
-            raise Issue.value_already_set(f"key", "the instance")
+            raise Issue.value_already_set("key", "the instance")
         self._secret_key = self._process_secret_key(secret_key)
-        self._public_key = self.PublicKey.from_public_bytes(
-            self._Curve25519.public_bytes(self._secret_key)
-        )
+        self._public_key = self._secret_key.public_key()
         return self
 
     async def agenerate(self) -> t.Self:
@@ -177,7 +169,7 @@ class Base25519(FrozenInstance):
         return self
 
     @property
-    def secret_key(self) -> t.Union[t.X25519PrivateKey, t.Ed25519PrivateKey]:
+    def secret_key(self) -> t.Union[X25519PrivateKey, Ed25519PrivateKey]:
         """
         Returns the instantiated & populated SecretKey of the associated
         subclass inheriting this method.
@@ -185,7 +177,7 @@ class Base25519(FrozenInstance):
         return self._secret_key
 
     @property
-    def public_key(self) -> t.Union[t.X25519PublicKey, t.Ed25519PublicKey]:
+    def public_key(self) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
         """
         Returns the instantiated & populated PublicKey of the associated
         subclass inheriting this method.
@@ -199,7 +191,7 @@ class Base25519(FrozenInstance):
         populated SecretKey of the associated subclass inheriting this
         method.
         """
-        return self._Curve25519.secret_bytes(self._secret_key)
+        return self._secret_key.private_bytes_raw()
 
     @property
     def public_bytes(self) -> bytes:
@@ -208,7 +200,7 @@ class Base25519(FrozenInstance):
         populated PublicKey of the associated subclass inheriting this
         method.
         """
-        return self._Curve25519.public_bytes(self._public_key)
+        return self._public_key.public_bytes_raw()
 
     def has_secret_key(self) -> bool:
         """
@@ -220,11 +212,15 @@ class Base25519(FrozenInstance):
         """
         Returns a boolean of whether the instance contains a public key.
         """
-        return hasattr(self, "_public_key")
+        return getattr(self, "_public_key", None) is not None
 
 
 module_api = dict(
     Base25519=t.add_type(Base25519),
+    Ed25519PublicKey=t.add_type(Ed25519PublicKey),
+    Ed25519PrivateKey=t.add_type(Ed25519PrivateKey),
+    X25519PublicKey=t.add_type(X25519PublicKey),
+    X25519PrivateKey=t.add_type(X25519PrivateKey),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

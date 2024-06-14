@@ -12,6 +12,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - Refactor internal ``_typing.py`` module into a subpackage.
+- Remove inefficient internal code related to the ``keygens/curve_25519/adapter.py`` module.
 
 
 Minor Changes
