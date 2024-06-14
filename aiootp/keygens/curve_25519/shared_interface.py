@@ -117,7 +117,7 @@ class Base25519(FrozenInstance):
         of either bytes, `X25519PublicKey`, `X25519PrivateKey`,
         `Ed25519PublicKey` or `Ed25519PrivateKey` type.
         """
-        if hasattr(self, "_public_key"):
+        if self.has_public_key():
             raise Issue.value_already_set("public key", "the instance")
         self._secret_key = None
         self._public_key = self._process_public_key(public_key)
@@ -133,11 +133,7 @@ class Base25519(FrozenInstance):
         type.
         """
         await asleep()
-        if hasattr(self, "_public_key") or hasattr(self, "_secret_key"):
-            raise Issue.value_already_set("key", "the instance")
-        self._secret_key = self._process_secret_key(secret_key)
-        self._public_key = self._secret_key.public_key()
-        return self
+        return self.import_secret_key(secret_key)
 
     def import_secret_key(
         self,
@@ -148,7 +144,7 @@ class Base25519(FrozenInstance):
         of either bytes, `X25519PrivateKey` or `Ed25519PrivateKey`
         type.
         """
-        if hasattr(self, "_public_key") or hasattr(self, "_secret_key"):
+        if self.has_public_key():
             raise Issue.value_already_set("key", "the instance")
         self._secret_key = self._process_secret_key(secret_key)
         self._public_key = self._secret_key.public_key()
