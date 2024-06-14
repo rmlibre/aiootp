@@ -94,8 +94,6 @@ class Base25519(FrozenInstance):
         Populates an instance from the received `secret_key` that is
         of either `bytes` or `self.SecretKey` type.
         """
-        if self.has_public_key():
-            raise Issue.value_already_set("key", "the instance")
         self._secret_key = self._process_secret_key(secret_key)
         self._public_key = self._secret_key.public_key()
         return self
@@ -117,8 +115,6 @@ class Base25519(FrozenInstance):
         Populates an instance from the received `public_key` that is
         of either `bytes` or `self.PublicKey` type.
         """
-        if self.has_public_key():
-            raise Issue.value_already_set("public key", "the instance")
         self._secret_key = None
         self._public_key = self._process_public_key(public_key)
         return self

@@ -107,17 +107,15 @@ async def basic_async_tests(tested_class):
         "Async public key import was allowed when an instance was "
         "already initialized with a key."
     )
-    async with Ignore(PermissionError, if_else=violation(problem)) as relay:
+    async with Ignore(PermissionError, if_else=violation(problem)):
         await secret_key_a.aimport_public_key(secret_key_a.public_bytes)
-    assert "is already set" in relay.error.args[0]
 
     problem = (
         "Async secret key import was allowed when an instance was "
         "already initialized with a key."
     )
-    async with Ignore(PermissionError, if_else=violation(problem)) as relay:
+    async with Ignore(PermissionError, if_else=violation(problem)):
         await secret_key_a.aimport_secret_key(secret_key_a.secret_bytes)
-    assert "is already set" in relay.error.args[0]
 
 
 def basic_sync_tests(tested_class):
@@ -189,13 +187,19 @@ def basic_sync_tests(tested_class):
     assert secret_key_b.has_secret_key()
     assert secret_key_b.has_public_key()
 
-    with Ignore(PermissionError) as relay:
+    problem = (
+        "Sync public key import was allowed when an instance was "
+        "already initialized with a key."
+    )
+    with Ignore(PermissionError, if_else=violation(problem)):
         secret_key_b.import_public_key(secret_key_b.public_bytes)
-    assert "is already set" in relay.error.args[0]
 
-    with Ignore(PermissionError) as relay:
+    problem = (
+        "Sync secret key import was allowed when an instance was "
+        "already initialized with a key."
+    )
+    with Ignore(PermissionError, if_else=violation(problem)):
         secret_key_b.import_secret_key(secret_key_b.secret_bytes)
-    assert "is already set" in relay.error.args[0]
 
 
 async def test_X25519(database, async_database):
