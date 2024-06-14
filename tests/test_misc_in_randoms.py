@@ -176,7 +176,7 @@ class TestRandomNumberGenerator:
 
     async def test_freshness_must_be_positive_int(self) -> None:
         problem = (
-            "A non-positive `freshness` value was allowed."
+            "A non-positive int `freshness` value was allowed."
         )
         for bad_freshness in (b"-2", "1.0"):
             with Ignore(TypeError, if_else=violation(problem)):
