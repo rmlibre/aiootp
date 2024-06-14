@@ -45,19 +45,12 @@ class Base25519(FrozenInstance):
 
     def _process_public_key(
         self,
-        public_key: t.Union[
-            bytes,
-            X25519PrivateKey,
-            Ed25519PrivateKey,
-            X25519PublicKey,
-            Ed25519PublicKey,
-        ],
+        public_key: t.Union[bytes, X25519PublicKey, Ed25519PublicKey],
     ) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
         """
-        Accepts a `public_key` in either bytes, `X25519PublicKey`,
-        `X25519PrivateKey`, `Ed25519PublicKey` or `Ed25519PrivateKey`
-        format. Returns an instantiated public key associated with the
-        subclass inheriting this method.
+        If `public_key` is either of `bytes` or `self.PublicKey` type,
+        returns an instance of `self.PublicKey`. Otherwise raises
+        `TypeError`.
         """
         cls = public_key.__class__
         if cls is bytes:
@@ -72,9 +65,9 @@ class Base25519(FrozenInstance):
         secret_key: t.Union[bytes, X25519PrivateKey, Ed25519PrivateKey],
     ) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
         """
-        Accepts a `secret_key` in either bytes, `X25519PrivateKey`
-        or `Ed25519PrivateKey` format. Returns an instantiated secret
-        key associated with the subclass inheriting this method.
+        If `secret_key` is either of `bytes` or `self.SecretKey` type,
+        returns an instance of `self.SecretKey`. Otherwise raises
+        `TypeError`.
         """
         cls = secret_key.__class__
         if cls is bytes:
@@ -86,36 +79,22 @@ class Base25519(FrozenInstance):
 
     async def aimport_public_key(
         self,
-        public_key: t.Union[
-            bytes,
-            X25519PrivateKey,
-            Ed25519PrivateKey,
-            X25519PublicKey,
-            Ed25519PublicKey,
-        ],
+        public_key: t.Union[bytes, X25519PublicKey, Ed25519PublicKey],
     ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
-        of either bytes, `X25519PublicKey`, `X25519PrivateKey`,
-        `Ed25519PublicKey` or `Ed25519PrivateKey` type.
+        of either `bytes` or `self.PublicKey` type.
         """
         await asleep()
         return self.import_public_key(public_key)
 
     def import_public_key(
         self,
-        public_key: t.Union[
-            bytes,
-            X25519PrivateKey,
-            Ed25519PrivateKey,
-            X25519PublicKey,
-            Ed25519PublicKey,
-        ],
+        public_key: t.Union[bytes, X25519PublicKey, Ed25519PublicKey],
     ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
-        of either bytes, `X25519PublicKey`, `X25519PrivateKey`,
-        `Ed25519PublicKey` or `Ed25519PrivateKey` type.
+        of either `bytes` or `self.PublicKey` type.
         """
         if self.has_public_key():
             raise Issue.value_already_set("public key", "the instance")
@@ -129,8 +108,7 @@ class Base25519(FrozenInstance):
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
-        of either bytes, `X25519PrivateKey` or `Ed25519PrivateKey`
-        type.
+        of either `bytes` or `self.SecretKey` type.
         """
         await asleep()
         return self.import_secret_key(secret_key)
@@ -141,8 +119,7 @@ class Base25519(FrozenInstance):
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
-        of either bytes, `X25519PrivateKey` or `Ed25519PrivateKey`
-        type.
+        of either `bytes` or `self.SecretKey` type.
         """
         if self.has_public_key():
             raise Issue.value_already_set("key", "the instance")
@@ -152,14 +129,14 @@ class Base25519(FrozenInstance):
 
     async def agenerate(self) -> t.Self:
         """
-        Populates the instance with a newly generated private key.
+        Populates the instance with a newly generated secret key.
         """
         await self.aimport_secret_key(self.SecretKey.generate())
         return self
 
     def generate(self) -> t.Self:
         """
-        Populates the instance with a newly generated private key.
+        Populates the instance with a newly generated secret key.
         """
         self.import_secret_key(self.SecretKey.generate())
         return self
@@ -167,34 +144,28 @@ class Base25519(FrozenInstance):
     @property
     def secret_key(self) -> t.Union[X25519PrivateKey, Ed25519PrivateKey]:
         """
-        Returns the instantiated & populated SecretKey of the associated
-        subclass inheriting this method.
+        Returns the instance's secret key object.
         """
         return self._secret_key
 
     @property
     def public_key(self) -> t.Union[X25519PublicKey, Ed25519PublicKey]:
         """
-        Returns the instantiated & populated PublicKey of the associated
-        subclass inheriting this method.
+        Returns the instance's public key object.
         """
         return self._public_key
 
     @property
     def secret_bytes(self) -> bytes:
         """
-        Returns the secret bytes of the instance's instantiated &
-        populated SecretKey of the associated subclass inheriting this
-        method.
+        Returns the secret bytes of the instance's secret key.
         """
         return self._secret_key.private_bytes_raw()
 
     @property
     def public_bytes(self) -> bytes:
         """
-        Returns the public bytes of the instance's instantiated &
-        populated PublicKey of the associated subclass inheriting this
-        method.
+        Returns the public bytes of the instance's public key.
         """
         return self._public_key.public_bytes_raw()
 
