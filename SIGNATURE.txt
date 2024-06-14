@@ -1,5 +1,5 @@
 {
-    "checksum": "005925a70b9334e7ed72f598eb33f13626b6d83915e78f297644cf6080f27153dd1c9c5ce8a975298ef82f171bb72f44",
+    "checksum": "0771accd6cd89262043e2648adead976c28eb28d78d00c23d2e2ab84ebd38dc2d5b6f1f1879d7f902d9cf677d711f8ed",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "841e56f0c3ea3cfd84e54bc5c4f5c52c5183424372a2d618b1897dd5e34ee89c032dee4cb93d8ea8fe02602882cd5fa1",
@@ -30,7 +30,7 @@
         "aiootp/_typing/_commons.py": "e8513b22ecc0e70b47086cd45f7923e038e15cf6bdcd0650b9c1090943edbd9bdedb9df3d75ac29b79c566012893e08e",
         "aiootp/_typing/_databases.py": "3b8661b9ee4d18940766ad2e903d6111d4a3053e570f8aa06f2fd661003f456e4cd412e5a24610e0fa13de035a6b4bd9",
         "aiootp/_typing/_generics.py": "2d5872d92a661ef71b26cf224ef4b2fc55b0369cad99336d4235d81b572e7b8ba17c5746341adc0bc9f370f86c6665a2",
-        "aiootp/_typing/_keygens.py": "98c84d00301ca8d19825a8585e0b7ee4b1828a7f69e26e834e8145b425d7f4c76b62ffd97583a1628e921a960d5fcf28",
+        "aiootp/_typing/_keygens.py": "c7c74efd2971f45cfdb7e154d489b70673df8b614456b32d2ece3c2a58b323e233c69298faa328d53935c2f5001d0ad7",
         "aiootp/_typing/_paths.py": "e8282266c4bc1c31f38cf6a5a38ec861f1b3406469d6e30008012ed423143996d3711624fd3e10cf4619bc2ee6c4c4f4",
         "aiootp/_typing/_permutations.py": "0655c2c7dae49f8475b1e270eb2afcb00d9c05fda8fe6c910b2c9167ca124f3c890c9cc5cdfd1089c69a2f63fc24b615",
         "aiootp/_typing/_randoms.py": "5730ddfe8ead5c5c19eb303543beb465a96f2b20eb1ef7ec72452fffb90227c79bf9d3b9900883b11b985c905902c4e0",
@@ -85,15 +85,15 @@
         "aiootp/keygens/curve_25519/__init__.py": "0a55b37d58c01080dcf32858576864d442e9f32156201c8dfb762c99118a005516667451720d88d7725551fcefd4e7e2",
         "aiootp/keygens/curve_25519/double_diffie_hellman_client.py": "79a3c14a2a454c761c5132ff0e61c3fd5cba5b5630fc5563655895153ffeb2b951ae2bcc96ef2c8ac1137b2d89dc8a3c",
         "aiootp/keygens/curve_25519/double_diffie_hellman_server.py": "95388cf8fd52c6fbbf8e5ef0c424852d6afc6ccd6ab5cc10e67d57ee0a7c26e554af78937bc3cc6f58c2345ae4e773c5",
-        "aiootp/keygens/curve_25519/ed25519.py": "13af384c277240d2ddec9a4337c3c03581ff30e9574a71dc411c84d233ef22944206322692fba7e6694e34eea8bc0a5a",
-        "aiootp/keygens/curve_25519/shared_interface.py": "1b9fd44f113389a675987b4816d1e0000d6178ac7e92e6d770f48d59a74ecb4cb7de6be06dcb9523c9bbbb7ebd202aef",
+        "aiootp/keygens/curve_25519/ed25519.py": "d637b3e803fcc725351569a999f73f379289f6e16ba81dac47e9441619d7cd8962032ff1077004e236b3b6c9a84ad42d",
+        "aiootp/keygens/curve_25519/shared_interface.py": "255eb83eb8f955ea0c4cb10085ec98b0ab865161b32203c8e078dda1b8ead00b6ce47bcec69bc7f6c3bbe61be246926d",
         "aiootp/keygens/curve_25519/triple_diffie_hellman_client.py": "e1e4db8ec7bb3ab48e5893d2a6778f2c50546c64a226129669e5e4074b4458a5c904a91c7d64faa98c9a9144930667da",
         "aiootp/keygens/curve_25519/triple_diffie_hellman_server.py": "b877206b5276f14d6a5aca8ebc7468a53168f1af83684388e3d64f7ad6ec2acd366b6aa8d67cd6e1ea5e7bd9f4a30a34",
-        "aiootp/keygens/curve_25519/x25519.py": "39a26267c3440dbde26feac2f2e875fc55a3d6b900a5d6df602b65a2501956d167aaeb7a340e382c58e70f0f7d97b1e4",
+        "aiootp/keygens/curve_25519/x25519.py": "4f651c434620305bd8b44be29c131ddf9d73aad259bd83abd867c275881af5fb20ac1a2a30b06e60ee4ce8988c3ae543",
         "aiootp/keygens/domain_kdf.py": "77eac604b23c4eff87c32fb2b3748e51670e08e8ff77969ca8134b6e16882363d821dd9d81b02e923d35a6145c932d1d",
         "aiootp/keygens/mnemonics.py": "ab207d3d1d0adff828f6c877965464d04a7fc15ffce7d5a837e0ae177a8187aad9b2e7cfd09dbb01756c872999b50b90",
-        "aiootp/keygens/package_signer.py": "dc685f668b9d0a352ef58693a6af0f7eff18e2c0667a7d3a50f3ffdb7feb3db3b3be1f9ce3f368181d64bd56d25e5493",
-        "aiootp/keygens/package_verifier.py": "a14dce7e9a355debe60d40b7cdd0bedd4039551eec266347da778d2116993c59cd49cd61bc37fb20ca8f69d672b1b26f",
+        "aiootp/keygens/package_signer.py": "b286467d34b976f06f4346518ab8d44288ee53611fa3ca007c8c706cba2fcf320b8396f08c8493ef98b19fda63bd8d50",
+        "aiootp/keygens/package_verifier.py": "8b34f00eab5aff6400a67fcd654908877b88c10cd4ab729041467fabc5e2b9d5e9416ac9af9729d89bcd93f9a0bbb62e",
         "aiootp/keygens/passcrypt/__init__.py": "5d3cdecd6197a080207543e263e1255190e292a87510a1890bdf54f55d92ef2b4352b6183bf60d8c8a86efce00695b92",
         "aiootp/keygens/passcrypt/config.py": "c2fd3da1043a326a932dcb8039729967992c8adc0a1e63e10a41eed05b53c497d938e21ab7e1fb613f9ff9f8eba66ad1",
         "aiootp/keygens/passcrypt/hash_format.py": "125e72492ba87a277d0f3e8d09370ee4bef31dcc1623035a65debf9f3973e5a4da50f5e2c20f79e807769874a27959d4",
@@ -130,7 +130,7 @@
         "tests/test_SequenceID.py": "9dbf083dc4b026ff0fe082bd48fe30aec48400673193f90ff11095037e20bd31a3239766a9ba0d82ec630bd0d88e5cf1",
         "tests/test_StreamHMAC.py": "d94c19bcfef96b8b40b9ebd5d9fc9c6874ef0897200106212189eba0e0a75775150d9b840d0b531a360526ec2d466006",
         "tests/test_Typing_class.py": "7b36c1e797abb08747875a49c13b5c33f5c978d0e3cd7fd290489e2f2039bc089149578ef1aad2704b547bcda8f25346",
-        "tests/test_X25519_Ed25519.py": "daf7dc4ae82dcfe3be784d4bc697fc80fa050306c088bd1df263dd47a5e10b059332db171a831a6b0b50b803b7164e08",
+        "tests/test_X25519_Ed25519.py": "7223c1bd3a28c9c33957a916dcf3d9d2812489263161672919c83631c40b58a73420ceb6966e82fa8980b6bfabff4509",
         "tests/test_affine_permutations.py": "11a39c1cf5632d1faa15de086c934e150ec0489f8c7ba4a567c747a235d6b333038ec3049db15837f0afe0bf80450be2",
         "tests/test_aiootp.py": "e1b4fd34e3351c4530085f7bce77fc56835b1afe8db4edc261988a1715236cca42a94ccefe62dbe1f06cfa15d74a100d",
         "tests/test_asynchs.py": "4f91e555fd91966dcb1e1334c2405fa58c386bf26f04eb02bd30a021d4c730d63a31a8980121b6f70733aa81b1b19d38",
@@ -148,7 +148,7 @@
         "tests/test_misc_in_ciphers.py": "d46b0d661103fddacbf17cacc0285d4f771d64b23c1ba9260f3a49b7fa9cf35a528ebc8a7d1c9608c7a7c0bea985967f",
         "tests/test_misc_in_generics.py": "564f0d1c5a7a61362baa9eaf67852eb76e1325145f4161750c6c3552e00180de5f15fea4da42c0a6ee8ea4d24e015494",
         "tests/test_misc_in_keygens.py": "f4ad34672459c4e2058ffe17cc95477268b267a5b33d406e086eae16f640d76d200488d3f88e2c85b1a6d7d95c87f55b",
-        "tests/test_misc_in_randoms.py": "58791fc261e3491ef7e06216ff6e0d58cb6491f8a2ba3fc33f3a843a2ba66a11608d6dd8168a72413534ebf32d06aa3c",
+        "tests/test_misc_in_randoms.py": "d890086d771c76781ea58ef49f41e280cc6daa917af0d12a0fd52b91d8076c607781ec9ca9f60bfe44359fac65b0239f",
         "tests/test_namespace_classes.py": "393d9d4340b6028058cf2a10a4b517355f0579261b506e8f88027edcc8200a9343f3c812c19791fac56e8f8d183a0f0b",
         "tests/test_online_cipher_interfaces.py": "fa342cb6a1314e4ae8dfbbd3d5b368b3e0a76c8f6d7b82d44e1db3865ebba4dd93fd8ad027a92c708e5b4bc02705d772",
         "tests/test_permutations.py": "f9261eaa557889f147d245039c15828c2c38323ba28a32a0e47324296e89681ca8ac7d858e7dc23feffa5f4d7daa589b",
@@ -159,7 +159,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 6,
+        "build_number": 7,
         "date": 19888,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -167,5 +167,5 @@
         "version": "0.23.5"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "afa845c786d8de50fedad5d42a301a096c3a4e7144feea0b415675909e92223498327bba1e06c2dc85a64af93491a192cf14933edb4ad29badfb3cc197e4860f"
+    "signature": "2c8bfd14a5dc013742966a126c70bb9e667a4f7d8fcd34c1d5c2e0344a0e14b4719505bc350bbed94e15b3275e1e8e4bde602a3ee1bfa440423fbacd935fc30b"
 }
