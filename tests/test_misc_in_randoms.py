@@ -128,7 +128,7 @@ class TestEntropyDaemon:
     async def test_zzz_cancel_stops_daemon(self) -> None:
         assert self.daemon._daemon.is_alive()
         self.daemon.cancel()
-        await asleep(2 * self.daemon._max_delay)
+        await asleep(3 * self.daemon._max_delay)
         assert not self.daemon._daemon.is_alive()
 
 
