@@ -56,7 +56,7 @@ class Base25519(FrozenInstance):
         """
         Accepts a `public_key` in either bytes, `X25519PublicKey`,
         `X25519PrivateKey`, `Ed25519PublicKey` or `Ed25519PrivateKey`
-        format. Returns an instantiaed public key associated with the
+        format. Returns an instantiated public key associated with the
         subclass inheriting this method.
         """
         cls = public_key.__class__
@@ -73,7 +73,7 @@ class Base25519(FrozenInstance):
     ) -> t.Union[Ed25519PrivateKey, X25519PrivateKey]:
         """
         Accepts a `secret_key` in either bytes, `X25519PrivateKey`
-        or `Ed25519PrivateKey` format. Returns an instantiaed secret
+        or `Ed25519PrivateKey` format. Returns an instantiated secret
         key associated with the subclass inheriting this method.
         """
         cls = secret_key.__class__
