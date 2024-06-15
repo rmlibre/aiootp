@@ -24,6 +24,33 @@ while len(_test_sizes) != 8:
     _test_sizes.add(choice(range(1, 33)))
 
 
+class TestAffinePermutationConfig:
+    kw = dict(aad=b"testing")
+
+    async def test_size_must_be_within_bounded_limits(self) -> None:
+        problem = (
+            "A size out of bounds was allowed."
+        )
+        for bad_size in (-1, 0, 4097):
+            with Ignore(ValueError, if_else=violation(problem)):
+                t.AffinePermutationConfig(size=bad_size, **self.kw)
+
+    async def test_smallest_allowed_prime(self) -> None:
+        problem = (
+            "A prime below 257 was allowed."
+        )
+        config_id = size = 1
+        config = t.AffinePermutation._configs[config_id]
+        config.is_likely_safe_multiplier(
+            config.MULTIPLICATIVE_KEY, prime=257
+        )
+        for bad_prime in (2, 23, 59, 97, 137, 179, 251):
+            with Ignore(ValueError, if_else=violation(problem)):
+                config.is_likely_safe_multiplier(
+                    config.MULTIPLICATIVE_KEY, prime=bad_prime
+                )
+
+
 class TestAffinePermutation:
     _type: type = AffinePermutation
 

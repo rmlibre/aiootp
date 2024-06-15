@@ -61,7 +61,7 @@ class AffinePermutationConfig(Config):
         if 4096 >= size > 0:
             return size
         else:
-            raise Issue.value_must("size", "be > 0 and <= 4096")  # pragma: no cover
+            raise Issue.value_must("size", "be > 0 and <= 4096")
 
     @staticmethod
     def _make_multiplier_mask(bit_length: int) -> int:
