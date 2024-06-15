@@ -45,6 +45,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - Add ``(a)canonical_unpack`` references to ``generics``, communicating their higher-level usefulness.
+- Add ``test_event_loops.py`` test module.
 - Rename ``test_passcrypt_apasscrypt.py`` to ``test_Passcrypt.py``.
 - Improvements & fixes to type hints.
 - Improvements & fixes to doc strings.
