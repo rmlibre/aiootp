@@ -40,6 +40,10 @@ def new_dual_output_config_copy(
     salt_bytes: int = 8,
     iv_bytes: int = 8,
     permutation_type: type = FastAffineXORChain,
+    block_id_kdf_config: t.Optional[t.ShakeConfig] = None,
+    shmac_kdf_config: t.Optional[t.ShakeConfig] = None,
+    left_kdf_config: t.Optional[t.ShakeConfig] = None,
+    right_kdf_config: t.Optional[t.ShakeConfig] = None,
 ) -> t.ConfigType:
     config = _config.__new__(_config.__class__)
     config.__init__(
@@ -64,7 +68,7 @@ def new_dual_output_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(None),
-        ),
+        ) if block_id_kdf_config is None else block_id_kdf_config,
         shmac_kdf=SHMAC_KDF,
         shmac_kdf_config=ShakeConfig(
             name=SHMAC_KDF,
@@ -72,7 +76,7 @@ def new_dual_output_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(None),
-        ),
+        ) if shmac_kdf_config is None else shmac_kdf_config,
         left_kdf=LEFT_KDF,
         left_kdf_config=ShakeConfig(
             name=LEFT_KDF,
@@ -80,7 +84,7 @@ def new_dual_output_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(0, None, 2),  # Even index bytes
-        ),
+        ) if left_kdf_config is None else left_kdf_config,
         right_kdf=RIGHT_KDF,
         right_kdf_config=ShakeConfig(
             name=RIGHT_KDF,
@@ -88,7 +92,7 @@ def new_dual_output_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(1, None, 2),  # Odd index bytes
-        ),
+        ) if right_kdf_config is None else right_kdf_config,
         permutation_type=permutation_type,
     )
     return config
@@ -112,6 +116,8 @@ def new_shake_permute_config_copy(
     salt_bytes: int = 8,
     iv_bytes: int = 8,
     permutation_type: type = FastAffineXORChain,
+    block_id_kdf_config: t.Optional[t.ShakeConfig] = None,
+    shmac_kdf_config: t.Optional[t.ShakeConfig] = None,
 ) -> t.ConfigType:
     config = _config.__new__(_config.__class__)
     config.__init__(
@@ -136,7 +142,7 @@ def new_shake_permute_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(None),
-        ),
+        ) if block_id_kdf_config is None else block_id_kdf_config,
         shmac_kdf=SHMAC_KDF,
         shmac_kdf_config=ShakeConfig(
             name=SHMAC_KDF,
@@ -144,7 +150,7 @@ def new_shake_permute_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(None),
-        ),
+        ) if shmac_kdf_config is None else shmac_kdf_config,
         permutation_type=permutation_type,
     )
     return config
@@ -159,6 +165,24 @@ def new_config_copy(_config: t.ConfigType, **kw) -> t.ConfigType:
 
 class TestCipherConfigs:
 
+    async def test_inner_header_size_must_be_even(self) -> None:
+        problem = (
+            "An odd sized inner-header was allowed to be configured."
+        )
+        for (_config, cipher, salt, aad) in dual_output_ciphers:
+            with Ignore(ValueError, if_else=violation(problem)):
+                new_dual_output_config_copy(
+                    _config, timestamp_bytes=4, siv_key_bytes=11
+                )
+
+    async def test_blocksize_size_must_be_even(self) -> None:
+        problem = (
+            "An odd blocksize was allowed to be configured."
+        )
+        for (_config, cipher, salt, aad) in dual_output_ciphers:
+            with Ignore(ValueError, if_else=violation(problem)):
+                new_dual_output_config_copy(_config, blocksize=255)
+
     async def test_blocksize_must_be_positive(self) -> None:
         problem = (
             "A nonsensical blocksize was allowed."
@@ -168,6 +192,31 @@ class TestCipherConfigs:
             config.BLOCKSIZE = -1
             with Ignore(ValueError, if_else=violation(problem)):
                 config._ensure_blocksize_is_positive()
+
+    async def test_left_right_kdf_blocksizes_are_equal(self) -> None:
+        problem = (
+            "Non-equal left & right KDF blocksizes were allowed to be "
+            "configured."
+        )
+        for (_config, cipher, salt, aad) in dual_output_ciphers:
+            with Ignore(ValueError, if_else=violation(problem)):
+                new_dual_output_config_copy(
+                    _config,
+                    left_kdf_config=ShakeConfig(
+                        name=LEFT_KDF,
+                        pad=b"\x5c",
+                        offset_amount=0,
+                        hasher=shake_256,
+                        key_slice=slice(0, None, 2),
+                    ),
+                    right_kdf_config=ShakeConfig(
+                        name=RIGHT_KDF,
+                        pad=b"\x36",
+                        offset_amount=0,
+                        hasher=shake_128,
+                        key_slice=slice(1, None, 2),
+                    ),
+                )
 
     async def test_extracted_round_entopy_not_larger_than_blocksize(
         self
