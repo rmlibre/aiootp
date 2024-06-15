@@ -27,14 +27,14 @@ while len(_test_sizes) != 8:
 class TestAffinePermutation:
     _type: type = AffinePermutation
 
-    async def test_additive_key_remains_unchanged(self):
+    async def test_additive_key_remains_unchanged(self) -> None:
         for size in _test_sizes:
             key = _key[:self._type.key_size(size)]
             aff = self._type(key=key, config_id=size)
             assert key == _key[:aff.key_size(size)]
             assert key == aff._additive_key.to_bytes(2 * size, BIG)
 
-    async def test_multiplicative_key_creates_correct_inverse_key(self):
+    async def test_multiplicative_key_creates_correct_inverse_key(self) -> None:
         for size in _test_sizes:
             bitsize = 1 << (8 * size)
             add_key = _key[:self._type.key_size(size)]
@@ -44,7 +44,7 @@ class TestAffinePermutation:
             inversions = [(aff.config.INVERSE_KEY * i) % aff._PRIME for i in elements]
             assert inversions == _plaintexts
 
-    async def test_permutation_size_mapped_from_config_id(self):
+    async def test_permutation_size_mapped_from_config_id(self) -> None:
         for size in _test_sizes:
             bitsize = 1 << (8 * size)
             key = _key[:self._type.key_size(size)]
@@ -56,7 +56,7 @@ class TestAffinePermutation:
             assert bitsize >= aff.permute(token_bits(8 * size)) >= 0
             assert bitsize >= await aff.apermute(token_bits(8 * size)) >= 0
 
-    async def test_permutation_is_correctly_invertible(self):
+    async def test_permutation_is_correctly_invertible(self) -> None:
         for size in _test_sizes:
             key = _key[:self._type.key_size(size)]
             aff = self._type(key=key, config_id=size)
@@ -85,14 +85,14 @@ class TestAffineXORChain:
             + aff._aff_out._additive_key.to_bytes(add_key_size, BIG)
         )
 
-    async def test_subpermutations_are_affine_permutation_types(self):
+    async def test_subpermutations_are_affine_permutation_types(self) -> None:
         for size in _test_sizes:
             key = _key[:self._type.key_size(config_id=size)]
             aff = self._type(key=key, config_id=size)
             for permutation in (aff._aff_in, aff._aff_mid, aff._aff_out):
                 assert issubclass(permutation.__class__, AffinePermutation)
 
-    async def test_subkeys_non_overlapping_slices_of_input_key(self):
+    async def test_subkeys_non_overlapping_slices_of_input_key(self) -> None:
         for size in _test_sizes:
             key = _key[:self._type.key_size(config_id=size)]
             aff = self._type(key=key, config_id=size)
@@ -101,7 +101,7 @@ class TestAffineXORChain:
             )
             assert key == self.recomposed_key(aff)
 
-    async def test_permutation_is_correctly_invertible(self):
+    async def test_permutation_is_correctly_invertible(self) -> None:
         for size in _test_sizes:
             key = _key[:self._type.key_size(config_id=size)]
             aff = self._type(key=key, config_id=size)
@@ -122,7 +122,7 @@ class TestAffineXORChain:
             assert _plaintexts == inversions
             assert _plaintexts == uncapped_inversions
 
-    async def validate_latin_square_property(self, aff, SIZE, DOMAIN):
+    async def validate_latin_square_property(self, aff, SIZE, DOMAIN) -> None:
         latin_square = set()
         for step in range(DOMAIN):
             row = tuple(aff.permute(i) for i in range(DOMAIN))
@@ -138,7 +138,9 @@ class TestAffineXORChain:
         assert len(columns) == DOMAIN
         assert all(len(set(column)) == DOMAIN for column in columns)
 
-    async def test_step_causes_full_domain_evaluation_to_fill_a_latin_square(self):
+    async def test_step_causes_full_domain_evaluation_to_fill_a_latin_square(
+        self
+    ) -> None:
         SIZE = 1
         DOMAIN = 256 * SIZE
         key = _key[:self._type.key_size(config_id=SIZE)]
