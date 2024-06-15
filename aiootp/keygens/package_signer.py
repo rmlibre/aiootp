@@ -131,7 +131,7 @@ class PackageSigner:
         }
 
     @classmethod
-    def generate_signing_key(cls) -> t.SecretKeyType:
+    def generate_signing_key(cls) -> t.SignerType:
         """
         Generates a new `Ed25519` secret signing key object.
         """
@@ -280,7 +280,7 @@ class PackageSigner:
         finally:
             return self
 
-    def update_scope(self, **scopes) -> t.Self:
+    def update_scope(self, **scopes: t.JSONSerializable) -> t.Self:
         """
         Updates the package scopes to qualify the package signature of
         the current package version within the instance.
@@ -289,7 +289,7 @@ class PackageSigner:
         return self
 
     def update_public_credentials(
-        self, **credentials: t.Dict[str, t.JSONSerializable]
+        self, **credentials: t.JSONSerializable
     ) -> t.Self:
         """
         Updates the public credentials to be associated with the package
@@ -301,7 +301,7 @@ class PackageSigner:
         return self
 
     def update_signing_key(
-        self, signing_key: t.Union[bytes, t.SecretKeyType, Ed25519]
+        self, signing_key: t.Union[bytes, t.SecretKeyType, t.SignerType]
     ) -> t.Self:
         """
         Updates the package's secret signing key as an encrypted token
