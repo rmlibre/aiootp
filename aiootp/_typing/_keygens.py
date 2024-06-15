@@ -98,16 +98,6 @@ class SecretKeyType(t.Protocol):
 @t.runtime_checkable
 class AsymmetricKeyType(t.Protocol):
 
-    async def aimport_public_key(
-        self, public_key: t.Union[bytes, PublicKeyType]
-    ) -> t.Self:
-        pass  # pragma: no cover
-
-    def import_public_key(
-        self, public_key: t.Union[bytes, PublicKeyType]
-    ) -> t.Self:
-        pass  # pragma: no cover
-
     async def aimport_secret_key(
         self, secret_key: t.Union[bytes, SecretKeyType]
     ) -> t.Self:
@@ -115,6 +105,16 @@ class AsymmetricKeyType(t.Protocol):
 
     def import_secret_key(
         self, secret_key: t.Union[bytes, SecretKeyType]
+    ) -> t.Self:
+        pass  # pragma: no cover
+
+    async def aimport_public_key(
+        self, public_key: t.Union[bytes, PublicKeyType]
+    ) -> t.Self:
+        pass  # pragma: no cover
+
+    def import_public_key(
+        self, public_key: t.Union[bytes, PublicKeyType]
     ) -> t.Self:
         pass  # pragma: no cover
 
