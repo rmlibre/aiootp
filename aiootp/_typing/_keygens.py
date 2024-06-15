@@ -99,12 +99,12 @@ class SecretKeyType(t.Protocol):
 class AsymmetricKeyType(t.Protocol):
 
     async def aimport_public_key(
-        self, public_key: t.Union[bytes, PublicKeyType, SecretKeyType]
+        self, public_key: t.Union[bytes, PublicKeyType]
     ) -> t.Self:
         pass  # pragma: no cover
 
     def import_public_key(
-        self, public_key: t.Union[bytes, PublicKeyType, SecretKeyType]
+        self, public_key: t.Union[bytes, PublicKeyType]
     ) -> t.Self:
         pass  # pragma: no cover
 
@@ -125,11 +125,11 @@ class AsymmetricKeyType(t.Protocol):
         pass  # pragma: no cover
 
     @property
-    def secret_key(self) -> t.Union[SecretKeyType]:
+    def secret_key(self) -> t.Optional[SecretKeyType]:
         pass  # pragma: no cover
 
     @property
-    def public_key(self) -> t.Union[PublicKeyType]:
+    def public_key(self) -> t.Optional[PublicKeyType]:
         pass  # pragma: no cover
 
     @property
