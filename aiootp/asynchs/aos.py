@@ -48,15 +48,15 @@ from .loops import asleep, wrap_in_executor
 
 
 async def not_implemented_placeholder(*a: t.Any, **kw: t.Any) -> None:
-    await asleep()
-    warnings.warn("Function not supported by OS.")
+    await asleep()                                      # pragma: no cover
+    warnings.warn("Function not supported by OS.")      # pragma: no cover
 
 
 for name in __all__:
     if hasattr(os, name):
         globals()[name] = wrap_in_executor(getattr(os, name))
     else:
-        globals()[name] = not_implemented_placeholder  # pragma: no cover
+        globals()[name] = not_implemented_placeholder   # pragma: no cover
 
 
 module_api = dict(
