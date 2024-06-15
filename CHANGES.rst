@@ -22,6 +22,7 @@ Minor Changes
 - Utilize unused package seed during package initialization.
 - Improve the derivation algorithm for the ``AffinePermutation`` 's  multiplicative key.
 - Refactor & add tests into a new ``test_online_cipher_interfaces.py`` testing module.
+- Add ``test_event_loops.py`` test module.
 - Improvements & fixes to type hints.
 - Improvements & fixes to doc strings.
 - Improvements & fixes to package tests.
@@ -45,7 +46,6 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - Add ``(a)canonical_unpack`` references to ``generics``, communicating their higher-level usefulness.
-- Add ``test_event_loops.py`` test module.
 - Rename ``test_passcrypt_apasscrypt.py`` to ``test_Passcrypt.py``.
 - Improvements & fixes to type hints.
 - Improvements & fixes to doc strings.
