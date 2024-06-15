@@ -131,15 +131,13 @@ class Base25519(FrozenInstance):
         """
         Populates the instance with a newly generated secret key.
         """
-        await self.aimport_secret_key(self.SecretKey.generate())
-        return self
+        return await self.aimport_secret_key(self.SecretKey.generate())
 
     def generate(self) -> t.Self:
         """
         Populates the instance with a newly generated secret key.
         """
-        self.import_secret_key(self.SecretKey.generate())
-        return self
+        return self.import_secret_key(self.SecretKey.generate())
 
     @property
     def secret_key(self) -> t.Optional[t.SecretKeyType]:
