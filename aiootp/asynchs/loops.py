@@ -21,9 +21,7 @@ __all__ = [
     "new_event_loop",
     "new_future",
     "new_task",
-    "reset_event_loop",
     "run",
-    "serve",
     "set_event_loop",
     "sleep",
     "wrap_in_executor",
@@ -63,20 +61,6 @@ async def asleep(seconds: t.PositiveRealNumber = 0) -> None:
     Async sleep from asyncio.
     """
     await _asleep(seconds)
-
-
-def reset_event_loop() -> None:
-    """
-    Sets a new event loops for asyncio.
-    """
-    set_event_loop(new_event_loop())
-
-
-def serve() -> None:
-    """
-    Proxy's access to `asyncio.get_event_loop().run_forever()`.
-    """
-    event_loop().run_forever()
 
 
 def new_task(coro: t.Awaitable) -> asyncio.Task:
@@ -133,9 +117,7 @@ module_api = dict(
     new_event_loop=new_event_loop,
     new_future=new_future,
     new_task=new_task,
-    reset_event_loop=reset_event_loop,
     run=run,
-    serve=serve,
     set_event_loop=set_event_loop,
     sleep=sleep,
     wrap_in_executor=wrap_in_executor,
