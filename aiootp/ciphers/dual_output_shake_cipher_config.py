@@ -504,12 +504,12 @@ class DualOutputShakeCipherConfig(Config):
             ^ int.from_bytes(block[self.FIRST_CONTENT_SLICE], BIG)
         ).to_bytes(self.FIRST_CONTENT_BYTES, BIG)
         if len(ciphertext) != self.BLOCKSIZE:
-            raise ValueError("Derived SIV measurements were invalid!")
+            raise ValueError("Derived SIV measurements were invalid!")  # pragma: no cover
         elif (
             len(l_capacity + ciphertext + r_capacity)
             != self.SHMAC_DOUBLE_BLOCKSIZE
         ):
-            raise ValueError("Derived SIV measurements were invalid!")
+            raise ValueError("Derived SIV measurements were invalid!")  # pragma: no cover
         elif (
             len(
                 header
@@ -517,7 +517,7 @@ class DualOutputShakeCipherConfig(Config):
                 + token_bytes(self.SHMAC_BLOCKSIZE)[self.SIV_DIGEST_SLICE]
             ) != self.SHMAC_BLOCKSIZE
         ):
-            raise ValueError("Derived SIV measurements were invalid!")
+            raise ValueError("Derived SIV measurements were invalid!")  # pragma: no cover
 
     def _perform_correctness_checks(self) -> None:
         """
