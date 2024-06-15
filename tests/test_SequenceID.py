@@ -21,7 +21,7 @@ class TestSequenceIDConfig:
         config = t.SequenceIDConfig(size=16, **self.kw)
         assert 16 == config.PERMUTATION_CONFIG_ID
 
-    async def test_size_must_be_within_bounded(self) -> None:
+    async def test_size_must_be_within_bounded_limits(self) -> None:
         problem = (
             "A size out of bounds was allowed."
         )
