@@ -46,7 +46,7 @@ class Threads(ConcurrencyInterface):
         """
 
         @staticmethod
-        def list() -> t.Sequence[t.Any]:
+        def list() -> t.SupportsAppendPop:
              return deque(maxlen=1)
 
     _default_probe_delay: t.PositiveRealNumber = 0.001
