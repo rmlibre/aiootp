@@ -106,6 +106,91 @@ class TestAffinePermutation:
             assert _plaintexts == inversions
 
 
+class TestAffineXORChainConfig:
+    kw = dict(permutation_type=AffinePermutation)
+
+    async def test_size_must_be_within_bounded_limits(self) -> None:
+        problem = (
+            "A size out of bounds was allowed."
+        )
+        for bad_size in (-1, 0, 4097):
+            with Ignore(ValueError, if_else=violation(problem)):
+                t.AffineXORChainConfig(
+                    config_id=32,
+                    size=bad_size,
+                    permutation_config_id=32,
+                    **self.kw,
+                )
+
+    async def test_key_types_is_iterable_of_identifier_int_tuples(
+        self
+    ) -> None:
+        problem = (
+            "Invalid `key_types` argmuent value was allowed."
+        )
+        good_name = "in_key"
+        good_int = 2
+        t.AffineXORChainConfig(
+            config_id=32,
+            size=32,
+            permutation_config_id=32,
+            key_types=((good_name, good_int),),
+            **self.kw,
+        )
+        for bad_name in ("1312non_identifier", "non-identifier"):
+            with Ignore(ValueError, if_else=violation(problem)):
+                t.AffineXORChainConfig(
+                    config_id=32,
+                    size=32,
+                    permutation_config_id=32,
+                    key_types=((bad_name, good_int),),
+                    **self.kw,
+                )
+        for bad_int in (0, "zero", 2.0, "16", 33):
+            with Ignore(ValueError, if_else=violation(problem)):
+                t.AffineXORChainConfig(
+                    config_id=32,
+                    size=32,
+                    permutation_config_id=32,
+                    key_types=((good_name, bad_int),),
+                    **self.kw,
+                )
+
+    async def test_permutation_cid_defaults_to_instance_cid(self) -> None:
+        config = t.AffineXORChainConfig(
+            config_id=32,
+            size=32,
+            **self.kw,
+        )
+        assert 32 == config.PERMUTATION_CONFIG_ID
+
+    async def test_permutation_type_is_enforced(self) -> None:
+        problem = (
+            "An invalid permutation type was allowed."
+        )
+
+        class InvalidPermutationType:
+
+            def permute(self, value: int) -> int:
+                pass
+
+            def invert(self, value: int) -> int:
+                pass
+
+        with Ignore(TypeError, if_else=violation(problem)):
+            t.AffineXORChainConfig(
+                config_id=32,
+                size=32,
+                permutation_type=InvalidPermutationType,
+            )
+        with Ignore(TypeError, if_else=violation(problem)):
+            t.AffineXORChainConfig(
+                config_id=32,
+                size=32,
+                permutation_type=None,
+            )
+
+
 class TestAffineXORChain:
     _type: type = AffineXORChain
 
