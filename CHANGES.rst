@@ -17,7 +17,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- Improvements & fixes to type hints.
 
 
 

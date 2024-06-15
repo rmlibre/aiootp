@@ -37,7 +37,7 @@ class ConfigType(t.Protocol):
     def set_config_id(self, config_id: t.Hashable) -> None:
         pass  # pragma: no cover
 
-    def keys(self) -> t.Generator[None, t.Any, None]:
+    def keys(self) -> t.Generator[None, str, None]:
         pass  # pragma: no cover
 
     def values(self) -> t.Generator[None, t.Any, None]:
@@ -45,7 +45,7 @@ class ConfigType(t.Protocol):
 
     def items(
         self
-    ) -> t.Generator[None, t.Tuple[t.Any, t.Any], None]:
+    ) -> t.Generator[None, t.Tuple[str, t.Any], None]:
         pass  # pragma: no cover
 
 
