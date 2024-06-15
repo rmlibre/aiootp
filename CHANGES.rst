@@ -18,6 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Reach 100% testing line coverage on Linux.
 - Simplify & update internal functionality that also removes a vanishingly unlikely infinite loop condition.
 - Utilize unused package seed during package initialization.
 - Improve the derivation algorithm for the ``AffinePermutation`` 's  multiplicative key.
