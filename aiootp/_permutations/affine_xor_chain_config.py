@@ -80,8 +80,8 @@ class AffineXORChainConfig(Config):
             raise Issue.value_must("size", "be > 0 and <= 4096")
 
     def _process_key_types(
-        self, key_types: t.Optional[t.Tuple[str]]
-    ) -> t.Tuple[str]:
+        self, key_types: t.Optional[t.Tuple[t.Tuple[str, int]]]
+    ) -> t.Tuple[t.Tuple[str, int]]:
         """
         Returns `key_types` if it contains at least one (str, int) pair,
         otherwise raises `ValueError`. Unless `key_types` isn't
@@ -132,7 +132,7 @@ class AffineXORChainConfig(Config):
         size: int,
         permutation_type: type,
         permutation_config_id: t.Optional[t.Hashable] = None,
-        key_types: t.Optional[t.Tuple[str]] = None,
+        key_types: t.Optional[t.Tuple[t.Tuple[str, int]]] = None,
     ) -> None:
         """
         Caches the instance's static configuration after type-checking
