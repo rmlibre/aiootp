@@ -285,7 +285,7 @@ class DualOutputShakeCipherConfig(Config):
         self.FIRST_DIGEST_SLICE = slice(0, self.SHMAC_BLOCKSIZE, 1)
         self.PERMUTATION_CONFIG_ID = self.INNER_HEADER_BYTES
         self.PERMUTATION_KEY_BYTES = self.Permutation.key_size(
-            self.PERMUTATION_CONFIG_ID  # test less than shmac blocksize
+            self.PERMUTATION_CONFIG_ID  # TODO: test less than shmac blocksize
         )
         self.PERMUTATION_KEY_SLICE = slice(
             -self.PERMUTATION_KEY_BYTES, None, 1
