@@ -109,6 +109,76 @@ class TestAffinePermutation:
 class TestAffineXORChain:
     _type: type = AffineXORChain
 
+    async def test_in_out_xor_key_sizes_are_enforced(self) -> None:
+        problem = (
+            "An invalid XOR key size was allowed."
+        )
+        key_reader = lambda size: size * b"A"
+        bad_key_reader = lambda size: (size + 1) * b"A"
+        for size in _test_sizes:
+            aff = self._type.__new__(self._type)
+            aff.config = self._type._configs[size]
+            for tested_method in (aff._process_in_key, aff._process_out_key):
+                assert aff.config.XOR_KEY_SIZE * b"A" == tested_method(
+                    key_reader=key_reader, size=aff.config.XOR_KEY_SIZE
+                ).to_bytes(aff.config.XOR_KEY_SIZE, BIG)
+
+                with Ignore(ValueError, if_else=violation(problem)):
+                    tested_method(key_reader=bad_key_reader, size=size)
+
+    async def test_mid_xor_key_size_is_enforced(self) -> None:
+        problem = (
+            "An invalid mid XOR key size was allowed."
+        )
+        key_reader = lambda size: size * b"A"
+        bad_key_reader = lambda size: (size + 1) * b"A"
+        for size in _test_sizes:
+            aff = self._type.__new__(self._type)
+            aff.config = self._type._configs[size]
+            tested_method = aff._process_mid_key
+            IPAD, OPAD = aff.config.IPAD, aff.config.OPAD
+            raw_key = int.from_bytes(aff.config.XOR_KEY_SIZE * b"A", BIG)
+
+            assert (IPAD ^ raw_key, OPAD ^ raw_key) == tested_method(
+                key_reader=key_reader, size=aff.config.XOR_KEY_SIZE
+            )
+
+            with Ignore(ValueError, if_else=violation(problem)):
+                tested_method(key_reader=bad_key_reader, size=size)
+
+    async def test_increment_update_value_must_be_within_the_domain(
+        self
+    ) -> None:
+        problem = (
+            "An increment update value outside of the domain was allowed."
+        )
+        for size in _test_sizes:
+            key = _key[:self._type.key_size(config_id=size)]
+            aff = self._type(key=key, config_id=size)
+            DOMAIN = aff.config.DOMAIN
+
+            await aff.aupdate_increment(DOMAIN - 1)
+            aff.update_increment(DOMAIN - 1)
+
+            await aff.aupdate_increment(int(randoms.uniform(2, DOMAIN)))
+            aff.update_increment(int(randoms.uniform(2, DOMAIN)))
+
+            await aff.aupdate_increment(1)
+            aff.update_increment(1)
+
+            with Ignore(ValueError, if_else=violation(problem)):
+                await aff.aupdate_increment(DOMAIN)
+            with Ignore(ValueError, if_else=violation(problem)):
+                aff.update_increment(DOMAIN)
+            with Ignore(ValueError, if_else=violation(problem)):
+                await aff.aupdate_increment(0)
+            with Ignore(ValueError, if_else=violation(problem)):
+                aff.update_increment(0)
+            with Ignore(ValueError, if_else=violation(problem)):
+                await aff.aupdate_increment(-1)
+            with Ignore(ValueError, if_else=violation(problem)):
+                aff.update_increment(-1)
+
     def recomposed_key(self, aff) -> bytes:
         size = aff.config.SIZE
         add_key_size = 2 * size
