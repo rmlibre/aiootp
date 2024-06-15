@@ -37,10 +37,10 @@ from .interface import Typing as t
 
 
 Keystream = t.Keystream = t.NewType(
-    "Keystream", t.Generator[bytes, t.Optional[bytes], None]
+    "Keystream", t.Generator[bytes, bytes, None]
 )
 AsyncKeystream = t.AsyncKeystream = t.NewType(
-    "AsyncKeystream", t.AsyncGenerator[bytes, t.Optional[bytes]]
+    "AsyncKeystream", t.AsyncGenerator[bytes, bytes]
 )
 AsyncOrSyncKeystream = t.AsyncOrSyncKeystream = t.NewType(
     "AsyncOrSyncKeystream", t.Union[AsyncKeystream, Keystream]
@@ -48,7 +48,9 @@ AsyncOrSyncKeystream = t.AsyncOrSyncKeystream = t.NewType(
 
 
 Datastream = t.Datastream = t.NewType("Datastream", t.Iterable[bytes])
-AsyncDatastream = t.AsyncDatastream = t.NewType("AsyncDatastream", t.AsyncIterable[bytes])
+AsyncDatastream = t.AsyncDatastream = t.NewType(
+    "AsyncDatastream", t.AsyncIterable[bytes]
+)
 AsyncOrSyncDatastream = t.AsyncOrSyncDatastream = t.NewType(
     "AsyncOrSyncDatastream", t.Union[AsyncDatastream, Datastream]
 )
