@@ -27,6 +27,15 @@ while len(_test_sizes) != 8:
 class TestAffinePermutation:
     _type: type = AffinePermutation
 
+    async def test_additive_key_size_is_enforced(self) -> None:
+        problem = (
+            "An invalid key size was allowed."
+        )
+        for size in _test_sizes:
+            key = _key[:self._type.key_size(size) + 1]
+            with Ignore(ValueError, if_else=violation(problem)):
+                self._type(key=key, config_id=size)
+
     async def test_additive_key_remains_unchanged(self) -> None:
         for size in _test_sizes:
             key = _key[:self._type.key_size(size)]
