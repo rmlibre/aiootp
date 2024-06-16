@@ -37,7 +37,7 @@ async def akeyed_choices(
     *,
     domain: bytes = b"",
     key: bytes,
-) -> t.AsyncGenerator[None, t.Any]:
+) -> t.AsyncGenerator[t.Any, None]:
     """
     Makes `selection_size` number of selections from an indexable
     sequence of `choices` using subkeys derived from a provided
@@ -60,7 +60,7 @@ def keyed_choices(
     *,
     domain: bytes = b"",
     key: bytes,
-) -> t.Generator[None, t.Any, None]:
+) -> t.Generator[t.Any, None, None]:
     """
     Makes `selection_size` number of selections from an indexable
     sequence of `choices` using subkeys derived from a provided

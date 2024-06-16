@@ -142,7 +142,7 @@ class PackageSigner:
         package: str,
         version: str,
         date: t.Optional[int] = None,
-        **scopes: t.JSONObject,
+        **scopes: t.JSONSerializable,
     ) -> None:
         """
         Sets the instance's package scope attributes & default file
@@ -171,7 +171,7 @@ class PackageSigner:
         return self.db[self._scope.package][self._PUBLIC_CREDENTIALS]
 
     @property
-    def signing_key(self) -> t.SecretKeyType:
+    def signing_key(self) -> t.SignerType:
         """
         Returns the package's secret signing key from the instance's
         encrypted database in an `Ed25519` object.
