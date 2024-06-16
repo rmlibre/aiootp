@@ -27,7 +27,6 @@ from aiootp._exceptions import Issue
 from aiootp.asynchs import Threads, asleep, s_counter
 
 from .simple import acanonical_token, arandom_sleep
-from .threading_safe_entropy_pool import ThreadingSafeEntropyPool
 
 
 class EntropyDaemon:
@@ -56,7 +55,7 @@ class EntropyDaemon:
         self,
         *,
         entropy_pool: t.Deque[bytes],
-        gadget: ThreadingSafeEntropyPool,
+        gadget: t.EntropyHashingType,
         max_delay: t.PositiveRealNumber = 1,
     ) -> None:
         """
