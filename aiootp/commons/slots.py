@@ -60,8 +60,8 @@ class Slots:
         Maps the user-defined kwargs to the instance attributes. If a
         subclass defines a `__slots__` list, then only variables with
         names in the list can be admitted to the instance. Defining
-        classes with __slots__ can greatly increase memory efficiency if
-        a system instantiates many objects of the class.
+        classes with `__slots__` can greatly increase memory efficiency
+        if a system instantiates many objects of the class.
         """
         for name, value in {**mapping, **kwargs}.items():
             setattr(self, name, value)
