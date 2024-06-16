@@ -169,7 +169,7 @@ class TestCipherConfigs:
         problem = (
             "An odd sized inner-header was allowed to be configured."
         )
-        for (_config, cipher, salt, aad) in dual_output_ciphers:
+        for (_config, *_) in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_dual_output_config_copy(
                     _config, timestamp_bytes=4, siv_key_bytes=11
@@ -179,7 +179,7 @@ class TestCipherConfigs:
         problem = (
             "An odd blocksize was allowed to be configured."
         )
-        for (_config, cipher, salt, aad) in dual_output_ciphers:
+        for (_config, *_) in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_dual_output_config_copy(_config, blocksize=255)
 
@@ -187,7 +187,7 @@ class TestCipherConfigs:
         problem = (
             "A nonsensical blocksize was allowed."
         )
-        for (_config, cipher, salt, aad) in all_ciphers:
+        for (_config, *_) in all_ciphers:
             config = _config.__new__(_config.__class__)
             config.BLOCKSIZE = -1
             with Ignore(ValueError, if_else=violation(problem)):
@@ -198,7 +198,7 @@ class TestCipherConfigs:
             "Non-equal left & right KDF blocksizes were allowed to be "
             "configured."
         )
-        for (_config, cipher, salt, aad) in dual_output_ciphers:
+        for (_config, *_) in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_dual_output_config_copy(
                     _config,
@@ -225,13 +225,13 @@ class TestCipherConfigs:
             "More information in plaintext than is passed between KDFs "
             "each round was allowed to be configured."
         )
-        for (_config, cipher, salt, aad) in shake_permute_ciphers:
+        for (_config, *_) in shake_permute_ciphers:
             config = new_config_copy(_config)
             object.__setattr__(config, "BLOCKSIZE", config.SHMAC_BLOCKSIZE + 1)
             with Ignore(ValueError, if_else=violation(problem)):
                 config._ensure_extracted_entropy_less_than_kdf_blocksize()
 
-        for (_config, cipher, salt, aad) in dual_output_ciphers:
+        for (_config, *_) in dual_output_ciphers:
             config = new_config_copy(_config)
             object.__setattr__(config, "BLOCKSIZE", 2 * config.SHMAC_BLOCKSIZE + 1)
             with Ignore(ValueError, if_else=violation(problem)):
@@ -242,7 +242,7 @@ class TestCipherConfigs:
             "The minimum block ID was allowed to be larger that the "
             "max."
         )
-        for (_config, cipher, salt, aad) in all_ciphers:
+        for (_config, *_) in all_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_config_copy(
                     _config,
@@ -257,7 +257,7 @@ class TestCipherConfigs:
             "The blocksize was allowed to take up the space allotted "
             "to other values within a SHMAC object update."
         )
-        for (_config, cipher, salt, aad) in shake_permute_ciphers:
+        for (_config, *_) in shake_permute_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_shake_permute_config_copy(_config, blocksize=128)
 
@@ -268,7 +268,7 @@ class TestCipherConfigs:
             "At least 16 bytes weren't left for plaintext after accounting "
             "for obligatory padding."
         )
-        for (_config, cipher, salt, aad) in all_ciphers:
+        for (_config, *_) in all_ciphers:
             config = new_config_copy(_config)
             timestamp_bytes = 4
             sentinel_bytes = config.SENTINEL_BYTES
@@ -285,7 +285,7 @@ class TestCipherConfigs:
             "The attribute existence checker didn't proc when an "
             "attribute was missing."
         )
-        for (_config, cipher, salt, aad) in all_ciphers:
+        for (_config, *_) in all_ciphers:
             config = new_config_copy(_config)
             object.__delattr__(config, await achoice(config.__slots__))
             with Ignore(UndefinedRequiredAttributes, if_else=violation(problem)):
@@ -293,7 +293,7 @@ class TestCipherConfigs:
 
     async def test_min_padding_blocks_alters_min_ciphertext_size(self) -> None:
         extra_padding = token_bits(3) or 1
-        for (control_config, control_cipher, salt, aad) in all_ciphers:
+        for (control_config, control_cipher, *_) in all_ciphers:
             config = new_config_copy(control_config, min_padding_blocks=extra_padding)
 
             class ExtraPaddingCipher(control_cipher.__class__):
