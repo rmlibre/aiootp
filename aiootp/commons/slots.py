@@ -53,6 +53,14 @@ class Slots:
         "items",
     )
 
+    def __init_subclass__(cls, *a, **kw) -> None:
+        super().__init_subclass__(*a, **kw)
+        slots = []
+        for subcls in cls.__mro__:
+            for slot in getattr(subcls, "__slots__", ()):
+                slots.append(slot)
+        cls.__slots__ = tuple(slots)
+
     def __init__(
         self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kwargs
     ) -> None:
@@ -157,20 +165,18 @@ class Slots:
         """
         Unpacks instance variable names with with async iteration.
         """
-        for cls in self.__class__.__mro__:
-            for slot in getattr(cls, "__slots__", ()):
-                if self._is_mapped_attribute(slot):
-                    await asyncio.sleep(0)
-                    yield slot
+        for name in self.__slots__:
+            if self._is_mapped_attribute(name):
+                await asyncio.sleep(0)
+                yield name
 
     def __iter__(self) -> t.Generator[None, t.Any, None]:
         """
         Unpacks instance variable names with with sync iteration.
         """
-        for cls in self.__class__.__mro__:
-            for slot in getattr(cls, "__slots__", ()):
-                if self._is_mapped_attribute(slot):
-                    yield slot
+        for name in self.__slots__:
+            if self._is_mapped_attribute(name):
+                yield name
 
     def keys(self) -> t.Iterable[t.Hashable]:
         """
