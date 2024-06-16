@@ -49,13 +49,6 @@ class Namespace(Slots):
         self.__dict__.update(mapping) if mapping else 0
         self.__dict__.update(kwargs) if kwargs else 0
 
-    def __contains__(self, name: t.Hashable) -> bool:
-        """
-        Returns a bool of `variable`'s membership in the instance
-        dictionary.
-        """
-        return name in self.__dict__
-
     async def __aiter__(self) -> t.AsyncGenerator[t.Hashable, None]:
         """
         Unpacks instance variable names with with async iteration.

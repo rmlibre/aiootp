@@ -95,11 +95,16 @@ class Slots:
         """
         return sum(1 for name in self)
 
-    def __contains__(self, name: str) -> bool:
+    def __contains__(self, name: t.Hashable) -> bool:
         """
         Returns a bool of `name`'s membership in the instance.
         """
-        return hasattr(self, name)
+        if name.__class__ is str:
+            return hasattr(self, name)
+        elif hasattr(self, "__dict__"):
+            return name in self.__dict__
+        else:
+            return False
 
     def __setitem__(self, name: str, value: t.Any) -> None:
         """
