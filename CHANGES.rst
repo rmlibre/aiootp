@@ -18,6 +18,8 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - Improvements & fixes to type hints.
+- Improvements & fixes to package tests.
+- Improvements & fixes to code formatting & style.
 
 
 
