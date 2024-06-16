@@ -36,7 +36,7 @@ class Namespace(Slots):
     __slots__ = ("__dict__",)
 
     _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *Slots._UNMAPPED_ATTRIBUTES, "update"
+        "__dict__", *Slots._UNMAPPED_ATTRIBUTES, "update"
     )
 
     def __init__(
