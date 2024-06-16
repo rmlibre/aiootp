@@ -161,7 +161,7 @@ class Slots:
             )
         )
 
-    async def __aiter__(self) -> t.AsyncGenerator[None, t.Any]:
+    async def __aiter__(self) -> t.AsyncGenerator[t.Any, None]:
         """
         Unpacks instance variable names with with async iteration.
         """
@@ -170,7 +170,7 @@ class Slots:
                 await asyncio.sleep(0)
                 yield name
 
-    def __iter__(self) -> t.Generator[None, t.Any, None]:
+    def __iter__(self) -> t.Generator[t.Any, None, None]:
         """
         Unpacks instance variable names with with sync iteration.
         """
