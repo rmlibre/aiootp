@@ -175,6 +175,11 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
             del items[names[0]]
             assert dict(obj) == dict(items)
 
+    async def test_false_contains_logic(self) -> None:
+        obj = self._type()
+        assert randoms.token_bytes(4).hex() not in obj
+        assert randoms.token_bits(32) not in obj
+
 
 # Slots
 
