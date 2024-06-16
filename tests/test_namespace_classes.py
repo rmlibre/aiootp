@@ -19,7 +19,9 @@ from aiootp.commons.configs import *
 
 
 class BaseVariableHoldingClassTests:
-    _items: t.Dict[str, t.Any] = dict(_private=True, one=1, string="value")
+    _items: t.Dict[str, t.Any] = dict(
+        _private=True, unmapped="attr", one=1, string="value"
+    )
     _type: type
     _open: bool
     _frozen: bool
@@ -39,7 +41,12 @@ class BaseReprControlledTests(BaseVariableHoldingClassTests):
         obj = self._type(self._items)
         string = repr(obj)
         for name, value in self._items.items():
-            if (name[0] == "_"):
+            if name[0] == "_":
+                assert name not in string
+            elif (
+                hasattr(obj, "_is_mapped_attribute")
+                and not obj._is_mapped_attribute(name)
+            ):
                 assert name not in string
             else:
                 assert name in string, name
@@ -53,7 +60,10 @@ class BaseMaskableReprTests(BaseVariableHoldingClassTests):
         DebugControl.disable_debugging()
         obj = self._type(self._items)
         for name in self._items:
-            if str(name).startswith("_"):
+            if (
+                str(name) in getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
+                or str(name).startswith("_")
+            ):
                 continue
             assert str(name) in obj.__repr__(mask=False), name
             assert str(getattr(obj, name)) in obj.__repr__(mask=False), name
@@ -92,10 +102,14 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
     async def test_mapping_methods(self) -> None:
         items = {**self._items.copy(), 123: "number"}
         obj = self._type()
+        unmapped = set()
+        UNMAPPED_ATTRIBUTES = getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
         for i, (name, value) in enumerate(items.items(), start=1):
+            if name in UNMAPPED_ATTRIBUTES:
+                unmapped.add(name)
             obj[name] = value
             assert name in obj
-            assert i == len(obj)
+            assert i == len(obj) + len(unmapped)
             with Ignore(PermissionError, if_except=lambda _: self._frozen):
                 del obj[name]
                 assert name not in obj
@@ -122,10 +136,12 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
                 obj.__class__._UNMAPPED_ATTRIBUTES
             ).intersection(value for value in dir(obj))
 
-    async def test_len_is_number_of_items_in_instance(self) -> None:
+    async def test_len_is_number_of_mapped_items_in_instance(self) -> None:
         obj = self._type(self._items)
-        assert len(obj) == len(self._items)
         assert len(obj) == sum(1 for name in obj)
+        assert len(obj) == len(set(self._items).difference(
+            getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
+        ))
 
     async def test_indexable_iterations(self) -> None:
         obj = self._type(self._items)
@@ -141,13 +157,18 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
     async def test_item_indexing(self) -> None:
         names, values = list(self._items), list(self._items.values())
         items = {}
+        all_items = {}
         obj = self._type()
 
         for name, value in zip(names, values):
             obj[name] = value
-            items[name] = value
-            assert obj[name] == items[name]
-            assert dict(obj) == dict(items)
+            all_items[name] = value
+            if name in dict(obj):
+                items[name] = value
+                assert obj[name] == items[name]
+            else:
+                assert name in obj._UNMAPPED_ATTRIBUTES
+            assert obj[name] == all_items[name]
 
         with Ignore(PermissionError, if_except=lambda _: self._frozen):
             del obj[names[0]]
@@ -159,22 +180,37 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
 
 class SlotsType(Slots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
 
 
 class OpenSlotsType(OpenSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
 
 
 class FrozenSlotsType(FrozenSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
 
 
 class OpenFrozenSlotsType(OpenFrozenSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
 
 
 class FrozenInstanceType(FrozenInstance):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
 
 
 class TestSlots(
@@ -229,7 +265,9 @@ class TestFrozenInstance(BaseReprControlledTests, BaseFrozenTests):
 
 class ConfigType(Config):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
-
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *Config._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
     slots_types = dict({
         name: BaseVariableHoldingClassTests._items[name].__class__
         for name in BaseVariableHoldingClassTests._items
@@ -248,6 +286,30 @@ class TestConfig(
 
 # Namespaces
 
+class NamespaceType(Namespace):
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *Namespace._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
+
+
+class OpenNamespaceType(OpenNamespace):
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *OpenNamespace._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
+
+
+class FrozenNamespaceType(FrozenNamespace):
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *FrozenNamespace._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
+
+
+class OpenFrozenNamespaceType(OpenFrozenNamespace):
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *OpenFrozenNamespace._UNMAPPED_ATTRIBUTES, "unmapped"
+    )
+
+
 class TestNamespaceMapping(
     BaseDictLikeTests,
     BaseIndexableTests,
@@ -263,7 +325,7 @@ class TestNamespace(
     BaseDictLikeTests,
     BaseIndexableTests,
 ):
-    _type: type = Namespace
+    _type: type = NamespaceType
     _open: bool = False
     _frozen: bool = False
 
@@ -274,7 +336,7 @@ class TestOpenNamespace(
     BaseDictLikeTests,
     BaseIndexableTests,
 ):
-    _type: type = OpenNamespace
+    _type: type = OpenNamespaceType
     _open: bool = True
     _frozen: bool = False
 
@@ -287,7 +349,7 @@ class TestFrozenNamespace(
     BaseDictLikeTests,
     BaseIndexableTests,
 ):
-    _type: type = FrozenNamespace
+    _type: type = FrozenNamespaceType
     _open: bool = False
     _frozen: bool = True
 
@@ -300,7 +362,7 @@ class TestOpenFrozenNamespace(
     BaseDictLikeTests,
     BaseIndexableTests,
 ):
-    _type: type = OpenFrozenNamespace
+    _type: type = OpenFrozenNamespaceType
     _open: bool = True
     _frozen: bool = True
 
