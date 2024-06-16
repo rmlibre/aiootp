@@ -45,6 +45,7 @@ class Slots:
 
     _MAPPED_ATTRIBUTES: t.Iterable[str] = ()
     _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        "_MAPPED_ATTRIBUTES",
         "_UNMAPPED_ATTRIBUTES",
         "_is_mapped_attribute",
         "keys",
@@ -145,10 +146,10 @@ class Slots:
         attribute within the mapping unpacking interface.
         """
         return (
-            hasattr(self, name)
+            (name in self)
             and (
-                (name in self._MAPPED_ATTRIBUTES)
-                or (name not in self._UNMAPPED_ATTRIBUTES)
+                (name not in self._UNMAPPED_ATTRIBUTES)
+                or (name in self._MAPPED_ATTRIBUTES)
             )
         )
 
@@ -171,7 +172,7 @@ class Slots:
                 if self._is_mapped_attribute(slot):
                     yield slot
 
-    def keys(self) -> t.Iterable[str]:
+    def keys(self) -> t.Iterable[t.Hashable]:
         """
         Yields the names of all items in the instance.
         """
@@ -181,13 +182,15 @@ class Slots:
         """
         Yields the values of all items in the instance.
         """
-        yield from (getattr(self, name) for name in self)
+        for name in self:
+            yield self[name]
 
-    def items(self) -> t.Iterable[t.Tuple[str, t.Any]]:
+    def items(self) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
         """
         Yields the name, value pairs of all items in the instance.
         """
-        yield from ((name, getattr(self, name)) for name in self)
+        for name in self:
+            yield name, self[name]
 
 
 class OpenSlots(Slots):

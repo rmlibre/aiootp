@@ -35,14 +35,7 @@ class Namespace(Slots):
 
     __slots__ = ("__dict__",)
 
-    _UNMAPPED_ATTRIBUTES = (
-        "_UNMAPPED_ATTRIBUTES",
-        "_is_mapped_attribute",
-        "keys",
-        "values",
-        "items",
-        "update",
-    )
+    _UNMAPPED_ATTRIBUTES = (*Slots._UNMAPPED_ATTRIBUTES, "update")
 
     def __init__(
         self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kwargs
@@ -53,27 +46,6 @@ class Namespace(Slots):
         """
         self.__dict__.update(mapping) if mapping else 0
         self.__dict__.update(kwargs) if kwargs else 0
-
-    def __dir__(self) -> t.List[t.Hashable]:
-        """
-        Returns the instance directory.
-        """
-        directory = set(object.__dir__(self)).difference(
-            self._UNMAPPED_ATTRIBUTES
-        )
-        return [*directory]
-
-    def __bool__(self) -> bool:
-        """
-        If the namespace is empty then return False, otherwise True.
-        """
-        return bool(self.__dict__)
-
-    def __len__(self) -> int:
-        """
-        Returns the number of elements in the Namespace's mapping.
-        """
-        return len(self.__dict__)
 
     def __contains__(self, name: t.Hashable) -> bool:
         """
@@ -98,31 +70,6 @@ class Namespace(Slots):
         for name in self.__dict__:
             if self._is_mapped_attribute(name):
                 yield name
-
-    def _is_mapped_attribute(self, name: t.Hashable) -> bool:
-        """
-        Allows the class to define criteria which include an instance
-        attribute within the mapping unpacking interface.
-        """
-        return name in self.__dict__
-
-    def keys(self) -> t.Iterable[t.Hashable]:
-        """
-        Yields the names of all items in the instance.
-        """
-        yield from self.__dict__
-
-    def values(self) -> t.Iterable[t.Any]:
-        """
-        Yields the values of all items in the instance.
-        """
-        yield from self.__dict__.values()
-
-    def items(self) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
-        """
-        Yields the name, value pairs of all items in the instance.
-        """
-        yield from self.__dict__.items()
 
     def update(self, mapping: t.Mapping[t.Hashable, t.Any]) -> None:
         """
