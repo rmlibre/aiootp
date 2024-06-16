@@ -27,7 +27,7 @@ class TestStreamHMACStates:
         problem = (
             "An invalid key_bundle type was allowed."
         )
-        for (config, cipher, salt, aad) in all_ciphers:
+        for (config, cipher, *_) in all_ciphers:
             key_bundle = FalseKeyAADBundle()
             with Ignore(TypeError, if_else=violation(problem)):
                 cipher._StreamHMAC(key_bundle)
@@ -38,7 +38,7 @@ class TestStreamHMACStates:
         problem = (
             "A SHMAC object was allowed to be used more than once."
         )
-        for (config, cipher, salt, aad) in all_ciphers:
+        for (config, cipher, *_) in all_ciphers:
             key_bundle = cipher._KeyAADBundle(cipher._kdfs).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             plaintext = cipher._padding.pad_plaintext(b"")
@@ -93,7 +93,7 @@ class TestStreamHMACStates:
 
 async def test_detection_of_ciphertext_modification():
 
-    for (config, cipher, salt, aad) in all_ciphers:
+    for (config, cipher, *_) in all_ciphers:
         aciphertext = Ciphertext(
             await cipher.abytes_encrypt(plaintext_bytes), config=config
         )
