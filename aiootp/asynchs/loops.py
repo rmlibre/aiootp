@@ -16,7 +16,7 @@ __all__ = [
     "asleep",
     "asyncio",
     "gather",
-    "event_loop",
+    "get_event_loop",
     "get_event_loop_id",
     "new_event_loop",
     "new_future",
@@ -41,9 +41,9 @@ from aiootp._typing import Typing as t
 from aiootp._debug_control import DebugControl
 
 
-event_loop = asyncio.get_event_loop
 gather = asyncio.gather
-get_event_loop_id = lambda: id(event_loop())
+get_event_loop = asyncio.get_event_loop
+get_event_loop_id = lambda: id(get_event_loop())
 new_event_loop = asyncio.new_event_loop
 new_future = asyncio.ensure_future
 
@@ -52,7 +52,7 @@ new_future = asyncio.ensure_future
 # WARNING: This will also reveal potentially sensitive values in object
 # repr's that are omitted by default.
 DebugControl._switches.append(
-    lambda: event_loop().set_debug(DebugControl.is_debugging())
+    lambda: get_event_loop().set_debug(DebugControl.is_debugging())
 )
 
 
@@ -67,7 +67,7 @@ def new_task(coro: t.Awaitable) -> asyncio.Task:
     """
     Proxy's access to `asyncio.get_event_loop().create_task()`.
     """
-    return event_loop().create_task(coro)
+    return get_event_loop().create_task(coro)
 
 
 def wrap_in_executor(
@@ -81,7 +81,7 @@ def wrap_in_executor(
     @wraps(function)
     async def runner(*args, **kwargs):
         partial_function = partial(function, *args, **kwargs)
-        return await event_loop().run_in_executor(
+        return await get_event_loop().run_in_executor(
             executor=None, func=partial_function
         )
 
@@ -111,8 +111,8 @@ module_api = dict(
     __package__=__package__,
     asleep=asleep,
     asyncio=asyncio,
-    event_loop=event_loop,
     gather=gather,
+    get_event_loop=get_event_loop,
     get_event_loop_id=get_event_loop_id,
     new_event_loop=new_event_loop,
     new_future=new_future,
