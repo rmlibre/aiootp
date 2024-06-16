@@ -35,7 +35,9 @@ class Namespace(Slots):
 
     __slots__ = ("__dict__",)
 
-    _UNMAPPED_ATTRIBUTES = (*Slots._UNMAPPED_ATTRIBUTES, "update")
+    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+        *Slots._UNMAPPED_ATTRIBUTES, "update"
+    )
 
     def __init__(
         self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kwargs
@@ -54,7 +56,7 @@ class Namespace(Slots):
         """
         return name in self.__dict__
 
-    async def __aiter__(self) -> t.AsyncGenerator[None, t.Hashable]:
+    async def __aiter__(self) -> t.AsyncGenerator[t.Hashable, None]:
         """
         Unpacks instance variable names with with async iteration.
         """
@@ -63,7 +65,7 @@ class Namespace(Slots):
             if self._is_mapped_attribute(name):
                 yield name
 
-    def __iter__(self) -> t.Generator[None, t.Hashable, None]:
+    def __iter__(self) -> t.Generator[t.Hashable, None, None]:
         """
         Unpacks instance variable names with with sync iteration.
         """
