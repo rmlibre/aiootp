@@ -56,10 +56,11 @@ async def _asalt_multiply(*numbers: int, pool: t.Sequence[bytes]) -> int:
     """
     global _mix, _seed, _offset
 
-    mix = _mix ^ abs(sum((ns_counter() * _offset, *_int_pool, *numbers)))
+    await asleep()
+    start = ns_counter() * _offset
+    mix = _mix ^ abs(sum((start, *_int_pool, *numbers)))
     mix = _mix = (mix ^ int.from_bytes(pool[0], BIG)) % _MOD
     _seed ^= mix
-    start = _seed
     _offset ^= _seed
     for number in numbers:
         await asleep()
@@ -79,10 +80,10 @@ def _salt_multiply(*numbers: int, pool: t.Sequence[bytes]) -> int:
     """
     global _mix, _seed, _offset
 
-    mix = _mix ^ abs(sum((ns_counter() * _offset, *_int_pool, *numbers)))
+    start = ns_counter() * _offset
+    mix = _mix ^ abs(sum((start, *_int_pool, *numbers)))
     mix = _mix = (mix ^ int.from_bytes(pool[0], BIG)) % _MOD
     _seed ^= mix
-    start = _seed
     _offset ^= _seed
     for number in numbers:
         mix += _offset
