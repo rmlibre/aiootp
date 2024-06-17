@@ -18,10 +18,30 @@ from aiootp.commons.namespaces import *
 from aiootp.commons.configs import *
 
 
-class BaseVariableHoldingClassTests:
+class SlotsAttributes:
+    __slots__ = ()
+
     _items: t.Dict[str, t.Any] = dict(
-        _private=True, unmapped="attr", one=1, string="value"
+        _private=True, one=1, mapped="value", unmapped="attr"
     )
+    _MAPPED_ATTRIBUTES: t.Tuple[str] = tuple(
+        name for name in _items if name != "unmapped"
+    )
+    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
+        *Slots._UNMAPPED_ATTRIBUTES, "mapped", "unmapped"
+    )                       # Being mapped overrides being unmapped
+
+
+class NamespaceAttributes(SlotsAttributes):
+    __slots__ = ()
+
+    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
+        *Namespace._UNMAPPED_ATTRIBUTES, "mapped", "unmapped"
+    )                       # Being mapped overrides being unmapped
+
+
+class BaseVariableHoldingClassTests:
+    _items = dict(SlotsAttributes._items)
     _type: type
     _open: bool
     _frozen: bool
@@ -94,27 +114,38 @@ class BaseModuleNamespaceTests(BaseVariableHoldingClassTests):
 
     async def test_all_doesnt_include_private_variables(self) -> None:
         obj = self._type(self._items)
-        assert "_private" not in obj.__all__
+        private_name = "_private"
+        assert hasattr(obj, private_name)
+        assert private_name not in obj.__all__
 
 
 class BaseDictLikeTests(BaseVariableHoldingClassTests):
 
-    async def test_mapping_methods(self) -> None:
-        items = {**self._items.copy(), 123: "number"}
+    async def test_inclusion_exclusion_logic(self) -> None:
+        items = {**self._items, 123: "number"}
         obj = self._type()
         unmapped = set()
-        UNMAPPED_ATTRIBUTES = getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
+        MAPPED = getattr(obj, "_MAPPED_ATTRIBUTES", ())
+        UNMAPPED = getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
         for i, (name, value) in enumerate(items.items(), start=1):
-            if name in UNMAPPED_ATTRIBUTES:
+            if name in MAPPED or name not in UNMAPPED:
+                pass
+            else:
                 unmapped.add(name)
             obj[name] = value
             assert name in obj
             assert i == len(obj) + len(unmapped)
+
             with Ignore(PermissionError, if_except=lambda _: self._frozen):
                 del obj[name]
                 assert name not in obj
                 obj[name] = value
 
+    async def test_mapping_methods(self) -> None:
+        items = {**self._items, 123: "number"}
+        obj = self._type()
+        for name, value in items.items():
+            obj[name] = value
         assert set(items.keys()).issuperset(obj.keys())
         assert set(items.values()).issuperset(obj.values())
         assert set(items.items()).issuperset(obj.items())
@@ -139,9 +170,11 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
     async def test_len_is_number_of_mapped_items_in_instance(self) -> None:
         obj = self._type(self._items)
         assert len(obj) == sum(1 for name in obj)
-        assert len(obj) == len(set(self._items).difference(
-            getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
-        ))
+        assert len(obj) == len(
+            set(self._items)
+            .difference(getattr(obj, "_UNMAPPED_ATTRIBUTES", ()))
+            .union(getattr(obj, "_MAPPED_ATTRIBUTES", ()))
+        )
 
     async def test_indexable_iterations(self) -> None:
         obj = self._type(self._items)
@@ -179,43 +212,29 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
         obj = self._type()
         assert randoms.token_bytes(4).hex() not in obj
         assert randoms.token_bits(32) not in obj
+        assert None not in obj
 
 
 # Slots
 
-class SlotsType(Slots):
+class SlotsType(SlotsAttributes, Slots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
 
 
-class OpenSlotsType(OpenSlots):
+class OpenSlotsType(SlotsAttributes, OpenSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
 
 
-class FrozenSlotsType(FrozenSlots):
+class FrozenSlotsType(SlotsAttributes, FrozenSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
 
 
-class OpenFrozenSlotsType(OpenFrozenSlots):
+class OpenFrozenSlotsType(SlotsAttributes, OpenFrozenSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
 
 
-class FrozenInstanceType(FrozenInstance):
+class FrozenInstanceType(SlotsAttributes, FrozenInstance):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *Slots._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
 
 
 class TestSlots(
@@ -260,7 +279,10 @@ class TestOpenFrozenSlots(
     _frozen: bool = True
 
 
-class TestFrozenInstance(BaseReprControlledTests, BaseFrozenTests):
+class TestFrozenInstance(
+    BaseReprControlledTests,
+    BaseFrozenTests,
+):
     _type: type = FrozenInstanceType
     _open: bool = False
     _frozen: bool = True
@@ -268,11 +290,9 @@ class TestFrozenInstance(BaseReprControlledTests, BaseFrozenTests):
 
 # Configs
 
-class ConfigType(Config):
+class ConfigType(SlotsAttributes, Config):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *Config._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
+
     slots_types = dict({
         name: BaseVariableHoldingClassTests._items[name].__class__
         for name in BaseVariableHoldingClassTests._items
@@ -291,28 +311,20 @@ class TestConfig(
 
 # Namespaces
 
-class NamespaceType(Namespace):
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *Namespace._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
+class NamespaceType(NamespaceAttributes, Namespace):
+    pass
 
 
-class OpenNamespaceType(OpenNamespace):
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *OpenNamespace._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
+class OpenNamespaceType(NamespaceAttributes, OpenNamespace):
+    pass
 
 
-class FrozenNamespaceType(FrozenNamespace):
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *FrozenNamespace._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
+class FrozenNamespaceType(NamespaceAttributes, FrozenNamespace):
+    pass
 
 
-class OpenFrozenNamespaceType(OpenFrozenNamespace):
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
-        *OpenFrozenNamespace._UNMAPPED_ATTRIBUTES, "unmapped"
-    )
+class OpenFrozenNamespaceType(NamespaceAttributes, OpenFrozenNamespace):
+    pass
 
 
 class TestNamespaceMapping(
