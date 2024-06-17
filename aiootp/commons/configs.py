@@ -192,7 +192,7 @@ class ConfigMap(OpenFrozenNamespace):
     calculator = Calculator(config_id="english_us")
     """
 
-    __slots__ = ()
+    __slots__ = (CONFIG_TYPE,)
 
     _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
         *OpenFrozenNamespace._UNMAPPED_ATTRIBUTES, CONFIG_TYPE
@@ -209,7 +209,7 @@ class ConfigMap(OpenFrozenNamespace):
         Defines the configurations to be stored in the instance from the
         provided mappings of config IDs to config objects.
         """
-        self.__dict__[CONFIG_TYPE] = config_type
+        setattr(self, CONFIG_TYPE, config_type)
         for config_id, config in {**mapping, **kw}.items():
             self[config_id] = config
 
