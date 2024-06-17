@@ -39,7 +39,7 @@ class StreamJunction(FrozenInstance):
     @classmethod
     def abytes_encipher(
         cls, data: t.AsyncOrSyncDatastream, *, shmac: StreamHMAC
-    ) -> t.AsyncGenerator[None, bytes]:
+    ) -> t.AsyncGenerator[bytes, None]:
         """
         A low-level function which returns an async generator that
         streams this package's ciphers.
@@ -67,7 +67,7 @@ class StreamJunction(FrozenInstance):
     @classmethod
     def bytes_encipher(
         cls, data: t.Datastream, *, shmac: StreamHMAC
-    ) -> t.Generator[None, bytes, None]:
+    ) -> t.Generator[bytes, None, None]:
         """
         A low-level function which returns a sync generator that streams
         this package's ciphers.
@@ -95,7 +95,7 @@ class StreamJunction(FrozenInstance):
     @classmethod
     def abytes_decipher(
         cls, data: t.AsyncOrSyncDatastream, *, shmac: StreamHMAC
-    ) -> t.AsyncGenerator[None, bytes]:
+    ) -> t.AsyncGenerator[bytes, None]:
         """
         A low-level function which returns an async generator that
         streams this package's ciphers.
@@ -118,7 +118,7 @@ class StreamJunction(FrozenInstance):
     @classmethod
     def bytes_decipher(
         cls, data: t.Datastream, *, shmac: StreamHMAC
-    ) -> t.Generator[None, bytes, None]:
+    ) -> t.Generator[bytes, None, None]:
         """
         A low-level function which returns a sync generator that streams
         this package's ciphers.

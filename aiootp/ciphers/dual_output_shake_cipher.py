@@ -90,7 +90,7 @@ class DualOutputSessionKDFs(FrozenInstance):
     def __init__(self) -> None:
         pass
 
-    def __iter__(self) -> t.Generator[None, t.XOFType, None]:
+    def __iter__(self) -> t.Generator[t.XOFType, None, None]:
         """
         An api for retrieving the instance's keystream kdfs.
         """
@@ -563,7 +563,7 @@ class DualOutputStreamJunction(StreamJunction):
     @classmethod
     async def acombine_streams(
         cls, data: t.AsyncDatastream, *, shmac: t.StreamHMACType
-    ) -> t.AsyncGenerator[None, bytes]:
+    ) -> t.AsyncGenerator[bytes, None]:
         """
         Bitwise XORs a ciphertext or plaintext datastream with a keystream
         then feeds ciphertext into the `shmac` for validation & distinct
@@ -585,7 +585,7 @@ class DualOutputStreamJunction(StreamJunction):
     @classmethod
     def combine_streams(
         cls, data: t.Datastream, *, shmac: t.StreamHMACType
-    ) -> t.Generator[None, bytes, None]:
+    ) -> t.Generator[bytes, None, None]:
         """
         Bitwise XORs a ciphertext or plaintext datastream with a keystream
         then feeds ciphertext into the `shmac` for validation & distinct

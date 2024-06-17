@@ -111,7 +111,7 @@ def encode_key(
 
 async def aencode_items(
     *items: bytes, int_bytes: int = INT_BYTES
-) -> t.AsyncGenerator[None, bytes]:
+) -> t.AsyncGenerator[bytes, None]:
     """
     Yields each item in `items` with encoded length metadata attached.
     """
@@ -124,7 +124,7 @@ async def aencode_items(
 
 def encode_items(
     *items: bytes, int_bytes: int = INT_BYTES
-) -> t.Generator[None, bytes, None]:
+) -> t.Generator[bytes, None, None]:
     """
     Yields each item in `items` with encoded length metadata attached.
     """
@@ -218,7 +218,7 @@ def canonical_pack(
 
 async def adecode_items(
     read: t.Callable[[int], bytes], item_count: int, int_bytes: int
-) -> t.AsyncGenerator[None, bytes]:
+) -> t.AsyncGenerator[bytes, None]:
     """
     Extracts each size-item pair from the `read` callable, which
     outputs a number of canonically encoded bytes equal to the integer
@@ -237,7 +237,7 @@ async def adecode_items(
 
 def decode_items(
     read: t.Callable[[int], bytes], item_count: int, int_bytes: int
-) -> t.Generator[None, bytes, None]:
+) -> t.Generator[bytes, None, None]:
     """
     Extracts each size-item pair from the `read` callable, which
     outputs a number of canonically encoded bytes equal to the integer

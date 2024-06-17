@@ -98,7 +98,7 @@ class PasscryptSession(FrozenInstance):
 
     def __iter__(
         self,
-    ) -> t.Generator[None, t.Union[bytearray, t.Callable, int], None]:
+    ) -> t.Generator[t.Union[bytearray, t.Callable, int], None, None]:
         """
         Dumps the set of relevant parameters & function pointers for the
         `Passcrypt` worker. Gives the session a cleaner interface.

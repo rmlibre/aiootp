@@ -146,7 +146,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     async def __aiter__(
         self
-    ) -> t.AsyncGenerator[None, t.Tuple[bytes, bytes]]:
+    ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
         of times in the process of gathering data to buffer for the
@@ -160,7 +160,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     async def afinalize(
         self
-    ) -> t.AsyncGenerator[None, t.Tuple[bytes, bytes]]:
+    ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
         """
         Instructs the instance to finish receiving data into the buffer
         & to flush all ciphertext results out to the user.
@@ -368,7 +368,7 @@ class CipherStream(CipherStreamProperties):
 
     def __iter__(
         self
-    ) -> t.Generator[None, t.Tuple[bytes, bytes], None]:
+    ) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
         of times in the process of gathering data to buffer for the
@@ -380,7 +380,7 @@ class CipherStream(CipherStreamProperties):
             block = cipher(None)
             yield next_block_id(block), block
 
-    def finalize(self) -> t.Generator[None, t.Tuple[bytes, bytes], None]:
+    def finalize(self) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
         """
         Instructs the instance to finish receiving data into the buffer
         & to flush all ciphertext results out to the user.

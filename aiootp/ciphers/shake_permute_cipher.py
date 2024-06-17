@@ -58,7 +58,7 @@ class ShakePermuteKDFs(CipherKDFs):
 
     def new_session(
         self, summary: bytes
-    ) -> t.Generator[None, t.Tuple[str, t.XOFType], None]:
+    ) -> t.Generator[t.Tuple[str, t.XOFType], None, None]:
         """
         Yields copies of the instance's KDFs that have been given the
         fresh randomness & context of a session's `summary`.
@@ -223,7 +223,7 @@ class ShakePermuteStreamJunction(StreamJunction):
     @classmethod
     async def acombine_streams(
         cls, data: t.AsyncDatastream, *, shmac: StreamHMAC
-    ) -> t.AsyncGenerator[None, bytes]:
+    ) -> t.AsyncGenerator[bytes, None]:
         """
         XORs each ciphertext or plaintext block with a SHAKE round key,
         then passes the sum through a keyed permutation before XORing
@@ -237,7 +237,7 @@ class ShakePermuteStreamJunction(StreamJunction):
     @classmethod
     def combine_streams(
         cls, data: t.Datastream, *, shmac: StreamHMAC
-    ) -> t.Generator[None, bytes, None]:
+    ) -> t.Generator[bytes, None, None]:
         """
         XORs each ciphertext or plaintext block with a SHAKE round key,
         then passes the sum through a keyed permutation before XORing

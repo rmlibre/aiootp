@@ -75,7 +75,7 @@ def is_generator(obj: t.Any) -> bool:
 
 async def abatch(
     sequence: bytes, *, size: int, buffer_type: type = io.BytesIO
-) -> t.AsyncGenerator[None, bytes]:
+) -> t.AsyncGenerator[bytes, None]:
     """
     Runs through a sequence & yields `size` sized chunks of the bytes
     sequence one chunk at a time. By default this async generator yields
@@ -108,7 +108,7 @@ async def abatch(
 
 def batch(
     sequence: bytes, *, size: int, buffer_type: type = io.BytesIO
-) -> t.Generator[None, bytes, None]:
+) -> t.Generator[bytes, None, None]:
     """
     Runs through a sequence & yields `size` sized chunks of the bytes
     sequence one chunk at a time. By default this generator yields all
@@ -140,7 +140,7 @@ def batch(
 
 async def aresize(
     sequence: t.Sequence[t.Any], size: int, *, blocks: int = 0
-) -> t.AsyncGenerator[None, t.Sequence[t.Any]]:
+) -> t.AsyncGenerator[t.Sequence[t.Any], None]:
     """
     Runs through a `sequence` & yields `size` sized chunks of the
     sequence one chunk at a time. `blocks` is the total number of
@@ -160,7 +160,7 @@ async def aresize(
 
 def resize(
     sequence: t.Sequence[t.Any], size: int, *, blocks: int = 0
-) -> t.Generator[None, t.Sequence[t.Any], None]:
+) -> t.Generator[t.Sequence[t.Any], None, None]:
     """
     Runs through a `sequence` & yields `size` sized chunks of the
     sequence one chunk at a time. `blocks` is the total number of
@@ -180,7 +180,7 @@ def resize(
 
 async def aunpack(
     iterable: t.AsyncOrSyncIterable[t.Any]
-) -> t.AsyncGenerator[None, t.Any]:
+) -> t.AsyncGenerator[t.Any, None]:
     """
     Runs through an iterable &/or async iterable & yields elements one
     at a time.
@@ -194,7 +194,7 @@ async def aunpack(
             yield item
 
 
-def unpack(iterable: t.Iterable[t.Any]) -> t.Generator[None, t.Any, None]:
+def unpack(iterable: t.Iterable[t.Any]) -> t.Generator[t.Any, None, None]:
     """
     Runs through an iterable & yields elements one at a time.
     """
@@ -203,7 +203,7 @@ def unpack(iterable: t.Iterable[t.Any]) -> t.Generator[None, t.Any, None]:
 
 async def azip(
     *iterables: t.AsyncOrSyncIterable[t.Any]
-) -> t.AsyncGenerator[None, t.List[t.Any]]:
+) -> t.AsyncGenerator[t.List[t.Any], None]:
     """
     Creates an asynchronous version of the `builtins.zip` function
     which is wrapped by the `Comprende` class.
@@ -218,7 +218,7 @@ async def azip(
 
 async def acycle(
     iterable: t.AsyncOrSyncIterable[t.Any]
-) -> t.AsyncGenerator[None, t.Any]:
+) -> t.AsyncGenerator[t.Any, None]:
     """
     Unendingly cycles in order over the elements of an async iterable.
     """
@@ -238,7 +238,7 @@ async def acycle(
             yield result
 
 
-def cycle(iterable: t.Iterable[t.Any]) -> t.Generator[None, t.Any, None]:
+def cycle(iterable: t.Iterable[t.Any]) -> t.Generator[t.Any, None, None]:
     """
     Unendingly cycles in order over the elements of a sync iterable.
     """
@@ -253,7 +253,7 @@ def cycle(iterable: t.Iterable[t.Any]) -> t.Generator[None, t.Any, None]:
 
 async def abytes_count(
     start: int = 0, *, size: int = 8, byte_order: str = BIG
-) -> t.AsyncGenerator[None, bytes]:
+) -> t.AsyncGenerator[bytes, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
     """
@@ -266,7 +266,7 @@ async def abytes_count(
 
 def bytes_count(
     start: int = 0, *, size: int = 8, byte_order: str = BIG
-) -> t.Generator[None, bytes, None]:
+) -> t.Generator[bytes, None, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
     """
@@ -276,7 +276,7 @@ def bytes_count(
         index += 1
 
 
-async def acount(start: int = 0) -> t.AsyncGenerator[None, int]:
+async def acount(start: int = 0) -> t.AsyncGenerator[int, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
     """
@@ -289,7 +289,7 @@ async def acount(start: int = 0) -> t.AsyncGenerator[None, int]:
         index += 1
 
 
-def count(start: int = 0) -> t.Generator[None, int, None]:
+def count(start: int = 0) -> t.Generator[int, None, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
     """
@@ -303,7 +303,7 @@ def count(start: int = 0) -> t.Generator[None, int, None]:
 
 async def abytes_range(
     *a, size: int = 8, byte_order: str = BIG
-) -> t.AsyncGenerator[None, int]:
+) -> t.AsyncGenerator[int, None]:
     """
     An async version of `builtins.range` wrapped by the `Comprende`
     class, & returns its values as bytes instead.
@@ -315,7 +315,7 @@ async def abytes_range(
 
 def bytes_range(
     *a, size: int = 8, byte_order: str = BIG
-) -> t.Generator[None, int, None]:
+) -> t.Generator[int, None, None]:
     """
     A synchronous version of `builtins.range` which is wrapped by the
     `Comprende` class, & returns its values as bytes instead.
@@ -324,7 +324,7 @@ def bytes_range(
         yield result.to_bytes(size, byte_order)
 
 
-async def arange(*a: t.Optional[int]) -> t.AsyncGenerator[None, int]:
+async def arange(*a: t.Optional[int]) -> t.AsyncGenerator[int, None]:
     """
     An async version of `builtins.range`.
     """
@@ -335,7 +335,7 @@ async def arange(*a: t.Optional[int]) -> t.AsyncGenerator[None, int]:
 
 async def acollate(
     *iterables: t.AsyncOrSyncIterable[t.Any]
-) -> t.AsyncGenerator[None, t.Any]:
+) -> t.AsyncGenerator[t.Any, None]:
     """
     Takes a collection of iterables &/or async iterables & exhausts them
     one at a time from left to right.
@@ -352,7 +352,7 @@ async def acollate(
 
 def collate(
     *iterables: t.Iterable[t.Any]
-) -> t.Generator[None, t.Any, None]:
+) -> t.Generator[t.Any, None, None]:
     """
     Takes a collection of iterables & exhausts them one at a time from
     left to right.
@@ -364,7 +364,7 @@ def collate(
 
 async def apopleft(
     queue: t.SupportsPopleft
-) -> t.AsyncGenerator[None, t.Any]:
+) -> t.AsyncGenerator[t.Any, None]:
     """
     An async generator which calls the `popleft()` method on `queue`
     for every iteration, & exits on `IndexError`.
@@ -378,7 +378,7 @@ async def apopleft(
 
 def popleft(
     queue: t.SupportsPopleft
-) -> t.Generator[None, t.Any, None]:
+) -> t.Generator[t.Any, None, None]:
     """
     A generator which calls the `popleft()` method on `queue` for
     every iteration, & exits on `IndexError`.

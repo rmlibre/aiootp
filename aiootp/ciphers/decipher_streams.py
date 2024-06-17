@@ -201,7 +201,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         else:
             queue.popleft()
 
-    async def __aiter__(self) -> t.AsyncGenerator[None, bytes]:
+    async def __aiter__(self) -> t.AsyncGenerator[bytes, None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
         of times in the process of gathering data to buffer for the
@@ -217,7 +217,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
             yield pop_result()
             await asleep()
 
-    async def afinalize(self) -> t.AsyncGenerator[None, bytes]:
+    async def afinalize(self) -> t.AsyncGenerator[bytes, None]:
         """
         Instructs the instance to finish receiving data into the buffer
         & to flush all results out to the user with its plaintext
@@ -481,7 +481,7 @@ class DecipherStream(CipherStreamProperties):
         else:
             queue.popleft()
 
-    def __iter__(self) -> t.Generator[None, bytes, None]:
+    def __iter__(self) -> t.Generator[bytes, None, None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
         of times in the process of gathering data to buffer for the
@@ -496,7 +496,7 @@ class DecipherStream(CipherStreamProperties):
         while len(result_queue) > MIN_STREAM_QUEUE:
             yield pop_result()
 
-    def finalize(self) -> t.Generator[None, bytes, None]:
+    def finalize(self) -> t.Generator[bytes, None, None]:
         """
         Instructs the instance to finish receiving data into the buffer
         & to flush all results out to the user with its plaintext

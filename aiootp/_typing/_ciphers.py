@@ -183,7 +183,7 @@ class AsyncCipherStreamingType(t.Protocol):
 
     async def __aiter__(
         self
-    ) -> t.AsyncGenerator[None, t.Tuple[bytes, bytes]]:
+    ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
         pass  # pragma: no cover
 
     async def abuffer(self, data: bytes) -> t.Self:
@@ -214,7 +214,7 @@ class CipherStreamingType(t.Protocol):
 
     def __iter__(
         self
-    ) -> t.Generator[None, t.Tuple[bytes, bytes], None]:
+    ) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
         pass  # pragma: no cover
 
     def buffer(self, data: bytes) -> t.Self:
