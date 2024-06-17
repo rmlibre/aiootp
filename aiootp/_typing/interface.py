@@ -19,7 +19,6 @@ __doc__ = "A type-hinting utility for the package."
 
 import types
 import typing
-import pathlib
 from typing import NewType
 
 
