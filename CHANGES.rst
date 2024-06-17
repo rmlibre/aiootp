@@ -11,13 +11,14 @@ Changes for version 0.23.6
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- Standardize on mapping functionality for ``Slots`` sub classes.
 
 
 Minor Changes
 ^^^^^^^^^^^^^
 
 - Improvements & fixes to type hints.
+- Improvements & fixes to doc strings.
 - Improvements & fixes to package tests.
 - Improvements & fixes to code formatting & style.
 

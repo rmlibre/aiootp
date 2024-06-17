@@ -35,7 +35,7 @@ class SaltAADIV(FrozenSlots):
 
     __slots__ = ("salt", "aad", "iv", "config", "iv_is_fresh")
 
-    _MAPPED_ATTRIBUTES: t.Iterable[str] = frozenset(("salt", "aad", "iv"))
+    _MAPPED_ATTRIBUTES: t.Tuple[str] = ("salt", "aad", "iv")
 
     def __init__(
         self,
@@ -82,9 +82,6 @@ class SaltAADIV(FrozenSlots):
             raise Issue.value_must_be_type("iv", bytes)
         elif len(iv) != config.IV_BYTES:
             raise Issue.invalid_length("iv", config.IV_BYTES)
-
-    def _is_mapped_attribute(self, name: str) -> bool:
-        return name in self._MAPPED_ATTRIBUTES
 
 
 class KeyAADRegisters(FrozenSlots):

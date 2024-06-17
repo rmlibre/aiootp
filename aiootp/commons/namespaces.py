@@ -35,7 +35,7 @@ class Namespace(Slots):
 
     __slots__ = ("__dict__",)
 
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
         "__dict__", *Slots._UNMAPPED_ATTRIBUTES, "update"
     )
 
@@ -48,23 +48,6 @@ class Namespace(Slots):
         """
         self.__dict__.update(mapping) if mapping else 0
         self.__dict__.update(kwargs) if kwargs else 0
-
-    async def __aiter__(self) -> t.AsyncGenerator[t.Hashable, None]:
-        """
-        Unpacks instance variable names with with async iteration.
-        """
-        for name in self.__dict__:
-            await asyncio.sleep(0)
-            if self._is_mapped_attribute(name):
-                yield name
-
-    def __iter__(self) -> t.Generator[t.Hashable, None, None]:
-        """
-        Unpacks instance variable names with with sync iteration.
-        """
-        for name in self.__dict__:
-            if self._is_mapped_attribute(name):
-                yield name
 
     def update(self, mapping: t.Mapping[t.Hashable, t.Any]) -> None:
         """

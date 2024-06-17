@@ -194,6 +194,10 @@ class ConfigMap(OpenFrozenNamespace):
 
     __slots__ = ()
 
+    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
+        *OpenFrozenNamespace._UNMAPPED_ATTRIBUTES, CONFIG_TYPE
+    )
+
     def __init__(
         self,
         mapping: t.Mapping[t.Hashable, t.Any] = {},

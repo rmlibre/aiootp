@@ -84,8 +84,8 @@ class PasscryptHash(FrozenSlots):
             self.salt = salt
             self.tag = tag
 
-    def _is_mapped_attribute(self, name: str) -> bool:
-        return name in self._MAPPED_ATTRIBUTES
+    def __iter__(self) -> t.Generator[str, None, None]:
+        yield from self._MAPPED_ATTRIBUTES
 
     @property
     def salt_size(self) -> t.Optional[int]:

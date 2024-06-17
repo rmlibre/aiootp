@@ -33,8 +33,8 @@ class Ciphertext(OpenFrozenSlots):
 
     __slots__ = ("shmac", "salt", "iv", "ciphertext", "config")
 
-    _MAPPED_ATTRIBUTES: t.Iterable[str] = frozenset(
-        ("shmac", "salt", "iv", "ciphertext")
+    _MAPPED_ATTRIBUTES: t.Tuple[str] = (
+        "shmac", "salt", "iv", "ciphertext"
     )
 
     InvalidCiphertextSize: type = InvalidCiphertextSize
@@ -55,6 +55,9 @@ class Ciphertext(OpenFrozenSlots):
         self.iv = data.read(config.IV_BYTES)
         self.ciphertext = data.read()
 
+    def __iter__(self) -> t.Generator[str, None, None]:
+        yield from self._MAPPED_ATTRIBUTES
+
     def _ensure_valid_size(self, data_length: int) -> None:
         """
         Accepts the integer length of a blob of ciphertext & throws
@@ -63,13 +66,6 @@ class Ciphertext(OpenFrozenSlots):
         size = data_length - self.config.HEADER_BYTES
         if size <= 0 or size % self.config.BLOCKSIZE:
             raise InvalidCiphertextSize(data_length)
-
-    def _is_mapped_attribute(self, name: str) -> bool:
-        """
-        Gives the mapping interface the criteria which define attributes
-        to include when unpacking instances.
-        """
-        return name in self._MAPPED_ATTRIBUTES
 
 
 module_api = dict(

@@ -33,6 +33,7 @@ from aiootp._typing import Typing as t
 from aiootp._constants import OMITTED
 from aiootp._debug_control import DebugControl
 from aiootp._exceptions import Issue
+from aiootp._gentools import collate
 
 
 class Slots:
@@ -43,8 +44,8 @@ class Slots:
 
     __slots__ = ()
 
-    _MAPPED_ATTRIBUTES: t.Iterable[str] = ()
-    _UNMAPPED_ATTRIBUTES: t.Iterable[str] = (
+    _MAPPED_ATTRIBUTES: t.Tuple[str] = ()
+    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
         "_MAPPED_ATTRIBUTES",
         "_UNMAPPED_ATTRIBUTES",
         "_is_mapped_attribute",
@@ -53,16 +54,19 @@ class Slots:
         "items",
     )
 
-    def __init_subclass__(cls, *a, **kw) -> None:
+    def __init_subclass__(cls, *a: t.Any, **kw: t.Any) -> None:
+        """
+        Brings slots declarations from subclasses up the class hierarchy.
+        """
         super().__init_subclass__(*a, **kw)
-        slots = []
-        for subcls in cls.__mro__:
-            for slot in getattr(subcls, "__slots__", ()):
-                slots.append(slot)
-        cls.__slots__ = tuple(slots)
+        cls.__slots__ = tuple({  # Preserve original declaration order &
+            name: None           # enforce uniqueness
+            for subcls in cls.__mro__
+            for name in getattr(subcls, "__slots__", ())
+        })
 
     def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kwargs
+        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kw: t.Any
     ) -> None:
         """
         Maps the user-defined kwargs to the instance attributes. If a
@@ -71,17 +75,16 @@ class Slots:
         classes with `__slots__` can greatly increase memory efficiency
         if a system instantiates many objects of the class.
         """
-        for name, value in {**mapping, **kwargs}.items():
+        for name, value in {**mapping, **kw}.items():
             setattr(self, name, value)
 
     def __dir__(self) -> t.List[t.Hashable]:
         """
         Returns the instance directory.
         """
-        directory = set(object.__dir__(self)).difference(
-            self._UNMAPPED_ATTRIBUTES
+        return list(
+            set(object.__dir__(self)).difference(self._UNMAPPED_ATTRIBUTES)
         )
-        return [*directory]
 
     def __bool__(self) -> bool:
         """
@@ -101,10 +104,8 @@ class Slots:
         """
         if name.__class__ is str:
             return hasattr(self, name)
-        elif hasattr(self, "__dict__"):
-            return name in self.__dict__
         else:
-            return False
+            return name in getattr(self, "__dict__", ())
 
     def __setitem__(self, name: str, value: t.Any) -> None:
         """
@@ -158,28 +159,23 @@ class Slots:
         Allows the class to define criteria which include an instance
         attribute within the mapping unpacking interface.
         """
-        return (
-            (name in self)
-            and (
-                (name not in self._UNMAPPED_ATTRIBUTES)
-                or (name in self._MAPPED_ATTRIBUTES)
-            )
-        )
+        mapped = name in self._MAPPED_ATTRIBUTES
+        unmapped = name in self._UNMAPPED_ATTRIBUTES
+        return ((name in self) and (mapped or not unmapped))
 
     async def __aiter__(self) -> t.AsyncGenerator[t.Any, None]:
         """
         Unpacks instance variable names with with async iteration.
         """
-        for name in self.__slots__:
-            if self._is_mapped_attribute(name):
-                await asyncio.sleep(0)
-                yield name
+        for name in self:
+            await asyncio.sleep(0)
+            yield name
 
     def __iter__(self) -> t.Generator[t.Any, None, None]:
         """
         Unpacks instance variable names with with sync iteration.
         """
-        for name in self.__slots__:
+        for name in collate(self.__slots__, getattr(self, "__dict__", ())):
             if self._is_mapped_attribute(name):
                 yield name
 
