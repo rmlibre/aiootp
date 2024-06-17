@@ -29,7 +29,9 @@ with open("README.rst", "r") as readme:
     long_description = readme.read()
 
 
-if getpass("sign package? (y/N) ").lower().strip().startswith("y"):
+if __name__ != "__main__":
+    pass
+elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
 
     with open("SIGNATURE.txt", "r") as sig:
         scope = json.loads(sig.read())[PackageSigner._SCOPE]
