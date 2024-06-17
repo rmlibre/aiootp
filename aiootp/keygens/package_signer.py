@@ -332,9 +332,10 @@ class PackageSigner:
         save the signature to disk.
         """
         checksum = self._checksum
-        self.db[self._scope.package][self._VERSIONS].update(
-            {self._scope.version: self.signing_key.sign(checksum).hex()}
-        )
+        with self.db as db:
+            db[self._scope.package][self._VERSIONS].update(
+                {self._scope.version: self.signing_key.sign(checksum).hex()}
+            )
         return self
 
     def summarize(self) -> t.Dict[str, t.JSONSerializable]:
