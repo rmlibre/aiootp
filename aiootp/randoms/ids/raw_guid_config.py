@@ -116,9 +116,7 @@ class RawGUIDContainer(OpenFrozenSlots):
 
     __slots__ = ("timestamp", "token", "node_id", "ticker")
 
-    _MAPPED_ATTRIBUTES: t.Tuple[str] = (
-        "timestamp", "token", "node_id", "ticker"
-    )
+    _MAPPED_ATTRIBUTES: t.Tuple[str] = __slots__
 
     def __init__(self, guid: bytes, *, config: RawGUIDConfig) -> None:
         if not len(guid) == config.SIZE:
