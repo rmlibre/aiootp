@@ -265,7 +265,7 @@ class FrozenInstance:
     __slots__ = ()
 
     def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kwargs
+        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kw: t.Any
     ) -> None:
         """
         Maps the user-defined kwargs to the instance attributes. If a
@@ -274,7 +274,7 @@ class FrozenInstance:
         classes with `__slots__` can greatly increase memory efficiency
         if a system instantiates many objects of the class.
         """
-        for name, value in {**mapping, **kwargs}.items():
+        for name, value in {**mapping, **kw}.items():
             setattr(self, name, value)
 
     def __repr__(self) -> str:

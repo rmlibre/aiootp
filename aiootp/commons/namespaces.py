@@ -40,14 +40,14 @@ class Namespace(Slots):
     )
 
     def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kwargs
+        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kw: t.Any
     ) -> None:
         """
         Maps the user-defined mapping & kwargs to the Namespace's
         instance dictionary.
         """
         self.__dict__.update(mapping) if mapping else 0
-        self.__dict__.update(kwargs) if kwargs else 0
+        self.__dict__.update(kw) if kw else 0
 
     def update(self, mapping: t.Mapping[t.Hashable, t.Any]) -> None:
         """

@@ -203,7 +203,7 @@ class ConfigMap(OpenFrozenNamespace):
         mapping: t.Mapping[t.Hashable, t.Any] = {},
         *,
         config_type: type,
-        **kw,
+        **kw: t.Any,
     ) -> None:
         """
         Defines the configurations to be stored in the instance from the
