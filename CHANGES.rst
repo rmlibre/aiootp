@@ -19,6 +19,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Add GitHub actions for live testing installs from PyPI.
 - Improvements & fixes to type hints.
 - Improvements & fixes to doc strings.
 - Improvements & fixes to package tests.
