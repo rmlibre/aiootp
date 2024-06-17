@@ -1,8 +1,8 @@
 {
-    "checksum": "b2e8a048ba1606575da591f99349c33e4831e15bc5e766acdd2fd582542ae3f7e1a416aa408dde070c015ebb433d2eff",
+    "checksum": "cd63593dd66d1b726ad44a4562e435eb450cbf9731a008fa9ffbc3ab1a4cbe66325e1fbfda1e99c1c8400eb2d841fe8f",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
-        "CHANGES.rst": "2a51aebde1311cfeaaae52414a1a6e3d637d07fb5e4acb999d75ad50cdcc957052e3f32e386f9ea7db77b1295d9faea3",
+        "CHANGES.rst": "9a51ef77698a01ef4a390ae3bc110a08437915b09459a49f82411426197e165c648b2299ec7d3a29174f5232d5eacde9",
         "FAQ.rst": "2f15dac97fb9bdc64d36204e11d617f0363ef221b071eec9cfb1a5951955169c1633d92bceae7c674974800e4bfaffff",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
         "MANIFEST.in": "24eda1b79d6d4e91e0d58dab0a90f28b8413b9caaeab7cfc8d66e6f9da03548a04b8578aa2b436cde14470a22107a7c7",
@@ -53,7 +53,7 @@
         "aiootp/ciphers/decipher_streams.py": "1fabcedd7b61c7106352b1a8bc6e46c637808e7639402c26fa9669cf01dce2404bd39500200d6c9e819a93be6302f60c",
         "aiootp/ciphers/dual_output_shake_cipher.py": "0f5400d6e77e920f4294d115523bf197b7895651cdb2dd81abc4af0097a98e3e8dc5130ba3ff4930d9ad5023d71beeb1",
         "aiootp/ciphers/dual_output_shake_cipher_config.py": "706e785182676a48fa6a672d840410fef00532dcf9e566ee850f053d1aa215a6d5f6a20110e4c05cf1a127903459a91e",
-        "aiootp/ciphers/key_bundle.py": "abff1c84989fe95401513313b4081c7846c3a723ceb182bf1a2b603c821084b25f5ccf2427266fe8e2f03e7955e012e4",
+        "aiootp/ciphers/key_bundle.py": "b92eb59638ec75981046710d280cab964b62281f3c0e9c191b51aef1aeaa37906257664ef07784f3ee0479257ae548e8",
         "aiootp/ciphers/padding.py": "82b9d1c0cbf8e03e1fc2299ab6546ec1edbac25e8502e41f27f8cb44d2fa3d441c02541e73b68276bbae7d2e7fa21f49",
         "aiootp/ciphers/shake_permute_cipher.py": "02d076b27659fae4a932ea43afa53a6f47d503b38addb348d0fa32e9257c5322fed448cfd2cae58e731154e51eb17ba5",
         "aiootp/ciphers/shake_permute_cipher_config.py": "adb7b35998388b64791506dba142a58700fef0538a3eea3c4f80dc4155849fb7107ba1f79dd16bb658ac11c98f2dabe7",
@@ -63,10 +63,10 @@
         "aiootp/ciphers/stream_junction.py": "68fae58659a4cae6d9f64d3ac6a5adcb53ea77f8dd8ebeb7d89dcb89edec14240add94b102e1366847ca7e805e48de15",
         "aiootp/ciphers/synthetic_iv.py": "6af23713223c61928ba65ed4e193df1dca9134d127c269e5fbb91ec054dc48187803c75e014e7536f5ce8740ce8b39cf",
         "aiootp/commons/__init__.py": "366e2e57ebbabba508d0de717dcc7f41e51ead44812d769143fc7f3cbf0552126870e2f50d7acf651ab24d7356388b19",
-        "aiootp/commons/configs.py": "c401307efd7ace807c62c59f69c496f61770f8e177687b0e323e98da6feea0fb41b7f0a9f17b8fde1db3ae0a82cc608c",
-        "aiootp/commons/namespaces.py": "ad9a04831bf55f163c0f54f19cc300912ee289684898355520b1978a84fcfa97626424673919f28f7c0cbef6864eb3c9",
+        "aiootp/commons/configs.py": "8cecc9b3148f989b10ca9f3df8cfb39218c8dbd1224261357a6274857dd0f5d7658625f04597bb11c70347d1e0708478",
+        "aiootp/commons/namespaces.py": "0fdda32114832096c89503b4d5d69770072ecfe20b35da98a6876cee99064f2baabeb95fb1d440f1d5ee67f9232fcac6",
         "aiootp/commons/packaging.py": "ee48ebff7a2ab09afb4b542dd882611603a9f77680ab74ad058ed7f7c45399c7e9423e84dbd6e1e6678e69c5d35e8e3a",
-        "aiootp/commons/slots.py": "f1c2f7415de9f8a8f048dd9ce5dd473f07a1c2a116e336a6fb1b204bc97378090bd33d2176bcc929822920a26890b9bf",
+        "aiootp/commons/slots.py": "afc9c43161bea606b6da6792be92fa6aa3946d91c2584dd3e2249df8fad8df732db527b02e051fbd60144ff5e2d42a01",
         "aiootp/databases/__init__.py": "ed0736c9cb9d3fe23b45fef467dddb6db5b631094dae9bc78efd3bb24b081730195530535bdc9ac3cb103e140a52b7cd",
         "aiootp/databases/async_database.py": "d04ff5eced268612d7df0498f942d4a89626fa41e32cf1d98695973a93e643221025a2ec5200a4058d7244222df26605",
         "aiootp/databases/database_properties.py": "35c450cfa24c55e1187e66207e841bf320dae01d45cad168a4424c4e588cd030fb726579de4ae62a896a475316b81c70",
@@ -97,7 +97,7 @@
         "aiootp/keygens/passcrypt/__init__.py": "5d3cdecd6197a080207543e263e1255190e292a87510a1890bdf54f55d92ef2b4352b6183bf60d8c8a86efce00695b92",
         "aiootp/keygens/passcrypt/config.py": "c2fd3da1043a326a932dcb8039729967992c8adc0a1e63e10a41eed05b53c497d938e21ab7e1fb613f9ff9f8eba66ad1",
         "aiootp/keygens/passcrypt/hash_format.py": "8717a131d72f42279bc603778ae677f3a2f5c8d88fec79a5e628cbba542ec59e1dcea16d6d0bf2c0b9b3e6e78b049587",
-        "aiootp/keygens/passcrypt/interface.py": "bc61b96859b26b09d9eab60fed04fae8b93435b3feda85c0837c207976203de5520d71e969fe6eb77ffe39187886622a",
+        "aiootp/keygens/passcrypt/interface.py": "4b8054ad128071153726f22274e7376f4d3411d82dab1192b34d6149c0c25a447652f2b1e253281b4f930dd26232db3e",
         "aiootp/keygens/passcrypt/session_init.py": "daa70e53196f43226f78becbfe8ab1ecba37d1ee4785d13da0ec356e6cebfe5f120877dcfd369bc18a4faaaa1ab6a3be",
         "aiootp/keygens/passcrypt/sessions_manager.py": "3d08c87d40b9db6ce32ecb461fa624286a521bcc0d2db6aa36858a9ce33f885f300659c36b54308368f1438317a9d660",
         "aiootp/randoms/__init__.py": "0497aeff1fde932caee90e14dca341eef22e8c3d837694696cef5c45c844918d9fce87dd96bf8368bec40f98af4540c4",
@@ -107,7 +107,7 @@
         "aiootp/randoms/ids/guid.py": "a6fdf2ae161235258ca4f53dd2b67ad89176be912be9e9a3138cfc4b5c4dcd98fe2ced9bb12be9aa3296bf57bc3e747d",
         "aiootp/randoms/ids/guid_config.py": "2ce1aa40c0f348371e045f8ee9837b2beddc513ea1ccea0b8a35b626197e3c688c0376ac7e62755545332ae22d2e2945",
         "aiootp/randoms/ids/raw_guid.py": "c418e5ff781fb7da7a970a921fdeb9d808a28d536538902571a6f16f43deee1c896f1cafce3a04032d144b99208a3c52",
-        "aiootp/randoms/ids/raw_guid_config.py": "98f0e24742aca947a0902fd872fb3286300a556c683357805858003283c38c6453f513fa189bfce79d8978bfec6f6ba1",
+        "aiootp/randoms/ids/raw_guid_config.py": "b06648c8c3fa2509dcf25a8eb0ed9cb400361de84f26e6635563504908b0d4174c61bce2112cfdd4c4a7ef7db500bd7f",
         "aiootp/randoms/ids/sequence_id.py": "6f7de3e64fa0d954b277f5f656a5cb6a015b3c5207bbe61ccef38c424581b8956641ba1ab80057112554ceb910f33d26",
         "aiootp/randoms/ids/sequence_id_config.py": "856c78333b8232d04c869e85d1a78129714ec8c3210455b7c4eae97f5a9cf5b9153ddccc154e605d280cc55c132cd9e5",
         "aiootp/randoms/rng.py": "830cee4f726013c1c4ef683a4c162bcad21276cd85465e95b6073e1773c7763b09ea70480fc4763381007132c1541326",
@@ -116,7 +116,7 @@
         "aiootp/tor/README_TOR.rst": "d6f1d1a2ecbca1c69f1fa222d91c1c1eba51d3ba742283fd1b0de0539462594a433d53ea4f306d1794d5fd9c5dfb56a6",
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
         "setup.cfg": "3e11acf975b198f15a68ff9cc84947c7c3e4914d3a88847cd3fec125cc3cc28641c4aa9cd072532d27bca878a5552130",
-        "setup.py": "1b8f555e3f51d1c196574572aba09c312c4c0162753b8fddc5369992bcd1ed85e7f8d25ccf2b1a4b60856d7499a07f4b",
+        "setup.py": "9e04e47b8b7bc97315a2ca50607a4acde15f5be2b69f125afd386678c95cd286b40dea12d719756e27e14f3d4fbfbbf1",
         "tests/pytest.ini": "707d3ce22f019e0bada73661b7adc85b9af00f7aacbc1d005c1a41e77964d533a2adbf00f7620044051af1b521961e22",
         "tests/test_ByteIO.py": "ac1aa9124f8c46975360000fbb74f5c0305cd7480cd499fe4d5a96550ab2b7f9ac233ee4626cb001d1f10d9732299283",
         "tests/test_Clock.py": "4509cb110b9c9f9f70957ad3e529e6adbc92260c57ebfb5d03d08278fe9eedc5e61b03b0cc03e25500aa058c71ba8e15",
@@ -160,7 +160,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 1,
+        "build_number": 2,
         "date": 19891,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -168,5 +168,5 @@
         "version": "0.23.6"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "d8420d4396b5b2cbe394b403037a2a4179063f1ee987dc0bd183bd323c44773f7452b1d1a6325a75058007391a4b5a39decd18ef34464b131b0f38ca1f45f00a"
+    "signature": "6aed8102757782d720ec532cfa2152b2fcdb287aa069a08ad4558c9739e5e940014af4e7a6151d0ce8f4fa0157ace95fc21897fe741726f9d4ae7b820816ca02"
 }
