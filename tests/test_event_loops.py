@@ -32,12 +32,16 @@ class TestConcurrentExecution:
 
         value_0 = 0
         value_1 = 0
-        asynchs.new_task(increment_over_time(track=0))
-        asynchs.new_task(increment_over_time(track=1))
+        asynchs.new_task(increment_over_time(track=0)); await asleep(0.0001)
+        assert 0 < value_0
+        assert 0 == value_1
+        asynchs.new_task(increment_over_time(track=1)); await asleep(0.0001)
+        assert 1 < value_0
+        assert 0 < value_1
 
         await asleep(0.0001)
-        assert 0 < value_0
-        assert 0 < value_1
+        assert 2 < value_0
+        assert 1 < value_1
 
     async def test_futures_run_in_background(self) -> None:
 
@@ -55,12 +59,16 @@ class TestConcurrentExecution:
 
         value_0 = 0
         value_1 = 0
-        asynchs.new_future(increment_over_time(track=0))
-        asynchs.new_future(increment_over_time(track=1))
+        asynchs.new_future(increment_over_time(track=0)); await asleep(0.0001)
+        assert 0 < value_0
+        assert 0 == value_1
+        asynchs.new_future(increment_over_time(track=1)); await asleep(0.0001)
+        assert 1 < value_0
+        assert 0 < value_1
 
         await asleep(0.0001)
-        assert 0 < value_0
-        assert 0 < value_1
+        assert 2 < value_0
+        assert 1 < value_1
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
