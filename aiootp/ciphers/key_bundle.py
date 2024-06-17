@@ -51,6 +51,9 @@ class SaltAADIV(FrozenSlots):
         self.iv = self._process_iv(iv)
         self._test_salt_aad_iv(self.salt, self.aad, self.iv)
 
+    def __iter__(self) -> t.Generator[str, None, None]:
+        yield from self._MAPPED_ATTRIBUTES
+
     def _process_iv(self, iv: bytes) -> bytes:
         """
         Creating a new random IV during encryption ensures the user
