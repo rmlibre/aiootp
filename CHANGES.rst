@@ -12,6 +12,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - Standardize on mapping functionality for ``Slots`` sub classes.
+- Automate saving database to disk after ``PackageSigner`` signs package.
 
 
 Minor Changes
