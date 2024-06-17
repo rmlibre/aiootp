@@ -99,13 +99,19 @@ class GUID(FrozenInstance):
     # Unmasking GUIDs
 
     guids = GUID(node_id=b"\xfc")
-    guid = guids.new()
-    print(guids.read(guid))
+    print(guids.read(guids.new()))
     RawGUIDContainer(
-        timestamp=b'\x00\xa0(\xfc\x18\x17\x173',
-        token=b"q\xc4\xb45Q'",
+        timestamp=b'\x00\xa3\xb9\xc3\xcc\x83CW',
+        token=b'\xb4T<\xe7\xc8o',
         node_id=b'\xfc',
         ticker=b'\x01',
+    )
+    print(guids.read(guids.new()))
+    RawGUIDContainer(
+        timestamp=b'\x00\xa3\xb9\xc3\xcc\x88\x0f\x99',
+        token=b'\xb5~\xf1\xf7\xa4\xab',
+        node_id=b'\xfc',
+        ticker=b'\x02',
     )
     """
 
