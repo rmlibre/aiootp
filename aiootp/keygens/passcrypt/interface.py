@@ -66,9 +66,6 @@ class PasscryptSettings(OpenFrozenSlots):
         self.salt_size = salt_size
         config.validate_settings(**self)
 
-    def __iter__(self) -> t.Generator[str, None, None]:
-        yield from self._MAPPED_ATTRIBUTES
-
 
 class Passcrypt(FrozenInstance):
     """
