@@ -1,0 +1,23 @@
+name: windows-pypi
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 5
+      matrix:
+        python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x"]
+        os: [windows-latest]
+    steps:
+    - uses: actions/checkout@v4
+    - name: setup python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: test installs from pypi
+      run: |
+        python3 -m pip install --upgrade pip aiootp
