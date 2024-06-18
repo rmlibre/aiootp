@@ -18,6 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Improvements & fixes to package tests.
 - Improvements & fixes to code formatting & style.
 
 
