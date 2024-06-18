@@ -148,7 +148,7 @@ class Slots:
         start = f"{sep}    " if self else ""
         body = on.join(
             f"{name}={show(value)}"
-            for name, value in cls.items(self)
+            for name, value in self.items()
             if str(name)[0] != "_"
         )
         end = f",{sep}" if self else ""
