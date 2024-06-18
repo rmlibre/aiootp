@@ -53,7 +53,7 @@ from cryptography.exceptions import InvalidSignature
 from ._typing import Typing as t
 
 
-def raise_exception(obj: Exception) -> None:
+def raise_exception(obj: Exception, /) -> None:
     """
     Simply provides a callable which raises `obj` turning the raise
     statement into an expression.
@@ -71,7 +71,7 @@ class Metadata:
 
     __slots__ = ("size", "type")
 
-    def __init__(self, value: t.Any) -> None:
+    def __init__(self, value: t.Any, /) -> None:
         self.type = value.__class__
         self.size = len(value) if hasattr(value, "__len__") else None
 
@@ -134,18 +134,19 @@ class Ignore:
         Stand-in handler when one isn't specified.
         """
 
-        def __await__(self) -> t.Self:
+        def __await__(self, /) -> t.Self:
             yield
             return self
 
-        def __call__(self, *a, **kw) -> t.Self:
+        def __call__(self, /, *a, **kw) -> t.Self:
             return self
 
-        def __bool__(self) -> bool:
+        def __bool__(self, /) -> bool:
             return True
 
     def __init__(
         self,
+        /,
         *exceptions: Exception,
         if_except: t.Optional[t.Callable[[t.Self], t.Any]] = None,
         if_else: t.Optional[t.Callable[[t.Self], t.Any]] = None,
@@ -166,17 +167,17 @@ class Ignore:
         self.error = None
         self.traceback = None
 
-    def __repr__(self) -> str:
+    def __repr__(self, /) -> str:
         return repr(getattr(self, "error", None))
 
-    async def __aenter__(self) -> t.Self:
+    async def __aenter__(self, /) -> t.Self:
         """
         Open an async context.
         """
         await asyncio.sleep(0)
         return self
 
-    def __enter__(self) -> t.Self:
+    def __enter__(self, /) -> t.Self:
         """
         Open a sync context.
         """
@@ -184,6 +185,7 @@ class Ignore:
 
     async def __aexit__(
         self,
+        /,
         exc_type: t.Optional[type] = None,
         exc_value: t.Optional[Exception] = None,
         traceback: t.Optional[t.TracebackType] = None,
@@ -210,6 +212,7 @@ class Ignore:
 
     def __exit__(
         self,
+        /,
         exc_type: t.Optional[type] = None,
         exc_value: t.Optional[Exception] = None,
         traceback: t.Optional[t.TracebackType] = None,
@@ -257,7 +260,7 @@ class TimestampExpired(TimeoutError):
 
     _DEFAULT_MESSAGE: str = "Timestamp expired by <TIME> UNITS."
 
-    def __init__(self, units: str, expired_by: int) -> None:
+    def __init__(self, units: str, expired_by: int, /) -> None:
         self.units = units
         self.expired_by = expired_by
         message = self._DEFAULT_MESSAGE.replace("UNITS", repr(units))
@@ -317,7 +320,7 @@ class UndefinedRequiredAttributes(AttributeError):
         "object initialization: UNDEFINED_ATTRIBUTES."
     )
 
-    def __init__(self, *undefined_attributes: str) -> None:
+    def __init__(self, /, *undefined_attributes: str) -> None:
         self.undefined_attributes = undefined_attributes
         super().__init__(
             self
@@ -337,7 +340,7 @@ class InvalidCiphertextSize(ValueError):
         "The given ciphertext length of SIZE isn't a valid size."
     )
 
-    def __init__(self, size: int) -> None:
+    def __init__(self, size: int, /) -> None:
         self.size = size
         super().__init__(self._MESSAGE_TEMPLATE.replace("SIZE", repr(size)))
 
@@ -356,7 +359,7 @@ class TypeUncheckableAtRuntime(TypeError):
         "with `@typing.runtime_checkable` instead?"
     )
 
-    def __init__(self, name: str, value_type: type) -> None:
+    def __init__(self, name: str, value_type: type, /) -> None:
         self.name = name
         self.value_type = value_type
         super().__init__(
@@ -402,68 +405,72 @@ class Issue:
     )
 
     @classmethod
-    def invalid_value(cls, name: str, problem: str = "") -> ValueError:
+    def invalid_value(cls, name: str, problem: str = "", /) -> ValueError:
         issue = cls._INVALID_VALUE.replace("NAME", name)
         if problem:
             issue = f"{issue} The {name} can't be {problem}."
         return ValueError(issue)
 
     @classmethod
-    def invalid_length(cls, name: str, length: int) -> ValueError:
+    def invalid_length(cls, name: str, length: int, /) -> ValueError:
         issue = cls._INVALID_LENGTH.replace("NAME", name)
         return ValueError(issue.replace("LENGTH", repr(length)))
 
     @classmethod
-    def value_must(cls, name: str, context: t.Any) -> ValueError:
+    def value_must(cls, name: str, context: t.Any, /) -> ValueError:
         issue = cls._VALUE_MUST.replace("NAME", repr(name))
         return ValueError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
-    def must_set_value(cls, name: str, context: str) -> ValueError:
+    def must_set_value(cls, name: str, context: str, /) -> ValueError:
         issue = cls._MUST_SET_VALUE.replace("NAME", repr(name))
         return ValueError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
-    def stream_is_empty(cls) -> ValueError:
+    def stream_is_empty(cls, /) -> ValueError:
         return ValueError(cls._STREAM_IS_EMPTY)
 
     @classmethod
-    def value_already_set(cls, obj: str, context: str) -> PermissionError:
+    def value_already_set(
+        cls, obj: str, context: str, /
+    ) -> PermissionError:
         issue = cls._VALUE_ALREADY_SET.replace("OBJECT", str(obj))
         return PermissionError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
-    def value_must_be_type(cls, name: str, clss: t.Any) -> TypeError:
+    def value_must_be_type(cls, name: str, clss: t.Any, /) -> TypeError:
         issue = cls._VALUE_MUST_BE_TYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
 
     @classmethod
-    def value_must_be_subtype(cls, name: str, clss: t.Any) -> TypeError:
+    def value_must_be_subtype(cls, name: str, clss: t.Any, /) -> TypeError:
         issue = cls._VALUE_MUST_BE_SUBTYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
 
     @classmethod
-    def exceeded_blocksize(cls, blocksize: int) -> OverflowError:
+    def exceeded_blocksize(cls, blocksize: int, /) -> OverflowError:
         issue = cls._EXCEEDED_BLOCKSIZE
         return OverflowError(issue.replace("BLOCKSIZE", repr(blocksize)))
 
     @classmethod
-    def cant_reassign_attribute(cls, name: str) -> PermissionError:
+    def cant_reassign_attribute(cls, name: str, /) -> PermissionError:
         issue = cls._CANT_REASSIGN_ATTRIBUTE
         return PermissionError(issue.replace("NAME", repr(name)))
 
     @classmethod
-    def cant_deassign_attribute(cls, name: str) -> PermissionError:
+    def cant_deassign_attribute(cls, name: str, /) -> PermissionError:
         issue = cls._CANT_DEASSIGN_ATTRIBUTE
         return PermissionError(issue.replace("NAME", repr(name)))
 
     @classmethod
-    def unused_parameters(cls, params: t.Any, context: str) -> ValueError:
+    def unused_parameters(
+        cls, params: t.Any, context: str, /
+    ) -> ValueError:
         issue = cls._UNUSED_PARAMETERS.replace("PARAMETERS", repr(params))
         return ValueError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
-    def broken_pool_restarted(cls) -> RuntimeError:
+    def broken_pool_restarted(cls, /) -> RuntimeError:
         return RuntimeError(cls._BROKEN_POOL_RESTARTED)  # pragme: no cover
 
 
@@ -495,23 +502,23 @@ class CanonicalIssue:
     )
 
     @classmethod
-    def item_length_mismatch(cls) -> CanonicalEncodingError:
+    def item_length_mismatch(cls, /) -> CanonicalEncodingError:
         return CanonicalEncodingError(cls._ITEM_LENGTH_MISMATCH)
 
     @classmethod
-    def inflated_size_declaration(cls) -> CanonicalEncodingError:
+    def inflated_size_declaration(cls, /) -> CanonicalEncodingError:
         return CanonicalEncodingError(cls._INFLATED_SIZE_DECLARATION)
 
     @classmethod
-    def invalid_padding(cls) -> CanonicalEncodingError:
+    def invalid_padding(cls, /) -> CanonicalEncodingError:
         return CanonicalEncodingError(cls._INVALID_PADDING)
 
     @classmethod
-    def data_length_blocksize_mismatch(cls) -> CanonicalEncodingError:
+    def data_length_blocksize_mismatch(cls, /) -> CanonicalEncodingError:
         return CanonicalEncodingError(cls._DATA_LENGTH_BLOCKSIZE_MISMATCH)
 
     @classmethod
-    def missing_metadata_items(cls) -> CanonicalEncodingError:
+    def missing_metadata_items(cls, /) -> CanonicalEncodingError:
         return CanonicalEncodingError(cls._MISSING_METADATA_ITEMS)
 
 
@@ -542,26 +549,26 @@ class KeyAADIssue:
     )
 
     @classmethod
-    def invalid_key_size(cls, size: int, min_size: int) -> ValueError:
+    def invalid_key_size(cls, size: int, min_size: int, /) -> ValueError:
         issue = cls._INVALID_KEY_SIZE.replace("MIN_SIZE", repr(min_size))
         return ValueError(issue.replace("KEY_SIZE", repr(size)))
 
     @classmethod
-    def invalid_salt_size(cls, size: int) -> ValueError:
+    def invalid_salt_size(cls, size: int, /) -> ValueError:
         issue = cls._INVALID_SALT_SIZE
         return ValueError(issue.replace("SALT_SIZE", repr(size)))
 
     @classmethod
-    def shmac_already_registered(cls) -> PermissionError:
+    def shmac_already_registered(cls, /) -> PermissionError:
         return PermissionError(cls._ALREADY_REGISTERED)
 
     @classmethod
-    def mode_isnt_correct(cls, mode: str) -> ValueError:
+    def mode_isnt_correct(cls, mode: str, /) -> ValueError:
         issue = cls._MODE_ISNT_CORRECT.replace("MODE", repr(mode))
         return ValueError(issue)
 
     @classmethod
-    def no_kdf_mode_declared(cls) -> RuntimeError:
+    def no_kdf_mode_declared(cls, /) -> RuntimeError:
         return RuntimeError(cls._NO_KDF_MODE_DECLARED)
 
 
@@ -599,24 +606,24 @@ class SHMACIssue:
     )
 
     @classmethod
-    def no_cipher_mode_declared(cls) -> PermissionError:
+    def no_cipher_mode_declared(cls, /) -> PermissionError:
         return PermissionError(cls._NO_CIPHER_MODE_DECLARED)
 
     @classmethod
-    def already_finalized(cls) -> PermissionError:
+    def already_finalized(cls, /) -> PermissionError:
         return PermissionError(cls._ALREADY_FINALIZED)
 
     @classmethod
-    def validation_incomplete(cls) -> PermissionError:
+    def validation_incomplete(cls, /) -> PermissionError:
         return PermissionError(cls._VALIDATION_INCOMPLETE)
 
     @classmethod
-    def invalid_iv_usage(cls) -> PermissionError:
+    def invalid_iv_usage(cls, /) -> PermissionError:
         return PermissionError(cls._INVALID_IV_USAGE)
 
     @classmethod
     def block_id_is_too_small(
-        cls, size: int, min_size: int
+        cls, size: int, min_size: int, /
     ) -> PermissionError:
         issue = cls._BLOCK_ID_IS_TOO_SMALL.replace("SIZE", repr(size))
         issue = issue.replace("MIN", repr(min_size))
@@ -624,18 +631,18 @@ class SHMACIssue:
 
     @classmethod
     def block_id_is_too_big(
-        cls, size: int, max_size: int
+        cls, size: int, max_size: int, /
     ) -> PermissionError:
         issue = cls._BLOCK_ID_IS_TOO_BIG.replace("SIZE", repr(size))
         issue = issue.replace("MAX", repr(max_size))
         return PermissionError(issue)
 
     @classmethod
-    def invalid_shmac(cls) -> InvalidSHMAC:
+    def invalid_shmac(cls, /) -> InvalidSHMAC:
         return InvalidSHMAC(cls._INVALID_SHMAC)
 
     @classmethod
-    def invalid_block_id(cls) -> InvalidBlockID:
+    def invalid_block_id(cls, /) -> InvalidBlockID:
         return InvalidBlockID(cls._INVALID_BLOCK_ID)
 
 
@@ -654,7 +661,7 @@ class CipherStreamIssue:
     )
 
     @classmethod
-    def stream_has_been_closed(cls) -> InterruptedError:
+    def stream_has_been_closed(cls, /) -> InterruptedError:
         return InterruptedError(cls._STREAM_HAS_BEEN_CLOSED)
 
 
@@ -738,7 +745,7 @@ class PasscryptIssue:
     )
 
     @classmethod
-    def improper_passphrase(cls, metadata: Metadata) -> ValueError:
+    def improper_passphrase(cls, metadata: Metadata, /) -> ValueError:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if metadata.type is not bytes:
@@ -750,7 +757,7 @@ class PasscryptIssue:
         return error
 
     @classmethod
-    def improper_salt(cls, metadata: Metadata) -> ValueError:
+    def improper_salt(cls, metadata: Metadata, /) -> ValueError:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if metadata.type is not bytes:
@@ -763,11 +770,11 @@ class PasscryptIssue:
         )
 
     @classmethod
-    def improper_aad(cls) -> TypeError:
+    def improper_aad(cls, /) -> TypeError:
         return Issue.value_must_be_type("`aad`", bytes)
 
     @classmethod
-    def invalid_mb(cls, mb: int) -> ValueError:
+    def invalid_mb(cls, mb: int, /) -> ValueError:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if mb.__class__ is not int:
@@ -781,7 +788,7 @@ class PasscryptIssue:
         )
 
     @classmethod
-    def invalid_cpu(cls, cpu: int) -> ValueError:
+    def invalid_cpu(cls, cpu: int, /) -> ValueError:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if cpu.__class__ is not int:
@@ -795,7 +802,7 @@ class PasscryptIssue:
         )
 
     @classmethod
-    def invalid_cores(cls, cores: int) -> ValueError:
+    def invalid_cores(cls, cores: int, /) -> ValueError:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if cores.__class__ is not int:
@@ -809,7 +816,7 @@ class PasscryptIssue:
         )
 
     @classmethod
-    def invalid_tag_size(cls, tag_size: int) -> ValueError:
+    def invalid_tag_size(cls, tag_size: int, /) -> ValueError:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if tag_size.__class__ is not int:
@@ -822,7 +829,7 @@ class PasscryptIssue:
         )
 
     @classmethod
-    def invalid_salt_size(cls, salt_size: int) -> ValueError:
+    def invalid_salt_size(cls, salt_size: int, /) -> ValueError:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if salt_size.__class__ is not int:
@@ -837,7 +844,7 @@ class PasscryptIssue:
 
     @classmethod
     def untrusted_resource_consumption(
-        cls, parameter: str, header: t.Mapping[str, int]
+        cls, parameter: str, header: t.Mapping[str, int], /
     ) -> ResourceWarning:
         value = header[parameter]
         issue = cls._UNTRUSTED_RESOURCE_CONSUMPTION
@@ -849,7 +856,7 @@ class PasscryptIssue:
         return danger
 
     @classmethod
-    def verification_failed(cls) -> InvalidPassphrase:
+    def verification_failed(cls, /) -> InvalidPassphrase:
         return InvalidPassphrase(cls._VERIFICATION_FAILED)
 
 
@@ -868,17 +875,17 @@ class DatabaseIssue:
     _TAG_FILE_DOESNT_EXIST: str = "TAG tag data isn't in the database."
 
     @classmethod
-    def file_not_found(cls, filename: str) -> LookupError:
+    def file_not_found(cls, filename: str, /) -> LookupError:
         issue = cls._FILE_NOT_FOUND
         return LookupError(issue.replace("NAME", repr(filename)))
 
     @classmethod
-    def no_existing_metatag(cls, tag: str) -> LookupError:
+    def no_existing_metatag(cls, tag: str, /) -> LookupError:
         issue = cls._NO_EXISTING_METATAG
         return LookupError(issue.replace("TAG", repr(tag)))
 
     @classmethod
-    def tag_file_doesnt_exist(cls, tag: str) -> LookupError:
+    def tag_file_doesnt_exist(cls, tag: str, /) -> LookupError:
         issue = cls._TAG_FILE_DOESNT_EXIST
         return LookupError(issue.replace("TAG", repr(tag)))
 
@@ -914,25 +921,25 @@ class PackageSignerIssue:
 
     @classmethod
     def invalid_file_digest(
-        cls, filename: t.Union[str, Path]
+        cls, filename: t.Union[str, Path], /
     ) -> InvalidDigest:
         issue = cls._INVALID_FILE_DIGEST
         return InvalidDigest(issue.replace("FILENAME", repr(filename)))
 
     @classmethod
-    def package_hasnt_been_signed(cls) -> RuntimeError:
+    def package_hasnt_been_signed(cls, /) -> RuntimeError:
         return RuntimeError(cls._PACKAGE_HASNT_BEEN_SIGNED)
 
     @classmethod
-    def signing_key_hasnt_been_set(cls) -> LookupError:
+    def signing_key_hasnt_been_set(cls, /) -> LookupError:
         return LookupError(cls._SIGNING_KEY_HASNT_BEEN_SET)
 
     @classmethod
-    def out_of_sync_package_signature(cls) -> ValueError:
+    def out_of_sync_package_signature(cls, /) -> ValueError:
         return ValueError(cls._OUT_OF_SYNC_PACKAGE_SIGNATURE)
 
     @classmethod
-    def must_connect_to_secure_database(cls) -> RuntimeError:
+    def must_connect_to_secure_database(cls, /) -> RuntimeError:
         return RuntimeError(cls._MUST_CONNECT_TO_SECURE_DATABASE)
 
 

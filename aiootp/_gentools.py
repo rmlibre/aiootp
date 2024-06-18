@@ -31,42 +31,42 @@ from ._constants import BIG
 from ._exceptions import Issue, raise_exception
 
 
-def is_async_iterable(obj: t.Any) -> bool:
+def is_async_iterable(obj: t.Any, /) -> bool:
     """
     Returns a bool of whether `obj` supports async iteration.
     """
     return isinstance(obj, AsyncIterable)
 
 
-def is_iterable(obj: t.Any) -> bool:
+def is_iterable(obj: t.Any, /) -> bool:
     """
     Returns a bool of whether `obj` supports iteration.
     """
     return isinstance(obj, Iterable)
 
 
-def is_async_iterator(obj: t.Any) -> bool:
+def is_async_iterator(obj: t.Any, /) -> bool:
     """
     Returns a bool of whether `obj` is an async iterator.
     """
     return isinstance(obj, AsyncIterator)
 
 
-def is_iterator(obj: t.Any) -> bool:
+def is_iterator(obj: t.Any, /) -> bool:
     """
     Returns a bool of whether `obj` is an iterator.
     """
     return isinstance(obj, Iterator)
 
 
-def is_async_generator(obj: t.Any) -> bool:
+def is_async_generator(obj: t.Any, /) -> bool:
     """
     Returns a bool of whether `obj` is an async generator.
     """
     return isinstance(obj, AsyncGeneratorType)
 
 
-def is_generator(obj: t.Any) -> bool:
+def is_generator(obj: t.Any, /) -> bool:
     """
     Returns a bool of whether `obj` is an generator.
     """
@@ -74,7 +74,7 @@ def is_generator(obj: t.Any) -> bool:
 
 
 async def abatch(
-    sequence: bytes, *, size: int, buffer_type: type = io.BytesIO
+    sequence: bytes, /, *, size: int, buffer_type: type = io.BytesIO
 ) -> t.AsyncGenerator[bytes, None]:
     """
     Runs through a sequence & yields `size` sized chunks of the bytes
@@ -107,7 +107,7 @@ async def abatch(
 
 
 def batch(
-    sequence: bytes, *, size: int, buffer_type: type = io.BytesIO
+    sequence: bytes, /, *, size: int, buffer_type: type = io.BytesIO
 ) -> t.Generator[bytes, None, None]:
     """
     Runs through a sequence & yields `size` sized chunks of the bytes
@@ -139,7 +139,7 @@ def batch(
 
 
 async def aresize(
-    sequence: t.Sequence[t.Any], size: int, *, blocks: int = 0
+    sequence: t.Sequence[t.Any], /, size: int, *, blocks: int = 0
 ) -> t.AsyncGenerator[t.Sequence[t.Any], None]:
     """
     Runs through a `sequence` & yields `size` sized chunks of the
@@ -159,7 +159,7 @@ async def aresize(
 
 
 def resize(
-    sequence: t.Sequence[t.Any], size: int, *, blocks: int = 0
+    sequence: t.Sequence[t.Any], /, size: int, *, blocks: int = 0
 ) -> t.Generator[t.Sequence[t.Any], None, None]:
     """
     Runs through a `sequence` & yields `size` sized chunks of the
@@ -179,7 +179,7 @@ def resize(
 
 
 async def aunpack(
-    iterable: t.AsyncOrSyncIterable[t.Any]
+    iterable: t.AsyncOrSyncIterable[t.Any], /
 ) -> t.AsyncGenerator[t.Any, None]:
     """
     Runs through an iterable &/or async iterable & yields elements one
@@ -194,7 +194,9 @@ async def aunpack(
             yield item
 
 
-def unpack(iterable: t.Iterable[t.Any]) -> t.Generator[t.Any, None, None]:
+def unpack(
+    iterable: t.Iterable[t.Any], /
+) -> t.Generator[t.Any, None, None]:
     """
     Runs through an iterable & yields elements one at a time.
     """
@@ -217,7 +219,7 @@ async def azip(
 
 
 async def acycle(
-    iterable: t.AsyncOrSyncIterable[t.Any]
+    iterable: t.AsyncOrSyncIterable[t.Any], /
 ) -> t.AsyncGenerator[t.Any, None]:
     """
     Unendingly cycles in order over the elements of an async iterable.
@@ -238,7 +240,7 @@ async def acycle(
             yield result
 
 
-def cycle(iterable: t.Iterable[t.Any]) -> t.Generator[t.Any, None, None]:
+def cycle(iterable: t.Iterable[t.Any], /) -> t.Generator[t.Any, None, None]:
     """
     Unendingly cycles in order over the elements of a sync iterable.
     """
@@ -252,7 +254,7 @@ def cycle(iterable: t.Iterable[t.Any]) -> t.Generator[t.Any, None, None]:
 
 
 async def abytes_count(
-    start: int = 0, *, size: int = 8, byte_order: str = BIG
+    *, start: int = 0, size: int = 8, byte_order: str = BIG
 ) -> t.AsyncGenerator[bytes, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
@@ -265,7 +267,7 @@ async def abytes_count(
 
 
 def bytes_count(
-    start: int = 0, *, size: int = 8, byte_order: str = BIG
+    *, start: int = 0, size: int = 8, byte_order: str = BIG
 ) -> t.Generator[bytes, None, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
@@ -276,7 +278,7 @@ def bytes_count(
         index += 1
 
 
-async def acount(start: int = 0) -> t.AsyncGenerator[int, None]:
+async def acount(*, start: int = 0) -> t.AsyncGenerator[int, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
     """
@@ -289,7 +291,7 @@ async def acount(start: int = 0) -> t.AsyncGenerator[int, None]:
         index += 1
 
 
-def count(start: int = 0) -> t.Generator[int, None, None]:
+def count(*, start: int = 0) -> t.Generator[int, None, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
     """
@@ -363,7 +365,7 @@ def collate(
 
 
 async def apopleft(
-    queue: t.SupportsPopleft
+    queue: t.SupportsPopleft, /
 ) -> t.AsyncGenerator[t.Any, None]:
     """
     An async generator which calls the `popleft()` method on `queue`
@@ -377,7 +379,7 @@ async def apopleft(
 
 
 def popleft(
-    queue: t.SupportsPopleft
+    queue: t.SupportsPopleft, /
 ) -> t.Generator[t.Any, None, None]:
     """
     A generator which calls the `popleft()` method on `queue` for

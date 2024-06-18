@@ -36,11 +36,11 @@ class DebugControl:
     _switches: t.List[t.Callable[[bool], t.Any]] = []
 
     @classmethod
-    def is_debugging(cls):
+    def is_debugging(cls, /):
         return cls._DEBUG_MODE
 
     @classmethod
-    def enable_debugging(cls, *, silence_warnings: bool = False) -> None:
+    def enable_debugging(cls, /, *, silence_warnings: bool = False) -> None:
         """
         WARNING: This will reveal potentially sensitive values, such as
         cryptographic keys, in object repr's that are omitted by default.
@@ -53,7 +53,7 @@ class DebugControl:
                 toggle()
 
     @classmethod
-    def disable_debugging(cls) -> None:
+    def disable_debugging(cls, /) -> None:
         if cls._DEBUG_MODE:
             cls._DEBUG_MODE = False
             for toggle in cls._switches:
