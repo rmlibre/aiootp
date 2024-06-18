@@ -144,8 +144,8 @@ class Slots:
             show = lambda value: f"{OMITTED}{value.__class__}"
         else:
             show = lambda value: repr(value)
-        on = f",{sep}    " if self else ", "
         start = f"{sep}    " if self else ""
+        on = f",{sep}    " if self else ", "
         body = on.join(
             f"{name}={show(value)}"
             for name, value in self.items()
