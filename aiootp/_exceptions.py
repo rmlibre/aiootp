@@ -398,8 +398,7 @@ class Issue:
         "The PARAMETERS parameters are not used when CONTEXT."
     )
     _BROKEN_POOL_RESTARTED: str = (
-        "The process pool was broken & has now been restarted. Try agai"
-        "n."
+        "The process pool was broken & has now been restarted. Try again."
     )
 
     @classmethod
