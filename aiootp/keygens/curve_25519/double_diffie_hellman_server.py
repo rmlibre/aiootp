@@ -22,7 +22,7 @@ __doc__ = (
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
-from aiootp.commons.slots import FrozenInstance
+from aiootp.commons import FrozenInstance
 from aiootp.generics import Domains
 
 

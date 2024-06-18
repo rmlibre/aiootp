@@ -18,6 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- Move ``FrozenInstance`` class to its own module.
 - Improvements & fixes to package tests.
 - Improvements & fixes to code formatting & style.
 

@@ -13,6 +13,7 @@
 
 from test_initialization import *
 
+from aiootp.commons.instances import *
 from aiootp.commons.slots import *
 from aiootp.commons.namespaces import *
 from aiootp.commons.configs import *

@@ -17,6 +17,7 @@ __all__ = []
 __doc__ = "Defines namespace utilities used by the package."
 
 
+from .instances import *
 from .slots import *
 from .namespaces import *
 from .configs import *
@@ -24,7 +25,11 @@ from .packaging import *
 
 
 modules = dict(
-    configs=configs, namespaces=namespaces, packaging=packaging, slots=slots
+    configs=configs,
+    instances=instances,
+    namespaces=namespaces,
+    packaging=packaging,
+    slots=slots,
 )
 
 

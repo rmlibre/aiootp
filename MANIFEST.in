@@ -51,6 +51,7 @@ include aiootp/asynchs/processes.py
 include aiootp/asynchs/threads.py
 include aiootp/commons/__init__.py
 include aiootp/commons/configs.py
+include aiootp/commons/instances.py
 include aiootp/commons/namespaces.py
 include aiootp/commons/packaging.py
 include aiootp/commons/slots.py
