@@ -121,6 +121,13 @@ class BaseModuleNamespaceTests(BaseVariableHoldingClassTests):
 
 class BaseDictLikeTests(BaseVariableHoldingClassTests):
 
+    def frozen_violation_catcher(self, name: str) -> Ignore:
+        if_except = lambda _: self._frozen
+        if_else = lambda _: (
+            (not self._frozen) or raise_exception(AssertionError(name))
+        )
+        return Ignore(PermissionError, if_except=if_except, if_else=if_else)
+
     async def test_inclusion_exclusion_logic(self) -> None:
         items = {**self._items, 123: "number"}
         obj = self._type()
@@ -134,11 +141,12 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
                 unmapped.add(name)
             obj[name] = value
             assert name in obj
+            assert value == obj[name]
             assert i == len(obj) + len(unmapped)
-
-            with Ignore(PermissionError, if_except=lambda _: self._frozen):
+            with self.frozen_violation_catcher(name):
                 del obj[name]
                 assert name not in obj
+            with self.frozen_violation_catcher(name):
                 obj[name] = value
 
     async def test_mapping_methods(self) -> None:
@@ -146,6 +154,7 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
         obj = self._type()
         for name, value in items.items():
             obj[name] = value
+
         assert set(items.keys()).issuperset(obj.keys())
         assert set(items.values()).issuperset(obj.values())
         assert set(items.items()).issuperset(obj.items())
@@ -154,6 +163,16 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
         obj.update(dict(new_value=True))
         assert obj["new_value"] == True
         assert obj["new_value"] == items["new_value"]
+
+        with self.frozen_violation_catcher("new_value"):
+            obj.update(dict(new_value=True).items())
+            assert obj["new_value"] == True
+        with self.frozen_violation_catcher("new_value"):
+            obj.update(**dict(new_value=False))
+            assert obj["new_value"] == False
+        with self.frozen_violation_catcher("new_value"):
+            obj.update(dict(new_value=False), **dict(new_value=True))
+            assert obj["new_value"] == True
 
 
 class BaseIndexableTests(BaseVariableHoldingClassTests):
@@ -229,6 +248,10 @@ class FrozenSlotsType(SlotsAttributes, FrozenSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
 
+class FrozenSlotsDictType(NamespaceAttributes, FrozenSlots):
+    __slots__ = ("__dict__", *BaseVariableHoldingClassTests._items)
+
+
 class OpenFrozenSlotsType(SlotsAttributes, OpenFrozenSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
@@ -264,6 +287,18 @@ class TestFrozenSlots(
     BaseIndexableTests,
 ):
     _type: type = FrozenSlotsType
+    _open: bool = False
+    _frozen: bool = True
+
+
+class TestFrozenSlotsDict(
+    BaseFrozenTests,
+    BaseReprControlledTests,
+    BaseMaskableReprTests,
+    BaseDictLikeTests,
+    BaseIndexableTests,
+):
+    _type: type = FrozenSlotsDictType
     _open: bool = False
     _frozen: bool = True
 
