@@ -183,8 +183,9 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
         if not hasattr(obj, "_UNMAPPED_ATTRIBUTES"):
             return
         if all((type(item) is str) for item in self._items):
-            assert not set(
-                obj.__class__._UNMAPPED_ATTRIBUTES
+            assert not (
+                set(obj.__class__._UNMAPPED_ATTRIBUTES)
+                .difference(obj.__class__._MAPPED_ATTRIBUTES)
             ).intersection(value for value in dir(obj))
 
     async def test_len_is_number_of_mapped_items_in_instance(self) -> None:

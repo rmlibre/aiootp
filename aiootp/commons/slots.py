@@ -78,7 +78,9 @@ class Slots:
         Returns the instance directory.
         """
         return list(
-            set(object.__dir__(self)).difference(self._UNMAPPED_ATTRIBUTES)
+            set(object.__dir__(self))
+            .difference(self._UNMAPPED_ATTRIBUTES)
+            .union(self._MAPPED_ATTRIBUTES)
         )
 
     def __bool__(self, /) -> bool:
