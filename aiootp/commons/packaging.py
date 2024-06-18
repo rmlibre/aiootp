@@ -35,7 +35,7 @@ def make_module(name: str, *, mapping: dict) -> FrozenNamespace:
     return FrozenNamespace(module.__dict__)
 
 
-def remake_module(module: t.ModuleType) -> FrozenNamespace:
+def remake_module(module: t.ModuleType, /) -> FrozenNamespace:
     """
     The interface for overwriting the package's modules consistently,
     applying the changes which specify the UI/UX of each.
@@ -47,7 +47,7 @@ def remake_module(module: t.ModuleType) -> FrozenNamespace:
     return make_module(name=name, mapping=api)
 
 
-def remake_subpackage(package: t.ModuleType) -> FrozenNamespace:
+def remake_subpackage(package: t.ModuleType, /) -> FrozenNamespace:
     """
     Applies the `remake_module` recursively to a subpackage's modules &
     the subpackage itself.

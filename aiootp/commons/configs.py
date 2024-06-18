@@ -75,7 +75,7 @@ class Config(OpenFrozenSlots):
 
     @classmethod
     def _make_frozen_class_slots_types_container(
-        cls, slots_types: t.Mapping[str, type]
+        cls, slots_types: t.Mapping[str, type], /
     ) -> OpenFrozenSlots:
         """
         Creates a class-specific type to govern type correctness.
@@ -89,7 +89,7 @@ class Config(OpenFrozenSlots):
         return container(**slots_types)
 
     @classmethod
-    def _make_frozen_class_slots_types(cls) -> OpenFrozenSlots:
+    def _make_frozen_class_slots_types(cls, /) -> OpenFrozenSlots:
         """
         Creates & populates a class-specific type to govern type
         correctness.
@@ -106,14 +106,14 @@ class Config(OpenFrozenSlots):
                 slots_types[name] = value
         return cls._make_frozen_class_slots_types_container(slots_types)
 
-    def __init_subclass__(cls, *a, **kw) -> None:
+    def __init_subclass__(cls, /, *a, **kw) -> None:
         """
         Installs a prepared an class-specific type to govern type
         correctness to all subclasses.
         """
         cls.slots_types = cls._make_frozen_class_slots_types()
 
-    def _validate_type(self, name: str, value: t.Any) -> None:
+    def _validate_type(self, name: str, value: t.Any, /) -> None:
         """
         Validates the type of the `value` based on the class' type
         definition of the `name` attribute.
@@ -123,7 +123,7 @@ class Config(OpenFrozenSlots):
         if not value_is_compliant_type:
             raise Issue.value_must_be_type(name, value_type)
 
-    def __setattr__(self, name: str, value: t.Any) -> None:
+    def __setattr__(self, name: str, value: t.Any, /) -> None:
         """
         Validates the type of the `value` based on the class' type
         definition of the `name` attribute. Sets the attribute if the
@@ -135,7 +135,7 @@ class Config(OpenFrozenSlots):
             self._validate_type(name, value)
             super().__setattr__(name, value)
 
-    def set_config_id(self, config_id: t.Hashable) -> None:
+    def set_config_id(self, config_id: t.Hashable, /) -> None:
         """
         Gives the instance knowledge of its own `config_id` reference
         that's used by configuration trackers like `ConfigMap`.
@@ -200,6 +200,7 @@ class ConfigMap(OpenFrozenNamespace):
 
     def __init__(
         self,
+        /,
         mapping: t.Mapping[t.Hashable, t.Any] = {},
         *,
         config_type: type,
@@ -213,7 +214,7 @@ class ConfigMap(OpenFrozenNamespace):
         for config_id, config in {**mapping, **kw}.items():
             self[config_id] = config
 
-    def __setitem__(self, config_id: t.Hashable, config: t.Any) -> None:
+    def __setitem__(self, config_id: t.Hashable, config: t.Any, /) -> None:
         """
         Sets a `config` by its `config_id` reference. If the `config_id`
         is already in the instance, then `PermissionError` is raised.

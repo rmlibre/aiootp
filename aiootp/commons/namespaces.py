@@ -40,7 +40,7 @@ class Namespace(Slots):
     )
 
     def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kw: t.Any
+        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
     ) -> None:
         """
         Maps the user-defined mapping & kwargs to the Namespace's
@@ -56,7 +56,7 @@ class OpenNamespace(Namespace):
     repr's by default.
     """
 
-    def __repr__(self, mask: bool = False) -> str:
+    def __repr__(self, /, *, mask: bool = False) -> str:
         """
         Pretty displays the instance & its attributes.
         """
@@ -72,7 +72,7 @@ class FrozenNamespace(Namespace):
     """
 
     @property
-    def __all__(self) -> t.List[str]:
+    def __all__(self, /) -> t.List[str]:
         """
         Allows users that have turned their namespace into a Module
         object to do a `from namespace import *` on the contents of
@@ -81,7 +81,7 @@ class FrozenNamespace(Namespace):
         """
         return [var for var in self if str(var)[0] != "_"]
 
-    def __setattr__(self, name: str, value: t.Any) -> None:
+    def __setattr__(self, name: str, value: t.Any, /) -> None:
         """
         Denies setting attributes after they have already been set.
         """
@@ -89,13 +89,13 @@ class FrozenNamespace(Namespace):
             raise Issue.cant_reassign_attribute(name)
         object.__setattr__(self, name, value)
 
-    def __delattr__(self, name: str) -> None:
+    def __delattr__(self, name: str, /) -> None:
         """
         Denies deleting attributes.
         """
         raise Issue.cant_deassign_attribute(name)
 
-    def __setitem__(self, name: str, value: t.Any) -> None:
+    def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
         Denies setting attributes after they have already been set.
         """
@@ -106,7 +106,7 @@ class FrozenNamespace(Namespace):
         else:
             self.__dict__[name] = value
 
-    def __delitem__(self, name: str) -> None:
+    def __delitem__(self, name: str, /) -> None:
         """
         Denies deleting attributes.
         """
@@ -119,7 +119,7 @@ class OpenFrozenNamespace(FrozenNamespace):
     repr's by default.
     """
 
-    def __repr__(self, mask: bool = False) -> str:
+    def __repr__(self, /, *, mask: bool = False) -> str:
         """
         Pretty displays the instance & its attributes.
         """

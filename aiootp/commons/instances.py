@@ -38,7 +38,7 @@ class FrozenInstance:
     __slots__ = ()
 
     def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kw: t.Any
+        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
     ) -> None:
         """
         Maps the user-defined kwargs to the instance attributes. If a
@@ -50,7 +50,7 @@ class FrozenInstance:
         for name, value in {**mapping, **kw}.items():
             setattr(self, name, value)
 
-    def __repr__(self) -> str:
+    def __repr__(self, /) -> str:
         """
         Pretty displays the instance & its attributes.
         """
@@ -66,7 +66,7 @@ class FrozenInstance:
         end = f",{sep}" if body else ""
         return f"{self.__class__.__qualname__}({start}{body}{end})"
 
-    def __setattr__(self, name: str, value: t.Any) -> None:
+    def __setattr__(self, name: str, value: t.Any, /) -> None:
         """
         Denies setting attributes after they have already been set.
         """
@@ -74,7 +74,7 @@ class FrozenInstance:
             raise Issue.cant_reassign_attribute(name)
         object.__setattr__(self, name, value)
 
-    def __delattr__(self, name: str) -> None:
+    def __delattr__(self, name: str, /) -> None:
         """
         Denies deleting attributes.
         """
