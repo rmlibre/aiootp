@@ -5,6 +5,24 @@
 
 
 
+Changes for version 0.23.7
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+- None
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+- None
+
+
+
+
 Changes for version 0.23.6
 --------------------------
 
