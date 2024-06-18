@@ -223,7 +223,10 @@ class ConfigMap(OpenFrozenNamespace):
             raise Issue.value_must_be_type("config", self.CONFIG_TYPE)
         elif config_id in self and self[config_id] is not config:
             raise Issue.cant_reassign_attribute(f"{config_id=}")
-        self.__dict__[config_id] = config
+        if config_id.__class__ is str:
+            setattr(self, config_id, config)
+        else:
+            self.__dict__[config_id] = config
 
 
 module_api = dict(
