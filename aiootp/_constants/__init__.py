@@ -61,8 +61,8 @@ class NamespaceMapping(t.SimpleNamespace):
     def items(self) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
         yield from self.__dict__.items()
 
-    def update(self, mapping: t.Mapping[str, t.Any]) -> None:
-        self.__dict__.update(mapping)
+    def update(self, mapping: t.Mapping[str, t.Any] = {}, /, **kw) -> None:
+        self.__dict__.update(mapping, **kw)
 
 
 def collect_non_private_constants(

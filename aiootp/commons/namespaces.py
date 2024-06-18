@@ -36,7 +36,7 @@ class Namespace(Slots):
     __slots__ = ("__dict__",)
 
     _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
-        "__dict__", *Slots._UNMAPPED_ATTRIBUTES, "update"
+        "__dict__", *Slots._UNMAPPED_ATTRIBUTES
     )
 
     def __init__(
@@ -48,12 +48,6 @@ class Namespace(Slots):
         """
         self.__dict__.update(mapping) if mapping else 0
         self.__dict__.update(kw) if kw else 0
-
-    def update(self, mapping: t.Mapping[t.Hashable, t.Any]) -> None:
-        """
-        Updates the instance with new key-values from a mapping.
-        """
-        self.__dict__.update(mapping)
 
 
 class OpenNamespace(Namespace):
@@ -91,11 +85,28 @@ class FrozenNamespace(Namespace):
         """
         Denies setting attributes after they have already been set.
         """
-        if hasattr(self, name):
+        if name in self:
             raise Issue.cant_reassign_attribute(name)
         object.__setattr__(self, name, value)
 
     def __delattr__(self, name: str) -> None:
+        """
+        Denies deleting attributes.
+        """
+        raise Issue.cant_deassign_attribute(name)
+
+    def __setitem__(self, name: str, value: t.Any) -> None:
+        """
+        Denies setting attributes after they have already been set.
+        """
+        if name in self:
+            raise Issue.cant_reassign_attribute(name)
+        elif name.__class__ is str:
+            object.__setattr__(self, name, value)
+        else:
+            self.__dict__[name] = value
+
+    def __delitem__(self, name: str) -> None:
         """
         Denies deleting attributes.
         """

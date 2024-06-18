@@ -52,6 +52,7 @@ class Slots:
         "keys",
         "values",
         "items",
+        "update",
     )
 
     def __init_subclass__(cls, *a: t.Any, **kw: t.Any) -> None:
@@ -199,6 +200,21 @@ class Slots:
         for name in self:
             yield name, self[name]
 
+    def update(
+        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
+    ) -> None:
+        """
+        Updates the instance with new key-values from a mapping.
+        """
+        if hasattr(mapping, "keys"):
+            for name in mapping:
+                self[name] = mapping[name]
+        else:
+            for name, value in mapping:
+                self[name] = value
+        for name in kw:
+            self[name] = kw[name]
+
 
 class OpenSlots(Slots):
     """
@@ -227,11 +243,28 @@ class FrozenSlots(Slots):
         """
         Denies setting attributes after they have already been set.
         """
-        if hasattr(self, name):
+        if name in self:
             raise Issue.cant_reassign_attribute(name)
         object.__setattr__(self, name, value)
 
     def __delattr__(self, name: str) -> None:
+        """
+        Denies deleting attributes.
+        """
+        raise Issue.cant_deassign_attribute(name)
+
+    def __setitem__(self, name: str, value: t.Any) -> None:
+        """
+        Denies setting attributes after they have already been set.
+        """
+        if name in self:
+            raise Issue.cant_reassign_attribute(name)
+        elif name.__class__ is str:
+            object.__setattr__(self, name, value)
+        else:
+            self.__dict__[name] = value
+
+    def __delitem__(self, name: str) -> None:
         """
         Denies deleting attributes.
         """

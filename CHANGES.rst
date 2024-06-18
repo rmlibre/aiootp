@@ -12,7 +12,7 @@ Changes for version 0.23.7
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- Fix inconsistent frozen & mapping functionality for ``Slots`` sub classes.
 
 
 Minor Changes
