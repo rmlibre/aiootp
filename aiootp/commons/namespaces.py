@@ -79,7 +79,7 @@ class FrozenNamespace(Namespace):
         the namespace's mapping. This method excludes exporting private
         methods & attributes.
         """
-        return [var for var in self.__dict__ if str(var)[0] != "_"]
+        return [var for var in self if str(var)[0] != "_"]
 
     def __setattr__(self, name: str, value: t.Any) -> None:
         """
