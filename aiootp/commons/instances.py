@@ -28,10 +28,9 @@ from aiootp._exceptions import Issue
 
 class FrozenInstance:
     """
-    A class which supports frozen instances of subclasses to act as
-    proper types with behavior instead of just being efficient wrappers
-    around data in their `__slots__` (like `Slots` subclasses). This
-    could help with safety by explicitly discouraging mutable state
+    A non-mapping base class which enables subclasses to define frozen
+    instances with proper behavior & efficient `__slots__` declarations.
+    This could help with safety by explicitly discouraging mutable state
     where it isn't explicity imposed.
     """
 
@@ -41,11 +40,8 @@ class FrozenInstance:
         self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
     ) -> None:
         """
-        Maps the user-defined kwargs to the instance attributes. If a
-        subclass defines a `__slots__` list, then only variables with
-        names in the list can be admitted to the instance. Defining
-        classes with `__slots__` can greatly increase memory efficiency
-        if a system instantiates many objects of the class.
+        Populates instance attributes with user-defined kwargs which
+        have been declared in the class' `__slots__`.
         """
         for name, value in {**mapping, **kw}.items():
             setattr(self, name, value)
