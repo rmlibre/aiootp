@@ -480,8 +480,8 @@ class CanonicalIssue:
         "More items to unpack than data permits!"
     )
     _ITEM_LENGTH_MISMATCH: str = (
-        "The measured length of the canonically encoded item does not m"
-        "atch its declared length."
+        "The measured length of the canonically encoded item does not "
+        "match its declared length."
     )
     _INVALID_PADDING: str = (
         "Invalid canonical encoding padding detected!"
@@ -490,8 +490,8 @@ class CanonicalIssue:
         "Multiple of data length != declared blocksize!"
     )
     _MISSING_METADATA_ITEMS: str = (
-        "The encoding lead to an unpacked data result without its requi"
-        "red blocksize / pad declarations."
+        "The encoding lead to an unpacked data result without its "
+        "required blocksize / pad declarations."
     )
 
     @classmethod
@@ -537,8 +537,8 @@ class KeyAADIssue:
         "The KDF mode must be set to MODE to use MODE key derivation."
     )
     _NO_KDF_MODE_DECLARED: str = (
-        "KeyAADBundle objects need to be set to either sync or async mo"
-        "des prior to querying their derived keys."
+        "KeyAADBundle objects need to be set to either sync or async "
+        "modes prior to querying their derived keys."
     )
 
     @classmethod
@@ -588,8 +588,8 @@ class SHMACIssue:
         "MIN bytes to securely authenticate a block."
     )
     _BLOCK_ID_IS_TOO_BIG: str = (
-        "A block id of SIZE bytes is too big. It can be at most MAX byt"
-        "es."
+        "A block id of SIZE bytes is too big. It can be at most MAX "
+        "bytes."
     )
     _INVALID_SHMAC: str = (
         "Invalid StreamHMAC hash for the given ciphertext."
@@ -649,8 +649,8 @@ class CipherStreamIssue:
     __slots__ = ()
 
     _STREAM_HAS_BEEN_CLOSED: str = (
-        "The stream has been closed. Cannot add more `data` to the bu"
-        "ffer of an already closed stream."
+        "The stream has been closed. Cannot add more `data` to the "
+        "buffer of an already closed stream."
     )
 
     @classmethod
@@ -668,9 +668,9 @@ class PasscryptIssue:
     __slots__ = ()
 
     _IMPROPER_PASSPHRASE: str = (
-        "The given passphrase is too short, at least NEED more characte"
-        "rs need to be added. \nTry using aiootp.mnemonic, it can help "
-        "in generating a strong passphrase.\n"
+        "The given passphrase is too short, at least NEED more characters "
+        "need to be added. \nTry using aiootp.mnemonic, it can help in "
+        "generating a strong passphrase.\n"
         " _____________________________________\n"
         "|                                     |\n"
         "|            Usage Example:           |\n"
@@ -698,11 +698,11 @@ class PasscryptIssue:
         "salt_size:SIZE must be int >= MIN_SALT_SIZE and <= MAX_SALT_SIZE"
     )
     _UNTRUSTED_RESOURCE_CONSUMPTION: str = (
-        "The PARAMETER parameter was blocked from being processed becau"
-        "se it fell outside of the allowed range of resource consumptio"
-        "n set by the verification method. To continue verifying the pr"
-        "ovided hash, explicit permission must be given in the form of "
-        "a `builtins.range` object which includes the value VALUE.\n\n"
+        "The PARAMETER parameter was blocked from being processed because "
+        "it fell outside of the allowed range of resource consumption set "
+        "by the verification method. To continue verifying the provided "
+        "hash, explicit permission must be given in the form of a "
+        "`builtins.range` object which includes the value VALUE.\n\n"
         " _____________________________________\n"
         "|                                     |\n"
         "|            Usage Example:           |\n"
@@ -897,8 +897,8 @@ class PackageSignerIssue:
         "FILENAME."
     )
     _PACKAGE_HASNT_BEEN_SIGNED: str = (
-        "This version of the package must be signed before querying its"
-        " signature."
+        "This version of the package must be signed before querying its "
+        "signature."
     )
     _SIGNING_KEY_HASNT_BEEN_SET: str = (
         "The `PackageSigner` instance's signing key hasn't been set."
