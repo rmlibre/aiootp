@@ -121,8 +121,8 @@ class AffineXORChainConfig(Config):
         if issubclass(permutation_type, t.PermutationType):
             return permutation_type
         else:
-            raise Issue.value_must_be_type(
-                "permutation_type", t.PermutationType
+            raise Issue.value_must_be_subtype(
+                f"{permutation_type=}", t.PermutationType
             )
 
     def __init__(
