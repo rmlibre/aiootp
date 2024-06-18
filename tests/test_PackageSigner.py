@@ -116,7 +116,6 @@ def test_sign_and_verify():
                 assert signer.files[filename].digest() == signer._Hasher(file_data).digest()
 
         signer.sign_package()
-        signer.db.save_database()
         summary = signer.summarize()
 
         # The package verifier successfully verifies a correct summary
@@ -191,7 +190,6 @@ def test_sign_and_verify():
 
         # verifier detects wrong file digest
         signer.sign_package()
-        signer.db.save_database()
         summary = signer.summarize()
         filename = list(summary[CHECKSUMS])[-1]
         summary[CHECKSUMS][filename] = signer._Hasher().hexdigest()
