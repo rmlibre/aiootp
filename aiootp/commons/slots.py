@@ -49,7 +49,7 @@ class Slots:
         "update",
     )
 
-    def __init_subclass__(cls, *a: t.Any, **kw: t.Any) -> None:
+    def __init_subclass__(cls, /, *a: t.Any, **kw: t.Any) -> None:
         """
         Brings slots declarations from subclasses up the class hierarchy.
         """
@@ -61,7 +61,7 @@ class Slots:
         })
 
     def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, **kw: t.Any
+        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
     ) -> None:
         """
         Maps the user-defined kwargs to the instance attributes. If a
@@ -73,7 +73,7 @@ class Slots:
         for name, value in {**mapping, **kw}.items():
             setattr(self, name, value)
 
-    def __dir__(self) -> t.List[t.Hashable]:
+    def __dir__(self, /) -> t.List[t.Hashable]:
         """
         Returns the instance directory.
         """
@@ -81,19 +81,19 @@ class Slots:
             set(object.__dir__(self)).difference(self._UNMAPPED_ATTRIBUTES)
         )
 
-    def __bool__(self) -> bool:
+    def __bool__(self, /) -> bool:
         """
         If the instance is empty then return False, otherwise True.
         """
         return any(1 for name in self)
 
-    def __len__(self) -> int:
+    def __len__(self, /) -> int:
         """
         Returns the number of elements in the instance.
         """
         return sum(1 for name in self)
 
-    def __contains__(self, name: t.Hashable) -> bool:
+    def __contains__(self, name: t.Hashable, /) -> bool:
         """
         Returns a bool of `name`'s membership in the instance.
         """
@@ -102,7 +102,7 @@ class Slots:
         else:
             return name in getattr(self, "__dict__", ())
 
-    def __setitem__(self, name: str, value: t.Any) -> None:
+    def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
         Transforms bracket item assignment into dotted assignment on the
         instance.
@@ -112,7 +112,7 @@ class Slots:
         else:
             self.__dict__[name] = value
 
-    def __getitem__(self, name: str) -> t.Any:
+    def __getitem__(self, name: str, /) -> t.Any:
         """
         Transforms bracket lookup into dotted access on the instance.
         """
@@ -121,7 +121,7 @@ class Slots:
         else:
             return self.__dict__[name]
 
-    def __delitem__(self, name: str) -> None:
+    def __delitem__(self, name: str, /) -> None:
         """
         Deletes the item `name` from the instance.
         """
@@ -130,7 +130,7 @@ class Slots:
         else:
             del self.__dict__[name]
 
-    def __repr__(self, *, mask: bool = True) -> str:
+    def __repr__(self, /, *, mask: bool = True) -> str:
         """
         Pretty displays the instance & its attributes.
         """
@@ -149,7 +149,7 @@ class Slots:
         end = f",{sep}" if self else ""
         return f"{cls.__qualname__}({start}{body}{end})"
 
-    def _is_mapped_attribute(self, name: str) -> bool:
+    def _is_mapped_attribute(self, name: str, /) -> bool:
         """
         Allows the class to define criteria which include an instance
         attribute within the mapping unpacking interface.
@@ -158,7 +158,7 @@ class Slots:
         unmapped = name in self._UNMAPPED_ATTRIBUTES
         return ((name in self) and (mapped or not unmapped))
 
-    async def __aiter__(self) -> t.AsyncGenerator[t.Any, None]:
+    async def __aiter__(self, /) -> t.AsyncGenerator[t.Any, None]:
         """
         Unpacks instance variable names with with async iteration.
         """
@@ -166,7 +166,7 @@ class Slots:
             await asyncio.sleep(0)
             yield name
 
-    def __iter__(self) -> t.Generator[t.Any, None, None]:
+    def __iter__(self, /) -> t.Generator[t.Any, None, None]:
         """
         Unpacks instance variable names with with sync iteration.
         """
@@ -174,20 +174,20 @@ class Slots:
             if self._is_mapped_attribute(name):
                 yield name
 
-    def keys(self) -> t.Iterable[t.Hashable]:
+    def keys(self, /) -> t.Iterable[t.Hashable]:
         """
         Yields the names of all items in the instance.
         """
         yield from self
 
-    def values(self) -> t.Iterable[t.Any]:
+    def values(self, /) -> t.Iterable[t.Any]:
         """
         Yields the values of all items in the instance.
         """
         for name in self:
             yield self[name]
 
-    def items(self) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
+    def items(self, /) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
         """
         Yields the name, value pairs of all items in the instance.
         """
@@ -218,7 +218,7 @@ class OpenSlots(Slots):
 
     __slots__ = ()
 
-    def __repr__(self, mask: bool = False) -> str:
+    def __repr__(self, /, *, mask: bool = False) -> str:
         """
         Denies setting attributes after they have already been set.
         """
@@ -233,7 +233,7 @@ class FrozenSlots(Slots):
 
     __slots__ = ()
 
-    def __setattr__(self, name: str, value: t.Any) -> None:
+    def __setattr__(self, name: str, value: t.Any, /) -> None:
         """
         Denies setting attributes after they have already been set.
         """
@@ -241,13 +241,13 @@ class FrozenSlots(Slots):
             raise Issue.cant_reassign_attribute(name)
         object.__setattr__(self, name, value)
 
-    def __delattr__(self, name: str) -> None:
+    def __delattr__(self, name: str, /) -> None:
         """
         Denies deleting attributes.
         """
         raise Issue.cant_deassign_attribute(name)
 
-    def __setitem__(self, name: str, value: t.Any) -> None:
+    def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
         Denies setting attributes after they have already been set.
         """
@@ -258,7 +258,7 @@ class FrozenSlots(Slots):
         else:
             self.__dict__[name] = value
 
-    def __delitem__(self, name: str) -> None:
+    def __delitem__(self, name: str, /) -> None:
         """
         Denies deleting attributes.
         """
@@ -273,7 +273,7 @@ class OpenFrozenSlots(FrozenSlots):
 
     __slots__ = ()
 
-    def __repr__(self, mask: bool = False) -> str:
+    def __repr__(self, /, *, mask: bool = False) -> str:
         """
         Denies setting attributes after they have already been set.
         """
