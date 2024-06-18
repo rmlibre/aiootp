@@ -90,6 +90,8 @@ class TestConfigMap:
         )
         config_id = 1
         with Ignore(TypeError, if_else=violation(problem)):
+            ConfigMap(config_type=FalseConfig)
+        with Ignore(TypeError, if_else=violation(problem)):
             mapping[config_id] = FalseConfig()
 
     def test_cannot_be_reassigned(

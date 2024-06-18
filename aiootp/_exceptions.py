@@ -381,6 +381,7 @@ class Issue:
     _MUST_SET_VALUE: str = "Must set NAME for CONTEXT."
     _STREAM_IS_EMPTY: str = "An invalid emtpy stream was provided."
     _VALUE_MUST_BE_TYPE: str = "The NAME value must be a TYPE object."
+    _VALUE_MUST_BE_SUBTYPE: str = "The NAME value must subclass TYPE."
     _VALUE_ALREADY_SET: str = "The OBJECT is already set to CONTEXT."
     _EXCEEDED_BLOCKSIZE: str = (
         "Data block MUST NOT exceed BLOCKSIZE bytes."
@@ -428,6 +429,11 @@ class Issue:
     @classmethod
     def value_must_be_type(cls, name: str, clss: t.Any) -> TypeError:
         issue = cls._VALUE_MUST_BE_TYPE.replace("NAME", repr(name))
+        return TypeError(issue.replace("TYPE", repr(clss)))
+
+    @classmethod
+    def value_must_be_subtype(cls, name: str, clss: t.Any) -> TypeError:
+        issue = cls._VALUE_MUST_BE_SUBTYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
 
     @classmethod

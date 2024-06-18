@@ -210,6 +210,8 @@ class ConfigMap(OpenFrozenNamespace):
         Defines the configurations to be stored in the instance from the
         provided mappings of config IDs to config objects.
         """
+        if not issubclass(config_type, Config):
+            raise Issue.value_must_be_subtype(f"{config_type=}", Config)
         setattr(self, CONFIG_TYPE, config_type)
         for config_id, config in {**mapping, **kw}.items():
             self[config_id] = config
