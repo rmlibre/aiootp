@@ -60,13 +60,14 @@ class TestConfig:
 class TestConfigMap:
 
     def test_mapping_registers_config_by_id(
-        self, config: t.ConfigType, mapping: ConfigMap
+        self, mapping: ConfigMap
     ) -> None:
-        config_id = 1
-        mapping[config_id] = config
+        for config_id in ("one", b"one", 1):
+            config = ExampleConfig(number=420, string="word")
 
-        assert config_id == config.CONFIG_ID
-        assert config is mapping[config_id]
+            mapping[config_id] = config
+            assert config_id == config.CONFIG_ID
+            assert config is mapping[config_id]
 
     def test_config_id_cannot_change(
         self, config: t.ConfigType, mapping: ConfigMap
