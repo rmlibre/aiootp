@@ -380,11 +380,11 @@ class Issue:
     _VALUE_MUST: str = "The NAME value must CONTEXT."
     _MUST_SET_VALUE: str = "Must set NAME for CONTEXT."
     _STREAM_IS_EMPTY: str = "An invalid emtpy stream was provided."
+    _VALUE_ALREADY_SET: str = "The OBJECT is already set to CONTEXT."
     _VALUE_MUST_BE_TYPE: str = "The NAME value must be a TYPE object."
     _VALUE_MUST_BE_SUBTYPE: str = (
         "The NAME value must match or subclass TYPE."
     )
-    _VALUE_ALREADY_SET: str = "The OBJECT is already set to CONTEXT."
     _EXCEEDED_BLOCKSIZE: str = (
         "Data block MUST NOT exceed BLOCKSIZE bytes."
     )
@@ -429,6 +429,11 @@ class Issue:
         return ValueError(cls._STREAM_IS_EMPTY)
 
     @classmethod
+    def value_already_set(cls, obj: str, context: str) -> PermissionError:
+        issue = cls._VALUE_ALREADY_SET.replace("OBJECT", str(obj))
+        return PermissionError(issue.replace("CONTEXT", str(context)))
+
+    @classmethod
     def value_must_be_type(cls, name: str, clss: t.Any) -> TypeError:
         issue = cls._VALUE_MUST_BE_TYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
@@ -437,11 +442,6 @@ class Issue:
     def value_must_be_subtype(cls, name: str, clss: t.Any) -> TypeError:
         issue = cls._VALUE_MUST_BE_SUBTYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
-
-    @classmethod
-    def value_already_set(cls, obj: str, context: str) -> PermissionError:
-        issue = cls._VALUE_ALREADY_SET.replace("OBJECT", str(obj))
-        return PermissionError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
     def exceeded_blocksize(cls, blocksize: int) -> OverflowError:
