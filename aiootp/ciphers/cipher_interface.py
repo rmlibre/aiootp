@@ -141,13 +141,13 @@ class CipherInterface(FrozenInstance):
                 differentiates keystreams as a tweak when it's unique for
                 each permutation of `key`, `salt`, & `iv`.
         """
-        config = self._config
         key_bundle = await self._KeyAADBundle(
             self._kdfs, salt=salt, aad=aad
         ).async_mode()
         shmac = self._StreamHMAC(key_bundle)._for_encryption()
         data = abatch(
-            await self._padding.apad_plaintext(data), size=config.BLOCKSIZE
+            await self._padding.apad_plaintext(data),
+            size=self._config.BLOCKSIZE,
         )
         ciphering = self._Junction.abytes_encipher(data, shmac=shmac)
         ciphertext = (
@@ -184,13 +184,12 @@ class CipherInterface(FrozenInstance):
                 differentiates keystreams as a tweak when it's unique for
                 each permutation of `key`, `salt`, & `iv`.
         """
-        config = self._config
         key_bundle = self._KeyAADBundle(
             self._kdfs, salt=salt, aad=aad
         ).sync_mode()
         shmac = self._StreamHMAC(key_bundle)._for_encryption()
         data = batch(
-            self._padding.pad_plaintext(data), size=config.BLOCKSIZE
+            self._padding.pad_plaintext(data), size=self._config.BLOCKSIZE
         )
         ciphertext = (
             b"".join(self._Junction.bytes_encipher(data, shmac=shmac)),
@@ -216,13 +215,12 @@ class CipherInterface(FrozenInstance):
         `ttl`: An amount of seconds that dictate the allowable age of
                 the decrypted message.
         """
-        config = self._config
-        data = self._Ciphertext(data, config=config)
+        data = self._Ciphertext(data, config=self._config)
         key_bundle = await self._KeyAADBundle(
             self._kdfs, salt=data.salt, aad=aad, iv=data.iv
         ).async_mode()
         shmac = self._StreamHMAC(key_bundle)._for_decryption()
-        ciphertext = abatch(data.ciphertext, size=config.BLOCKSIZE)
+        ciphertext = abatch(data.ciphertext, size=self._config.BLOCKSIZE)
         deciphering = self._Junction.abytes_decipher(ciphertext, shmac=shmac)
         plaintext = b"".join([block async for block in deciphering])
         await shmac.afinalize()
@@ -245,13 +243,12 @@ class CipherInterface(FrozenInstance):
         `ttl`: An amount of seconds that dictate the allowable age of
                 the decrypted message.
         """
-        config = self._config
-        data = self._Ciphertext(data, config=config)
+        data = self._Ciphertext(data, config=self._config)
         key_bundle = self._KeyAADBundle(
             self._kdfs, salt=data.salt, aad=aad, iv=data.iv
         ).sync_mode()
         shmac = self._StreamHMAC(key_bundle)._for_decryption()
-        ciphertext = batch(data.ciphertext, size=config.BLOCKSIZE)
+        ciphertext = batch(data.ciphertext, size=self._config.BLOCKSIZE)
         plaintext = b"".join(
             self._Junction.bytes_decipher(ciphertext, shmac=shmac)
         )
