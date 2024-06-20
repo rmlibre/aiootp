@@ -335,18 +335,21 @@ They can contain their own sets of tags (and metatags). If metatags, or tags, ar
     assert db_1["data"] == await db.process_1.aquery_tag("data")
 
 
-Deleting a metatag from an instance recursively deletes all of its own tags & metatags.
+Deleting a metatag from an instance recursively deletes all of its own tags & metatags. To avoid inconsistencies, this should only be done from the original parent whose metatag reference ``is`` the metatag object with write & cache access.
 
 .. code-block:: python
 
     metatag_manifest_file = db_0._root_path
 
-    assert hasattr(db, "process_0")
-
     assert metatag_manifest_file.is_file()
 
 
-    await db.adelete_metatag("process_0")
+    assert db_0 is db.process_0  # using the original parent object
+
+    async with db:
+
+        await db.adelete_metatag("process_0")
+
 
     db.metatags
     >>> {'process_1'}
@@ -403,11 +406,11 @@ As databases grow in the number of tags, metatags & the size of data within, it 
 
         db["favorite_foods"] = ["justice", "community"]
 
-        await db.ametatag("exercise_routines")
+        routines = await db.ametatag("exercise_routines")
 
-        db.exercise_routines["gardening"] = {"days": ["monday", "wednesday"]}
+        routines["gardening"] = {"days": ["monday", "wednesday"]}
 
-        db.exercise_routines["swimming"] = {"days": ["thursday", "saturday"]}
+        routines["swimming"] = {"days": ["thursday", "saturday"]}
 
 
     # Again, preloading into the cache is toggled off by default ->
@@ -435,8 +438,6 @@ As databases grow in the number of tags, metatags & the size of data within, it 
 
 
         # Metatags will be loaded, but their tags won't be ->
-
-        assert type(uncached_db.exercise_routines) == AsyncDatabase
 
         uncached_db.exercise_routines["gardening"]
         >>> None
