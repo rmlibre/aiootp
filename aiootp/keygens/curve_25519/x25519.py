@@ -65,6 +65,7 @@ class X25519(Base25519):
 
     __slots__ = ("_public_key", "_secret_key")
 
+    _KDF: type = DomainKDF
     _DoubleDiffieHellmanClient: type = DoubleDiffieHellmanClient
     _DoubleDiffieHellmanServer: type = DoubleDiffieHellmanServer
     _TripleDiffieHellmanClient: type = TripleDiffieHellmanClient
@@ -131,7 +132,7 @@ class X25519(Base25519):
         ------------------------------------------------------------------------
         """
         return cls._DoubleDiffieHellmanClient(
-            kdf_type=DomainKDF, key_exchange_type=cls
+            kdf_type=cls._KDF, key_exchange_type=cls
         )
 
     def dh2_server(self) -> DoubleDiffieHellmanServer:
@@ -166,7 +167,7 @@ class X25519(Base25519):
         ------------------------------------------------------------------------
         """
         return self._DoubleDiffieHellmanServer(
-            self, kdf_type=DomainKDF, key_exchange_type=self.__class__
+            self, kdf_type=self._KDF, key_exchange_type=self.__class__
         )
 
     def dh3_client(self) -> TripleDiffieHellmanClient:
@@ -201,7 +202,7 @@ class X25519(Base25519):
         ------------------------------------------------------------------------
         """
         return self._TripleDiffieHellmanClient(
-            self, kdf_type=DomainKDF, key_exchange_type=self.__class__
+            self, kdf_type=self._KDF, key_exchange_type=self.__class__
         )
 
     def dh3_server(self) -> TripleDiffieHellmanServer:
@@ -236,7 +237,7 @@ class X25519(Base25519):
         ------------------------------------------------------------------------
         """
         return self._TripleDiffieHellmanServer(
-            self, kdf_type=DomainKDF, key_exchange_type=self.__class__
+            self, kdf_type=self._KDF, key_exchange_type=self.__class__
         )
 
 

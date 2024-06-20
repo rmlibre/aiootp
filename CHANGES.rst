@@ -20,6 +20,7 @@ Minor Changes
 
 - Move ``FrozenInstance`` class to its own module.
 - chore(release): Mark complete ``v0.23.x`` series commits with git tags.
+- refactor(algorithm): Remove hard-coded KDF in ``X25519`` protocol methods. (#4)
 - Improvements & fixes to doc strings.
 - Improvements & fixes to package tests.
 - Improvements & fixes to code formatting & style.
