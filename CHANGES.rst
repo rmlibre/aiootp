@@ -19,6 +19,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - Move ``FrozenInstance`` class to its own module.
+- chore(release): Mark complete ``v0.23.x`` series commits with git tags.
 - Improvements & fixes to doc strings.
 - Improvements & fixes to package tests.
 - Improvements & fixes to code formatting & style.
