@@ -12,18 +12,18 @@ Changes for version 0.23.7
 Major Changes
 ^^^^^^^^^^^^^
 
-- Fix inconsistent frozen & mapping functionality for ``Slots`` sub classes.
+- fix(behavior): fix inconsistent ``Slots`` subclass frozen & mapping functionality
 
 
 Minor Changes
 ^^^^^^^^^^^^^
 
-- Move ``FrozenInstance`` class to its own module.
-- chore(release): Mark complete ``v0.23.x`` series commits with git tags.
-- refactor(algorithm): Remove hard-coded KDF in ``X25519`` protocol methods. (#4)
-- Improvements & fixes to doc strings.
-- Improvements & fixes to package tests.
-- Improvements & fixes to code formatting & style.
+- refactor(package): move ``FrozenInstance`` class to its own module
+- chore(release): mark completed ``v0.23.x`` series versions with git tags
+- refactor(algorithm): remove hard-coded KDF in ``X25519`` protocol methods [#4]
+- docs: fix & improve misc
+- test: fix & improve misc
+- style: fix & improve misc
 
 
 
