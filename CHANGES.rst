@@ -18,8 +18,8 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- refactor(package): move ``FrozenInstance`` class to its own module
 - chore(release): mark completed ``v0.23.x`` series versions with git tags
+- refactor(package): move ``FrozenInstance`` class to its own module
 - refactor(algorithm): remove hard-coded KDF in ``X25519`` protocol methods [#4]
 - docs(database): provide more concurrency-safe & elegant usage examples
 - docs: fix & improve misc
