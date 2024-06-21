@@ -620,14 +620,23 @@ Encrypted URL-safe Base64 encoded tokens.
 
 .. code-block:: python
 
-    token_data = b"some plaintext token data..."
+    from collections import deque
 
-    encrypted_token = cipher.make_token(token_data, aad=b"demo")
+    from aiootp.generics import canonical_pack, canonical_unpack
 
 
-    assert token_data == cipher.read_token(
+    token_data = deque([b"user_id", b"session_id", b"secret_value"])
 
-        encrypted_token, aad=b"demo", ttl=3600
+    encrypted_token = cipher.make_token(
+
+        canonical_pack(*token_data, int_bytes=1), aad=b"demo"
+
+    )
+
+
+    assert token_data == canonical_unpack(
+
+        cipher.read_token(encrypted_token, aad=b"demo", ttl=3600)
 
     )
 
