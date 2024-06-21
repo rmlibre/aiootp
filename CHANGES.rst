@@ -21,6 +21,7 @@ Minor Changes
 - chore(release): mark completed ``v0.23.x`` series versions with git tags
 - refactor(package): move ``FrozenInstance`` class to its own module
 - refactor(algorithm): remove hard-coded KDF in ``X25519`` protocol methods [#4]
+- fix(api): resolve type unsafety of redundant params in KEX protocol inits [#5]
 - docs(database): provide more concurrency-safe & elegant usage examples
 - docs: fix & improve misc
 - test: fix & improve misc

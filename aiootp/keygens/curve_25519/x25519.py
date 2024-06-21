@@ -131,9 +131,7 @@ class X25519(Base25519):
                                            |
         ------------------------------------------------------------------------
         """
-        return cls._DoubleDiffieHellmanClient(
-            kdf_type=cls._KDF, key_exchange_type=cls
-        )
+        return cls._DoubleDiffieHellmanClient(cls, kdf_type=cls._KDF)
 
     def dh2_server(self) -> DoubleDiffieHellmanServer:
         """
@@ -166,9 +164,7 @@ class X25519(Base25519):
                                            |
         ------------------------------------------------------------------------
         """
-        return self._DoubleDiffieHellmanServer(
-            self, kdf_type=self._KDF, key_exchange_type=self.__class__
-        )
+        return self._DoubleDiffieHellmanServer(self, kdf_type=self._KDF)
 
     def dh3_client(self) -> TripleDiffieHellmanClient:
         """
@@ -201,9 +197,7 @@ class X25519(Base25519):
                                            |
         ------------------------------------------------------------------------
         """
-        return self._TripleDiffieHellmanClient(
-            self, kdf_type=self._KDF, key_exchange_type=self.__class__
-        )
+        return self._TripleDiffieHellmanClient(self, kdf_type=self._KDF)
 
     def dh3_server(self) -> TripleDiffieHellmanServer:
         """
@@ -236,9 +230,7 @@ class X25519(Base25519):
                                            |
         ------------------------------------------------------------------------
         """
-        return self._TripleDiffieHellmanServer(
-            self, kdf_type=self._KDF, key_exchange_type=self.__class__
-        )
+        return self._TripleDiffieHellmanServer(self, kdf_type=self._KDF)
 
 
 module_api = dict(

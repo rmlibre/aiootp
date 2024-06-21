@@ -248,6 +248,39 @@ async def test_X25519(database, async_database):
 
 class TestDiffieHellmanProtocols:
 
+    async def test_non_kex_types_throw_error_in_kex_protocol_inits(
+        self
+    ) -> None:
+        problem = (
+            "A non-key exchange type was supplied during init & didn't fail."
+        )
+        for non_key_type in (dict, str, int, bytes, t.Namespace, Ed25519):
+            async with Ignore(TypeError, if_else=violation(problem)):
+                t.DoubleDiffieHellmanClient(non_key_type, kdf_type=DomainKDF)
+            async with Ignore(TypeError, if_else=violation(problem)):
+                t.DoubleDiffieHellmanServer(non_key_type(), kdf_type=DomainKDF)
+            async with Ignore(TypeError, if_else=violation(problem)):
+                t.TripleDiffieHellmanClient(non_key_type(), kdf_type=DomainKDF)
+            async with Ignore(TypeError, if_else=violation(problem)):
+                t.TripleDiffieHellmanServer(non_key_type(), kdf_type=DomainKDF)
+
+    async def test_non_kdf_types_throw_error_in_kex_protocol_inits(
+        self
+    ) -> None:
+        problem = (
+            "A non-KDF type was supplied during init & didn't fail."
+        )
+        my_identity_key = X25519().generate()
+        for non_kdf_type in (dict, str, int, bytes, t.Namespace, Ed25519):
+            async with Ignore(TypeError, if_else=violation(problem)):
+                t.DoubleDiffieHellmanClient(X25519, kdf_type=non_kdf_type)
+            async with Ignore(TypeError, if_else=violation(problem)):
+                t.DoubleDiffieHellmanServer(my_identity_key, kdf_type=non_kdf_type)
+            async with Ignore(TypeError, if_else=violation(problem)):
+                t.TripleDiffieHellmanClient(my_identity_key, kdf_type=non_kdf_type)
+            async with Ignore(TypeError, if_else=violation(problem)):
+                t.TripleDiffieHellmanServer(my_identity_key, kdf_type=non_kdf_type)
+
     async def test_async_double_diffie_hellman(self) -> None:
         server_key = await X25519().agenerate()
         client = X25519.dh2_client()

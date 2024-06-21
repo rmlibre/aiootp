@@ -124,22 +124,6 @@ class AsymmetricKeyType(t.Protocol):
     def generate(self) -> t.Self:
         pass  # pragma: no cover
 
-    @property
-    def secret_key(self) -> t.Optional[SecretKeyType]:
-        pass  # pragma: no cover
-
-    @property
-    def public_key(self) -> t.Optional[PublicKeyType]:
-        pass  # pragma: no cover
-
-    @property
-    def secret_bytes(self) -> bytes:
-        pass  # pragma: no cover
-
-    @property
-    def public_bytes(self) -> bytes:
-        pass  # pragma: no cover
-
     def has_secret_key(self) -> bool:
         pass  # pragma: no cover
 
@@ -147,7 +131,8 @@ class AsymmetricKeyType(t.Protocol):
         pass  # pragma: no cover
 
 
-class SignerType(AsymmetricKeyType):
+@t.runtime_checkable
+class SignerType(AsymmetricKeyType, t.Protocol):
 
     async def asign(self, data: bytes) -> bytes:
         pass  # pragma: no cover
@@ -190,7 +175,18 @@ class KeyExchangeProtocolType(t.Protocol):
         pass  # pragma: no cover
 
 
-class KeyExchangeType(AsymmetricKeyType):
+@t.runtime_checkable
+class KeyExchangeType(AsymmetricKeyType, t.Protocol):
+
+    async def aexchange(
+        self, public_key: t.Union[PublicKeyType, bytes]
+    ) -> bytes:
+        pass  # pragma: no cover
+
+    def exchange(
+        self, public_key: t.Union[PublicKeyType, bytes]
+    ) -> bytes:
+        pass  # pragma: no cover
 
     @classmethod
     def dh2_client(cls) -> KeyExchangeProtocolType:

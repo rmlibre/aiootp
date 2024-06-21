@@ -65,9 +65,11 @@ class DoubleDiffieHellmanClient(FrozenInstance):
         "_peer_ephemeral_key",
     )
 
-    def __init__(
-        self, *, kdf_type: type, key_exchange_type: type
-    ) -> None:
+    def __init__(self, key_exchange_type: type, *, kdf_type: type) -> None:
+        if not issubclass(kdf_type, t.DomainKDFType):
+            raise Issue.value_must_be_subtype("KDF type", t.DomainKDFType)
+        elif not issubclass(key_exchange_type, t.KeyExchangeType):
+            raise Issue.value_must_be_subtype("KEX type", t.KeyExchangeType)
         self._kdf_type = kdf_type
         self._key_exchange_type = key_exchange_type
 
