@@ -590,15 +590,14 @@ Symmetric encryption of JSON data.
 
     json_data = {"account": 33817, "names": ["queen b"], "id": None}
 
-    encrypted_json_data = cipher.json_encrypt(json_data, aad=b"demo")
+    encrypted_json = cipher.json_encrypt(json_data, aad=b"demo")
 
-    decrypted_json_data = cipher.json_decrypt(
 
-        encrypted_json_data, aad=b"demo", ttl=120
+    assert json_data == cipher.json_decrypt(
+
+        encrypted_json, aad=b"demo", ttl=120
 
     )
-
-    assert decrypted_json_data == json_data
 
 
 Symmetric encryption of binary data.
@@ -607,15 +606,14 @@ Symmetric encryption of binary data.
 
     binary_data = b"some plaintext data..."
 
-    encrypted_binary_data = cipher.bytes_encrypt(binary_data, aad=b"demo")
+    encrypted_binary = cipher.bytes_encrypt(binary_data, aad=b"demo")
 
-    decrypted_binary_data = cipher.bytes_decrypt(
 
-        encrypted_binary_data, aad=b"demo", ttl=30
+    assert binary_data == cipher.bytes_decrypt(
+
+        encrypted_binary, aad=b"demo", ttl=30
 
     )
-
-    assert decrypted_binary_data == binary_data
 
 
 Encrypted URL-safe Base64 encoded tokens.
@@ -624,15 +622,14 @@ Encrypted URL-safe Base64 encoded tokens.
 
     token_data = b"some plaintext token data..."
 
-    encrypted_token_data = cipher.make_token(token_data, aad=b"demo")
+    encrypted_token = cipher.make_token(token_data, aad=b"demo")
 
-    decrypted_token_data = cipher.read_token(
 
-        encrypted_token_data, aad=b"demo", ttl=3600
+    assert token_data == cipher.read_token(
+
+        encrypted_token, aad=b"demo", ttl=3600
 
     )
-
-    assert decrypted_token_data == token_data
 
 
     #
