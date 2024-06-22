@@ -115,8 +115,8 @@ class TripleDiffieHellmanClient(FrozenInstance):
         server, & returns the KDF object which has been primed with the
         public & secret values involed in the key exchange.
         """
-        my_ephemeral_key = self._my_ephemeral_key
         my_identity_key = self._my_identity_key
+        my_ephemeral_key = self._my_ephemeral_key
         peer_identity_key = self._peer_identity_key
         self._peer_ephemeral_key = peer_ephemeral_key
         shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
@@ -139,8 +139,8 @@ class TripleDiffieHellmanClient(FrozenInstance):
         server, & returns the KDF object which has been primed with the
         public & secret values involed in the key exchange.
         """
-        my_ephemeral_key = self._my_ephemeral_key
         my_identity_key = self._my_identity_key
+        my_ephemeral_key = self._my_ephemeral_key
         peer_identity_key = self._peer_identity_key
         self._peer_ephemeral_key = peer_ephemeral_key
         shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
