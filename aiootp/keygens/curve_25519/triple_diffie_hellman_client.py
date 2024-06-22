@@ -66,10 +66,11 @@ class TripleDiffieHellmanClient(FrozenInstance):
         "_my_ephemeral_key",
         "_peer_identity_key",
         "_peer_ephemeral_key",
+        "_sanitize",
     )
 
     def __init__(
-        self, my_identity_key: t.KeyExchangeType, *, kdf_type: type
+        self, /, my_identity_key: t.KeyExchangeType, *, kdf_type: type
     ) -> None:
         if not issubclass(kdf_type, t.DomainKDFType):
             raise Issue.value_must_be_subtype("KDF type", t.DomainKDFType)
@@ -78,29 +79,32 @@ class TripleDiffieHellmanClient(FrozenInstance):
         self._kdf_type = kdf_type
         self._key_exchange_type = my_identity_key.__class__
         self._my_identity_key = my_identity_key
+        self._sanitize = self._key_exchange_type._process_public_key
 
     async def asend(
-        self, peer_identity_key: bytes
+        self, /, peer_identity_key: t.Union[bytes, t.PublicKeyType]
     ) -> t.Tuple[bytes, bytes]:
         """
         Receives the identity public key of the intended server & returns
         the instance's identity & ephemeral public keys to be sent to the
         server.
         """
-        self._peer_identity_key = peer_identity_key
+        self._peer_identity_key = self._sanitize(peer_identity_key)
         self._my_ephemeral_key = await self._key_exchange_type().agenerate()
         return (
             self._my_identity_key.public_bytes,
             self._my_ephemeral_key.public_bytes,
         )
 
-    def send(self, peer_identity_key: bytes) -> t.Tuple[bytes, bytes]:
+    def send(
+        self, /, peer_identity_key: t.Union[bytes, t.PublicKeyType]
+    ) -> t.Tuple[bytes, bytes]:
         """
         Receives the identity public key of the intended server & returns
         the instance's identity & ephemeral public keys to be sent to the
         server.
         """
-        self._peer_identity_key = peer_identity_key
+        self._peer_identity_key = self._sanitize(peer_identity_key)
         self._my_ephemeral_key = self._key_exchange_type().generate()
         return (
             self._my_identity_key.public_bytes,
@@ -108,7 +112,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
         )
 
     async def areceive(
-        self, peer_ephemeral_key: bytes
+        self, /, peer_ephemeral_key: t.Union[bytes, t.PublicKeyType]
     ) -> t.DomainKDFType:
         """
         Receives the ephemeral public key that could've been sent from a
@@ -118,7 +122,9 @@ class TripleDiffieHellmanClient(FrozenInstance):
         my_identity_key = self._my_identity_key
         my_ephemeral_key = self._my_ephemeral_key
         peer_identity_key = self._peer_identity_key
-        self._peer_ephemeral_key = peer_ephemeral_key
+        peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
+            peer_ephemeral_key
+        )
         shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
         shared_key_bc = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
@@ -126,13 +132,13 @@ class TripleDiffieHellmanClient(FrozenInstance):
             Domains.DH3,
             my_identity_key.public_bytes,
             my_ephemeral_key.public_bytes,
-            peer_identity_key,
-            peer_ephemeral_key,
+            peer_identity_key.public_bytes_raw(),
+            peer_ephemeral_key.public_bytes_raw(),
             key=shared_key_ad + shared_key_bc + shared_key_cd,
         )
 
     def receive(
-        self, peer_ephemeral_key: bytes
+        self, /, peer_ephemeral_key: t.Union[bytes, t.PublicKeyType]
     ) -> t.DomainKDFType:
         """
         Receives the ephemeral public key that could've been sent from a
@@ -142,7 +148,9 @@ class TripleDiffieHellmanClient(FrozenInstance):
         my_identity_key = self._my_identity_key
         my_ephemeral_key = self._my_ephemeral_key
         peer_identity_key = self._peer_identity_key
-        self._peer_ephemeral_key = peer_ephemeral_key
+        peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
+            peer_ephemeral_key
+        )
         shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
         shared_key_bc = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
@@ -150,8 +158,8 @@ class TripleDiffieHellmanClient(FrozenInstance):
             Domains.DH3,
             my_identity_key.public_bytes,
             my_ephemeral_key.public_bytes,
-            peer_identity_key,
-            peer_ephemeral_key,
+            peer_identity_key.public_bytes_raw(),
+            peer_ephemeral_key.public_bytes_raw(),
             key=shared_key_ad + shared_key_bc + shared_key_cd,
         )
 

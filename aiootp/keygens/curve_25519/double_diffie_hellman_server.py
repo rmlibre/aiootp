@@ -63,10 +63,11 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         "_my_identity_key",
         "_my_ephemeral_key",
         "_peer_ephemeral_key",
+        "_sanitize",
     )
 
     def __init__(
-        self, my_identity_key: t.KeyExchangeType, *, kdf_type: type
+        self, /, my_identity_key: t.KeyExchangeType, *, kdf_type: type
     ) -> None:
         if not issubclass(kdf_type, t.DomainKDFType):
             raise Issue.value_must_be_subtype("KDF type", t.DomainKDFType)
@@ -75,8 +76,11 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         self._kdf_type = kdf_type
         self._key_exchange_type = my_identity_key.__class__
         self._my_identity_key = my_identity_key
+        self._sanitize = self._key_exchange_type._process_public_key
 
-    async def areceive(self, peer_ephemeral_key: bytes) -> t.DomainKDFType:
+    async def areceive(
+        self, /, peer_ephemeral_key: t.Union[bytes, t.PublicKeyType]
+    ) -> t.DomainKDFType:
         """
         Receives the identity public key from an intended client, &
         returns the KDF object which has been primed with the public &
@@ -86,18 +90,22 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         my_ephemeral_key = self._my_ephemeral_key = (
             await self._key_exchange_type().agenerate()
         )
-        self._peer_ephemeral_key = peer_ephemeral_key
+        peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
+            peer_ephemeral_key
+        )
         shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
         return self._kdf_type(
             Domains.DH2,
-            peer_ephemeral_key,
+            peer_ephemeral_key.public_bytes_raw(),
             my_identity_key.public_bytes,
             my_ephemeral_key.public_bytes,
             key=shared_key_ad + shared_key_cd,
         )
 
-    def receive(self, peer_ephemeral_key: bytes) -> t.DomainKDFType:
+    def receive(
+        self, /, peer_ephemeral_key: t.Union[bytes, t.PublicKeyType]
+    ) -> t.DomainKDFType:
         """
         Receives the identity public key from an intended client, &
         returns the KDF object which has been primed with the public &
@@ -107,25 +115,27 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         my_ephemeral_key = self._my_ephemeral_key = (
             self._key_exchange_type().generate()
         )
-        self._peer_ephemeral_key = peer_ephemeral_key
+        peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
+            peer_ephemeral_key
+        )
         shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)
         return self._kdf_type(
             Domains.DH2,
-            peer_ephemeral_key,
+            peer_ephemeral_key.public_bytes_raw(),
             my_identity_key.public_bytes,
             my_ephemeral_key.public_bytes,
             key=shared_key_ad + shared_key_cd,
         )
 
-    async def asend(self) -> bytes:
+    async def asend(self, /) -> bytes:
         """
         Returns the instance's ephemeral public key involved in the
         exchange to be sent to the client.
         """
         return self._my_ephemeral_key.public_bytes
 
-    def send(self) -> bytes:
+    def send(self, /) -> bytes:
         """
         Returns the instance's ephemeral public key involved in the
         exchange to be sent to the client.

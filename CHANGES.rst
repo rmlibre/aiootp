@@ -12,7 +12,7 @@ Changes for version 0.23.8
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- feat(api): support compliant public keys in KEX protocols [#7]
 
 
 Minor Changes

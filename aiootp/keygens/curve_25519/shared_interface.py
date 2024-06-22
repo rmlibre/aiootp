@@ -47,34 +47,36 @@ class Base25519(FrozenInstance):
         self._secret_key = None
         self._public_key = None
 
+    @classmethod
     def _process_secret_key(
-        self, secret_key: t.Union[bytes, t.SecretKeyType]
+        cls, secret_key: t.Union[bytes, t.SecretKeyType]
     ) -> t.SecretKeyType:
         """
-        If `secret_key` is either of `bytes` or `self.SecretKey` type,
-        returns an instance of `self.SecretKey`. Otherwise raises
+        If `secret_key` is either of `bytes` or `cls.SecretKey` type,
+        returns an instance of `cls.SecretKey`. Otherwise raises
         `TypeError`.
         """
-        cls = secret_key.__class__
-        if cls is bytes:
-            return self.SecretKey.from_private_bytes(secret_key)
-        elif issubclass(cls, self.SecretKey):
+        key_type = secret_key.__class__
+        if key_type is bytes:
+            return cls.SecretKey.from_private_bytes(secret_key)
+        elif issubclass(key_type, cls.SecretKey):
             return secret_key
         else:
             raise Issue.value_must_be_type("secret_key", "valid key type")
 
+    @classmethod
     def _process_public_key(
-        self, public_key: t.Union[bytes, t.PublicKeyType]
+        cls, public_key: t.Union[bytes, t.PublicKeyType]
     ) -> t.PublicKeyType:
         """
-        If `public_key` is either of `bytes` or `self.PublicKey` type,
-        returns an instance of `self.PublicKey`. Otherwise raises
+        If `public_key` is either of `bytes` or `cls.PublicKey` type,
+        returns an instance of `cls.PublicKey`. Otherwise raises
         `TypeError`.
         """
-        cls = public_key.__class__
-        if cls is bytes:
-            return self.PublicKey.from_public_bytes(public_key)
-        elif issubclass(cls, self.PublicKey):
+        key_type = public_key.__class__
+        if key_type is bytes:
+            return cls.PublicKey.from_public_bytes(public_key)
+        elif issubclass(key_type, cls.PublicKey):
             return public_key
         else:
             raise Issue.value_must_be_type("public_key", "valid key type")
