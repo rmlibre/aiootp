@@ -254,15 +254,15 @@ class TestDiffieHellmanProtocols:
         problem = (
             "A non-key exchange type was supplied during init & didn't fail."
         )
-        for non_key_type in (dict, str, int, bytes, t.Namespace, Ed25519):
+        for non_kex_type in (dict, str, int, bytes, t.Namespace, Ed25519):
             async with Ignore(TypeError, if_else=violation(problem)):
-                t.DoubleDiffieHellmanClient(non_key_type, kdf_type=DomainKDF)
+                t.DoubleDiffieHellmanClient(non_kex_type, kdf_type=DomainKDF)
             async with Ignore(TypeError, if_else=violation(problem)):
-                t.DoubleDiffieHellmanServer(non_key_type(), kdf_type=DomainKDF)
+                t.DoubleDiffieHellmanServer(non_kex_type(), kdf_type=DomainKDF)
             async with Ignore(TypeError, if_else=violation(problem)):
-                t.TripleDiffieHellmanClient(non_key_type(), kdf_type=DomainKDF)
+                t.TripleDiffieHellmanClient(non_kex_type(), kdf_type=DomainKDF)
             async with Ignore(TypeError, if_else=violation(problem)):
-                t.TripleDiffieHellmanServer(non_key_type(), kdf_type=DomainKDF)
+                t.TripleDiffieHellmanServer(non_kex_type(), kdf_type=DomainKDF)
 
     async def test_non_kdf_types_throw_error_in_kex_protocol_inits(
         self
