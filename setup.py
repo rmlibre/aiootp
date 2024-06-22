@@ -98,7 +98,6 @@ setup(
     python_requires=">=3.8",
     tests_require=["pytest>=8.1.1", "pytest-asyncio>=0.23.6"],
     install_requires=["aiofiles>=23.2.1", "cryptography>=42.0.8"],
-    options={"bdist_wheel": {"python_tag": "py38.py39.py310.py311.py312"}},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Framework :: AsyncIO",

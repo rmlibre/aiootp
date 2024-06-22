@@ -18,6 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- fix(package): delete option likely breaking piwheels
 - docs(cipher): describe a ``salt`` consistently
 
 
