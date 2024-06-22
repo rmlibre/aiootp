@@ -75,7 +75,7 @@ class X25519(Base25519):
     SecretKey: type = t.X25519PrivateKey
 
     async def aexchange(
-        self, public_key: t.Union[t.X25519PublicKey, bytes]
+        self, public_key: t.Union[bytes, t.PublicKeyType]
     ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the
@@ -88,7 +88,7 @@ class X25519(Base25519):
         return self._secret_key.exchange(public_key)
 
     def exchange(
-        self, public_key: t.Union[t.X25519PublicKey, bytes]
+        self, public_key: t.Union[bytes, t.PublicKeyType]
     ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the
