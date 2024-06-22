@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- docs(cipher): describe a ``salt`` consistently
 
 
 

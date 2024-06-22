@@ -227,14 +227,14 @@ class KeyAADBundle:
     @property
     def salt(self) -> bytes:
         """
-        Returns a [pseudo]random salt that may be supplied by the user.
-        By default it's sent in the clear attached to the ciphertext.
-        Thus it may simplify implementing efficient features, such as
-        search or routing, though care must still be taken when
-        considering how leaking such metadata may be harmful. Keeping
-        this value constant is strongly discouraged, though the salt
-        misuse-reuse resistance of the cipher extends up to
-        ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
+        A [pseudo]random salt that may be supplied by the user. By
+        default it's sent in the clear attached to the ciphertext.
+        Thus it may simplify implementing efficient features, such
+        as search or routing, though care must still be taken when
+        considering how leaking such metadata may be harmful.
+        Keeping this value constant is strongly discouraged, though
+        the salt misuse-reuse resistance of the cipher extends up
+        to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
         """
         return self._bundle.salt
 

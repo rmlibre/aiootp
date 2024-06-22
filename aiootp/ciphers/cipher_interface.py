@@ -126,15 +126,14 @@ class CipherInterface(FrozenInstance):
         Returns the ciphertext of any bytes type `data` containing the
         SHMAC authentication tag, the salt, & the IV.
 
-        `salt`: A [pseudo]random salt that may be supplied by the user.
-                By default it's sent in the clear attached to the
-                ciphertext. Thus it may simplify implementing efficient
-                features, such as search or routing, though care must still
-                be taken when considering how leaking such metadata may be
-                harmful. Keeping this value constant is strongly discouraged,
-                though the salt misuse-reuse resistance of the cipher
-                extends up to ~256**(len(iv)/2 + len(siv_key)/2)
-                encryptions/second.
+        `salt`: A [pseudo]random salt that may be supplied by the user. By
+                default it's sent in the clear attached to the ciphertext.
+                Thus it may simplify implementing efficient features, such
+                as search or routing, though care must still be taken when
+                considering how leaking such metadata may be harmful.
+                Keeping this value constant is strongly discouraged, though
+                the salt misuse-reuse resistance of the cipher extends up
+                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -169,15 +168,14 @@ class CipherInterface(FrozenInstance):
         Returns the ciphertext of any bytes type `data` containing the
         SHMAC authentication tag, the salt, & the IV.
 
-        `salt`: Returns a [pseudo]random salt that may be supplied by the
-                user. By default it's sent in the clear attached to the
-                ciphertext. Thus it may simplify implementing efficient
-                features, such as search or routing, though care must still
-                be taken when considering how leaking such metadata may be
-                harmful. Keeping this value constant is strongly discouraged,
-                though the salt misuse-reuse resistance of the cipher
-                extends up to ~256**(len(iv)/2 + len(siv_key)/2)
-                encryptions/second.
+        `salt`: A [pseudo]random salt that may be supplied by the user. By
+                default it's sent in the clear attached to the ciphertext.
+                Thus it may simplify implementing efficient features, such
+                as search or routing, though care must still be taken when
+                considering how leaking such metadata may be harmful.
+                Keeping this value constant is strongly discouraged, though
+                the salt misuse-reuse resistance of the cipher extends up
+                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -267,15 +265,14 @@ class CipherInterface(FrozenInstance):
         Returns the ciphertext of any JSON serializable `data` containing
         the SHMAC authentication tag, the salt, & the IV.
 
-        `salt`: Returns a [pseudo]random salt that may be supplied by the
-                user. By default it's sent in the clear attached to the
-                ciphertext. Thus it may simplify implementing efficient
-                features, such as search or routing, though care must still
-                be taken when considering how leaking such metadata may be
-                harmful. Keeping this value constant is strongly discouraged,
-                though the salt misuse-reuse resistance of the cipher
-                extends up to ~256**(len(iv)/2 + len(siv_key)/2)
-                encryptions/second.
+        `salt`: A [pseudo]random salt that may be supplied by the user. By
+                default it's sent in the clear attached to the ciphertext.
+                Thus it may simplify implementing efficient features, such
+                as search or routing, though care must still be taken when
+                considering how leaking such metadata may be harmful.
+                Keeping this value constant is strongly discouraged, though
+                the salt misuse-reuse resistance of the cipher extends up
+                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -297,15 +294,14 @@ class CipherInterface(FrozenInstance):
         Returns the ciphertext of any JSON serializable `data` containing
         the SHMAC authentication tag, the salt, & the IV.
 
-        `salt`: Returns a [pseudo]random salt that may be supplied by the
-                user. By default it's sent in the clear attached to the
-                ciphertext. Thus it may simplify implementing efficient
-                features, such as search or routing, though care must still
-                be taken when considering how leaking such metadata may be
-                harmful. Keeping this value constant is strongly discouraged,
-                though the salt misuse-reuse resistance of the cipher
-                extends up to ~256**(len(iv)/2 + len(siv_key)/2)
-                encryptions/second.
+        `salt`: A [pseudo]random salt that may be supplied by the user. By
+                default it's sent in the clear attached to the ciphertext.
+                Thus it may simplify implementing efficient features, such
+                as search or routing, though care must still be taken when
+                considering how leaking such metadata may be harmful.
+                Keeping this value constant is strongly discouraged, though
+                the salt misuse-reuse resistance of the cipher extends up
+                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -442,15 +438,14 @@ class CipherInterface(FrozenInstance):
         """
         Returns an object to manage encrypting a stream of plaintext.
 
-        `salt`: A [pseudo]random salt that may be supplied by the user.
-                By default it's sent in the clear attached to the
-                ciphertext. Thus it may simplify implementing efficient
-                features, such as search or routing, though care must still
-                be taken when considering how leaking such metadata may be
-                harmful. Keeping this value constant is strongly discouraged,
-                though the salt misuse-reuse resistance of the cipher
-                extends up to ~256**(len(iv)/2 + len(siv_key)/2)
-                encryptions/second.
+        `salt`: A [pseudo]random salt that may be supplied by the user. By
+                default it's sent in the clear attached to the ciphertext.
+                Thus it may simplify implementing efficient features, such
+                as search or routing, though care must still be taken when
+                considering how leaking such metadata may be harmful.
+                Keeping this value constant is strongly discouraged, though
+                the salt misuse-reuse resistance of the cipher extends up
+                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -465,15 +460,14 @@ class CipherInterface(FrozenInstance):
         """
         Returns an object to manage encrypting a stream of plaintext.
 
-        `salt`: A [pseudo]random salt that may be supplied by the user.
-                By default it's sent in the clear attached to the
-                ciphertext. Thus it may simplify implementing efficient
-                features, such as search or routing, though care must still
-                be taken when considering how leaking such metadata may be
-                harmful. Keeping this value constant is strongly discouraged,
-                though the salt misuse-reuse resistance of the cipher
-                extends up to ~256**(len(iv)/2 + len(siv_key)/2)
-                encryptions/second.
+        `salt`: A [pseudo]random salt that may be supplied by the user. By
+                default it's sent in the clear attached to the ciphertext.
+                Thus it may simplify implementing efficient features, such
+                as search or routing, though care must still be taken when
+                considering how leaking such metadata may be harmful.
+                Keeping this value constant is strongly discouraged, though
+                the salt misuse-reuse resistance of the cipher extends up
+                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -493,15 +487,14 @@ class CipherInterface(FrozenInstance):
         """
         Returns an object to manage decrypting a stream of ciphertext.
 
-        `salt`: A [pseudo]random salt that may be supplied by the user.
-                By default it's sent in the clear attached to the
-                ciphertext. Thus it may simplify implementing efficient
-                features, such as search or routing, though care must still
-                be taken when considering how leaking such metadata may be
-                harmful. Keeping this value constant is strongly discouraged,
-                though the salt misuse-reuse resistance of the cipher
-                extends up to ~256**(len(iv)/2 + len(siv_key)/2)
-                encryptions/second.
+        `salt`: A [pseudo]random salt that may be supplied by the user. By
+                default it's sent in the clear attached to the ciphertext.
+                Thus it may simplify implementing efficient features, such
+                as search or routing, though care must still be taken when
+                considering how leaking such metadata may be harmful.
+                Keeping this value constant is strongly discouraged, though
+                the salt misuse-reuse resistance of the cipher extends up
+                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -531,15 +524,14 @@ class CipherInterface(FrozenInstance):
         """
         Returns an object to manage decrypting a stream of ciphertext.
 
-        `salt`: A [pseudo]random salt that may be supplied by the user.
-                By default it's sent in the clear attached to the
-                ciphertext. Thus it may simplify implementing efficient
-                features, such as search or routing, though care must still
-                be taken when considering how leaking such metadata may be
-                harmful. Keeping this value constant is strongly discouraged,
-                though the salt misuse-reuse resistance of the cipher
-                extends up to ~256**(len(iv)/2 + len(siv_key)/2)
-                encryptions/second.
+        `salt`: A [pseudo]random salt that may be supplied by the user. By
+                default it's sent in the clear attached to the ciphertext.
+                Thus it may simplify implementing efficient features, such
+                as search or routing, though care must still be taken when
+                considering how leaking such metadata may be harmful.
+                Keeping this value constant is strongly discouraged, though
+                the salt misuse-reuse resistance of the cipher extends up
+                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
