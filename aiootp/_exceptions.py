@@ -345,6 +345,14 @@ class InvalidCiphertextSize(ValueError):
         super().__init__(self._MESSAGE_TEMPLATE.replace("SIZE", repr(size)))
 
 
+class ValidationIncomplete(PermissionError, AttributeError):
+
+    _MESSAGE_TEMPLATE: str = "Can't produce a result before finalization."
+
+    def __init__(self, /) -> None:
+        super().__init__(self._MESSAGE_TEMPLATE)
+
+
 class TypeUncheckableAtRuntime(TypeError):
     """
     Some types, like those which use square brackets in their definition,
@@ -583,9 +591,6 @@ class SHMACIssue:
 
     _NO_CIPHER_MODE_DECLARED: str = "No cipher mode has been declared."
     _ALREADY_FINALIZED: str = "The validator has already been finalized."
-    _VALIDATION_INCOMPLETE: str = (
-        "Can't produce a result before finalization."
-    )
     _INVALID_IV_USAGE: str = (
         "The `iv` must be manually passed into the validator during "
         "*decryption*, & only during decryption."
@@ -612,10 +617,6 @@ class SHMACIssue:
     @classmethod
     def already_finalized(cls, /) -> PermissionError:
         return PermissionError(cls._ALREADY_FINALIZED)
-
-    @classmethod
-    def validation_incomplete(cls, /) -> PermissionError:
-        return PermissionError(cls._VALIDATION_INCOMPLETE)
 
     @classmethod
     def invalid_iv_usage(cls, /) -> PermissionError:

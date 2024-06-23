@@ -20,7 +20,7 @@ __doc__ = "General definition for the StreamHMAC interface."
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, SHAKE_128_BLOCKSIZE, BIG
 from aiootp._constants import ENCRYPTION, DECRYPTION
-from aiootp._exceptions import Issue, SHMACIssue
+from aiootp._exceptions import Issue, SHMACIssue, ValidationIncomplete
 from aiootp._exceptions import InvalidBlockID, InvalidSHMAC
 from aiootp.asynchs import asleep
 from aiootp.generics import Domains, bytes_are_equal
@@ -113,7 +113,7 @@ class StreamHMAC:
         `PermissionError` if the instance hasn't been finalized.
         """
         if not self._result_is_ready:
-            raise SHMACIssue.validation_incomplete()
+            raise ValidationIncomplete()
         return self._result
 
     def _for_encryption(self) -> t.Self:
