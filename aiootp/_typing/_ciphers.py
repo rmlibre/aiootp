@@ -299,22 +299,22 @@ class CipherInterfaceType(t.Protocol):
 
     async def astream_encrypt(
         self, *, salt: t.Optional[bytes], aad: bytes
-    ):
+    ) -> AsyncCipherStreamingType:
         pass  # pragma: no cover
 
     def stream_encrypt(
         self, *, salt: t.Optional[bytes], aad: bytes
-    ):
+    ) -> CipherStreamingType:
         pass  # pragma: no cover
 
     async def astream_decrypt(
         self, *, salt: bytes, aad: bytes, iv: bytes, ttl: int
-    ):
+    ) -> AsyncCipherStreamingType:
         pass  # pragma: no cover
 
     def stream_decrypt(
         self, *, salt: bytes, aad: bytes, iv: bytes, ttl: int
-    ):
+    ) -> CipherStreamingType:
         pass  # pragma: no cover
 
 
