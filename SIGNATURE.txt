@@ -1,5 +1,5 @@
 {
-    "checksum": "f13fa35b9c7d4dd1cf4d61207bd93c51db3361ff785c7880f95ae3e3ca808fc70084cb6dbf86c3a10872c54e7a04ae51",
+    "checksum": "3e8eb21a9034ac14892bfab11a6d487484f84f99041be513c56b20bd62daf756de466cb415ab341179175ff9bccdbda4",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "2ac2f4aee23e943bf259e15b594190cd11aa2c9f26ed89fcfed6b130a001345263017d3ec72d197a4d27a28f4b62decd",
@@ -15,7 +15,7 @@
         "aiootp/_constants/datasets.py": "9d7c2956ba371448c8efa71e54c30eace72cbf41e8780008d36ce3e1b09b97e057486d87202708acc66c7271c51ec1bd",
         "aiootp/_constants/misc.py": "0f127d1819b304d0cb15516b9620d52ec5c9c7dca8649acf07bac4e392b74aede8f52f8bb9a213c39e831e4f451bf0de",
         "aiootp/_debug_control.py": "11202c2cbfff45cef9ffbee05f982fdd675e5e93d892bb48fc621c3a7e7badf177fa5cb6194c4a40c796bb0d4b84f5cc",
-        "aiootp/_exceptions.py": "e6b934d2febac9e1679ebb380b607d8b638c1a30bb1ff3dab19aff72c60a022dbaf920b4830f78a4c7f71a7bf029bd51",
+        "aiootp/_exceptions.py": "875347310c6543152eb98622163e7e720b83540c13b7bc085f1b5adaa1edef8116bb752b3e2f686e3fa83a19ee4a467e",
         "aiootp/_gentools.py": "aa1e809404e63c4a600db9dbe003bf6f6610b5afd22bad7b93e327348b3c3d9054610daa3c9c78d70e256c1c4106fefa",
         "aiootp/_paths.py": "74d2e3cc921077b4bc04268c44adb51a84b48beb90e05a3933aaedb511b19fd54338af51ec07a73d9326d773680f330b",
         "aiootp/_permutations/__init__.py": "2d7b559384a34e1fd338401d11fb48aee55336b4bd338765df7c0f521b0dbd54830f87af081e9ef24664c0b3d28ee681",
@@ -129,7 +129,7 @@
         "tests/test_Processes_Threads.py": "b36d3bf2a63d31d651d7c18d9afa5e45bf11d7fc0a943f4386c43baacf71e80e6c03dd76b4dbe18c9cf2f34b6f2f9e2c",
         "tests/test_RawGUID.py": "602e7003c2da69255b3b05dcd37a07d4cba9b7934ba65e22fda00b8f255008975c233988ef89c27435651b2f50d0e5b1",
         "tests/test_SequenceID.py": "8a382e206b8c78ef745edba5f8169182ba41e877316e4624538108e07151c44fd5f1c31da851d14872d519cc506ab8ce",
-        "tests/test_StreamHMAC.py": "5bba6e613879a36872c5418acc19515c682937fa17b7db8f406a4cca1fd18a0e119e8ad00f76de9e12c4fdd02c4e7c74",
+        "tests/test_StreamHMAC.py": "02d1b501c8504395e7e929162412c473d86309323732cf65f15fdb268f6d59c6a5a157a1638b5fb7d9f6b5b56978da42",
         "tests/test_Typing_class.py": "7b36c1e797abb08747875a49c13b5c33f5c978d0e3cd7fd290489e2f2039bc089149578ef1aad2704b547bcda8f25346",
         "tests/test_X25519_Ed25519.py": "24568a533e5fe84b6ff37d4e2da5b9dd2500e673bd5a5b40b58a42336f7d22d168a6935a5c9b2029234a4a4a9bdd6db8",
         "tests/test_affine_permutations.py": "1afc3cddd330b2eb3e8f3a816eaa265f344a9f7f53cf55a571ffef39a666712556f17159dec37e17ce40aa535bb18326",
@@ -162,7 +162,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 2,
+        "build_number": 3,
         "date": 19897,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -170,5 +170,5 @@
         "version": "0.23.8"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "c8bfb0539ff296d7858445f7599a030b230a296dd07946e51870942f69a76f1170a5aefdc2b1d9518a2e1d47f28c6c710f570e25c33dd6b983e72dc242ea0d0c"
+    "signature": "ae2c940c39d24f6e68f2467c771417d8cdb550886b901d536363d3cccc93e7ca8872c093f7c598f5dcd3c68da4d1ec74ce748a21b61a7806267cb60ead42810f"
 }
