@@ -57,7 +57,7 @@ class TestStreamHMACStates:
                 cipher._kdfs, salt=salt, aad=aad
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
-            with Ignore(PermissionError, if_else=violation(problem)):
+            with Ignore(t.ValidationIncomplete, if_else=violation(problem)):
                 shmac.result
 
     async def test_cant_finalize_more_than_once(self) -> None:

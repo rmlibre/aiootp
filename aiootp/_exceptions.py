@@ -346,7 +346,7 @@ class InvalidCiphertextSize(ValueError):
         super().__init__(self._MESSAGE_TEMPLATE.replace("SIZE", repr(size)))
 
 
-class ValidationIncomplete(PermissionError, AttributeError):
+class ValidationIncomplete(AttributeError):
 
     _MESSAGE_TEMPLATE: str = "Can't produce a result before finalization."
 
