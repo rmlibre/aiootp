@@ -20,6 +20,7 @@ Minor Changes
 
 - fix(package): delete option likely breaking piwheels
 - fix(exc): subclass ``AttributeError`` for error raised in property
+- fix(typing): ensure ``Protocol`` subclasses runtime checkable [#8]
 - docs(cipher): describe a ``salt`` consistently
 - refactor(api): enforce positional or keyword only arguments
 

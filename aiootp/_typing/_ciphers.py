@@ -99,14 +99,6 @@ class PaddingType(t.Protocol):
 @t.runtime_checkable
 class StreamHMACType(t.Protocol):
 
-    @property
-    def config(self) -> t.ConfigType:
-        pass  # pragma: no cover
-
-    @property
-    def mode(self) -> str:
-        pass  # pragma: no cover
-
     async def anext_block_id(
         self, next_block: bytes, *, size: t.Optional[int], aad: bytes
     ) -> bytes:
@@ -121,12 +113,6 @@ class StreamHMACType(t.Protocol):
         pass  # pragma: no cover
 
     def finalize(self) -> bytes:
-        pass  # pragma: no cover
-
-    async def aresult(self) -> bytes:
-        pass  # pragma: no cover
-
-    def result(self) -> bytes:
         pass  # pragma: no cover
 
     async def atest_next_block_id(
@@ -165,22 +151,6 @@ class SyntheticIVType(t.Protocol):
 @t.runtime_checkable
 class AsyncCipherStreamingType(t.Protocol):
 
-    @property
-    def salt(self) -> bytes:
-        pass  # pragma: no cover
-
-    @property
-    def aad(self) -> bytes:
-        pass  # pragma: no cover
-
-    @property
-    def iv(self) -> bytes:
-        pass  # pragma: no cover
-
-    @property
-    def shmac(self) -> StreamHMACType:
-        pass  # pragma: no cover
-
     async def __aiter__(
         self
     ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
@@ -195,22 +165,6 @@ class AsyncCipherStreamingType(t.Protocol):
 
 @t.runtime_checkable
 class CipherStreamingType(t.Protocol):
-
-    @property
-    def salt(self) -> bytes:
-        pass  # pragma: no cover
-
-    @property
-    def aad(self) -> bytes:
-        pass  # pragma: no cover
-
-    @property
-    def iv(self) -> bytes:
-        pass  # pragma: no cover
-
-    @property
-    def shmac(self) -> StreamHMACType:
-        pass  # pragma: no cover
 
     def __iter__(
         self

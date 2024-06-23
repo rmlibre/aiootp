@@ -127,6 +127,7 @@ include tests/test_aiootp.py
 include tests/test_initialization.py
 include tests/test_typing.py
 include tests/test_Typing_class.py
+include tests/test_typing_protocols.py
 include tests/test_exceptions.py
 include tests/test_commons.py
 include tests/test_namespace_classes.py
