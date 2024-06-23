@@ -560,6 +560,8 @@ class DualOutputStreamJunction(StreamJunction):
 
     __slots__ = ()
 
+    _SyntheticIV: type = DualOutputSyntheticIV
+
     @classmethod
     async def acombine_streams(
         cls, data: t.AsyncDatastream, *, shmac: t.StreamHMACType
@@ -574,7 +576,7 @@ class DualOutputStreamJunction(StreamJunction):
             shmac._key_bundle._keystream.asend,
             shmac._avalidated_transform,
         )
-        yield await DualOutputSyntheticIV.avalidated_transform(
+        yield await cls._SyntheticIV.avalidated_transform(
             datastream, keystream, shmac
         )
         async for block in datastream:
@@ -596,7 +598,7 @@ class DualOutputStreamJunction(StreamJunction):
             shmac._key_bundle._keystream.send,
             shmac._validated_transform,
         )
-        yield DualOutputSyntheticIV.validated_transform(
+        yield cls._SyntheticIV.validated_transform(
             datastream, keystream, shmac
         )
         for block in datastream:
