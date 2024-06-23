@@ -75,7 +75,7 @@ class X25519(Base25519):
     SecretKey: type = t.X25519PrivateKey
 
     async def aexchange(
-        self, public_key: t.Union[bytes, t.PublicKeyType]
+        self, public_key: t.Union[bytes, t.PublicKeyType], /
     ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the
@@ -88,7 +88,7 @@ class X25519(Base25519):
         return self._secret_key.exchange(public_key)
 
     def exchange(
-        self, public_key: t.Union[bytes, t.PublicKeyType]
+        self, public_key: t.Union[bytes, t.PublicKeyType], /
     ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the
@@ -100,7 +100,7 @@ class X25519(Base25519):
         return self._secret_key.exchange(public_key)
 
     @classmethod
-    def dh2_client(cls) -> DoubleDiffieHellmanClient:
+    def dh2_client(cls, /) -> DoubleDiffieHellmanClient:
         """
         Uses a `X25519` ephemeral secret key & a peer's identity &
         ephemeral public keys to enact the client side of a 2DH deniable
@@ -133,7 +133,7 @@ class X25519(Base25519):
         """
         return cls._DoubleDiffieHellmanClient(cls, kdf_type=cls._KDF)
 
-    def dh2_server(self) -> DoubleDiffieHellmanServer:
+    def dh2_server(self, /) -> DoubleDiffieHellmanServer:
         """
         Uses `X25519` identity & ephemeral secret keys, & a peer's
         ephemeral public key to enact the server side of a 2DH deniable
@@ -166,7 +166,7 @@ class X25519(Base25519):
         """
         return self._DoubleDiffieHellmanServer(self, kdf_type=self._KDF)
 
-    def dh3_client(self) -> TripleDiffieHellmanClient:
+    def dh3_client(self, /) -> TripleDiffieHellmanClient:
         """
         Uses `X25519` identity & ephemeral secret keys, & a peer's
         identity & ephemeral public keys to enact the client side of a
@@ -199,7 +199,7 @@ class X25519(Base25519):
         """
         return self._TripleDiffieHellmanClient(self, kdf_type=self._KDF)
 
-    def dh3_server(self) -> TripleDiffieHellmanServer:
+    def dh3_server(self, /) -> TripleDiffieHellmanServer:
         """
         Uses `X25519` identity & ephemeral secret keys, & a peer's
         identity & ephemeral public keys to enact the server side of a

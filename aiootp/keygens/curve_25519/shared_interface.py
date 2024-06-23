@@ -43,13 +43,13 @@ class Base25519(FrozenInstance):
     PublicKey: type = None
     SecretKey: type = None
 
-    def __init__(self) -> None:
+    def __init__(self, /) -> None:
         self._secret_key = None
         self._public_key = None
 
     @classmethod
     def _process_secret_key(
-        cls, secret_key: t.Union[bytes, t.SecretKeyType]
+        cls, secret_key: t.Union[bytes, t.SecretKeyType], /
     ) -> t.SecretKeyType:
         """
         If `secret_key` is either of `bytes` or `cls.SecretKey` type,
@@ -66,7 +66,7 @@ class Base25519(FrozenInstance):
 
     @classmethod
     def _process_public_key(
-        cls, public_key: t.Union[bytes, t.PublicKeyType]
+        cls, public_key: t.Union[bytes, t.PublicKeyType], /
     ) -> t.PublicKeyType:
         """
         If `public_key` is either of `bytes` or `cls.PublicKey` type,
@@ -82,7 +82,7 @@ class Base25519(FrozenInstance):
             raise Issue.value_must_be_type("public_key", "valid key type")
 
     async def aimport_secret_key(
-        self, secret_key: t.Union[bytes, t.SecretKeyType]
+        self, secret_key: t.Union[bytes, t.SecretKeyType], /
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
@@ -92,7 +92,7 @@ class Base25519(FrozenInstance):
         return self.import_secret_key(secret_key)
 
     def import_secret_key(
-        self, secret_key: t.Union[bytes, t.SecretKeyType]
+        self, secret_key: t.Union[bytes, t.SecretKeyType], /
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
@@ -106,7 +106,7 @@ class Base25519(FrozenInstance):
         return self
 
     async def aimport_public_key(
-        self, public_key: t.Union[bytes, t.PublicKeyType]
+        self, public_key: t.Union[bytes, t.PublicKeyType], /
     ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
@@ -116,7 +116,7 @@ class Base25519(FrozenInstance):
         return self.import_public_key(public_key)
 
     def import_public_key(
-        self, public_key: t.Union[bytes, t.PublicKeyType]
+        self, public_key: t.Union[bytes, t.PublicKeyType], /
     ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
@@ -129,53 +129,53 @@ class Base25519(FrozenInstance):
         insert(self, "_public_key", self._process_public_key(public_key))
         return self
 
-    async def agenerate(self) -> t.Self:
+    async def agenerate(self, /) -> t.Self:
         """
         Populates the instance with a newly generated secret key.
         """
         return await self.aimport_secret_key(self.SecretKey.generate())
 
-    def generate(self) -> t.Self:
+    def generate(self, /) -> t.Self:
         """
         Populates the instance with a newly generated secret key.
         """
         return self.import_secret_key(self.SecretKey.generate())
 
     @property
-    def secret_key(self) -> t.Optional[t.SecretKeyType]:
+    def secret_key(self, /) -> t.Optional[t.SecretKeyType]:
         """
         Returns the instance's secret key object.
         """
         return self._secret_key
 
     @property
-    def public_key(self) -> t.Optional[t.PublicKeyType]:
+    def public_key(self, /) -> t.Optional[t.PublicKeyType]:
         """
         Returns the instance's public key object.
         """
         return self._public_key
 
     @property
-    def secret_bytes(self) -> bytes:
+    def secret_bytes(self, /) -> bytes:
         """
         Returns the secret bytes of the instance's secret key.
         """
         return self._secret_key.private_bytes_raw()
 
     @property
-    def public_bytes(self) -> bytes:
+    def public_bytes(self, /) -> bytes:
         """
         Returns the public bytes of the instance's public key.
         """
         return self._public_key.public_bytes_raw()
 
-    def has_secret_key(self) -> bool:
+    def has_secret_key(self, /) -> bool:
         """
         Returns a boolean of whether the instance contains a secret key.
         """
         return self._secret_key is not None
 
-    def has_public_key(self) -> bool:
+    def has_public_key(self, /) -> bool:
         """
         Returns a boolean of whether the instance contains a public key.
         """

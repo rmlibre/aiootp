@@ -20,6 +20,7 @@ Minor Changes
 
 - fix(package): delete option likely breaking piwheels
 - docs(cipher): describe a ``salt`` consistently
+- refactor(api): enforce positional or keyword only arguments
 
 
 

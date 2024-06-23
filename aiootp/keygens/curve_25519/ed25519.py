@@ -75,14 +75,14 @@ class Ed25519(Base25519):
     PublicKey: type = t.Ed25519PublicKey
     SecretKey: type = t.Ed25519PrivateKey
 
-    async def asign(self, data: bytes) -> bytes:
+    async def asign(self, data: bytes, /) -> bytes:
         """
         Signs some bytes `data` with the instance's secret key.
         """
         await asleep()
         return self.secret_key.sign(data)
 
-    def sign(self, data: bytes) -> bytes:
+    def sign(self, data: bytes, /) -> bytes:
         """
         Signs some bytes `data` with the instance's secret key.
         """
@@ -90,6 +90,7 @@ class Ed25519(Base25519):
 
     async def averify(
         self,
+        /,
         signature: bytes,
         data: bytes,
         *,
@@ -106,6 +107,7 @@ class Ed25519(Base25519):
 
     def verify(
         self,
+        /,
         signature: bytes,
         data: bytes,
         *,
