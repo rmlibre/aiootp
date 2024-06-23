@@ -763,9 +763,11 @@ If authentication succeeds, the plaintext is produced from the downloaded cipher
 
             await stream.abuffer(ciphertext)
 
-        except cipher.InvalidBlockID as error:
+        except cipher.InvalidBlockID as auth_fail:
 
-            pass
+            app.post_mortem(invalid_stream=auth_fail.failure_state)
+
+            raise auth_fail
 
 
         async for plaintext in stream:
