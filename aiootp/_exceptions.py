@@ -35,6 +35,7 @@ __all__ = [
     "TimestampExpired",
     "TypeUncheckableAtRuntime",
     "UndefinedRequiredAttributes",
+    "ValidationIncomplete",
     "raise_exception",
 ]
 
@@ -968,6 +969,7 @@ module_api = dict(
     TimestampExpired=t.add_type(TimestampExpired),
     TypeUncheckableAtRuntime=t.add_type(TypeUncheckableAtRuntime),
     UndefinedRequiredAttributes=t.add_type(UndefinedRequiredAttributes),
+    ValidationIncomplete=t.add_type(ValidationIncomplete),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,
