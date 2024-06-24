@@ -36,9 +36,9 @@ class ProtocolSubTypeTests:
 
 
 class TestPaddingType(ProtocolSubTypeTests):
-    (config, *_) = randoms.choice(all_ciphers)
     protocol = t.PaddingType
     types_tested = [t.Padding]
+    (config, *_) = randoms.choice(all_ciphers)
     instances_tested = [t.Padding(config)]
 
 
@@ -46,7 +46,7 @@ class TestStreamHMACTypes(ProtocolSubTypeTests):
     protocol = t.StreamHMACType
     types_tested = []
     instances_tested = []
-    for (config, cipher, salt, _) in all_ciphers:
+    for (_, cipher, *_) in all_ciphers:
         types_tested.append(cipher._StreamHMAC)
         instances_tested.append(cipher.stream_encrypt().shmac)
 
@@ -59,28 +59,28 @@ class TestSyntheticIVTypes(ProtocolSubTypeTests):
     protocol = t.SyntheticIVType
     types_tested = []
     instances_tested = []
-    for (config, cipher, salt, _) in dual_output_ciphers:
+    for (_, cipher, *_) in dual_output_ciphers:
         typ = cipher._Junction._SyntheticIV
         types_tested.append(typ)
         instances_tested.append(typ())
 
 
 class TestAsyncCipherStreamingTypes(ProtocolSubTypeTests):
-    (config, cipher, salt, _) = randoms.choice(all_ciphers)
-    config = cipher._config
     protocol = t.AsyncCipherStreamingType
     types_tested = [t.AsyncCipherStream, t.AsyncDecipherStream]
+    (config, cipher, salt, _) = randoms.choice(all_ciphers)
     instances_tested = [
         run(t.AsyncCipherStream(cipher)),
-        run(t.AsyncDecipherStream(cipher, salt=salt, iv=csprng(config.IV_BYTES))),
+        run(t.AsyncDecipherStream(
+            cipher, salt=salt, iv=csprng(config.IV_BYTES)
+        )),
     ]
 
 
 class TestCipherStreamingTypes(ProtocolSubTypeTests):
-    (config, cipher, salt, _) = randoms.choice(all_ciphers)
-    config = cipher._config
     protocol = t.CipherStreamingType
     types_tested = [t.CipherStream, t.DecipherStream]
+    (config, cipher, salt, _) = randoms.choice(all_ciphers)
     instances_tested = [
         t.CipherStream(cipher),
         t.DecipherStream(cipher, salt=salt, iv=csprng(config.IV_BYTES)),
