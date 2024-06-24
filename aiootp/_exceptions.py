@@ -32,7 +32,6 @@ __all__ = [
     "PackageNotSigned",
     "PackageSignerIssue",
     "PasscryptIssue",
-    "ReturnValue",
     "SHMACIssue",
     "SigningKeyNotSet",
     "TimestampExpired",
@@ -246,13 +245,6 @@ class CanonicalEncodingError(ValueError):
     """
     An exception raised when a discrepancy is detected between the
     metadata declarations of canonically encoded data & the data itself.
-    """
-
-
-class ReturnValue(UserWarning):
-    """
-    An exception used by `Comprende` to proagate intended user return
-    values from async or sync generators & coroutines to calling code.
     """
 
 
@@ -985,7 +977,6 @@ module_api = dict(
     PackageNotSigned=t.add_type(PackageNotSigned),
     PackageSignerIssue=t.add_type(PackageSignerIssue),
     PasscryptIssue=t.add_type(PasscryptIssue),
-    ReturnValue=t.add_type(ReturnValue),
     SHMACIssue=t.add_type(SHMACIssue),
     SigningKeyNotSet=t.add_type(SigningKeyNotSet),
     TimestampExpired=t.add_type(TimestampExpired),
