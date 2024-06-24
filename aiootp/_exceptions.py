@@ -16,6 +16,7 @@ __all__ = [
     "CanonicalEncodingError",
     "CanonicalIssue",
     "CipherStreamIssue",
+    "DatabaseNotConnected",
     "DatabaseIssue",
     "Ignore",
     "ImproperPassphrase",
@@ -28,10 +29,12 @@ __all__ = [
     "Issue",
     "KeyAADIssue",
     "Metadata",
+    "PackageNotSigned",
     "PackageSignerIssue",
     "PasscryptIssue",
     "ReturnValue",
     "SHMACIssue",
+    "SigningKeyNotSet",
     "TimestampExpired",
     "TypeUncheckableAtRuntime",
     "UndefinedRequiredAttributes",
@@ -261,11 +264,11 @@ class TimestampExpired(TimeoutError):
 
     _DEFAULT_MESSAGE: str = "Timestamp expired by <TIME> UNITS."
 
-    def __init__(self, units: str, expired_by: int, /) -> None:
+    def __init__(self, units: str, expired_by: int, /, *a: t.Any) -> None:
         self.units = units
         self.expired_by = expired_by
         message = self._DEFAULT_MESSAGE.replace("UNITS", repr(units))
-        super().__init__(message.replace("TIME", repr(expired_by)))
+        super().__init__(message.replace("TIME", repr(expired_by)), *a)
 
 
 class AuthenticationFailed(ValueError):
@@ -341,17 +344,50 @@ class InvalidCiphertextSize(ValueError):
         "The given ciphertext length of SIZE isn't a valid size."
     )
 
-    def __init__(self, size: int, /) -> None:
+    def __init__(self, size: int, /, *a: t.Any) -> None:
         self.size = size
-        super().__init__(self._MESSAGE_TEMPLATE.replace("SIZE", repr(size)))
+        message = self._MESSAGE_TEMPLATE.replace("SIZE", repr(size))
+        super().__init__(message, *a)
 
 
 class ValidationIncomplete(AttributeError):
 
     _MESSAGE_TEMPLATE: str = "Can't produce a result before finalization."
 
-    def __init__(self, /) -> None:
-        super().__init__(self._MESSAGE_TEMPLATE)
+    def __init__(self, /, *a: t.Any) -> None:
+        super().__init__(self._MESSAGE_TEMPLATE, *a)
+
+
+class DatabaseNotConnected(AttributeError):
+
+    _MESSAGE_TEMPLATE: str = (
+        "Must first connect to the package signing session's secure "
+        "database before it can be updated or queried."
+    )
+
+    def __init__(self, /, *a: t.Any) -> None:
+        super().__init__(self._MESSAGE_TEMPLATE, *a)
+
+
+class PackageNotSigned(AttributeError):
+
+    _MESSAGE_TEMPLATE: str = (
+        "This version of the package must be signed before querying its "
+        "signature."
+    )
+
+    def __init__(self, /, *a: t.Any) -> None:
+        super().__init__(self._MESSAGE_TEMPLATE, *a)
+
+
+class SigningKeyNotSet(AttributeError):
+
+    _MESSAGE_TEMPLATE: str = (
+        "The `PackageSigner` instance's signing key hasn't been set."
+    )
+
+    def __init__(self, /, *a: t.Any) -> None:
+        super().__init__(self._MESSAGE_TEMPLATE, *a)
 
 
 class TypeUncheckableAtRuntime(TypeError):
@@ -368,14 +404,15 @@ class TypeUncheckableAtRuntime(TypeError):
         "with `@typing.runtime_checkable` instead?"
     )
 
-    def __init__(self, name: str, value_type: type, /) -> None:
+    def __init__(self, name: str, value_type: type, /, *a: t.Any) -> None:
         self.name = name
         self.value_type = value_type
         super().__init__(
             self
             ._MESSAGE_TEMPLATE
             .replace("NAME", repr(name))
-            .replace("VALUE_TYPE", repr(value_type))
+            .replace("VALUE_TYPE", repr(value_type)),
+            *a,
         )
 
 
@@ -905,21 +942,15 @@ class PackageSignerIssue:
         "The summary & the hash digest of the given file don't match: "
         "FILENAME."
     )
-    _PACKAGE_HASNT_BEEN_SIGNED: str = (
-        "This version of the package must be signed before querying its "
-        "signature."
-    )
-    _SIGNING_KEY_HASNT_BEEN_SET: str = (
-        "The `PackageSigner` instance's signing key hasn't been set."
-    )
     _OUT_OF_SYNC_PACKAGE_SIGNATURE: str = (
         "The calculated package signature is out of sync with the "
         "current checksum of the package summary."
     )
-    _MUST_CONNECT_TO_SECURE_DATABASE: str = (
-        "Must first connect to the package signing session's secure "
-        "database before it can be updated or queried."
-    )
+
+    DatabaseNotConnected: type = DatabaseNotConnected
+    InvalidSignature: type = InvalidSignature
+    PackageNotSigned: type = PackageNotSigned
+    SigningKeyNotSet: type = SigningKeyNotSet
 
     @classmethod
     def invalid_file_digest(
@@ -929,20 +960,8 @@ class PackageSignerIssue:
         return InvalidDigest(issue.replace("FILENAME", repr(filename)))
 
     @classmethod
-    def package_hasnt_been_signed(cls, /) -> RuntimeError:
-        return RuntimeError(cls._PACKAGE_HASNT_BEEN_SIGNED)
-
-    @classmethod
-    def signing_key_hasnt_been_set(cls, /) -> LookupError:
-        return LookupError(cls._SIGNING_KEY_HASNT_BEEN_SET)
-
-    @classmethod
     def out_of_sync_package_signature(cls, /) -> ValueError:
         return ValueError(cls._OUT_OF_SYNC_PACKAGE_SIGNATURE)
-
-    @classmethod
-    def must_connect_to_secure_database(cls, /) -> RuntimeError:
-        return RuntimeError(cls._MUST_CONNECT_TO_SECURE_DATABASE)
 
 
 module_api = dict(
@@ -950,6 +969,7 @@ module_api = dict(
     CanonicalEncodingError=t.add_type(CanonicalEncodingError),
     CanonicalIssue=t.add_type(CanonicalIssue),
     CipherStreamIssue=t.add_type(CipherStreamIssue),
+    DatabaseNotConnected=t.add_type(DatabaseNotConnected),
     DatabaseIssue=t.add_type(DatabaseIssue),
     Ignore=t.add_type(Ignore),
     ImproperPassphrase=t.add_type(ImproperPassphrase),
@@ -962,10 +982,12 @@ module_api = dict(
     Issue=t.add_type(Issue),
     KeyAADIssue=t.add_type(KeyAADIssue),
     Metadata=t.add_type(Metadata),
+    PackageNotSigned=t.add_type(PackageNotSigned),
     PackageSignerIssue=t.add_type(PackageSignerIssue),
     PasscryptIssue=t.add_type(PasscryptIssue),
     ReturnValue=t.add_type(ReturnValue),
     SHMACIssue=t.add_type(SHMACIssue),
+    SigningKeyNotSet=t.add_type(SigningKeyNotSet),
     TimestampExpired=t.add_type(TimestampExpired),
     TypeUncheckableAtRuntime=t.add_type(TypeUncheckableAtRuntime),
     UndefinedRequiredAttributes=t.add_type(UndefinedRequiredAttributes),

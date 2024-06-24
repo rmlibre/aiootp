@@ -26,7 +26,7 @@ from hashlib import sha384
 
 from aiootp._typing import Typing as t
 from aiootp._constants import CHECKSUM, CHECKSUMS, SIGNATURE, SIGNING_KEY
-from aiootp._exceptions import Issue, PackageSignerIssue, InvalidSignature
+from aiootp._exceptions import Issue, PackageSignerIssue
 from aiootp.generics import bytes_are_equal
 
 from .curve_25519 import Ed25519
@@ -64,7 +64,7 @@ class PackageVerifier:
     _SIGNATURE: str = SIGNATURE
     _SIGNING_KEY: str = SIGNING_KEY
 
-    InvalidSignature: type = InvalidSignature
+    InvalidSignature: type = PackageSignerIssue.InvalidSignature
 
     def __init__(
         self,

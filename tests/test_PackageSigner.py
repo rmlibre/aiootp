@@ -41,7 +41,8 @@ def test_sign_and_verify():
             "Allowed to retrieve a signature before connecting to the "
             "database."
         )
-        with Ignore(RuntimeError, if_else=violation(problem)):
+        assert not hasattr(signer, "_signature")
+        with Ignore(t.DatabaseNotConnected, if_else=violation(problem)):
             signer._signature
 
         is_mac_os_issue = lambda relay: (platform.system() == "Darwin")
@@ -62,13 +63,15 @@ def test_sign_and_verify():
         problem = (
             "Allowed to retrieve a signing key before its creation."
         )
-        with Ignore(LookupError, if_else=violation(problem)):
+        assert not hasattr(signer, "signing_key")
+        with Ignore(t.SigningKeyNotSet, if_else=violation(problem)):
             signer.signing_key
 
         problem = (
             "Allowed to retrieve a signature before signing."
         )
-        with Ignore(RuntimeError, if_else=violation(problem)):
+        assert not hasattr(signer, "_signature")
+        with Ignore(t.PackageNotSigned, if_else=violation(problem)):
             signer._signature
 
         test_signing_key = signer.generate_signing_key()

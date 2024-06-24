@@ -25,7 +25,7 @@ from aiootp._typing import Typing as t
 from aiootp._constants import DAYS
 from aiootp._constants import CHECKSUM, CHECKSUMS, PUBLIC_CREDENTIALS
 from aiootp._constants import SCOPE, SIGNATURE, SIGNING_KEY, VERSIONS
-from aiootp._exceptions import Issue, PackageSignerIssue, InvalidSignature
+from aiootp._exceptions import Issue, PackageSignerIssue
 from aiootp.asynchs import Clock
 from aiootp.generics import Domains, canonical_pack
 from aiootp.databases import Database
@@ -116,7 +116,7 @@ class PackageSigner:
 
     _clock: t.ClockType = Clock(DAYS, epoch=0)
 
-    InvalidSignature: type = InvalidSignature
+    InvalidSignature: type = PackageSignerIssue.InvalidSignature
 
     @classmethod
     def _database_template(cls) -> t.Dict[str, t.Union[str, t.JSONObject]]:
@@ -180,7 +180,7 @@ class PackageSigner:
         aad = canonical_pack(Domains.PACKAGE_SIGNER, package.encode())
         encrypted_key = self.db[package][self._SIGNING_KEY]
         if not encrypted_key:
-            raise PackageSignerIssue.signing_key_hasnt_been_set()
+            raise PackageSignerIssue.SigningKeyNotSet()
         key = self.db.read_token(encrypted_key, aad=aad)
         return self._Signer().import_secret_key(key)
 
@@ -193,7 +193,7 @@ class PackageSigner:
         try:
             return self._db
         except AttributeError:
-            raise PackageSignerIssue.must_connect_to_secure_database()
+            raise PackageSignerIssue.DatabaseNotConnected()
 
     @property
     def _checksums(self) -> t.Dict[str, str]:
@@ -246,7 +246,7 @@ class PackageSigner:
             versions = self.db[self._scope.package][self._VERSIONS]
             return bytes.fromhex(versions[self._scope.version])
         except KeyError:
-            raise PackageSignerIssue.package_hasnt_been_signed()
+            raise PackageSignerIssue.PackageNotSigned()
 
     def connect_to_secure_database(
         self,
