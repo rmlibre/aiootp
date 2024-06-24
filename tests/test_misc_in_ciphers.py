@@ -383,7 +383,8 @@ class TestCipherModes:
             key_bundle = cipher._KeyAADBundle(
                 cipher._kdfs, salt=salt, aad=aad
             )
-            with Ignore(RuntimeError, if_else=violation(problem)):
+            assert not hasattr(key_bundle, "mode")
+            with Ignore(t.KDFModeNotDeclared, if_else=violation(problem)):
                 shmac = cipher._StreamHMAC(key_bundle)
 
     async def test_async_encryption_must_be_used_with_async_components(

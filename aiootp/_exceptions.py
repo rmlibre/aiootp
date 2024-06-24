@@ -27,6 +27,7 @@ __all__ = [
     "InvalidSHMAC",
     "InvalidSignature",
     "Issue",
+    "KDFModeNotDeclared",
     "KeyAADIssue",
     "Metadata",
     "PackageNotSigned",
@@ -382,6 +383,17 @@ class SigningKeyNotSet(AttributeError):
         super().__init__(self._MESSAGE_TEMPLATE, *a)
 
 
+class KDFModeNotDeclared(AttributeError):
+
+    _MESSAGE_TEMPLATE: str = (
+        "KeyAADBundle objects need to be set to either sync or async "
+        "modes prior to querying their derived keys."
+    )
+
+    def __init__(self, /, *a: t.Any) -> None:
+        return super().__init__(self._MESSAGE_TEMPLATE, *a)
+
+
 class TypeUncheckableAtRuntime(TypeError):
     """
     Some types, like those which use square brackets in their definition,
@@ -581,10 +593,8 @@ class KeyAADIssue:
     _MODE_ISNT_CORRECT: str = (
         "The KDF mode must be set to MODE to use MODE key derivation."
     )
-    _NO_KDF_MODE_DECLARED: str = (
-        "KeyAADBundle objects need to be set to either sync or async "
-        "modes prior to querying their derived keys."
-    )
+
+    KDFModeNotDeclared: type = KDFModeNotDeclared
 
     @classmethod
     def invalid_key_size(cls, size: int, min_size: int, /) -> ValueError:
@@ -604,10 +614,6 @@ class KeyAADIssue:
     def mode_isnt_correct(cls, mode: str, /) -> ValueError:
         issue = cls._MODE_ISNT_CORRECT.replace("MODE", repr(mode))
         return ValueError(issue)
-
-    @classmethod
-    def no_kdf_mode_declared(cls, /) -> RuntimeError:
-        return RuntimeError(cls._NO_KDF_MODE_DECLARED)
 
 
 class SHMACIssue:
@@ -972,6 +978,7 @@ module_api = dict(
     InvalidSHMAC=t.add_type(InvalidSHMAC),
     InvalidSignature=t.add_type(InvalidSignature),
     Issue=t.add_type(Issue),
+    KDFModeNotDeclared=t.add_type(KDFModeNotDeclared),
     KeyAADIssue=t.add_type(KeyAADIssue),
     Metadata=t.add_type(Metadata),
     PackageNotSigned=t.add_type(PackageNotSigned),
