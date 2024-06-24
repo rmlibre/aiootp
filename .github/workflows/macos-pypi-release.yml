@@ -21,3 +21,4 @@ jobs:
     - name: test installs from pypi
       run: |
         python3 -m pip install --upgrade pip aiootp
+        python3 -c "import aiootp; print(aiootp.__PUBLIC_ED25519_KEY__)"

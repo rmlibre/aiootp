@@ -21,6 +21,7 @@ Minor Changes
 - fix(package): delete option likely breaking piwheels
 - fix(exc): stabilize exceptions & error-raising properties [#8]
 - fix(typing): ensure ``Protocol`` subclasses runtime checkable [#8]
+- ci(pypi): import & run on GH release
 - docs(cipher): describe a ``salt`` consistently
 - refactor(api): enforce positional or keyword only arguments
 
