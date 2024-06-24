@@ -162,7 +162,7 @@ class Clock(FrozenInstance):
     TimestampExpired: type = TimestampExpired
 
     def __init__(
-        self, units: str = SECONDS, *, epoch: int = EPOCH_NS
+        self, /, units: str = SECONDS, *, epoch: int = EPOCH_NS
     ) -> None:
         """
         Create an object which can create & measure bytes-type
@@ -174,20 +174,20 @@ class Clock(FrozenInstance):
         self._time, self._resolution_needed = self._times[units]
         self._units = units
 
-    def __repr__(self) -> str:
+    def __repr__(self, /) -> str:
         return (
             f"{self.__class__.__qualname__}("
             f"{repr(self._units)}, epoch={self._epoch})"
         )
 
-    def has_adequate_resolution(self) -> bool:
+    def has_adequate_resolution(self, /) -> bool:
         """
         Reports on whether the system's time resolution in fine enough
         to accurately work with the requested time units.
         """
         return self._resolution_needed >= self._SYSTEM_TIME_RESOLUTION
 
-    async def atime(self) -> int:
+    async def atime(self, /) -> int:
         """
         Returns the instance's conception of the current time as an
         integer, which is the number of time units since the instance's
@@ -196,7 +196,7 @@ class Clock(FrozenInstance):
         await asleep()
         return self._time(self._epoch)
 
-    def time(self) -> int:
+    def time(self, /) -> int:
         """
         Returns the instance's conception of the current time as an
         integer, which is the number of time units since the instance's
@@ -206,6 +206,7 @@ class Clock(FrozenInstance):
 
     async def amake_timestamp(
         self,
+        /,
         *,
         size: int = SAFE_TIMESTAMP_BYTES,
         byte_order: str = BIG,
@@ -218,6 +219,7 @@ class Clock(FrozenInstance):
 
     def make_timestamp(
         self,
+        /,
         *,
         size: int = SAFE_TIMESTAMP_BYTES,
         byte_order: str = BIG,
@@ -229,7 +231,7 @@ class Clock(FrozenInstance):
         return self.time().to_bytes(size, byte_order)
 
     async def aread_timestamp(
-        self, timestamp: bytes, *, byte_order: str = BIG
+        self, /, timestamp: bytes, *, byte_order: str = BIG
     ) -> int:
         """
         Returns the integer representation of the `byte_order`-endian
@@ -239,7 +241,7 @@ class Clock(FrozenInstance):
         return int.from_bytes(timestamp, byte_order)
 
     def read_timestamp(
-        self, timestamp: bytes, *, byte_order: str = BIG
+        self, /, timestamp: bytes, *, byte_order: str = BIG
     ) -> int:
         """
         Returns the integer representation of the `byte_order`-endian
@@ -248,7 +250,7 @@ class Clock(FrozenInstance):
         return int.from_bytes(timestamp, byte_order)
 
     async def adelta(
-        self, timestamp: bytes, *, byte_order: str = BIG
+        self, /, timestamp: bytes, *, byte_order: str = BIG
     ) -> int:
         """
         Takes a `timestamp` & returns the integer difference between
@@ -257,7 +259,7 @@ class Clock(FrozenInstance):
         return await self.atime() - await self.aread_timestamp(timestamp)
 
     def delta(
-        self, timestamp: bytes, *, byte_order: str = BIG
+        self, /, timestamp: bytes, *, byte_order: str = BIG
     ) -> int:
         """
         Takes a `timestamp` & returns the integer difference between

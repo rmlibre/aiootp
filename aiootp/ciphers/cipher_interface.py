@@ -98,7 +98,7 @@ class CipherInterface(FrozenInstance):
     _config: t.ConfigType
     _padding: t.PaddingType
 
-    def __init_subclass__(cls, *a, **kw) -> None:
+    def __init_subclass__(cls, /, *a: t.Any, **kw: t.Any) -> None:
         """
         Populates class specific configuration during class definition
         to reduce instance initialization costs.
@@ -106,7 +106,7 @@ class CipherInterface(FrozenInstance):
         cls._padding = Padding(config=cls._config)
         super().__init_subclass__(*a, **kw)
 
-    def __init__(self, key: bytes) -> None:
+    def __init__(self, /, key: bytes) -> None:
         """
         Manages an encryption `key` within the state of a set of SHA3
         hashing objects defined by the cipher. This allows for efficient
@@ -117,6 +117,7 @@ class CipherInterface(FrozenInstance):
 
     async def abytes_encrypt(
         self,
+        /,
         data: bytes,
         *,
         salt: t.Optional[bytes] = None,
@@ -159,6 +160,7 @@ class CipherInterface(FrozenInstance):
 
     def bytes_encrypt(
         self,
+        /,
         data: bytes,
         *,
         salt: t.Optional[bytes] = None,
@@ -266,6 +268,7 @@ class CipherInterface(FrozenInstance):
 
     async def ajson_encrypt(
         self,
+        /,
         data: t.JSONSerializable,
         *,
         salt: t.Optional[bytes] = None,
@@ -295,6 +298,7 @@ class CipherInterface(FrozenInstance):
 
     def json_encrypt(
         self,
+        /,
         data: t.JSONSerializable,
         *,
         salt: t.Optional[bytes] = None,
@@ -369,7 +373,7 @@ class CipherInterface(FrozenInstance):
         return json.loads(self.bytes_decrypt(data, aad=aad, ttl=ttl))
 
     async def amake_token(
-        self, data: bytes, *, aad: bytes = DEFAULT_AAD
+        self, /, data: bytes, *, aad: bytes = DEFAULT_AAD
     ) -> bytes:
         """
         Encrypts the bytes `data` & returns a urlsafe encoded ciphertext
@@ -386,7 +390,9 @@ class CipherInterface(FrozenInstance):
         ciphertext = await self.abytes_encrypt(data, aad=aad)
         return await ByteIO.abytes_to_urlsafe(ciphertext)
 
-    def make_token(self, data: bytes, *, aad: bytes = DEFAULT_AAD) -> bytes:
+    def make_token(
+        self, /, data: bytes, *, aad: bytes = DEFAULT_AAD
+    ) -> bytes:
         """
         Encrypts the bytes `data` & returns a urlsafe encoded ciphertext
         token. The `token` contains the SHMAC authentication tag, the
@@ -455,7 +461,7 @@ class CipherInterface(FrozenInstance):
         return self.bytes_decrypt(ciphertext, aad=aad, ttl=ttl)
 
     async def astream_encrypt(
-        self, *, salt: t.Optional[bytes] = None, aad: bytes = DEFAULT_AAD
+        self, /, *, salt: t.Optional[bytes] = None, aad: bytes = DEFAULT_AAD
     ) -> AsyncCipherStream:
         """
         Returns an object to manage encrypting a stream of plaintext.
@@ -477,7 +483,7 @@ class CipherInterface(FrozenInstance):
         return await self._AsyncCipherStream(self, salt=salt, aad=aad)
 
     def stream_encrypt(
-        self, *, salt: t.Optional[bytes] = None, aad: bytes = DEFAULT_AAD
+        self, /, *, salt: t.Optional[bytes] = None, aad: bytes = DEFAULT_AAD
     ) -> CipherStream:
         """
         Returns an object to manage encrypting a stream of plaintext.

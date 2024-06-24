@@ -33,7 +33,7 @@ class PlaintextMeasurements(FrozenSlots):
 
     __slots__ = ("padding_size", "pad_sentinel")
 
-    def __init__(self, padding_size: int, pad_sentinel: bytes) -> None:
+    def __init__(self, /, padding_size: int, pad_sentinel: bytes) -> None:
         self.padding_size = padding_size
         self.pad_sentinel = pad_sentinel
 
@@ -72,13 +72,13 @@ class Padding(FrozenInstance):
 
     __slots__ = ("config",)
 
-    def __init__(self, config: t.ConfigType) -> None:
+    def __init__(self, /, config: t.ConfigType) -> None:
         """
         Populates the instance with the specified configuration.
         """
         self.config = config
 
-    async def _amake_timestamp(self) -> bytes:
+    async def _amake_timestamp(self, /) -> bytes:
         """
         Returns a timestamp measured in seconds from the epoch set by
         the package (1672531200: Sun, 01 Jan 2023 00:00:00 UTC).
@@ -86,7 +86,7 @@ class Padding(FrozenInstance):
         c = self.config
         return await c.clock.amake_timestamp(size=c.TIMESTAMP_BYTES)
 
-    def _make_timestamp(self) -> bytes:
+    def _make_timestamp(self, /) -> bytes:
         """
         Returns a timestamp measured in seconds from the epoch set by
         the package (1672531200: Sun, 01 Jan 2023 00:00:00 UTC).
@@ -94,7 +94,7 @@ class Padding(FrozenInstance):
         c = self.config
         return c.clock.make_timestamp(size=c.TIMESTAMP_BYTES)
 
-    async def _amake_siv_key(self) -> bytes:
+    async def _amake_siv_key(self, /) -> bytes:
         """
         Returns a sequence of random bytes. This value is used to ensure
         every encryption is randomized & unique even if the `key`,
@@ -103,7 +103,7 @@ class Padding(FrozenInstance):
         await asleep()
         return token_bytes(self.config.SIV_KEY_BYTES)
 
-    def _make_siv_key(self) -> bytes:
+    def _make_siv_key(self, /) -> bytes:
         """
         Returns a sequence of random bytes. This value is used to ensure
         every encryption is randomized & unique even if the `key`,
@@ -111,7 +111,7 @@ class Padding(FrozenInstance):
         """
         return token_bytes(self.config.SIV_KEY_BYTES)
 
-    async def astart_padding(self) -> bytes:
+    async def astart_padding(self, /) -> bytes:
         """
         Prepends a timestamp & SIV-key. The timestamp supports a
         time-to-live feature for ciphertexts which can mitigate replay
@@ -123,7 +123,7 @@ class Padding(FrozenInstance):
         """
         return await self._amake_timestamp() + await self._amake_siv_key()
 
-    def start_padding(self) -> bytes:
+    def start_padding(self, /) -> bytes:
         """
         Prepends a timestamp & SIV-key. The timestamp supports a
         time-to-live feature for ciphertexts which can mitigate replay
@@ -135,7 +135,7 @@ class Padding(FrozenInstance):
         """
         return self._make_timestamp() + self._make_siv_key()
 
-    async def _amake_extra_padding(self) -> bytes:
+    async def _amake_extra_padding(self, /) -> bytes:
         """
         Returns a number of random bytes equal to a positive integer
         multiple of the length of a block. The multiple is `1` by
@@ -153,7 +153,7 @@ class Padding(FrozenInstance):
         await asleep()
         return token_bytes(self.config.PADDING_FRAME)
 
-    def _make_extra_padding(self) -> bytes:
+    def _make_extra_padding(self, /) -> bytes:
         """
         Returns a number of random bytes equal to a positive integer
         multiple of the length of a block. The multiple is `1` by
@@ -170,7 +170,9 @@ class Padding(FrozenInstance):
         """
         return token_bytes(self.config.PADDING_FRAME)
 
-    async def _adata_measurements(self, size: int) -> PlaintextMeasurements:
+    async def _adata_measurements(
+        self, /, size: int
+    ) -> PlaintextMeasurements:
         """
         Does padding measurements based on the `size` of some unpadded
         data & stores the findings in an object for convenient usage.
@@ -185,7 +187,7 @@ class Padding(FrozenInstance):
             pad_sentinel=sentinel.to_bytes(c.SENTINEL_BYTES, BIG),
         )
 
-    def _data_measurements(self, size: int) -> PlaintextMeasurements:
+    def _data_measurements(self, /, size: int) -> PlaintextMeasurements:
         """
         Does padding measurements based on the `size` of some unpadded
         data & stores the findings in an object for convenient usage.
@@ -200,7 +202,7 @@ class Padding(FrozenInstance):
         )
 
     async def _amake_end_padding(
-        self, report: PlaintextMeasurements
+        self, /, report: PlaintextMeasurements
     ) -> bytes:
         """
         Returns an excess (frame) of random padding & its encoded length
@@ -210,7 +212,7 @@ class Padding(FrozenInstance):
         extra_padding = await self._amake_extra_padding()
         return extra_padding + report.pad_sentinel
 
-    def _make_end_padding(self, report: PlaintextMeasurements) -> bytes:
+    def _make_end_padding(self, /, report: PlaintextMeasurements) -> bytes:
         """
         Returns an excess (frame) of random padding & its encoded length
         to equalize the time it takes to apply the padding even for
@@ -219,7 +221,7 @@ class Padding(FrozenInstance):
         extra_padding = self._make_extra_padding()
         return extra_padding + report.pad_sentinel
 
-    async def aend_padding(self, size: int) -> bytes:
+    async def aend_padding(self, /, size: int) -> bytes:
         """
         The end padding is random bytes & an encoded length up to the
         block size. The randomness of the end padding, its minimal
@@ -231,7 +233,7 @@ class Padding(FrozenInstance):
         padding = await self._amake_end_padding(report)
         return padding[-report.padding_size :]
 
-    def end_padding(self, size: int) -> bytes:
+    def end_padding(self, /, size: int) -> bytes:
         """
         The end padding is random bytes & an encoded length up to the
         block size. The randomness of the end padding, its minimal
@@ -243,7 +245,7 @@ class Padding(FrozenInstance):
         padding = self._make_end_padding(report)
         return padding[-report.padding_size :]
 
-    async def apad_plaintext(self, data: bytes) -> bytes:
+    async def apad_plaintext(self, /, data: bytes) -> bytes:
         """
         Pads & returns the plaintext `data` with various values that
         aids a cipher's salt misuse-reuse resistance, replay attack
@@ -267,7 +269,7 @@ class Padding(FrozenInstance):
         end_padding = await self.aend_padding(len(data))
         return b"".join((start_padding, data, end_padding))
 
-    def pad_plaintext(self, data: bytes) -> bytes:
+    def pad_plaintext(self, /, data: bytes) -> bytes:
         """
         Pads & returns the plaintext `data` with various values that
         aids a cipher's salt misuse-reuse resistance, replay attack
@@ -291,21 +293,21 @@ class Padding(FrozenInstance):
         end_padding = self.end_padding(len(data))
         return b"".join((start_padding, data, end_padding))
 
-    async def adepadding_start_index(self) -> int:
+    async def adepadding_start_index(self, /) -> int:
         """
         Returns a start index which is used to slice off the prepended
         timestamp & SIV-key from a plaintext.
         """
         return self.config.INNER_HEADER_BYTES
 
-    def depadding_start_index(self) -> int:
+    def depadding_start_index(self, /) -> int:
         """
         Returns a start index which is used to slice off the prepended
         timestamp & SIV-key from a plaintext.
         """
         return self.config.INNER_HEADER_BYTES
 
-    async def adepadding_end_index(self, data: bytes) -> int:
+    async def adepadding_end_index(self, /, data: bytes) -> int:
         """
         Returns an end index which is used to slice off the appended
         values from some plaintext `data`:
@@ -315,7 +317,7 @@ class Padding(FrozenInstance):
         sentinel = int.from_bytes(data[self.config.SENTINEL_SLICE], BIG)
         return -(sentinel if sentinel else self.config.PADDING_FRAME)
 
-    def depadding_end_index(self, data: bytes) -> int:
+    def depadding_end_index(self, /, data: bytes) -> int:
         """
         Returns an end index which is used to slice off the appended
         values from some plaintext `data`:
