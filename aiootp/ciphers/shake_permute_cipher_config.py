@@ -24,7 +24,7 @@ from math import ceil
 from hashlib import shake_128
 
 from aiootp._typing import Typing as t
-from aiootp._constants import NamespaceMapping, SHA3_STATE_SIZE, BIG
+from aiootp._constants import NamespaceMapping, BIG
 from aiootp._exceptions import UndefinedRequiredAttributes
 from aiootp.asynchs import Clock
 from aiootp.commons import Config
@@ -66,7 +66,6 @@ class ShakePermuteCipherConfig(Config):
         "PACKETSIZE",
         "PADDING_FRAME",
         "PERMUTATION_CONFIG_ID",
-        "PERMUTATION_DIGEST_BYTES",
         "PERMUTATION_DIGEST_SLICE",
         "PERMUTATION_KEY_BYTES",
         "PERMUTATION_KEY_SLICE",
@@ -121,7 +120,6 @@ class ShakePermuteCipherConfig(Config):
         PACKETSIZE=int,
         PADDING_FRAME=int,
         PERMUTATION_CONFIG_ID=t.Hashable,
-        PERMUTATION_DIGEST_BYTES=int,
         PERMUTATION_DIGEST_SLICE=slice,
         PERMUTATION_KEY_BYTES=int,
         PERMUTATION_KEY_SLICE=slice,
@@ -244,7 +242,6 @@ class ShakePermuteCipherConfig(Config):
         Dynamic initialization of constants for the cipher's permutation.
         """
         self.FIRST_DIGEST_SLICE = slice(0, self.SHMAC_BLOCKSIZE, 1)
-        self.PERMUTATION_DIGEST_BYTES = self.SHMAC_BLOCKSIZE - self.BLOCKSIZE
         self.PERMUTATION_DIGEST_SLICE = slice(
             2 * self.BLOCKSIZE, self.SHMAC_BLOCKSIZE, 1
         )
