@@ -91,18 +91,6 @@ class SupportsAppendPop(t.Protocol):
 @t.runtime_checkable
 class HasherType(t.Protocol):
 
-    @property
-    def name(self) -> str:
-        pass  # pragma: no cover
-
-    @property
-    def block_size(self) -> int:
-        pass  # pragma: no cover
-
-    @property
-    def digest_size(self) -> int:
-        pass  # pragma: no cover
-
     def copy(self, /) -> t.Self:
         pass  # pragma: no cover
 
@@ -116,11 +104,8 @@ class HasherType(t.Protocol):
         pass  # pragma: no cover
 
 
-class XOFType(HasherType):
-
-    @property
-    def digest_size(self) -> int:
-        return 0  # pragma: no cover
+@t.runtime_checkable
+class XOFType(HasherType, t.Protocol):
 
     def digest(self, size: int, /) -> bytes:
         pass  # pragma: no cover

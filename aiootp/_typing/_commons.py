@@ -26,14 +26,6 @@ from .interface import Typing as t
 @t.runtime_checkable
 class ConfigType(t.Protocol):
 
-    @property
-    def CONFIG_ID(self) -> t.Hashable:
-        pass  # pragma: no cover
-
-    @property
-    def slots_types(self) -> t.Mapping[str, type]:
-        pass  # pragma: no cover
-
     def set_config_id(self, config_id: t.Hashable) -> None:
         pass  # pragma: no cover
 
@@ -46,6 +38,11 @@ class ConfigType(t.Protocol):
     def items(
         self
     ) -> t.Generator[t.Tuple[str, t.Any], None, None]:
+        pass  # pragma: no cover
+
+    def update(
+        self, mapping: t.Mapping[t.Hashable, t.Any], /, **kw: t.Any
+    ) -> None:
         pass  # pragma: no cover
 
 
