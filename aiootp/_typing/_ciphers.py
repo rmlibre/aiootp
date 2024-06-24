@@ -89,10 +89,14 @@ class PaddingType(t.Protocol):
     def depadding_end_index(self, data: bytes) -> int:
         pass  # pragma: no cover
 
-    async def adepad_plaintext(self, data: bytes, *, ttl: int) -> bytes:
+    async def adepad_plaintext(
+        self, data: bytes, *, ttl: t.Optional[int]
+    ) -> bytes:
         pass  # pragma: no cover
 
-    def depad_plaintext(self, data: bytes, *, ttl: int) -> bytes:
+    def depad_plaintext(
+        self, data: bytes, *, ttl: t.Optional[int]
+    ) -> bytes:
         pass  # pragma: no cover
 
 
@@ -200,11 +204,13 @@ class CipherInterfaceType(t.Protocol):
         pass  # pragma: no cover
 
     async def abytes_decrypt(
-        self, data: bytes, *, aad: bytes, ttl: int
+        self, data: bytes, *, aad: bytes, ttl: t.Optional[int]
     ) -> bytes:
         pass  # pragma: no cover
 
-    def bytes_decrypt(self, data: bytes, *, aad: bytes, ttl: int) -> bytes:
+    def bytes_decrypt(
+        self, data: bytes, *, aad: bytes, ttl: t.Optional[int]
+    ) -> bytes:
         pass  # pragma: no cover
 
     async def ajson_encrypt(
@@ -226,12 +232,12 @@ class CipherInterfaceType(t.Protocol):
         pass  # pragma: no cover
 
     async def ajson_decrypt(
-        self, data: bytes, *, aad: bytes, ttl: int
+        self, data: bytes, *, aad: bytes, ttl: t.Optional[int]
     ) -> t.JSONSerializable:
         pass  # pragma: no cover
 
     def json_decrypt(
-        self, data: bytes, *, aad: bytes, ttl: int
+        self, data: bytes, *, aad: bytes, ttl: t.Optional[int]
     ) -> t.JSONSerializable:
         pass  # pragma: no cover
 
@@ -242,12 +248,12 @@ class CipherInterfaceType(t.Protocol):
         pass  # pragma: no cover
 
     async def aread_token(
-        self, token: t.Base64URLSafe, *, aad: bytes, ttl: int
+        self, token: t.Base64URLSafe, *, aad: bytes, ttl: t.Optional[int]
     ) -> bytes:
         pass  # pragma: no cover
 
     def read_token(
-        self, token: t.Base64URLSafe, *, aad: bytes, ttl: int
+        self, token: t.Base64URLSafe, *, aad: bytes, ttl: t.Optional[int]
     ) -> bytes:
         pass  # pragma: no cover
 
@@ -262,12 +268,12 @@ class CipherInterfaceType(t.Protocol):
         pass  # pragma: no cover
 
     async def astream_decrypt(
-        self, *, salt: bytes, aad: bytes, iv: bytes, ttl: int
+        self, *, salt: bytes, aad: bytes, iv: bytes, ttl: t.Optional[int]
     ) -> AsyncCipherStreamingType:
         pass  # pragma: no cover
 
     def stream_decrypt(
-        self, *, salt: bytes, aad: bytes, iv: bytes, ttl: int
+        self, *, salt: bytes, aad: bytes, iv: bytes, ttl: t.Optional[int]
     ) -> CipherStreamingType:
         pass  # pragma: no cover
 

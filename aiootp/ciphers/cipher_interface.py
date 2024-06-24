@@ -198,7 +198,12 @@ class CipherInterface(FrozenInstance):
         return b"".join(ciphertext[::-1])
 
     async def abytes_decrypt(
-        self, data: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+        self,
+        /,
+        data: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> bytes:
         """
         Returns the plaintext bytes from the bytes ciphertext `data`. The
@@ -226,7 +231,12 @@ class CipherInterface(FrozenInstance):
         return await self._padding.adepad_plaintext(plaintext, ttl=ttl)
 
     def bytes_decrypt(
-        self, data: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+        self,
+        /,
+        data: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> bytes:
         """
         Returns the plaintext bytes from the bytes ciphertext `data`. The
@@ -313,7 +323,12 @@ class CipherInterface(FrozenInstance):
         )
 
     async def ajson_decrypt(
-        self, data: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+        self,
+        /,
+        data: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> t.JSONSerializable:
         """
         Decrypts the bytes ciphertext `data` & returns the loaded JSON
@@ -331,7 +346,12 @@ class CipherInterface(FrozenInstance):
         return json.loads(await self.abytes_decrypt(data, aad=aad, ttl=ttl))
 
     def json_decrypt(
-        self, data: bytes, *, aad: bytes = DEFAULT_AAD, ttl: int = 0
+        self,
+        /,
+        data: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> t.JSONSerializable:
         """
         Decrypts the bytes ciphertext `data` & returns the loaded JSON
@@ -384,10 +404,11 @@ class CipherInterface(FrozenInstance):
 
     async def aread_token(
         self,
+        /,
         token: t.Base64URLSafe,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> bytes:
         """
         Decodes a ciphertext `token` & returns the decrypted token
@@ -409,10 +430,11 @@ class CipherInterface(FrozenInstance):
 
     def read_token(
         self,
+        /,
         token: t.Base64URLSafe,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> bytes:
         """
         Decodes a ciphertext `token` & returns the decrypted token
@@ -478,11 +500,12 @@ class CipherInterface(FrozenInstance):
 
     async def astream_decrypt(
         self,
+        /,
         *,
         salt: bytes,
         aad: bytes = DEFAULT_AAD,
         iv: bytes,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> AsyncDecipherStream:
         """
         Returns an object to manage decrypting a stream of ciphertext.
@@ -515,11 +538,12 @@ class CipherInterface(FrozenInstance):
 
     def stream_decrypt(
         self,
+        /,
         *,
         salt: bytes,
         aad: bytes = DEFAULT_AAD,
         iv: bytes,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> DecipherStream:
         """
         Returns an object to manage decrypting a stream of ciphertext.

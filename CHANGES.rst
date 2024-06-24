@@ -24,6 +24,7 @@ Minor Changes
 - ci(pypi): import & run on GH release
 - docs(cipher): describe a ``salt`` consistently
 - refactor(api): enforce positional or keyword only arguments
+- refactor(api): default ttl as None & update method signatures
 
 
 

@@ -394,7 +394,7 @@ class Database(DatabaseProperties):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> bytes:
         """
         Decrypts the `ciphertext` bytes with keys specific to the
@@ -417,7 +417,7 @@ class Database(DatabaseProperties):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> t.Union[bytes, t.JSONSerializable]:
         """
         Decrypts the `ciphertext` bytes with keys specific to the
@@ -440,7 +440,7 @@ class Database(DatabaseProperties):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> bytes:
         """
         Decrypts the urlsafe base64 encoded `token` with keys specific
@@ -497,7 +497,7 @@ class Database(DatabaseProperties):
         self,
         tag: str,
         *,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
         silent: bool = False,
         cache: bool = False,
     ) -> t.Union[bytes, t.JSONSerializable]:

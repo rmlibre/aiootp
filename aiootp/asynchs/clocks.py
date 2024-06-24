@@ -35,7 +35,8 @@ from time import perf_counter as s_counter
 from time import perf_counter_ns as ns_counter
 
 from aiootp._typing import Typing as t
-from aiootp._constants import SAFE_TIMESTAMP_BYTES, SECONDS, EPOCH_NS, BIG
+from aiootp._constants import SECONDS, EPOCH_NS, BIG
+from aiootp._constants import SAFE_TIMESTAMP_BYTES, DEFAULT_TTL
 from aiootp._exceptions import Issue, TimestampExpired
 from aiootp.commons import FrozenNamespace, FrozenInstance
 
@@ -265,31 +266,45 @@ class Clock(FrozenInstance):
         return self.time() - self.read_timestamp(timestamp)
 
     async def atest_timestamp(
-        self, timestamp: bytes, ttl: int, *, byte_order: str = BIG
+        self,
+        /,
+        timestamp: bytes,
+        ttl: t.Optional[int],
+        *,
+        byte_order: str = BIG,
     ) -> None:
         """
         Raises `TimestampExpired` if `timestamp` is more than
         `ttl` time units old from the instance's conception of the
         current time.
         """
+        if ttl is None:
+            return
         delta = await self.adelta(timestamp, byte_order=byte_order)
         timestamp_is_expired = delta > ttl
         expired_by = delta - ttl
-        if ttl and timestamp_is_expired:
+        if timestamp_is_expired:
             raise self.TimestampExpired(self._units, expired_by)
 
     def test_timestamp(
-        self, timestamp: bytes, ttl: int, *, byte_order: str = BIG
+        self,
+        /,
+        timestamp: bytes,
+        ttl: t.Optional[int],
+        *,
+        byte_order: str = BIG,
     ) -> None:
         """
         Raises `TimestampExpired` if `timestamp` is more than
         `ttl` time units old from the instance's conception of the
         current time.
         """
+        if ttl is None:
+            return
         delta = self.delta(timestamp, byte_order=byte_order)
         timestamp_is_expired = delta > ttl
         expired_by = delta - ttl
-        if ttl and timestamp_is_expired:
+        if timestamp_is_expired:
             raise self.TimestampExpired(self._units, expired_by)
 
 

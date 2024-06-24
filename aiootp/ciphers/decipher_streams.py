@@ -88,7 +88,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         salt: bytes,
         aad: bytes = DEFAULT_AAD,
         iv: bytes,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> None:
         """
         Derives decryption keys & initializes a mutable buffer to
@@ -370,7 +370,7 @@ class DecipherStream(CipherStreamProperties):
         salt: bytes,
         aad: bytes = DEFAULT_AAD,
         iv: bytes,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> None:
         """
         Derives decryption keys & initializes a mutable buffer to

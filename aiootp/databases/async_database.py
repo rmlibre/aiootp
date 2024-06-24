@@ -421,7 +421,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> bytes:
         """
         Decrypts the `ciphertext` bytes with keys specific to the
@@ -444,7 +444,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> t.JSONSerializable:
         """
         Decrypts the `ciphertext` bytes with keys specific to the
@@ -467,7 +467,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
     ) -> bytes:
         """
         Decrypts the urlsafe base64 encoded `token` with keys specific
@@ -523,7 +523,12 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
                 raise DatabaseIssue.file_not_found(filename)
 
     async def aquery_tag(
-        self, tag: str, *, silent: bool = False, cache: bool = False
+        self,
+        tag: str,
+        *,
+        ttl: t.Optional[int] = DEFAULT_TTL,
+        silent: bool = False,
+        cache: bool = False,
     ) -> t.Union[bytes, t.JSONSerializable]:
         """
         Allows users to retrieve the value stored under the name `tag`
@@ -536,7 +541,9 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         if not ciphertext:
             return
 
-        result = await self.abytes_decrypt(ciphertext, filename=filename)
+        result = await self.abytes_decrypt(
+            ciphertext, filename=filename, ttl=ttl
+        )
         if result[:BYTES_FLAG_SIZE] == BYTES_FLAG:
             result = result[BYTES_FLAG_SIZE:]  # Remove bytes value flag
         else:

@@ -17,6 +17,7 @@ __doc__ = (
 )
 
 
+import typing
 import hashlib
 from hashlib import sha3_256, sha3_512, shake_128, shake_256
 
@@ -35,7 +36,7 @@ FILENAME_HASH_BYTES: int = 24
 
 EPOCH: int = 1672531200  # Sun, 01 Jan 2023 00:00:00 UTC
 SAFE_TIMESTAMP_BYTES: int = 8
-DEFAULT_TTL: int = 0
+DEFAULT_TTL: typing.Optional[int] = None
 DEFAULT_TIMEOUT: int = 0
 NS_TO_S_RATIO: int = 1_000_000_000
 

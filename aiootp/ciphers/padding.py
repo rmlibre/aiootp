@@ -20,7 +20,7 @@ __doc__ = "Types for handling plaintext padding."
 from secrets import token_bytes
 
 from aiootp._typing import Typing as t
-from aiootp._constants import BIG
+from aiootp._constants import DEFAULT_TTL, BIG
 from aiootp.asynchs import asleep
 from aiootp.commons import FrozenSlots, FrozenInstance
 
@@ -325,7 +325,9 @@ class Padding(FrozenInstance):
         sentinel = int.from_bytes(data[self.config.SENTINEL_SLICE], BIG)
         return -(sentinel if sentinel else self.config.PADDING_FRAME)
 
-    async def adepad_plaintext(self, data: bytes, *, ttl: int = 0) -> bytes:
+    async def adepad_plaintext(
+        self, /, data: bytes, *, ttl: t.Optional[int] = DEFAULT_TTL
+    ) -> bytes:
         """
         Returns `data` after these values are removed:
         - The prepended timestamp.
@@ -339,7 +341,9 @@ class Padding(FrozenInstance):
         end_index = await self.adepadding_end_index(data)
         return data[start_index:end_index]
 
-    def depad_plaintext(self, data: bytes, *, ttl: int = 0) -> bytes:
+    def depad_plaintext(
+        self, /, data: bytes, *, ttl: t.Optional[int] = DEFAULT_TTL
+    ) -> bytes:
         """
         Returns `data` after these values are removed:
         - The prepended timestamp.

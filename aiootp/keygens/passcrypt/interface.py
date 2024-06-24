@@ -415,7 +415,7 @@ class Passcrypt(FrozenInstance):
         passphrase: bytes,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
         mb_allowed: range = passcrypt_spec.MB_RESOURCE_SAFETY_RANGE,
         cpu_allowed: range = passcrypt_spec.CPU_RESOURCE_SAFETY_RANGE,
         cores_allowed: range = passcrypt_spec.CORES_RESOURCE_SAFETY_RANGE,
@@ -453,9 +453,8 @@ class Passcrypt(FrozenInstance):
         parts = PasscryptHash(
             config=config
         ).import_hash(composed_passcrypt_hash)
-        await config.clock.atest_timestamp(
-            parts.timestamp, ttl * NS_TO_S_RATIO
-        )
+        ttl = ttl if ttl is None else (ttl * NS_TO_S_RATIO)
+        await config.clock.atest_timestamp(parts.timestamp, ttl=ttl)
         parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
         self = cls(
             mb=parts.mb,
@@ -477,7 +476,7 @@ class Passcrypt(FrozenInstance):
         passphrase: bytes,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: int = DEFAULT_TTL,
+        ttl: t.Optional[int] = DEFAULT_TTL,
         mb_allowed: range = passcrypt_spec.MB_RESOURCE_SAFETY_RANGE,
         cpu_allowed: range = passcrypt_spec.CPU_RESOURCE_SAFETY_RANGE,
         cores_allowed: range = passcrypt_spec.CORES_RESOURCE_SAFETY_RANGE,
@@ -515,7 +514,8 @@ class Passcrypt(FrozenInstance):
         parts = PasscryptHash(
             config=config
         ).import_hash(composed_passcrypt_hash)
-        config.clock.test_timestamp(parts.timestamp, ttl * NS_TO_S_RATIO)
+        ttl = ttl if ttl is None else (ttl * NS_TO_S_RATIO)
+        config.clock.test_timestamp(parts.timestamp, ttl=ttl)
         parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
         self = cls(
             mb=parts.mb,
