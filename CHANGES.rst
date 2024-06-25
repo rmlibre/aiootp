@@ -23,6 +23,7 @@ Minor Changes
 - fix(typing): ensure ``Protocol`` subclasses runtime checkable [#8]
 - ci(pypi): import & run on GH release
 - docs(cipher): describe a ``salt`` consistently
+- build(github): add bug report issue template
 - refactor(api): enforce positional or keyword only arguments
 - refactor(api): default ttl as None & update method signatures
 
