@@ -70,8 +70,6 @@ class Database(DatabaseProperties):
     db.query_tag("dict", cache=True)                       V
     >>> {"0": 1, "2": 3, "4": 5}  # <----- JSON turns keys into strings
 
-    assert db["dict"] is db.query_tag("dict")
-
     # Create descendant databases using what are called metatags ->
     taxes = db.metatag("taxes")
     taxes[2020] = {"jan": 130.25, "feb": 163.23, "mar": 149.68}
@@ -80,6 +78,8 @@ class Database(DatabaseProperties):
 
     # Delete a descendant database ->
     db.delete_metatag("taxes")
+
+    # Or,
 
     # Purge the filesystem of all parent & descendant files ->
     db.delete_database()
@@ -155,27 +155,22 @@ class Database(DatabaseProperties):
         """
         Sets a database object's basic cryptographic values derived from
         a `key` & opens up the associated administrative files. The
-        `generate_profile_tokens` & `generate_profile` methods would be
-        a safer choice for opening a database if using a passphrase
-        instead of a cryptographic key.
+        `generate_profile` method would be a safer choice for opening a
+        database if using a passphrase instead of a cryptographic key.
 
         `preload`: This boolean value tells the object to -- True --
             load all of the stored database values from the filesystem
             into the cache during initialization, or -- False -- skip
-            the loading stage. This can save time up front so users can
-            pay the cost of loading data only when that value is needed.
+            the loading stage. This trades-off between RAM & latency.
 
-        `path`: This value is the string or `Pathlib.Path`
-            object that points to the filesystem location where the
-            database files reside / will be saved. By default, stores
-            values in the directory "databases" relative to the package
-            source code.
+        `path`: This value is the string or `Pathlib.Path` object that
+            points to the filesystem location where the database files
+            reside / will be saved. By default, stores values in the
+            directory "db" relative to the package source code.
 
         `metatag`: This boolean value tells the class whether to
-            prepare itself as a sub-database or not, which generally
-            means less storage overhead used to secure its cryptographic
-            material. Parent databases that are not metatags store a
-            random salt value in their `self._root_path` file.
+            prepare itself as a sub-database or not. This signals the
+            possibility of distinct internal implementation differences.
 
         `silent`: This boolean value tells the class to surpress
             exceptions when loading files so that errors in the database

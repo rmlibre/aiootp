@@ -37,7 +37,7 @@ class FrozenInstance:
     __slots__ = ()
 
     def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
+        self, mapping: t.Mapping[str, t.Any] = {}, /, **kw: t.Any
     ) -> None:
         """
         Populates instance attributes with user-defined kwargs which

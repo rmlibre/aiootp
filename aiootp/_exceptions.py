@@ -102,24 +102,25 @@ class Ignore:
             db.save_database()
             return True
 
-    with Ignore(IOError, PermissionError) as relay:
+    errors = (IOError, PermissionError)
+    with Ignore(*errors) as relay:
         relay.except_code = cleanup
-        # Analogous to `with Ignore(IOError, if_except=cleanup):`
+        # Analogous to `with Ignore(*errors, if_except=cleanup):`
         # Runs `cleanup` if the specified type of error is raised. If
         # `cleanup` returns `True` the exception is surpressed.
 
         relay.else_code = cleanup
-        # Analogous to `with Ignore(IOError, if_else=cleanup):`
+        # Analogous to `with Ignore(*errors, if_else=cleanup):`
         # Runs `cleanup` if no exception is raised in the context.
 
         relay.finally_code = cleanup
-        # Analogous to `with Ignore(IOError, finally_run=cleanup):`
+        # Analogous to `with Ignore(*errors, finally_run=cleanup):`
         # Always runs `cleanup` at the end of the context.
 
     async def acleanup(relay: Ignore) -> bool:
         ...
 
-    async with Ignore(IOError, PermissionError, if_except=acleanup):
+    async with Ignore(*errors, if_except=acleanup, ...):
         ...
     """
 
