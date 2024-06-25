@@ -140,8 +140,7 @@ class Database(DatabaseProperties):
         profile_db = cls(key=tokens.login_key, path=path, preload=preload)
         if not profile_db._root_path.is_file():
             profile_db.save_database()
-        profile_db._profile_tokens = tokens
-        tokens.cleanup()
+        profile_db._profile_tokens = tokens.cleanup()
         return profile_db
 
     def __init__(

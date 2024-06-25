@@ -150,8 +150,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         )
         if not profile_db._root_path.is_file():
             await profile_db.asave_database()
-        profile_db._profile_tokens = tokens
-        await tokens.acleanup()
+        profile_db._profile_tokens = await tokens.acleanup()
         return profile_db
 
     async def __init__(

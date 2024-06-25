@@ -127,7 +127,7 @@ class AsyncProfileTokens(FrozenSlots):
         )
         return self
 
-    async def acleanup(self) -> None:
+    async def acleanup(self) -> t.Self:
         """
         Removes cryptographic material from the object after use.
         """
@@ -135,6 +135,7 @@ class AsyncProfileTokens(FrozenSlots):
         object.__delattr__(self, "_gist")
         object.__delattr__(self, "_salt")
         object.__delattr__(self, "login_key")
+        return self
 
 
 class ProfileTokens(FrozenSlots):
@@ -225,13 +226,14 @@ class ProfileTokens(FrozenSlots):
         )
         return self
 
-    def cleanup(self) -> None:
+    def cleanup(self) -> t.Self:
         """
         Removes cryptographic material from the object after use.
         """
         object.__delattr__(self, "_gist")
         object.__delattr__(self, "_salt")
         object.__delattr__(self, "login_key")
+        return self
 
 
 module_api = dict(
