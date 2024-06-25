@@ -36,7 +36,9 @@ body:
         In other words, is this a new error, flaw, failure, or fault in our software?
 
         Is this a security issue? Follow the instructions in our [Security Report Document](https://github.com/rmlibre/aiootp/blob/main/SECURITY.md).
+
         Is this bug related to a supported version of aiootp? Check the [Supported Versions](https://github.com/rmlibre/aiootp/blob/main/SECURITY.md) & only file this report if is.
+
         Is this is a request for help or troubleshooting code in your own project? Open a [Discussion Question](https://github.com/rmlibre/aiootp/discussions).
 
         Please search to see if an issue already exists for the bug you encountered.
