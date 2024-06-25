@@ -22,7 +22,7 @@
 
 name: 🐞 Bug
 description: Report a bug or an issue you've found with aiootp
-title: "fix: <title>"
+title: "fix(< scope >): < title > [< #related-github-id >][< #... >]"
 labels: ["bug"]
 body:
   - type: markdown
@@ -45,8 +45,6 @@ body:
           required: true
         - label: This isn't a security vulnerability or issue
           required: true
-        - label: I believe this is a new bug in aiootp
-          required: true
         - label: I've searched the existing issues, & I could not find one for this bug
           required: true
   - type: textarea
@@ -66,10 +64,10 @@ body:
       label: Steps To Reproduce
       description: Steps to reproduce the behavior.
       placeholder: |
-        1. In this environment '...'
-        2. With this config '...'
-        3. Run '...'
-        4. See error '...'
+        1. In this environment ___
+        2. With this config ___
+        3. Run ___
+        4. See error ___
     validations:
       required: true
   - type: textarea
@@ -90,9 +88,9 @@ body:
           - **Python**: 3.8.10 (`python3 --version`)
           - **aiootp**: 0.23.7 (`import aiootp; aiootp.__version__`)
       value: |
-        - OS:
-        - Python:
-        - aiootp:
+        - OS: ___
+        - Python: ___
+        - aiootp: ___
       render: markdown
     validations:
       required: false
