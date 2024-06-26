@@ -19,14 +19,13 @@ __doc__ = "Utilities for creating & managing immutable configurations."
 
 from aiootp._typing import Typing as t
 from aiootp._constants import CONFIG_ID, CONFIG_TYPE
-from aiootp._exceptions import Issue, TypeUncheckableAtRuntime
-from aiootp._exceptions import raise_exception
+from aiootp._exceptions import Issue
 
-from .slots import OpenFrozenSlots
+from .typed_slots import OpenFrozenTypedSlots
 from .namespaces import OpenFrozenNamespace
 
 
-class Config(OpenFrozenSlots):
+class Config(OpenFrozenTypedSlots):
     """
     Creates frozen instances for caching static settings. This
     facilitates highly configurable objects with declarative, structured
@@ -73,56 +72,6 @@ class Config(OpenFrozenSlots):
 
     slots_types: t.Mapping[str, t.Any] = dict(CONFIG_ID=t.Hashable)
 
-    @classmethod
-    def _make_frozen_class_slots_types_container(
-        cls, slots_types: t.Mapping[str, type], /
-    ) -> OpenFrozenSlots:
-        """
-        Creates a class-specific type to govern type correctness.
-        """
-        cls_name = f"{cls.__qualname__}SlotsTypes"
-        cls_dict = dict(
-            __slots__=tuple(sorted(slots_types)),
-            __module__=__name__,
-        )
-        container = type(cls_name, (OpenFrozenSlots,), cls_dict)
-        return container(**slots_types)
-
-    @classmethod
-    def _make_frozen_class_slots_types(cls, /) -> OpenFrozenSlots:
-        """
-        Creates & populates a class-specific type to govern type
-        correctness.
-        """
-        slots_types = {}
-        for base in reversed(cls.__mro__):
-            if not issubclass(base, Config):
-                continue
-            for name, value in base.slots_types.items():
-                try:
-                    isinstance(value, value)
-                except TypeError as error:
-                    raise TypeUncheckableAtRuntime(name, value) from error
-                slots_types[name] = value
-        return cls._make_frozen_class_slots_types_container(slots_types)
-
-    def __init_subclass__(cls, /, *a, **kw) -> None:
-        """
-        Installs a prepared an class-specific type to govern type
-        correctness to all subclasses.
-        """
-        cls.slots_types = cls._make_frozen_class_slots_types()
-
-    def _validate_type(self, name: str, value: t.Any, /) -> None:
-        """
-        Validates the type of the `value` based on the class' type
-        definition of the `name` attribute.
-        """
-        value_type = getattr(self.slots_types, name)
-        value_is_compliant_type = isinstance(value, value_type)
-        if not value_is_compliant_type:
-            raise Issue.value_must_be_type(name, value_type)
-
     def __setattr__(self, name: str, value: t.Any, /) -> None:
         """
         Validates the type of the `value` based on the class' type
@@ -132,7 +81,6 @@ class Config(OpenFrozenSlots):
         if name == CONFIG_ID:
             self.set_config_id(value)
         else:
-            self._validate_type(name, value)
             super().__setattr__(name, value)
 
     def set_config_id(self, config_id: t.Hashable, /) -> None:

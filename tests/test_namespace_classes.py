@@ -15,6 +15,7 @@ from test_initialization import *
 
 from aiootp.commons.instances import *
 from aiootp.commons.slots import *
+from aiootp.commons.typed_slots import *
 from aiootp.commons.namespaces import *
 from aiootp.commons.configs import *
 
@@ -53,6 +54,38 @@ class BaseVariableHoldingClassTests:
         for name, value in self._items.items():
             assert value == getattr(obj_from_mapping, name)
             assert value == getattr(obj_from_keywords, name)
+
+    async def test_attribute_access(self) -> None:
+        obj = self._type()
+        obj.mapped = self._items["mapped"]
+        assert obj.mapped == self._items["mapped"]
+
+        if_else = lambda _: not self._frozen or raise_exception(_.error)
+        if_except = lambda _: self._frozen or raise_exception(_.error)
+        with Ignore(PermissionError, if_else=if_else, if_except=if_except):
+            del obj.mapped
+
+        assert self._frozen or not hasattr(obj, "mapped")
+
+    async def test_item_access(self) -> None:
+        obj = self._type()
+
+        try:
+            obj[123] = True
+        except (TypeError, AttributeError) as feature_broken:
+            if hasattr(obj, "__dict__"):
+                raise feature_broken
+            else:
+                return
+        assert 123 in obj
+        assert obj[123] == True
+
+        if_except = lambda _: self._frozen
+        if_else = lambda _: not self._frozen or raise_exception(_.error)
+        with Ignore(PermissionError, if_except=if_except, if_else=if_else):
+            del obj[123]
+
+        assert self._frozen or 123 not in obj
 
 
 class BaseReprControlledTests(BaseVariableHoldingClassTests):
@@ -236,6 +269,47 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
         assert None not in obj
 
 
+class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
+
+    async def test_slots_contains_all_names_with_declared_types(
+        self
+    ) -> None:
+        problem = (
+            "A type was created with a mismatch in variable declarations."
+        )
+        with Ignore(t.MissingDeclaredVariables, if_else=violation(problem)):
+            class Subclass(self._type):
+                __slots__ = ()
+                slots_types = dict(swell=bool)
+
+    async def test_slots_types_contains_all_names_in_slots(self) -> None:
+        problem = (
+            "A type was created with a mismatch in variable declarations."
+        )
+        with Ignore(t.MissingDeclaredVariables, if_else=violation(problem)):
+            class Subclass(self._type):
+                __slots__ = ("swell",)
+                slots_types = dict()
+
+    async def test_declared_types_are_enforced(self) -> None:
+        problem = (
+            "A typed class didn't enforce a type in their `slots_types`."
+        )
+        obj = self._type()
+        cls_set = set(obj.slots_types.values())
+
+        for name, cls in sorted(obj.slots_types.items(), key=lambda _: csprng()):
+            wrong_cls = randoms.choice(list(cls_set.difference({cls})))
+            is_vague_type = lambda _: (
+                issubclass(wrong_cls, cls)
+                or raise_exception(AssertionError(
+                    f"{problem=} : {name=} : {cls=} : {wrong_cls=}"
+                ))
+            )
+            with Ignore(TypeError, if_else=is_vague_type):
+                obj[name] = wrong_cls()
+
+
 # Slots
 
 class SlotsType(SlotsAttributes, Slots):
@@ -325,6 +399,112 @@ class TestFrozenInstance(
     _frozen: bool = True
 
 
+# Typed Slots
+
+class TypedSlotsType(SlotsAttributes, TypedSlots):
+    __slots__ = tuple(BaseVariableHoldingClassTests._items)
+
+    slots_types = dict({
+        name: BaseVariableHoldingClassTests._items[name].__class__
+        for name in BaseVariableHoldingClassTests._items
+    })
+
+
+class OpenTypedSlotsType(SlotsAttributes, OpenTypedSlots):
+    __slots__ = tuple(BaseVariableHoldingClassTests._items)
+
+    slots_types = dict({
+        name: BaseVariableHoldingClassTests._items[name].__class__
+        for name in BaseVariableHoldingClassTests._items
+    })
+
+
+class FrozenTypedSlotsType(SlotsAttributes, FrozenTypedSlots):
+    __slots__ = tuple(BaseVariableHoldingClassTests._items)
+
+    slots_types = dict({
+        name: BaseVariableHoldingClassTests._items[name].__class__
+        for name in BaseVariableHoldingClassTests._items
+    })
+
+
+class FrozenTypedSlotsDictType(NamespaceAttributes, FrozenTypedSlots):
+    __slots__ = ("__dict__", *BaseVariableHoldingClassTests._items)
+
+    slots_types = dict(**{
+        name: BaseVariableHoldingClassTests._items[name].__class__
+        for name in BaseVariableHoldingClassTests._items
+    })
+
+
+class OpenFrozenTypedSlotsType(SlotsAttributes, OpenFrozenTypedSlots):
+    __slots__ = tuple(BaseVariableHoldingClassTests._items)
+
+    slots_types = dict({
+        name: BaseVariableHoldingClassTests._items[name].__class__
+        for name in BaseVariableHoldingClassTests._items
+    })
+
+
+class TestTypedSlots(
+    BaseReprControlledTests,
+    BaseMaskableReprTests,
+    BaseIndexableTests,
+    BaseTypedSubclassDefinitionsTests,
+):
+    _type: type = TypedSlotsType
+    _open: bool = False
+    _frozen: bool = False
+
+
+class TestOpenTypedSlots(
+    BaseReprControlledTests,
+    BaseMaskableReprTests,
+    BaseIndexableTests,
+    BaseTypedSubclassDefinitionsTests,
+):
+    _type: type = OpenTypedSlotsType
+    _open: bool = True
+    _frozen: bool = False
+
+
+class TestFrozenTypedSlots(
+    BaseFrozenTests,
+    BaseReprControlledTests,
+    BaseMaskableReprTests,
+    BaseIndexableTests,
+    BaseTypedSubclassDefinitionsTests,
+):
+    _type: type = FrozenTypedSlotsType
+    _open: bool = False
+    _frozen: bool = True
+
+
+class TestFrozenTypedSlotsDict(
+    BaseFrozenTests,
+    BaseReprControlledTests,
+    BaseMaskableReprTests,
+    BaseDictLikeTests,
+    BaseIndexableTests,
+    BaseTypedSubclassDefinitionsTests,
+):
+    _type: type = FrozenTypedSlotsDictType
+    _open: bool = False
+    _frozen: bool = True
+
+
+class TestOpenFrozenTypedSlots(
+    BaseFrozenTests,
+    BaseReprControlledTests,
+    BaseMaskableReprTests,
+    BaseIndexableTests,
+    BaseTypedSubclassDefinitionsTests,
+):
+    _type: type = OpenFrozenTypedSlotsType
+    _open: bool = True
+    _frozen: bool = True
+
+
 # Configs
 
 class ConfigType(SlotsAttributes, Config):
@@ -340,6 +520,7 @@ class TestConfig(
     BaseFrozenTests,
     BaseReprControlledTests,
     BaseIndexableTests,
+    BaseTypedSubclassDefinitionsTests,
 ):
     _type: type = ConfigType
     _open: bool = True

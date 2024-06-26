@@ -18,6 +18,7 @@ __all__ = [
     "CipherStreamIssue",
     "DatabaseNotConnected",
     "DatabaseIssue",
+    "MissingDeclaredVariables",
     "Ignore",
     "ImproperPassphrase",
     "InvalidBlockID",
@@ -324,6 +325,29 @@ class UndefinedRequiredAttributes(AttributeError):
             self
             ._MESSAGE_TEMPLATE
             .replace("UNDEFINED_ATTRIBUTES", repr(undefined_attributes))
+        )
+
+
+class MissingDeclaredVariables(AttributeError):
+    """
+    Raised on mismatches between declared & supplied variables.
+    """
+
+    # TODO: switch templates throughout?
+    # This style of template is safer with
+    # untrusted inputs.
+    _MESSAGE_TEMPLATE: str = (
+        "The ",                                 # names
+        " variable(s) were declared in the ",   # found_in
+        " but were't detected in the ",         # missed
+        "",
+    )
+
+    def __init__(self, /, *names: str, found_in: str, missed: str) -> None:
+        msg = self._MESSAGE_TEMPLATE
+        report = (repr(names), repr(found_in), repr(missed), ".")
+        super().__init__(
+            "".join(mold + part for mold, part in zip(msg, report))
         )
 
 
@@ -970,6 +994,7 @@ module_api = dict(
     CipherStreamIssue=t.add_type(CipherStreamIssue),
     DatabaseNotConnected=t.add_type(DatabaseNotConnected),
     DatabaseIssue=t.add_type(DatabaseIssue),
+    MissingDeclaredVariables=t.add_type(MissingDeclaredVariables),
     Ignore=t.add_type(Ignore),
     ImproperPassphrase=t.add_type(ImproperPassphrase),
     InvalidBlockID=t.add_type(InvalidBlockID),
