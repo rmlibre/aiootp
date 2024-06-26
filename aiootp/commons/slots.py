@@ -40,6 +40,7 @@ class Slots:
 
     _MAPPED_ATTRIBUTES: t.Tuple[str] = ()
     _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
+        "__dict__",
         "_MAPPED_ATTRIBUTES",
         "_UNMAPPED_ATTRIBUTES",
         "_is_mapped_attribute",
@@ -71,7 +72,7 @@ class Slots:
         if a system instantiates many objects of the class.
         """
         for name, value in {**mapping, **kw}.items():
-            setattr(self, name, value)
+            self[name] = value
 
     def __dir__(self, /) -> t.List[t.Hashable]:
         """

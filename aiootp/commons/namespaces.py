@@ -35,10 +35,6 @@ class Namespace(Slots):
 
     __slots__ = ("__dict__",)
 
-    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
-        "__dict__", *Slots._UNMAPPED_ATTRIBUTES
-    )
-
     def __init__(
         self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
     ) -> None:
