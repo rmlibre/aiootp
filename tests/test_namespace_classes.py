@@ -23,7 +23,7 @@ class SlotsAttributes:
     __slots__ = ()
 
     _items: t.Dict[str, t.Any] = dict(
-        _private=True, one=1, mapped="value", unmapped="attr"
+        _private=True, one=1, mapped="value", unmapped=tuple("attr")
     )
     _MAPPED_ATTRIBUTES: t.Tuple[str] = tuple(
         name for name in _items if name != "unmapped"
