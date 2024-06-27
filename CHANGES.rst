@@ -13,6 +13,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - feat(api): support compliant public keys in KEX protocols [#7]
+- feat(typing): generalize ``Config`` type-checking as superclass [#9]
 
 
 Minor Changes
@@ -26,6 +27,7 @@ Minor Changes
 - build(github): add bug report issue template
 - refactor(api): enforce positional or keyword only arguments
 - refactor(api): default ttl as None & update method signatures
+- refactor(commons): delegate (del/get)attr to (del/get)item
 
 
 

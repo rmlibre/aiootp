@@ -121,15 +121,6 @@ class TypedSlots(Slots):
         if not isinstance(value, value_type):
             raise Issue.value_must_be_type(name, value_type)
 
-    def __setattr__(self, name: str, value: t.Any, /) -> None:
-        """
-        Validates the type of the `value` based on the class' type
-        definition of the `name` attribute. Sets the attribute if the
-        type is correct.
-        """
-        self._validate_type(name, value)
-        object.__setattr__(self, name, value)
-
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
         Transforms bracket lookup into dotted access on the instance.
@@ -174,22 +165,6 @@ class FrozenTypedSlots(TypedSlots):
     __slots__ = ()
 
     slots_types: t.Mapping[str, t.Any] = dict()
-
-    def __setattr__(self, name: str, value: t.Any, /) -> None:
-        """
-        Denies setting attributes after they have already been set.
-        """
-        if name in self:
-            raise Issue.cant_reassign_attribute(name)
-
-        self._validate_type(name, value)
-        object.__setattr__(self, name, value)
-
-    def __delattr__(self, name: str, /) -> None:
-        """
-        Denies deleting attributes.
-        """
-        raise Issue.cant_deassign_attribute(name)
 
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """

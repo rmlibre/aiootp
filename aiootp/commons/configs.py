@@ -72,7 +72,7 @@ class Config(OpenFrozenTypedSlots):
 
     slots_types: t.Mapping[str, t.Any] = dict(CONFIG_ID=t.Hashable)
 
-    def __setattr__(self, name: str, value: t.Any, /) -> None:
+    def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
         Validates the type of the `value` based on the class' type
         definition of the `name` attribute. Sets the attribute if the
@@ -81,7 +81,7 @@ class Config(OpenFrozenTypedSlots):
         if name == CONFIG_ID:
             self.set_config_id(value)
         else:
-            super().__setattr__(name, value)
+            super().__setitem__(name, value)
 
     def set_config_id(self, config_id: t.Hashable, /) -> None:
         """
@@ -160,7 +160,7 @@ class ConfigMap(OpenFrozenNamespace):
         """
         if not issubclass(config_type, Config):
             raise Issue.value_must_be_subtype(f"{config_type=}", Config)
-        setattr(self, CONFIG_TYPE, config_type)
+        object.__setattr__(self, CONFIG_TYPE, config_type)
         for config_id, config in {**mapping, **kw}.items():
             self[config_id] = config
 
@@ -175,7 +175,7 @@ class ConfigMap(OpenFrozenNamespace):
         elif config_id in self and self[config_id] is not config:
             raise Issue.cant_reassign_attribute(f"{config_id=}")
         if config_id.__class__ is str:
-            setattr(self, config_id, config)
+            object.__setattr__(self, config_id, config)
         else:
             self.__dict__[config_id] = config
 

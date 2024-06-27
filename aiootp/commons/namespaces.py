@@ -77,20 +77,6 @@ class FrozenNamespace(Namespace):
         """
         return [var for var in self if str(var)[0] != "_"]
 
-    def __setattr__(self, name: str, value: t.Any, /) -> None:
-        """
-        Denies setting attributes after they have already been set.
-        """
-        if name in self:
-            raise Issue.cant_reassign_attribute(name)
-        object.__setattr__(self, name, value)
-
-    def __delattr__(self, name: str, /) -> None:
-        """
-        Denies deleting attributes.
-        """
-        raise Issue.cant_deassign_attribute(name)
-
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
         Denies setting attributes after they have already been set.

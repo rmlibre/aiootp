@@ -105,13 +105,33 @@ class Slots:
         else:
             return name in getattr(self, "__dict__", ())
 
+    def __setattr__(self, name: str, value: t.Any, /) -> None:
+        """
+        Delegates attr assignment logic to the `__getitem__` interface.
+        This allows more consistency for subclasses with custom behavior
+        since changes can be applied in one place. That interface also
+        allows for non-string attribute names, better supporting those
+        subclasses which define `__dict__`.
+        """
+        self[name] = value
+
+    def __delattr__(self, name: str, /) -> None:
+        """
+        Delegates attr deletion logic to the `__detitem__` interface.
+        This allows more consistency for subclasses with custom behavior
+        since changes can be applied in one place. That interface also
+        allows for non-string attribute names, better supporting those
+        subclasses which define `__dict__`.
+        """
+        del self[name]
+
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
         Transforms bracket item assignment into dotted assignment on the
         instance.
         """
         if name.__class__ is str:
-            setattr(self, name, value)
+            object.__setattr__(self, name, value)
         else:
             self.__dict__[name] = value
 
@@ -129,7 +149,7 @@ class Slots:
         Deletes the item `name` from the instance.
         """
         if name.__class__ is str:
-            delattr(self, name)
+            object.__delattr__(self, name)
         else:
             del self.__dict__[name]
 
@@ -235,20 +255,6 @@ class FrozenSlots(Slots):
     """
 
     __slots__ = ()
-
-    def __setattr__(self, name: str, value: t.Any, /) -> None:
-        """
-        Denies setting attributes after they have already been set.
-        """
-        if name in self:
-            raise Issue.cant_reassign_attribute(name)
-        object.__setattr__(self, name, value)
-
-    def __delattr__(self, name: str, /) -> None:
-        """
-        Denies deleting attributes.
-        """
-        raise Issue.cant_deassign_attribute(name)
 
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
