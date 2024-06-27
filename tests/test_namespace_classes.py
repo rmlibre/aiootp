@@ -516,7 +516,7 @@ class ConfigType(SlotsAttributes, Config):
     })
 
 
-class TestConfig(
+class TestConfigType(
     BaseFrozenTests,
     BaseReprControlledTests,
     BaseIndexableTests,
