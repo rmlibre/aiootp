@@ -15,6 +15,8 @@ include CHANGES.rst
 include MANIFEST.in
 include SECURITY.md
 include SIGNATURE.txt
+include CONTRIBUTING.md
+include CODE_OF_CONDUCT.md
 include aiootp/__init__.py
 include aiootp/_exceptions.py
 include aiootp/_debug_control.py
@@ -55,6 +57,7 @@ include aiootp/commons/instances.py
 include aiootp/commons/namespaces.py
 include aiootp/commons/packaging.py
 include aiootp/commons/slots.py
+include aiootp/commons/typed_slots.py
 include aiootp/generics/__init__.py
 include aiootp/generics/byte_io.py
 include aiootp/generics/canon.py
