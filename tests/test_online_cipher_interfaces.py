@@ -56,6 +56,7 @@ class TestOnlineCipherInterfaces:
                     stream_enc.buffer(pt_enc)
                 with Ignore(InterruptedError, if_else=violation(problem)):
                     stream_dec.buffer(id_ct[1])
+                stream_dec.shmac.test_shmac(stream_enc.shmac.result)
                 assert pt_enc == pt_dec, f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
 
     async def test_async_cipher_decipher_streams_with_varied_data_sizes(
@@ -96,6 +97,7 @@ class TestOnlineCipherInterfaces:
                     await stream_enc.abuffer(pt_enc)
                 with Ignore(InterruptedError, if_else=violation(problem)):
                     await stream_dec.abuffer(id_ct[1])
+                await stream_dec.shmac.atest_shmac(stream_enc.shmac.result)
                 assert pt_enc == pt_dec, f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
 
     async def test_async_encipher_sync_decipher_interop(
@@ -146,6 +148,7 @@ class TestOnlineCipherInterfaces:
                 stream_dec.buffer(join(id_ct))
             for pt in stream_dec.finalize():
                 pt_dec += pt
+            await stream_dec.shmac.atest_shmac(stream_enc.shmac.result)
             assert pt_dec == pt_enc
 
     async def test_sync_encipher_async_decipher_interop(
@@ -197,6 +200,7 @@ class TestOnlineCipherInterfaces:
                 await stream_dec.abuffer(join(id_ct))
             async for pt in stream_dec.afinalize():
                 pt_dec += pt
+            stream_dec.shmac.test_shmac(stream_enc.shmac.result)
             assert pt_dec == pt_enc
 
 
