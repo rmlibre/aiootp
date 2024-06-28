@@ -1,5 +1,5 @@
 {
-    "checksum": "f3c922c1763712df53edc0d13c8d77d457ad9b2b5834bc3726498cc5b368c09fbc7f03ff84529429615c703be7398fa9",
+    "checksum": "adaeeb10d1bfd1afea07826b6e5f5146a6a4343e9ef7956afb7fd082b9a3443ab47e6abbd15b384233cecc445610a939",
     "checksums": {
         ".gitignore": "2a478ab758a08be89997e511198e83e537b6f8a32294fdeb11e874b913db858115ce74a09e61754bfe381ff4fbaeaf16",
         "CHANGES.rst": "b875362d077101c31d27ecef2aef3351382da1d4bed2f447c76af5bd0784f467c1838aeaea03286246d840d785f0f4a8",
@@ -52,7 +52,7 @@
         "aiootp/ciphers/cipher_stream_properties.py": "7089713e9f270d49a23e6c0d572648fded5542b4948650c657d671b979cb5274694b6113c4f2bcb3a015abfa6470f8ab",
         "aiootp/ciphers/cipher_streams.py": "9f01cc141de9073cfe38a627e007535155e24492f7973f4ea70c6a72d58036224441ffd364c829ef198ff115e4a1e7e7",
         "aiootp/ciphers/ciphertext_formatting.py": "b3f3eed1fff991f0967a5b3f57a29e46fae7db6c92a5265f91f9286c7e0633c79f062e8e4221dad353a5b12c3336fc74",
-        "aiootp/ciphers/decipher_streams.py": "88dc76ec4cd048b97cf9ec0b29a139a2b1dc791fb2d8f083788ba808df329472e39fab2e707441a6a2be6cfeebe48a67",
+        "aiootp/ciphers/decipher_streams.py": "a2428dab9425e051818f88b07ac5007f993e746fec0533591d941be736110dbf7ddca4ca05cfd8fa4e956ac94e379f1c",
         "aiootp/ciphers/dual_output_shake_cipher.py": "fb5ea64e784ce9b6531ff46463a4347cc991e6c509e229c09d4ff03fc523f4890b9487e44338364496b408c82204e9da",
         "aiootp/ciphers/dual_output_shake_cipher_config.py": "706e785182676a48fa6a672d840410fef00532dcf9e566ee850f053d1aa215a6d5f6a20110e4c05cf1a127903459a91e",
         "aiootp/ciphers/key_bundle.py": "a245d79d92f6d2b8d4ceef2bf1e77f5809075bf5650def373ac2cb2e59524359389f31b4b089a31c3e9f77989c376b8d",
@@ -155,7 +155,7 @@
         "tests/test_misc_in_keygens.py": "f4ad34672459c4e2058ffe17cc95477268b267a5b33d406e086eae16f640d76d200488d3f88e2c85b1a6d7d95c87f55b",
         "tests/test_misc_in_randoms.py": "d890086d771c76781ea58ef49f41e280cc6daa917af0d12a0fd52b91d8076c607781ec9ca9f60bfe44359fac65b0239f",
         "tests/test_namespace_classes.py": "71b1bbd0009ae7c09f1a26f652a64d117d757e8a1ee9d703eac5d1d428cbd1033225d8cf3ed59d3d50e1fca2dfb2cfe6",
-        "tests/test_online_cipher_interfaces.py": "fa342cb6a1314e4ae8dfbbd3d5b368b3e0a76c8f6d7b82d44e1db3865ebba4dd93fd8ad027a92c708e5b4bc02705d772",
+        "tests/test_online_cipher_interfaces.py": "bf8233b6d43a4952e40a4c451df00c49533f92141c4d8a9bce3b923c132e26dde967202ff65b1446e89dfdfbf8c16915",
         "tests/test_permutations.py": "f9261eaa557889f147d245039c15828c2c38323ba28a32a0e47324296e89681ca8ac7d858e7dc23feffa5f4d7daa589b",
         "tests/test_randoms.py": "9da37c7acbb3c985f23d7dca73b13fda126bd9cc9d499805424cba886f136a15fa89cc31fbf021f38d52684cafe5ba68",
         "tests/test_time_to_live.py": "ddbd9d21327b712f4e6e1dce6832c9e4b805ec0706171bd83d7aadbb9f1cf0f52d2de18c0d5e2d25f62ce165f0ba985a",
@@ -165,7 +165,7 @@
     "public_credentials": {},
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": 0,
+        "build_number": 1,
         "date": 19902,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
@@ -173,5 +173,5 @@
         "version": "0.23.9"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "899691ee5607934035f2d4f534f6360c1bfd1557bda227690c0c59033252fe9e7a8ef5e10ed80e8ba9728ccb3f1a82a54480f577af32d7dd5c5c1a22a3e9ed02"
+    "signature": "5b3b12b67708b79fe3cd30066cefce24c32de5fa89fef73f5347d7a522d9a962928c5044c2f72afabedb5b8b9a5e022513586df90af45813bbe524c72ec11b02"
 }
