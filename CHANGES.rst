@@ -12,7 +12,7 @@ Changes for version 0.23.9
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- fix(commons): avoid silent add of ``__slots__`` attrs to ``__dict__``
 
 
 Minor Changes

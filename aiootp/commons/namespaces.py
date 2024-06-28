@@ -35,16 +35,6 @@ class Namespace(Slots):
 
     __slots__ = ("__dict__",)
 
-    def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
-    ) -> None:
-        """
-        Maps the user-defined mapping & kwargs to the Namespace's
-        instance dictionary.
-        """
-        self.__dict__.update(mapping) if mapping else 0
-        self.__dict__.update(kw) if kw else 0
-
 
 class OpenNamespace(Namespace):
     """
