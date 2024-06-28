@@ -13,7 +13,7 @@ Treat each other with respect.
 
 Yes to passion. No to obligation.
 
-Ask for support if you need it. Offer support if you can.
+Ask for assistance if you need it. Offer assistance if you can.
 
 All contribution suggestions are welcome.
 
@@ -23,7 +23,7 @@ We value feedback.
 
 Dissent and questions are a gift to the group.
 
-Vulnerability and emotions are supported.
+Vulnerability and emotions are cherished.
 
 
 
@@ -36,10 +36,10 @@ Vulnerability and emotions are supported.
 - We act in solidarity, not charity, with marginalized groups and individuals. This group does not have a hierarchical view of intersections of oppression. We always defer to lived experience.
 - We speak from our own experience. We don’t assume what other people are thinking or put words in other people’s mouths.
 - If it would be helpful to the group to share someone else’s story, it's done anonymously unless their explicit consent is given to share identifying details. Not everyone will want to share their stories and that is okay.
-- Mutual support is essential, but please ask first if you need emotional labor. We respect each other and, in the name of voluntary relations, emotional labor will be respected.
+- Mutual-aid is essential, but please ask first if you need emotional labor. We respect each other and, in the name of voluntary relations, emotional labor will be respected.
 - We're a horizontally-organized collective. No one has a higher rank than anyone else, and we treat each other with the respect of equals.
 - For specific projects or actions we may designate conveners or point people. Their role is to simply convene the group, ensure that things move forward, and to be a point of contact. They should have no more power than anyone else.
-- We practice active and reflective listening — listening to each other completely and with intent to understand, rather than listening simply to respond. And reflecting back what we heard to ensure that we heard correctly.
+- We practice active and reflective listening — which is listening to each other completely and with intent to understand, rather than listening simply to respond — and reflecting back what we heard to ensure that we heard correctly.
 - We respect that people have different communication styles and needs.
 - If someone isn't following these norms, we talk with them about it promptly, directly, and compassionately. We can utilize our conflict resolution process if needed.
 
@@ -55,7 +55,7 @@ Sometimes things don’t fit or are too complex for the normal conflict resoluti
 
 In addition to the conflict resolution principles, these are especially important:
 
-- Consent — Nothing will happen without the consent of all those involved (including those supporting the conversation). We will check in about every decision and small step along the way.
+- Consent — Nothing will happen without the consent of all those involved (including those backing the conversation). We will check in about every decision and small step along the way.
 - Slow and steady — This will be a slow and steady process. It'll be slow because emotions can be difficult and take time to process, collective process takes time. The process will move forward steadily. The situation probably didn't start in a day, it may not be addressed in a day either.
 
 

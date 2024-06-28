@@ -37,9 +37,9 @@ body:
 
         Is this a security issue? Follow the instructions in our [Security Report Document](https://github.com/rmlibre/aiootp/blob/main/SECURITY.md).
 
-        Is this bug related to a supported version of aiootp? Check the [Supported Versions](https://github.com/rmlibre/aiootp/blob/main/SECURITY.md) & only file this report if is.
+        Is this bug related to a supported version of aiootp? Check the [Supported Versions](https://github.com/rmlibre/aiootp/blob/main/SECURITY.md) & only file this report if it is.
 
-        Is this is a request for help or troubleshooting code in your own project? Open a [Discussion Question](https://github.com/rmlibre/aiootp/discussions).
+        Is this a request for help or troubleshooting code in your own project? Open a [Discussion Question](https://github.com/rmlibre/aiootp/discussions).
 
         Please search to see if an issue already exists for the bug you encountered.
       options:
@@ -47,7 +47,7 @@ body:
           required: true
         - label: This isn't a security vulnerability or issue
           required: true
-        - label: I've searched the existing issues, & I could not find one for this bug
+        - label: I've searched the existing issues, & I couldn't find one for this bug
           required: true
   - type: textarea
     attributes:
