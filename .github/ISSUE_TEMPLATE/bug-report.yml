@@ -22,7 +22,7 @@
 
 name: 🐞 Bug
 description: Report a bug or an issue you've found with aiootp
-title: "fix(< scope >): < title > [< #related-github-id >][< #... >]"
+title: "fix(category-or-scope): lowercase-title [#related-github-id][#...]"
 labels: ["bug"]
 body:
   - type: markdown
