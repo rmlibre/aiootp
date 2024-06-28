@@ -73,7 +73,6 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
             signer.add_file(filename, source_file.read())
 
     signer.sign_package()
-    signer.db.save_database()
     summary = signer.summarize()
     verifier = PackageVerifier(signer.signing_key.public_bytes, path="")
     verifier.verify_summary(summary)
