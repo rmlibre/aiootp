@@ -43,7 +43,7 @@ class FrozenInstance:
         Populates instance attributes with user-defined kwargs which
         have been declared in the class' `__slots__`.
         """
-        for name, value in {**mapping, **kw}.items():
+        for name, value in {**dict(mapping), **kw}.items():
             setattr(self, name, value)
 
     def __repr__(self, /) -> str:
