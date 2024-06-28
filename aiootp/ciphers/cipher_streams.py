@@ -60,8 +60,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
     async for block_id, ciphertext in stream.afinalize():
         session.send_packet(block_id + ciphertext)
 
-    # Give option to check for further validity ------------------------
-    # Cryptographically asserts stream is done. ------------------------
+    # Send the stream termination / authentication tag. <--------
     session.transmit(shmac=await stream.shmac.result)
     """
 
@@ -281,8 +280,7 @@ class CipherStream(CipherStreamProperties):
     for block_id, ciphertext in stream.finalize():
         session.send_packet(block_id + ciphertext)
 
-    # Give option to check for further validity ------------------------
-    # Cryptographically asserts stream is done. ------------------------
+    # Send the stream termination / authentication tag. <--------
     session.transmit(shmac=stream.shmac.result)
     """
 

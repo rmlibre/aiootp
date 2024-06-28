@@ -50,8 +50,16 @@ class TypedSlots(Slots):
         cls, /, base: type, slots_types: t.Mapping[str, t.Any]
     ) -> None:
         """
-        Traverses the method resolution order, testing & collecting the
-        available slots types declarations.
+        Traverses a `base` class' slots types declarations & tests them
+        for validity & consistency. Copies declarations into `slots_types`
+        for the subclass to install as their own.
+
+        Raises `TypeUncheckableAtRuntime` if a type is invalid as a
+        run-time type checker.
+
+        Raises `MissingDeclaredVariables` if a type is declared in the
+        `base`'s `slots_types` but not in its (or one of its superclass')
+        `__slots__`.
         """
         if not issubclass(base, TypedSlots):
             return
@@ -86,8 +94,12 @@ class TypedSlots(Slots):
     @classmethod
     def _make_frozen_class_slots_types(cls, /) -> OpenFrozenSlots:
         """
-        Creates & populates a class-specific type to govern type
-        correctness.
+        Creates a class-specific type to govern type correctness by
+        traversing the method resolution order, then collecting the
+        valid slots types declarations.
+
+        Raises `MissingDeclaredVariables` if a type is declared in the
+        `__slots__` of a class in the mro but not in its `slots_types`.
         """
         slots_types = {}
         for base in reversed(cls.__mro__):

@@ -38,7 +38,7 @@ class Config(OpenFrozenTypedSlots):
     |            Usage Example:           |
     |_____________________________________|
 
-    from aiootp.commons import Config, ConfigMap
+    from aiootp.commons.configs import Config, ConfigMap
 
     class CalculatorConfig(Config):
         __slots__ = ("UNIT_SYSTEM", "LANGUAGE")
@@ -109,10 +109,12 @@ class ConfigMap(OpenFrozenNamespace):
     |            Usage Example:           |
     |_____________________________________|
 
-    from aiootp.commons import Config, ConfigMap
+    from aiootp.commons.configs import Config, ConfigMap
 
     class CalculatorConfig(Config):
         __slots__ = ("UNIT_SYSTEM", "LANGUAGE")
+
+        slots_types = dict(UNIT_SYSTEM=str, LANGUAGE=str)
 
         _UNIT_SYSTEMS = unit_translation_repository()
         _LANGUAGES = language_repository()
@@ -167,7 +169,8 @@ class ConfigMap(OpenFrozenNamespace):
     def __setitem__(self, config_id: t.Hashable, config: t.Any, /) -> None:
         """
         Sets a `config` by its `config_id` reference. If the `config_id`
-        is already in the instance, then `PermissionError` is raised.
+        is already in the instance & the `config` isn't the same object,
+        then `PermissionError` is raised.
         """
         config.set_config_id(config_id)
         if not issubclass(config.__class__, self.CONFIG_TYPE):
