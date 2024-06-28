@@ -141,13 +141,13 @@ class SyntheticIVType(t.Protocol):
 
     @classmethod
     async def avalidated_transform(
-        cls, datastream: AsyncDatastream, shmac: StreamHMACType, **kw
+        cls, datastream: AsyncDatastream, shmac: StreamHMACType, **kw: bytes
     ) -> bytes:
         pass  # pragma: no cover
 
     @classmethod
     def validated_transform(
-        cls, datastream: Datastream, shmac: StreamHMACType, **kw
+        cls, datastream: Datastream, shmac: StreamHMACType, **kw: bytes
     ) -> bytes:
         pass  # pragma: no cover
 

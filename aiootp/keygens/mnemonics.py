@@ -83,7 +83,7 @@ async def amnemonic(
     *,
     salt: t.Optional[bytes] = None,
     words: t.Optional[t.Sequence[t.Any]] = None,
-    **passcrypt_settings,
+    **passcrypt_settings: t.Union[int, t.ConfigType],
 ) -> t.List[bytes]:
     """
     Creates list of `size` number of words for a mnemonic key from a
@@ -113,7 +113,7 @@ def mnemonic(
     *,
     salt: t.Optional[bytes] = None,
     words: t.Optional[t.Sequence[t.Any]] = None,
-    **passcrypt_settings,
+    **passcrypt_settings: t.Union[int, t.ConfigType],
 ) -> t.List[bytes]:
     """
     Creates list of `size` number of words for a mnemonic key from a

@@ -73,7 +73,9 @@ class AsyncProfileTokens(FrozenSlots):
         return salt_path, salt
 
     async def _agenerate_profile_login_key(
-        self, passphrase: bytes, **passcrypt_settings
+        self,
+        passphrase: bytes,
+        **passcrypt_settings: t.Union[int, t.ConfigType],
     ) -> bytes:
         """
         Combines the output of the expensive key derivation functions &
@@ -101,7 +103,7 @@ class AsyncProfileTokens(FrozenSlots):
         salt: bytes,
         aad: bytes,
         path: t.PathStr,
-        **passcrypt_settings,
+        **passcrypt_settings: t.Union[int, t.ConfigType],
     ) -> t.Self:
         """
         Runs a very expensive key derivation function to build keys
@@ -174,7 +176,9 @@ class ProfileTokens(FrozenSlots):
         return salt_path, salt
 
     def _generate_profile_login_key(
-        self, passphrase: bytes, **passcrypt_settings
+        self,
+        passphrase: bytes,
+        **passcrypt_settings: t.Union[int, t.ConfigType],
     ) -> bytes:
         """
         Combines the output of the expensive key derivation functions &
@@ -202,7 +206,7 @@ class ProfileTokens(FrozenSlots):
         salt: bytes,
         aad: bytes,
         path: t.PathStr,
-        **passcrypt_settings,
+        **passcrypt_settings: t.Union[int, t.ConfigType],
     ) -> t.Self:
         """
         Runs a very expensive key derivation function to build keys

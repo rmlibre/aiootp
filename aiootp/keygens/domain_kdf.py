@@ -40,7 +40,9 @@ class HashTupleKDF(FrozenInstance):
 
     _type: t.Callable[..., t.XOFType]
 
-    def __init_subclass__(cls, *a, salt_label: t.AnyStr, **kw) -> None:
+    def __init_subclass__(
+        cls, *a: t.Any, salt_label: t.AnyStr, **kw: t.Any
+    ) -> None:
         """
         Ensures subclasses can define custom key & base type hasher
         algorithms within their class bodies & have the blocksizes of

@@ -151,7 +151,7 @@ class ConfigMap(OpenFrozenNamespace):
     def __init__(
         self,
         /,
-        mapping: t.Mapping[t.Hashable, t.Any] = {},
+        mapping: t.Mapping[t.Hashable, t.ConfigType] = {},
         *,
         config_type: type,
         **kw: t.Any,
@@ -166,7 +166,9 @@ class ConfigMap(OpenFrozenNamespace):
         for config_id, config in {**mapping, **kw}.items():
             self[config_id] = config
 
-    def __setitem__(self, config_id: t.Hashable, config: t.Any, /) -> None:
+    def __setitem__(
+        self, config_id: t.Hashable, config: t.ConfigType, /
+    ) -> None:
         """
         Sets a `config` by its `config_id` reference. If the `config_id`
         is already in the instance & the `config` isn't the same object,

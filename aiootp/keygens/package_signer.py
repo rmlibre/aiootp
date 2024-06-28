@@ -255,7 +255,7 @@ class PackageSigner:
         passphrase: bytes,
         salt: bytes = b"",
         path: t.OptionalPathStr = None,
-        **passcrypt_settings,
+        **passcrypt_settings: t.Union[int, t.ConfigType],
     ) -> t.Self:
         """
         Opens an encrypted database connection using the Passcrypt
