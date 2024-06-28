@@ -49,12 +49,18 @@ A: We overwrite our modules in this package to have a more fine-grained control 
 -  This package is currently in beta testing & active development,
    meaning major changes are still possible when there are really good
    reasons to do so. Contributions are welcome. Send us a message if
-   you spot a bug or security vulnerability:
+   you spot a `bug`_ or file a `security issue report`_:
 
    -  gonzo.development@protonmail.ch
    -  rmlibre@riseup.net
    -  ed25519-key: 70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b
    -  x25519-key: 4457276dbcae91cc5b69f1aed4384b9eb6f933343bb44d9ed8a80e2ce438a450
+
+
+
+
+.. _`bug`: https://github.com/rmlibre/aiootp/issues/new/choose
+.. _`security issue report`: https://github.com/rmlibre/aiootp/blob/main/SECURITY.md
 
 
 
