@@ -61,8 +61,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         yield plaintext
 
     # Verify the stream termination / authentication tag. <--------
-    shmac = await stream.shmac.afinalize()
-    assert aiootp.bytes_are_equal(shmac, session.shmac)
+    await stream.shmac.atest_shmac(session.shmac)
     """
 
     __slots__ = (
@@ -343,7 +342,7 @@ class DecipherStream(CipherStreamProperties):
         yield plaintext
 
     # Verify the stream termination / authentication tag. <--------
-    assert aiootp.bytes_are_equal(stream.shmac.finalize(), session.shmac)
+    stream.shmac.test_shmac(session.shmac)
     """
 
     __slots__ = (
