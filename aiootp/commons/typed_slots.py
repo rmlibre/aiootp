@@ -68,7 +68,7 @@ class TypedSlots(Slots):
                 isinstance(value, value)
                 issubclass(value, value)
             except TypeError as error:
-                raise TypeUncheckableAtRuntime(name, value)
+                raise TypeUncheckableAtRuntime(name, value) from error
             if name not in cls.__slots__:
                 raise MissingDeclaredVariables(
                     name, found_in="slots_types", missed="__slots__"
