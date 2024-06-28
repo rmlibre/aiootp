@@ -71,8 +71,8 @@ class Slots:
         classes with `__slots__` can greatly increase memory efficiency
         if a system instantiates many objects of the class.
         """
-        for name, value in {**dict(mapping), **kw}.items():
-            self[name] = value
+        for name, value in {**dict(mapping), **kw}.items():  # flexible. subclasses
+            self[name] = value                               # should prefer specific
 
     def __dir__(self, /) -> t.List[t.Hashable]:
         """
