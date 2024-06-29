@@ -32,9 +32,7 @@ def make_module(name: str, *, mapping: dict) -> FrozenNamespace:
     module = t.ModuleType(name)
     module.__dict__.update(mapping)
     sys.modules[name] = module
-    remake = FrozenNamespace()
-    remake.__dict__.update(module.__dict__)
-    return remake
+    return FrozenNamespace(module.__dict__)
 
 
 def remake_module(module: t.ModuleType, /) -> FrozenNamespace:

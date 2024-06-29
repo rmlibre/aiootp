@@ -19,6 +19,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - test(commons): ensure proper use avoids bug from PR [#11]
+- revert: scrap discouraged quick-fix in favor of f1060ce221 [#11]
 
 
 
