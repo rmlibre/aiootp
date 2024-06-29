@@ -223,15 +223,15 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
                 __slots__ = ("attr_0", "attr_1")
                 slots_types = dict(attr_0=int, attr_1=int)
 
-        bad_obj = MisusedSubclass(attr_0=0, attr_1=1)
-        assert "attr_0" not in bad_obj.__dict__
-        assert "attr_1" not in bad_obj.__dict__
-        assert 0 == bad_obj.attr_0
-        assert 1 == bad_obj.attr_1
+        ok_obj = MisusedSubclass(attr_0=0, attr_1=1)
+        assert "attr_0" not in ok_obj.__dict__
+        assert "attr_1" not in ok_obj.__dict__
+        assert 0 == ok_obj.attr_0
+        assert 1 == ok_obj.attr_1
 
         bad_obj = MisusedSubclass()
-        bad_obj.__dict__.update(dict(attr_0=0, attr_1=1))
-        assert "attr_0" in bad_obj.__dict__
+        bad_obj.__dict__.update(dict(attr_0=0, attr_1=1))  # this is bad
+        assert "attr_0" in bad_obj.__dict__           # See: https://github.com/rmlibre/aiootp/pull/11
         assert "attr_1" in bad_obj.__dict__
         assert not hasattr(bad_obj, "attr_0")
         assert not hasattr(bad_obj, "attr_1")
