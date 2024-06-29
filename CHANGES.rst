@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- ci(perf): run workflows on push & pull, but not on same event
 
 
 
