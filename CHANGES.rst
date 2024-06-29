@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- test(commons): ensure proper use avoids bug from PR [#11]
 
 
 
