@@ -19,6 +19,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - fix: allow ``str`` build numbers in signing ceremony
+- ci(perf): run workflows on push & pull, but not on same event
 - docs(bugfix): demonstrate avoiding slots/dict conflicts [#11]
 - docs(bugfix): clarify tests to show problematic assignments [#11]
 - test(commons): ensure proper use avoids bug from PR [#11]
