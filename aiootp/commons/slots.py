@@ -60,6 +60,7 @@ class Slots:
             for subcls in cls.__mro__
             for name in getattr(subcls, "__slots__", ())
         })
+        cls._slots_set = frozenset(cls.__slots__)
 
     def __init__(
         self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
@@ -74,7 +75,7 @@ class Slots:
         can cause problems. This initializer avoids setting the names
         declared in `__slots__` within the a potential instance dict.
         """
-        slots = set(self.__slots__)                          # flexible init. not great
+        slots = self._slots_set                              # flexible init. not great
         for name, value in {**dict(mapping), **kw}.items():  # performance. subclasses
             if name in slots:                                # should prefer specificity
                 object.__setattr__(self, name, value)        # ie. self.a = a
