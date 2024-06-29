@@ -39,6 +39,29 @@ class TypedSlots(Slots):
 
     Masked repr.
     Mutable instance.
+
+     _____________________________________
+    |                                     |
+    |   Stability of Assignment Styles:   |
+    |_____________________________________|
+
+
+    from aiootp.commons.typed_slots import TypedSlots
+
+    class HybridNamespace(TypedSlots):
+        __slots__ = ("attr", "__dict__")
+        slots_types = dict(attr=str)
+
+    hybrid = HybridNamespace()
+
+    ✔ hybrid.attr = "value"                # supported
+    ✔ hybrid["attr"] = "value"             # supported
+    ✔ setattr(hybrid, "attr", "value")     # supported
+
+    ❌ hybrid.__dict__["attr"] = "value"    # unsupported
+
+
+    # See: https://github.com/rmlibre/aiootp/pull/11
     """
 
     __slots__ = ()

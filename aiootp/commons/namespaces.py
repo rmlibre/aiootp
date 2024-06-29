@@ -31,6 +31,28 @@ class Namespace(Slots):
     """
     A simple wrapper for turning mappings into Namespace objects that
     allow dotted lookup and assignment on those mappings.
+
+     _____________________________________
+    |                                     |
+    |   Stability of Assignment Styles:   |
+    |_____________________________________|
+
+
+    from aiootp.commons.namespaces import Namespace
+
+    class HybridNamespace(Namespace):
+        __slots__ = ("attr",)
+
+    hybrid = HybridNamespace()
+
+    ✔ hybrid.attr = "value"                # supported
+    ✔ hybrid["attr"] = "value"             # supported
+    ✔ setattr(hybrid, "attr", "value")     # supported
+
+    ❌ hybrid.__dict__["attr"] = "value"    # unsupported
+
+
+    # See: https://github.com/rmlibre/aiootp/pull/11
     """
 
     __slots__ = ("__dict__",)

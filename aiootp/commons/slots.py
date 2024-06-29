@@ -120,6 +120,28 @@ class Slots:
         since changes can be applied in one place. That interface also
         allows for non-string attribute names, better supporting those
         subclasses which define `__dict__`.
+
+         _____________________________________
+        |                                     |
+        |   Stability of Assignment Styles:   |
+        |_____________________________________|
+
+
+        from aiootp.commons.slots import Slots
+
+        class HybridNamespace(Slots):
+            __slots__ = ("attr", "__dict__")
+
+        hybrid = HybridNamespace()
+
+        ✔ hybrid.attr = "value"                # supported
+        ✔ hybrid["attr"] = "value"             # supported
+        ✔ setattr(hybrid, "attr", "value")     # supported
+
+        ❌ hybrid.__dict__["attr"] = "value"    # unsupported
+
+
+        # See: https://github.com/rmlibre/aiootp/pull/11
         """
         self[name] = value
 
