@@ -65,14 +65,21 @@ class Slots:
         self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
     ) -> None:
         """
-        Maps the user-defined kwargs to the instance attributes. If a
-        subclass defines a `__slots__` list, then only variables with
-        names in the list can be admitted to the instance. Defining
-        classes with `__slots__` can greatly increase memory efficiency
-        if a system instantiates many objects of the class.
+        Maps user-defined kwargs to instance attributes. If a subclass
+        defines a `__slots__`, then only the names declared within can
+        be admitted to the instance. Unless `"__dict__"` is also added.
+        Defining classes with slots improves a system's memory efficiency,
+        especially when many instances are created. Having an instance
+        dictionary offers flexibility, though the interplay with slots
+        can cause problems. This initializer avoids setting the names
+        declared in `__slots__` within the a potential instance dict.
         """
-        for name, value in {**dict(mapping), **kw}.items():  # flexible. subclasses
-            self[name] = value                               # should prefer specific
+        slots = set(self.__slots__)                          # flexible init. not great
+        for name, value in {**dict(mapping), **kw}.items():  # performance. subclasses
+            if name in slots:                                # should prefer specificity
+                object.__setattr__(self, name, value)        # ie. self.a = a
+            else:                                            #     self.b = b
+                self.__dict__[name] = value                  #     ...
 
     def __dir__(self, /) -> t.List[t.Hashable]:
         """
