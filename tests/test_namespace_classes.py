@@ -208,6 +208,41 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
             obj.update(dict(new_value=False), **dict(new_value=True))
             assert obj["new_value"] == True
 
+    async def test_strange_slots_dict_interplay_exists_but_is_avoided(
+        self
+    ) -> None:
+        if not hasattr(self._type, "__slots__"):
+            return
+
+        try:
+            class MisusedSubclass(self._type):
+                __slots__ = ("attr_0", "attr_1", "__dict__")
+                slots_types = dict(attr_0=int, attr_1=int)
+        except TypeError:
+            class MisusedSubclass(self._type):
+                __slots__ = ("attr_0", "attr_1")
+                slots_types = dict(attr_0=int, attr_1=int)
+
+        ok_obj = MisusedSubclass(attr_0=0, attr_1=1)
+        assert "attr_0" not in ok_obj.__dict__
+        assert "attr_1" not in ok_obj.__dict__
+        assert 0 == ok_obj.attr_0
+        assert 1 == ok_obj.attr_1
+
+        bad_obj = MisusedSubclass()
+        bad_obj.__dict__.update(dict(attr_0=0, attr_1=1))  # this is bad
+        assert "attr_0" in bad_obj.__dict__           # See: https://github.com/rmlibre/aiootp/pull/11
+        assert "attr_1" in bad_obj.__dict__
+        assert not hasattr(bad_obj, "attr_0")
+        assert not hasattr(bad_obj, "attr_1")
+        problem = (
+            "Very strange __dict__ / __slots__ interplay didn't manifest?"
+        )
+        with Ignore(AttributeError, if_else=violation(problem)):
+            bad_obj.attr_0
+        with Ignore(AttributeError, if_else=violation(problem)):
+            bad_obj.attr_1
+
 
 class BaseIndexableTests(BaseVariableHoldingClassTests):
 

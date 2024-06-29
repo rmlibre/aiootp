@@ -44,7 +44,7 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
         author=__author__,
         license=__license__,
         description=__doc__,
-        build_number=int(getpass("build number: ")),
+        build_number=getpass("build number: "),
     )
     signer.connect_to_secure_database(
         username=getpass("database username: ").encode(),

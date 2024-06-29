@@ -12,13 +12,19 @@ Changes for version 0.23.9
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- fix(commons): avoid silent add of ``__slots__`` attrs to ``__dict__`` [#11]
 
 
 Minor Changes
 ^^^^^^^^^^^^^
 
+- fix: allow ``str`` build numbers in signing ceremony
 - ci(perf): run workflows on push & pull, but not on same event
+- docs(bugfix): demonstrate avoiding slots/dict conflicts [#11]
+- docs(bugfix): clarify tests to show problematic assignments [#11]
+- test(commons): ensure proper use avoids bug from PR [#11]
+- perf(init): cache slots as sets for membership tests [#11]
+- revert: scrap discouraged quick-fix in favor of f1060ce221 [#11]
 
 
 
