@@ -275,14 +275,8 @@ class Slots:
         """
         Updates the instance with new key-values from a mapping.
         """
-        if hasattr(mapping, "keys"):
-            for name in mapping:
-                self[name] = mapping[name]
-        else:
-            for name, value in mapping:
-                self[name] = value
-        for name in kw:
-            self[name] = kw[name]
+        for name, value in {**dict(mapping), **kw}.items():
+            self[name] = value
 
 
 class OpenSlots(Slots):
