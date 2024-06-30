@@ -19,9 +19,14 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - fix: allow ``str`` build numbers in signing ceremony
+- fix(commons): accept pair-iterable mapping in init
 - ci(perf): run workflows on push & pull, but not on same event
+- docs: fix wrong or incomplete doc strings
+- docs: add links for bug & security issue reporting
 - docs(bugfix): demonstrate avoiding slots/dict conflicts [#11]
 - docs(bugfix): clarify tests to show problematic assignments [#11]
+- docs(typing): fix & add type hints
+- test(cipher): demonstrate proper stream authentication
 - test(commons): ensure proper use avoids bug from PR [#11]
 - perf(init): cache slots as sets for membership tests [#11]
 - revert: scrap discouraged quick-fix in favor of f1060ce221 [#11]
