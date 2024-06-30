@@ -26,6 +26,7 @@ Minor Changes
 - docs: add links for bug & security issue reporting
 - docs(bugfix): demonstrate avoiding slots/dict conflicts [#11]
 - docs(bugfix): clarify tests to show problematic assignments [#11]
+- docs(commons): add distinguishing facets of classes to doc strings
 - docs(typing): fix & add type hints
 - test(cipher): demonstrate proper stream authentication
 - test(commons): ensure proper use avoids bug from PR [#11]

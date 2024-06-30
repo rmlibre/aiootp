@@ -32,6 +32,9 @@ class Namespace(Slots):
     A simple wrapper for turning mappings into Namespace objects that
     allow dotted lookup and assignment on those mappings.
 
+    Masked repr.
+    Mutable instance.
+
      _____________________________________
     |                                     |
     |   Stability of Assignment Styles:   |
@@ -62,6 +65,9 @@ class OpenNamespace(Namespace):
     """
     A version of the `Namespace` class which doesn't omit instance
     repr's by default.
+
+    Unmasked repr.
+    Mutable instance.
     """
 
     def __repr__(self, /, *, mask: bool = False) -> str:
@@ -77,6 +83,9 @@ class FrozenNamespace(Namespace):
     allow dotted lookup and assignment on those mappings. Also, provides
     utilities for copying mappings into other containers, & turning
     mappings into stand-alone, first-class modules.
+
+    Masked repr.
+    Immutable instance. (set once)
     """
 
     @property
@@ -111,6 +120,9 @@ class OpenFrozenNamespace(FrozenNamespace):
     """
     A version of the `FrozenNamespace` class which doesn't omit instance
     repr's by default.
+
+    Unmasked repr.
+    Immutable instance. (set once)
     """
 
     def __repr__(self, /, *, mask: bool = False) -> str:

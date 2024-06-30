@@ -35,6 +35,9 @@ class Slots:
     A base class which allow subclasses to create very efficient
     instances, with explicitly declared attributes in their `__slots__`.
 
+    Masked repr.
+    Mutable instance.
+
      _____________________________________
     |                                     |
     |   Stability of Assignment Styles:   |
@@ -283,6 +286,9 @@ class OpenSlots(Slots):
     """
     A version of the `Slots` class which doesn't mask instance
     `__repr__`'s by default.
+
+    Unmasked repr.
+    Mutable instance.
     """
 
     __slots__ = ()
@@ -298,6 +304,9 @@ class FrozenSlots(Slots):
     """
     A version of the `Slots` class which enables instances of subclasses
     to have attributes that are frozen once they're set.
+
+    Masked repr.
+    Immutable instance. (set once)
     """
 
     __slots__ = ()
@@ -324,6 +333,9 @@ class OpenFrozenSlots(FrozenSlots):
     """
     A version of the `FrozenSlots` class which doesn't mask instance
     `__repr__`'s by default.
+
+    Unmasked repr.
+    Immutable instance. (set once)
     """
 
     __slots__ = ()
