@@ -447,8 +447,7 @@ class TypeUncheckableAtRuntime(TypeError):
 
 class Issue:
     """
-    A class to help with the readability of raising general issues with
-    more precise error messages for users.
+    Organizes messages for general / miscellaneous raised exceptions.
     """
 
     __slots__ = ()
@@ -551,9 +550,8 @@ class Issue:
 
 class CanonicalIssue:
     """
-    A class to help with the readability of raising issues related to
-    the canonicalized packing of bytes data with more precise error
-    messages for users.
+    Organizes messages for raised exceptions related to canonicalizing
+    collections of bytes data.
     """
 
     __slots__ = ()
@@ -599,9 +597,8 @@ class CanonicalIssue:
 
 class KeyAADIssue:
     """
-    A class to help with the readability of raising issues related to
-    `Chunky2048` `keys`, `salt`, & `aad` values with more precise error
-    messages for users.
+    Organizes messages for raised exceptions related to the invalid
+    usage or structure of keys & associated session information.
     """
 
     __slots__ = ()
@@ -643,9 +640,7 @@ class KeyAADIssue:
 
 class SHMACIssue:
     """
-    A class to help with the readability of raising issues related to
-    `StreamHMAC` values & processes with more precise error messages for
-    users.
+    Organizes messages for raised exceptions related to `StreamHMAC`.
     """
 
     __slots__ = ()
@@ -710,9 +705,8 @@ class SHMACIssue:
 
 class CipherStreamIssue:
     """
-    A class to help with the readability of raising issues related to
-    `(Async)CipherStream` & `(Async)DecipherStream` values & processes
-    with more precise error messages for users.
+    Organizes messages for raised exceptions related to the classes
+    `(Async)CipherStream` & `(Async)DecipherStream`.
     """
 
     __slots__ = ()
@@ -729,9 +723,7 @@ class CipherStreamIssue:
 
 class PasscryptIssue:
     """
-    A class to help with the readability of raising issues related to
-    `Passcrypt` values & processes with more precise error messages for
-    users.
+    Organizes messages for raised exceptions related to `Passcrypt`.
     """
 
     __slots__ = ()
@@ -924,9 +916,8 @@ class PasscryptIssue:
 
 class DatabaseIssue:
     """
-    A class to help with the readability of raising issues related to
-    `AsyncDatabase` & `Database` values & processes with more precise
-    error messages for users.
+    Organizes messages for raised exceptions related to the classes
+    `AsyncDatabase` & `Database`.
     """
 
     __slots__ = ()
@@ -954,9 +945,7 @@ class DatabaseIssue:
 
 class PackageSignerIssue:
     """
-    A class to help with the readability of raising issues related to
-    `PackageSigner` values & processes with more precise error messages
-    for users.
+    Organizes messages for raised exceptions related to  `PackageSigner`.
     """
 
     __slots__ = ()
