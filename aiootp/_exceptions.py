@@ -606,9 +606,6 @@ class KeyAADIssue:
     _INVALID_KEY_SIZE: str = (
         "`key` was KEY_SIZE bytes, but must be at least MIN_SIZE bytes."
     )
-    _INVALID_SALT_SIZE: str = (
-        "The `salt` must be a SALT_SIZE-byte value."
-    )
     _ALREADY_REGISTERED: str = (
         "The shmac has already been registered."
     )
@@ -622,11 +619,6 @@ class KeyAADIssue:
     def invalid_key_size(cls, size: int, min_size: int, /) -> ValueError:
         issue = cls._INVALID_KEY_SIZE.replace("MIN_SIZE", repr(min_size))
         return ValueError(issue.replace("KEY_SIZE", repr(size)))
-
-    @classmethod
-    def invalid_salt_size(cls, size: int, /) -> ValueError:
-        issue = cls._INVALID_SALT_SIZE
-        return ValueError(issue.replace("SALT_SIZE", repr(size)))
 
     @classmethod
     def shmac_already_registered(cls, /) -> PermissionError:

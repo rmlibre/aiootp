@@ -78,7 +78,7 @@ class SaltAADIV(FrozenSlots):
         if salt.__class__ is not bytes:
             raise Issue.value_must_be_type("salt", bytes)
         elif len(salt) != config.SALT_BYTES:
-            raise KeyAADIssue.invalid_salt_size(config.SALT_BYTES)
+            raise Issue.invalid_length("salt", config.SALT_BYTES)
         elif aad.__class__ is not bytes:
             raise Issue.value_must_be_type("aad", bytes)
         elif iv.__class__ is not bytes:
