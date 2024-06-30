@@ -34,6 +34,28 @@ class Slots:
     """
     A base class which allow subclasses to create very efficient
     instances, with explicitly declared attributes in their `__slots__`.
+
+     _____________________________________
+    |                                     |
+    |   Stability of Assignment Styles:   |
+    |_____________________________________|
+
+
+    from aiootp.commons.slots import Slots
+
+    class HybridNamespace(Slots):
+        __slots__ = ("attr", "__dict__")
+
+    hybrid = HybridNamespace()
+
+    ✔ hybrid.attr = "value"                # supported
+    ✔ hybrid["attr"] = "value"             # supported
+    ✔ setattr(hybrid, "attr", "value")     # supported
+
+    ❌ hybrid.__dict__["attr"] = "value"    # unsupported
+
+
+    # See: https://github.com/rmlibre/aiootp/pull/11
     """
 
     __slots__ = ()
