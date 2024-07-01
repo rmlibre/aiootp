@@ -23,7 +23,7 @@ from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL, MIN_KEY_BYTES, BIG
 from aiootp._constants import BYTES_FLAG, BYTES_FLAG_SIZE
 from aiootp._constants import FILENAME_HASH_BYTES, SHAKE_128_BLOCKSIZE
-from aiootp._exceptions import DatabaseIssue, Ignore
+from aiootp._exceptions import DatabaseIssue, Issue, Ignore
 from aiootp._paths import adelete_salt_file
 from aiootp.asynchs import AsyncInit, asleep, gather, aos
 from aiootp.commons import Namespace
@@ -648,7 +648,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
                 and tag not in self.__class__.__dict__
             ):
                 return self.__dict__[tag]
-            raise Issue.cant_reassign_attribute(tag)
+            raise Issue.cant_reassign_attribute(tag)  # fixed v0.23.9
         self.__dict__[tag] = await self.__class__(
             key=await self._ametatag_key(tag),
             preload=preload,

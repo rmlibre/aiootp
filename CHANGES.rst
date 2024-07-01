@@ -19,6 +19,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - fix: allow ``str`` build numbers in signing ceremony
+- fix(db): raise intended error by loading missing import
 - fix(commons): remove duplicates prior to update
 - fix(commons): accept pair-iterable mapping in init
 - ci(perf): run workflows on push & pull, but not on same event
