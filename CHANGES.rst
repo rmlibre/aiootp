@@ -30,6 +30,7 @@ Minor Changes
 - docs(bugfix): clarify tests to show problematic assignments [#11]
 - docs(commons): add distinguishing facets of classes to doc strings
 - docs(typing): fix & add type hints
+- build(lint): add ``ruff.toml`` config file
 - test(cipher): demonstrate proper stream authentication
 - test(commons): ensure proper use avoids bug from PR [#11]
 - perf(init): cache slots as sets for membership tests [#11]
