@@ -22,6 +22,7 @@ Minor Changes
 - fix(db): raise intended error by loading missing import
 - fix(commons): remove duplicates prior to update
 - fix(commons): accept pair-iterable mapping in init
+- fix(concurrency): import missing name in guard clause line
 - ci(perf): run workflows on push & pull, but not on same event
 - docs: fix wrong or incomplete doc strings
 - docs: add links for bug & security issue reporting
