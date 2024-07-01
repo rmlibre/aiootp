@@ -532,8 +532,11 @@ class Database(DatabaseProperties):
         Returns a value from the database by it's `tag` & deletes the
         associated file in the database directory.
         """
+
+        def track_failure(relay: Ignore) -> bool:
+            return failures.append(relay.error) or True
+
         failures = []
-        track_failure = lambda relay: failures.append(relay.error) or True
         filename = self.filename(tag)
         value = self.query_tag(tag, cache=False, silent=True)
         with Ignore(KeyError, AttributeError, if_except=track_failure):

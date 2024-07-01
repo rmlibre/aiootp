@@ -117,12 +117,15 @@ class AffinePermutationConfig(Config):
         data. This amortizes the relatively expensive derivation costs
         of finding the multiplicative key, & its inverse.
         """
-        encode = lambda i: Domains.encode_constant(
-            f"multiplicative_key_{i}_{prime}",
-            domain=b"affine_permutation_constant",
-            aad=self.AAD,
-            size=self.SIZE,
-        )
+
+        def encode(i: int) -> bytes:
+            return Domains.encode_constant(
+                f"multiplicative_key_{i}_{prime}",
+                domain=b"affine_permutation_constant",
+                aad=self.AAD,
+                size=self.SIZE,
+            )
+
         top_bit, mask = self._make_multiplier_mask(prime.bit_length())
         for i in counter():
             key = top_bit | (int.from_bytes(encode(i), BIG) & mask)

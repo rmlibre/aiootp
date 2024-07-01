@@ -35,6 +35,7 @@ Minor Changes
 - perf(init): cache slots as sets for membership tests [#11]
 - revert: scrap discouraged quick-fix in favor of f1060ce221 [#11]
 - refactor(exc): rely on common invalid length exception
+- style(lint): prefer non-lambda function definitions
 
 
 

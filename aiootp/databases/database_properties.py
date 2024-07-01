@@ -163,6 +163,12 @@ class DatabaseProperties:
             (len(self) > 0) or self._manifest[self._METATAGS_LEDGERNAME]
         )
 
+    def __len__(self) -> int:
+        """
+        Returns the number tags currently added to the database.
+        """
+        return len(self._manifest) - len(self._maintenance_records)
+
     def __setitem__(self, tag: str, data: t.JSONSerializable) -> None:
         """
         Allows users to add the value `data` under the name `tag`
@@ -193,10 +199,6 @@ class DatabaseProperties:
             del self._cache[filename]
         with Ignore(FileNotFoundError):
             (self.path / filename).unlink()
-
-    __len__ = lambda self: (
-        len(self._manifest) - len(self._maintenance_records)
-    )
 
 
 module_api = dict(

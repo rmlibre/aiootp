@@ -563,8 +563,11 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         Returns a value from the database by it's `tag` & deletes the
         associated file in the database directory.
         """
+
+        def track_failure(relay: Ignore) -> bool:
+            return failures.append(relay.error) or True
+
         failures = []
-        track_failure = lambda relay: failures.append(relay.error) or True
         filename = await self.afilename(tag)
         value = await self.aquery_tag(tag, cache=False, silent=True)
         with Ignore(KeyError, AttributeError, if_except=track_failure):
