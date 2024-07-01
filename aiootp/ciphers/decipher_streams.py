@@ -24,7 +24,7 @@ from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._exceptions import Issue, CipherStreamIssue
 from aiootp._gentools import apopleft, popleft, abatch, batch
-from aiootp.asynchs import AsyncInit, asleep
+from aiootp.asynchs import AsyncInit, asleep, sleep
 
 from .cipher_stream_properties import AuthFail, CipherStreamProperties
 
@@ -300,7 +300,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
             raise Issue.invalid_length("data", len(data))
         data = io.BytesIO(data).read
         atest_block_id, append = self._buffer_shortcuts
-        while self._is_digesting:
+        while self._is_digesting:  # TODO: race conditions?
             await asleep(0.00001)  # pragma: no cover
         try:
             self._is_digesting = True
@@ -573,8 +573,8 @@ class DecipherStream(CipherStreamProperties):
             raise Issue.invalid_length("data", len(data))
         data = io.BytesIO(data).read
         test_block_id, append = self._buffer_shortcuts
-        while self._is_digesting:
-            asynchs.sleep(0.00001)  # pragma: no cover
+        while self._is_digesting:  # TODO: race conditions?
+            sleep(0.00001)  # pragma: no cover
         try:
             self._is_digesting = True
             self._digest_data(data, test_block_id, append)

@@ -21,8 +21,6 @@ from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
 from aiootp.commons import Config
 
-from .affine_permutation_config import AffinePermutationConfig
-
 
 class AffineXORChainConfig(Config):
     """

@@ -21,7 +21,6 @@ from io import BytesIO
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import InvalidCiphertextSize
-from aiootp.asynchs import asleep
 from aiootp.commons import OpenFrozenSlots
 
 

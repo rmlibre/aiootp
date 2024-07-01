@@ -302,7 +302,7 @@ class TestDatabases:
         )
         metatag = "tested_attribute"
         async_database.tested_attribute = NonDatabaseType()
-        with Ignore(NameError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=violation(problem)):
             await async_database.ametatag(metatag)
         del async_database.tested_attribute
 
@@ -317,7 +317,7 @@ class TestDatabases:
         )
         metatag = "tested_attribute"
         database.tested_attribute = NonDatabaseType()
-        with Ignore(NameError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=violation(problem)):
             database.metatag(metatag)
         del database.tested_attribute
 

@@ -133,13 +133,13 @@ class RawGUIDContainer(OpenFrozenSlots):
     def __hash__(self) -> int:
         return int.from_bytes(self.sort_key, BIG)
 
-    def __eq__(self, other: "cls") -> bool:
+    def __eq__(self, other: t.Cls) -> bool:
         return self.sort_key == other.sort_key
 
-    def __gt__(self, other: "cls") -> bool:
+    def __gt__(self, other: t.Cls) -> bool:
         return self.sort_key > other.sort_key
 
-    def __lt__(self, other: "cls") -> bool:
+    def __lt__(self, other: t.Cls) -> bool:
         return self.sort_key < other.sort_key
 
     @property

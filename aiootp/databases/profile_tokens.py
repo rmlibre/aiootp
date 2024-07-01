@@ -24,8 +24,7 @@ from hashlib import sha3_512
 
 from aiootp._typing import Typing as t
 from aiootp._constants import MIN_KEY_BYTES
-from aiootp._gentools import aunpack
-from aiootp._paths import Path, AsyncSecurePath, SecurePath
+from aiootp._paths import AsyncSecurePath, SecurePath
 from aiootp._paths import aread_salt_file, read_salt_file
 from aiootp.asynchs import asleep
 from aiootp.commons import FrozenSlots

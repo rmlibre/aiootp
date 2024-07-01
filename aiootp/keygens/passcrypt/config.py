@@ -17,8 +17,6 @@ __all__ = ["PasscryptConfig", "passcrypt_spec"]
 __doc__ = "Passcrypt configuration logic & constants."
 
 
-from hashlib import shake_128
-
 from aiootp._typing import Typing as t
 from aiootp._constants import INT_BYTES, BIG
 from aiootp._constants import NANOSECONDS, SAFE_TIMESTAMP_BYTES, EPOCH_NS

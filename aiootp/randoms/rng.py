@@ -29,14 +29,14 @@ from collections import deque
 from hashlib import shake_256
 
 from aiootp._typing import Typing as t
-from aiootp._constants import PRIMES, BIG, SHAKE_256_BLOCKSIZE
+from aiootp._constants import BIG, SHAKE_256_BLOCKSIZE
 from aiootp._exceptions import Issue
 from aiootp._paths import update_salt_file
-from aiootp.asynchs import Threads, asleep, gather, new_event_loop
+from aiootp.asynchs import asleep, gather, new_event_loop
 from aiootp.generics import acanonical_pack
 
 from .simple import atoken_bits, token_bytes, arandom_sleep
-from .simple import acanonical_token, canonical_token, achoice
+from .simple import acanonical_token, canonical_token
 from .threading_safe_entropy_pool import ThreadingSafeEntropyPool
 from .entropy_daemon import EntropyDaemon
 from ._early_salts import _salt, _asalt, _asalt_multiply

@@ -20,7 +20,7 @@ __doc__ = (
 
 
 from aiootp._typing import Typing as t
-from aiootp._exceptions import Issue, TimestampExpired
+from aiootp._exceptions import TimestampExpired
 from aiootp._exceptions import InvalidBlockID, InvalidSHMAC
 from aiootp.commons import OpenFrozenSlots
 

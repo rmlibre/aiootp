@@ -50,7 +50,6 @@ __doc__ = (
 )
 
 
-import json
 import asyncio
 from pathlib import Path
 from cryptography.exceptions import InvalidSignature

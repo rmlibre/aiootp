@@ -19,8 +19,10 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - fix: allow ``str`` build numbers in signing ceremony
+- fix(db): raise intended error by loading missing import
 - fix(commons): remove duplicates prior to update
 - fix(commons): accept pair-iterable mapping in init
+- fix(concurrency): import missing name in guard clause line
 - ci(perf): run workflows on push & pull, but not on same event
 - docs: fix wrong or incomplete doc strings
 - docs: add links for bug & security issue reporting
@@ -33,6 +35,8 @@ Minor Changes
 - perf(init): cache slots as sets for membership tests [#11]
 - revert: scrap discouraged quick-fix in favor of f1060ce221 [#11]
 - refactor(exc): rely on common invalid length exception
+- style(lint): remove unused imports
+- style(lint): prefer non-lambda function definitions
 
 
 
