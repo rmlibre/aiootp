@@ -3,6 +3,7 @@ global-exclude *.pyc
 global-exclude */*
 recursive-exclude aiootp/tor/ *
 recursive-exclude aiootp/db/ *
+recursive-exclude logs/ *
 recursive-include licenses/ *
 include LICENSE
 include setup.py

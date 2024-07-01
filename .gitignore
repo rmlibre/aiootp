@@ -1,11 +1,12 @@
-.pytest_cache
 __pycache__
+.pytest_cache
 .coverage*
 .pyc
 .hypothesis
 htmlcov
 build
 dist
+logs
 venv
 env
 /aiootp.egg-info/*
