@@ -20,9 +20,9 @@ __doc__ = "Manager interfaces for cipher KDFs."
 from aiootp._typing import Typing as t
 from aiootp._constants.misc import MIN_KEY_BYTES
 from aiootp._exceptions import KeyAADIssue, Issue
-from aiootp.commons import Config, ConfigMap, FrozenInstance
+from aiootp.commons import Config, FrozenInstance
 from aiootp.generics import Domains
-from aiootp.generics import canonical_pack, encode_key, fullblock_ljust
+from aiootp.generics import encode_key, fullblock_ljust
 
 
 class ShakeConfig(Config):

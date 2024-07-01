@@ -22,7 +22,7 @@ from secrets import token_bytes
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, ASYNC, SYNC
 from aiootp._exceptions import Issue, KeyAADIssue
-from aiootp.commons import FrozenInstance, FrozenSlots, OpenFrozenSlots
+from aiootp.commons import FrozenSlots, OpenFrozenSlots
 from aiootp.generics import canonical_pack
 
 from .cipher_kdfs import CipherKDFs

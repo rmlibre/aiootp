@@ -18,12 +18,12 @@ __doc__ = "General definition for the StreamHMAC interface."
 
 
 from aiootp._typing import Typing as t
-from aiootp._constants import DEFAULT_AAD, SHAKE_128_BLOCKSIZE, BIG
+from aiootp._constants import DEFAULT_AAD, BIG
 from aiootp._constants import ENCRYPTION, DECRYPTION
 from aiootp._exceptions import Issue, SHMACIssue, ValidationIncomplete
 from aiootp._exceptions import InvalidBlockID, InvalidSHMAC
 from aiootp.asynchs import asleep
-from aiootp.generics import Domains, bytes_are_equal
+from aiootp.generics import bytes_are_equal
 
 from .key_bundle import KeyAADBundle
 

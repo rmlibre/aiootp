@@ -19,8 +19,6 @@ __all__ = [
 __doc__ = "Definitions for mapping classes."
 
 
-import asyncio
-
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
 

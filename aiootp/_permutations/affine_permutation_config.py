@@ -17,7 +17,6 @@ __all__ = ["AffinePermutationConfig"]
 __doc__ = "A configuration type for `AffinePermutation`."
 
 
-import io
 from math import log2
 
 from aiootp._typing import Typing as t

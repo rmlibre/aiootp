@@ -23,7 +23,6 @@ __doc__ = (
 from aiootp._typing import Typing as t
 from aiootp._constants import ENCRYPTION, DECRYPTION, ASYNC, SYNC
 from aiootp._exceptions import Issue, KeyAADIssue
-from aiootp.asynchs import asleep
 from aiootp.commons import FrozenInstance
 
 from .stream_hmac import StreamHMAC

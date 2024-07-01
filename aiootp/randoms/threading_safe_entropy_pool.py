@@ -20,16 +20,14 @@ __doc__ = (
 )
 
 
-from secrets import choice, token_bytes
+from secrets import token_bytes
 
 from aiootp._typing import Typing as t
-from aiootp._constants import HASHER_TYPES, INT_BYTES, BIG
+from aiootp._constants import INT_BYTES, BIG
 from aiootp.commons import FrozenInstance
-from aiootp.asynchs import get_process_id, get_thread_id
-from aiootp.asynchs import asleep, ns_counter
 from aiootp.generics import acanonical_pack, canonical_pack
 
-from .simple import acanonical_token, canonical_token, token_bits
+from .simple import acanonical_token, canonical_token
 
 
 class ThreadingSafeEntropyPool(FrozenInstance):

@@ -36,7 +36,7 @@ from time import perf_counter_ns as ns_counter
 
 from aiootp._typing import Typing as t
 from aiootp._constants import SECONDS, EPOCH_NS, BIG
-from aiootp._constants import SAFE_TIMESTAMP_BYTES, DEFAULT_TTL
+from aiootp._constants import SAFE_TIMESTAMP_BYTES
 from aiootp._exceptions import Issue, TimestampExpired
 from aiootp.commons import FrozenNamespace, FrozenInstance
 

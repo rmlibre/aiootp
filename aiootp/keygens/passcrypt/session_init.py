@@ -23,14 +23,8 @@ from hashlib import shake_128
 from aiootp._typing import Typing as t
 from aiootp._constants import B_TO_MB_RATIO, DEFAULT_AAD
 from aiootp._constants import INT_BYTES, BIG, SHAKE_128_BLOCKSIZE
-from aiootp._exceptions import Issue, PasscryptIssue
-from aiootp._exceptions import Metadata
-from aiootp.commons import FrozenSlots, FrozenInstance, OpenNamespace
-from aiootp.generics import Domains, ahash_bytes, hash_bytes
-from aiootp.generics import canonical_pack, bytes_are_equal
-from aiootp.randoms import acsprng, csprng
-
-from .config import passcrypt_spec
+from aiootp.commons import FrozenInstance
+from aiootp.generics import Domains, hash_bytes
 
 
 class PasscryptSession(FrozenInstance):

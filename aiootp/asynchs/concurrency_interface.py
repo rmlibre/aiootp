@@ -17,8 +17,6 @@ __all__ = ["ConcurrencyInterface"]
 __doc__ = "A general interface for multi-threading & multi-processing."
 
 
-from time import sleep
-
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
 

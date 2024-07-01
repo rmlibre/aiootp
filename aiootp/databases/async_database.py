@@ -20,7 +20,7 @@ __doc__ = "Implements an asynchronous transparently encrypted database."
 import json
 
 from aiootp._typing import Typing as t
-from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL, MIN_KEY_BYTES, BIG
+from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL, MIN_KEY_BYTES
 from aiootp._constants import BYTES_FLAG, BYTES_FLAG_SIZE
 from aiootp._constants import FILENAME_HASH_BYTES, SHAKE_128_BLOCKSIZE
 from aiootp._exceptions import DatabaseIssue, Issue, Ignore

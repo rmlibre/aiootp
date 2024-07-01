@@ -27,7 +27,7 @@ __doc__ = (
 
 
 from aiootp._typing import Typing as t
-from aiootp._constants.misc import BIG, ENCRYPTION
+from aiootp._constants.misc import BIG
 from aiootp._exceptions import Issue
 from aiootp.asynchs import asleep
 from aiootp.commons import FrozenInstance
@@ -36,7 +36,6 @@ from .cipher_kdfs import CipherKDFs
 from .key_bundle import KeyAADBundle
 from .stream_hmac import StreamHMAC
 from .stream_junction import StreamJunction
-from .cipher_interface import CipherInterface
 from .slick_256_config import SHMAC_KDF
 
 

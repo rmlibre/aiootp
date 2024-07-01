@@ -18,14 +18,13 @@ __doc__ = "An interface for hashing & signing software packages."
 
 
 import json
-from pathlib import Path
 from hashlib import sha384
 
 from aiootp._typing import Typing as t
 from aiootp._constants import DAYS
 from aiootp._constants import CHECKSUM, CHECKSUMS, PUBLIC_CREDENTIALS
 from aiootp._constants import SCOPE, SIGNATURE, SIGNING_KEY, VERSIONS
-from aiootp._exceptions import Issue, PackageSignerIssue
+from aiootp._exceptions import PackageSignerIssue
 from aiootp.asynchs import Clock
 from aiootp.generics import Domains, canonical_pack
 from aiootp.databases import Database
