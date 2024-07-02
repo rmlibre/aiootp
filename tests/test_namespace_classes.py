@@ -132,7 +132,7 @@ class BaseMaskableReprTests(BaseVariableHoldingClassTests):
 class BaseFrozenTests(BaseVariableHoldingClassTests):
 
     async def test_instance_values_cant_be_changed_once_set(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An instance was allowed to be mutated."
         )
         obj = self._type()
@@ -235,7 +235,7 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
         assert "attr_1" in bad_obj.__dict__
         assert not hasattr(bad_obj, "attr_0")
         assert not hasattr(bad_obj, "attr_1")
-        problem = (
+        problem = (  # fmt: skip
             "Very strange __dict__ / __slots__ interplay didn't manifest?"
         )
         with Ignore(AttributeError, if_else=violation(problem)):
@@ -309,7 +309,7 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
     async def test_slots_contains_all_names_with_declared_types(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A type was created with a mismatch in variable declarations."
         )
         with Ignore(t.MissingDeclaredVariables, if_else=violation(problem)):
@@ -318,7 +318,7 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
                 slots_types = dict(swell=bool)
 
     async def test_slots_types_contains_all_names_in_slots(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A type was created with a mismatch in variable declarations."
         )
         with Ignore(t.MissingDeclaredVariables, if_else=violation(problem)):
@@ -327,7 +327,7 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
                 slots_types = dict()
 
     async def test_declared_types_are_enforced(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A typed class didn't enforce a type in their `slots_types`."
         )
         obj = self._type()

@@ -19,7 +19,7 @@ class TestTypingClass:
     async def test_added_type_names_must_have_valid_identifiers(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A type with non-identifier name was allowed to be registered."
         )
         NonIdentifierNamedType = type("123Type", (), {})
@@ -29,7 +29,7 @@ class TestTypingClass:
     async def test_cant_register_type_more_than_once(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A type was registered more than once."
         )
         with Ignore(AttributeError, if_else=violation(problem)):
@@ -38,7 +38,7 @@ class TestTypingClass:
     async def test_mixed_case_type_cant_be_registered(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A mixed-case type was registered."
         )
         Mixed_Case_Type = type("Mixed_Case_Type", (), {})
@@ -48,7 +48,7 @@ class TestTypingClass:
     async def test_non_capitalized_type_cant_be_registered(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-capitalized type was registered."
         )
         nonCapitalizedType = type("nonCapitalizedType", (), {})
@@ -58,7 +58,7 @@ class TestTypingClass:
     async def test_non_class_object_cant_be_registered(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-class object was registered."
         )
         non_class_objects = (

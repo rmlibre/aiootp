@@ -113,7 +113,7 @@ class TestDatabaseCacheSystem:
 class TestDatabaseInitialization:
 
     async def test_async_key_size_limits(self):
-        problem = (
+        problem = (  # fmt: skip
             "a key that's too small was allowed."
         )
         token = token_bytes(64)
@@ -123,7 +123,7 @@ class TestDatabaseInitialization:
                 db = await AsyncDatabase(key)
 
     def test_sync_key_size_limits(self):
-        problem = (
+        problem = (  # fmt: skip
             "a key that's too small was allowed."
         )
         token = token_bytes(64)
@@ -164,7 +164,7 @@ class TestDatabases:
         assert tag not in async_database
         assert None == await async_database.aquery_tag(tag, silent=True)
 
-        problem = (
+        problem = (  # fmt: skip
             "Non-existent tag query doesn't throw when silent flag not set."
         )
         with Ignore(LookupError, if_else=violation(problem)):
@@ -177,7 +177,7 @@ class TestDatabases:
         assert tag not in database
         assert None == database.query_tag(tag, silent=True)
 
-        problem = (
+        problem = (  # fmt: skip
             "Non-existent tag query doesn't throw when silent flag not set."
         )
         with Ignore(LookupError, if_else=violation(problem)):
@@ -195,7 +195,7 @@ class TestDatabases:
         await async_database.asave_database()
         assert data == await async_database.apop_tag(tag)
 
-        problem = (
+        problem = (  # fmt: skip
             "Pop tag doesn't throw when silent flag not set."
         )
         with Ignore(LookupError, if_else=violation(problem)):
@@ -213,7 +213,7 @@ class TestDatabases:
         database.save_database()
         assert data == database.pop_tag(tag)
 
-        problem = (
+        problem = (  # fmt: skip
             "Pop tag doesn't throw when silent flag not set."
         )
         with Ignore(LookupError, if_else=violation(problem)):
@@ -297,7 +297,7 @@ class TestDatabases:
         class NonDatabaseType:
             pass
 
-        problem = (
+        problem = (  # fmt: skip
             "A non-database type metatag was assessed as a metatag."
         )
         metatag = "tested_attribute"
@@ -312,7 +312,7 @@ class TestDatabases:
         class NonDatabaseType:
             pass
 
-        problem = (
+        problem = (  # fmt: skip
             "A non-database type metatag was assessed as a metatag."
         )
         metatag = "tested_attribute"
@@ -324,7 +324,7 @@ class TestDatabases:
     async def test_async_delete_non_existent_metatag_throws_error(
         self, async_database: AsyncDatabase
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A deletion of a non-existent metatag didn't throw an error."
         )
         metatag = "tested_metatag"
@@ -334,7 +334,7 @@ class TestDatabases:
     async def test_sync_delete_non_existent_metatag_throws_error(
         self, database: Database
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A deletion of a non-existent metatag didn't throw an error."
         )
         metatag = "tested_metatag"
@@ -344,7 +344,7 @@ class TestDatabases:
     async def test_async_save_non_existent_tag_throws_error(
         self, async_database: AsyncDatabase
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A save of a non-existent tag didn't throw an error."
         )
         tag = "tested_tag"
@@ -355,7 +355,7 @@ class TestDatabases:
     async def test_sync_save_non_existent_tag_throws_error(
         self, database: Database
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A save of a non-existent tag didn't throw an error."
         )
         tag = "tested_tag"
@@ -366,7 +366,7 @@ class TestDatabases:
     async def test_async_delitem_removes_tags(
         self, async_database: AsyncDatabase
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A save of a non-existent tag didn't throw an error."
         )
         tag = "tested_tag"
@@ -387,7 +387,7 @@ class TestDatabases:
     async def test_sync_delitem_removes_tags(
         self, database: AsyncDatabase
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A save of a non-existent tag didn't throw an error."
         )
         tag = "tested_tag"

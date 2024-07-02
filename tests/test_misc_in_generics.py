@@ -36,7 +36,7 @@ class TestBaseConversions:
             assert answer == await abase_as_int(string, table=table)
             assert answer == base_as_int(string, table=table)
 
-        problem = (
+        problem = (  # fmt: skip
             "A character not a part of the base's table didn't error."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -72,7 +72,7 @@ class TestDomains:
 class TestEncodingUtilities:
 
     async def test_key_must_not_be_falsey(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A falsey key was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -83,7 +83,7 @@ class TestEncodingUtilities:
     async def test_item_size_mismatches_caught_during_decoding(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A mismatch between item length & declared length was allowed."
         )
         int_bytes = 1
@@ -104,7 +104,7 @@ class TestEncodingUtilities:
             ))
 
     async def test_missing_padding_metadata_throws_error(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Padding test ran without the necessary metadata."
         )
         blocksize = (32).to_bytes(1, BIG)
@@ -119,7 +119,7 @@ class TestEncodingUtilities:
     async def test_non_blocksize_multiple_declared_length_throws_error(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Padding test ran with a length declaration not equal to a "
             "multiple of the blocksize."
         )
@@ -133,7 +133,7 @@ class TestEncodingUtilities:
             )
 
     async def test_declared_pad_value_must_be_all_that_remains(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Padding test ran with an invalid padding value."
         )
         blocksize = (32).to_bytes(1, BIG)
@@ -154,7 +154,7 @@ class TestEncodingUtilities:
 class TestCanonicalPack:
 
     async def test_empty_pad_is_invalid(self):
-        problem = (
+        problem = (  # fmt: skip
             "An empty padding value didn't raise a `TypeError`."
         )
         with Ignore(TypeError, if_else=violation(problem)):
@@ -163,7 +163,7 @@ class TestCanonicalPack:
             await acanonical_pack(b"test", pad=b"")
 
     async def test_zero_blocksize_is_invalid(self):
-        problem = (
+        problem = (  # fmt: skip
             "A negative blocksize value didn't raise a `OverflowError`."
         )
         with Ignore(ZeroDivisionError, if_else=violation(problem)):
@@ -172,7 +172,7 @@ class TestCanonicalPack:
             await acanonical_pack(b"test", blocksize=0)
 
     async def test_negative_integer_blocksize_is_invalid(self):
-        problem = (
+        problem = (  # fmt: skip
             "A negative blocksize value didn't raise a `OverflowError`."
         )
         test_values = (-168, -136, -2, -1)
@@ -183,7 +183,7 @@ class TestCanonicalPack:
                 await acanonical_pack(b"test", blocksize=blocksize)
 
     async def test_float_blocksize_is_invalid(self):
-        problem = (
+        problem = (  # fmt: skip
             "A float blocksize value didn't raise an `AttributeError`."
         )
         test_values = (-2.0, -1.0, 0.0, 1.0, 2.0)
@@ -194,7 +194,7 @@ class TestCanonicalPack:
                 await acanonical_pack(b"test", blocksize=blocksize)
 
     async def test_minimum_size_given_by_item_count_declaration(self):
-        problem = (
+        problem = (  # fmt: skip
             "An item count declaration which exceeds the count which is"
             "possible given the small size of the packing was allowed."
         )

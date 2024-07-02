@@ -84,7 +84,7 @@ class TestGUID:
                     assert raw > raw_guids_list[i - 1]
 
     async def test_guid_size_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Invalid length GUID was allowed during decoding."
         )
         for size in range(12, 33):
@@ -98,7 +98,7 @@ class TestGUID:
                 await guid.aread(b"\xff" + guid.new())
 
     async def test_node_id_size_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid length node ID was allowed."
         )
         for size in range(12, 33):

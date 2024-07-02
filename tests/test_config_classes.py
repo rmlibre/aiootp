@@ -29,7 +29,7 @@ class TestConfig:
     uncheckable_types = (t.List[int], t.PositiveRealNumber)
 
     def test_slots_types_enforces_types(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A mismatch between an attribute type & a `slot_types` "
             "delcaration was allowed."
         )
@@ -45,7 +45,7 @@ class TestConfig:
                     config = ExampleConfig(var=attr_type)
 
     def test_runtime_uncheckable_types_are_detected(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A runtime-uncheckable type declaration didn't proc an error."
         )
         for declaration in self.uncheckable_types:
@@ -72,7 +72,7 @@ class TestConfigMap:
     def test_config_id_cannot_change(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "config_id changed without error."
         )
         config_id = 1
@@ -85,7 +85,7 @@ class TestConfigMap:
     def test_config_must_be_config_subclass(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "non-`Config` subclass was allowed to be registered."
         )
         config_id = 1
@@ -97,7 +97,7 @@ class TestConfigMap:
     def test_cannot_be_reassigned(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "a config was allowed to be reassigned to the map."
         )
         config_id = 1

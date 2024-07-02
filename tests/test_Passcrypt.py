@@ -107,7 +107,7 @@ class TestPasscryptMetadataHashes:
         )
 
     async def test_wrong_passphrase_fails_async(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid passphrase passed async verification."
         )
         with Ignore(Passcrypt.InvalidPassphrase, if_else=violation(problem)):
@@ -118,7 +118,7 @@ class TestPasscryptMetadataHashes:
             )
 
     async def test_wrong_passphrase_fails_sync(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid passphrase passed sync verification."
         )
         with Ignore(Passcrypt.InvalidPassphrase, if_else=violation(problem)):
@@ -130,7 +130,7 @@ class TestPasscryptMetadataHashes:
 
     async def test_async_mb_resource_limitations(self) -> None:
         mb_allowed = passcrypt_settings.mb
-        problem = (
+        problem = (  # fmt: skip
             "The `mb` was allowed to exceed the resource limit of "
             f"{mb_allowed - 1}."
         )
@@ -142,7 +142,7 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = (
+        problem = (  # fmt: skip
             "The `mb` was allowed to fall below the resource limit of "
             f"{mb_allowed + 1}."
         )
@@ -156,7 +156,7 @@ class TestPasscryptMetadataHashes:
 
     async def test_sync_mb_resource_limitations(self) -> None:
         mb_allowed = passcrypt_settings.mb
-        problem = (
+        problem = (  # fmt: skip
             "The `mb` was allowed to exceed the resource limit of "
             f"{mb_allowed - 1}."
         )
@@ -168,7 +168,7 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = (
+        problem = (  # fmt: skip
             "The `mb` was allowed to fall below the resource limit of "
             f"{mb_allowed + 1}."
         )
@@ -182,7 +182,7 @@ class TestPasscryptMetadataHashes:
 
     async def test_async_cpu_resource_limitations(self) -> None:
         cpu_allowed = passcrypt_settings.cpu
-        problem = (
+        problem = (  # fmt: skip
             "The `cpu` was allowed to exceed the resource limit of "
             f"{cpu_allowed - 1}."
         )
@@ -194,7 +194,7 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = (
+        problem = (  # fmt: skip
             "The `cpu` was allowed to fall below the resource limit of "
             f"{cpu_allowed + 1}."
         )
@@ -208,7 +208,7 @@ class TestPasscryptMetadataHashes:
 
     async def test_sync_cpu_resource_limitations(self) -> None:
         cpu_allowed = passcrypt_settings.cpu
-        problem = (
+        problem = (  # fmt: skip
             "The `cpu` was allowed to exceed the resource limit of "
             f"{cpu_allowed - 1}."
         )
@@ -220,7 +220,7 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = (
+        problem = (  # fmt: skip
             "The `cpu` was allowed to fall below the resource limit of "
             f"{cpu_allowed + 1}."
         )
@@ -234,7 +234,7 @@ class TestPasscryptMetadataHashes:
 
     async def test_async_cores_resource_limitations(self) -> None:
         cores_allowed = passcrypt_settings.cores
-        problem = (
+        problem = (  # fmt: skip
             "The `cores` was allowed to exceed the resource limit of "
             f"{cores_allowed - 1}."
         )
@@ -246,7 +246,7 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = (
+        problem = (  # fmt: skip
             "The `cores` was allowed to fall below the resource limit of "
             f"{cores_allowed + 1}."
         )
@@ -260,7 +260,7 @@ class TestPasscryptMetadataHashes:
 
     async def test_sync_cores_resource_limitations(self) -> None:
         cores_allowed = passcrypt_settings.cores
-        problem = (
+        problem = (  # fmt: skip
             "The `cores` was allowed to exceed the resource limit of "
             f"{cores_allowed - 1}."
         )
@@ -272,7 +272,7 @@ class TestPasscryptMetadataHashes:
                 config=self.config,
             )
 
-        problem = (
+        problem = (  # fmt: skip
             "The `cores` was allowed to fall below the resource limit of "
             f"{cores_allowed + 1}."
         )
@@ -348,7 +348,7 @@ class TestPasscryptInputsOutputs:
     settings = dict(**pcrypt._settings, config=pcrypt._config)
 
     async def test_empty_passphrase_isnt_allowed(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Empty passphrase was allowed."
         )
         with Ignore(Passcrypt.ImproperPassphrase, if_else=violation(problem)):
@@ -361,7 +361,7 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew(b"", self.salt)
 
     async def test_min_passphrase_length(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A below minimum length passphrase was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -378,7 +378,7 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew((config.MIN_PASSPHRASE_BYTES - 1) * b"p", self.salt)
 
     async def test_passphrase_must_be_bytes(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Non-bytes passphrase was allowed."
         )
         with Ignore(TypeError, if_else=violation(problem)):
@@ -399,7 +399,7 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew("a string passphrase", self.salt)
 
     async def test_falsey_salts_not_allowed(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Empty salt was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -412,7 +412,7 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew(key, salt=b"")
 
     async def test_salt_must_be_bytes(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Non-bytes salt was allowed."
         )
         with Ignore(TypeError, if_else=violation(problem)):
@@ -431,7 +431,7 @@ class TestPasscryptInputsOutputs:
             await self.pcrypt.anew(key, "a string salt here")
 
     async def test_aad_must_be_bytes(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-bytes type `aad` was allowed."
         )
         with Ignore(TypeError, if_else=violation(problem)):
@@ -454,7 +454,7 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_mb(None), TypeError)
 
     async def test_min_mb(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `mb` cost below the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -467,7 +467,7 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_max_mb(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `mb` cost above the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -485,7 +485,7 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_cpu(None), TypeError)
 
     async def test_min_cpu(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `cpu` cost below the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -498,7 +498,7 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_max_cpu(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `cpu` cost above the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -516,7 +516,7 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_cores(None), TypeError)
 
     async def test_min_cores(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `cores` cost below the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -529,7 +529,7 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_max_cores(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `cores` cost above the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -547,7 +547,7 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_tag_size(None), TypeError)
 
     async def test_min_tag_size(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `tag_size` below the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -565,7 +565,7 @@ class TestPasscryptInputsOutputs:
         assert isinstance(PasscryptIssue.invalid_salt_size(None), TypeError)
 
     async def test_min_salt_size(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `salt_size` below the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -578,7 +578,7 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_max_salt_size(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A `salt_size` above the minimum was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -602,7 +602,7 @@ class TestPasscryptConcurrencyInterface:
     pcrypt = Passcrypt(**passcrypt_settings, tag_size=32)
 
     async def test_async_broken_pool_is_restarted(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "The algorithm wasn't halted by a broken process pool."
         )
         Processes._pool._broken = True
@@ -611,7 +611,7 @@ class TestPasscryptConcurrencyInterface:
         assert not Processes._pool._broken
 
     async def test_sync_broken_pool_is_restarted(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "The algorithm wasn't halted by a broken process pool."
         )
         Processes._pool._broken = True

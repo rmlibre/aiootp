@@ -166,7 +166,7 @@ def new_config_copy(_config: t.ConfigType, **kw) -> t.ConfigType:
 class TestCipherConfigs:
 
     async def test_inner_header_size_must_be_even(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An odd sized inner-header was allowed to be configured."
         )
         for (_config, *_) in dual_output_ciphers:
@@ -176,7 +176,7 @@ class TestCipherConfigs:
                 )
 
     async def test_blocksize_size_must_be_even(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An odd blocksize was allowed to be configured."
         )
         for (_config, *_) in dual_output_ciphers:
@@ -184,7 +184,7 @@ class TestCipherConfigs:
                 new_dual_output_config_copy(_config, blocksize=255)
 
     async def test_blocksize_must_be_positive(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A nonsensical blocksize was allowed."
         )
         for (_config, *_) in all_ciphers:
@@ -194,7 +194,7 @@ class TestCipherConfigs:
                 config._ensure_blocksize_is_positive()
 
     async def test_left_right_kdf_blocksizes_are_equal(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Non-equal left & right KDF blocksizes were allowed to be "
             "configured."
         )
@@ -221,7 +221,7 @@ class TestCipherConfigs:
     async def test_extracted_round_entopy_not_larger_than_blocksize(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "More information in plaintext than is passed between KDFs "
             "each round was allowed to be configured."
         )
@@ -238,7 +238,7 @@ class TestCipherConfigs:
                 config._ensure_extracted_entropy_less_than_kdf_blocksize()
 
     async def test_min_block_id_not_larger_than_max(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "The minimum block ID was allowed to be larger that the "
             "max."
         )
@@ -253,7 +253,7 @@ class TestCipherConfigs:
     async def test_blocksize_doesnt_overflow_allottable_space_in_shmac_object(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "The blocksize was allowed to take up the space allotted "
             "to other values within a SHMAC object update."
         )
@@ -264,7 +264,7 @@ class TestCipherConfigs:
     async def test_inner_header_doesnt_cause_inadequate_space_for_plaintext(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "At least 16 bytes weren't left for plaintext after accounting "
             "for obligatory padding."
         )
@@ -281,7 +281,7 @@ class TestCipherConfigs:
                 config._ensure_inner_header_leaves_adequate_space()
 
     async def test_all_attributes_must_be_set(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "The attribute existence checker didn't proc when an "
             "attribute was missing."
         )
@@ -321,7 +321,7 @@ class TestCipherConfigs:
             assert plaintext == cipher.bytes_decrypt(ciphertext)
 
     async def test_altered_config_alters_initial_kdf_states(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Differently configured ciphers allowed to interop."
         )
         for (control_config, control_cipher, salt, aad) in all_ciphers:

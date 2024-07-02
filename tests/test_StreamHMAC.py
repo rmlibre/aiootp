@@ -24,7 +24,7 @@ class TestStreamHMACStates:
         class FalseKeyAADBundle:
             pass
 
-        problem = (
+        problem = (  # fmt: skip
             "An invalid key_bundle type was allowed."
         )
         for (config, cipher, *_) in all_ciphers:
@@ -35,7 +35,7 @@ class TestStreamHMACStates:
     async def test_sync_shmac_cant_be_registered_more_than_once(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A SHMAC object was allowed to be used more than once."
         )
         for (config, cipher, *_) in all_ciphers:
@@ -49,7 +49,7 @@ class TestStreamHMACStates:
                 b"".join(cipher._Junction.bytes_encipher(data, shmac=shmac))
 
     async def test_result_cant_be_retrieved_before_finalization(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Retrieving a result before finalization was allowed."
         )
         for (config, cipher, salt, aad) in all_ciphers:
@@ -61,7 +61,7 @@ class TestStreamHMACStates:
                 shmac.result
 
     async def test_cant_finalize_more_than_once(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Multiple finalization calls were allowed."
         )
         for (config, cipher, salt, aad) in all_ciphers:
@@ -76,7 +76,7 @@ class TestStreamHMACStates:
                 await shmac.afinalize()
 
     async def test_untrusted_shmac_must_be_bytes(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-bytes untrusted shmac was allowed."
         )
         for (config, cipher, salt, aad) in all_ciphers:
@@ -120,7 +120,7 @@ async def test_detection_of_ciphertext_modification():
         ######
         ###### async decryption of altered ciphertext fails
         aict = int.from_bytes(act, BIG)
-        problem = (
+        problem = (  # fmt: skip
             "Async ciphertext alteration not caught."
         )
         for abit in range(0, aict.bit_length(), 16):
@@ -129,7 +129,7 @@ async def test_detection_of_ciphertext_modification():
                 await cipher.abytes_decrypt(altered_act)
 
         # async decryption of ciphertext lengthened to invalid size fails
-        problem = (
+        problem = (  # fmt: skip
             "Invalid size lengthened sync ciphertext allowed."
         )
         for extra_bytes in range(1, config.BLOCKSIZE):
@@ -137,7 +137,7 @@ async def test_detection_of_ciphertext_modification():
                 await cipher.abytes_decrypt(act + token_bytes(extra_bytes))
 
         # sync decryption of ciphertext shortened to invalid size fails
-        problem = (
+        problem = (  # fmt: skip
             "Invalid size shortened sync ciphertext allowed."
         )
         for fewer_bytes in range(1, config.BLOCKSIZE):
@@ -171,7 +171,7 @@ async def test_detection_of_ciphertext_modification():
         ######
         ###### sync decryption of altered ciphertext fails
         ict = int.from_bytes(ct, BIG)
-        problem = (
+        problem = (  # fmt: skip
             "Sync ciphertext alteration not caught."
         )
         for bit in range(0, ict.bit_length(), 16):
@@ -180,7 +180,7 @@ async def test_detection_of_ciphertext_modification():
                 cipher.bytes_decrypt(altered_ct)
 
         # sync decryption of ciphertext lengthened to invalid size fails
-        problem = (
+        problem = (  # fmt: skip
             "Invalid size lengthened sync ciphertext allowed."
         )
         for extra_bytes in range(1, config.BLOCKSIZE):
@@ -188,7 +188,7 @@ async def test_detection_of_ciphertext_modification():
                 cipher.bytes_decrypt(ct + token_bytes(extra_bytes))
 
         # sync decryption of ciphertext shortened to invalid size fails
-        problem = (
+        problem = (  # fmt: skip
             "Invalid size shortened sync ciphertext allowed."
         )
         for fewer_bytes in range(1, config.BLOCKSIZE):
@@ -251,34 +251,34 @@ async def test_async_block_ids_during_deciphering():
             ciphertext.append(ciphertext_block)
             padded_plaintext += await deciphering.asend(None)
 
-            problem = (
+            problem = (  # fmt: skip
                 "Block id was modified without notice."
             )
             with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
                 fake_block_id = await axi_mix(block_id + b"\x01", size=config.BLOCK_ID_BYTES)
                 await shmac.atest_next_block_id(fake_block_id, ciphertext_block)
 
-            problem = (
+            problem = (  # fmt: skip
                 "An insufficient size block ID was allowed."
             )
             with Ignore(PermissionError, if_else=violation(problem)):
                 truncated_block_id = block_id[:config.MIN_BLOCK_ID_BYTES - 1]
                 await shmac.atest_next_block_id(truncated_block_id, ciphertext_block)
 
-            problem = (
+            problem = (  # fmt: skip
                 "An too large block ID was allowed."
             )
             with Ignore(PermissionError, if_else=violation(problem)):
                 expanded_block_id = (config.MAX_BLOCK_ID_BYTES + 1) * b"\xff"
                 await shmac.atest_next_block_id(expanded_block_id, ciphertext_block)
 
-            problem = (
+            problem = (  # fmt: skip
                 "A non-bytes block ID was allowed."
             )
             with Ignore(TypeError, if_else=violation(problem)):
                 await shmac.atest_next_block_id(block_id.hex(), ciphertext_block)
 
-            problem = (
+            problem = (  # fmt: skip
                 "Block was modified without notice."
             )
             with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
@@ -289,7 +289,7 @@ async def test_async_block_ids_during_deciphering():
             padded_plaintext
         )
 
-        problem = (
+        problem = (  # fmt: skip
             "MAC object accessible after finalization."
         )
         tag = await shmac.afinalize()
@@ -315,34 +315,34 @@ def test_sync_block_ids_during_deciphering():
             ciphertext.append(ciphertext_block)
             padded_plaintext += deciphering.send(None)
 
-            problem = (
+            problem = (  # fmt: skip
                 "Block id was modified without notice."
             )
             with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
                 fake_block_id = xi_mix(block_id + b"\x01", size=config.BLOCK_ID_BYTES)
                 shmac.test_next_block_id(fake_block_id, ciphertext_block)
 
-            problem = (
+            problem = (  # fmt: skip
                 "An insufficient size block ID was allowed."
             )
             with Ignore(PermissionError, if_else=violation(problem)):
                 truncated_block_id = block_id[:config.MIN_BLOCK_ID_BYTES - 1]
                 shmac.test_next_block_id(truncated_block_id, ciphertext_block)
 
-            problem = (
+            problem = (  # fmt: skip
                 "An too large block ID was allowed."
             )
             with Ignore(PermissionError, if_else=violation(problem)):
                 expanded_block_id = (config.MAX_BLOCK_ID_BYTES + 1) * b"\xff"
                 shmac.test_next_block_id(expanded_block_id, ciphertext_block)
 
-            problem = (
+            problem = (  # fmt: skip
                 "A non-bytes block ID was allowed."
             )
             with Ignore(TypeError, if_else=violation(problem)):
                 shmac.test_next_block_id(block_id.hex(), ciphertext_block)
 
-            problem = (
+            problem = (  # fmt: skip
                 "Block was modified without notice."
             )
             with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
@@ -351,7 +351,7 @@ def test_sync_block_ids_during_deciphering():
 
         assert plaintext_bytes == cipher._padding.depad_plaintext(padded_plaintext)
 
-        problem = (
+        problem = (  # fmt: skip
             "MAC object accessible after finalization."
         )
         tag = shmac.finalize()
@@ -366,7 +366,7 @@ async def test_calling_aupdate_before_setting_mode_causes_error() -> None:
             cipher._kdfs, salt=salt, aad=aad
         ).async_mode()
 
-        problem = (
+        problem = (  # fmt: skip
             "An async shmac update was allowed without setting mode."
         )
         with Ignore(PermissionError, if_else=violation(problem)):
@@ -379,7 +379,7 @@ async def test_calling_update_before_setting_mode_causes_error() -> None:
             cipher._kdfs, salt=salt, aad=aad
         ).sync_mode()
 
-        problem = (
+        problem = (  # fmt: skip
             "A sync shmac update was allowed without setting mode."
         )
         with Ignore(PermissionError, if_else=violation(problem)):

@@ -28,7 +28,7 @@ class TestAffinePermutationConfig:
     kw = dict(aad=b"testing")
 
     async def test_size_must_be_within_bounded_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A size out of bounds was allowed."
         )
         for bad_size in (-1, 0, 4097):
@@ -36,7 +36,7 @@ class TestAffinePermutationConfig:
                 t.AffinePermutationConfig(size=bad_size, **self.kw)
 
     async def test_smallest_allowed_prime(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A prime below 257 was allowed."
         )
         config_id = size = 1
@@ -55,7 +55,7 @@ class TestAffinePermutation:
     _type: type = AffinePermutation
 
     async def test_additive_key_size_is_enforced(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid key size was allowed."
         )
         for size in _test_sizes:
@@ -110,7 +110,7 @@ class TestAffineXORChainConfig:
     kw = dict(permutation_type=AffinePermutation)
 
     async def test_size_must_be_within_bounded_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A size out of bounds was allowed."
         )
         for bad_size in (-1, 0, 4097):
@@ -125,7 +125,7 @@ class TestAffineXORChainConfig:
     async def test_key_types_is_iterable_of_identifier_int_tuples(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Invalid `key_types` argmuent value was allowed."
         )
         good_name = "in_key"
@@ -165,7 +165,7 @@ class TestAffineXORChainConfig:
         assert 32 == config.PERMUTATION_CONFIG_ID
 
     async def test_permutation_type_is_enforced(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid permutation type was allowed."
         )
 
@@ -195,7 +195,7 @@ class TestAffineXORChain:
     _type: type = AffineXORChain
 
     async def test_in_out_xor_key_sizes_are_enforced(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid XOR key size was allowed."
         )
         key_reader = lambda size: size * b"A"
@@ -212,7 +212,7 @@ class TestAffineXORChain:
                     tested_method(key_reader=bad_key_reader, size=size)
 
     async def test_mid_xor_key_size_is_enforced(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid mid XOR key size was allowed."
         )
         key_reader = lambda size: size * b"A"
@@ -234,7 +234,7 @@ class TestAffineXORChain:
     async def test_increment_update_value_must_be_within_the_domain(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An increment update value outside of the domain was allowed."
         )
         for size in _test_sizes:

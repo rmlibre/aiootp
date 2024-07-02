@@ -97,7 +97,7 @@ class BasicTestSuite:
         assert result != self.get_ids()[name]
 
     async def test_probe_delay_must_be_positive(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-positive probe_delay was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):

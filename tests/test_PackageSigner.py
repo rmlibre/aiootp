@@ -37,7 +37,7 @@ def test_sign_and_verify():
         _repr = repr(signer)
         assert all(name in _repr for name in signer._scope)
 
-        problem = (
+        problem = (  # fmt: skip
             "Allowed to retrieve a signature before connecting to the "
             "database."
         )
@@ -60,14 +60,14 @@ def test_sign_and_verify():
                 break
         signer.update_public_credentials(x25519_public_key=aiootp.__PUBLIC_X25519_KEY__)
 
-        problem = (
+        problem = (  # fmt: skip
             "Allowed to retrieve a signing key before its creation."
         )
         assert not hasattr(signer, "signing_key")
         with Ignore(t.SigningKeyNotSet, if_else=violation(problem)):
             signer.signing_key
 
-        problem = (
+        problem = (  # fmt: skip
             "Allowed to retrieve a signature before signing."
         )
         assert not hasattr(signer, "_signature")
@@ -81,7 +81,7 @@ def test_sign_and_verify():
         signer.update_signing_key(signer.signing_key.secret_key)
         signer.update_signing_key(signer.signing_key.secret_bytes)
 
-        problem = (
+        problem = (  # fmt: skip
             "A type other than str, bytes, Ed25519PrivateKey or an "
             "Ed25519 object was allowed for update_signing_key."
         )
@@ -137,7 +137,7 @@ def test_sign_and_verify():
 
         # summary checksum alteration fails
         summary["checksum"] = summary["checksum"][::-1]
-        problem = (
+        problem = (  # fmt: skip
             "Summary alteration uncaught."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -151,7 +151,7 @@ def test_sign_and_verify():
         verifier.verify_summary(json.dumps(summary))
 
         # altering the signature does not work
-        problem = (
+        problem = (  # fmt: skip
             "Signature alteration went uncaught."
         )
         with Ignore(verifier.InvalidSignature, if_else=violation(problem)):
@@ -165,7 +165,7 @@ def test_sign_and_verify():
 
         # altering the signing key fails
         summary["signing_key"] = X25519().generate().public_bytes.hex()
-        problem = (
+        problem = (  # fmt: skip
             "Changed signing_key went uncaught."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -181,7 +181,7 @@ def test_sign_and_verify():
         PACKAGE = signer._scope.package
         signature = signer.db[PACKAGE][VERSIONS][VERSION]
         signer.db[PACKAGE][VERSIONS][VERSION] = token_bytes(32).hex()
-        problem = (
+        problem = (  # fmt: skip
             "Altered signature not detected during summarization."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -196,7 +196,7 @@ def test_sign_and_verify():
         summary = signer.summarize()
         filename = list(summary[CHECKSUMS])[-1]
         summary[CHECKSUMS][filename] = signer._Hasher().hexdigest()
-        problem = (
+        problem = (  # fmt: skip
             "An invalid file digest wasn't detected."
         )
         with Ignore(InvalidDigest, if_else=violation(problem)):
@@ -204,7 +204,7 @@ def test_sign_and_verify():
 
         # verifier throws error if path is specified without also
         # specifying direct file validation.
-        problem = (
+        problem = (  # fmt: skip
             "A verifier was initialized with conflicting flags."
         )
         with Ignore(ValueError, if_else=violation(problem)):

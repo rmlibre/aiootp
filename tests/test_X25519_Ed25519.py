@@ -20,7 +20,7 @@ OTHER_TYPE_MAPPING = {Ed25519.__name__: X25519, X25519.__name__: Ed25519}
 async def basic_async_tests(tested_class):
     secret_key_a = await tested_class().agenerate()
 
-    problem = (
+    problem = (  # fmt: skip
         "An invalid type was allowed to be imported as a secret key."
     )
     class_not_being_tested = OTHER_TYPE_MAPPING[tested_class.__name__]
@@ -30,7 +30,7 @@ async def basic_async_tests(tested_class):
     async with Ignore(TypeError, if_else=violation(problem)):
         await tested_class().aimport_secret_key(some_secret_key.public_key)
 
-    problem = (
+    problem = (  # fmt: skip
         "An invalid type was allowed to be imported as a public key."
     )
     some_public_key = class_not_being_tested().import_public_key(some_secret_key.public_key)
@@ -44,40 +44,40 @@ async def basic_async_tests(tested_class):
     key_a_from_public_object = await tested_class().aimport_public_key(secret_key_a.public_key)
     key_a_from_public_bytes = await tested_class().aimport_public_key(secret_key_a.public_bytes)
 
-    problem = (
+    problem = (  # fmt: skip
         "A falsey value secret key import didn't fail."
     )
     async with Ignore(ValueError, if_else=violation(problem)):
         await tested_class().aimport_secret_key(b"")
 
-    problem = (
+    problem = (  # fmt: skip
         "A non-key type secret key import didn't fail."
     )
     for non_key_type in (None, "", 0):
         async with Ignore(TypeError, if_else=violation(problem)):
             await tested_class().aimport_secret_key(non_key_type)
 
-    problem = (
+    problem = (  # fmt: skip
         "An invalid length secret key import didn't fail."
     )
     for invalid_length in (1, 16, 31, 33, 48, 64):
         async with Ignore(ValueError, if_else=violation(problem)):
             await tested_class().aimport_secret_key(token_bytes(invalid_length))
 
-    problem = (
+    problem = (  # fmt: skip
         "A falsey value public key import didn't fail."
     )
     async with Ignore(ValueError, if_else=violation(problem)):
         await tested_class().aimport_public_key(b"")
 
-    problem = (
+    problem = (  # fmt: skip
         "A non-key type public key import didn't fail."
     )
     for falsey_value in (None, "", 0):
         async with Ignore(TypeError, if_else=violation(problem)):
             await tested_class().aimport_public_key(falsey_value)
 
-    problem = (
+    problem = (  # fmt: skip
         "An invalid length public key import didn't fail."
     )
     for invalid_length in (1, 16, 31, 33, 48, 64):
@@ -103,14 +103,14 @@ async def basic_async_tests(tested_class):
     assert secret_key_a.has_secret_key()
     assert secret_key_a.has_public_key()
 
-    problem = (
+    problem = (  # fmt: skip
         "Async public key import was allowed when an instance was "
         "already initialized with a key."
     )
     async with Ignore(PermissionError, if_else=violation(problem)):
         await secret_key_a.aimport_public_key(secret_key_a.public_bytes)
 
-    problem = (
+    problem = (  # fmt: skip
         "Async secret key import was allowed when an instance was "
         "already initialized with a key."
     )
@@ -128,40 +128,40 @@ def basic_sync_tests(tested_class):
     key_b_from_public_object = tested_class().import_public_key(secret_key_b.public_key)
     key_b_from_public_bytes = tested_class().import_public_key(secret_key_b.public_bytes)
 
-    problem = (
+    problem = (  # fmt: skip
         "A falsey value secret key import didn't fail."
     )
     with Ignore(ValueError, if_else=violation(problem)):
         tested_class().import_secret_key(b"")
 
-    problem = (
+    problem = (  # fmt: skip
         "A non-key type secret key import didn't fail."
     )
     for non_key_type in (None, "", 0):
         with Ignore(TypeError, if_else=violation(problem)):
             tested_class().import_secret_key(non_key_type)
 
-    problem = (
+    problem = (  # fmt: skip
         "An invalid length secret key import didn't fail."
     )
     for invalid_length in (1, 16, 31, 33, 48, 64):
         with Ignore(ValueError, if_else=violation(problem)):
             tested_class().import_secret_key(token_bytes(invalid_length))
 
-    problem = (
+    problem = (  # fmt: skip
         "A falsey value public key import didn't fail."
     )
     with Ignore(ValueError, if_else=violation(problem)):
         tested_class().import_public_key(b"")
 
-    problem = (
+    problem = (  # fmt: skip
         "A non-key type public key import didn't fail."
     )
     for falsey_value in (None, "", 0):
         with Ignore(TypeError, if_else=violation(problem)):
             tested_class().import_public_key(falsey_value)
 
-    problem = (
+    problem = (  # fmt: skip
         "An invalid length public key import didn't fail."
     )
     for invalid_length in (1, 16, 31, 33, 48, 64):
@@ -187,14 +187,14 @@ def basic_sync_tests(tested_class):
     assert secret_key_b.has_secret_key()
     assert secret_key_b.has_public_key()
 
-    problem = (
+    problem = (  # fmt: skip
         "Sync public key import was allowed when an instance was "
         "already initialized with a key."
     )
     with Ignore(PermissionError, if_else=violation(problem)):
         secret_key_b.import_public_key(secret_key_b.public_bytes)
 
-    problem = (
+    problem = (  # fmt: skip
         "Sync secret key import was allowed when an instance was "
         "already initialized with a key."
     )
@@ -232,7 +232,7 @@ async def test_X25519(database, async_database):
 
     # exchange methods create shared keys from different instances'
     # secret key object
-    problem = (
+    problem = (  # fmt: skip
         "A secret key was used in an interface expecting a public key."
     )
     with Ignore(TypeError, if_else=violation(problem)):
@@ -251,7 +251,7 @@ class TestDiffieHellmanProtocols:
     async def test_non_kex_types_throw_error_in_kex_protocol_inits(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-key exchange type was supplied during init & didn't fail."
         )
         for non_kex_type in (dict, str, int, bytes, t.Namespace, Ed25519):
@@ -267,7 +267,7 @@ class TestDiffieHellmanProtocols:
     async def test_non_kdf_types_throw_error_in_kex_protocol_inits(
         self
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-KDF type was supplied during init & didn't fail."
         )
         my_identity_key = X25519().generate()
@@ -389,12 +389,12 @@ async def test_Ed25519(database, async_database):
     await arbitrary_verifier.averify(async_signature, plaintext_bytes, public_key=secret_key_a.public_bytes)
 
     # async verification succeeds when supplied an incorrect signature & data
-    problem = (
+    problem = (  # fmt: skip
         "Async verification succeeded for an invalid signature."
     )
     async with Ignore(Ed25519.InvalidSignature, if_else=violation(problem)):
         await key_a_verifier.averify(token_bytes(len(async_signature)), plaintext_bytes)
-    problem = (
+    problem = (  # fmt: skip
         "Async verification succeeded for an invalid signature."
     )
     async with Ignore(Ed25519.InvalidSignature, if_else=violation(problem)):
@@ -405,12 +405,12 @@ async def test_Ed25519(database, async_database):
     arbitrary_verifier.verify(signature, plaintext_bytes, public_key=secret_key_b.public_bytes)
 
     # sync verification succeeds when supplied an incorrect signature & data
-    problem = (
+    problem = (  # fmt: skip
         "Verification succeeded for an invalid signature."
     )
     with Ignore(Ed25519.InvalidSignature, if_else=violation(problem)):
         key_a_verifier.verify(token_bytes(len(async_signature)), plaintext_bytes)
-    problem = (
+    problem = (  # fmt: skip
         "Verification succeeded for an invalid signature."
     )
     with Ignore(Ed25519.InvalidSignature, if_else=violation(problem)):

@@ -101,14 +101,14 @@ class TestEntropyDaemon:
         assert self.daemon._daemon.is_alive()
 
     async def test_max_delay_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A negative delay was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
             self.daemon.set_max_delay(-1)
 
     async def test_temporary_max_delay_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A negative temporary delay was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -175,7 +175,7 @@ class TestRandomNumberGenerator:
     kw = dict(freshness=0, entropy=token_bytes(16))
 
     async def test_freshness_must_be_positive_int(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-positive int `freshness` value was allowed."
         )
         for bad_freshness in (b"-2", "1.0"):

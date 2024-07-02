@@ -35,7 +35,7 @@ class TestOnlineCipherInterfaces:
                 pt_dec = b""
                 join = b"".join
                 for id_ct in stream_enc:
-                    problem = (
+                    problem = (  # fmt: skip
                         "Invalid packet sizes were allowed."
                     )
                     with Ignore(ValueError, if_else=violation(problem)):
@@ -49,7 +49,7 @@ class TestOnlineCipherInterfaces:
                 for pt in stream_dec.finalize():
                     pt_dec += pt
 
-                problem = (
+                problem = (  # fmt: skip
                     "Processing was allowed to continue after finalization."
                 )
                 with Ignore(InterruptedError, if_else=violation(problem)):
@@ -76,7 +76,7 @@ class TestOnlineCipherInterfaces:
                 pt_dec = b""
                 join = b"".join
                 async for id_ct in stream_enc:
-                    problem = (
+                    problem = (  # fmt: skip
                         "Invalid packet sizes were allowed."
                     )
                     with Ignore(ValueError, if_else=violation(problem)):
@@ -90,7 +90,7 @@ class TestOnlineCipherInterfaces:
                 async for pt in stream_dec.afinalize():
                     pt_dec += pt
 
-                problem = (
+                problem = (  # fmt: skip
                     "Processing was allowed to continue after finalization."
                 )
                 with Ignore(InterruptedError, if_else=violation(problem)):
@@ -120,7 +120,7 @@ class TestOnlineCipherInterfaces:
                 # the cipher can be resumed after the failure state of an
                 # InvalidBlockID exception is recovered & the correct data
                 # is supplied to the buffer
-                problem = (
+                problem = (  # fmt: skip
                     "An altered block_id was not detected."
                 )
                 fake_block_id = xi_mix(block_id + b"\x01", size=len(block_id))
@@ -130,7 +130,7 @@ class TestOnlineCipherInterfaces:
                 assert block == relay.error.failure_state.block
                 assert 0 == len(relay.error.failure_state.buffer())
 
-                problem = (
+                problem = (  # fmt: skip
                     "An altered block was not detected."
                 )
                 fake_block = xi_mix(block + b"\x01", size=len(block))
@@ -171,7 +171,7 @@ class TestOnlineCipherInterfaces:
                 # the cipher can be resumed after the failure state of an
                 # InvalidBlockID exception is recovered & the correct data
                 # is supplied to the buffer
-                problem = (
+                problem = (  # fmt: skip
                     "An altered block_id was not detected."
                 )
                 fake_block_id = xi_mix(block_id + b"\x01", size=len(block_id))
@@ -181,7 +181,7 @@ class TestOnlineCipherInterfaces:
                 assert block == relay.error.failure_state.block
                 assert 0 == len(relay.error.failure_state.buffer())
 
-                problem = (
+                problem = (  # fmt: skip
                     "An altered block was not detected."
                 )
                 fake_block = xi_mix(block + b"\x01", size=len(block))

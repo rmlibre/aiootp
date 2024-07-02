@@ -37,6 +37,7 @@ Minor Changes
 - revert: scrap discouraged quick-fix in favor of f1060ce221 [#11]
 - refactor(exc): rely on common invalid length exception
 - style(lint): remove unused imports
+- style(lint): prevent reformat of problem statement
 - style(lint): prefer non-lambda function definitions
 
 

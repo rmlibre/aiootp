@@ -22,7 +22,7 @@ class TestSequenceIDConfig:
         assert 16 == config.PERMUTATION_CONFIG_ID
 
     async def test_size_must_be_within_bounded_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A size out of bounds was allowed."
         )
         for bad_size in (-1, 0, 4097):
@@ -66,7 +66,7 @@ class TestSequenceID:
 
         for n in range(1, 33):
             # the salt must be at least the length of output sizes
-            problem = (
+            problem = (  # fmt: skip
                 "An invalid key size for a specified config_id was allowed."
             )
             with Ignore(KeyError, ValueError, if_else=violation(problem)):

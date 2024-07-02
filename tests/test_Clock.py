@@ -61,7 +61,7 @@ class TestAPlatformCounter:
         assert time.get_clock_info("perf_counter").monotonic == True
 
     def test_is_nanosecond_precise(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Platform perf counter doesn't have nanosecond resolution."
         )
         resolution_warning = lambda relay: warnings.warn(problem) or True
@@ -73,7 +73,7 @@ class TestAPlatformCounter:
 class TestAPlatformTime:
 
     def test_is_at_least_millisecond_precise(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Platform time doesn't have at least millisecond resolution."
         )
         resolution_warning = lambda relay: warnings.warn(problem) or True
@@ -265,7 +265,7 @@ class TestClockConversions:
 class TestClock:
 
     async def test_invalid_unit_throws_error(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid time unit successfully initialized an instance."
         )
         with Ignore(ValueError, if_else=violation(problem)):

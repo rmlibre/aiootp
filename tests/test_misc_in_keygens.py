@@ -48,7 +48,7 @@ class TestMnemonics:
             assert phrase == aphrase
 
     async def test_async_parameters_dictate_functionality(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Can supply passcrypt settings to async mnemonic when not given "
             "passphrase."
         )
@@ -57,7 +57,7 @@ class TestMnemonics:
         assert "parameters are not used" in relay.error.args[0]
 
     async def test_sync_parameters_dictate_functionality(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Can supply passcrypt settings to sync mnemonic when not given "
             "passphrase."
         )
@@ -75,7 +75,7 @@ class TestDomainKDF:
     kdf: DomainKDF = DomainKDF(domain, data, key=key)
 
     async def test_empty_updates_arent_allowed(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Empty KDF updates were allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):

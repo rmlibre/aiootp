@@ -81,7 +81,7 @@ async def test_token_functions():
         ciphertext_of_bytes = cipher.make_token(plaintext_bytes, aad=aad)
 
         # no two ciphertexts are ever the same
-        problem = (
+        problem = (  # fmt: skip
             "A non-bytes plaintext was allowed."
         )
         with Ignore(TypeError, if_else=violation(problem)):

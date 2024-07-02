@@ -19,7 +19,7 @@ from aiootp._constants.misc import SECONDS, MILLISECONDS, MICROSECONDS
 class TestRawGUIDConfig:
 
     async def test_declared_size_must_be_sum_of_components(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An inconsistent `size` declaration was allowed."
         )
         for bad_size in (15, 17):
