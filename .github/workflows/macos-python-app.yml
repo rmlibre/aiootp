@@ -2,12 +2,10 @@ name: mac-build
 
 on:
   push:
-  pull_request:
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.event.pull_request == null)
     strategy:
       max-parallel: 5
       matrix:
