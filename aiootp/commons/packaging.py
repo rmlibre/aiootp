@@ -40,10 +40,12 @@ def remake_module(module: t.ModuleType, /) -> FrozenNamespace:
     The interface for overwriting the package's modules consistently,
     applying the changes which specify the UI/UX of each.
     """
+    # fmt: off
     api = module.module_api
     name = api["__name__"]  # .split(".")[-1]  # <- Uncomment for access to
                             # private variables & package debugging using
                             # from aiootp.<module> import <private_variable>
+    # fmt: on
     return make_module(name=name, mapping=api)
 
 
@@ -71,4 +73,3 @@ module_api = dict(
     remake_module=remake_module,
     remake_subpackage=remake_subpackage,
 )
-

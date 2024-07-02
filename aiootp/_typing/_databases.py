@@ -25,7 +25,6 @@ from .interface import Typing as t
 
 @t.runtime_checkable
 class AsyncDatabaseType(t.Protocol):
-
     async def aload_tags(self, *, silent: bool) -> t.Self:
         pass  # pragma: no cover
 
@@ -61,9 +60,7 @@ class AsyncDatabaseType(t.Protocol):
     ) -> t.Union[bytes, t.JSONSerializable]:
         pass  # pragma: no cover
 
-    async def arollback_tag(
-        self, tag: str, *, cache: bool
-    ) -> t.Self:
+    async def arollback_tag(self, tag: str, *, cache: bool) -> t.Self:
         pass  # pragma: no cover
 
     async def aclear_cache(self, *, metatags: bool) -> t.Self:
@@ -75,7 +72,7 @@ class AsyncDatabaseType(t.Protocol):
         pass  # pragma: no cover
 
     async def adelete_metatag(self, tag: str) -> t.Self:
-        pass # pragma: no cover
+        pass  # pragma: no cover
 
     async def adelete_database(self) -> None:
         pass  # pragma: no cover
@@ -88,13 +85,10 @@ class AsyncDatabaseType(t.Protocol):
 
 @t.runtime_checkable
 class DatabaseType(t.Protocol):
-
     def load_tags(self, *, silent: bool) -> t.Self:
         pass  # pragma: no cover
 
-    def load_metatags(
-        self, *, preload: bool, silent: bool
-    ) -> t.Self:
+    def load_metatags(self, *, preload: bool, silent: bool) -> t.Self:
         pass  # pragma: no cover
 
     def load_database(
@@ -124,21 +118,17 @@ class DatabaseType(t.Protocol):
     ) -> t.Union[bytes, t.JSONSerializable]:
         pass  # pragma: no cover
 
-    def rollback_tag(
-        self, tag: str, *, cache: bool
-    ) -> t.Self:
+    def rollback_tag(self, tag: str, *, cache: bool) -> t.Self:
         pass  # pragma: no cover
 
     def clear_cache(self, *, metatags: bool) -> t.Self:
         pass  # pragma: no cover
 
-    def metatag(
-        self, tag: str, *, preload: bool, silent: bool
-    ) -> t.Cls:
+    def metatag(self, tag: str, *, preload: bool, silent: bool) -> t.Cls:
         pass  # pragma: no cover
 
     def delete_metatag(self, tag: str) -> t.Self:
-        pass # pragma: no cover
+        pass  # pragma: no cover
 
     def delete_database(self) -> None:
         pass  # pragma: no cover
@@ -160,4 +150,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

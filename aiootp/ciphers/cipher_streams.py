@@ -118,7 +118,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _iter_shortcuts(
-        self
+        self,
     ) -> t.Tuple[
         t.Callable[..., bytes],
         t.Deque[bytes],
@@ -133,7 +133,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _buffer_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Deque[bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -143,7 +143,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         return self._buffer, self._buffer.append
 
     async def __aiter__(
-        self
+        self,
     ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
@@ -157,7 +157,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
             yield await anext_block_id(block), block
 
     async def afinalize(
-        self
+        self,
     ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
         """
         Instructs the instance to finish receiving data into the buffer
@@ -338,7 +338,7 @@ class CipherStream(CipherStreamProperties):
 
     @property
     def _iter_shortcuts(
-        self
+        self,
     ) -> t.Tuple[
         t.Callable[..., bytes],
         t.Deque[bytes],
@@ -353,7 +353,7 @@ class CipherStream(CipherStreamProperties):
 
     @property
     def _buffer_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Deque[bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -362,9 +362,7 @@ class CipherStream(CipherStreamProperties):
         """
         return self._buffer, self._buffer.append
 
-    def __iter__(
-        self
-    ) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
+    def __iter__(self) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
         of times in the process of gathering data to buffer for the
@@ -477,4 +475,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

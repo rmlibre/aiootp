@@ -20,7 +20,6 @@ from aiootp import _gentools as gentools
 
 
 class TestInspectTools:
-
     async def test_is_async_iterable(self) -> None:
         async_iterable = gentools.aunpack("test")
         iterable = gentools.unpack("test")
@@ -79,15 +78,18 @@ class TestInspectTools:
 
 
 class TestGenerators:
-
     async def test_bytes_count(self) -> None:
         for start in (0, 33, 256, 1024):
             for size in (4, 8):
                 for order in ("little", "big"):
                     count = start
                     async for index, aindex in gentools.azip(
-                        gentools.bytes_count(start=start, size=size, byte_order=order),
-                        gentools.abytes_count(start=start, size=size, byte_order=order),
+                        gentools.bytes_count(
+                            start=start, size=size, byte_order=order
+                        ),
+                        gentools.abytes_count(
+                            start=start, size=size, byte_order=order
+                        ),
                     ):
                         assert index == aindex
                         assert index == count.to_bytes(size, order)
@@ -128,8 +130,20 @@ class TestGenerators:
                     for skip in (1, 2):
                         count = start
                         async for index, aindex in gentools.azip(
-                            gentools.bytes_range(start, end, skip, size=size, byte_order=order),
-                            gentools.abytes_range(start, end, skip, size=size, byte_order=order),
+                            gentools.bytes_range(
+                                start,
+                                end,
+                                skip,
+                                size=size,
+                                byte_order=order,
+                            ),
+                            gentools.abytes_range(
+                                start,
+                                end,
+                                skip,
+                                size=size,
+                                byte_order=order,
+                            ),
                         ):
                             assert index == aindex
                             assert index == count.to_bytes(size, order)
@@ -168,7 +182,11 @@ class TestGenerators:
     async def test_resizes(self) -> None:
         for blocks in (1, 2, 3):
             for size in (4, 6, 8):
-                for unit, cls in (([None], list), ((None,), tuple), ("a", str)):
+                for unit, cls in (
+                    ([None], list),
+                    ((None,), tuple),
+                    ("a", str),
+                ):
                     result = cls()
                     data = 3 * size * unit
                     async for block, ablock in gentools.azip(
@@ -246,4 +264,3 @@ class TestGenerators:
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

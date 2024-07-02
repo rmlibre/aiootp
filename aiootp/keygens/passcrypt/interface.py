@@ -447,9 +447,9 @@ class Passcrypt(FrozenInstance):
                 `ResourceWarning` if the `cores` specified in the
                 provided hash falls outside of that range.
         """
-        parts = PasscryptHash(
-            config=config
-        ).import_hash(composed_passcrypt_hash)
+        parts = PasscryptHash(config=config).import_hash(
+            composed_passcrypt_hash
+        )
         ttl = ttl if ttl is None else (ttl * NS_TO_S_RATIO)
         await config.clock.atest_timestamp(parts.timestamp, ttl=ttl)
         parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
@@ -508,9 +508,9 @@ class Passcrypt(FrozenInstance):
                 `ResourceWarning` if the `cores` specified in the
                 provided hash falls outside of that range.
         """
-        parts = PasscryptHash(
-            config=config
-        ).import_hash(composed_passcrypt_hash)
+        parts = PasscryptHash(config=config).import_hash(
+            composed_passcrypt_hash
+        )
         ttl = ttl if ttl is None else (ttl * NS_TO_S_RATIO)
         config.clock.test_timestamp(parts.timestamp, ttl=ttl)
         parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
@@ -539,4 +539,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

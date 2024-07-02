@@ -33,7 +33,6 @@ from .interface import Typing as t
 
 @t.runtime_checkable
 class DomainKDFType(t.Protocol):
-
     def copy(self) -> t.Cls:
         pass  # pragma: no cover
 
@@ -74,7 +73,6 @@ class DomainKDFType(t.Protocol):
 
 @t.runtime_checkable
 class PublicKeyType(t.Protocol):
-
     def public_bytes(self, encoding, format) -> bytes:
         pass  # pragma: no cover
 
@@ -84,7 +82,6 @@ class PublicKeyType(t.Protocol):
 
 @t.runtime_checkable
 class SecretKeyType(t.Protocol):
-
     def private_bytes(self, encoding, format) -> bytes:
         pass  # pragma: no cover
 
@@ -97,7 +94,6 @@ class SecretKeyType(t.Protocol):
 
 @t.runtime_checkable
 class AsymmetricKeyType(t.Protocol):
-
     async def aimport_secret_key(
         self, secret_key: t.Union[bytes, SecretKeyType]
     ) -> t.Self:
@@ -133,7 +129,6 @@ class AsymmetricKeyType(t.Protocol):
 
 @t.runtime_checkable
 class SignerType(AsymmetricKeyType, t.Protocol):
-
     async def asign(self, data: bytes) -> bytes:
         pass  # pragma: no cover
 
@@ -161,7 +156,6 @@ class SignerType(AsymmetricKeyType, t.Protocol):
 
 @t.runtime_checkable
 class KeyExchangeProtocolType(t.Protocol):
-
     async def asend(self, *keys: bytes) -> t.Union[t.Tuple[bytes], bytes]:
         pass  # pragma: no cover
 
@@ -177,15 +171,12 @@ class KeyExchangeProtocolType(t.Protocol):
 
 @t.runtime_checkable
 class KeyExchangeType(AsymmetricKeyType, t.Protocol):
-
     async def aexchange(
         self, public_key: t.Union[PublicKeyType, bytes]
     ) -> bytes:
         pass  # pragma: no cover
 
-    def exchange(
-        self, public_key: t.Union[PublicKeyType, bytes]
-    ) -> bytes:
+    def exchange(self, public_key: t.Union[PublicKeyType, bytes]) -> bytes:
         pass  # pragma: no cover
 
     @classmethod
@@ -218,4 +209,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

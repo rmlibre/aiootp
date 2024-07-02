@@ -67,9 +67,7 @@ class SaltAADIV(FrozenSlots):
             self.iv_is_fresh = False
             return iv
 
-    def _test_salt_aad_iv(
-        self, salt: bytes, aad: bytes, iv: bytes
-    ) -> None:
+    def _test_salt_aad_iv(self, salt: bytes, aad: bytes, iv: bytes) -> None:
         """
         Validates the ephemeral `salt`, `aad` authenticated associated
         data, & the random `iv` for a package cipher.
@@ -287,4 +285,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

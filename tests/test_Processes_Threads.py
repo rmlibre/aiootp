@@ -42,7 +42,9 @@ class BasicTestSuite:
         is_non_linux_multiprocessing_issue = lambda relay: (
             (self._type is Processes) and (self.system != "Linux")
         )
-        with Ignore(IndexError, if_except=is_non_linux_multiprocessing_issue):
+        with Ignore(
+            IndexError, if_except=is_non_linux_multiprocessing_issue
+        ):
             result = (await self._type.anew(self.aget_ids))[name]
             assert result > 0
             assert result.__class__ is int
@@ -60,7 +62,9 @@ class BasicTestSuite:
         is_non_linux_multiprocessing_issue = lambda relay: (
             (self._type is Processes) and (self.system != "Linux")
         )
-        with Ignore(IndexError, if_except=is_non_linux_multiprocessing_issue):
+        with Ignore(
+            IndexError, if_except=is_non_linux_multiprocessing_issue
+        ):
             result = self._type.new(self.get_ids)[name]
             assert result > 0
             assert result.__class__ is int
@@ -120,4 +124,3 @@ class TestThreads(BasicTestSuite):
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

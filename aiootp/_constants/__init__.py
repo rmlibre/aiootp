@@ -68,7 +68,7 @@ class NamespaceMapping(t.SimpleNamespace):
 
 
 def collect_non_private_constants(
-    mapping: t.Mapping[str, t.Any]
+    mapping: t.Mapping[str, t.Any],
 ) -> t.Mapping[str, t.Any]:
     """
     Selectively moves uppercase, non-private declarations within a
@@ -98,4 +98,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

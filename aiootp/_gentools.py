@@ -204,7 +204,7 @@ def unpack(
 
 
 async def azip(
-    *iterables: t.AsyncOrSyncIterable[t.Any]
+    *iterables: t.AsyncOrSyncIterable[t.Any],
 ) -> t.AsyncGenerator[t.List[t.Any], None]:
     """
     Creates an asynchronous version of the `builtins.zip` function
@@ -336,7 +336,7 @@ async def arange(*a: t.Optional[int]) -> t.AsyncGenerator[int, None]:
 
 
 async def acollate(
-    *iterables: t.AsyncOrSyncIterable[t.Any]
+    *iterables: t.AsyncOrSyncIterable[t.Any],
 ) -> t.AsyncGenerator[t.Any, None]:
     """
     Takes a collection of iterables &/or async iterables & exhausts them
@@ -353,7 +353,7 @@ async def acollate(
 
 
 def collate(
-    *iterables: t.Iterable[t.Any]
+    *iterables: t.Iterable[t.Any],
 ) -> t.Generator[t.Any, None, None]:
     """
     Takes a collection of iterables & exhausts them one at a time from
@@ -378,9 +378,7 @@ async def apopleft(
             break
 
 
-def popleft(
-    queue: t.SupportsPopleft, /
-) -> t.Generator[t.Any, None, None]:
+def popleft(queue: t.SupportsPopleft, /) -> t.Generator[t.Any, None, None]:
     """
     A generator which calls the `popleft()` method on `queue` for
     every iteration, & exits on `IndexError`.
@@ -429,4 +427,3 @@ module_api = dict(
     resize=resize,
     unpack=unpack,
 )
-

@@ -72,7 +72,8 @@ class SequenceID(FrozenInstance):
                 size=config_id,
                 permutation_type=FastAffineXORChain,
                 permutation_config_id=config_id,
-            ) for config_id in range(1, 33)
+            )
+            for config_id in range(1, 33)
         },
         config_type=SequenceIDConfig,
     )
@@ -139,4 +140,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

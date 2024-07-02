@@ -172,6 +172,7 @@ async def arandom_number_generator(
     elif not freshness:
         _pool.appendleft(await acsprng(32, entropy=entropy))
     else:
+
         async def create_unique_multiple(seed: int) -> int:
             return await _asalt_multiply(
                 size, seed, await atoken_bits(256), pool=_pool
@@ -287,4 +288,3 @@ module_api = dict(
     csprng=csprng,
     random_number_generator=random_number_generator,
 )
-

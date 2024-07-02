@@ -128,7 +128,7 @@ class PasscryptConfig(Config):
         self.CPU_TO_DIGEST_PAIRS_PER_ROW_RATIO = 2
         self.CPU_BYTES = 1
         self.MIN_MB = 1
-        self.MAX_MB = 256 ** 3
+        self.MAX_MB = 256**3
         self.DEFAULT_MB = 64
         self.MB_BYTES = 3
         self.MIN_SALT_SIZE = 4
@@ -240,8 +240,8 @@ class PasscryptConfig(Config):
 
     def is_passphrase(self, passphrase: bytes) -> bool:
         return (
-            (passphrase.__class__ is bytes)
-            and (len(passphrase) >= self.MIN_PASSPHRASE_BYTES)
+            passphrase.__class__ is bytes
+            and len(passphrase) >= self.MIN_PASSPHRASE_BYTES
         )
 
     def is_salt(self, salt: bytes) -> bool:
@@ -249,7 +249,7 @@ class PasscryptConfig(Config):
         return (salt.__class__ is bytes) and (len(salt) in length_limits)
 
     def is_aad(self, aad: bytes):
-        return (aad.__class__ is bytes)
+        return aad.__class__ is bytes
 
     def is_mb(self, mb: int) -> bool:
         mb_limits = range(self.MIN_MB, self.MAX_MB + 1)
@@ -327,4 +327,3 @@ module_api = dict(
     __package__=__package__,
     passcrypt_spec=passcrypt_spec,
 )
-

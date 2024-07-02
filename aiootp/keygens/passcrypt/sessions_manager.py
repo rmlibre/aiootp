@@ -124,9 +124,7 @@ class PasscryptProcesses(FrozenInstance):
                 config=config,
             )
             kw = dict(session=session, probe_delay=0.001)
-            sessions.append(
-                await Processes.asubmit(self._passcrypt, **kw)
-            )
+            sessions.append(await Processes.asubmit(self._passcrypt, **kw))
         return sessions
 
     def spawn(
@@ -176,4 +174,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

@@ -22,7 +22,6 @@ encoded_data = urlsafe_b64encode(data)
 
 
 class TestByteIO:
-
     async def test_abytes_to_urlsafe(self) -> bytes:
         result = await ByteIO.abytes_to_urlsafe(data)
 
@@ -94,21 +93,20 @@ class TestByteIO:
         assert data == path.read_bytes()
 
         await ByteIO.aappend(path, data)
-        assert 2*data == path.read_bytes()
+        assert 2 * data == path.read_bytes()
 
         await ByteIO.aappend(path, data)
-        assert 3*data == path.read_bytes()
+        assert 3 * data == path.read_bytes()
 
     async def test_append(self, path: t.Path) -> None:
         ByteIO.append(path, data)
         assert data == path.read_bytes()
 
         ByteIO.append(path, data)
-        assert 2*data == path.read_bytes()
+        assert 2 * data == path.read_bytes()
 
         ByteIO.append(path, data)
-        assert 3*data == path.read_bytes()
+        assert 3 * data == path.read_bytes()
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

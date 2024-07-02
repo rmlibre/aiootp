@@ -29,6 +29,10 @@ from ._exceptions import Issue
 from .asynchs import aos
 
 
+# TODO: finish coverage tests
+# fmt: off
+
+
 def RootPath() -> Path:
     """
     Returns a `pathlib.Path` object pointing to this module's directory.
@@ -241,6 +245,9 @@ def SecurePath(
         return path                                             # pragma: no cover
 
 
+# fmt: on
+
+
 module_api = dict(
     AsyncSecurePath=AsyncSecurePath,
     DatabasePath=DatabasePath,
@@ -267,4 +274,3 @@ module_api = dict(
     adeniable_filename=adeniable_filename,
     deniable_filename=deniable_filename,
 )
-

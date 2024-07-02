@@ -24,8 +24,7 @@ __all__ = [
 ]
 
 
-__doc__ = (
-    """
+__doc__ = """
     Wraps file operations from the `os` module in a decorator that runs
     those methods in an async executor. This was adapted from the
     `aiofiles` package:
@@ -36,7 +35,6 @@ __doc__ = (
 
     http://www.apache.org/licenses/LICENSE-2.0
     """
-)
 
 
 import os
@@ -48,15 +46,17 @@ from .loops import asleep, wrap_in_executor
 
 
 async def not_implemented_placeholder(*a: t.Any, **kw: t.Any) -> None:
-    await asleep()                                      # pragma: no cover
-    warnings.warn("Function not supported by OS.")      # pragma: no cover
+    # fmt: off
+    await asleep()                                  # pragma: no cover
+    warnings.warn("Function not supported by OS.")  # pragma: no cover
+    # fmt: on
 
 
 for name in __all__:
     if hasattr(os, name):
         globals()[name] = wrap_in_executor(getattr(os, name))
     else:
-        globals()[name] = not_implemented_placeholder   # pragma: no cover
+        globals()[name] = not_implemented_placeholder  # pragma: no cover
 
 
 module_api = dict(
@@ -77,4 +77,3 @@ module_api = dict(
     sendfile=sendfile,
     stat=stat,
 )
-

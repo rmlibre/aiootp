@@ -80,11 +80,14 @@ class Slots:
         Brings slots declarations from subclasses up the class hierarchy.
         """
         super().__init_subclass__(*a, **kw)
-        cls.__slots__ = tuple({  # Preserve original declaration order &
-            name: None           # enforce uniqueness
+        # Preserve original declaration order & enforce uniqueness
+        # fmt: off
+        cls.__slots__ = tuple({
+            name: None
             for subcls in cls.__mro__
             for name in getattr(subcls, "__slots__", ())
         })
+        # fmt: on
         cls._slots_set = frozenset(cls.__slots__)
 
     def __init__(
@@ -100,12 +103,14 @@ class Slots:
         can cause problems. This initializer avoids setting the names
         declared in `__slots__` within the a potential instance dict.
         """
+        # fmt: off
         slots = self._slots_set                              # flexible init. not great
         for name, value in {**dict(mapping), **kw}.items():  # performance. subclasses
             if name in slots:                                # should prefer specificity
                 object.__setattr__(self, name, value)        # ie. self.a = a
             else:                                            #     self.b = b
                 self.__dict__[name] = value                  #     ...
+        # fmt: on
 
     def __dir__(self, /) -> t.List[t.Hashable]:
         """
@@ -234,7 +239,7 @@ class Slots:
         """
         mapped = name in self._MAPPED_ATTRIBUTES
         unmapped = name in self._UNMAPPED_ATTRIBUTES
-        return ((name in self) and (mapped or not unmapped))
+        return (name in self) and (mapped or not unmapped)
 
     async def __aiter__(self, /) -> t.AsyncGenerator[t.Any, None]:
         """
@@ -360,4 +365,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

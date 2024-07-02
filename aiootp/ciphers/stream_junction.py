@@ -15,8 +15,7 @@ __all__ = ["StreamJunction"]
 
 
 __doc__ = (
-    "Where data & key streams meet for confidentiality & "
-    "authenticity."
+    "Where data & key streams meet for confidentiality & authenticity."
 )
 
 
@@ -148,4 +147,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

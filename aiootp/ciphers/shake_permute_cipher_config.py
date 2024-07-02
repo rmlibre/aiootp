@@ -195,9 +195,11 @@ class ShakePermuteCipherConfig(Config):
         """
         Maps configuration values of cipher primitives.
         """
+        # fmt: off
         self.KDF_CONFIGS = NamespaceMapping(**{
             self.SHMAC_KDF: self.SHMAC_KDF_CONFIG,
         })
+        # fmt: on
         self.SHMAC_BLOCKSIZE = self.SHMAC_KDF_CONFIG.blocksize
         self.SHMAC_DOUBLE_BLOCKSIZE = self.SHMAC_KDF_CONFIG.double_blocksize
         self.SHMAC_RESULT_SLICE = slice(-self.SHMAC_BYTES, None, 1)
@@ -253,10 +255,12 @@ class ShakePermuteCipherConfig(Config):
         self.PRIMER_KEY_BYTES = self.SHMAC_BLOCKSIZE * ceil(
             1 + self.PERMUTATION_KEY_BYTES / self.SHMAC_BLOCKSIZE
         )
+        # fmt: off
         self.PERMUTATION_TEST_VECTOR = self.Permutation(
             key=shake_128(self.CONFIG_ID).digest(self.PERMUTATION_KEY_BYTES),
             config_id=self.PERMUTATION_CONFIG_ID,
         ).permute(0).to_bytes(self.BLOCKSIZE, BIG)
+        # fmt: on
 
     def _compute_ciphertext_measurements(self) -> None:
         """
@@ -354,9 +358,7 @@ class ShakePermuteCipherConfig(Config):
         """
         entropy_window = self.SHMAC_BLOCKSIZE
         if self.BLOCKSIZE > entropy_window:
-            raise ValueError(
-                "BLOCKSIZE *must* be <= the stream KDF!"
-            )
+            raise ValueError("BLOCKSIZE *must* be <= the stream KDF!")
 
     def _ensure_min_block_id_size_isnt_larger_than_max(self) -> None:
         """
@@ -391,10 +393,11 @@ class ShakePermuteCipherConfig(Config):
         remainder = (
             self.BLOCKSIZE - self.INNER_HEADER_BYTES - self.SENTINEL_BYTES
         ) % self.BLOCKSIZE
-        if (remainder < 16 and remainder >= 0):
+        if remainder < 16 and remainder >= 0:
             raise ValueError(
-                "BLOCKSIZE - INNER_HEADER - SENTINEL_BYTES *must* leave"
-                " at least 16-bytes for the plaintext!", remainder
+                "BLOCKSIZE - INNER_HEADER - SENTINEL_BYTES *must* leave "
+                "at least 16-bytes for the plaintext!",
+                remainder,
             )
 
     def _perform_correctness_checks(self) -> None:
@@ -429,4 +432,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

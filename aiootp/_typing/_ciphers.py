@@ -58,7 +58,6 @@ AsyncOrSyncDatastream = t.AsyncOrSyncDatastream = t.NewType(
 
 @t.runtime_checkable
 class PaddingType(t.Protocol):
-
     async def astart_padding(self) -> bytes:
         pass  # pragma: no cover
 
@@ -102,7 +101,6 @@ class PaddingType(t.Protocol):
 
 @t.runtime_checkable
 class StreamHMACType(t.Protocol):
-
     async def anext_block_id(
         self, next_block: bytes, *, size: t.Optional[int], aad: bytes
     ) -> bytes:
@@ -138,7 +136,6 @@ class StreamHMACType(t.Protocol):
 
 @t.runtime_checkable
 class SyntheticIVType(t.Protocol):
-
     @classmethod
     async def avalidated_transform(
         cls, datastream: AsyncDatastream, shmac: StreamHMACType, **kw: bytes
@@ -154,9 +151,8 @@ class SyntheticIVType(t.Protocol):
 
 @t.runtime_checkable
 class AsyncCipherStreamingType(t.Protocol):
-
     async def __aiter__(
-        self
+        self,
     ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
         pass  # pragma: no cover
 
@@ -169,10 +165,7 @@ class AsyncCipherStreamingType(t.Protocol):
 
 @t.runtime_checkable
 class CipherStreamingType(t.Protocol):
-
-    def __iter__(
-        self
-    ) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
+    def __iter__(self) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
         pass  # pragma: no cover
 
     def buffer(self, data: bytes) -> t.Self:
@@ -184,7 +177,6 @@ class CipherStreamingType(t.Protocol):
 
 @t.runtime_checkable
 class CipherInterfaceType(t.Protocol):
-
     async def abytes_encrypt(
         self,
         data: bytes,
@@ -299,4 +291,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

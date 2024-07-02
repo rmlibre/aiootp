@@ -68,7 +68,9 @@ DebugControl.disable_debugging()
 # create static values for this test session
 t = Typing
 
-violation = lambda problem: lambda relay: raise_exception(AssertionError(f"{problem} : {repr(relay)}"))
+violation = lambda problem: lambda relay: raise_exception(
+    AssertionError(f"{problem} : {repr(relay)}")
+)
 
 
 class MemoizedCipher(FrozenSlots):
@@ -81,7 +83,7 @@ class MemoizedCipher(FrozenSlots):
         self.aad = f"testing {self.config.NAME}".encode()
 
     def __iter__(
-        self
+        self,
     ) -> t.Generator[
         None, t.Union[t.ConfigType, t.CipherInterfaceType, bytes], None
     ]:
@@ -95,11 +97,9 @@ key = csprng(168)
 dual_output_ciphers = [MemoizedCipher(Chunky2048)]
 shake_permute_ciphers = [MemoizedCipher(Slick256)]
 all_ciphers = [*dual_output_ciphers, *shake_permute_ciphers]
-dual_output_cipher_names = [
-    conf.NAME for (conf, _,_,_) in dual_output_ciphers
-]
+dual_output_cipher_names = [conf.NAME for (conf, *_) in dual_output_ciphers]
 shake_permute_cipher_names = [
-    conf.NAME for (conf, _,_,_) in shake_permute_ciphers
+    conf.NAME for (conf, *_) in shake_permute_ciphers
 ]
 
 
@@ -116,12 +116,8 @@ chunky2048_test_vector_0 = OpenNamespace(
         "f791571464dd45754e16d8e6dea2f1a05204dca2510589be012bc5117dfd98"
         "e8"
     ),
-    salt=bytes.fromhex(
-        "cf3761d57860bdbc"
-    ),
-    iv=bytes.fromhex(
-        "e09d2eee03ae82e6"
-    ),
+    salt=bytes.fromhex("cf3761d57860bdbc"),
+    iv=bytes.fromhex("e09d2eee03ae82e6"),
     aad=b"test_vector_I",
     ciphertext=bytes.fromhex(
         "1ce9033362f402390f872fa4f20de14d8a13f32f3906dd302a275b2c62f9f5"
@@ -146,15 +142,9 @@ slick256_test_vector_0 = OpenNamespace(
         "5204713bc2b064e88a429b93aaa282d9cc7c0c5cdaaffb65cc268b7acedd5e"
         "531a"
     ),
-    shmac=bytes.fromhex(
-        "5e6011b3b1ae4314b4192a1e6a18b2ca8130bc5cafcd7287"
-    ),
-    salt=bytes.fromhex(
-        "cf3761d57860bdbc"
-    ),
-    iv=bytes.fromhex(
-        "dda31acd46832df9"
-    ),
+    shmac=bytes.fromhex("5e6011b3b1ae4314b4192a1e6a18b2ca8130bc5cafcd7287"),
+    salt=bytes.fromhex("cf3761d57860bdbc"),
+    iv=bytes.fromhex("dda31acd46832df9"),
     aad=b"test_vector_I",
     ciphertext=bytes.fromhex(
         "f73e7361a73af3eeabc88247555e06fc5bdaea10482c8351eab3ee9cfcc6fe"
@@ -182,7 +172,12 @@ ametatag = "a" + metatag
 
 username = b"test suite"
 passphrase = b"terrible low entropy passphrase"
-PROFILE = dict(username=username, passphrase=passphrase, salt=salt_0, aad=b"testing passcrypt")
+PROFILE = dict(
+    username=username,
+    passphrase=passphrase,
+    salt=salt_0,
+    aad=b"testing passcrypt",
+)
 LOW_PASSCRYPT_SETTINGS = OpenNamespace(mb=1, cpu=1, cores=1)
 PROFILE_AND_SETTINGS = {**PROFILE, **LOW_PASSCRYPT_SETTINGS}
 
@@ -320,25 +315,43 @@ atest_data = test_data.copy()
 
 # Creating timestamped values early so later testing has to wait less time
 ttl_test_cipher = choice(all_ciphers)
-atest_json_ciphertext = run(ttl_test_cipher.cipher.ajson_encrypt(atest_data, aad=ttl_test_cipher.aad))
-test_json_ciphertext = ttl_test_cipher.cipher.json_encrypt(test_data, aad=ttl_test_cipher.aad)
-atest_token_ciphertext = run(ttl_test_cipher.cipher.amake_token(plaintext_bytes, aad=ttl_test_cipher.aad))
-test_token_ciphertext = ttl_test_cipher.cipher.make_token(plaintext_bytes, aad=ttl_test_cipher.aad)
+atest_json_ciphertext = run(
+    ttl_test_cipher.cipher.ajson_encrypt(
+        atest_data, aad=ttl_test_cipher.aad
+    )
+)
+test_json_ciphertext = ttl_test_cipher.cipher.json_encrypt(
+    test_data, aad=ttl_test_cipher.aad
+)
+atest_token_ciphertext = run(
+    ttl_test_cipher.cipher.amake_token(
+        plaintext_bytes, aad=ttl_test_cipher.aad
+    )
+)
+test_token_ciphertext = ttl_test_cipher.cipher.make_token(
+    plaintext_bytes, aad=ttl_test_cipher.aad
+)
 
-async def make_async_ttl_cipher_stream() -> t.Tuple[t.AsyncCipherStream, bytes]:
+
+async def make_async_ttl_cipher_stream() -> (
+    t.Tuple[t.AsyncCipherStream, bytes]
+):
     stream = await ttl_test_cipher.cipher.astream_encrypt(
         salt=ttl_test_cipher.salt, aad=ttl_test_cipher.aad
     )
     await stream.abuffer(plaintext_bytes)
-    ciphertext = b"".join([
-        (block_id + block) async for block_id, block in stream
-    ])
-    ciphertext += b"".join([
-        (block_id + block) async for block_id, block in stream.afinalize()
-    ])
+    ciphertext = b"".join(
+        [(block_id + block) async for block_id, block in stream]
+    )
+    ciphertext += b"".join(
+        [(block_id + block) async for block_id, block in stream.afinalize()]
+    )
     return stream, ciphertext
 
-attl_cipher_stream, attl_stream_ciphertext = run(make_async_ttl_cipher_stream())
+
+attl_cipher_stream, attl_stream_ciphertext = run(
+    make_async_ttl_cipher_stream()
+)
 
 ttl_cipher_stream = ttl_test_cipher.cipher.stream_encrypt(
     salt=ttl_test_cipher.salt, aad=ttl_test_cipher.aad
@@ -414,4 +427,3 @@ def mapping():
 
 
 __all__ = [n for n in globals() if not n.startswith("_")]
-

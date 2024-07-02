@@ -122,20 +122,23 @@ class ShakePermuteStreamHMAC(StreamHMAC):
         This method is inserted as the instance's `_avalidated_transform`
         method after the encryption mode is set.
         """
+        # fmt: off
         c = self.config
         try:
             digest = self._current_digest[c.PERMUTATION_DIGEST_SLICE]
             in_key = _from_bytes(self._current_digest[c.IN_KEY_SLICE], BIG)
             out_key = _from_bytes(self._current_digest[c.OUT_KEY_SLICE], BIG)
             ciphertext = (
-                out_key ^ await self._permutation.auncapped_permute(
+                out_key
+                ^ await self._permutation.auncapped_permute(
                     in_key ^ _from_bytes(plaintext, BIG)
                 )
             ).to_bytes(c.BLOCKSIZE, BIG)
             await self._aupdate(plaintext + ciphertext + digest)  # 168 bytes
             return ciphertext
-        except OverflowError:  # pragma: no cover
+        except OverflowError:                            # pragma: no cover
             raise Issue.exceeded_blocksize(c.BLOCKSIZE)  # pragma: no cover
+        # fmt: on
 
     def _encipher_then_hash(
         self,
@@ -147,20 +150,23 @@ class ShakePermuteStreamHMAC(StreamHMAC):
         This method is inserted as the instance's `_validated_transform`
         method after the encryption mode is set.
         """
+        # fmt: off
         c = self.config
         try:
             digest = self._current_digest[c.PERMUTATION_DIGEST_SLICE]
             in_key = _from_bytes(self._current_digest[c.IN_KEY_SLICE], BIG)
             out_key = _from_bytes(self._current_digest[c.OUT_KEY_SLICE], BIG)
             ciphertext = (
-                out_key ^ self._permutation.uncapped_permute(
+                out_key
+                ^ self._permutation.uncapped_permute(
                     in_key ^ _from_bytes(plaintext, BIG)
                 )
             ).to_bytes(c.BLOCKSIZE, BIG)
             self._update(plaintext + ciphertext + digest)  # 168 bytes
             return ciphertext
-        except OverflowError:  # pragma: no cover
+        except OverflowError:                            # pragma: no cover
             raise Issue.exceeded_blocksize(c.BLOCKSIZE)  # pragma: no cover
+        # fmt: on
 
     async def _ahash_then_decipher(
         self,
@@ -172,20 +178,23 @@ class ShakePermuteStreamHMAC(StreamHMAC):
         This method is inserted as the instance's `_avalidated_transform`
         method after the decryption mode is set.
         """
+        # fmt: off
         c = self.config
         try:
             digest = self._current_digest[c.PERMUTATION_DIGEST_SLICE]
             in_key = _from_bytes(self._current_digest[c.IN_KEY_SLICE], BIG)
             out_key = _from_bytes(self._current_digest[c.OUT_KEY_SLICE], BIG)
             plaintext = (
-                in_key ^ await self._permutation.auncapped_invert(
+                in_key
+                ^ await self._permutation.auncapped_invert(
                     out_key ^ _from_bytes(ciphertext, BIG)
                 )
             ).to_bytes(c.BLOCKSIZE, BIG)
             await self._aupdate(plaintext + ciphertext + digest)  # 168 bytes
             return plaintext
-        except OverflowError:  # pragma: no cover
+        except OverflowError:                            # pragma: no cover
             raise Issue.exceeded_blocksize(c.BLOCKSIZE)  # pragma: no cover
+        # fmt: on
 
     def _hash_then_decipher(
         self,
@@ -197,20 +206,23 @@ class ShakePermuteStreamHMAC(StreamHMAC):
         This method is inserted as the instance's `_avalidated_transform`
         method after the decryption mode is set.
         """
+        # fmt: off
         c = self.config
         try:
             digest = self._current_digest[c.PERMUTATION_DIGEST_SLICE]
             in_key = _from_bytes(self._current_digest[c.IN_KEY_SLICE], BIG)
             out_key = _from_bytes(self._current_digest[c.OUT_KEY_SLICE], BIG)
             plaintext = (
-                in_key ^ self._permutation.uncapped_invert(
+                in_key
+                ^ self._permutation.uncapped_invert(
                     out_key ^ _from_bytes(ciphertext, BIG)
                 )
             ).to_bytes(c.BLOCKSIZE, BIG)
             self._update(plaintext + ciphertext + digest)  # 168 bytes
             return plaintext
-        except OverflowError:  # pragma: no cover
+        except OverflowError:                            # pragma: no cover
             raise Issue.exceeded_blocksize(c.BLOCKSIZE)  # pragma: no cover
+        # fmt: on
 
 
 class ShakePermuteStreamJunction(StreamJunction):
@@ -229,7 +241,10 @@ class ShakePermuteStreamJunction(StreamJunction):
         with another SHAKE round key, & feeding the values to the `shmac`
         for validation & distinct altering of the keystream.
         """
-        datastream, validated_transform = (data, shmac._avalidated_transform)
+        datastream, validated_transform = (
+            data,
+            shmac._avalidated_transform,
+        )
         async for block in datastream:
             yield await validated_transform(block)
 
@@ -262,4 +277,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

@@ -144,9 +144,7 @@ class RawGUIDContainer(OpenFrozenSlots):
 
     @property
     def sort_key(self) -> bytes:
-        return (
-            self.timestamp + self.node_id + self.ticker + self.token
-        )
+        return self.timestamp + self.node_id + self.ticker + self.token
 
 
 module_api = dict(
@@ -160,4 +158,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

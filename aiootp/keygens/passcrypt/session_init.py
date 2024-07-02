@@ -68,7 +68,6 @@ class PasscryptSession(FrozenInstance):
         tag_size: int,
         config: t.ConfigType,
         aad: bytes = DEFAULT_AAD,
-
     ) -> None:
         """
         Efficiently stores user parameters.
@@ -167,11 +166,13 @@ class PasscryptSession(FrozenInstance):
         """
         self.ram = bytearray()
         size = self.total_size
+        # fmt: off
         max_size = (B_TO_MB_RATIO * 512) - 1  # 512MiB, max digest size
         while size > max_size:                # of shake_128 in python
             self.ram.extend(self.proof.digest(max_size))
             self.proof.update(self.ram[-168:])
             size -= max_size
+        # fmt: on
         if size:
             self.ram.extend(self.proof.digest(size))
             self.proof.update(self.ram[-168:])
@@ -188,4 +189,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

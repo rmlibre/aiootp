@@ -87,7 +87,8 @@ class AffineXORChain(FrozenInstance):
                 size=config_id,
                 permutation_type=AffinePermutation,
                 permutation_config_id=config_id,
-            ) for config_id in [*range(1, 33), 64, 128, 192, 256]
+            )
+            for config_id in [*range(1, 33), 64, 128, 192, 256]
         },
         config_type=AffineXORChainConfig,
     )
@@ -252,7 +253,8 @@ class AffineXORChain(FrozenInstance):
         return await self._aff_out.apermute(
             await self._aff_mid.apermute(
                 await self._aff_in.apermute(value) ^ self._in_mid_key
-            ) ^ self._out_mid_key
+            )
+            ^ self._out_mid_key
         )
 
     def uncapped_permute(self, value: int, /) -> int:
@@ -264,7 +266,8 @@ class AffineXORChain(FrozenInstance):
         return self._aff_out.permute(
             self._aff_mid.permute(
                 self._aff_in.permute(value) ^ self._in_mid_key
-            ) ^ self._out_mid_key
+            )
+            ^ self._out_mid_key
         )
 
     async def apermute(self, value: int, /) -> int:
@@ -273,12 +276,16 @@ class AffineXORChain(FrozenInstance):
         additionally XORing each of their inputs & outputs with keys
         designed to break up the algebraic structure of the permutation.
         """
-        return await self._aff_out.apermute(
-            await self._aff_mid.apermute(
-                await self._aff_in.apermute(value ^ self._in_key)
-                ^ self._in_mid_key
-            ) ^ self._out_mid_key
-        ) ^ self._out_key
+        return (
+            await self._aff_out.apermute(
+                await self._aff_mid.apermute(
+                    await self._aff_in.apermute(value ^ self._in_key)
+                    ^ self._in_mid_key
+                )
+                ^ self._out_mid_key
+            )
+            ^ self._out_key
+        )
 
     def permute(self, value: int, /) -> int:
         """
@@ -286,12 +293,16 @@ class AffineXORChain(FrozenInstance):
         additionally XORing each of their inputs & outputs with keys
         designed to break up the algebraic structure of the permutation.
         """
-        return self._aff_out.permute(
-            self._aff_mid.permute(
-                self._aff_in.permute(value ^ self._in_key)
-                ^ self._in_mid_key
-            ) ^ self._out_mid_key
-        ) ^ self._out_key
+        return (
+            self._aff_out.permute(
+                self._aff_mid.permute(
+                    self._aff_in.permute(value ^ self._in_key)
+                    ^ self._in_mid_key
+                )
+                ^ self._out_mid_key
+            )
+            ^ self._out_key
+        )
 
     async def auncapped_invert(self, value: int, /) -> int:
         """
@@ -301,7 +312,8 @@ class AffineXORChain(FrozenInstance):
         return await self._aff_in.ainvert(
             await self._aff_mid.ainvert(
                 await self._aff_out.ainvert(value) ^ self._out_mid_key
-            ) ^ self._in_mid_key
+            )
+            ^ self._in_mid_key
         )
 
     def uncapped_invert(self, value: int, /) -> int:
@@ -312,30 +324,39 @@ class AffineXORChain(FrozenInstance):
         return self._aff_in.invert(
             self._aff_mid.invert(
                 self._aff_out.invert(value) ^ self._out_mid_key
-            ) ^ self._in_mid_key
+            )
+            ^ self._in_mid_key
         )
 
     async def ainvert(self, value: int, /) -> int:
         """
         Inverts the modified chained keyed bijective affine permutation.
         """
-        return await self._aff_in.ainvert(
-            await self._aff_mid.ainvert(
-                await self._aff_out.ainvert(value ^ self._out_key)
-                ^ self._out_mid_key
-            ) ^ self._in_mid_key
-        ) ^ self._in_key
+        return (
+            await self._aff_in.ainvert(
+                await self._aff_mid.ainvert(
+                    await self._aff_out.ainvert(value ^ self._out_key)
+                    ^ self._out_mid_key
+                )
+                ^ self._in_mid_key
+            )
+            ^ self._in_key
+        )
 
     def invert(self, value: int, /) -> int:
         """
         Inverts the modified chained keyed bijective affine permutation.
         """
-        return self._aff_in.invert(
-            self._aff_mid.invert(
-                self._aff_out.invert(value ^ self._out_key)
-                ^ self._out_mid_key
-            ) ^ self._in_mid_key
-        ) ^ self._in_key
+        return (
+            self._aff_in.invert(
+                self._aff_mid.invert(
+                    self._aff_out.invert(value ^ self._out_key)
+                    ^ self._out_mid_key
+                )
+                ^ self._in_mid_key
+            )
+            ^ self._in_key
+        )
 
 
 module_api = dict(
@@ -348,4 +369,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

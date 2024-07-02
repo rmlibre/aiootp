@@ -50,7 +50,12 @@ class PasscryptHash(FrozenSlots):
     __slots__ = ("timestamp", "mb", "cpu", "cores", "salt", "tag", "config")
 
     _MAPPED_ATTRIBUTES: t.Tuple[str] = (
-        "timestamp", "mb", "cpu", "cores", "salt", "tag"
+        "timestamp",
+        "mb",
+        "cpu",
+        "cores",
+        "salt",
+        "tag",
     )
 
     def __init__(
@@ -200,4 +205,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

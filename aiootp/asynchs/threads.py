@@ -47,7 +47,7 @@ class Threads(ConcurrencyInterface):
 
         @staticmethod
         def list() -> t.SupportsAppendPop:
-             return deque(maxlen=1)
+            return deque(maxlen=1)
 
     _default_probe_delay: t.PositiveRealNumber = 0.001
     _pool: t.PoolExecutorType = ThreadPoolExecutor()
@@ -67,4 +67,3 @@ module_api = dict(
     __package__=__package__,
     get_thread_id=get_thread_id,
 )
-

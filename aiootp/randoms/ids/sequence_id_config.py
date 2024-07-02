@@ -27,9 +27,7 @@ class SequenceIDConfig(Config):
     Configuration type for `SequenceID`.
     """
 
-    __slots__ = (
-        "SIZE", "KEY_SIZE", "PERMUTATION_CONFIG_ID", "Permutation"
-    )
+    __slots__ = ("SIZE", "KEY_SIZE", "PERMUTATION_CONFIG_ID", "Permutation")
 
     slots_types: t.Mapping[str, type] = dict(
         SIZE=int,
@@ -89,4 +87,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

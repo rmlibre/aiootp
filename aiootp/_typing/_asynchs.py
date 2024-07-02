@@ -44,7 +44,6 @@ class AsyncOrSyncIterable(metaclass=_AsyncOrSyncIterableMeta):
 
 @t.runtime_checkable
 class PoolExecutorType(t.Protocol):
-
     def map(
         self,
         fn: t.Callable[..., t.Any],
@@ -69,7 +68,6 @@ class PoolExecutorType(t.Protocol):
 
 @t.runtime_checkable
 class ClockType(t.Protocol):
-
     async def atime(self) -> int:
         pass  # pragma: no cover
 
@@ -106,4 +104,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

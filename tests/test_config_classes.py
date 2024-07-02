@@ -19,7 +19,6 @@ class ExampleType:
 
 
 class FalseConfig:
-
     def set_config_id(self, config_id: t.Hashable) -> None:
         self.CONFIG_ID = config_id
 
@@ -34,13 +33,17 @@ class TestConfig:
             "delcaration was allowed."
         )
         for declaration in self.types_tested:
+
             class ExampleConfig(Config):
                 __slots__ = ("VAR",)
                 slots_types = dict(VAR=declaration)
+
                 def __init__(self, *, var: declaration) -> None:
                     self.VAR = var
 
-            for attr_type in set(self.types_tested).difference([declaration]):
+            for attr_type in set(self.types_tested).difference(
+                [declaration]
+            ):
                 with Ignore(TypeError, if_else=violation(problem)):
                     config = ExampleConfig(var=attr_type)
 
@@ -49,16 +52,19 @@ class TestConfig:
             "A runtime-uncheckable type declaration didn't proc an error."
         )
         for declaration in self.uncheckable_types:
-            with Ignore(TypeUncheckableAtRuntime, if_else=violation(problem)):
+            with Ignore(
+                TypeUncheckableAtRuntime, if_else=violation(problem)
+            ):
+
                 class ExampleConfig(Config):
                     __slots__ = ("VAR",)
                     slots_types = dict(VAR=declaration)
+
                     def __init__(self, *, var: declaration) -> None:
                         self.VAR = var
 
 
 class TestConfigMap:
-
     def test_mapping_registers_config_by_id(
         self, mapping: ConfigMap
     ) -> None:
@@ -114,4 +120,3 @@ class TestConfigMap:
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

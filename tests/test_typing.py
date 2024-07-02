@@ -16,4 +16,3 @@ from test_typing_protocols import *
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

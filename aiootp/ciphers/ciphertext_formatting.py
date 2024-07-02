@@ -32,9 +32,7 @@ class Ciphertext(OpenFrozenSlots):
 
     __slots__ = ("shmac", "salt", "iv", "ciphertext", "config")
 
-    _MAPPED_ATTRIBUTES: t.Tuple[str] = (
-        "shmac", "salt", "iv", "ciphertext"
-    )
+    _MAPPED_ATTRIBUTES: t.Tuple[str] = ("shmac", "salt", "iv", "ciphertext")
 
     InvalidCiphertextSize: type = InvalidCiphertextSize
 
@@ -77,4 +75,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

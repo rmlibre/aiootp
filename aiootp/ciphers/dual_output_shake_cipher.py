@@ -108,7 +108,7 @@ class DualOutputKeyAADBundle(KeyAADBundle):
     _Session: type = DualOutputSessionKDFs
 
     def _keystream_ratchets(
-        self
+        self,
     ) -> t.Tuple[
         t.Callable[[bytes], None],
         t.Callable[[int], bytes],
@@ -136,24 +136,23 @@ class DualOutputKeyAADBundle(KeyAADBundle):
         stream of bytes key material which incorporates new key material
         in the stream derivation on each iteration.
         """
-        c = self.config
-        (
-            l_update,
-            l_digest,
-            r_update,
-            r_digest,
-        ) = self._keystream_ratchets()
-        (
-            LEFT_RATCHET_KEY_SLICE,
-            RIGHT_RATCHET_KEY_SLICE,
-            SHMAC_BLOCKSIZE,
-        ) = c.LEFT_RATCHET_KEY_SLICE, c.RIGHT_RATCHET_KEY_SLICE, c.SHMAC_BLOCKSIZE
+        # fmt: off
+        config = self.config
+        l_update, l_digest, r_update, r_digest = self._keystream_ratchets()
+        LEFT_RATCHET_KEY_SLICE, RIGHT_RATCHET_KEY_SLICE, SHMAC_BLOCKSIZE = (
+            config.LEFT_RATCHET_KEY_SLICE,
+            config.RIGHT_RATCHET_KEY_SLICE,
+            config.SHMAC_BLOCKSIZE,
+        )
         ratchet_key = yield
         while True:
             l_update(ratchet_key[LEFT_RATCHET_KEY_SLICE])   # update with 168 even index bytes
             r_update(ratchet_key[RIGHT_RATCHET_KEY_SLICE])  # update with 168 odd index bytes
-            ratchet_key = yield l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
+            ratchet_key = yield (
+                l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
+            )
             await asleep()
+        # fmt: on
 
     def _new_keystream(self) -> t.Generator[bytes, bytes, None]:
         """
@@ -161,23 +160,22 @@ class DualOutputKeyAADBundle(KeyAADBundle):
         stream of bytes key material which incorporates new key material
         in the stream derivation on each iteration.
         """
-        c = self.config
-        (
-            l_update,
-            l_digest,
-            r_update,
-            r_digest,
-        ) = self._keystream_ratchets()
-        (
-            LEFT_RATCHET_KEY_SLICE,
-            RIGHT_RATCHET_KEY_SLICE,
-            SHMAC_BLOCKSIZE,
-        ) = c.LEFT_RATCHET_KEY_SLICE, c.RIGHT_RATCHET_KEY_SLICE, c.SHMAC_BLOCKSIZE
+        # fmt: off
+        config = self.config
+        l_update, l_digest, r_update, r_digest = self._keystream_ratchets()
+        LEFT_RATCHET_KEY_SLICE, RIGHT_RATCHET_KEY_SLICE, SHMAC_BLOCKSIZE = (
+            config.LEFT_RATCHET_KEY_SLICE,
+            config.RIGHT_RATCHET_KEY_SLICE,
+            config.SHMAC_BLOCKSIZE,
+        )
         ratchet_key = yield
         while True:
             l_update(ratchet_key[LEFT_RATCHET_KEY_SLICE])   # update with 168 even index bytes
             r_update(ratchet_key[RIGHT_RATCHET_KEY_SLICE])  # update with 168 odd index bytes
-            ratchet_key = yield l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
+            ratchet_key = yield (
+                l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
+            )
+        # fmt: on
 
     async def async_mode(self) -> t.Self:
         """
@@ -199,7 +197,7 @@ class DualOutputKeyAADBundle(KeyAADBundle):
 
     @property
     def _keystream(
-        self
+        self,
     ) -> t.Union[
         t.Generator[bytes, bytes, None], t.AsyncGenerator[bytes, bytes]
     ]:
@@ -619,4 +617,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

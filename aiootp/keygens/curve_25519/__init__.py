@@ -14,9 +14,7 @@
 __all__ = ["Ed25519", "X25519"]
 
 
-__doc__ = (
-    "Curve25519 interfaces & adapters to the `cryptography` package."
-)
+__doc__ = "Curve25519 interfaces & adapters to the `cryptography` package."
 
 
 from .shared_interface import *
@@ -50,4 +48,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

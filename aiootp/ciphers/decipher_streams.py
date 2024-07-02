@@ -126,7 +126,10 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._buffer = buffer = deque()
         self._bytes_to_trim = self._config.INNER_HEADER_BYTES
         self._key_bundle = key_bundle = await cipher._KeyAADBundle(
-            kdfs=cipher._kdfs, salt=salt, aad=aad, iv=iv,
+            kdfs=cipher._kdfs,
+            salt=salt,
+            aad=aad,
+            iv=iv,
         ).async_mode()
         self.shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
         self._stream = cipher._Junction.abytes_decipher(
@@ -135,7 +138,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _iter_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Deque[bytes], t.Callable[[], bytes]]:
         """
         Returns method pointers so calls in tight loops during
@@ -146,7 +149,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _digest_data_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Callable[[None], bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -157,7 +160,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _buffer_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Callable[..., None], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -190,8 +193,8 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         in the cases where the inner header spans multiple blocks.
         """
         await asleep()
-        inner_header = queue[0][:self._bytes_to_trim]
-        block = queue[0][self._bytes_to_trim:]
+        inner_header = queue[0][: self._bytes_to_trim]
+        block = queue[0][self._bytes_to_trim :]
         self._bytes_to_trim -= len(inner_header)
         if block:
             queue[0] = block
@@ -407,7 +410,10 @@ class DecipherStream(CipherStreamProperties):
         self._buffer = buffer = deque()
         self._bytes_to_trim = self._config.INNER_HEADER_BYTES
         self._key_bundle = key_bundle = cipher._KeyAADBundle(
-            kdfs=cipher._kdfs, salt=salt, aad=aad, iv=iv,
+            kdfs=cipher._kdfs,
+            salt=salt,
+            aad=aad,
+            iv=iv,
         ).sync_mode()
         self.shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
         self._stream = cipher._Junction.bytes_decipher(
@@ -416,7 +422,7 @@ class DecipherStream(CipherStreamProperties):
 
     @property
     def _iter_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Deque[bytes], t.Callable[[], bytes]]:
         """
         Returns method pointers so calls in tight loops during
@@ -427,7 +433,7 @@ class DecipherStream(CipherStreamProperties):
 
     @property
     def _digest_data_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Callable[[None], bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -438,7 +444,7 @@ class DecipherStream(CipherStreamProperties):
 
     @property
     def _buffer_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Callable[..., None], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -468,8 +474,8 @@ class DecipherStream(CipherStreamProperties):
         Strips the inner header from the buffered plaintext in the queue
         in the cases where the inner header spans multiple blocks.
         """
-        inner_header = queue[0][:self._bytes_to_trim]
-        block = queue[0][self._bytes_to_trim:]
+        inner_header = queue[0][: self._bytes_to_trim]
+        block = queue[0][self._bytes_to_trim :]
         self._bytes_to_trim -= len(inner_header)
         if block:
             queue[0] = block
@@ -594,4 +600,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

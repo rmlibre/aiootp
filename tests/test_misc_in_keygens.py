@@ -17,20 +17,19 @@ from test_initialization import *
 
 
 class TestMnemonics:
-
     async def test_default_is_random(self) -> None:
         assert mnemonic() != await amnemonic()
 
     async def test_returns_list_of_bytes_words(self) -> None:
-         phrase = mnemonic()
-         assert phrase.__class__ is list
-         assert all((word in WORD_LIST) for word in phrase)
-         assert all((word.__class__ is bytes) for word in phrase)
+        phrase = mnemonic()
+        assert phrase.__class__ is list
+        assert all((word in WORD_LIST) for word in phrase)
+        assert all((word.__class__ is bytes) for word in phrase)
 
-         aphrase = await amnemonic()
-         assert aphrase.__class__ is list
-         assert all((word in WORD_LIST) for word in aphrase)
-         assert all((word.__class__ is bytes) for word in aphrase)
+        aphrase = await amnemonic()
+        assert aphrase.__class__ is list
+        assert all((word in WORD_LIST) for word in aphrase)
+        assert all((word.__class__ is bytes) for word in aphrase)
 
     async def test_size_dictates_word_count(self) -> None:
         for size in range(6, 12):
@@ -86,40 +85,69 @@ class TestDomainKDF:
     async def test_update_alters_state_distinctly(self) -> None:
         aupdated_kdf = DomainKDF(self.domain, key=self.key)
         updated_kdf = aupdated_kdf.copy()
-        assert await aupdated_kdf.asha3_512(aad=self.aad) == updated_kdf.sha3_512(aad=self.aad)
+        assert await aupdated_kdf.asha3_512(
+            aad=self.aad
+        ) == updated_kdf.sha3_512(aad=self.aad)
 
         initialized_kdf = DomainKDF(self.domain, self.data, key=self.key)
 
         await aupdated_kdf.aupdate(self.data)
-        assert await aupdated_kdf.asha3_512(aad=self.aad) != initialized_kdf.sha3_512(aad=self.aad)
+        assert await aupdated_kdf.asha3_512(
+            aad=self.aad
+        ) != initialized_kdf.sha3_512(aad=self.aad)
 
         updated_kdf.update(self.data)
-        assert updated_kdf.sha3_512(aad=self.aad) != initialized_kdf.sha3_512(aad=self.aad)
+        assert updated_kdf.sha3_512(
+            aad=self.aad
+        ) != initialized_kdf.sha3_512(aad=self.aad)
 
     async def test_same_inputs_produce_same_outputs(self) -> None:
-        assert self.kdf.sha3_256(*self.inputs) == await self.kdf.asha3_256(*self.inputs)
-        assert self.kdf.sha3_512(*self.inputs) == await self.kdf.asha3_512(*self.inputs)
-        assert self.kdf.shake_128(*self.inputs, size=32) == await self.kdf.ashake_128(*self.inputs, size=32)
-        assert self.kdf.shake_256(*self.inputs, size=32) == await self.kdf.ashake_256(*self.inputs, size=32)
+        assert self.kdf.sha3_256(*self.inputs) == await self.kdf.asha3_256(
+            *self.inputs
+        )
+        assert self.kdf.sha3_512(*self.inputs) == await self.kdf.asha3_512(
+            *self.inputs
+        )
+        assert self.kdf.shake_128(
+            *self.inputs, size=32
+        ) == await self.kdf.ashake_128(*self.inputs, size=32)
+        assert self.kdf.shake_256(
+            *self.inputs, size=32
+        ) == await self.kdf.ashake_256(*self.inputs, size=32)
 
     async def test_same_aad_produces_same_outputs(self) -> None:
-        assert self.kdf.sha3_256(aad=self.aad) == await self.kdf.asha3_256(aad=self.aad)
-        assert self.kdf.sha3_512(aad=self.aad) == await self.kdf.asha3_512(aad=self.aad)
-        assert self.kdf.shake_128(aad=self.aad, size=32) == await self.kdf.ashake_128(aad=self.aad, size=32)
-        assert self.kdf.shake_256(aad=self.aad, size=32) == await self.kdf.ashake_256(aad=self.aad, size=32)
+        assert self.kdf.sha3_256(aad=self.aad) == await self.kdf.asha3_256(
+            aad=self.aad
+        )
+        assert self.kdf.sha3_512(aad=self.aad) == await self.kdf.asha3_512(
+            aad=self.aad
+        )
+        assert self.kdf.shake_128(
+            aad=self.aad, size=32
+        ) == await self.kdf.ashake_128(aad=self.aad, size=32)
+        assert self.kdf.shake_256(
+            aad=self.aad, size=32
+        ) == await self.kdf.ashake_256(aad=self.aad, size=32)
 
     async def test_different_inputs_produce_different_outputs(self) -> None:
         assert self.kdf.sha3_256() != await self.kdf.asha3_256(*self.inputs)
         assert self.kdf.sha3_512() != await self.kdf.asha3_512(*self.inputs)
-        assert self.kdf.shake_128(size=32) != await self.kdf.ashake_128(*self.inputs, size=32)
-        assert self.kdf.shake_256(size=32) != await self.kdf.ashake_256(*self.inputs, size=32)
+        assert self.kdf.shake_128(size=32) != await self.kdf.ashake_128(
+            *self.inputs, size=32
+        )
+        assert self.kdf.shake_256(size=32) != await self.kdf.ashake_256(
+            *self.inputs, size=32
+        )
 
     async def test_different_aad_produces_different_outputs(self) -> None:
         assert self.kdf.sha3_256() != await self.kdf.asha3_256(aad=self.aad)
         assert self.kdf.sha3_512() != await self.kdf.asha3_512(aad=self.aad)
-        assert self.kdf.shake_128(size=32) != await self.kdf.ashake_128(aad=self.aad, size=32)
-        assert self.kdf.shake_256(size=32) != await self.kdf.ashake_256(aad=self.aad, size=32)
+        assert self.kdf.shake_128(size=32) != await self.kdf.ashake_128(
+            aad=self.aad, size=32
+        )
+        assert self.kdf.shake_256(size=32) != await self.kdf.ashake_256(
+            aad=self.aad, size=32
+        )
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

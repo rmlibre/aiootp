@@ -149,4 +149,3 @@ module_api = dict(
     keyed_choices=keyed_choices,
     mnemonic=mnemonic,
 )
-

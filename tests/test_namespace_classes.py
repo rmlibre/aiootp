@@ -30,16 +30,20 @@ class SlotsAttributes:
         name for name in _items if name != "unmapped"
     )
     _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
-        *Slots._UNMAPPED_ATTRIBUTES, "mapped", "unmapped"
-    )                       # Being mapped overrides being unmapped
+        *Slots._UNMAPPED_ATTRIBUTES,
+        "mapped",
+        "unmapped",
+    )  # Being mapped overrides being unmapped
 
 
 class NamespaceAttributes(SlotsAttributes):
     __slots__ = ()
 
     _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
-        *Namespace._UNMAPPED_ATTRIBUTES, "mapped", "unmapped"
-    )                       # Being mapped overrides being unmapped
+        *Namespace._UNMAPPED_ATTRIBUTES,
+        "mapped",
+        "unmapped",
+    )  # Being mapped overrides being unmapped
 
 
 class BaseVariableHoldingClassTests:
@@ -89,7 +93,6 @@ class BaseVariableHoldingClassTests:
 
 
 class BaseReprControlledTests(BaseVariableHoldingClassTests):
-
     async def test_instance_repr_shows_values(self) -> None:
         DebugControl.disable_debugging()
         obj = self._type(self._items)
@@ -97,10 +100,9 @@ class BaseReprControlledTests(BaseVariableHoldingClassTests):
         for name, value in self._items.items():
             if name[0] == "_":
                 assert name not in string
-            elif (
-                hasattr(obj, "_is_mapped_attribute")
-                and not obj._is_mapped_attribute(name)
-            ):
+            elif hasattr(
+                obj, "_is_mapped_attribute"
+            ) and not obj._is_mapped_attribute(name):
                 assert name not in string
             else:
                 assert name in string, name
@@ -109,20 +111,20 @@ class BaseReprControlledTests(BaseVariableHoldingClassTests):
 
 
 class BaseMaskableReprTests(BaseVariableHoldingClassTests):
-
     async def test_mask_hides_or_shows_repr(self) -> None:
         DebugControl.disable_debugging()
         obj = self._type(self._items)
         for name in self._items:
-            if (
-                str(name) in getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
-                or str(name).startswith("_")
-            ):
+            if str(name) in getattr(obj, "_UNMAPPED_ATTRIBUTES", ()) or str(
+                name
+            ).startswith("_"):
                 continue
             assert str(name) in obj.__repr__(mask=False), name
             assert str(getattr(obj, name)) in obj.__repr__(mask=False), name
             assert str(name) in obj.__repr__(mask=True), name
-            assert str(getattr(obj, name)) not in obj.__repr__(mask=True), name
+            assert str(getattr(obj, name)) not in obj.__repr__(
+                mask=True
+            ), name
             DebugControl.enable_debugging(silence_warnings=True)
             assert str(name) in repr(obj), name
             assert str(getattr(obj, name)) in repr(obj), name
@@ -130,7 +132,6 @@ class BaseMaskableReprTests(BaseVariableHoldingClassTests):
 
 
 class BaseFrozenTests(BaseVariableHoldingClassTests):
-
     async def test_instance_values_cant_be_changed_once_set(self) -> None:
         problem = (  # fmt: skip
             "An instance was allowed to be mutated."
@@ -145,7 +146,6 @@ class BaseFrozenTests(BaseVariableHoldingClassTests):
 
 
 class BaseModuleNamespaceTests(BaseVariableHoldingClassTests):
-
     async def test_all_doesnt_include_private_variables(self) -> None:
         obj = self._type(self._items)
         private_name = "_private"
@@ -154,7 +154,6 @@ class BaseModuleNamespaceTests(BaseVariableHoldingClassTests):
 
 
 class BaseDictLikeTests(BaseVariableHoldingClassTests):
-
     def frozen_violation_catcher(self, name: str) -> Ignore:
         if_except = lambda _: self._frozen
         if_else = lambda _: (
@@ -209,21 +208,30 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
             assert obj["new_value"] == True
 
     async def test_strange_slots_dict_interplay_exists_but_is_avoided(
-        self
+        self,
     ) -> None:
         if not hasattr(self._type, "__slots__"):
             return
 
         try:
+
             class MisusedSubclass(self._type):
                 __slots__ = ("attr_0", "attr_1", "__dict__")
                 slots_types = dict(attr_0=int, attr_1=int)
         except TypeError:
+
             class MisusedSubclass(self._type):
                 __slots__ = ("attr_0", "attr_1")
                 slots_types = dict(attr_0=int, attr_1=int)
 
-        ok_obj = MisusedSubclass(attr_0=0, attr_1=1)
+        ok_obj = MisusedSubclass(attr_0=0, attr_1=1)  # this is ok!
+        assert "attr_0" not in ok_obj.__dict__
+        assert "attr_1" not in ok_obj.__dict__
+        assert 0 == ok_obj.attr_0
+        assert 1 == ok_obj.attr_1
+
+        ok_obj = MisusedSubclass()
+        ok_obj.update(dict(attr_0=0, attr_1=1))  # this is ok!
         assert "attr_0" not in ok_obj.__dict__
         assert "attr_1" not in ok_obj.__dict__
         assert 0 == ok_obj.attr_0
@@ -231,7 +239,8 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
 
         bad_obj = MisusedSubclass()
         bad_obj.__dict__.update(dict(attr_0=0, attr_1=1))  # this is bad
-        assert "attr_0" in bad_obj.__dict__           # See: https://github.com/rmlibre/aiootp/pull/11
+        # See: https://github.com/rmlibre/aiootp/pull/11
+        assert "attr_0" in bad_obj.__dict__
         assert "attr_1" in bad_obj.__dict__
         assert not hasattr(bad_obj, "attr_0")
         assert not hasattr(bad_obj, "attr_1")
@@ -245,15 +254,15 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
 
 
 class BaseIndexableTests(BaseVariableHoldingClassTests):
-
     async def test_unmapped_attributes_arent_in_dir(self) -> None:
         obj = self._type(self._items)
         if not hasattr(obj, "_UNMAPPED_ATTRIBUTES"):
             return
         if all((type(item) is str) for item in self._items):
             assert not (
-                set(obj.__class__._UNMAPPED_ATTRIBUTES)
-                .difference(obj.__class__._MAPPED_ATTRIBUTES)
+                set(obj.__class__._UNMAPPED_ATTRIBUTES).difference(
+                    obj.__class__._MAPPED_ATTRIBUTES
+                )
             ).intersection(value for value in dir(obj))
 
     async def test_len_is_number_of_mapped_items_in_instance(self) -> None:
@@ -305,14 +314,14 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
 
 
 class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
-
     async def test_slots_contains_all_names_with_declared_types(
-        self
+        self,
     ) -> None:
         problem = (  # fmt: skip
             "A type was created with a mismatch in variable declarations."
         )
         with Ignore(t.MissingDeclaredVariables, if_else=violation(problem)):
+
             class Subclass(self._type):
                 __slots__ = ()
                 slots_types = dict(swell=bool)
@@ -322,6 +331,7 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
             "A type was created with a mismatch in variable declarations."
         )
         with Ignore(t.MissingDeclaredVariables, if_else=violation(problem)):
+
             class Subclass(self._type):
                 __slots__ = ("swell",)
                 slots_types = dict()
@@ -333,19 +343,22 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
         obj = self._type()
         cls_set = set(obj.slots_types.values())
 
-        for name, cls in sorted(obj.slots_types.items(), key=lambda _: csprng()):
+        for name, cls in sorted(
+            obj.slots_types.items(), key=lambda _: csprng()
+        ):
             wrong_cls = randoms.choice(list(cls_set.difference({cls})))
+            error = AssertionError(
+                f"{problem=} : {name=} : {cls=} : {wrong_cls=}"
+            )
             is_vague_type = lambda _: (
-                issubclass(wrong_cls, cls)
-                or raise_exception(AssertionError(
-                    f"{problem=} : {name=} : {cls=} : {wrong_cls=}"
-                ))
+                issubclass(wrong_cls, cls) or raise_exception(error)
             )
             with Ignore(TypeError, if_else=is_vague_type):
                 obj[name] = wrong_cls()
 
 
 # Slots
+
 
 class SlotsType(SlotsAttributes, Slots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
@@ -436,49 +449,50 @@ class TestFrozenInstance(
 
 # Typed Slots
 
+
 class TypedSlotsType(SlotsAttributes, TypedSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
-    slots_types = dict({
+    slots_types = {
         name: BaseVariableHoldingClassTests._items[name].__class__
         for name in BaseVariableHoldingClassTests._items
-    })
+    }
 
 
 class OpenTypedSlotsType(SlotsAttributes, OpenTypedSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
-    slots_types = dict({
+    slots_types = {
         name: BaseVariableHoldingClassTests._items[name].__class__
         for name in BaseVariableHoldingClassTests._items
-    })
+    }
 
 
 class FrozenTypedSlotsType(SlotsAttributes, FrozenTypedSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
-    slots_types = dict({
+    slots_types = {
         name: BaseVariableHoldingClassTests._items[name].__class__
         for name in BaseVariableHoldingClassTests._items
-    })
+    }
 
 
 class FrozenTypedSlotsDictType(NamespaceAttributes, FrozenTypedSlots):
     __slots__ = ("__dict__", *BaseVariableHoldingClassTests._items)
 
-    slots_types = dict(**{
+    slots_types = {
         name: BaseVariableHoldingClassTests._items[name].__class__
         for name in BaseVariableHoldingClassTests._items
-    })
+    }
 
 
 class OpenFrozenTypedSlotsType(SlotsAttributes, OpenFrozenTypedSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
-    slots_types = dict({
+    slots_types = {
         name: BaseVariableHoldingClassTests._items[name].__class__
         for name in BaseVariableHoldingClassTests._items
-    })
+    }
 
 
 class TestTypedSlots(
@@ -542,13 +556,14 @@ class TestOpenFrozenTypedSlots(
 
 # Configs
 
+
 class ConfigType(SlotsAttributes, Config):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
-    slots_types = dict({
+    slots_types = {
         name: BaseVariableHoldingClassTests._items[name].__class__
         for name in BaseVariableHoldingClassTests._items
-    })
+    }
 
 
 class TestConfigType(
@@ -563,6 +578,7 @@ class TestConfigType(
 
 
 # Namespaces
+
 
 class NamespaceType(NamespaceAttributes, Namespace):
     pass
@@ -638,4 +654,3 @@ class TestOpenFrozenNamespace(
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

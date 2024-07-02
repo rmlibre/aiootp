@@ -24,7 +24,7 @@ from typing import NewType
 
 try:
     Self = typing.Self
-except AttributeError:              # pragma: no cover
+except AttributeError:  # pragma: no cover
     Self = NewType("Self", "Self")  # pragma: no cover
     # TODO: Remove when Python 3.11 is oldest supported version.
 
@@ -32,21 +32,20 @@ except AttributeError:              # pragma: no cover
 Cls = NewType("Cls", Self)
 
 
-def _transpose_this_modules_types(
-    class_dict: typing.Dict[str, typing.Any]
-):
+def _transpose_this_modules_types(class_dict: typing.Dict[str, typing.Any]):
     """
     Inserts the types from this module's global namespace.
     """
     this_modules_types = {
-        name: value for name, value in globals().items()
+        name: value
+        for name, value in globals().items()
         if name[0].isupper()
     }
     class_dict.update(this_modules_types)
 
 
 def _transpose_types_modules_types(
-    class_dict: typing.Dict[str, typing.Any]
+    class_dict: typing.Dict[str, typing.Any],
 ) -> None:
     """
     Inserts the types from the standard library's `types` module.
@@ -57,7 +56,7 @@ def _transpose_types_modules_types(
 
 
 def _transpose_typing_modules_types(
-    class_dict: typing.Dict[str, typing.Any]
+    class_dict: typing.Dict[str, typing.Any],
 ) -> None:
     """
     Inserts the types from the standard library's `typing` module.
@@ -146,4 +145,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

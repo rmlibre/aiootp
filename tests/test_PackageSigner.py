@@ -58,7 +58,9 @@ def test_sign_and_verify():
                     cpu=1,
                 )
                 break
-        signer.update_public_credentials(x25519_public_key=aiootp.__PUBLIC_X25519_KEY__)
+        signer.update_public_credentials(
+            x25519_public_key=aiootp.__PUBLIC_X25519_KEY__
+        )
 
         problem = (  # fmt: skip
             "Allowed to retrieve a signing key before its creation."
@@ -86,7 +88,9 @@ def test_sign_and_verify():
             "Ed25519 object was allowed for update_signing_key."
         )
         with Ignore(TypeError, if_else=violation(problem)):
-            signer.update_signing_key(bytearray(signer.signing_key.secret_bytes))
+            signer.update_signing_key(
+                bytearray(signer.signing_key.secret_bytes)
+            )
 
         filename_sheet = """
         include tests/test_initialization.py
@@ -115,19 +119,28 @@ def test_sign_and_verify():
                 # added file hashes are available from the files attribute
                 # by their filename
                 assert filename in signer.files
-                assert signer.files[filename].digest() != signer._Hasher().digest()
-                assert signer.files[filename].digest() == signer._Hasher(file_data).digest()
+                assert (
+                    signer.files[filename].digest()
+                    != signer._Hasher().digest()
+                )
+                assert (
+                    signer.files[filename].digest()
+                    == signer._Hasher(file_data).digest()
+                )
 
         signer.sign_package()
         summary = signer.summarize()
 
         # The package verifier successfully verifies a correct summary
-        verifier = PackageVerifier(signer.signing_key.public_bytes, path=test_path)
+        verifier = PackageVerifier(
+            signer.signing_key.public_bytes, path=test_path
+        )
         verifier.verify_summary(summary)
 
         # Package verifier can also accept an Ed25519 object
         verifier = PackageVerifier(
-            Ed25519().import_public_key(signer.signing_key.public_key), path=test_path
+            Ed25519().import_public_key(signer.signing_key.public_key),
+            path=test_path,
         )
         verifier.verify_summary(summary)
 
@@ -161,7 +174,9 @@ def test_sign_and_verify():
         # the signing key in the summary is the hex representation of the
         # signing objects public key
         assert len(summary["signing_key"]) == 64
-        assert summary["signing_key"] == signer.signing_key.public_bytes.hex()
+        assert (
+            summary["signing_key"] == signer.signing_key.public_bytes.hex()
+        )
 
         # altering the signing key fails
         summary["signing_key"] = X25519().generate().public_bytes.hex()
@@ -218,4 +233,3 @@ def test_sign_and_verify():
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

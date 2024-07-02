@@ -248,8 +248,8 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         the database which isn't derived from the user's login key.
         """
         self._manifest[self._ROOT_SALT_LEDGERNAME] = (
-            (await self.IO.abytes_to_urlsafe(salt)).decode()
-        )
+            await self.IO.abytes_to_urlsafe(salt)
+        ).decode()
 
     async def _aload_manifest(self) -> t.JSONObject:
         """
@@ -827,4 +827,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

@@ -166,4 +166,3 @@ module_api = dict(
     int_as_base=int_as_base,
     xi_mix=xi_mix,
 )
-

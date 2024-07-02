@@ -258,9 +258,7 @@ class Clock(FrozenInstance):
         """
         return await self.atime() - await self.aread_timestamp(timestamp)
 
-    def delta(
-        self, /, timestamp: bytes, *, byte_order: str = BIG
-    ) -> int:
+    def delta(self, /, timestamp: bytes, *, byte_order: str = BIG) -> int:
         """
         Takes a `timestamp` & returns the integer difference between
         the instance's conception of the current time & the timestamp.
@@ -331,4 +329,3 @@ module_api = dict(
     this_month=this_month,
     this_year=this_year,
 )
-

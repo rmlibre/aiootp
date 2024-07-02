@@ -25,7 +25,6 @@ from .interface import Typing as t
 
 @t.runtime_checkable
 class ConfigType(t.Protocol):
-
     def set_config_id(self, config_id: t.Hashable) -> None:
         pass  # pragma: no cover
 
@@ -35,9 +34,7 @@ class ConfigType(t.Protocol):
     def values(self) -> t.Generator[t.Any, None, None]:
         pass  # pragma: no cover
 
-    def items(
-        self
-    ) -> t.Generator[t.Tuple[str, t.Any], None, None]:
+    def items(self) -> t.Generator[t.Tuple[str, t.Any], None, None]:
         pass  # pragma: no cover
 
     def update(
@@ -56,4 +53,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

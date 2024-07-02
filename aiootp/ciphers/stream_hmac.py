@@ -69,7 +69,7 @@ class StreamHMAC:
         self._result_is_ready = False
         self._register_key_bundle(key_bundle)
         self._initialize_session_state()
-        self._update = self._placeholder_update    # Don't allow updates
+        self._update = self._placeholder_update  # Don't allow updates
         self._aupdate = self._aplaceholder_update  # unless mode is set
 
     def _register_key_bundle(self, key_bundle: KeyAADBundle) -> None:
@@ -223,7 +223,7 @@ class StreamHMAC:
         *,
         size: t.Optional[int] = None,
         aad: bytes = DEFAULT_AAD,
-        _join: t.Callable[..., bytes] = b"".join
+        _join: t.Callable[..., bytes] = b"".join,
     ) -> bytes:
         """
         Returns a `size`-byte block id derived from the current state
@@ -260,7 +260,7 @@ class StreamHMAC:
         *,
         size: t.Optional[int] = None,
         aad: bytes = DEFAULT_AAD,
-        _join: t.Callable[..., bytes] = b"".join
+        _join: t.Callable[..., bytes] = b"".join,
     ) -> bytes:
         """
         Returns a `size`-byte block id derived from the current state
@@ -298,7 +298,7 @@ class StreamHMAC:
         """
         await asleep()
         self._result = self._mac.digest(
-            self.config.SHMAC_DOUBLE_BLOCKSIZE
+            self.config.SHMAC_DOUBLE_BLOCKSIZE  # fmt: skip
         )[self.config.SHMAC_RESULT_SLICE]
 
     def _set_final_result(self) -> None:
@@ -308,7 +308,7 @@ class StreamHMAC:
         the current instance.
         """
         self._result = self._mac.digest(
-            self.config.SHMAC_DOUBLE_BLOCKSIZE
+            self.config.SHMAC_DOUBLE_BLOCKSIZE  # fmt: skip
         )[self.config.SHMAC_RESULT_SLICE]
 
     async def afinalize(self) -> bytes:
@@ -430,4 +430,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

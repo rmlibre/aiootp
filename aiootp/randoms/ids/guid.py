@@ -124,7 +124,8 @@ class GUID(FrozenInstance):
                 size=config_id,
                 raw_guid_type=RawGUID,
                 permutation_type=FastAffineXORChain,
-            ) for config_id in range(12, 33)
+            )
+            for config_id in range(12, 33)
         },
         config_type=GUIDConfig,
     )
@@ -211,4 +212,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

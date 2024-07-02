@@ -224,7 +224,9 @@ class CipherInterface(FrozenInstance):
         ).async_mode()
         shmac = self._StreamHMAC(key_bundle)._for_decryption()
         ciphertext = abatch(data.ciphertext, size=self._config.BLOCKSIZE)
-        deciphering = self._Junction.abytes_decipher(ciphertext, shmac=shmac)
+        deciphering = self._Junction.abytes_decipher(
+            ciphertext, shmac=shmac
+        )
         plaintext = b"".join([block async for block in deciphering])
         await shmac.afinalize()
         await shmac.atest_shmac(data.shmac)
@@ -589,4 +591,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

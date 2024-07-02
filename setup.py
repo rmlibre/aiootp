@@ -32,7 +32,6 @@ with open("README.rst", "r") as readme:
 if __name__ != "__main__":
     pass
 elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
-
     with open("SIGNATURE.txt", "r") as sig:
         scope = json.loads(sig.read())[PackageSigner._SCOPE]
         print("current version:", __version__)
@@ -53,10 +52,22 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
         path=getpass("secure directory: "),
     )
 
-    if getpass("is the signing key already saved on this device? (Y/n) ").lower().strip().startswith("n"):
-        signer.update_signing_key(bytes.fromhex(getpass("signing key: ").strip()))
+    if (
+        getpass("is the signing key already saved on this device? (Y/n) ")
+        .lower()
+        .strip()
+        .startswith("n")
+    ):
+        signer.update_signing_key(
+            bytes.fromhex(getpass("signing key: ").strip())
+        )
 
-    while getpass("update public credentials? (y/N) ").lower().strip().startswith("y"):
+    while (
+        getpass("update public credentials? (y/N) ")
+        .lower()
+        .strip()
+        .startswith("y")
+    ):
         signer.update_public_credentials(
             **{getpass("name: ").strip(): getpass("value: ")}
         )
@@ -209,4 +220,3 @@ setup(
         ]
     ),
 ) if __name__ == "__main__" else 0
-

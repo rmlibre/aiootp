@@ -142,9 +142,7 @@ class AffinePermutationConfig(Config):
         self.MAX = (1 << (8 * self.SIZE)) - 1
         self.PRIME = datasets.PRIMES[8 * self.SIZE + 1][0]
         self.MULTIPLICATIVE_KEY = self._derive_new_multiplier(self.PRIME)
-        self.INVERSE_KEY = pow(
-            self.MULTIPLICATIVE_KEY, -1, self.PRIME
-        )
+        self.INVERSE_KEY = pow(self.MULTIPLICATIVE_KEY, -1, self.PRIME)
 
 
 module_api = dict(
@@ -157,4 +155,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

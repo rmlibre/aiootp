@@ -171,8 +171,9 @@ async def acanonical_pack(
     blocksize_blob = blocksize.to_bytes(int_bytes, BIG)
     items = [
         item
-        async for item
-        in aencode_items(blocksize_blob, pad, *items, int_bytes=int_bytes)
+        async for item in aencode_items(
+            blocksize_blob, pad, *items, int_bytes=int_bytes
+        )
     ]
     return fullblock_ljust(b"".join(items), blocksize, pad=pad)
 
@@ -335,4 +336,3 @@ module_api = dict(
     encode_key=encode_key,
     test_canonical_padding=test_canonical_padding,
 )
-

@@ -159,12 +159,8 @@ class Ignore:
     ) -> None:
         placeholder = self._PlaceholderHandler()
         self.ignored_exceptions = exceptions
-        self.except_code = (
-            placeholder if if_except is None else if_except
-        )
-        self.else_code = (
-            placeholder if if_else is None else if_else
-        )
+        self.except_code = placeholder if if_except is None else if_except
+        self.else_code = placeholder if if_else is None else if_else
         self.finally_code = (
             placeholder if finally_run is None else finally_run
         )
@@ -320,11 +316,13 @@ class UndefinedRequiredAttributes(AttributeError):
 
     def __init__(self, /, *undefined_attributes: str) -> None:
         self.undefined_attributes = undefined_attributes
+        # fmt: off
         super().__init__(
             self
             ._MESSAGE_TEMPLATE
             .replace("UNDEFINED_ATTRIBUTES", repr(undefined_attributes))
         )
+        # fmt: on
 
 
 class MissingDeclaredVariables(AttributeError):
@@ -332,6 +330,7 @@ class MissingDeclaredVariables(AttributeError):
     Raised on mismatches between declared & supplied variables.
     """
 
+    # fmt: off
     # TODO: switch templates throughout?
     # This style of template is safer with
     # untrusted inputs.
@@ -341,6 +340,7 @@ class MissingDeclaredVariables(AttributeError):
         " but were't detected in the ",         # missed
         "",
     )
+    # fmt: on
 
     def __init__(self, /, *names: str, found_in: str, missed: str) -> None:
         msg = self._MESSAGE_TEMPLATE
@@ -368,7 +368,6 @@ class InvalidCiphertextSize(ValueError):
 
 
 class ValidationIncomplete(AttributeError):
-
     _MESSAGE_TEMPLATE: str = "Can't produce a result before finalization."
 
     def __init__(self, /, *a: t.Any) -> None:
@@ -376,7 +375,6 @@ class ValidationIncomplete(AttributeError):
 
 
 class DatabaseNotConnected(AttributeError):
-
     _MESSAGE_TEMPLATE: str = (
         "Must first connect to the package signing session's secure "
         "database before it can be updated or queried."
@@ -387,7 +385,6 @@ class DatabaseNotConnected(AttributeError):
 
 
 class PackageNotSigned(AttributeError):
-
     _MESSAGE_TEMPLATE: str = (
         "This version of the package must be signed before querying its "
         "signature."
@@ -398,7 +395,6 @@ class PackageNotSigned(AttributeError):
 
 
 class SigningKeyNotSet(AttributeError):
-
     _MESSAGE_TEMPLATE: str = (
         "The `PackageSigner` instance's signing key hasn't been set."
     )
@@ -408,7 +404,6 @@ class SigningKeyNotSet(AttributeError):
 
 
 class KDFModeNotDeclared(AttributeError):
-
     _MESSAGE_TEMPLATE: str = (
         "KeyAADBundle objects need to be set to either sync or async "
         "modes prior to querying their derived keys."
@@ -435,6 +430,7 @@ class TypeUncheckableAtRuntime(TypeError):
     def __init__(self, name: str, value_type: type, /, *a: t.Any) -> None:
         self.name = name
         self.value_type = value_type
+        # fmt: off
         super().__init__(
             self
             ._MESSAGE_TEMPLATE
@@ -442,6 +438,7 @@ class TypeUncheckableAtRuntime(TypeError):
             .replace("VALUE_TYPE", repr(value_type)),
             *a,
         )
+        # fmt: on
 
 
 class Issue:
@@ -461,13 +458,11 @@ class Issue:
     _VALUE_MUST_BE_SUBTYPE: str = (
         "The NAME value must match or subclass TYPE."
     )
-    _EXCEEDED_BLOCKSIZE: str = (
-        "Data block MUST NOT exceed BLOCKSIZE bytes."
-    )
+    _EXCEEDED_BLOCKSIZE: str = "Data block MUST NOT exceed BLOCKSIZE bytes."
     _CANT_REASSIGN_ATTRIBUTE: str = (
         "Can't re-assign the existing NAME attribute."
     )
-    _CANT_DEASSIGN_ATTRIBUTE : str = (
+    _CANT_DEASSIGN_ATTRIBUTE: str = (
         "Can't de-assign the existing NAME attribute."
     )
     _UNUSED_PARAMETERS: str = (
@@ -562,9 +557,7 @@ class CanonicalIssue:
         "The measured length of the canonically encoded item does not "
         "match its declared length."
     )
-    _INVALID_PADDING: str = (
-        "Invalid canonical encoding padding detected!"
-    )
+    _INVALID_PADDING: str = "Invalid canonical encoding padding detected!"
     _DATA_LENGTH_BLOCKSIZE_MISMATCH: str = (
         "Multiple of data length != declared blocksize!"
     )
@@ -605,9 +598,7 @@ class KeyAADIssue:
     _INVALID_KEY_SIZE: str = (
         "`key` was KEY_SIZE bytes, but must be at least MIN_SIZE bytes."
     )
-    _ALREADY_REGISTERED: str = (
-        "The shmac has already been registered."
-    )
+    _ALREADY_REGISTERED: str = "The shmac has already been registered."
     _MODE_ISNT_CORRECT: str = (
         "The KDF mode must be set to MODE to use MODE key derivation."
     )
@@ -734,18 +725,12 @@ class PasscryptIssue:
     _IMPROPER_SALT: str = (
         "len(salt) must be >= MIN_SALT_SIZE and <= MAX_SALT_SIZE"
     )
-    _INVALID_MB: str = (
-        "mb:MB must be int >= MIN_MB and <= MAX_MB"
-    )
-    _INVALID_CPU: str = (
-        "cpu:CPU must be int >= MIN_CPU and <= MAX_CPU"
-    )
+    _INVALID_MB: str = "mb:MB must be int >= MIN_MB and <= MAX_MB"
+    _INVALID_CPU: str = "cpu:CPU must be int >= MIN_CPU and <= MAX_CPU"
     _INVALID_CORES: str = (
         "cores:CORES must be int >= MIN_CORES and <= MAX_CORES"
     )
-    _INVALID_TAG_SIZE: str = (
-        "tag_size:SIZE must be int >= MIN_TAG_SIZE"
-    )
+    _INVALID_TAG_SIZE: str = "tag_size:SIZE must be int >= MIN_TAG_SIZE"
     _INVALID_SALT_SIZE: str = (
         "salt_size:SIZE must be int >= MIN_SALT_SIZE and <= MAX_SALT_SIZE"
     )
@@ -807,12 +792,14 @@ class PasscryptIssue:
 
         if metadata.type is not bytes:
             return Issue.value_must_be_type("`salt`", bytes)
+        # fmt: off
         return ValueError(
             cls
             ._IMPROPER_SALT
             .replace("MIN_SALT_SIZE", repr(c.MIN_SALT_SIZE))
             .replace("MAX_SALT_SIZE", repr(c.MAX_SALT_SIZE))
         )
+        # fmt: on
 
     @classmethod
     def improper_aad(cls, /) -> TypeError:
@@ -824,6 +811,7 @@ class PasscryptIssue:
 
         if mb.__class__ is not int:
             return Issue.value_must_be_type("`mb`", int)
+        # fmt: off
         return ValueError(
             cls
             ._INVALID_MB
@@ -831,6 +819,7 @@ class PasscryptIssue:
             .replace("MAX_MB", repr(c.MAX_MB))
             .replace("MB", repr(mb))
         )
+        # fmt: on
 
     @classmethod
     def invalid_cpu(cls, cpu: int, /) -> ValueError:
@@ -838,6 +827,7 @@ class PasscryptIssue:
 
         if cpu.__class__ is not int:
             return Issue.value_must_be_type("`cpu`", int)
+        # fmt: off
         return ValueError(
             cls
             ._INVALID_CPU
@@ -845,6 +835,7 @@ class PasscryptIssue:
             .replace("MAX_CPU", repr(c.MAX_CPU))
             .replace("CPU", repr(cpu))
         )
+        # fmt: on
 
     @classmethod
     def invalid_cores(cls, cores: int, /) -> ValueError:
@@ -852,6 +843,7 @@ class PasscryptIssue:
 
         if cores.__class__ is not int:
             return Issue.value_must_be_type("`cores`", int)
+        # fmt: off
         return ValueError(
             cls
             ._INVALID_CORES
@@ -859,6 +851,7 @@ class PasscryptIssue:
             .replace("MAX_CORES", repr(c.MAX_CORES))
             .replace("CORES", repr(cores))
         )
+        # fmt: on
 
     @classmethod
     def invalid_tag_size(cls, tag_size: int, /) -> ValueError:
@@ -866,12 +859,14 @@ class PasscryptIssue:
 
         if tag_size.__class__ is not int:
             return Issue.value_must_be_type("`tag_size`", int)
+        # fmt: off
         return ValueError(
             cls
             ._INVALID_TAG_SIZE
             .replace("MIN_TAG_SIZE", repr(c.MIN_TAG_SIZE))
             .replace("SIZE", repr(tag_size))
         )
+        # fmt: on
 
     @classmethod
     def invalid_salt_size(cls, salt_size: int, /) -> ValueError:
@@ -879,6 +874,7 @@ class PasscryptIssue:
 
         if salt_size.__class__ is not int:
             return Issue.value_must_be_type("`salt_size`", int)
+        # fmt: off
         return ValueError(
             cls
             ._INVALID_SALT_SIZE
@@ -886,6 +882,7 @@ class PasscryptIssue:
             .replace("MAX_SALT_SIZE", repr(c.MAX_SALT_SIZE))
             .replace("SIZE", repr(salt_size))
         )
+        # fmt: on
 
     @classmethod
     def untrusted_resource_consumption(
@@ -1005,4 +1002,3 @@ module_api = dict(
     __package__=__package__,
     raise_exception=raise_exception,
 )
-
