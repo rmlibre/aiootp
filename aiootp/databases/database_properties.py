@@ -119,12 +119,9 @@ class DatabaseProperties:
         Returns a list of all derived filenames of user-defined tags
         stored in the database object.
         """
-        return {
-            filename
-            for filename in self._maintenance_records.symmetric_difference(
-                self._manifest.__dict__
-            )
-        }
+        return self._maintenance_records.symmetric_difference(
+            self._manifest.__dict__
+        )
 
     @property
     def metatags(self) -> t.Set[str]:

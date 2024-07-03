@@ -82,7 +82,7 @@ class BaseVariableHoldingClassTests:
             else:
                 return
         assert 123 in obj
-        assert obj[123] == True
+        assert obj[123] is True
 
         if_except = lambda _: self._frozen
         if_else = lambda _: not self._frozen or raise_exception(_.error)
@@ -194,18 +194,18 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
 
         items.update(dict(new_value=True))
         obj.update(dict(new_value=True))
-        assert obj["new_value"] == True
+        assert obj["new_value"] is True
         assert obj["new_value"] == items["new_value"]
 
         with self.frozen_violation_catcher("new_value"):
             obj.update(dict(new_value=True).items())
-            assert obj["new_value"] == True
+            assert obj["new_value"] is True
         with self.frozen_violation_catcher("new_value"):
             obj.update(**dict(new_value=False))
-            assert obj["new_value"] == False
+            assert obj["new_value"] is False
         with self.frozen_violation_catcher("new_value"):
             obj.update(dict(new_value=False), **dict(new_value=True))
-            assert obj["new_value"] == True
+            assert obj["new_value"] is True
 
     async def test_strange_slots_dict_interplay_exists_but_is_avoided(
         self,
@@ -248,9 +248,9 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
             "Very strange __dict__ / __slots__ interplay didn't manifest?"
         )
         with Ignore(AttributeError, if_else=violation(problem)):
-            bad_obj.attr_0
+            assert bad_obj.attr_0
         with Ignore(AttributeError, if_else=violation(problem)):
-            bad_obj.attr_1
+            assert bad_obj.attr_1
 
 
 class BaseIndexableTests(BaseVariableHoldingClassTests):
@@ -334,7 +334,7 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
 
             class Subclass(self._type):
                 __slots__ = ("swell",)
-                slots_types = dict()
+                slots_types = {}
 
     async def test_declared_types_are_enforced(self) -> None:
         problem = (  # fmt: skip
@@ -346,13 +346,16 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
         for name, cls in sorted(
             obj.slots_types.items(), key=lambda _: csprng()
         ):
-            wrong_cls = randoms.choice(list(cls_set.difference({cls})))
-            error = AssertionError(
-                f"{problem=} : {name=} : {cls=} : {wrong_cls=}"
-            )
-            is_vague_type = lambda _: (
-                issubclass(wrong_cls, cls) or raise_exception(error)
-            )
+            wrong_cls = randoms.choice([*cls_set.difference({cls})])
+
+            def is_vague_type(
+                relay: Ignore, name=name, cls=cls, wrong_cls=wrong_cls
+            ) -> bool:
+                error = AssertionError(
+                    f"{problem=} : {name=} : {cls=} : {wrong_cls=}"
+                )
+                return issubclass(wrong_cls, cls) or raise_exception(error)
+
             with Ignore(TypeError, if_else=is_vague_type):
                 obj[name] = wrong_cls()
 

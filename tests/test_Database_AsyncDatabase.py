@@ -154,7 +154,7 @@ class TestDatabaseInitialization:
                 ValueError,
                 if_else=violation(f"{problem} at {len(key)} bytes"),
             ):
-                db = await AsyncDatabase(key)
+                await AsyncDatabase(key)
 
     def test_sync_key_size_limits(self):
         problem = (  # fmt: skip
@@ -167,7 +167,7 @@ class TestDatabaseInitialization:
                 ValueError,
                 if_else=violation(f"{problem} at {len(key)} bytes"),
             ):
-                db = Database(key)
+                Database(key)
 
 
 class TestDatabases:
@@ -198,7 +198,7 @@ class TestDatabases:
     ) -> None:
         tag = "non_existent"
         assert tag not in async_database
-        assert None == await async_database.aquery_tag(tag, silent=True)
+        assert await async_database.aquery_tag(tag, silent=True) is None
 
         problem = (  # fmt: skip
             "Non-existent tag query doesn't throw when silent flag not set."
@@ -211,7 +211,7 @@ class TestDatabases:
     ) -> None:
         tag = "non_existent"
         assert tag not in database
-        assert None == database.query_tag(tag, silent=True)
+        assert database.query_tag(tag, silent=True) is None
 
         problem = (  # fmt: skip
             "Non-existent tag query doesn't throw when silent flag not set."
@@ -225,11 +225,11 @@ class TestDatabases:
         tag = "test_tag"
         data = b"test_data..."
         assert tag not in async_database
-        assert None == await async_database.apop_tag(tag, silent=True)
+        assert await async_database.apop_tag(tag, silent=True) is None
 
         await async_database.aset_tag(tag, data)
         await async_database.asave_database()
-        assert data == await async_database.apop_tag(tag)
+        assert await async_database.apop_tag(tag) == data
 
         problem = (  # fmt: skip
             "Pop tag doesn't throw when silent flag not set."
@@ -243,11 +243,11 @@ class TestDatabases:
         tag = "test_tag"
         data = b"test_data..."
         assert tag not in database
-        assert None == database.pop_tag(tag, silent=True)
+        assert database.pop_tag(tag, silent=True) is None
 
         database.set_tag(tag, data)
         database.save_database()
-        assert data == database.pop_tag(tag)
+        assert database.pop_tag(tag) == data
 
         problem = (  # fmt: skip
             "Pop tag doesn't throw when silent flag not set."
@@ -262,23 +262,23 @@ class TestDatabases:
         data = ["test", "data"]
         await async_database.apop_tag(tag, silent=True)
         async_database[tag] = list(data)
-        assert data == async_database[tag]
+        assert async_database[tag] == data
 
         async_database[tag].append("mutated")
-        assert data + ["mutated"] == async_database[tag]
+        assert async_database[tag] == data + ["mutated"]
 
         await async_database.arollback_tag(tag, cache=True)
-        assert None == async_database[tag]
+        assert async_database[tag] is None
 
         async_database[tag] = list(data)
         await async_database.asave_database()
-        assert data == async_database[tag]
+        assert async_database[tag] == data
 
         async_database[tag].append("mutated")
-        assert data + ["mutated"] == async_database[tag]
+        assert async_database[tag] == data + ["mutated"]
 
         await async_database.arollback_tag(tag, cache=True)
-        assert data == async_database[tag]
+        assert async_database[tag] == data
 
     async def test_sync_rollback_returns_previously_committed_state(
         self, database: Database
@@ -287,23 +287,23 @@ class TestDatabases:
         data = ["test", "data"]
         database.pop_tag(tag, silent=True)
         database[tag] = list(data)
-        assert data == database[tag]
+        assert database[tag] == data
 
         database[tag].append("mutated")
-        assert data + ["mutated"] == database[tag]
+        assert database[tag] == data + ["mutated"]
 
         database.rollback_tag(tag, cache=True)
-        assert None == database[tag]
+        assert database[tag] is None
 
         database[tag] = list(data)
         database.save_database()
-        assert data == database[tag]
+        assert database[tag] == data
 
         database[tag].append("mutated")
-        assert data + ["mutated"] == database[tag]
+        assert database[tag] == data + ["mutated"]
 
         database.rollback_tag(tag, cache=True)
-        assert data == database[tag]
+        assert database[tag] == data
 
     async def test_async_filenames_shows_all_set_tags(
         self, async_database: AsyncDatabase
@@ -402,20 +402,17 @@ class TestDatabases:
     async def test_async_delitem_removes_tags(
         self, async_database: AsyncDatabase
     ) -> None:
-        problem = (  # fmt: skip
-            "A save of a non-existent tag didn't throw an error."
-        )
         tag = "tested_tag"
         data = b"tested_data..."
         async_database[tag] = data
         await async_database.asave_database()
-        assert data == async_database[tag]
+        assert async_database[tag] == data
         assert (
             async_database._path / await async_database.afilename(tag)
         ).is_file()
 
         del async_database[tag]
-        assert None == async_database[tag]
+        assert async_database[tag] is None
         assert not (
             async_database._path / await async_database.afilename(tag)
         ).is_file()
@@ -423,18 +420,15 @@ class TestDatabases:
     async def test_sync_delitem_removes_tags(
         self, database: AsyncDatabase
     ) -> None:
-        problem = (  # fmt: skip
-            "A save of a non-existent tag didn't throw an error."
-        )
         tag = "tested_tag"
         data = b"tested_data..."
         database[tag] = data
         database.save_database()
-        assert data == database[tag]
+        assert database[tag] == data
         assert (database._path / database.filename(tag)).is_file()
 
         del database[tag]
-        assert None == database[tag]
+        assert database[tag] is None
         assert not (database._path / database.filename(tag)).is_file()
 
 

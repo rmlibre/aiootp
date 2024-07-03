@@ -37,8 +37,8 @@ class TestPasscryptMetadataHashes:
         )
 
     async def test_hashes_are_bytes(self) -> None:
-        assert type(self.ametadata_hash) == bytes
-        assert type(self.metadata_hash) == bytes
+        assert type(self.ametadata_hash) is bytes
+        assert type(self.metadata_hash) is bytes
 
     async def test_async_hash_reconstruction(self) -> None:
         apcrypt_hash = PasscryptHash(config=self.config).import_hash(

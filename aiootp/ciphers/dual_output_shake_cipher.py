@@ -253,8 +253,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
             )
             return ciphertext_block
-        except OverflowError:
-            raise Issue.exceeded_blocksize(config.BLOCKSIZE)
+        except OverflowError as error:
+            raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
 
     def _encipher_then_hash(
         self,
@@ -279,8 +279,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
             )
             return ciphertext_block
-        except OverflowError:
-            raise Issue.exceeded_blocksize(config.BLOCKSIZE)
+        except OverflowError as error:
+            raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
 
     async def _ahash_then_decipher(
         self,
@@ -304,8 +304,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 _from_bytes(ciphertext_block, BIG)
                 ^ _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
             ).to_bytes(config.BLOCKSIZE, BIG)
-        except OverflowError:
-            raise Issue.exceeded_blocksize(config.BLOCKSIZE)
+        except OverflowError as error:
+            raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
 
     def _hash_then_decipher(
         self,
@@ -329,8 +329,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 _from_bytes(ciphertext_block, BIG)
                 ^ _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
             ).to_bytes(config.BLOCKSIZE, BIG)
-        except OverflowError:
-            raise Issue.exceeded_blocksize(config.BLOCKSIZE)
+        except OverflowError as error:
+            raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
 
 
 class DualOutputSyntheticIV(SyntheticIV):

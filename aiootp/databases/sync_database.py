@@ -483,9 +483,9 @@ class Database(DatabaseProperties):
         try:
             path = self.path / filename
             return self.IO.read(path=path)
-        except FileNotFoundError as corrupt_database:
+        except FileNotFoundError as error:
             if not silent:
-                raise DatabaseIssue.file_not_found(filename)
+                raise DatabaseIssue.file_not_found(filename) from error
 
     def query_tag(
         self,
@@ -742,8 +742,8 @@ class Database(DatabaseProperties):
         filename = self.filename(tag)
         try:
             self._save_file(filename, admin=admin)
-        except AttributeError:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
+        except AttributeError as error:
+            raise DatabaseIssue.tag_file_doesnt_exist(tag) from error
         finally:
             if drop_cache and hasattr(self._cache, filename):
                 delattr(self._cache, filename)

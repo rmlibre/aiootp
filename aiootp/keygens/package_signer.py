@@ -192,7 +192,7 @@ class PackageSigner:
         try:
             return self._db
         except AttributeError:
-            raise PackageSignerIssue.DatabaseNotConnected()
+            raise PackageSignerIssue.DatabaseNotConnected() from None
 
     @property
     def _checksums(self) -> t.Dict[str, str]:
@@ -213,19 +213,11 @@ class PackageSigner:
         into a json-ready dictionary.
         """
         return {
-            self._CHECKSUMS: {
-                filename: hexdigest
-                for filename, hexdigest in self._checksums.items()
-            },
-            self._PUBLIC_CREDENTIALS: {
-                name: credential
-                for name, credential in sorted(
-                    self._public_credentials.items()
-                )
-            },
-            self._SCOPE: {
-                name: value for name, value in sorted(self._scope.items())
-            },
+            self._CHECKSUMS: dict(self._checksums.items()),
+            self._PUBLIC_CREDENTIALS: dict(
+                sorted(self._public_credentials.items())
+            ),
+            self._SCOPE: dict(sorted(self._scope.items())),
             self._SIGNING_KEY: self.signing_key.public_bytes.hex(),
         }
 
@@ -244,8 +236,8 @@ class PackageSigner:
         try:
             versions = self.db[self._scope.package][self._VERSIONS]
             return bytes.fromhex(versions[self._scope.version])
-        except KeyError:
-            raise PackageSignerIssue.PackageNotSigned()
+        except KeyError as error:
+            raise PackageSignerIssue.PackageNotSigned() from error
 
     def connect_to_secure_database(
         self,
@@ -276,8 +268,7 @@ class PackageSigner:
             self.db.query_tag(self._scope.package, cache=True)
         except LookupError:
             self.db[self._scope.package] = self._database_template()
-        finally:
-            return self
+        return self
 
     def update_scope(self, **scopes: t.JSONSerializable) -> t.Self:
         """
@@ -349,8 +340,8 @@ class PackageSigner:
         signing_key = self.signing_key
         try:
             signing_key.verify(signature, checksum)
-        except self.InvalidSignature:
-            raise PackageSignerIssue.out_of_sync_package_signature()
+        except self.InvalidSignature as error:
+            raise PackageSignerIssue.unsynced_package_signature() from error
         return {
             self._CHECKSUM: checksum.hex(),
             **self._summary,

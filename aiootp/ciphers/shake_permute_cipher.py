@@ -136,8 +136,8 @@ class ShakePermuteStreamHMAC(StreamHMAC):
             ).to_bytes(c.BLOCKSIZE, BIG)
             await self._aupdate(plaintext + ciphertext + digest)  # 168 bytes
             return ciphertext
-        except OverflowError:                            # pragma: no cover
-            raise Issue.exceeded_blocksize(c.BLOCKSIZE)  # pragma: no cover
+        except OverflowError as error:                              # pragma: no cover
+            raise Issue.exceeded_blocksize(c.BLOCKSIZE) from error  # pragma: no cover
         # fmt: on
 
     def _encipher_then_hash(
@@ -164,8 +164,8 @@ class ShakePermuteStreamHMAC(StreamHMAC):
             ).to_bytes(c.BLOCKSIZE, BIG)
             self._update(plaintext + ciphertext + digest)  # 168 bytes
             return ciphertext
-        except OverflowError:                            # pragma: no cover
-            raise Issue.exceeded_blocksize(c.BLOCKSIZE)  # pragma: no cover
+        except OverflowError as error:                              # pragma: no cover
+            raise Issue.exceeded_blocksize(c.BLOCKSIZE) from error  # pragma: no cover
         # fmt: on
 
     async def _ahash_then_decipher(
@@ -192,8 +192,8 @@ class ShakePermuteStreamHMAC(StreamHMAC):
             ).to_bytes(c.BLOCKSIZE, BIG)
             await self._aupdate(plaintext + ciphertext + digest)  # 168 bytes
             return plaintext
-        except OverflowError:                            # pragma: no cover
-            raise Issue.exceeded_blocksize(c.BLOCKSIZE)  # pragma: no cover
+        except OverflowError as error:                              # pragma: no cover
+            raise Issue.exceeded_blocksize(c.BLOCKSIZE) from error  # pragma: no cover
         # fmt: on
 
     def _hash_then_decipher(
@@ -220,8 +220,8 @@ class ShakePermuteStreamHMAC(StreamHMAC):
             ).to_bytes(c.BLOCKSIZE, BIG)
             self._update(plaintext + ciphertext + digest)  # 168 bytes
             return plaintext
-        except OverflowError:                            # pragma: no cover
-            raise Issue.exceeded_blocksize(c.BLOCKSIZE)  # pragma: no cover
+        except OverflowError as error:                              # pragma: no cover
+            raise Issue.exceeded_blocksize(c.BLOCKSIZE) from error  # pragma: no cover
         # fmt: on
 
 

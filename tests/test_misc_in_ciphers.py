@@ -47,7 +47,7 @@ class TestDatastreamLimits:
                 f"An async datastream block was allowed to exceed {BLOCKSIZE} bytes."
             )
             async with Ignore(OverflowError, if_else=violation(problem)):
-                async for chunk in cipher._Junction.abytes_encipher(
+                async for _ in cipher._Junction.abytes_encipher(
                     ainvalid_size_datastream, shmac=shmac
                 ):
                     pass
@@ -69,7 +69,7 @@ class TestDatastreamLimits:
                 f"A sync datastream block was allowed to exceed {BLOCKSIZE} bytes."
             )
             with Ignore(OverflowError, if_else=violation(problem)):
-                for chunk in cipher._Junction.bytes_encipher(
+                for _ in cipher._Junction.bytes_encipher(
                     invalid_size_datastream, shmac=shmac
                 ):
                     pass
@@ -77,8 +77,7 @@ class TestDatastreamLimits:
     async def test_async_datastream_must_emit_at_least_one_block(
         self,
     ) -> None:
-        for config, cipher, salt, aad in dual_output_ciphers:
-            BLOCKSIZE = config.BLOCKSIZE
+        for _, cipher, salt, aad in dual_output_ciphers:
             ainvalid_size_datastream = aempty_stream()
             await ainvalid_size_datastream.asend(None)
             akey_bundle = await cipher._KeyAADBundle(
@@ -90,7 +89,7 @@ class TestDatastreamLimits:
                 "An empty async datastream was allowed."
             )
             async with Ignore(ValueError, if_else=violation(problem)):
-                async for chunk in cipher._Junction.abytes_encipher(
+                async for _ in cipher._Junction.abytes_encipher(
                     ainvalid_size_datastream, shmac=shmac
                 ):
                     pass
@@ -98,8 +97,7 @@ class TestDatastreamLimits:
     async def test_sync_datastream_must_emit_at_least_one_block(
         self,
     ) -> None:
-        for config, cipher, salt, aad in dual_output_ciphers:
-            BLOCKSIZE = config.BLOCKSIZE
+        for _, cipher, salt, aad in dual_output_ciphers:
             invalid_size_datastream = empty_stream()
             invalid_size_datastream.send(None)
             key_bundle = cipher._KeyAADBundle(
@@ -111,7 +109,7 @@ class TestDatastreamLimits:
                 "An empty sync datastream was allowed."
             )
             with Ignore(ValueError, if_else=violation(problem)):
-                for chunk in cipher._Junction.bytes_encipher(
+                for _ in cipher._Junction.bytes_encipher(
                     invalid_size_datastream, shmac=shmac
                 ):
                     pass
@@ -167,7 +165,7 @@ class TestDatastreamLimits:
 
 class TestCipherInputs:
     async def test_input_container(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for config, _, salt, aad in all_ciphers:
             iv = token_bytes(config.IV_BYTES)
             sav = SaltAADIV(salt=salt, aad=aad, iv=iv, config=config)
             container = Namespace({name: sav[name] for name in sav})
@@ -185,13 +183,13 @@ class TestCipherInputs:
         problem = (  # fmt: skip
             "An invalid cipher KDFs type was allowed."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, *_ in all_ciphers:
             kdfs = InvalidCipherKDFs()
             with Ignore(TypeError, if_else=violation(problem)):
                 cipher._KeyAADBundle(kdfs)
 
     async def test_keys_limits(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, *_ in all_ciphers:
             problem = (  # fmt: skip
                 "Non-bytes key was allowed."
             )
@@ -205,7 +203,7 @@ class TestCipherInputs:
                 cipher.__class__(csprng(MIN_KEY_BYTES - 1))
 
     async def test_salt_limits(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for config, cipher, *_ in all_ciphers:
             problem = (  # fmt: skip
                 "Non-bytes salt was allowed."
             )
@@ -221,7 +219,7 @@ class TestCipherInputs:
                 cipher._KeyAADBundle(cipher._kdfs, salt=csprng())
 
     async def test_aad_limits(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             problem = (  # fmt: skip
                 "Non-bytes aad was allowed."
             )
@@ -229,7 +227,7 @@ class TestCipherInputs:
                 cipher._KeyAADBundle(cipher._kdfs, salt=salt, aad=aad.hex())
 
     async def test_iv_limits(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for config, cipher, *_ in all_ciphers:
             problem = (  # fmt: skip
                 "Non-bytes IV was allowed."
             )
@@ -251,7 +249,7 @@ class TestSaltMisuseReuseResistance:
     number_of_tests: int = 256
 
     async def test_async_siv_only_resistance(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for config, cipher, salt, _ in all_ciphers:
             iv = token_bytes(config.IV_BYTES)
             kw = dict(kdfs=cipher._kdfs, salt=salt, iv=iv)
 
@@ -283,7 +281,7 @@ class TestSaltMisuseReuseResistance:
             assert len(ainner_headers) == self.number_of_tests
 
     async def test_sync_siv_only_resistance(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for config, cipher, salt, _ in all_ciphers:
             iv = token_bytes(config.IV_BYTES)
             kw = dict(kdfs=cipher._kdfs, salt=salt, iv=iv)
 
@@ -411,13 +409,13 @@ class TestCipherModes:
         problem = (  # fmt: skip
             "A cipher ran without a mode set on its key bundle."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             key_bundle = cipher._KeyAADBundle(
                 cipher._kdfs, salt=salt, aad=aad
             )
             assert not hasattr(key_bundle, "mode")
             with Ignore(t.KDFModeNotDeclared, if_else=violation(problem)):
-                shmac = cipher._StreamHMAC(key_bundle)
+                cipher._StreamHMAC(key_bundle)
 
     async def test_async_encryption_must_be_used_with_async_components(
         self,
@@ -466,7 +464,7 @@ class TestCipherModes:
         problem = (  # fmt: skip
             "A cipher ran with mismatched component modes set."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for config, cipher, _, aad in all_ciphers:
             data = Ciphertext(
                 cipher.bytes_encrypt(b"test_data..."), config=config
             )
@@ -484,7 +482,7 @@ class TestCipherModes:
         problem = (  # fmt: skip
             "A cipher ran with mismatched component modes set."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for config, cipher, _, aad in all_ciphers:
             data = Ciphertext(
                 cipher.bytes_encrypt(b"test_data..."), config=config
             )
@@ -548,7 +546,7 @@ class TestCipherModes:
         problem = (  # fmt: skip
             "A cipher ran with mismatched component modes set."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for config, cipher, _, aad in all_ciphers:
             data = Ciphertext(
                 cipher.bytes_encrypt(b"test_data..."), config=config
             )
@@ -571,7 +569,7 @@ class TestCipherModes:
         problem = (  # fmt: skip
             "A cipher ran with mismatched component modes set."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for config, cipher, _, aad in all_ciphers:
             data = Ciphertext(
                 cipher.bytes_encrypt(b"test_data..."), config=config
             )
@@ -587,7 +585,7 @@ class TestCipherModes:
         problem = (  # fmt: skip
             "Encryption mode was allowed to be set more than once."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             key_bundle = await cipher._KeyAADBundle(
                 cipher._kdfs, salt=salt, aad=aad
             ).async_mode()
@@ -608,7 +606,7 @@ class TestCipherModes:
         problem = (  # fmt: skip
             "Decryption mode was set without also setting IV."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             key_bundle = await cipher._KeyAADBundle(
                 cipher._kdfs, salt=salt, aad=aad
             ).async_mode()

@@ -11,7 +11,7 @@
 #
 
 
-from base64 import urlsafe_b64encode, urlsafe_b64decode
+from base64 import urlsafe_b64encode
 
 from test_initialization import *
 

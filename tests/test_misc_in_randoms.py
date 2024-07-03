@@ -167,7 +167,7 @@ class TestCSPRNG:
 
     async def test_async_thread_safe_entropy(self) -> None:
         async def try_to_make_duplicate_readouts() -> None:
-            for i in range(runs):
+            for _ in range(runs):
                 entropy_pool.add(await acsprng())
 
         runs = 32
@@ -179,7 +179,7 @@ class TestCSPRNG:
 
     async def test_sync_thread_safe_entropy(self) -> None:
         def try_to_make_duplicate_readouts() -> None:
-            for i in range(runs):
+            for _ in range(runs):
                 entropy_pool.add(csprng())
 
         runs = 32

@@ -100,7 +100,7 @@ async def basic_async_tests(tested_class):
 
     assert len(secret_key_a.public_bytes) == 32
     assert len(secret_key_a.secret_bytes) == 32
-    assert type(key_a_from_public_object.public_key) == type(
+    assert type(key_a_from_public_object.public_key) is type(
         key_a_from_secret_object.public_key
     )
     assert type(key_a_from_public_object.public_bytes) is bytes
@@ -206,7 +206,7 @@ def basic_sync_tests(tested_class):
 
     assert len(secret_key_b.public_bytes) == 32
     assert len(secret_key_b.secret_bytes) == 32
-    assert type(key_b_from_public_object.public_key) == type(
+    assert type(key_b_from_public_object.public_key) is type(
         key_b_from_secret_object.public_key
     )
     assert type(key_b_from_public_object.public_bytes) is bytes

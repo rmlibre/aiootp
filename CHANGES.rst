@@ -19,10 +19,10 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - fix: allow ``str`` build numbers in signing ceremony
-- fix(db): raise intended error by loading missing import
+- fix(db): raise intended error by loading missing import [#12]
 - fix(commons): remove duplicates prior to update
 - fix(commons): accept pair-iterable mapping in init
-- fix(concurrency): import missing name in guard clause line
+- fix(concurrency): import missing name in guard clause line [#12]
 - ci(perf): run workflows on push & pull, but not on same event
 - docs: fix wrong or incomplete doc strings
 - docs: add links for bug & security issue reporting
@@ -30,15 +30,16 @@ Minor Changes
 - docs(bugfix): clarify tests to show problematic assignments [#11]
 - docs(commons): add distinguishing facets of classes to doc strings
 - docs(typing): fix & add type hints
-- build(lint): add ``ruff.toml`` config file
+- build(lint): add ``ruff.toml`` config file [#12]
+- test(lint): perform Ruff lint & format suggestions [#12]
 - test(cipher): demonstrate proper stream authentication
 - test(commons): ensure proper use avoids bug from PR [#11]
 - perf(init): cache slots as sets for membership tests [#11]
 - revert: scrap discouraged quick-fix in favor of f1060ce221 [#11]
 - refactor(exc): rely on common invalid length exception
-- style(lint): remove unused imports
-- style(lint): prevent reformat of problem statement
-- style(lint): prefer non-lambda function definitions
+- style(lint): remove unused imports [#12]
+- style(lint): prevent reformat of problem statement [#12]
+- style(lint): prefer non-lambda function definitions [#12]
 
 
 

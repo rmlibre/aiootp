@@ -15,7 +15,7 @@ from test_initialization import *
 
 
 async def test_json_functions():
-    for config, cipher, salt, aad in all_ciphers:
+    for _, cipher, salt, aad in all_ciphers:
         ciphertext_of_dict = cipher.json_encrypt(test_data, salt=salt)
         ciphertext_of_string = cipher.json_encrypt(
             plaintext_string, salt=salt
@@ -63,7 +63,7 @@ async def test_json_functions():
 
 
 async def test_bytes_functions():
-    for config, cipher, salt, aad in all_ciphers:
+    for _, cipher, salt, aad in all_ciphers:
         ciphertext_of_bytes = cipher.bytes_encrypt(
             plaintext_bytes, salt=salt
         )
@@ -111,7 +111,7 @@ async def test_bytes_functions():
 
 
 async def test_token_functions():
-    for config, cipher, salt, aad in all_ciphers:
+    for _, cipher, _, aad in all_ciphers:
         ciphertext_of_bytes = cipher.make_token(plaintext_bytes, aad=aad)
 
         # no two ciphertexts are ever the same

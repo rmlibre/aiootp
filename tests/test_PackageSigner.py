@@ -43,7 +43,7 @@ def test_sign_and_verify():
         )
         assert not hasattr(signer, "_signature")
         with Ignore(t.DatabaseNotConnected, if_else=violation(problem)):
-            signer._signature
+            assert signer._signature
 
         is_mac_os_issue = lambda relay: (platform.system() == "Darwin")
         while True:
@@ -67,14 +67,14 @@ def test_sign_and_verify():
         )
         assert not hasattr(signer, "signing_key")
         with Ignore(t.SigningKeyNotSet, if_else=violation(problem)):
-            signer.signing_key
+            assert signer.signing_key
 
         problem = (  # fmt: skip
             "Allowed to retrieve a signature before signing."
         )
         assert not hasattr(signer, "_signature")
         with Ignore(t.PackageNotSigned, if_else=violation(problem)):
-            signer._signature
+            assert signer._signature
 
         test_signing_key = signer.generate_signing_key()
 

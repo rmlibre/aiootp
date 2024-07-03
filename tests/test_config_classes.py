@@ -45,7 +45,7 @@ class TestConfig:
                 [declaration]
             ):
                 with Ignore(TypeError, if_else=violation(problem)):
-                    config = ExampleConfig(var=attr_type)
+                    ExampleConfig(var=attr_type)
 
     def test_runtime_uncheckable_types_are_detected(self) -> None:
         problem = (  # fmt: skip

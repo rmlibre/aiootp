@@ -52,11 +52,17 @@ async def not_implemented_placeholder(*a: t.Any, **kw: t.Any) -> None:
     # fmt: on
 
 
+defs = {}
+
+
 for name in __all__:
     if hasattr(os, name):
-        globals()[name] = wrap_in_executor(getattr(os, name))
+        defs[name] = wrap_in_executor(getattr(os, name))
     else:
-        globals()[name] = not_implemented_placeholder  # pragma: no cover
+        defs[name] = not_implemented_placeholder  # pragma: no cover
+
+
+globals().update(defs)
 
 
 module_api = dict(
@@ -67,13 +73,5 @@ module_api = dict(
     __spec__=__spec__,
     __loader__=__loader__,
     __package__=__package__,
-    chmod=chmod,
-    chown=chown,
-    makedirs=makedirs,
-    mkdir=mkdir,
-    rename=rename,
-    remove=remove,
-    rmdir=rmdir,
-    sendfile=sendfile,
-    stat=stat,
+    **defs,
 )

@@ -116,10 +116,10 @@ class TestGenerators:
         problem = "A non-int `start` value was allowed."
         for start in (0.0, None, "test", b"test"):
             with Ignore(TypeError, if_else=violation(problem)):
-                async for aindex in gentools.acount(start=start):
+                async for _ in gentools.acount(start=start):
                     pass
             with Ignore(TypeError, if_else=violation(problem)):
-                for index in gentools.count(start=start):
+                for _ in gentools.count(start=start):
                     pass
 
     async def test_bytes_ranges(self) -> None:

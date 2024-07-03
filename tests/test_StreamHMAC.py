@@ -11,8 +11,6 @@
 #
 
 
-from random import randrange
-
 from test_initialization import *
 
 from aiootp._gentools import abatch, batch
@@ -26,7 +24,7 @@ class TestStreamHMACStates:
         problem = (  # fmt: skip
             "An invalid key_bundle type was allowed."
         )
-        for config, cipher, *_ in all_ciphers:
+        for _, cipher, *_ in all_ciphers:
             key_bundle = FalseKeyAADBundle()
             with Ignore(TypeError, if_else=violation(problem)):
                 cipher._StreamHMAC(key_bundle)
@@ -53,19 +51,19 @@ class TestStreamHMACStates:
         problem = (  # fmt: skip
             "Retrieving a result before finalization was allowed."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             key_bundle = cipher._KeyAADBundle(
                 cipher._kdfs, salt=salt, aad=aad
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             with Ignore(t.ValidationIncomplete, if_else=violation(problem)):
-                shmac.result
+                assert shmac.result
 
     async def test_cant_finalize_more_than_once(self) -> None:
         problem = (  # fmt: skip
             "Multiple finalization calls were allowed."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             key_bundle = cipher._KeyAADBundle(
                 cipher._kdfs, salt=salt, aad=aad
             ).sync_mode()
@@ -80,7 +78,7 @@ class TestStreamHMACStates:
         problem = (  # fmt: skip
             "A non-bytes untrusted shmac was allowed."
         )
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             key_bundle = cipher._KeyAADBundle(
                 cipher._kdfs, salt=salt, aad=aad
             ).sync_mode()
@@ -114,7 +112,7 @@ async def test_detection_of_ciphertext_modification():
         # async ciphertext doesn't obviously contain plaintext
         for chunk in batch(plaintext_bytes, size=10):
             assert chunk not in act
-        byte_leakage not in act
+        assert byte_leakage not in act
 
         # async decryption of correct data doesn't fail
         assert plaintext_bytes == await cipher.abytes_decrypt(act)
@@ -176,7 +174,7 @@ async def test_detection_of_ciphertext_modification():
         # sync ciphertext doesn't obviously contain plaintext
         for chunk in batch(plaintext_bytes, size=10):
             assert chunk not in ct
-        byte_leakage not in ct
+        assert byte_leakage not in ct
 
         # sync decryption of correct data doesn't fail
         assert plaintext_bytes == cipher.bytes_decrypt(ct)
@@ -238,7 +236,7 @@ async def aciphertext_stream(config, cipher, salt, aad):
 
 def ciphertext_stream(config, cipher, salt, aad):
     key_bundle = cipher._KeyAADBundle(cipher._kdfs, aad=aad).sync_mode()
-    shmac = enc_hmac = cipher._StreamHMAC(key_bundle)._for_encryption()
+    shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
     datastream = batch(
         cipher._padding.pad_plaintext(plaintext_bytes),
         size=config.BLOCKSIZE,
@@ -421,7 +419,7 @@ def test_sync_block_ids_during_deciphering():
 
 
 async def test_calling_aupdate_before_setting_mode_causes_error() -> None:
-    for config, cipher, salt, aad in all_ciphers:
+    for _, cipher, salt, aad in all_ciphers:
         key_bundle = await cipher._KeyAADBundle(
             cipher._kdfs, salt=salt, aad=aad
         ).async_mode()
@@ -434,7 +432,7 @@ async def test_calling_aupdate_before_setting_mode_causes_error() -> None:
 
 
 async def test_calling_update_before_setting_mode_causes_error() -> None:
-    for config, cipher, salt, aad in all_ciphers:
+    for _, cipher, salt, aad in all_ciphers:
         key_bundle = cipher._KeyAADBundle(
             cipher._kdfs, salt=salt, aad=aad
         ).sync_mode()

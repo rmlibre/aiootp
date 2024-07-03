@@ -512,9 +512,9 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         try:
             path = self.path / filename
             return await self.IO.aread(path=path)
-        except FileNotFoundError as corrupt_database:
+        except FileNotFoundError as error:
             if not silent:
-                raise DatabaseIssue.file_not_found(filename)
+                raise DatabaseIssue.file_not_found(filename) from error
 
     async def aquery_tag(
         self,
@@ -785,8 +785,8 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         filename = await self.afilename(tag)
         try:
             await self._asave_file(filename, admin=admin)
-        except AttributeError:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
+        except AttributeError as error:
+            raise DatabaseIssue.tag_file_doesnt_exist(tag) from error
         finally:
             if drop_cache and hasattr(self._cache, filename):
                 delattr(self._cache, filename)

@@ -942,7 +942,7 @@ class PackageSignerIssue:
         "The summary & the hash digest of the given file don't match: "
         "FILENAME."
     )
-    _OUT_OF_SYNC_PACKAGE_SIGNATURE: str = (
+    _UNSYNCED_PACKAGE_SIGNATURE: str = (
         "The calculated package signature is out of sync with the "
         "current checksum of the package summary."
     )
@@ -960,8 +960,8 @@ class PackageSignerIssue:
         return InvalidDigest(issue.replace("FILENAME", repr(filename)))
 
     @classmethod
-    def out_of_sync_package_signature(cls, /) -> ValueError:
-        return ValueError(cls._OUT_OF_SYNC_PACKAGE_SIGNATURE)
+    def unsynced_package_signature(cls, /) -> ValueError:
+        return ValueError(cls._UNSYNCED_PACKAGE_SIGNATURE)
 
 
 module_api = dict(

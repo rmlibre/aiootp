@@ -122,7 +122,7 @@ class TestOnlineCipherInterfaces:
                 ), f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
 
     async def test_async_encipher_sync_decipher_interop(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
             pt_enc = plaintext_bytes
             await stream_enc.abuffer(pt_enc)
@@ -177,7 +177,7 @@ class TestOnlineCipherInterfaces:
             assert pt_dec == pt_enc
 
     async def test_sync_encipher_async_decipher_interop(self) -> None:
-        for config, cipher, salt, aad in all_ciphers:
+        for _, cipher, salt, aad in all_ciphers:
             stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
             pt_enc = plaintext_bytes
             stream_enc.buffer(pt_enc)

@@ -109,7 +109,7 @@ class TestEncodingUtilities:
             "Padding test ran without the necessary metadata."
         )
         blocksize = (32).to_bytes(1, BIG)
-        pad = b"\x00"
+        # pad = b"\x00"
         with Ignore(ValueError, if_else=violation(problem)):
             generics.canon.test_canonical_padding(
                 read=io.BytesIO().read,

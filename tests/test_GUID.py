@@ -79,7 +79,7 @@ class TestGUID:
         for size in range(12, 33):
             key = token_bytes(GUID.key_size(size))
             guid = GUID(key=key, config_id=size)
-            raw_guids = set(guid.read(guid.new()) for _ in indexes)
+            raw_guids = {guid.read(guid.new()) for _ in indexes}
             assert runs == len(raw_guids)
             raw_guids_list = sorted(raw_guids)
             for i, raw in enumerate(raw_guids_list):

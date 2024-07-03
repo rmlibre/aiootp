@@ -58,7 +58,7 @@ class EqualTimingExperiment:
 
 class TestAPlatformCounter:
     def test_is_monotonic(self) -> None:
-        assert time.get_clock_info("perf_counter").monotonic == True
+        assert time.get_clock_info("perf_counter").monotonic is True
 
     def test_is_nanosecond_precise(self) -> None:
         problem = (  # fmt: skip

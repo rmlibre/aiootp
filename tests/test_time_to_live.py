@@ -88,7 +88,7 @@ class TestZCipherTimeToLive:
                 ttl=1,
             )
             await dec_stream.abuffer(ciphertext)
-            plaintext = b"".join([block async for block in dec_stream])
+            b"".join([block async for block in dec_stream])
         assert relay.error.expired_by >= 1
 
     async def test_sync_cipher_stream(self) -> None:
@@ -106,7 +106,7 @@ class TestZCipherTimeToLive:
                 iv=enc_stream.iv,
                 ttl=1,
             )
-            plaintext = b"".join(dec_stream.buffer(ciphertext))
+            b"".join(dec_stream.buffer(ciphertext))
         assert relay.error.expired_by >= 1
 
 

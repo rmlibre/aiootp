@@ -39,7 +39,7 @@ class TestAffinePermutationConfig:
         problem = (  # fmt: skip
             "A prime below 257 was allowed."
         )
-        config_id = size = 1
+        config_id = 1
         config = t.AffinePermutation._configs[config_id]
         config.is_likely_safe_multiplier(
             config.MULTIPLICATIVE_KEY, prime=257
@@ -74,7 +74,6 @@ class TestAffinePermutation:
         self,
     ) -> None:
         for size in _test_sizes:
-            bitsize = 1 << (8 * size)
             add_key = _key[: self._type.key_size(size)]
             aff = self._type(key=add_key, config_id=size)
             elements = [
@@ -339,7 +338,7 @@ class TestAffineXORChain:
         self, aff, SIZE, DOMAIN
     ) -> None:
         latin_square = set()
-        for step in range(DOMAIN):
+        for _ in range(DOMAIN):
             row = tuple(aff.permute(i) for i in range(DOMAIN))
             assert all((0 <= element < DOMAIN) for element in row)
             latin_square.add(row)

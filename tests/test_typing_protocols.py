@@ -139,12 +139,9 @@ class TestXOFTypes(ProtocolSubTypeTests):
 class TestPermutationTypes(ProtocolSubTypeTests):
     protocol = t.PermutationType
     types_tested = [
-        type_tested
-        for type_tested in (
-            t.AffinePermutation,
-            t.AffineXORChain,
-            t.FastAffineXORChain,
-        )
+        t.AffinePermutation,
+        t.AffineXORChain,
+        t.FastAffineXORChain,
     ]
     instances_tested = [
         type_tested(key=csprng(type_tested.key_size(16)), config_id=16)
