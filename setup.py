@@ -106,8 +106,12 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.8",
-    tests_require=["pytest>=8.1.1", "pytest-asyncio>=0.23.6"],
     install_requires=["aiofiles>=23.2.1", "cryptography>=42.0.8"],
+    tests_require=[
+        "pytest>=8.1.1",
+        "pytest-asyncio>=0.23.6",
+        "ruff>=0.5.0",
+    ],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Framework :: AsyncIO",
