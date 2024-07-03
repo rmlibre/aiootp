@@ -22,16 +22,16 @@ We hope to give users & applications empowering developer-friendly privacy enhan
     :target: https://img.shields.io/pypi/v/aiootp?style=flat-square&logo=pypi
     :alt: aiootp PyPI Package Version
 
-.. image:: https://img.shields.io/pypi/wheel/aiootp?style=flat-square&logo=pypi&logoColor=gold
-    :target: https://img.shields.io/pypi/wheel/aiootp?style=flat-square&logo=pypi&logoColor=gold
+.. image:: https://img.shields.io/pypi/wheel/aiootp?style=flat-square&color=red&logo=pypi&logoColor=gold
+    :target: https://img.shields.io/pypi/wheel/aiootp?style=flat-square&color=red&logo=pypi&logoColor=gold
     :alt: Python Wheel Availability Badge
 
 .. image:: https://img.shields.io/pypi/pyversions/aiootp?style=flat-square&color=gold&logo=python
     :target: https://img.shields.io/pypi/pyversions/aiootp?style=flat-square&color=gold&logo=python
     :alt: Python Versions Badge
 
-.. image:: https://img.shields.io/badge/coverage-99%-black?style=flat-square&logo=codecov&logoColor=maroon
-    :target: https://img.shields.io/badge/coverage-99%-black?style=flat-square&logo=codecov&logoColor=maroon
+.. image:: https://img.shields.io/badge/coverage-99%25-blue?style=flat-square&logo=codecov&logoColor=maroon
+    :target: https://img.shields.io/badge/coverage-99%25-blue?style=flat-square&logo=codecov&logoColor=maroon
     :alt: Test Coverage Badge
 
 .. image:: https://img.shields.io/badge/Linter-Ruff-D7FF64?style=flat-square&logo=ruff
