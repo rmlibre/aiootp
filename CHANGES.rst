@@ -13,6 +13,9 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - fix(commons): avoid silent add of ``__slots__`` attrs to ``__dict__`` [#11]
+- fix(concurrency): prevent simultaneous data buffering [#12]
+- build(lint): require Ruff for test installation [#12]
+- test(lint): perform Ruff lint & format suggestions [#12]
 
 
 Minor Changes
@@ -32,10 +35,9 @@ Minor Changes
 - docs(commons): add distinguishing facets of classes to doc strings
 - docs(typing): fix & add type hints
 - build(lint): add ``ruff.toml`` config file [#12]
-- build(lint): require Ruff for test installation [#12]
-- test(lint): perform Ruff lint & format suggestions [#12]
 - test(cipher): demonstrate proper stream authentication
 - test(commons): ensure proper use avoids bug from PR [#11]
+- test(concurrency): add module for ``ConcurrencyGuard`` tests [#12]
 - perf(init): cache slots as sets for membership tests [#11]
 - revert: scrap discouraged quick-fix in favor of f1060ce221 [#11]
 - refactor(exc): rely on common invalid length exception

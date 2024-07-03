@@ -11,17 +11,170 @@
 #
 
 
-__all__ = ["ConcurrencyInterface"]
+__all__ = ["ConcurrencyGuard", "ConcurrencyInterface"]
 
 
 __doc__ = "A general interface for multi-threading & multi-processing."
 
 
+from secrets import token_bytes
+
 from aiootp._typing import Typing as t
-from aiootp._exceptions import Issue
+from aiootp._exceptions import Issue, IncoherentConcurrencyState
+from aiootp.commons import OpenFrozenTypedSlots
 
 from . import is_async_function
 from .loops import asleep, sleep, new_event_loop
+
+
+def process_probe_delay(cls: t.Any, value: t.Optional[float], /) -> float:
+    """
+    Ensures the probe frequency is positive & returns it, if it's
+    specified. Otherwise, returns `cls`'s default value.
+    """
+    if value is None:
+        return cls._default_probe_delay
+    elif value > 0:
+        return value
+    else:
+        raise Issue.value_must("probe_delay", "be > 0")
+
+
+class ConcurrencyGuard(OpenFrozenTypedSlots):
+    """
+    An interface for queueing execution contexts given only a shared
+    `deque` or `deque`-like double-ended queue. Prevents simultaneous /
+    out of order runs of blocks of code. A `deque` is recommended since
+    it supports atomic operations. Any atomic, shared datastructure with
+    `append`, `popleft`, & queue[0] methods would fit the API.
+
+     _____________________________________
+    |                                     |
+    |         Example As Diagram:         |
+    |_____________________________________|
+
+                           ----------------------
+                           |   Shared Context   |
+                           ----------------------
+
+                               queue = deque()
+                           -----------------------
+            -----------------         |        -----------------
+            |   Context A   |         |        |   Context B   |
+            -----------------         |        -----------------
+                                      |
+    with ConcurrencyGuard(queue):     |  with ConcurrencyGuard(queue):
+        mutable_thing[0] = 0          |      assert mutable_thing[0] == "done."
+        ...                           |      mutable_thing[0] = 1
+        ...                           |
+        assert mutable_thing[0] == 0  |
+        mutable_thing[0] = "done."    |
+                                      |
+    ----------------------------------------------------------------------
+    Context A is called first, but Context B is called before it finishes.
+    ----------------------------------------------------------------------
+    """
+
+    __slots__ = ("probe_delay", "queue", "token")
+
+    slots_types: t.Mapping[str, type] = dict(
+        probe_delay=float,
+        queue=t.SupportsAppendPopleft,
+        token=bytes,
+    )
+
+    _default_probe_delay: float = 0.00001
+
+    IncoherentConcurrencyState: type = IncoherentConcurrencyState
+
+    def __init__(
+        self,
+        /,
+        queue: t.SupportsAppendPopleft,
+        *,
+        probe_delay: t.Optional[float] = None,
+        token: t.Optional[bytes] = None,
+    ) -> None:
+        """
+        `queue`: Atomic, `deque`-like datastructure that supports `append`,
+                `pop`, & `queue[0]` methods.
+
+        `probe_delay`: The float/fractional number of seconds to wait
+                before each attempt to detect if instance's token has
+                been authorized to run.
+
+        `token`: The unique authorization token held by this context.
+        """
+        self.probe_delay = process_probe_delay(self, probe_delay)
+        self.queue = queue
+        self.token = token_bytes(32) if token is None else token
+
+    async def __aenter__(self, /) -> t.Self:
+        """
+        Prevents entering the context by asynchronously sleeping until
+        the instance's unique authorization token is the current token
+        in the 0th position of the queue.
+        """
+        self.queue.append(self.token)
+        while self.queue[0] != self.token:
+            await asleep(self.probe_delay)
+        return self
+
+    def __enter__(self, /) -> t.Self:
+        """
+        Prevents entering the context by synchronously sleeping until
+        the instance's unique authorization token is the current token
+        in the 0th position of the queue.
+        """
+        self.queue.append(self.token)
+        while self.queue[0] != self.token:
+            sleep(self.probe_delay)
+        return self
+
+    async def __aexit__(
+        self,
+        /,
+        exc_type: t.Optional[type] = None,
+        exc_value: t.Optional[Exception] = None,
+        traceback: t.Optional[t.TracebackType] = None,
+    ) -> None:
+        """
+        Raises `self.IncoherentConcurrencyState` if another instance's
+        authorization token has taken this instance's place in the token
+        queue.
+
+        Otherwise, raises any exception raised in the context's code
+        block.
+
+        Otherwise, closes the context silently.
+        """
+        await asleep()
+        if self.token != self.queue.popleft():
+            raise self.IncoherentConcurrencyState() from exc_value
+        elif exc_type is not None:
+            raise exc_value from None
+
+    def __exit__(
+        self,
+        /,
+        exc_type: t.Optional[type] = None,
+        exc_value: t.Optional[Exception] = None,
+        traceback: t.Optional[t.TracebackType] = None,
+    ) -> None:
+        """
+        Raises `self.IncoherentConcurrencyState` if another instance's
+        authorization token has taken this instance's place in the token
+        queue.
+
+        Otherwise, raises any exception raised in the context's code
+        block.
+
+        Otherwise, closes the context silently.
+        """
+        if self.token != self.queue.popleft():
+            raise self.IncoherentConcurrencyState() from exc_value
+        elif exc_type is not None:
+            raise exc_value from None
 
 
 class ConcurrencyInterface:
@@ -38,21 +191,6 @@ class ConcurrencyInterface:
     _type: type
 
     BrokenPool: type
-
-    @classmethod
-    def _process_probe_delay(
-        cls, value: t.Optional[t.PositiveRealNumber], /
-    ) -> t.PositiveRealNumber:
-        """
-        Ensures the probe frequency is positive & returns it, if it's
-        specified. Otherwise, returns the class' default value.
-        """
-        if value is None:
-            return cls._default_probe_delay
-        elif value > 0:
-            return value
-        else:
-            raise Issue.value_must("probe_delay", "be > 0")
 
     @staticmethod
     def _arun_func(
@@ -103,7 +241,7 @@ class ConcurrencyInterface:
         bound computations, or blocking IO operations, can better
         coexist with asynchronous code.
         """
-        delay = cls._process_probe_delay(probe_delay)
+        delay = process_probe_delay(cls, probe_delay)
         state = cls._Manager().list()
         task = cls._type(
             target=cls._arun_func,
@@ -131,7 +269,7 @@ class ConcurrencyInterface:
         computations, or blocking IO operations, can better coexist with
         asynchronous code.
         """
-        delay = cls._process_probe_delay(probe_delay)
+        delay = process_probe_delay(cls, probe_delay)
         state = cls._Manager().list()
         task = cls._type(
             target=cls._run_func,
@@ -200,7 +338,7 @@ class ConcurrencyInterface:
         the supplied `*args` & `**kwargs`, then returns the `Future`
         object that's created.
         """
-        delay = cls._process_probe_delay(probe_delay)
+        delay = process_probe_delay(cls, probe_delay)
         future = cls._pool.submit(cls._get_result, func, *args, **kwargs)
         return cls._package_result_methods(future, probe_delay=delay)
 
@@ -219,7 +357,7 @@ class ConcurrencyInterface:
         `*args` & `**kwargs`, then returns the `Future` object that's
         created.
         """
-        delay = cls._process_probe_delay(probe_delay)
+        delay = process_probe_delay(cls, probe_delay)
         future = cls._pool.submit(func, *args, **kwargs)
         return cls._package_result_methods(future, probe_delay=delay)
 
@@ -275,6 +413,7 @@ class ConcurrencyInterface:
 
 
 module_api = dict(
+    ConcurrencyGuard=t.add_type(ConcurrencyGuard),
     ConcurrencyInterface=t.add_type(ConcurrencyInterface),
     __all__=__all__,
     __doc__=__doc__,
@@ -283,4 +422,5 @@ module_api = dict(
     __spec__=__spec__,
     __loader__=__loader__,
     __package__=__package__,
+    process_probe_delay=process_probe_delay,
 )

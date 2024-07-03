@@ -112,6 +112,12 @@ class TestSupportsAppendPopTypes(ProtocolSubTypeTests):
     instances_tested = [type_tested([0, 1]) for type_tested in types_tested]
 
 
+class TestSupportsAppendPopleftTypes(ProtocolSubTypeTests):
+    protocol = t.SupportsAppendPopleft
+    types_tested = [deque]
+    instances_tested = [type_tested([0, 1]) for type_tested in types_tested]
+
+
 class TestHasherTypes(ProtocolSubTypeTests):
     protocol = t.HasherType
     types_tested = [

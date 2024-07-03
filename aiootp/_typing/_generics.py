@@ -22,6 +22,7 @@ __all__ = [
     "PositiveRealNumber",
     "RealNumber",
     "SupportsAppendPop",
+    "SupportsAppendPopleft",
     "SupportsPopleft",
     "XOFType",
 ]
@@ -87,6 +88,15 @@ class SupportsAppendPop(t.Protocol):
 
 
 @t.runtime_checkable
+class SupportsAppendPopleft(t.Protocol):
+    def append(self, obj: t.Any, /) -> None:
+        pass  # pragma: no cover
+
+    def popleft(self) -> t.Any:
+        pass  # pragma: no cover
+
+
+@t.runtime_checkable
 class HasherType(t.Protocol):
     def copy(self, /) -> t.Self:
         pass  # pragma: no cover
@@ -121,6 +131,7 @@ module_api = dict(
     PositiveRealNumber=PositiveRealNumber,
     RealNumber=RealNumber,
     SupportsAppendPop=t.add_type(SupportsAppendPop),
+    SupportsAppendPopleft=t.add_type(SupportsAppendPopleft),
     SupportsPopleft=t.add_type(SupportsPopleft),
     XOFType=t.add_type(XOFType),
     __all__=__all__,

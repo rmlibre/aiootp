@@ -138,6 +138,7 @@ include tests/test_namespace_classes.py
 include tests/test_config_classes.py
 include tests/test_asynchs.py
 include tests/test_Clock.py
+include tests/test_ConcurrencyGuard.py
 include tests/test_event_loops.py
 include tests/test_Processes_Threads.py
 include tests/test_gentools.py

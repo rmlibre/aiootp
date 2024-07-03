@@ -21,6 +21,7 @@ __all__ = [
     "MissingDeclaredVariables",
     "Ignore",
     "ImproperPassphrase",
+    "IncoherentConcurrencyState",
     "InvalidBlockID",
     "InvalidCiphertextSize",
     "InvalidDigest",
@@ -374,6 +375,16 @@ class ValidationIncomplete(AttributeError):
         super().__init__(self._MESSAGE_TEMPLATE, *a)
 
 
+class IncoherentConcurrencyState(RuntimeError):
+    _MESSAGE_TEMPLATE: str = (
+        "A concurrent environment has indicated out-of-order execution, "
+        "leading to an incorrect internal state."
+    )
+
+    def __init__(self, /, *a: t.Any) -> None:
+        super().__init__(self._MESSAGE_TEMPLATE, *a)
+
+
 class DatabaseNotConnected(AttributeError):
     _MESSAGE_TEMPLATE: str = (
         "Must first connect to the package signing session's secure "
@@ -698,6 +709,8 @@ class CipherStreamIssue:
         "buffer of an already closed stream."
     )
 
+    IncoherentConcurrencyState: type = IncoherentConcurrencyState
+
     @classmethod
     def stream_has_been_closed(cls, /) -> InterruptedError:
         return InterruptedError(cls._STREAM_HAS_BEEN_CLOSED)
@@ -974,6 +987,7 @@ module_api = dict(
     MissingDeclaredVariables=t.add_type(MissingDeclaredVariables),
     Ignore=t.add_type(Ignore),
     ImproperPassphrase=t.add_type(ImproperPassphrase),
+    IncoherentConcurrencyState=t.add_type(IncoherentConcurrencyState),
     InvalidBlockID=t.add_type(InvalidBlockID),
     InvalidCiphertextSize=t.add_type(InvalidCiphertextSize),
     InvalidDigest=t.add_type(InvalidDigest),

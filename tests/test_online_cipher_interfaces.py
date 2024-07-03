@@ -232,5 +232,93 @@ class TestOnlineCipherInterfaces:
             stream_dec.shmac.test_shmac(stream_enc.shmac.result)
             assert pt_dec == pt_enc
 
+    async def test_data_type_must_be_bytes(self) -> None:
+        problem = (  # fmt: skip
+            "A non-bytes data type was allowed to be buffered."
+        )
+        for config, cipher, salt, _ in all_ciphers:
+            for data in ("test", 0, None):
+                with Ignore(TypeError, if_else=violation(problem)):
+                    astream_enc = await cipher.astream_encrypt()
+                    await astream_enc.abuffer(data)
+
+                with Ignore(TypeError, if_else=violation(problem)):
+                    stream_enc = cipher.stream_encrypt()
+                    stream_enc.buffer(data)
+
+                errors = (TypeError, ValueError)
+
+                with Ignore(*errors, if_else=violation(problem)):
+                    astream_dec = await cipher.astream_decrypt(
+                        salt=salt, iv=csprng(config.IV_BYTES)
+                    )
+                    await astream_dec.abuffer(data)
+
+                with Ignore(*errors, if_else=violation(problem)):
+                    stream_dec = cipher.stream_decrypt(
+                        salt=salt, iv=csprng(config.IV_BYTES)
+                    )
+                    stream_dec.buffer(data)
+
+    async def test_async_concurrency_handling(self) -> None:
+        config, cipher, salt, aad = choice(all_ciphers)
+        chunk_size = 1024 * config.BLOCKSIZE
+        data_a = (chunk_size * b"a")[
+            config.INNER_HEADER_BYTES : -config.SENTINEL_BYTES
+        ]
+        data_b = chunk_size * b"b"
+
+        stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
+        fut_a = asynchs.new_task(stream_enc.abuffer(data_a))
+        await asleep(0.00001)
+        fut_b = asynchs.new_task(stream_enc.abuffer(data_b))
+        await fut_a
+        await fut_b
+        ct = [b"".join(id_ct) async for id_ct in stream_enc.afinalize()]
+
+        stream_dec = await cipher.astream_decrypt(
+            salt=salt, aad=aad, iv=stream_enc.iv
+        )
+        ct_a = b"".join(ct[: len(ct) // 2])
+        ct_b = b"".join(ct[len(ct) // 2 :])
+        fut_a = asynchs.new_task(stream_dec.abuffer(ct_a))
+        await asleep(0.00001)
+        fut_b = asynchs.new_task(stream_dec.abuffer(ct_b))
+        await fut_a
+        await fut_b
+        pt = b"".join([pt async for pt in stream_dec.afinalize()])
+
+        assert data_a + data_b == pt
+
+    async def test_sync_concurrency_handling(self) -> None:
+        config, cipher, salt, aad = choice(all_ciphers)
+        chunk_size = 16 * 1024 * config.BLOCKSIZE
+        data_a = (chunk_size * b"a")[
+            config.INNER_HEADER_BYTES : -config.SENTINEL_BYTES
+        ]
+        data_b = chunk_size * b"b"
+
+        stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
+        fut_a = Threads.submit(stream_enc.buffer, data_a)
+        asynchs.sleep(0.001)
+        fut_b = Threads.submit(stream_enc.buffer, data_b)
+        fut_a.result()
+        fut_b.result()
+        ct = [b"".join(id_ct) for id_ct in stream_enc.finalize()]
+
+        stream_dec = cipher.stream_decrypt(
+            salt=salt, aad=aad, iv=stream_enc.iv
+        )
+        ct_a = b"".join(ct[: len(ct) // 2])
+        ct_b = b"".join(ct[len(ct) // 2 :])
+        fut_a = Threads.submit(stream_dec.buffer, ct_a)
+        asynchs.sleep(0.001)
+        fut_b = Threads.submit(stream_dec.buffer, ct_b)
+        fut_a.result()
+        fut_b.result()
+        pt = b"".join(stream_dec.finalize())
+
+        assert data_a + data_b == pt
+
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
