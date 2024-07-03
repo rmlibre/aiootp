@@ -26,11 +26,13 @@ Minor Changes
 - ci(perf): run workflows on push & pull, but not on same event
 - docs: fix wrong or incomplete doc strings
 - docs: add links for bug & security issue reporting
+- docs(lint): incorporate Ruff demo & update badges [#12]
 - docs(bugfix): demonstrate avoiding slots/dict conflicts [#11]
 - docs(bugfix): clarify tests to show problematic assignments [#11]
 - docs(commons): add distinguishing facets of classes to doc strings
 - docs(typing): fix & add type hints
 - build(lint): add ``ruff.toml`` config file [#12]
+- build(lint): require Ruff for test installation [#12]
 - test(lint): perform Ruff lint & format suggestions [#12]
 - test(cipher): demonstrate proper stream authentication
 - test(commons): ensure proper use avoids bug from PR [#11]
