@@ -71,6 +71,8 @@ class OpenNamespace(Namespace):
     Mutable instance.
     """
 
+    __slots__ = ()
+
     def __repr__(self, /, *, mask: bool = False) -> str:
         """
         Pretty displays the instance & its attributes.
@@ -88,6 +90,8 @@ class FrozenNamespace(Namespace):
     Masked repr.
     Immutable instance. (set once)
     """
+
+    __slots__ = ()
 
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
@@ -115,6 +119,8 @@ class OpenFrozenNamespace(FrozenNamespace):
     Unmasked repr.
     Immutable instance. (set once)
     """
+
+    __slots__ = ()
 
     def __repr__(self, /, *, mask: bool = False) -> str:
         """

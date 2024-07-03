@@ -45,6 +45,7 @@ Minor Changes
 - style(lint): remove unused imports [#12]
 - style(lint): prevent reformat of problem statement [#12]
 - style(lint): prefer non-lambda function definitions [#12]
+- style(commons): add missing ``__slots__`` declarations
 
 
 
