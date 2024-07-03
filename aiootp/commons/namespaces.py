@@ -89,16 +89,6 @@ class FrozenNamespace(Namespace):
     Immutable instance. (set once)
     """
 
-    @property
-    def __all__(self, /) -> t.List[str]:
-        """
-        Allows users that have turned their namespace into a Module
-        object to do a `from namespace import *` on the contents of
-        the namespace's mapping. This method excludes exporting private
-        methods & attributes.
-        """
-        return [var for var in self if str(var)[0] != "_"]
-
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
         Denies setting attributes after they have already been set.

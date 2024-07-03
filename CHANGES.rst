@@ -25,6 +25,7 @@ Minor Changes
 - fix(db): raise intended error by loading missing import [#12]
 - fix(commons): remove duplicates prior to update
 - fix(commons): accept pair-iterable mapping in init
+- fix(commons): remove ``__all__`` method causing recursion bugs
 - fix(concurrency): import missing name in guard clause line [#12]
 - ci(perf): run workflows on push & pull, but not on same event
 - docs: fix wrong or incomplete doc strings

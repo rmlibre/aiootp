@@ -145,14 +145,6 @@ class BaseFrozenTests(BaseVariableHoldingClassTests):
                 delattr(obj, name)
 
 
-class BaseModuleNamespaceTests(BaseVariableHoldingClassTests):
-    async def test_all_doesnt_include_private_variables(self) -> None:
-        obj = self._type(self._items)
-        private_name = "_private"
-        assert hasattr(obj, private_name)
-        assert private_name not in obj.__all__
-
-
 class BaseDictLikeTests(BaseVariableHoldingClassTests):
     def frozen_violation_catcher(self, name: str) -> Ignore:
         if_except = lambda _: self._frozen
@@ -634,7 +626,6 @@ class TestFrozenNamespace(
     BaseFrozenTests,
     BaseReprControlledTests,
     BaseMaskableReprTests,
-    BaseModuleNamespaceTests,
     BaseDictLikeTests,
     BaseIndexableTests,
 ):
@@ -647,7 +638,6 @@ class TestOpenFrozenNamespace(
     BaseFrozenTests,
     BaseReprControlledTests,
     BaseMaskableReprTests,
-    BaseModuleNamespaceTests,
     BaseDictLikeTests,
     BaseIndexableTests,
 ):
