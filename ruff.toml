@@ -45,7 +45,7 @@ ignore = [
     "E731",  # TODO: look through lambda's to maybe comply
 ]
 fixable = ["ALL"]
-unfixable = ["B"]
+unfixable = []
 
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
