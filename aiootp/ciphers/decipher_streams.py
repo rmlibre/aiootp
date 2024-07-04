@@ -578,7 +578,7 @@ class DecipherStream(CipherStreamProperties):
         elif not data or len(data) % self.PACKETSIZE:
             raise Issue.invalid_length("data", len(data))
 
-        with ConcurrencyGuard(self._digesting_now):
+        with ConcurrencyGuard(self._digesting_now, probe_delay=0.0001):
             data = io.BytesIO(data).read
             atest_block_id, append = self._buffer_shortcuts
             self._digest_data(data, atest_block_id, append)
