@@ -35,14 +35,43 @@ target-version = "py38"
 
 
 [lint]
-select = ["B", "C", "E", "F", "Q", "W"]
+select = [
+    # "A",  # TODO: decide on using module __doc__ or not
+    "FLY",  # flynt
+    # "ARG",  # TODO: cleaning up so this passes is a goal
+    "ASYNC",  # flake8-async
+    "B",  # flake8-bugbear
+    "C",  # conventions & complexity
+    "E",  # pycodestyle errors
+    "ERA",  # eradicate commented out code
+    "F",  # pyflakes
+    "FBT",  # flake8-boolean-trap
+    "FURB",  # refurb
+    "PERF",  # Perflint
+    "PT",  # pytest-style
+    # "PTH",  # flake8-use-pathlib, TODO: potential
+    "Q",  # flake8-quotes
+    "RSE",  # flake8-raise
+    "S",  # flake8-bandit
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+    # "TD",  # flake8-todos, TODO: follow?
+    "RUF",  # Ruff-specific
+    "UP",  # pyupgrade
+    "W",  # pycodestyle warnings
+]
 ignore = [
     "B006",  # mutable defaults only used for **unpacking interface
     "B008",  # random defaults at startup are intended
     "B028",  # thanks for the warning, if stacklevel was needed
     "C408",  # string keys aren't better than keyword arguments
+    "COM",  # TODO: use? it's discouraged but nice
     "E501",  # trust the 76-length enforcement from the formatter
     "E731",  # TODO: look through lambda's to maybe comply
+    "RUF012",  # sometimes other types better describe class variables
+    "S101",  # sometimes asserts are nice sanity checks
+    "SIM300",  # hey! yoda's alright
+    "UP015",  # `open` params should be explicit
 ]
 fixable = ["ALL"]
 unfixable = []
@@ -59,6 +88,19 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "F821",  # (sub)packages don't need to import their modules' names
     "F822",  # potential NameError warnings ie. `import *`
 ]
+"**/_typing/*" = [
+    "A002",  # no control if mirrored interfaces reuse built-in names
+    "FBT001",  # no control over positional boolean params here
+]
+"**/asynchs/aos.py" = [
+    "F822",  # `__all__` declarations exist in `os` module
+]
+"**/randoms/simple.py" = [
+    "S311",  # weak random is labelled in simple module
+]
+"dual_output_shake_cipher_config.py" = [
+    "SIM114",  # TODO: specify branch exceptions & other build limits
+]
 "test_initialization.py" = [
     "E402",  # there's a wibbly wobbly, timey wimey import sequence here
     "F401",  # most other tests get their imports from this module
@@ -68,9 +110,8 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "F403",  # tests get most of their imports from `import *`
     "F405",  # `import *` confuses it a lot
     "F822",  # potential NameError warnings ie. `import *`
-]
-"aos.py" = [
-    "F822",  # `__all__` declarations exist in `os` module
+    "S101",  # asserts happen in tests
+    "S311",  # weak random is fine in tests
 ]
 
 

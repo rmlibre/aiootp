@@ -39,7 +39,7 @@ class TestMnemonics:
             assert size == len(asize_word_phrase)
 
     async def test_using_passphrase_is_deterministic(self) -> None:
-        is_mac_os_issue = lambda relay: (platform.system() == "Darwin")
+        is_mac_os_issue = lambda _: (platform.system() == "Darwin")
 
         with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):
             phrase = mnemonic(passphrase, **passcrypt_settings)

@@ -73,7 +73,7 @@ def report_security_issue() -> None:
                 f"\nAre you sure you'd like to use {mb} MiB of RAM to hash this"
                 "\npassphrase? (Y/n) "
             ).lower().strip().startswith("n"):
-                raise PermissionError()
+                raise PermissionError
             break
         except ValueError:
             print(f"\nTry again, {mb} is not a valid number.")

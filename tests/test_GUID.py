@@ -125,9 +125,7 @@ class TestGUID:
 
         runs = 2048
         # PROBLEM: Low resolution system clock harms GUID uniqueness guarantees.
-        is_os_clock_resolution_issue = lambda relay: (
-            TIME_RESOLUTION >= 1e-04
-        )
+        is_os_clock_resolution_issue = lambda _: (TIME_RESOLUTION >= 1e-04)
 
         # ASYNC
         guids = {await guid.anew() for _ in range(runs)}

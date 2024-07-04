@@ -180,7 +180,7 @@ class Database(DatabaseProperties):
         self._cache = Namespace()
         self._manifest = Namespace()
         self.path = self._format_path(path)
-        self._is_metatag = True if metatag else False
+        self._is_metatag = bool(metatag)
         self._initialize_keys(key)
         self._load_manifest()
         self._initialize_metatags()

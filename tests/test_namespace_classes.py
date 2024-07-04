@@ -98,11 +98,11 @@ class BaseReprControlledTests(BaseVariableHoldingClassTests):
         obj = self._type(self._items)
         string = repr(obj)
         for name, value in self._items.items():
-            if name[0] == "_":
-                assert name not in string
-            elif hasattr(
-                obj, "_is_mapped_attribute"
-            ) and not obj._is_mapped_attribute(name):
+            if (
+                name[0] == "_"
+                or hasattr(obj, "_is_mapped_attribute")
+                and not obj._is_mapped_attribute(name)
+            ):
                 assert name not in string
             else:
                 assert name in string, name
@@ -341,7 +341,7 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
             wrong_cls = randoms.choice([*cls_set.difference({cls})])
 
             def is_vague_type(
-                relay: Ignore, name=name, cls=cls, wrong_cls=wrong_cls
+                _: Ignore, name=name, cls=cls, wrong_cls=wrong_cls
             ) -> bool:
                 error = AssertionError(
                     f"{problem=} : {name=} : {cls=} : {wrong_cls=}"

@@ -64,7 +64,7 @@ class TestAPlatformCounter:
         problem = (  # fmt: skip
             "Platform perf counter doesn't have nanosecond resolution."
         )
-        resolution_warning = lambda relay: warnings.warn(problem) or True
+        resolution_warning = lambda _: warnings.warn(problem) or True
         with Ignore(AssertionError, if_except=resolution_warning):
             assert time.get_clock_info("perf_counter").resolution <= 1e-09
         assert time.get_clock_info("perf_counter").resolution <= 1e-07
@@ -75,7 +75,7 @@ class TestAPlatformTime:
         problem = (  # fmt: skip
             "Platform time doesn't have at least millisecond resolution."
         )
-        resolution_warning = lambda relay: warnings.warn(problem) or True
+        resolution_warning = lambda _: warnings.warn(problem) or True
         with Ignore(AssertionError, if_except=resolution_warning):
             assert time.get_clock_info("time").resolution <= 1e-03
         assert time.get_clock_info("time").resolution <= 1 / 64

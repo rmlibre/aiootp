@@ -150,7 +150,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         """
         await asleep()
         if self.token != self.queue.popleft():
-            raise self.IncoherentConcurrencyState() from exc_value
+            raise self.IncoherentConcurrencyState from exc_value
         elif exc_type is not None:
             raise exc_value from None
 
@@ -172,7 +172,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         Otherwise, closes the context silently.
         """
         if self.token != self.queue.popleft():
-            raise self.IncoherentConcurrencyState() from exc_value
+            raise self.IncoherentConcurrencyState from exc_value
         elif exc_type is not None:
             raise exc_value from None
 

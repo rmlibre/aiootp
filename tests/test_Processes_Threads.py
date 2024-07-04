@@ -39,7 +39,7 @@ class BasicTestSuite:
     async def test_anew(self) -> None:
         name = self._id_name
 
-        is_non_linux_multiprocessing_issue = lambda relay: (
+        is_non_linux_multiprocessing_issue = lambda _: (
             (self._type is Processes) and (self.system != "Linux")
         )
         with Ignore(
@@ -59,7 +59,7 @@ class BasicTestSuite:
     def test_new(self) -> None:
         name = self._id_name
 
-        is_non_linux_multiprocessing_issue = lambda relay: (
+        is_non_linux_multiprocessing_issue = lambda _: (
             (self._type is Processes) and (self.system != "Linux")
         )
         with Ignore(

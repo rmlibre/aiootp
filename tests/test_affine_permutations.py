@@ -334,9 +334,7 @@ class TestAffineXORChain:
             assert _plaintexts == inversions
             assert _plaintexts == uncapped_inversions
 
-    async def validate_latin_square_property(
-        self, aff, SIZE, DOMAIN
-    ) -> None:
+    async def validate_latin_square_property(self, aff, _, DOMAIN) -> None:
         latin_square = set()
         for _ in range(DOMAIN):
             row = tuple(aff.permute(i) for i in range(DOMAIN))

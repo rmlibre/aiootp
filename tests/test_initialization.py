@@ -69,7 +69,7 @@ DebugControl.disable_debugging()
 t = Typing
 
 violation = lambda problem: lambda relay: raise_exception(
-    AssertionError(f"{problem} : {repr(relay)}")
+    AssertionError(f"{problem} : {relay!r}")
 )
 
 
@@ -298,7 +298,7 @@ passcrypt_test_vector_3 = OpenNamespace(
 )
 
 byte_leakage = 16 * b"\x00"
-string_leakage = 16 * "0".encode()
+string_leakage = 16 * b"0"
 plaintext_bytes = b"\xff" + 256 * b"\x00"
 plaintext_string = "f" + 256 * "0"
 test_data = {
@@ -393,7 +393,7 @@ def async_database():
     run(db.adelete_database())
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def path():
     file_path = Path("byte_io_testing_path.txt").absolute()
 
@@ -416,14 +416,14 @@ class ExampleConfig(Config):
         self.STRING = string
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def config():
-    yield ExampleConfig(number=420, string="word")
+    return ExampleConfig(number=420, string="word")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def mapping():
-    yield ConfigMap(config_type=ExampleConfig)
+    return ConfigMap(config_type=ExampleConfig)
 
 
 __all__ = [n for n in globals() if not n.startswith("_")]

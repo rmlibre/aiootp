@@ -179,7 +179,7 @@ class PackageSigner:
         aad = canonical_pack(Domains.PACKAGE_SIGNER, package.encode())
         encrypted_key = self.db[package][self._SIGNING_KEY]
         if not encrypted_key:
-            raise PackageSignerIssue.SigningKeyNotSet()
+            raise PackageSignerIssue.SigningKeyNotSet
         key = self.db.read_token(encrypted_key, aad=aad)
         return self._Signer().import_secret_key(key)
 
@@ -192,7 +192,7 @@ class PackageSigner:
         try:
             return self._db
         except AttributeError:
-            raise PackageSignerIssue.DatabaseNotConnected() from None
+            raise PackageSignerIssue.DatabaseNotConnected from None
 
     @property
     def _checksums(self) -> t.Dict[str, str]:
@@ -237,7 +237,7 @@ class PackageSigner:
             versions = self.db[self._scope.package][self._VERSIONS]
             return bytes.fromhex(versions[self._scope.version])
         except KeyError as error:
-            raise PackageSignerIssue.PackageNotSigned() from error
+            raise PackageSignerIssue.PackageNotSigned from error
 
     def connect_to_secure_database(
         self,

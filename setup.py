@@ -181,46 +181,26 @@ setup(
         "Intended Audience :: Financial and Insurance Industry",
         "License :: OSI Approved :: GNU Affero General Public License v3",
     ],
-    keywords=" ".join(
-        [
-            "xor key salt pepper nonce aad iv siv resuse misuse",
-            "fully context committing commitment",
-            "online AEAD auth authenticated authentication",
-            "shmac hmac nmac mac digest integrity",
-            "infosec opsec appsec privacy engineering",
-            "stream block cipher permutation chunky2048 slick256",
-            "encrypt plaintext",
-            "decrypt ciphertext",
-            "passcrypt passphrase PBKDF",
-            "password based derivation function",
-            "3dh 2dh 25519 x25519 ed25519 curve25519",
-            "diffie hellman sign signature verify verification",
-            "db database value store",
-            "user uuid unique guid global",
-            "transparent encryption decryption",
-            "indistinguishable indistinguishability",
-            "pseudo one time pad onetimepad",
-            "canonical canonicalization domain separation KDF",
-            "bit bits 64 128 256 512 1024 2048 4096",
-            "hash sha sha3 sha-3 keccak",
-            "ephemeral byte entropy",
-            "PRF PRG PRP RNG PRNG CSPRNG",
-            "cryptographically secure",
-            "random number generator",
-            "bitwise operations",
-            "IND CCA CPA RUP",
-            "information cyber security",
-            "active passive adaptive chosen attack",
-            "resistance resistant tweak tweakable",
-            "anonymous anonymity pseudonymous",
-            "symmetric asymmetric",
-            "communications utilities",
-            "simple clean code",
-            "crypto cryptology cryptography cryptanalysis",
-            "beta testing",
-            "data science multi processing threading",
-            "await async asyncio parallel concurrency",
-            "coroutine coroutines asynchronous asynchrony",
-        ]
+    keywords=(
+        "xor key salt pepper nonce aad iv siv resuse misuse fully context "
+        "committing commitment online AEAD auth authenticated "
+        "authentication shmac hmac nmac mac digest integrity infosec opsec "
+        "appsec privacy engineering stream block cipher permutation "
+        "chunky2048 slick256 encrypt plaintext decrypt ciphertext passcrypt"
+        " passphrase PBKDF password based derivation function 3dh 2dh 25519"
+        " x25519 ed25519 curve25519 diffie hellman sign signature verify "
+        "verification db database value store user uuid unique guid global "
+        "transparent encryption decryption indistinguishable "
+        "indistinguishability pseudo one time pad onetimepad canonical "
+        "canonicalization domain separation KDF bit bits 64 128 256 512 "
+        "1024 2048 4096 hash sha sha3 sha-3 keccak ephemeral byte entropy "
+        "PRF PRG PRP RNG PRNG CSPRNG cryptographically secure random number"
+        " generator bitwise operations IND CCA CPA RUP information cyber "
+        "security active passive adaptive chosen attack resistance "
+        "resistant tweak tweakable anonymous anonymity pseudonymous "
+        "symmetric asymmetric communications utilities simple clean code "
+        "crypto cryptology cryptography cryptanalysis beta testing data "
+        "science multi processing threading await async asyncio parallel "
+        "concurrency coroutine coroutines asynchronous asynchrony",
     ),
 ) if __name__ == "__main__" else 0

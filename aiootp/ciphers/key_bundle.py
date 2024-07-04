@@ -123,7 +123,7 @@ class KeyAADMode(OpenFrozenSlots):
         try:
             return self._mode
         except AttributeError as error:
-            raise KeyAADIssue.KDFModeNotDeclared() from error
+            raise KeyAADIssue.KDFModeNotDeclared from error
 
     def set_async_mode(self) -> None:
         """

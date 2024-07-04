@@ -265,7 +265,7 @@ class TestDatabases:
         assert async_database[tag] == data
 
         async_database[tag].append("mutated")
-        assert async_database[tag] == data + ["mutated"]
+        assert async_database[tag] == [*data, "mutated"]
 
         await async_database.arollback_tag(tag, cache=True)
         assert async_database[tag] is None
@@ -275,7 +275,7 @@ class TestDatabases:
         assert async_database[tag] == data
 
         async_database[tag].append("mutated")
-        assert async_database[tag] == data + ["mutated"]
+        assert async_database[tag] == [*data, "mutated"]
 
         await async_database.arollback_tag(tag, cache=True)
         assert async_database[tag] == data
@@ -290,7 +290,7 @@ class TestDatabases:
         assert database[tag] == data
 
         database[tag].append("mutated")
-        assert database[tag] == data + ["mutated"]
+        assert database[tag] == [*data, "mutated"]
 
         database.rollback_tag(tag, cache=True)
         assert database[tag] is None
@@ -300,7 +300,7 @@ class TestDatabases:
         assert database[tag] == data
 
         database[tag].append("mutated")
-        assert database[tag] == data + ["mutated"]
+        assert database[tag] == [*data, "mutated"]
 
         database.rollback_tag(tag, cache=True)
         assert database[tag] == data

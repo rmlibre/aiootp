@@ -517,14 +517,12 @@ class DecipherStream(CipherStreamProperties):
         """
         self._is_finalized = True
         self.shmac.finalize()
-        for result in self:
-            yield result
+        yield from self
         queue = self._result_queue
         footer_index = self._padding.depadding_end_index(queue[-1])
-        for block in batch(
+        yield from batch(
             b"".join(queue)[:footer_index], size=self._config.BLOCKSIZE
-        ):
-            yield block
+        )
 
     def _digest_data(
         self,

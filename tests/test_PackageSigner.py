@@ -45,7 +45,7 @@ def test_sign_and_verify():
         with Ignore(t.DatabaseNotConnected, if_else=violation(problem)):
             assert signer._signature
 
-        is_mac_os_issue = lambda relay: (platform.system() == "Darwin")
+        is_mac_os_issue = lambda _: (platform.system() == "Darwin")
         while True:
             sleep(0.001)
             with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):

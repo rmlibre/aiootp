@@ -113,7 +113,7 @@ class StreamHMAC:
         `PermissionError` if the instance hasn't been finalized.
         """
         if not self._result_is_ready:
-            raise ValidationIncomplete()
+            raise ValidationIncomplete
         return self._result
 
     def _for_encryption(self) -> t.Self:

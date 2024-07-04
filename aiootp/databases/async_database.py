@@ -190,7 +190,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         self._cache = Namespace()
         self._manifest = Namespace()
         self.path = await self._aformat_path(path)
-        self._is_metatag = True if metatag else False
+        self._is_metatag = bool(metatag)
         await self._ainitialize_keys(key)
         await self._aload_manifest()
         await self._ainitialize_metatags()

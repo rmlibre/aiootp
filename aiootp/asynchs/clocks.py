@@ -177,7 +177,7 @@ class Clock(FrozenInstance):
     def __repr__(self, /) -> str:
         return (
             f"{self.__class__.__qualname__}("
-            f"{repr(self._units)}, epoch={self._epoch})"
+            f"{self._units!r}, epoch={self._epoch})"
         )
 
     def has_adequate_resolution(self, /) -> bool:
@@ -256,14 +256,18 @@ class Clock(FrozenInstance):
         Takes a `timestamp` & returns the integer difference between
         the instance's conception of the current time & the timestamp.
         """
-        return await self.atime() - await self.aread_timestamp(timestamp)
+        return await self.atime() - await self.aread_timestamp(
+            timestamp, byte_order=byte_order
+        )
 
     def delta(self, /, timestamp: bytes, *, byte_order: str = BIG) -> int:
         """
         Takes a `timestamp` & returns the integer difference between
         the instance's conception of the current time & the timestamp.
         """
-        return self.time() - self.read_timestamp(timestamp)
+        return self.time() - self.read_timestamp(
+            timestamp, byte_order=byte_order
+        )
 
     async def atest_timestamp(
         self,

@@ -212,7 +212,7 @@ async def test_detection_of_ciphertext_modification():
 
 async def aciphertext_stream(config, cipher, salt, aad):
     key_bundle = await cipher._KeyAADBundle(
-        cipher._kdfs, aad=aad
+        cipher._kdfs, salt=salt, aad=aad
     ).async_mode()
     shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
     datastream = abatch(
@@ -235,7 +235,9 @@ async def aciphertext_stream(config, cipher, salt, aad):
 
 
 def ciphertext_stream(config, cipher, salt, aad):
-    key_bundle = cipher._KeyAADBundle(cipher._kdfs, aad=aad).sync_mode()
+    key_bundle = cipher._KeyAADBundle(
+        cipher._kdfs, salt=salt, aad=aad
+    ).sync_mode()
     shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
     datastream = batch(
         cipher._padding.pad_plaintext(plaintext_bytes),

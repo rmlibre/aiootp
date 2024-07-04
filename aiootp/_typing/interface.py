@@ -93,7 +93,7 @@ class Typing:
             and hasattr(new_type, "__prepare__")
         )
         if not has_type_attributes:
-            raise TypeError(f"{repr(new_type)} is not a type.")
+            raise TypeError(f"{new_type!r} is not a type.")
 
     @classmethod
     def _test_type_name(cls, name: str) -> None:
@@ -106,11 +106,11 @@ class Typing:
         is_capitalized = name[0].isupper()
 
         if not name.isidentifier():
-            raise ValueError(f"Invalid type name {repr(name)}.")
+            raise ValueError(f"Invalid type name {name!r}.")
         elif attribute_already_defined:
-            raise AttributeError(f"{repr(name)} is already defined.")
+            raise AttributeError(f"{name!r} is already defined.")
         elif is_mixed_case or not is_capitalized:
-            raise ValueError(f"{repr(name)} must be title or capital-cased")
+            raise ValueError(f"{name!r} must be title or capital-cased")
 
     @classmethod
     def add_type(cls, new_type: type) -> type:
