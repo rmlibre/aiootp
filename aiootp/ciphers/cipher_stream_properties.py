@@ -20,7 +20,7 @@ __doc__ = (
 
 
 from aiootp._typing import Typing as t
-from aiootp._exceptions import Issue, TimestampExpired
+from aiootp._exceptions import TimestampExpired, IncoherentConcurrencyState
 from aiootp._exceptions import InvalidBlockID, InvalidSHMAC
 from aiootp.commons import OpenFrozenSlots
 
@@ -47,6 +47,7 @@ class CipherStreamProperties:
     A definition of shared properties between cipher streaming types.
     """
 
+    IncoherentConcurrencyState: type = IncoherentConcurrencyState
     InvalidBlockID: type = InvalidBlockID
     InvalidSHMAC: type = InvalidSHMAC
     TimestampExpired: type = TimestampExpired
@@ -105,4 +106,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

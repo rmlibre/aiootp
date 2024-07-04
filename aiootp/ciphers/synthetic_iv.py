@@ -53,8 +53,8 @@ class SyntheticIV(FrozenInstance):
         """
         try:
             block = await datastream.asend(None)
-        except StopAsyncIteration:
-            raise Issue.stream_is_empty()
+        except StopAsyncIteration as error:
+            raise Issue.stream_is_empty() from error
         if shmac._mode == ENCRYPTION:
             return await cls._aunique_cipher(block, keystream, shmac)
         else:
@@ -79,8 +79,8 @@ class SyntheticIV(FrozenInstance):
         """
         try:
             block = datastream.send(None)
-        except StopIteration:
-            raise Issue.stream_is_empty()
+        except StopIteration as error:
+            raise Issue.stream_is_empty() from error
         if shmac._mode == ENCRYPTION:
             return cls._unique_cipher(block, keystream, shmac)
         else:
@@ -97,4 +97,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

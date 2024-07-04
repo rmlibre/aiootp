@@ -29,7 +29,7 @@ from aiootp._constants import NamespaceMapping, BIG
 from aiootp._exceptions import UndefinedRequiredAttributes
 from aiootp.asynchs import Clock
 from aiootp.commons import Config
-from aiootp.generics import Domains, canonical_pack
+from aiootp.generics import canonical_pack
 
 from .cipher_kdfs import ShakeConfig
 
@@ -232,11 +232,13 @@ class DualOutputShakeCipherConfig(Config):
         """
         Maps configuration values of cipher primitives.
         """
+        # fmt: off
         self.KDF_CONFIGS = NamespaceMapping(**{
             self.SHMAC_KDF: self.SHMAC_KDF_CONFIG,
             self.LEFT_KDF: self.LEFT_KDF_CONFIG,
             self.RIGHT_KDF: self.RIGHT_KDF_CONFIG,
         })
+        # fmt: on
         self.SHMAC_BLOCKSIZE = self.SHMAC_KDF_CONFIG.blocksize
         self.SHMAC_DOUBLE_BLOCKSIZE = self.SHMAC_KDF_CONFIG.double_blocksize
         self.SHMAC_RESULT_SLICE = slice(-self.SHMAC_BYTES, None, 1)
@@ -329,10 +331,12 @@ class DualOutputShakeCipherConfig(Config):
             1,
         )
         self.SIV_DIGEST_SLICE = slice(2 * self.INNER_HEADER_BYTES, None, 1)
+        # fmt: off
         self.PERMUTATION_TEST_VECTOR = self.Permutation(
             key=shake_128(self.CONFIG_ID).digest(self.PERMUTATION_KEY_BYTES),
             config_id=self.PERMUTATION_CONFIG_ID,
         ).permute(0).to_bytes(self.INNER_HEADER_BYTES, BIG)
+        # fmt: on
 
     def _construct_metadata_constant(self) -> None:
         """
@@ -420,7 +424,9 @@ class DualOutputShakeCipherConfig(Config):
         / misuse resistance fails.
         """
         if self.INNER_HEADER_BYTES % 2:
-            raise ValueError("INNER_HEADER_BYTES *cannot* be an odd number!")
+            raise ValueError(
+                "INNER_HEADER_BYTES *cannot* be an odd number!"
+            )
 
     def _ensure_blocksize_is_even(self) -> None:
         """
@@ -482,10 +488,11 @@ class DualOutputShakeCipherConfig(Config):
         remainder = (
             self.BLOCKSIZE - self.INNER_HEADER_BYTES - self.SENTINEL_BYTES
         ) % self.BLOCKSIZE
-        if (remainder < 16 and remainder >= 0):
+        if remainder < 16 and remainder >= 0:
             raise ValueError(
-                "BLOCKSIZE - INNER_HEADER - SENTINEL_BYTES *must* leave"
-                " at least 16-bytes for the plaintext!", remainder
+                "BLOCKSIZE - INNER_HEADER - SENTINEL_BYTES *must* leave "
+                "at least 16-bytes for the plaintext!",
+                remainder,
             )
 
     def _ensure_siv_measurements_are_correct(self) -> None:
@@ -504,20 +511,27 @@ class DualOutputShakeCipherConfig(Config):
             ^ int.from_bytes(block[self.FIRST_CONTENT_SLICE], BIG)
         ).to_bytes(self.FIRST_CONTENT_BYTES, BIG)
         if len(ciphertext) != self.BLOCKSIZE:
-            raise ValueError("Derived SIV measurements were invalid!")  # pragma: no cover
+            raise ValueError(
+                "Derived SIV measurements were invalid!"
+            )  # pragma: no cover
         elif (
             len(l_capacity + ciphertext + r_capacity)
             != self.SHMAC_DOUBLE_BLOCKSIZE
         ):
-            raise ValueError("Derived SIV measurements were invalid!")  # pragma: no cover
+            raise ValueError(
+                "Derived SIV measurements were invalid!"
+            )  # pragma: no cover
         elif (
             len(
                 header
                 + masked_header
                 + token_bytes(self.SHMAC_BLOCKSIZE)[self.SIV_DIGEST_SLICE]
-            ) != self.SHMAC_BLOCKSIZE
+            )
+            != self.SHMAC_BLOCKSIZE
         ):
-            raise ValueError("Derived SIV measurements were invalid!")  # pragma: no cover
+            raise ValueError(
+                "Derived SIV measurements were invalid!"
+            )  # pragma: no cover
 
     def _perform_correctness_checks(self) -> None:
         """
@@ -555,4 +569,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

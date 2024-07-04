@@ -21,4 +21,3 @@ from test_misc_in_ciphers import *
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

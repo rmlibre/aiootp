@@ -18,7 +18,6 @@ from aiootp.randoms.ids.raw_guid_config import RawGUIDContainer
 
 
 class TestGUIDConfig:
-
     async def test_permutation_cid_can_be_specified(self) -> None:
         for permutation_config_id in (14, 15, 17, 20):
             config = t.GUIDConfig(
@@ -43,7 +42,6 @@ class TestGUIDConfig:
 
 
 class TestGUID:
-
     async def test_unmasking_inverts_the_applied_permutation(self) -> None:
         for size in range(12, 33):
             key = token_bytes(GUID.key_size(size))
@@ -54,8 +52,12 @@ class TestGUID:
             unmasked_guid = await guid.aread(masked_guid)
 
             reconstructed_rawguid = b"".join(unmasked_guid.values())
-            int_reconstructed_rawguid = int.from_bytes(reconstructed_rawguid, BIG)
-            permuted_rawguid = await guid._permutation.apermute(int_reconstructed_rawguid)
+            int_reconstructed_rawguid = int.from_bytes(
+                reconstructed_rawguid, BIG
+            )
+            permuted_rawguid = await guid._permutation.apermute(
+                int_reconstructed_rawguid
+            )
             assert masked_guid == permuted_rawguid.to_bytes(size, BIG)
 
             # SYNC
@@ -63,8 +65,12 @@ class TestGUID:
             unmasked_guid = guid.read(masked_guid)
 
             reconstructed_rawguid = b"".join(unmasked_guid.values())
-            int_reconstructed_rawguid = int.from_bytes(reconstructed_rawguid, BIG)
-            permuted_rawguid = guid._permutation.permute(int_reconstructed_rawguid)
+            int_reconstructed_rawguid = int.from_bytes(
+                reconstructed_rawguid, BIG
+            )
+            permuted_rawguid = guid._permutation.permute(
+                int_reconstructed_rawguid
+            )
             assert masked_guid == permuted_rawguid.to_bytes(size, BIG)
 
     async def test_raw_guids_sorting(self) -> None:
@@ -73,18 +79,18 @@ class TestGUID:
         for size in range(12, 33):
             key = token_bytes(GUID.key_size(size))
             guid = GUID(key=key, config_id=size)
-            raw_guids = set(guid.read(guid.new()) for _ in indexes)
+            raw_guids = {guid.read(guid.new()) for _ in indexes}
             assert runs == len(raw_guids)
             raw_guids_list = sorted(raw_guids)
             for i, raw in enumerate(raw_guids_list):
                 assert raw == raw
-                if (i < runs - 1):
+                if i < runs - 1:
                     assert raw < raw_guids_list[i + 1]
                 else:
                     assert raw > raw_guids_list[i - 1]
 
     async def test_guid_size_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Invalid length GUID was allowed during decoding."
         )
         for size in range(12, 33):
@@ -98,7 +104,7 @@ class TestGUID:
                 await guid.aread(b"\xff" + guid.new())
 
     async def test_node_id_size_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid length node ID was allowed."
         )
         for size in range(12, 33):
@@ -119,7 +125,7 @@ class TestGUID:
 
         runs = 2048
         # PROBLEM: Low resolution system clock harms GUID uniqueness guarantees.
-        is_os_clock_resolution_issue = lambda relay: (TIME_RESOLUTION >= 1e-04)
+        is_os_clock_resolution_issue = lambda _: (TIME_RESOLUTION >= 1e-04)
 
         # ASYNC
         guids = {await guid.anew() for _ in range(runs)}
@@ -134,4 +140,3 @@ class TestGUID:
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

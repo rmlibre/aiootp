@@ -46,6 +46,7 @@ OMITTED: str = "<omitted>"
 TB_PORT: int = 9150
 TOR_PORT: int = 9050
 
+# fmt: off
 _algorithms_available: t.Set[str] = set(hashlib.algorithms_available)
 HASHER_TYPES: NamespaceMapping = NamespaceMapping(**{
     str(name): NamespaceMapping(
@@ -61,6 +62,7 @@ SHA3_256_BLOCKSIZE: int = sha3_256().block_size
 SHA3_512_BLOCKSIZE: int = sha3_512().block_size
 SHAKE_128_BLOCKSIZE: int = shake_128().block_size
 SHAKE_256_BLOCKSIZE: int = shake_256().block_size
+# fmt: on
 
 MIN_KEY_BYTES: int = 64
 DEFAULT_AAD: bytes = b""
@@ -272,4 +274,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

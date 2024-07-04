@@ -17,9 +17,8 @@ from aiootp._constants.misc import SECONDS, MILLISECONDS, MICROSECONDS
 
 
 class TestRawGUIDConfig:
-
     async def test_declared_size_must_be_sum_of_components(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An inconsistent `size` declaration was allowed."
         )
         for bad_size in (15, 17):
@@ -33,8 +32,10 @@ class TestRawGUIDConfig:
                 )
 
     async def test_custom_clock_can_be_supplied(self) -> None:
-        for (size, timestamp_bytes, units) in (
-            (16, 4, SECONDS), (18, 6, MILLISECONDS), (20, 8, MICROSECONDS)
+        for size, timestamp_bytes, units in (
+            (16, 4, SECONDS),
+            (18, 6, MILLISECONDS),
+            (20, 8, MICROSECONDS),
         ):
             config = t.RawGUIDConfig(
                 timestamp_bytes=timestamp_bytes,
@@ -48,4 +49,3 @@ class TestRawGUIDConfig:
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

@@ -22,7 +22,7 @@ from secrets import token_bytes
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, ASYNC, SYNC
 from aiootp._exceptions import Issue, KeyAADIssue
-from aiootp.commons import FrozenInstance, FrozenSlots, OpenFrozenSlots
+from aiootp.commons import FrozenSlots, OpenFrozenSlots
 from aiootp.generics import canonical_pack
 
 from .cipher_kdfs import CipherKDFs
@@ -67,9 +67,7 @@ class SaltAADIV(FrozenSlots):
             self.iv_is_fresh = False
             return iv
 
-    def _test_salt_aad_iv(
-        self, salt: bytes, aad: bytes, iv: bytes
-    ) -> None:
+    def _test_salt_aad_iv(self, salt: bytes, aad: bytes, iv: bytes) -> None:
         """
         Validates the ephemeral `salt`, `aad` authenticated associated
         data, & the random `iv` for a package cipher.
@@ -125,7 +123,7 @@ class KeyAADMode(OpenFrozenSlots):
         try:
             return self._mode
         except AttributeError as error:
-            raise KeyAADIssue.KDFModeNotDeclared() from error
+            raise KeyAADIssue.KDFModeNotDeclared from error
 
     def set_async_mode(self) -> None:
         """
@@ -287,4 +285,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

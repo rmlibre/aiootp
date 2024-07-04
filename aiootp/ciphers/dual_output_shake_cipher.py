@@ -28,7 +28,7 @@ __doc__ = (
 
 
 from aiootp._typing import Typing as t
-from aiootp._constants.misc import ENCRYPTION, BIG
+from aiootp._constants.misc import BIG
 from aiootp._exceptions import Issue
 from aiootp.asynchs import asleep
 from aiootp.commons import FrozenInstance
@@ -38,7 +38,6 @@ from .key_bundle import KeyAADBundle
 from .stream_hmac import StreamHMAC
 from .synthetic_iv import SyntheticIV
 from .stream_junction import StreamJunction
-from .cipher_interface import CipherInterface
 from .chunky_2048_config import SHMAC_KDF, LEFT_KDF, RIGHT_KDF
 
 
@@ -109,7 +108,7 @@ class DualOutputKeyAADBundle(KeyAADBundle):
     _Session: type = DualOutputSessionKDFs
 
     def _keystream_ratchets(
-        self
+        self,
     ) -> t.Tuple[
         t.Callable[[bytes], None],
         t.Callable[[int], bytes],
@@ -137,24 +136,23 @@ class DualOutputKeyAADBundle(KeyAADBundle):
         stream of bytes key material which incorporates new key material
         in the stream derivation on each iteration.
         """
-        c = self.config
-        (
-            l_update,
-            l_digest,
-            r_update,
-            r_digest,
-        ) = self._keystream_ratchets()
-        (
-            LEFT_RATCHET_KEY_SLICE,
-            RIGHT_RATCHET_KEY_SLICE,
-            SHMAC_BLOCKSIZE,
-        ) = c.LEFT_RATCHET_KEY_SLICE, c.RIGHT_RATCHET_KEY_SLICE, c.SHMAC_BLOCKSIZE
+        # fmt: off
+        config = self.config
+        l_update, l_digest, r_update, r_digest = self._keystream_ratchets()
+        LEFT_RATCHET_KEY_SLICE, RIGHT_RATCHET_KEY_SLICE, SHMAC_BLOCKSIZE = (
+            config.LEFT_RATCHET_KEY_SLICE,
+            config.RIGHT_RATCHET_KEY_SLICE,
+            config.SHMAC_BLOCKSIZE,
+        )
         ratchet_key = yield
         while True:
             l_update(ratchet_key[LEFT_RATCHET_KEY_SLICE])   # update with 168 even index bytes
             r_update(ratchet_key[RIGHT_RATCHET_KEY_SLICE])  # update with 168 odd index bytes
-            ratchet_key = yield l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
+            ratchet_key = yield (
+                l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
+            )
             await asleep()
+        # fmt: on
 
     def _new_keystream(self) -> t.Generator[bytes, bytes, None]:
         """
@@ -162,23 +160,22 @@ class DualOutputKeyAADBundle(KeyAADBundle):
         stream of bytes key material which incorporates new key material
         in the stream derivation on each iteration.
         """
-        c = self.config
-        (
-            l_update,
-            l_digest,
-            r_update,
-            r_digest,
-        ) = self._keystream_ratchets()
-        (
-            LEFT_RATCHET_KEY_SLICE,
-            RIGHT_RATCHET_KEY_SLICE,
-            SHMAC_BLOCKSIZE,
-        ) = c.LEFT_RATCHET_KEY_SLICE, c.RIGHT_RATCHET_KEY_SLICE, c.SHMAC_BLOCKSIZE
+        # fmt: off
+        config = self.config
+        l_update, l_digest, r_update, r_digest = self._keystream_ratchets()
+        LEFT_RATCHET_KEY_SLICE, RIGHT_RATCHET_KEY_SLICE, SHMAC_BLOCKSIZE = (
+            config.LEFT_RATCHET_KEY_SLICE,
+            config.RIGHT_RATCHET_KEY_SLICE,
+            config.SHMAC_BLOCKSIZE,
+        )
         ratchet_key = yield
         while True:
             l_update(ratchet_key[LEFT_RATCHET_KEY_SLICE])   # update with 168 even index bytes
             r_update(ratchet_key[RIGHT_RATCHET_KEY_SLICE])  # update with 168 odd index bytes
-            ratchet_key = yield l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
+            ratchet_key = yield (
+                l_digest(SHMAC_BLOCKSIZE) + r_digest(SHMAC_BLOCKSIZE)
+            )
+        # fmt: on
 
     async def async_mode(self) -> t.Self:
         """
@@ -200,7 +197,7 @@ class DualOutputKeyAADBundle(KeyAADBundle):
 
     @property
     def _keystream(
-        self
+        self,
     ) -> t.Union[
         t.Generator[bytes, bytes, None], t.AsyncGenerator[bytes, bytes]
     ]:
@@ -256,8 +253,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
             )
             return ciphertext_block
-        except OverflowError:
-            raise Issue.exceeded_blocksize(config.BLOCKSIZE)
+        except OverflowError as error:
+            raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
 
     def _encipher_then_hash(
         self,
@@ -282,8 +279,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
             )
             return ciphertext_block
-        except OverflowError:
-            raise Issue.exceeded_blocksize(config.BLOCKSIZE)
+        except OverflowError as error:
+            raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
 
     async def _ahash_then_decipher(
         self,
@@ -307,8 +304,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 _from_bytes(ciphertext_block, BIG)
                 ^ _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
             ).to_bytes(config.BLOCKSIZE, BIG)
-        except OverflowError:
-            raise Issue.exceeded_blocksize(config.BLOCKSIZE)
+        except OverflowError as error:
+            raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
 
     def _hash_then_decipher(
         self,
@@ -332,8 +329,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 _from_bytes(ciphertext_block, BIG)
                 ^ _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
             ).to_bytes(config.BLOCKSIZE, BIG)
-        except OverflowError:
-            raise Issue.exceeded_blocksize(config.BLOCKSIZE)
+        except OverflowError as error:
+            raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
 
 
 class DualOutputSyntheticIV(SyntheticIV):
@@ -620,4 +617,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

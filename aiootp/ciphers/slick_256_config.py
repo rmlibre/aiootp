@@ -76,4 +76,3 @@ module_api = dict(
     __package__=__package__,
     slick256_spec=slick256_spec,
 )
-

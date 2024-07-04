@@ -25,7 +25,6 @@ from .interface import Typing as t
 
 @t.runtime_checkable
 class PermutationType(t.Protocol):
-
     @classmethod
     def key_size(cls, config_id: t.Hashable) -> int:
         pass  # pragma: no cover
@@ -53,4 +52,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

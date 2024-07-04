@@ -24,7 +24,7 @@ from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._exceptions import Issue, CipherStreamIssue
 from aiootp._gentools import apopleft, popleft, abatch, batch
-from aiootp.asynchs import AsyncInit, asleep
+from aiootp.asynchs import AsyncInit, ConcurrencyGuard, asleep
 
 from .cipher_stream_properties import AuthFail, CipherStreamProperties
 
@@ -68,7 +68,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         "_buffer",
         "_bytes_to_trim",
         "_config",
-        "_is_digesting",
+        "_digesting_now",
         "_is_finalized",
         "_is_streaming",
         "_key_bundle",
@@ -78,6 +78,8 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         "_ttl",
         "shmac",
     )
+
+    _MAX_SIMULTANEOUS_BUFFERS: int = 1024
 
     async def __init__(
         self,
@@ -119,14 +121,17 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._config = cipher._config
         self._padding = cipher._padding
         self._ttl = ttl
-        self._is_digesting = False
+        self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
         self._is_streaming = False
         self._is_finalized = False
         self._result_queue = deque()
         self._buffer = buffer = deque()
         self._bytes_to_trim = self._config.INNER_HEADER_BYTES
         self._key_bundle = key_bundle = await cipher._KeyAADBundle(
-            kdfs=cipher._kdfs, salt=salt, aad=aad, iv=iv,
+            kdfs=cipher._kdfs,
+            salt=salt,
+            aad=aad,
+            iv=iv,
         ).async_mode()
         self.shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
         self._stream = cipher._Junction.abytes_decipher(
@@ -135,7 +140,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _iter_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Deque[bytes], t.Callable[[], bytes]]:
         """
         Returns method pointers so calls in tight loops during
@@ -146,7 +151,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _digest_data_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Callable[[None], bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -157,7 +162,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _buffer_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Callable[..., None], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -190,8 +195,8 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         in the cases where the inner header spans multiple blocks.
         """
         await asleep()
-        inner_header = queue[0][:self._bytes_to_trim]
-        block = queue[0][self._bytes_to_trim:]
+        inner_header = queue[0][: self._bytes_to_trim]
+        block = queue[0][self._bytes_to_trim :]
         self._bytes_to_trim -= len(inner_header)
         if block:
             queue[0] = block
@@ -298,15 +303,11 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
             raise CipherStreamIssue.stream_has_been_closed()
         elif not data or len(data) % self.PACKETSIZE:
             raise Issue.invalid_length("data", len(data))
-        data = io.BytesIO(data).read
-        atest_block_id, append = self._buffer_shortcuts
-        while self._is_digesting:
-            await asleep(0.00001)  # pragma: no cover
-        try:
-            self._is_digesting = True
+
+        async with ConcurrencyGuard(self._digesting_now):
+            data = io.BytesIO(data).read
+            atest_block_id, append = self._buffer_shortcuts
             await self._adigest_data(data, atest_block_id, append)
-        finally:
-            self._is_digesting = False
         return self
 
 
@@ -349,7 +350,7 @@ class DecipherStream(CipherStreamProperties):
         "_buffer",
         "_config",
         "_bytes_to_trim",
-        "_is_digesting",
+        "_digesting_now",
         "_is_finalized",
         "_is_streaming",
         "_key_bundle",
@@ -359,6 +360,8 @@ class DecipherStream(CipherStreamProperties):
         "_ttl",
         "shmac",
     )
+
+    _MAX_SIMULTANEOUS_BUFFERS: int = 1024
 
     def __init__(
         self,
@@ -400,14 +403,17 @@ class DecipherStream(CipherStreamProperties):
         self._config = cipher._config
         self._padding = cipher._padding
         self._ttl = ttl
-        self._is_digesting = False
+        self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
         self._is_streaming = False
         self._is_finalized = False
         self._result_queue = deque()
         self._buffer = buffer = deque()
         self._bytes_to_trim = self._config.INNER_HEADER_BYTES
         self._key_bundle = key_bundle = cipher._KeyAADBundle(
-            kdfs=cipher._kdfs, salt=salt, aad=aad, iv=iv,
+            kdfs=cipher._kdfs,
+            salt=salt,
+            aad=aad,
+            iv=iv,
         ).sync_mode()
         self.shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
         self._stream = cipher._Junction.bytes_decipher(
@@ -416,7 +422,7 @@ class DecipherStream(CipherStreamProperties):
 
     @property
     def _iter_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Deque[bytes], t.Callable[[], bytes]]:
         """
         Returns method pointers so calls in tight loops during
@@ -427,7 +433,7 @@ class DecipherStream(CipherStreamProperties):
 
     @property
     def _digest_data_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Callable[[None], bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -438,7 +444,7 @@ class DecipherStream(CipherStreamProperties):
 
     @property
     def _buffer_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Callable[..., None], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -468,8 +474,8 @@ class DecipherStream(CipherStreamProperties):
         Strips the inner header from the buffered plaintext in the queue
         in the cases where the inner header spans multiple blocks.
         """
-        inner_header = queue[0][:self._bytes_to_trim]
-        block = queue[0][self._bytes_to_trim:]
+        inner_header = queue[0][: self._bytes_to_trim]
+        block = queue[0][self._bytes_to_trim :]
         self._bytes_to_trim -= len(inner_header)
         if block:
             queue[0] = block
@@ -511,14 +517,12 @@ class DecipherStream(CipherStreamProperties):
         """
         self._is_finalized = True
         self.shmac.finalize()
-        for result in self:
-            yield result
+        yield from self
         queue = self._result_queue
         footer_index = self._padding.depadding_end_index(queue[-1])
-        for block in batch(
+        yield from batch(
             b"".join(queue)[:footer_index], size=self._config.BLOCKSIZE
-        ):
-            yield block
+        )
 
     def _digest_data(
         self,
@@ -571,15 +575,11 @@ class DecipherStream(CipherStreamProperties):
             raise CipherStreamIssue.stream_has_been_closed()
         elif not data or len(data) % self.PACKETSIZE:
             raise Issue.invalid_length("data", len(data))
-        data = io.BytesIO(data).read
-        test_block_id, append = self._buffer_shortcuts
-        while self._is_digesting:
-            asynchs.sleep(0.00001)  # pragma: no cover
-        try:
-            self._is_digesting = True
-            self._digest_data(data, test_block_id, append)
-        finally:
-            self._is_digesting = False
+
+        with ConcurrencyGuard(self._digesting_now, probe_delay=0.0001):
+            data = io.BytesIO(data).read
+            atest_block_id, append = self._buffer_shortcuts
+            self._digest_data(data, atest_block_id, append)
         return self
 
 
@@ -594,4 +594,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

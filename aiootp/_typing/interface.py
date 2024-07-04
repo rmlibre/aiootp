@@ -24,7 +24,7 @@ from typing import NewType
 
 try:
     Self = typing.Self
-except AttributeError:              # pragma: no cover
+except AttributeError:  # pragma: no cover
     Self = NewType("Self", "Self")  # pragma: no cover
     # TODO: Remove when Python 3.11 is oldest supported version.
 
@@ -32,21 +32,20 @@ except AttributeError:              # pragma: no cover
 Cls = NewType("Cls", Self)
 
 
-def _transpose_this_modules_types(
-    class_dict: typing.Dict[str, typing.Any]
-):
+def _transpose_this_modules_types(class_dict: typing.Dict[str, typing.Any]):
     """
     Inserts the types from this module's global namespace.
     """
     this_modules_types = {
-        name: value for name, value in globals().items()
+        name: value
+        for name, value in globals().items()
         if name[0].isupper()
     }
     class_dict.update(this_modules_types)
 
 
 def _transpose_types_modules_types(
-    class_dict: typing.Dict[str, typing.Any]
+    class_dict: typing.Dict[str, typing.Any],
 ) -> None:
     """
     Inserts the types from the standard library's `types` module.
@@ -57,7 +56,7 @@ def _transpose_types_modules_types(
 
 
 def _transpose_typing_modules_types(
-    class_dict: typing.Dict[str, typing.Any]
+    class_dict: typing.Dict[str, typing.Any],
 ) -> None:
     """
     Inserts the types from the standard library's `typing` module.
@@ -94,7 +93,7 @@ class Typing:
             and hasattr(new_type, "__prepare__")
         )
         if not has_type_attributes:
-            raise TypeError(f"{repr(new_type)} is not a type.")
+            raise TypeError(f"{new_type!r} is not a type.")
 
     @classmethod
     def _test_type_name(cls, name: str) -> None:
@@ -107,11 +106,11 @@ class Typing:
         is_capitalized = name[0].isupper()
 
         if not name.isidentifier():
-            raise ValueError(f"Invalid type name {repr(name)}.")
+            raise ValueError(f"Invalid type name {name!r}.")
         elif attribute_already_defined:
-            raise AttributeError(f"{repr(name)} is already defined.")
+            raise AttributeError(f"{name!r} is already defined.")
         elif is_mixed_case or not is_capitalized:
-            raise ValueError(f"{repr(name)} must be title or capital-cased")
+            raise ValueError(f"{name!r} must be title or capital-cased")
 
     @classmethod
     def add_type(cls, new_type: type) -> type:
@@ -146,4 +145,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

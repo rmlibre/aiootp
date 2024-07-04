@@ -37,15 +37,15 @@ def test_sign_and_verify():
         _repr = repr(signer)
         assert all(name in _repr for name in signer._scope)
 
-        problem = (
+        problem = (  # fmt: skip
             "Allowed to retrieve a signature before connecting to the "
             "database."
         )
         assert not hasattr(signer, "_signature")
         with Ignore(t.DatabaseNotConnected, if_else=violation(problem)):
-            signer._signature
+            assert signer._signature
 
-        is_mac_os_issue = lambda relay: (platform.system() == "Darwin")
+        is_mac_os_issue = lambda _: (platform.system() == "Darwin")
         while True:
             sleep(0.001)
             with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):
@@ -58,21 +58,23 @@ def test_sign_and_verify():
                     cpu=1,
                 )
                 break
-        signer.update_public_credentials(x25519_public_key=aiootp.__PUBLIC_X25519_KEY__)
+        signer.update_public_credentials(
+            x25519_public_key=aiootp.__PUBLIC_X25519_KEY__
+        )
 
-        problem = (
+        problem = (  # fmt: skip
             "Allowed to retrieve a signing key before its creation."
         )
         assert not hasattr(signer, "signing_key")
         with Ignore(t.SigningKeyNotSet, if_else=violation(problem)):
-            signer.signing_key
+            assert signer.signing_key
 
-        problem = (
+        problem = (  # fmt: skip
             "Allowed to retrieve a signature before signing."
         )
         assert not hasattr(signer, "_signature")
         with Ignore(t.PackageNotSigned, if_else=violation(problem)):
-            signer._signature
+            assert signer._signature
 
         test_signing_key = signer.generate_signing_key()
 
@@ -81,12 +83,14 @@ def test_sign_and_verify():
         signer.update_signing_key(signer.signing_key.secret_key)
         signer.update_signing_key(signer.signing_key.secret_bytes)
 
-        problem = (
+        problem = (  # fmt: skip
             "A type other than str, bytes, Ed25519PrivateKey or an "
             "Ed25519 object was allowed for update_signing_key."
         )
         with Ignore(TypeError, if_else=violation(problem)):
-            signer.update_signing_key(bytearray(signer.signing_key.secret_bytes))
+            signer.update_signing_key(
+                bytearray(signer.signing_key.secret_bytes)
+            )
 
         filename_sheet = """
         include tests/test_initialization.py
@@ -115,19 +119,28 @@ def test_sign_and_verify():
                 # added file hashes are available from the files attribute
                 # by their filename
                 assert filename in signer.files
-                assert signer.files[filename].digest() != signer._Hasher().digest()
-                assert signer.files[filename].digest() == signer._Hasher(file_data).digest()
+                assert (
+                    signer.files[filename].digest()
+                    != signer._Hasher().digest()
+                )
+                assert (
+                    signer.files[filename].digest()
+                    == signer._Hasher(file_data).digest()
+                )
 
         signer.sign_package()
         summary = signer.summarize()
 
         # The package verifier successfully verifies a correct summary
-        verifier = PackageVerifier(signer.signing_key.public_bytes, path=test_path)
+        verifier = PackageVerifier(
+            signer.signing_key.public_bytes, path=test_path
+        )
         verifier.verify_summary(summary)
 
         # Package verifier can also accept an Ed25519 object
         verifier = PackageVerifier(
-            Ed25519().import_public_key(signer.signing_key.public_key), path=test_path
+            Ed25519().import_public_key(signer.signing_key.public_key),
+            path=test_path,
         )
         verifier.verify_summary(summary)
 
@@ -137,7 +150,7 @@ def test_sign_and_verify():
 
         # summary checksum alteration fails
         summary["checksum"] = summary["checksum"][::-1]
-        problem = (
+        problem = (  # fmt: skip
             "Summary alteration uncaught."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -151,7 +164,7 @@ def test_sign_and_verify():
         verifier.verify_summary(json.dumps(summary))
 
         # altering the signature does not work
-        problem = (
+        problem = (  # fmt: skip
             "Signature alteration went uncaught."
         )
         with Ignore(verifier.InvalidSignature, if_else=violation(problem)):
@@ -161,11 +174,13 @@ def test_sign_and_verify():
         # the signing key in the summary is the hex representation of the
         # signing objects public key
         assert len(summary["signing_key"]) == 64
-        assert summary["signing_key"] == signer.signing_key.public_bytes.hex()
+        assert (
+            summary["signing_key"] == signer.signing_key.public_bytes.hex()
+        )
 
         # altering the signing key fails
         summary["signing_key"] = X25519().generate().public_bytes.hex()
-        problem = (
+        problem = (  # fmt: skip
             "Changed signing_key went uncaught."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -181,7 +196,7 @@ def test_sign_and_verify():
         PACKAGE = signer._scope.package
         signature = signer.db[PACKAGE][VERSIONS][VERSION]
         signer.db[PACKAGE][VERSIONS][VERSION] = token_bytes(32).hex()
-        problem = (
+        problem = (  # fmt: skip
             "Altered signature not detected during summarization."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -196,7 +211,7 @@ def test_sign_and_verify():
         summary = signer.summarize()
         filename = list(summary[CHECKSUMS])[-1]
         summary[CHECKSUMS][filename] = signer._Hasher().hexdigest()
-        problem = (
+        problem = (  # fmt: skip
             "An invalid file digest wasn't detected."
         )
         with Ignore(InvalidDigest, if_else=violation(problem)):
@@ -204,7 +219,7 @@ def test_sign_and_verify():
 
         # verifier throws error if path is specified without also
         # specifying direct file validation.
-        problem = (
+        problem = (  # fmt: skip
             "A verifier was initialized with conflicting flags."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -218,4 +233,3 @@ def test_sign_and_verify():
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

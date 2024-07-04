@@ -18,37 +18,45 @@ We hope to give users & applications empowering developer-friendly privacy enhan
 
 
 
-.. image:: https://img.shields.io/pypi/v/aiootp
-    :target: https://img.shields.io/pypi/v/aiootp
-    :alt: version
+.. image:: https://img.shields.io/pypi/v/aiootp?style=flat-square&color=red&logo=pypi
+    :target: https://pypi.org/project/aiootp/
+    :alt: aiootp PyPI Package Version
 
-.. image:: https://img.shields.io/pypi/pyversions/aiootp?color=black
-    :target: https://img.shields.io/pypi/pyversions/aiootp?color=black
-    :alt: python-versions
+.. image:: https://img.shields.io/pypi/wheel/aiootp?style=flat-square&color=orange&logo=pypi&logoColor=gold
+    :target: https://www.piwheels.org/project/aiootp/
+    :alt: Python Wheel Availability Badge
 
-.. image:: https://img.shields.io/badge/License-AGPL%20v3-red.svg
-    :target: https://img.shields.io/badge/License-AGPL%20v3-red.svg
-    :alt: license
+.. image:: https://img.shields.io/pypi/pyversions/aiootp?style=flat-square&color=gold&logo=python&logoColor=cyan
+    :target: https://github.com/rmlibre/aiootp/actions
+    :alt: Python Versions Badge
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://img.shields.io/badge/code%20style-black-000000.svg
-    :alt: code-style
+.. image:: https://img.shields.io/badge/Linter-Ruff-D7FF64?style=flat-square&logo=ruff
+    :target: https://github.com/astral-sh/ruff
+    :alt: Ruff Linter Badge
 
-.. image:: https://img.shields.io/pypi/wheel/aiootp
-    :target: https://img.shields.io/pypi/wheel/aiootp
-    :alt: python-wheel-availability
+.. image:: https://img.shields.io/badge/Formatter-Ruff-D7FF64?style=flat-square&logo=ruff
+   :target: https://github.com/astral-sh/ruff
+   :alt: Ruff Formatter Badge
 
-.. image:: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
-    :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml/badge.svg
-    :alt: linux-build-status
+.. image:: https://img.shields.io/badge/coverage-99%25-blue?style=flat-square&logo=codecov&logoColor=maroon
+    :target: https://github.com/rmlibre/aiootp/actions
+    :alt: Test Coverage Badge
 
-.. image:: https://github.com/rmlibre/aiootp/actions/workflows/windows-python-app.yml/badge.svg
-    :target: https://github.com/rmlibre/aiootp/actions/workflows/windows-python-app.yml/badge.svg
-    :alt: windows-build-status
+.. image:: https://img.shields.io/badge/License-AGPL%20v3-purple?style=flat-square&logo=GNU&logoColor=maroon
+    :target: https://github.com/rmlibre/aiootp/blob/main/LICENSE
+    :alt: Gnu Affero General Public License Badge
 
-.. image:: https://github.com/rmlibre/aiootp/actions/workflows/macos-python-app.yml/badge.svg
-    :target: https://github.com/rmlibre/aiootp/actions/workflows/macos-python-app.yml/badge.svg
-    :alt: macos-build-status
+.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/linux-python-app.yml?style=flat-square&logo=linux&logoColor=black
+    :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml
+    :alt: Linux Build Workflow Status
+
+.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/windows-python-app.yml?style=flat-square&logo=windows&logoColor=blue
+    :target: https://github.com/rmlibre/aiootp/actions/workflows/windows-python-app.yml
+    :alt: Windows Build Workflow Status
+
+.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/macos-python-app.yml?style=flat-square&logo=apple&logoColor=white
+    :target: https://github.com/rmlibre/aiootp/actions/workflows/macos-python-app.yml
+    :alt: MacOS Build Workflow Status
 
 
 
@@ -70,7 +78,9 @@ Run Tests
 
 .. code-block:: shell
 
-    $ pip3 install --user --upgrade pytest pytest-asyncio coverage
+    $ pip3 install --user --upgrade ruff pytest pytest-asyncio coverage
+
+    $ ruff check . && ruff format --line-length=76 --check .
 
     $ coverage run --source aiootp -p -m pytest -vv tests/test_aiootp.py
 

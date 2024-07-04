@@ -23,7 +23,6 @@ from aiootp.generics.transform import aint_as_base, int_as_base
 
 
 class TestBaseConversions:
-
     async def test_base_as_int_correctness(self) -> None:
         for string, answer, table in (
             ("0", 0, Tables.HEX),
@@ -36,7 +35,7 @@ class TestBaseConversions:
             assert answer == await abase_as_int(string, table=table)
             assert answer == base_as_int(string, table=table)
 
-        problem = (
+        problem = (  # fmt: skip
             "A character not a part of the base's table didn't error."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -58,8 +57,8 @@ class TestBaseConversions:
 
 
 class TestDomains:
-
     async def test_encoding_methods(self) -> None:
+        # fmt: off
         for constant in (b"", "string constant...", b"bytes constant..."):
             for aad in (b"", b"associated data..."):
                 for domain in (b"", b"domain..."):
@@ -67,12 +66,12 @@ class TestDomains:
                         await Domains.aencode_constant(constant, aad=aad, domain=domain)
                         ==  Domains.encode_constant(constant, aad=aad, domain=domain)
                     )
+        # fmt: on
 
 
 class TestEncodingUtilities:
-
     async def test_key_must_not_be_falsey(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A falsey key was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -81,8 +80,9 @@ class TestEncodingUtilities:
             generics.canon.encode_key(key=b"", blocksize=32)
 
     async def test_item_size_mismatches_caught_during_decoding(
-        self
+        self,
     ) -> None:
+        # fmt: off
         problem = (
             "A mismatch between item length & declared length was allowed."
         )
@@ -102,24 +102,24 @@ class TestEncodingUtilities:
                 item_count=1,
                 int_bytes=1,
             ))
+        # fmt: on
 
     async def test_missing_padding_metadata_throws_error(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Padding test ran without the necessary metadata."
         )
         blocksize = (32).to_bytes(1, BIG)
-        pad = b"\x00"
         with Ignore(ValueError, if_else=violation(problem)):
             generics.canon.test_canonical_padding(
                 read=io.BytesIO().read,
-                items=deque([blocksize]),
+                items=deque([blocksize]),  # <--- woops, missing: pad
                 total_size=64,
             )
 
     async def test_non_blocksize_multiple_declared_length_throws_error(
-        self
+        self,
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Padding test ran with a length declaration not equal to a "
             "multiple of the blocksize."
         )
@@ -132,8 +132,10 @@ class TestEncodingUtilities:
                 total_size=67,
             )
 
-    async def test_declared_pad_value_must_be_all_that_remains(self) -> None:
-        problem = (
+    async def test_declared_pad_value_must_be_all_that_remains(
+        self,
+    ) -> None:
+        problem = (  # fmt: skip
             "Padding test ran with an invalid padding value."
         )
         blocksize = (32).to_bytes(1, BIG)
@@ -152,9 +154,8 @@ class TestEncodingUtilities:
 
 
 class TestCanonicalPack:
-
     async def test_empty_pad_is_invalid(self):
-        problem = (
+        problem = (  # fmt: skip
             "An empty padding value didn't raise a `TypeError`."
         )
         with Ignore(TypeError, if_else=violation(problem)):
@@ -163,7 +164,7 @@ class TestCanonicalPack:
             await acanonical_pack(b"test", pad=b"")
 
     async def test_zero_blocksize_is_invalid(self):
-        problem = (
+        problem = (  # fmt: skip
             "A negative blocksize value didn't raise a `OverflowError`."
         )
         with Ignore(ZeroDivisionError, if_else=violation(problem)):
@@ -172,7 +173,7 @@ class TestCanonicalPack:
             await acanonical_pack(b"test", blocksize=0)
 
     async def test_negative_integer_blocksize_is_invalid(self):
-        problem = (
+        problem = (  # fmt: skip
             "A negative blocksize value didn't raise a `OverflowError`."
         )
         test_values = (-168, -136, -2, -1)
@@ -183,7 +184,7 @@ class TestCanonicalPack:
                 await acanonical_pack(b"test", blocksize=blocksize)
 
     async def test_float_blocksize_is_invalid(self):
-        problem = (
+        problem = (  # fmt: skip
             "A float blocksize value didn't raise an `AttributeError`."
         )
         test_values = (-2.0, -1.0, 0.0, 1.0, 2.0)
@@ -194,7 +195,7 @@ class TestCanonicalPack:
                 await acanonical_pack(b"test", blocksize=blocksize)
 
     async def test_minimum_size_given_by_item_count_declaration(self):
-        problem = (
+        problem = (  # fmt: skip
             "An item count declaration which exceeds the count which is"
             "possible given the small size of the packing was allowed."
         )
@@ -203,12 +204,19 @@ class TestCanonicalPack:
         for data in minimum_inputs:
             for int_bytes in tested_int_bytes:
                 test = canonical_pack(*data, int_bytes=int_bytes)
-                with Ignore(CanonicalEncodingError, if_else=violation(problem)):
-                    canonical_unpack((test[0] + 1).to_bytes(1, BIG) + test[1:])
+                with Ignore(
+                    CanonicalEncodingError, if_else=violation(problem)
+                ):
+                    canonical_unpack(
+                        (test[0] + 1).to_bytes(1, BIG) + test[1:]
+                    )
                 test = canonical_pack(*data, int_bytes=int_bytes)
-                async with Ignore(CanonicalEncodingError, if_else=violation(problem)):
-                    await acanonical_unpack((test[0] + 1).to_bytes(1, BIG) + test[1:])
-
+                async with Ignore(
+                    CanonicalEncodingError, if_else=violation(problem)
+                ):
+                    await acanonical_unpack(
+                        (test[0] + 1).to_bytes(1, BIG) + test[1:]
+                    )
 
 
 async def test_canonical_packs():
@@ -226,15 +234,17 @@ async def test_canonical_packs():
 
     # the default packing is the same for async & sync
     assert DEFAULT_PACKING == DEFAULT_ASYNC_PACKING
-    assert (
-        DEFAULT_PACKING
-        == await acanonical_pack(pad=DEFAULT_PAD, blocksize=DEFAULT_BLOCKSIZE, int_bytes=DEFAULT_INT_BYTES)
+    assert DEFAULT_PACKING == await acanonical_pack(
+        pad=DEFAULT_PAD,
+        blocksize=DEFAULT_BLOCKSIZE,
+        int_bytes=DEFAULT_INT_BYTES,
     )
 
     # the options can be used together
-    assert (
-        canonical_unpack(canonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16))
-        == await acanonical_unpack(await acanonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16))
+    assert canonical_unpack(
+        canonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16)
+    ) == await acanonical_unpack(
+        await acanonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16)
     )
 
     test_inputs = [
@@ -242,7 +252,12 @@ async def test_canonical_packs():
         for _ in range(4)
     ]
     test_int_bytes = [1, 2, 3, 4]
-    test_blocksizes = [SHA3_256_BLOCKSIZE, SHA3_512_BLOCKSIZE, SHAKE_128_BLOCKSIZE, SHAKE_256_BLOCKSIZE]
+    test_blocksizes = [
+        SHA3_256_BLOCKSIZE,
+        SHA3_512_BLOCKSIZE,
+        SHAKE_128_BLOCKSIZE,
+        SHAKE_256_BLOCKSIZE,
+    ]
     test_pads = [b"\x01", b"\x80", b"\xff"]
 
     for inputs in test_inputs:
@@ -282,7 +297,9 @@ async def test_canonical_packs():
             digest_size = obj.digest_size
             encoded_key = encode_key(key, obj.block_size, pad=pad)
             packing = canonical_pack(
-                (digest_size if digest_size else 64).to_bytes(DEFAULT_INT_BYTES, BIG),
+                (digest_size if digest_size else 64).to_bytes(
+                    DEFAULT_INT_BYTES, BIG
+                ),
                 *inputs,
                 blocksize=obj.block_size,
                 pad=pad,
@@ -291,20 +308,36 @@ async def test_canonical_packs():
             obj.update(packing)
             if digest_size:
                 # keyed hashing of packed items works as expected
-                assert keyed_obj.digest() == hash_bytes(*inputs, pad=pad, key=key, hasher=hasher)
-                assert keyed_obj.digest() == await ahash_bytes(*inputs, pad=pad, key=key, hasher=hasher)
+                assert keyed_obj.digest() == hash_bytes(
+                    *inputs, pad=pad, key=key, hasher=hasher
+                )
+                assert keyed_obj.digest() == await ahash_bytes(
+                    *inputs, pad=pad, key=key, hasher=hasher
+                )
 
                 # un-keyed hashing of packed items works as expected
-                assert obj.digest() == hash_bytes(*inputs, pad=pad, hasher=hasher)
-                assert obj.digest() == await ahash_bytes(*inputs, pad=pad, hasher=hasher)
+                assert obj.digest() == hash_bytes(
+                    *inputs, pad=pad, hasher=hasher
+                )
+                assert obj.digest() == await ahash_bytes(
+                    *inputs, pad=pad, hasher=hasher
+                )
             else:
                 # keyed hashing of packed items works as expected
-                assert keyed_obj.digest(64) == hash_bytes(*inputs, pad=pad, key=key, hasher=hasher, size=64)
-                assert keyed_obj.digest(64) == await ahash_bytes(*inputs, pad=pad, key=key, hasher=hasher, size=64)
+                assert keyed_obj.digest(64) == hash_bytes(
+                    *inputs, pad=pad, key=key, hasher=hasher, size=64
+                )
+                assert keyed_obj.digest(64) == await ahash_bytes(
+                    *inputs, pad=pad, key=key, hasher=hasher, size=64
+                )
 
                 # un-keyed hashing of packed items works as expected
-                assert obj.digest(64) == hash_bytes(*inputs, pad=pad, hasher=hasher, size=64)
-                assert obj.digest(64) == await ahash_bytes(*inputs, pad=pad, hasher=hasher, size=64)
+                assert obj.digest(64) == hash_bytes(
+                    *inputs, pad=pad, hasher=hasher, size=64
+                )
+                assert obj.digest(64) == await ahash_bytes(
+                    *inputs, pad=pad, hasher=hasher, size=64
+                )
 
         # the same inputs produce the same outputs
         for int_bytes in test_int_bytes:
@@ -334,16 +367,26 @@ async def test_canonical_packs():
             # the relative location of the pad declaration is dependent
             # on the size of integers used to represent item lengths
             for int_bytes in test_int_bytes:
-                result = canonical_pack(*inputs, pad=pad, int_bytes=int_bytes)
-                aresult = await acanonical_pack(*inputs, pad=pad, int_bytes=int_bytes)
+                result = canonical_pack(
+                    *inputs, pad=pad, int_bytes=int_bytes
+                )
+                aresult = await acanonical_pack(
+                    *inputs, pad=pad, int_bytes=int_bytes
+                )
                 assert result == aresult
                 assert (result[4 * int_bytes + 1] == pad[0]) if pad else 1
 
     pad = b"Z"
-    items = (b"testing", b"pad", b"character", b"location", b"in", b"result")
+    items = (
+        b"testing",
+        b"pad",
+        b"character",
+        b"location",
+        b"in",
+        b"result",
+    )
     packing = bytearray(canonical_pack(*items, pad=pad))
     assert packing[PACK_PAD_INDEX] == pad[0]
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

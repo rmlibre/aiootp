@@ -22,7 +22,6 @@ from hashlib import shake_128
 from aiootp._typing import Typing as t
 from aiootp._constants import EPOCH_NS, SECONDS
 from aiootp._permutations import FastAffineXORChain
-from aiootp.commons import Config
 
 from .dual_output_shake_cipher_config import DualOutputShakeCipherConfig
 from .cipher_kdfs import ShakeConfig
@@ -95,4 +94,3 @@ module_api = dict(
     __package__=__package__,
     chunky2048_spec=chunky2048_spec,
 )
-

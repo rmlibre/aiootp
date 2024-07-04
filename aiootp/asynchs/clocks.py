@@ -36,7 +36,7 @@ from time import perf_counter_ns as ns_counter
 
 from aiootp._typing import Typing as t
 from aiootp._constants import SECONDS, EPOCH_NS, BIG
-from aiootp._constants import SAFE_TIMESTAMP_BYTES, DEFAULT_TTL
+from aiootp._constants import SAFE_TIMESTAMP_BYTES
 from aiootp._exceptions import Issue, TimestampExpired
 from aiootp.commons import FrozenNamespace, FrozenInstance
 
@@ -177,7 +177,7 @@ class Clock(FrozenInstance):
     def __repr__(self, /) -> str:
         return (
             f"{self.__class__.__qualname__}("
-            f"{repr(self._units)}, epoch={self._epoch})"
+            f"{self._units!r}, epoch={self._epoch})"
         )
 
     def has_adequate_resolution(self, /) -> bool:
@@ -256,16 +256,18 @@ class Clock(FrozenInstance):
         Takes a `timestamp` & returns the integer difference between
         the instance's conception of the current time & the timestamp.
         """
-        return await self.atime() - await self.aread_timestamp(timestamp)
+        return await self.atime() - await self.aread_timestamp(
+            timestamp, byte_order=byte_order
+        )
 
-    def delta(
-        self, /, timestamp: bytes, *, byte_order: str = BIG
-    ) -> int:
+    def delta(self, /, timestamp: bytes, *, byte_order: str = BIG) -> int:
         """
         Takes a `timestamp` & returns the integer difference between
         the instance's conception of the current time & the timestamp.
         """
-        return self.time() - self.read_timestamp(timestamp)
+        return self.time() - self.read_timestamp(
+            timestamp, byte_order=byte_order
+        )
 
     async def atest_timestamp(
         self,
@@ -331,4 +333,3 @@ module_api = dict(
     this_month=this_month,
     this_year=this_year,
 )
-

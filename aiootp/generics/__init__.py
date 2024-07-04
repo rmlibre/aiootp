@@ -58,4 +58,3 @@ module_api = dict(
     canonical_unpack=canonical_unpack,
     hash_bytes=hash_bytes,
 )
-

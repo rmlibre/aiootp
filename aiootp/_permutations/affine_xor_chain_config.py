@@ -21,8 +21,6 @@ from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
 from aiootp.commons import Config
 
-from .affine_permutation_config import AffinePermutationConfig
-
 
 class AffineXORChainConfig(Config):
     """
@@ -66,7 +64,10 @@ class AffineXORChainConfig(Config):
         ("out_add", 2),
     )
     _FAST_CHAIN_KEY_TYPES: t.Tuple[t.Tuple[str, int]] = (
-        ("add", 2), ("in_xor", 1), ("mid_xor", 1), ("out_xor", 1)
+        ("add", 2),
+        ("in_xor", 1),
+        ("mid_xor", 1),
+        ("out_xor", 1),
     )
 
     def _process_size(self, size: int) -> int:
@@ -145,9 +146,9 @@ class AffineXORChainConfig(Config):
         self.XPAD = int(self.SIZE * "8d", 16)
         self.DOMAIN = 1 << (8 * self.SIZE)
         self.KEY_TYPES = self._process_key_types(key_types)
-        self.KEY_SIZE = sum(
+        self.KEY_SIZE = self.SIZE * sum(
             multiple for name, multiple in self.KEY_TYPES
-        ) * self.SIZE
+        )
         self.ADD_KEY_SIZE = 2 * self.SIZE
         self.XOR_KEY_SIZE = self.SIZE
         self.PERMUTATION_CONFIG_ID = self._process_permutation_config_id(
@@ -166,4 +167,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

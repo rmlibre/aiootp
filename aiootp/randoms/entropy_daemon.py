@@ -112,9 +112,7 @@ class EntropyDaemon:
         else:
             raise Issue.value_must("max_delay", "be > 0")
 
-    def set_max_delay(
-        self, max_delay: t.PositiveRealNumber = 1
-    ) -> t.Self:
+    def set_max_delay(self, max_delay: t.PositiveRealNumber = 1) -> t.Self:
         """
         Sets the maximum number of seconds a started entropy daemon will
         pseudo-randomly sleep in-between each iteration. Setting
@@ -179,4 +177,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

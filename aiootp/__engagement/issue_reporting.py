@@ -31,9 +31,15 @@ from aiootp.generics import ByteIO, canonical_pack
 
 
 def report_security_issue() -> None:
+    # fmt: off
     # allow the user to configure aiootp to report a bug, but not be
     # obligated to.
-    if not input("Want to report a security issue? (y/N) ").lower().strip().startswith("y"):
+    if not (  # fmt: skip
+        input("Want to report a security issue? (y/N) ")
+        .lower()
+        .strip()
+        .startswith("y")
+    ):
         return
 
     # generate an ephemeral X25519 key & exchange it with the aiootp
@@ -67,7 +73,7 @@ def report_security_issue() -> None:
                 f"\nAre you sure you'd like to use {mb} MiB of RAM to hash this"
                 "\npassphrase? (Y/n) "
             ).lower().strip().startswith("n"):
-                raise PermissionError()
+                raise PermissionError
             break
         except ValueError:
             print(f"\nTry again, {mb} is not a valid number.")
@@ -98,10 +104,14 @@ def report_security_issue() -> None:
     with db:
         if not db[CONVERSATION]:
             db[CONVERSATION] = {PERIOD_KEYS: []}
-        db[CONVERSATION][PERIOD_KEYS] = list(deque(db[CONVERSATION][PERIOD_KEYS], maxlen=3))
-        db[CONVERSATION][PERIOD_KEYS].append(db.make_token(
-            your_public_key.secret_bytes, aad=PERIOD_KEY.encode()
-        ).decode())
+        db[CONVERSATION][PERIOD_KEYS] = list(
+            deque(db[CONVERSATION][PERIOD_KEYS], maxlen=3)
+        )
+        db[CONVERSATION][PERIOD_KEYS].append(
+            db.make_token(
+                your_public_key.secret_bytes, aad=PERIOD_KEY.encode()
+            ).decode()
+        )
 
     # receive the security issue report
     print(
@@ -155,6 +165,7 @@ def report_security_issue() -> None:
         "\nThanks for your report! You should receive a response "
         "\nwithin two weeks. Your secret key has been saved locally."
     )
+    # fmt: on
 
 
 module_api = dict(
@@ -167,4 +178,3 @@ module_api = dict(
     __package__=__package__,
     report_security_issue=report_security_issue,
 )
-

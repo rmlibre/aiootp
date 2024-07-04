@@ -20,8 +20,13 @@ from test_initialization import *
 from aiootp.asynchs.clocks import s_counter
 from aiootp.randoms.entropy_daemon import EntropyDaemon
 from aiootp.randoms.simple import arandom_sleep, random_sleep
-from aiootp.randoms.threading_safe_entropy_pool import ThreadingSafeEntropyPool
-from aiootp.randoms.rng import arandom_number_generator, random_number_generator
+from aiootp.randoms.threading_safe_entropy_pool import (
+    ThreadingSafeEntropyPool,
+)
+from aiootp.randoms.rng import (
+    arandom_number_generator,
+    random_number_generator,
+)
 
 
 class TestRandomSleeps:
@@ -41,8 +46,12 @@ class TestRandomSleeps:
 
         average_arandom_sleep = total / self.runs
         assert MAX >= average_arandom_sleep >= 0
-        if average_arandom_sleep >= (0.6 * self.span + self.max_ideal_overhead):
-            warnings.warn(f"NOTICE: span={self.span} : {average_arandom_sleep=}")
+        if average_arandom_sleep >= (
+            0.6 * self.span + self.max_ideal_overhead
+        ):
+            warnings.warn(
+                f"NOTICE: span={self.span} : {average_arandom_sleep=}"
+            )
 
     async def test_sync_random_sleep(self) -> None:
         MAX = (0.6 * self.span) + self.max_overhead
@@ -55,8 +64,12 @@ class TestRandomSleeps:
 
         average_random_sleep = total / self.runs
         assert MAX >= average_random_sleep >= 0
-        if average_random_sleep >= (0.6 * self.span + self.max_ideal_overhead):
-            warnings.warn(f"NOTICE: span={self.span} : {average_random_sleep=}")
+        if average_random_sleep >= (
+            0.6 * self.span + self.max_ideal_overhead
+        ):
+            warnings.warn(
+                f"NOTICE: span={self.span} : {average_random_sleep=}"
+            )
 
 
 class TestThreadingSafeEntropyPool:
@@ -101,14 +114,14 @@ class TestEntropyDaemon:
         assert self.daemon._daemon.is_alive()
 
     async def test_max_delay_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A negative delay was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
             self.daemon.set_max_delay(-1)
 
     async def test_temporary_max_delay_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A negative temporary delay was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -144,30 +157,36 @@ class TestCSPRNG:
             assert size == len(result)
 
     async def test_userland_entropy_can_be_any_type(self) -> None:
-        for datum in (token_bytes(32).hex(), token_bits(32), [None, "test"]):
+        for datum in (
+            token_bytes(32).hex(),
+            token_bits(32),
+            [None, "test"],
+        ):
             await acsprng(entropy=datum)
             csprng(entropy=datum)
 
     async def test_async_thread_safe_entropy(self) -> None:
-
         async def try_to_make_duplicate_readouts() -> None:
-            for i in range(runs):
+            for _ in range(runs):
                 entropy_pool.add(await acsprng())
 
         runs = 32
         entropy_pool = set()
-        await Threads.agather(*[try_to_make_duplicate_readouts for _ in range(runs)])
+        await Threads.agather(
+            *[try_to_make_duplicate_readouts for _ in range(runs)]
+        )
         assert runs**2 == len(entropy_pool)
 
     async def test_sync_thread_safe_entropy(self) -> None:
-
         def try_to_make_duplicate_readouts() -> None:
-            for i in range(runs):
+            for _ in range(runs):
                 entropy_pool.add(csprng())
 
         runs = 32
         entropy_pool = set()
-        Threads.gather(*[try_to_make_duplicate_readouts for _ in range(runs)])
+        Threads.gather(
+            *[try_to_make_duplicate_readouts for _ in range(runs)]
+        )
         assert runs**2 == len(entropy_pool)
 
 
@@ -175,7 +194,7 @@ class TestRandomNumberGenerator:
     kw = dict(freshness=0, entropy=token_bytes(16))
 
     async def test_freshness_must_be_positive_int(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-positive int `freshness` value was allowed."
         )
         for bad_freshness in (b"-2", "1.0"):
@@ -196,13 +215,20 @@ class TestRandomNumberGenerator:
             assert size == len(result)
 
     async def test_async_userland_entropy_can_be_any_type(self) -> None:
-        for datum in (token_bytes(32).hex(), token_bits(32), [None, "test"]):
+        for datum in (
+            token_bytes(32).hex(),
+            token_bits(32),
+            [None, "test"],
+        ):
             await arandom_number_generator(freshness=0, entropy=datum)
 
     def test_sync_userland_entropy_can_be_any_type(self) -> None:
-        for datum in (token_bytes(32).hex(), token_bits(32), [None, "test"]):
+        for datum in (
+            token_bytes(32).hex(),
+            token_bits(32),
+            [None, "test"],
+        ):
             random_number_generator(freshness=0, entropy=datum)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

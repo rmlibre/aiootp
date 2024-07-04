@@ -17,7 +17,6 @@ __all__ = ["AffinePermutationConfig"]
 __doc__ = "A configuration type for `AffinePermutation`."
 
 
-import io
 from math import log2
 
 from aiootp._typing import Typing as t
@@ -117,12 +116,15 @@ class AffinePermutationConfig(Config):
         data. This amortizes the relatively expensive derivation costs
         of finding the multiplicative key, & its inverse.
         """
-        encode = lambda i: Domains.encode_constant(
-            f"multiplicative_key_{i}_{prime}",
-            domain=b"affine_permutation_constant",
-            aad=self.AAD,
-            size=self.SIZE,
-        )
+
+        def encode(i: int) -> bytes:
+            return Domains.encode_constant(
+                f"multiplicative_key_{i}_{prime}",
+                domain=b"affine_permutation_constant",
+                aad=self.AAD,
+                size=self.SIZE,
+            )
+
         top_bit, mask = self._make_multiplier_mask(prime.bit_length())
         for i in counter():
             key = top_bit | (int.from_bytes(encode(i), BIG) & mask)
@@ -140,9 +142,7 @@ class AffinePermutationConfig(Config):
         self.MAX = (1 << (8 * self.SIZE)) - 1
         self.PRIME = datasets.PRIMES[8 * self.SIZE + 1][0]
         self.MULTIPLICATIVE_KEY = self._derive_new_multiplier(self.PRIME)
-        self.INVERSE_KEY = pow(
-            self.MULTIPLICATIVE_KEY, -1, self.PRIME
-        )
+        self.INVERSE_KEY = pow(self.MULTIPLICATIVE_KEY, -1, self.PRIME)
 
 
 module_api = dict(
@@ -155,4 +155,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

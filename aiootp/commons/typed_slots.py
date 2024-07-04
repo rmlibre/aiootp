@@ -127,9 +127,11 @@ class TypedSlots(Slots):
         slots_types = {}
         for base in reversed(cls.__mro__):
             cls._copy_acceptable_type_declarations(base, slots_types)
-        diff = set(
-            cls.__slots__
-        ).difference({"__dict__"}).symmetric_difference(slots_types)
+        diff = (
+            set(cls.__slots__)
+            .difference({"__dict__"})
+            .symmetric_difference(slots_types)
+        )
         if diff:
             raise MissingDeclaredVariables(
                 *diff, found_in="__slots__", missed="slots_types"
@@ -254,4 +256,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

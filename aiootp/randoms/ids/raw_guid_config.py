@@ -133,20 +133,18 @@ class RawGUIDContainer(OpenFrozenSlots):
     def __hash__(self) -> int:
         return int.from_bytes(self.sort_key, BIG)
 
-    def __eq__(self, other: "cls") -> bool:
+    def __eq__(self, other: t.Cls) -> bool:
         return self.sort_key == other.sort_key
 
-    def __gt__(self, other: "cls") -> bool:
+    def __gt__(self, other: t.Cls) -> bool:
         return self.sort_key > other.sort_key
 
-    def __lt__(self, other: "cls") -> bool:
+    def __lt__(self, other: t.Cls) -> bool:
         return self.sort_key < other.sort_key
 
     @property
     def sort_key(self) -> bytes:
-        return (
-            self.timestamp + self.node_id + self.ticker + self.token
-        )
+        return self.timestamp + self.node_id + self.ticker + self.token
 
 
 module_api = dict(
@@ -160,4 +158,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

@@ -68,7 +68,9 @@ def new_dual_output_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(None),
-        ) if block_id_kdf_config is None else block_id_kdf_config,
+        )
+        if block_id_kdf_config is None
+        else block_id_kdf_config,
         shmac_kdf=SHMAC_KDF,
         shmac_kdf_config=ShakeConfig(
             name=SHMAC_KDF,
@@ -76,7 +78,9 @@ def new_dual_output_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(None),
-        ) if shmac_kdf_config is None else shmac_kdf_config,
+        )
+        if shmac_kdf_config is None
+        else shmac_kdf_config,
         left_kdf=LEFT_KDF,
         left_kdf_config=ShakeConfig(
             name=LEFT_KDF,
@@ -84,7 +88,9 @@ def new_dual_output_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(0, None, 2),  # Even index bytes
-        ) if left_kdf_config is None else left_kdf_config,
+        )
+        if left_kdf_config is None
+        else left_kdf_config,
         right_kdf=RIGHT_KDF,
         right_kdf_config=ShakeConfig(
             name=RIGHT_KDF,
@@ -92,7 +98,9 @@ def new_dual_output_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(1, None, 2),  # Odd index bytes
-        ) if right_kdf_config is None else right_kdf_config,
+        )
+        if right_kdf_config is None
+        else right_kdf_config,
         permutation_type=permutation_type,
     )
     return config
@@ -142,7 +150,9 @@ def new_shake_permute_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(None),
-        ) if block_id_kdf_config is None else block_id_kdf_config,
+        )
+        if block_id_kdf_config is None
+        else block_id_kdf_config,
         shmac_kdf=SHMAC_KDF,
         shmac_kdf_config=ShakeConfig(
             name=SHMAC_KDF,
@@ -150,7 +160,9 @@ def new_shake_permute_config_copy(
             offset_amount=0,
             hasher=shake_128,
             key_slice=slice(None),
-        ) if shmac_kdf_config is None else shmac_kdf_config,
+        )
+        if shmac_kdf_config is None
+        else shmac_kdf_config,
         permutation_type=permutation_type,
     )
     return config
@@ -164,41 +176,40 @@ def new_config_copy(_config: t.ConfigType, **kw) -> t.ConfigType:
 
 
 class TestCipherConfigs:
-
     async def test_inner_header_size_must_be_even(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An odd sized inner-header was allowed to be configured."
         )
-        for (_config, *_) in dual_output_ciphers:
+        for _config, *_ in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_dual_output_config_copy(
                     _config, timestamp_bytes=4, siv_key_bytes=11
                 )
 
     async def test_blocksize_size_must_be_even(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An odd blocksize was allowed to be configured."
         )
-        for (_config, *_) in dual_output_ciphers:
+        for _config, *_ in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_dual_output_config_copy(_config, blocksize=255)
 
     async def test_blocksize_must_be_positive(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A nonsensical blocksize was allowed."
         )
-        for (_config, *_) in all_ciphers:
+        for _config, *_ in all_ciphers:
             config = _config.__new__(_config.__class__)
             config.BLOCKSIZE = -1
             with Ignore(ValueError, if_else=violation(problem)):
                 config._ensure_blocksize_is_positive()
 
     async def test_left_right_kdf_blocksizes_are_equal(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Non-equal left & right KDF blocksizes were allowed to be "
             "configured."
         )
-        for (_config, *_) in dual_output_ciphers:
+        for _config, *_ in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_dual_output_config_copy(
                     _config,
@@ -219,30 +230,33 @@ class TestCipherConfigs:
                 )
 
     async def test_extracted_round_entopy_not_larger_than_blocksize(
-        self
+        self,
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "More information in plaintext than is passed between KDFs "
             "each round was allowed to be configured."
         )
-        for (_config, *_) in shake_permute_ciphers:
+        for _config, *_ in shake_permute_ciphers:
             config = new_config_copy(_config)
-            object.__setattr__(config, "BLOCKSIZE", config.SHMAC_BLOCKSIZE + 1)
+            object.__setattr__(
+                config, "BLOCKSIZE", config.SHMAC_BLOCKSIZE + 1
+            )
             with Ignore(ValueError, if_else=violation(problem)):
                 config._ensure_extracted_entropy_less_than_kdf_blocksize()
 
-        for (_config, *_) in dual_output_ciphers:
+        for _config, *_ in dual_output_ciphers:
             config = new_config_copy(_config)
-            object.__setattr__(config, "BLOCKSIZE", 2 * config.SHMAC_BLOCKSIZE + 1)
+            object.__setattr__(
+                config, "BLOCKSIZE", 2 * config.SHMAC_BLOCKSIZE + 1
+            )
             with Ignore(ValueError, if_else=violation(problem)):
                 config._ensure_extracted_entropy_less_than_kdf_blocksize()
 
     async def test_min_block_id_not_larger_than_max(self) -> None:
-        problem = (
-            "The minimum block ID was allowed to be larger that the "
-            "max."
+        problem = (  # fmt: skip
+            "The minimum block ID was allowed to be larger that the max."
         )
-        for (_config, *_) in all_ciphers:
+        for _config, *_ in all_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_config_copy(
                     _config,
@@ -251,28 +265,30 @@ class TestCipherConfigs:
                 )
 
     async def test_blocksize_doesnt_overflow_allottable_space_in_shmac_object(
-        self
+        self,
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "The blocksize was allowed to take up the space allotted "
             "to other values within a SHMAC object update."
         )
-        for (_config, *_) in shake_permute_ciphers:
+        for _config, *_ in shake_permute_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_shake_permute_config_copy(_config, blocksize=128)
 
     async def test_inner_header_doesnt_cause_inadequate_space_for_plaintext(
-        self
+        self,
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "At least 16 bytes weren't left for plaintext after accounting "
             "for obligatory padding."
         )
-        for (_config, *_) in all_ciphers:
+        for _config, *_ in all_ciphers:
             config = new_config_copy(_config)
             timestamp_bytes = 4
             sentinel_bytes = config.SENTINEL_BYTES
-            siv_key_bytes = config.BLOCKSIZE - timestamp_bytes - 16 + sentinel_bytes
+            siv_key_bytes = (
+                config.BLOCKSIZE - timestamp_bytes - 16 + sentinel_bytes
+            )
             header_bytes = timestamp_bytes + siv_key_bytes
             object.__setattr__(config, "TIMESTAMP_BYTES", timestamp_bytes)
             object.__setattr__(config, "SIV_KEY_BYTES", siv_key_bytes)
@@ -281,20 +297,26 @@ class TestCipherConfigs:
                 config._ensure_inner_header_leaves_adequate_space()
 
     async def test_all_attributes_must_be_set(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "The attribute existence checker didn't proc when an "
             "attribute was missing."
         )
-        for (_config, *_) in all_ciphers:
+        for _config, *_ in all_ciphers:
             config = new_config_copy(_config)
             object.__delattr__(config, await achoice(config.__slots__))
-            with Ignore(UndefinedRequiredAttributes, if_else=violation(problem)):
+            with Ignore(
+                UndefinedRequiredAttributes, if_else=violation(problem)
+            ):
                 config._ensure_all_attributes_have_been_defined()
 
-    async def test_min_padding_blocks_alters_min_ciphertext_size(self) -> None:
+    async def test_min_padding_blocks_alters_min_ciphertext_size(
+        self,
+    ) -> None:
         extra_padding = token_bits(3) or 1
-        for (control_config, control_cipher, *_) in all_ciphers:
-            config = new_config_copy(control_config, min_padding_blocks=extra_padding)
+        for control_config, control_cipher, *_ in all_ciphers:
+            config = new_config_copy(
+                control_config, min_padding_blocks=extra_padding
+            )
 
             class ExtraPaddingCipher(control_cipher.__class__):
                 __slots__ = ()
@@ -314,20 +336,29 @@ class TestCipherConfigs:
             )
 
             control_ciphertext = control_cipher.bytes_encrypt(plaintext)
-            assert len(control_ciphertext) == control_config.HEADER_BYTES + control_config.BLOCKSIZE
+            assert (
+                len(control_ciphertext)
+                == control_config.HEADER_BYTES + control_config.BLOCKSIZE
+            )
 
             ciphertext = cipher.bytes_encrypt(plaintext)
-            assert len(ciphertext) == config.HEADER_BYTES + (extra_padding + 1) * config.BLOCKSIZE
+            assert (
+                len(ciphertext)
+                == config.HEADER_BYTES
+                + (extra_padding + 1) * config.BLOCKSIZE
+            )
             assert plaintext == cipher.bytes_decrypt(ciphertext)
 
     async def test_altered_config_alters_initial_kdf_states(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Differently configured ciphers allowed to interop."
         )
-        for (control_config, control_cipher, salt, aad) in all_ciphers:
+        for control_config, control_cipher, salt, aad in all_ciphers:
             config = new_config_copy(control_config, name="AlteredCipher")
             assert config.PACKED_METADATA != control_config.PACKED_METADATA
-            assert config.SHMAC_KDF_CONFIG.factory().digest(32) != control_config.SHMAC_KDF_CONFIG.factory().digest(32)
+            assert config.SHMAC_KDF_CONFIG.factory().digest(
+                32
+            ) != control_config.SHMAC_KDF_CONFIG.factory().digest(32)
 
             class AlteredCipher(control_cipher.__class__):
                 __slots__ = ()
@@ -353,6 +384,7 @@ class TestCipherConfigs:
         ciphertext = cipher.bytes_encrypt(plaintext, salt=salt, aad=aad)
         assert plaintext == cipher.bytes_decrypt(ciphertext, aad=aad)
 
+        # fmt: off
         enc_stream = await cipher.astream_encrypt(salt=salt, aad=aad)
         ciphertext = b"".join([b"".join(id_ct) async for id_ct in await enc_stream.abuffer(plaintext)])
         ciphertext += b"".join([b"".join(id_ct) async for id_ct in enc_stream.afinalize()])
@@ -370,7 +402,7 @@ class TestCipherConfigs:
         result += b"".join(dec_stream.finalize())
         dec_stream.shmac.test_shmac(enc_stream.shmac.result)
         assert plaintext == result
+        # fmt: on
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

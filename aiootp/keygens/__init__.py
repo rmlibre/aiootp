@@ -65,4 +65,3 @@ module_api = dict(
     amnemonic=amnemonic,
     mnemonic=mnemonic,
 )
-

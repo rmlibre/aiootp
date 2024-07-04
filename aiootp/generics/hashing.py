@@ -101,4 +101,3 @@ module_api = dict(
     ahash_bytes=ahash_bytes,
     hash_bytes=hash_bytes,
 )
-

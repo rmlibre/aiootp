@@ -22,6 +22,7 @@ __all__ = [
     "PositiveRealNumber",
     "RealNumber",
     "SupportsAppendPop",
+    "SupportsAppendPopleft",
     "SupportsPopleft",
     "XOFType",
 ]
@@ -73,14 +74,12 @@ JSONDeserializable = t.JSONDeserializable = t.NewType(
 
 @t.runtime_checkable
 class SupportsPopleft(t.Protocol):
-
     def popleft(self) -> t.Any:
         pass  # pragma: no cover
 
 
 @t.runtime_checkable
 class SupportsAppendPop(t.Protocol):
-
     def append(self, obj: t.Any, /) -> None:
         pass  # pragma: no cover
 
@@ -89,8 +88,16 @@ class SupportsAppendPop(t.Protocol):
 
 
 @t.runtime_checkable
-class HasherType(t.Protocol):
+class SupportsAppendPopleft(t.Protocol):
+    def append(self, obj: t.Any, /) -> None:
+        pass  # pragma: no cover
 
+    def popleft(self) -> t.Any:
+        pass  # pragma: no cover
+
+
+@t.runtime_checkable
+class HasherType(t.Protocol):
     def copy(self, /) -> t.Self:
         pass  # pragma: no cover
 
@@ -106,7 +113,6 @@ class HasherType(t.Protocol):
 
 @t.runtime_checkable
 class XOFType(HasherType, t.Protocol):
-
     def digest(self, size: int, /) -> bytes:
         pass  # pragma: no cover
 
@@ -125,6 +131,7 @@ module_api = dict(
     PositiveRealNumber=PositiveRealNumber,
     RealNumber=RealNumber,
     SupportsAppendPop=t.add_type(SupportsAppendPop),
+    SupportsAppendPopleft=t.add_type(SupportsAppendPopleft),
     SupportsPopleft=t.add_type(SupportsPopleft),
     XOFType=t.add_type(XOFType),
     __all__=__all__,
@@ -135,4 +142,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

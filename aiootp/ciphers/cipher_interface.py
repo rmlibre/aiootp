@@ -27,13 +27,11 @@ from aiootp._constants.misc import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._exceptions import Issue, TimestampExpired
 from aiootp._exceptions import InvalidBlockID, InvalidSHMAC
 from aiootp._gentools import abatch, batch
-from aiootp.commons import FrozenInstance, Config
+from aiootp.commons import FrozenInstance
 from aiootp.generics import ByteIO
 
 from .ciphertext_formatting import Ciphertext
 from .padding import Padding
-from .key_bundle import KeyAADBundle
-from .stream_hmac import StreamHMAC
 from .cipher_streams import AsyncCipherStream, CipherStream
 from .decipher_streams import AsyncDecipherStream, DecipherStream
 
@@ -226,7 +224,9 @@ class CipherInterface(FrozenInstance):
         ).async_mode()
         shmac = self._StreamHMAC(key_bundle)._for_decryption()
         ciphertext = abatch(data.ciphertext, size=self._config.BLOCKSIZE)
-        deciphering = self._Junction.abytes_decipher(ciphertext, shmac=shmac)
+        deciphering = self._Junction.abytes_decipher(
+            ciphertext, shmac=shmac
+        )
         plaintext = b"".join([block async for block in deciphering])
         await shmac.afinalize()
         await shmac.atest_shmac(data.shmac)
@@ -591,4 +591,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

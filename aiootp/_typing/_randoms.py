@@ -24,7 +24,6 @@ from .interface import Typing as t
 
 
 class EntropyHashingType(t.XOFType):
-
     async def ahash(self, *data: bytes, size: int) -> bytes:
         pass  # pragma: no cover
 
@@ -42,4 +41,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

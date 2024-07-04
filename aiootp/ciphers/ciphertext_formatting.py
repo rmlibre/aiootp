@@ -21,7 +21,6 @@ from io import BytesIO
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import InvalidCiphertextSize
-from aiootp.asynchs import asleep
 from aiootp.commons import OpenFrozenSlots
 
 
@@ -33,9 +32,7 @@ class Ciphertext(OpenFrozenSlots):
 
     __slots__ = ("shmac", "salt", "iv", "ciphertext", "config")
 
-    _MAPPED_ATTRIBUTES: t.Tuple[str] = (
-        "shmac", "salt", "iv", "ciphertext"
-    )
+    _MAPPED_ATTRIBUTES: t.Tuple[str] = ("shmac", "salt", "iv", "ciphertext")
 
     InvalidCiphertextSize: type = InvalidCiphertextSize
 
@@ -78,4 +75,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

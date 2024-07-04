@@ -39,10 +39,12 @@ class BasicTestSuite:
     async def test_anew(self) -> None:
         name = self._id_name
 
-        is_non_linux_multiprocessing_issue = lambda relay: (
+        is_non_linux_multiprocessing_issue = lambda _: (
             (self._type is Processes) and (self.system != "Linux")
         )
-        with Ignore(IndexError, if_except=is_non_linux_multiprocessing_issue):
+        with Ignore(
+            IndexError, if_except=is_non_linux_multiprocessing_issue
+        ):
             result = (await self._type.anew(self.aget_ids))[name]
             assert result > 0
             assert result.__class__ is int
@@ -57,10 +59,12 @@ class BasicTestSuite:
     def test_new(self) -> None:
         name = self._id_name
 
-        is_non_linux_multiprocessing_issue = lambda relay: (
+        is_non_linux_multiprocessing_issue = lambda _: (
             (self._type is Processes) and (self.system != "Linux")
         )
-        with Ignore(IndexError, if_except=is_non_linux_multiprocessing_issue):
+        with Ignore(
+            IndexError, if_except=is_non_linux_multiprocessing_issue
+        ):
             result = self._type.new(self.get_ids)[name]
             assert result > 0
             assert result.__class__ is int
@@ -97,7 +101,7 @@ class BasicTestSuite:
         assert result != self.get_ids()[name]
 
     async def test_probe_delay_must_be_positive(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A non-positive probe_delay was allowed."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -120,4 +124,3 @@ class TestThreads(BasicTestSuite):
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

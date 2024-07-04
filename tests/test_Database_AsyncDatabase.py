@@ -15,21 +15,29 @@ from test_initialization import *
 
 
 class TestDBKDF:
-
     async def test_salt_label_makes_state_unique(self, database):
         key = csprng()
         domain = b"testing"
         kdf = DomainKDF(domain, key=key)
         dbkdf = type(database._root_kdf)(domain, key=key)
-        for sync_method in ("sha3_256", "sha3_512", "shake_128", "shake_256"):
+        for sync_method in (
+            "sha3_256",
+            "sha3_512",
+            "shake_128",
+            "shake_256",
+        ):
             if "shake" in sync_method:
-                assert getattr(kdf, sync_method)(size=64) != getattr(dbkdf, sync_method)(size=64)
+                assert getattr(kdf, sync_method)(size=64) != getattr(
+                    dbkdf, sync_method
+                )(size=64)
             else:
-                assert getattr(kdf, sync_method)() != getattr(dbkdf, sync_method)()
+                assert (
+                    getattr(kdf, sync_method)()
+                    != getattr(dbkdf, sync_method)()
+                )
 
 
 class TestDatabaseCacheSystem:
-
     async def cached_data_remains_unchanged(self, db, subdb):
         assert plaintext_bytes
         assert plaintext_bytes.__class__ is bytes
@@ -49,9 +57,13 @@ class TestDatabaseCacheSystem:
         assert test_data.__class__ is dict
         assert db[tag] is None
 
-    async def uncached_loading_from_disk_doesnt_change_data(self, db, subdb):
+    async def uncached_loading_from_disk_doesnt_change_data(
+        self, db, subdb
+    ):
         if issubclass(db.__class__, AsyncDatabase):
-            assert await subdb.aquery_tag(tag, cache=False) == plaintext_bytes
+            assert (
+                await subdb.aquery_tag(tag, cache=False) == plaintext_bytes
+            )
             assert await db.aquery_tag(tag, cache=False) == test_data
         else:
             assert subdb.query_tag(tag, cache=False) == plaintext_bytes
@@ -61,7 +73,9 @@ class TestDatabaseCacheSystem:
 
     async def cached_loading_from_disk_doesnt_change_data(self, db, subdb):
         if issubclass(db.__class__, AsyncDatabase):
-            assert await subdb.aquery_tag(tag, cache=True) == plaintext_bytes
+            assert (
+                await subdb.aquery_tag(tag, cache=True) == plaintext_bytes
+            )
             assert await db.aquery_tag(tag, cache=True) == test_data
         else:
             assert subdb.query_tag(tag, cache=True) == plaintext_bytes
@@ -71,13 +85,17 @@ class TestDatabaseCacheSystem:
 
     async def clear_cache_clears_metatags_when_instructed(self, db, subdb):
         if issubclass(db.__class__, AsyncDatabase):
-            assert await subdb.aquery_tag(tag, cache=True) == plaintext_bytes
+            assert (
+                await subdb.aquery_tag(tag, cache=True) == plaintext_bytes
+            )
             assert subdb[tag] == plaintext_bytes
             await db.aclear_cache(metatags=False)
             assert subdb[tag] == plaintext_bytes
             await db.aclear_cache(metatags=True)
             assert subdb[tag] is None
-            assert await subdb.aquery_tag(tag, cache=False) == plaintext_bytes
+            assert (
+                await subdb.aquery_tag(tag, cache=False) == plaintext_bytes
+            )
         else:
             assert subdb.query_tag(tag, cache=True) == plaintext_bytes
             assert subdb[tag] == plaintext_bytes
@@ -93,10 +111,18 @@ class TestDatabaseCacheSystem:
         async_database[tag] = test_data.copy()
         await async_database.asave_database()
         await self.cached_data_remains_unchanged(async_database, subdb)
-        await self.clearing_cache_results_in_null_values(async_database, subdb)
-        await self.uncached_loading_from_disk_doesnt_change_data(async_database, subdb)
-        await self.cached_loading_from_disk_doesnt_change_data(async_database, subdb)
-        await self.clear_cache_clears_metatags_when_instructed(async_database, subdb)
+        await self.clearing_cache_results_in_null_values(
+            async_database, subdb
+        )
+        await self.uncached_loading_from_disk_doesnt_change_data(
+            async_database, subdb
+        )
+        await self.cached_loading_from_disk_doesnt_change_data(
+            async_database, subdb
+        )
+        await self.clear_cache_clears_metatags_when_instructed(
+            async_database, subdb
+        )
 
     async def test_sync_cache_system(self, database):
         subdb = database.metatag(metatag)
@@ -105,36 +131,46 @@ class TestDatabaseCacheSystem:
         database.save_database()
         await self.cached_data_remains_unchanged(database, subdb)
         await self.clearing_cache_results_in_null_values(database, subdb)
-        await self.uncached_loading_from_disk_doesnt_change_data(database, subdb)
-        await self.cached_loading_from_disk_doesnt_change_data(database, subdb)
-        await self.clear_cache_clears_metatags_when_instructed(database, subdb)
+        await self.uncached_loading_from_disk_doesnt_change_data(
+            database, subdb
+        )
+        await self.cached_loading_from_disk_doesnt_change_data(
+            database, subdb
+        )
+        await self.clear_cache_clears_metatags_when_instructed(
+            database, subdb
+        )
 
 
 class TestDatabaseInitialization:
-
     async def test_async_key_size_limits(self):
-        problem = (
+        problem = (  # fmt: skip
             "a key that's too small was allowed."
         )
         token = token_bytes(64)
         for size in (0, 1, 2, 4, 8, 16, 31, MIN_KEY_BYTES - 1):
             key = token[:size]
-            async with Ignore(ValueError, if_else=violation(f"{problem} at {len(key)} bytes")):
-                db = await AsyncDatabase(key)
+            async with Ignore(
+                ValueError,
+                if_else=violation(f"{problem} at {len(key)} bytes"),
+            ):
+                await AsyncDatabase(key)
 
     def test_sync_key_size_limits(self):
-        problem = (
+        problem = (  # fmt: skip
             "a key that's too small was allowed."
         )
         token = token_bytes(64)
         for size in (0, 1, 2, 4, 8, 16, 31, MIN_KEY_BYTES - 1):
             key = token[:size]
-            with Ignore(ValueError, if_else=violation(f"{problem} at {len(key)} bytes")):
-                db = Database(key)
+            with Ignore(
+                ValueError,
+                if_else=violation(f"{problem} at {len(key)} bytes"),
+            ):
+                Database(key)
 
 
 class TestDatabases:
-
     async def test_async_reload_manifest_drops_uncommitted_changes(
         self, async_database: AsyncDatabase
     ) -> None:
@@ -162,9 +198,9 @@ class TestDatabases:
     ) -> None:
         tag = "non_existent"
         assert tag not in async_database
-        assert None == await async_database.aquery_tag(tag, silent=True)
+        assert await async_database.aquery_tag(tag, silent=True) is None
 
-        problem = (
+        problem = (  # fmt: skip
             "Non-existent tag query doesn't throw when silent flag not set."
         )
         with Ignore(LookupError, if_else=violation(problem)):
@@ -175,9 +211,9 @@ class TestDatabases:
     ) -> None:
         tag = "non_existent"
         assert tag not in database
-        assert None == database.query_tag(tag, silent=True)
+        assert database.query_tag(tag, silent=True) is None
 
-        problem = (
+        problem = (  # fmt: skip
             "Non-existent tag query doesn't throw when silent flag not set."
         )
         with Ignore(LookupError, if_else=violation(problem)):
@@ -189,13 +225,13 @@ class TestDatabases:
         tag = "test_tag"
         data = b"test_data..."
         assert tag not in async_database
-        assert None == await async_database.apop_tag(tag, silent=True)
+        assert await async_database.apop_tag(tag, silent=True) is None
 
         await async_database.aset_tag(tag, data)
         await async_database.asave_database()
-        assert data == await async_database.apop_tag(tag)
+        assert await async_database.apop_tag(tag) == data
 
-        problem = (
+        problem = (  # fmt: skip
             "Pop tag doesn't throw when silent flag not set."
         )
         with Ignore(LookupError, if_else=violation(problem)):
@@ -207,13 +243,13 @@ class TestDatabases:
         tag = "test_tag"
         data = b"test_data..."
         assert tag not in database
-        assert None == database.pop_tag(tag, silent=True)
+        assert database.pop_tag(tag, silent=True) is None
 
         database.set_tag(tag, data)
         database.save_database()
-        assert data == database.pop_tag(tag)
+        assert database.pop_tag(tag) == data
 
-        problem = (
+        problem = (  # fmt: skip
             "Pop tag doesn't throw when silent flag not set."
         )
         with Ignore(LookupError, if_else=violation(problem)):
@@ -226,23 +262,23 @@ class TestDatabases:
         data = ["test", "data"]
         await async_database.apop_tag(tag, silent=True)
         async_database[tag] = list(data)
-        assert data == async_database[tag]
+        assert async_database[tag] == data
 
         async_database[tag].append("mutated")
-        assert data + ["mutated"] == async_database[tag]
+        assert async_database[tag] == [*data, "mutated"]
 
         await async_database.arollback_tag(tag, cache=True)
-        assert None == async_database[tag]
+        assert async_database[tag] is None
 
         async_database[tag] = list(data)
         await async_database.asave_database()
-        assert data == async_database[tag]
+        assert async_database[tag] == data
 
         async_database[tag].append("mutated")
-        assert data + ["mutated"] == async_database[tag]
+        assert async_database[tag] == [*data, "mutated"]
 
         await async_database.arollback_tag(tag, cache=True)
-        assert data == async_database[tag]
+        assert async_database[tag] == data
 
     async def test_sync_rollback_returns_previously_committed_state(
         self, database: Database
@@ -251,23 +287,23 @@ class TestDatabases:
         data = ["test", "data"]
         database.pop_tag(tag, silent=True)
         database[tag] = list(data)
-        assert data == database[tag]
+        assert database[tag] == data
 
         database[tag].append("mutated")
-        assert data + ["mutated"] == database[tag]
+        assert database[tag] == [*data, "mutated"]
 
         database.rollback_tag(tag, cache=True)
-        assert None == database[tag]
+        assert database[tag] is None
 
         database[tag] = list(data)
         database.save_database()
-        assert data == database[tag]
+        assert database[tag] == data
 
         database[tag].append("mutated")
-        assert data + ["mutated"] == database[tag]
+        assert database[tag] == [*data, "mutated"]
 
         database.rollback_tag(tag, cache=True)
-        assert data == database[tag]
+        assert database[tag] == data
 
     async def test_async_filenames_shows_all_set_tags(
         self, async_database: AsyncDatabase
@@ -297,12 +333,12 @@ class TestDatabases:
         class NonDatabaseType:
             pass
 
-        problem = (
+        problem = (  # fmt: skip
             "A non-database type metatag was assessed as a metatag."
         )
         metatag = "tested_attribute"
         async_database.tested_attribute = NonDatabaseType()
-        with Ignore(NameError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=violation(problem)):
             await async_database.ametatag(metatag)
         del async_database.tested_attribute
 
@@ -312,19 +348,19 @@ class TestDatabases:
         class NonDatabaseType:
             pass
 
-        problem = (
+        problem = (  # fmt: skip
             "A non-database type metatag was assessed as a metatag."
         )
         metatag = "tested_attribute"
         database.tested_attribute = NonDatabaseType()
-        with Ignore(NameError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=violation(problem)):
             database.metatag(metatag)
         del database.tested_attribute
 
     async def test_async_delete_non_existent_metatag_throws_error(
         self, async_database: AsyncDatabase
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A deletion of a non-existent metatag didn't throw an error."
         )
         metatag = "tested_metatag"
@@ -334,7 +370,7 @@ class TestDatabases:
     async def test_sync_delete_non_existent_metatag_throws_error(
         self, database: Database
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A deletion of a non-existent metatag didn't throw an error."
         )
         metatag = "tested_metatag"
@@ -344,7 +380,7 @@ class TestDatabases:
     async def test_async_save_non_existent_tag_throws_error(
         self, async_database: AsyncDatabase
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A save of a non-existent tag didn't throw an error."
         )
         tag = "tested_tag"
@@ -355,7 +391,7 @@ class TestDatabases:
     async def test_sync_save_non_existent_tag_throws_error(
         self, database: Database
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A save of a non-existent tag didn't throw an error."
         )
         tag = "tested_tag"
@@ -366,20 +402,17 @@ class TestDatabases:
     async def test_async_delitem_removes_tags(
         self, async_database: AsyncDatabase
     ) -> None:
-        problem = (
-            "A save of a non-existent tag didn't throw an error."
-        )
         tag = "tested_tag"
         data = b"tested_data..."
         async_database[tag] = data
         await async_database.asave_database()
-        assert data == async_database[tag]
+        assert async_database[tag] == data
         assert (
             async_database._path / await async_database.afilename(tag)
         ).is_file()
 
         del async_database[tag]
-        assert None == async_database[tag]
+        assert async_database[tag] is None
         assert not (
             async_database._path / await async_database.afilename(tag)
         ).is_file()
@@ -387,18 +420,15 @@ class TestDatabases:
     async def test_sync_delitem_removes_tags(
         self, database: AsyncDatabase
     ) -> None:
-        problem = (
-            "A save of a non-existent tag didn't throw an error."
-        )
         tag = "tested_tag"
         data = b"tested_data..."
         database[tag] = data
         database.save_database()
-        assert data == database[tag]
+        assert database[tag] == data
         assert (database._path / database.filename(tag)).is_file()
 
         del database[tag]
-        assert None == database[tag]
+        assert database[tag] is None
         assert not (database._path / database.filename(tag)).is_file()
 
 
@@ -407,7 +437,9 @@ def test_Database_instance(database):
 
     # basic database functionalities work the same across reloads
     assert db._root_kdf.sha3_256() == database._root_kdf.sha3_256()
-    assert db._root_kdf.sha3_256() != database._root_kdf.sha3_256(aad=database._root_salt)
+    assert db._root_kdf.sha3_256() != database._root_kdf.sha3_256(
+        aad=database._root_salt
+    )
     assert db._root_salt == database._root_salt
     assert db._root_filename == database._root_filename
     assert db.filename(atag) == database.filename(atag)
@@ -419,7 +451,9 @@ async def test_AsyncDatabase_instance(database):
 
     # basic async database functionalities work the same across reloads
     assert db._root_kdf.sha3_256() == database._root_kdf.sha3_256()
-    assert db._root_kdf.sha3_256() != database._root_kdf.sha3_256(aad=database._root_salt)
+    assert db._root_kdf.sha3_256() != database._root_kdf.sha3_256(
+        aad=database._root_salt
+    )
     assert db._root_salt == database._root_salt
     assert db._root_filename == database._root_filename
     assert await db.afilename(tag) == database.filename(tag)
@@ -440,11 +474,18 @@ def test_database_ciphers(database):
     assert encrypted_file[c.SHMAC_SLICE] != encrypted_data[c.SHMAC_SLICE]
     assert encrypted_file[c.SALT_SLICE] != encrypted_data[c.SALT_SLICE]
     assert encrypted_file[c.IV_SLICE] != encrypted_data[c.IV_SLICE]
-    assert encrypted_file[c.CIPHERTEXT_SLICE] != encrypted_data[c.CIPHERTEXT_SLICE]
+    assert (
+        encrypted_file[c.CIPHERTEXT_SLICE]
+        != encrypted_data[c.CIPHERTEXT_SLICE]
+    )
 
     # database ciphers recover json data correctly
-    assert test_data == db.json_decrypt(encrypted_file, filename=filename, aad=b"")
-    assert test_data == db.json_decrypt(encrypted_data, filename=filename, aad=b"")
+    assert test_data == db.json_decrypt(
+        encrypted_file, filename=filename, aad=b""
+    )
+    assert test_data == db.json_decrypt(
+        encrypted_data, filename=filename, aad=b""
+    )
     assert type(test_data) is dict
 
     # database ciphers recover bytes data correctly
@@ -464,10 +505,9 @@ def test_database_ciphers(database):
     assert decrypted_token_data == plaintext_bytes
     assert type(encrypted_token_data) is bytes
     assert type(decrypted_token_data) is bytes
-    assert (
-        set(Tables.URL_SAFE.encode()).union(encrypted_token_data + b"%")
-        == set(Tables.URL_SAFE.encode()).union(b"%")
-    )
+    assert set(Tables.URL_SAFE.encode()).union(
+        encrypted_token_data + b"%"
+    ) == set(Tables.URL_SAFE.encode()).union(b"%")
 
 
 async def test_async_database_ciphers(async_database):
@@ -476,7 +516,9 @@ async def test_async_database_ciphers(async_database):
     cipher = Chunky2048(key)
     c = cipher._config
     filename = await db.afilename(tag)
-    encrypted_data = await db.ajson_encrypt(test_data, filename=filename, aad=b"")
+    encrypted_data = await db.ajson_encrypt(
+        test_data, filename=filename, aad=b""
+    )
     db[tag] = test_data
     await db.asave_database()
     encrypted_file = await db._aquery_ciphertext(filename)
@@ -484,11 +526,18 @@ async def test_async_database_ciphers(async_database):
     assert encrypted_file[c.SHMAC_SLICE] != encrypted_data[c.SHMAC_SLICE]
     assert encrypted_file[c.SALT_SLICE] != encrypted_data[c.SALT_SLICE]
     assert encrypted_file[c.IV_SLICE] != encrypted_data[c.IV_SLICE]
-    assert encrypted_file[c.CIPHERTEXT_SLICE] != encrypted_data[c.CIPHERTEXT_SLICE]
+    assert (
+        encrypted_file[c.CIPHERTEXT_SLICE]
+        != encrypted_data[c.CIPHERTEXT_SLICE]
+    )
 
     # async database ciphers recover json data correctly
-    assert test_data == await db.ajson_decrypt(encrypted_file, filename=filename, aad=b"")
-    assert test_data == await db.ajson_decrypt(encrypted_data, filename=filename, aad=b"")
+    assert test_data == await db.ajson_decrypt(
+        encrypted_file, filename=filename, aad=b""
+    )
+    assert test_data == await db.ajson_decrypt(
+        encrypted_data, filename=filename, aad=b""
+    )
 
     # async database ciphers recover bytes data correctly
     encrypted_binary_data = await db.abytes_encrypt(
@@ -501,16 +550,17 @@ async def test_async_database_ciphers(async_database):
     assert type(encrypted_binary_data) is bytes
 
     # async database ciphers recover token data correctly
-    encrypted_token_data = await db.amake_token(plaintext_bytes, aad=b"test")
+    encrypted_token_data = await db.amake_token(
+        plaintext_bytes, aad=b"test"
+    )
     decrypted_token_data = await db.aread_token(
         encrypted_token_data, aad=b"test", ttl=3600
     )
     assert decrypted_token_data == plaintext_bytes
     assert type(encrypted_token_data) is bytes
-    assert (
-        set(Tables.URL_SAFE.encode()).union(encrypted_token_data + b"%")
-        == set(Tables.URL_SAFE.encode()).union(b"%")
-    )
+    assert set(Tables.URL_SAFE.encode()).union(
+        encrypted_token_data + b"%"
+    ) == set(Tables.URL_SAFE.encode()).union(b"%")
 
 
 async def test_async_tags_metatags():
@@ -653,7 +703,9 @@ async def test_async_user_profiles(async_database):
         user[atag] = atest_data
 
     # equivalent async profiles contain their own copies of stored data
-    user_copy = await adb.agenerate_profile(**PROFILE_AND_SETTINGS, preload=True)
+    user_copy = await adb.agenerate_profile(
+        **PROFILE_AND_SETTINGS, preload=True
+    )
     assert user[atag] == user_copy[atag]
     assert user.tags == user_copy.tags
     assert user[atag]
@@ -668,7 +720,9 @@ async def test_async_user_profiles(async_database):
     assert (user_copy.path / await user_copy.afilename(atag)).is_file()
 
     # async & sync profile contructors are equivalent
-    sync_user = Database.generate_profile(**PROFILE_AND_SETTINGS, preload=True)
+    sync_user = Database.generate_profile(
+        **PROFILE_AND_SETTINGS, preload=True
+    )
     assert sync_user[atag] == user[atag]
     assert sync_user.tags == user.tags
     assert sync_user[atag]
@@ -706,7 +760,9 @@ async def test_user_profiles(database):
     assert (user_copy.path / user_copy.filename(tag)).is_file()
 
     # async & sync profile contructors are equivalent
-    async_user = await AsyncDatabase.agenerate_profile(**PROFILE_AND_SETTINGS, preload=True)
+    async_user = await AsyncDatabase.agenerate_profile(
+        **PROFILE_AND_SETTINGS, preload=True
+    )
     assert async_user[tag] == user[tag]
     assert async_user.tags == user.tags
     assert async_user[tag]
@@ -722,4 +778,3 @@ async def test_user_profiles(database):
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

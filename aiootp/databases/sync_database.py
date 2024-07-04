@@ -21,9 +21,9 @@ import json
 
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL, MIN_KEY_BYTES
-from aiootp._constants import BIG, BYTES_FLAG, BYTES_FLAG_SIZE
+from aiootp._constants import BYTES_FLAG, BYTES_FLAG_SIZE
 from aiootp._constants import FILENAME_HASH_BYTES, SHAKE_128_BLOCKSIZE
-from aiootp._exceptions import DatabaseIssue, Ignore
+from aiootp._exceptions import DatabaseIssue, Issue, Ignore
 from aiootp._paths import delete_salt_file
 from aiootp.commons import Namespace
 from aiootp.randoms import token_bytes
@@ -180,7 +180,7 @@ class Database(DatabaseProperties):
         self._cache = Namespace()
         self._manifest = Namespace()
         self.path = self._format_path(path)
-        self._is_metatag = True if metatag else False
+        self._is_metatag = bool(metatag)
         self._initialize_keys(key)
         self._load_manifest()
         self._initialize_metatags()
@@ -483,9 +483,9 @@ class Database(DatabaseProperties):
         try:
             path = self.path / filename
             return self.IO.read(path=path)
-        except FileNotFoundError as corrupt_database:
+        except FileNotFoundError as error:
             if not silent:
-                raise DatabaseIssue.file_not_found(filename)
+                raise DatabaseIssue.file_not_found(filename) from error
 
     def query_tag(
         self,
@@ -532,8 +532,11 @@ class Database(DatabaseProperties):
         Returns a value from the database by it's `tag` & deletes the
         associated file in the database directory.
         """
+
+        def track_failure(relay: Ignore) -> bool:
+            return failures.append(relay.error) or True
+
         failures = []
-        track_failure = lambda relay: failures.append(relay.error) or True
         filename = self.filename(tag)
         value = self.query_tag(tag, cache=False, silent=True)
         with Ignore(KeyError, AttributeError, if_except=track_failure):
@@ -614,7 +617,7 @@ class Database(DatabaseProperties):
                 and tag not in self.__class__.__dict__
             ):
                 return self.__dict__[tag]
-            raise Issue.cant_reassign_attribute(tag)
+            raise Issue.cant_reassign_attribute(tag)  # fixed v0.23.9
         self.__dict__[tag] = self.__class__(
             key=self._metatag_key(tag),
             preload=preload,
@@ -739,8 +742,8 @@ class Database(DatabaseProperties):
         filename = self.filename(tag)
         try:
             self._save_file(filename, admin=admin)
-        except AttributeError:
-            raise DatabaseIssue.tag_file_doesnt_exist(tag)
+        except AttributeError as error:
+            raise DatabaseIssue.tag_file_doesnt_exist(tag) from error
         finally:
             if drop_cache and hasattr(self._cache, filename):
                 delattr(self._cache, filename)
@@ -782,4 +785,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

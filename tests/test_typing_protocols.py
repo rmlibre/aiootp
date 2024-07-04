@@ -23,7 +23,6 @@ class BlankType:
 
 
 class ProtocolSubTypeTests:
-
     async def test_issubclass_at_runtime(self) -> None:
         for type_tested in self.types_tested:
             assert issubclass(type_tested, self.protocol)
@@ -46,7 +45,7 @@ class TestStreamHMACTypes(ProtocolSubTypeTests):
     protocol = t.StreamHMACType
     types_tested = []
     instances_tested = []
-    for (_, cipher, *_) in all_ciphers:
+    for _, cipher, *_ in all_ciphers:
         types_tested.append(cipher._StreamHMAC)
         instances_tested.append(cipher.stream_encrypt().shmac)
 
@@ -59,7 +58,7 @@ class TestSyntheticIVTypes(ProtocolSubTypeTests):
     protocol = t.SyntheticIVType
     types_tested = []
     instances_tested = []
-    for (_, cipher, *_) in dual_output_ciphers:
+    for _, cipher, *_ in dual_output_ciphers:
         typ = cipher._Junction._SyntheticIV
         types_tested.append(typ)
         instances_tested.append(typ())
@@ -69,12 +68,14 @@ class TestAsyncCipherStreamingTypes(ProtocolSubTypeTests):
     protocol = t.AsyncCipherStreamingType
     types_tested = [t.AsyncCipherStream, t.AsyncDecipherStream]
     (config, cipher, salt, _) = randoms.choice(all_ciphers)
+    # fmt: off
     instances_tested = [
         run(t.AsyncCipherStream(cipher)),
         run(t.AsyncDecipherStream(
             cipher, salt=salt, iv=csprng(config.IV_BYTES)
         )),
     ]
+    # fmt: on
 
 
 class TestCipherStreamingTypes(ProtocolSubTypeTests):
@@ -111,6 +112,12 @@ class TestSupportsAppendPopTypes(ProtocolSubTypeTests):
     instances_tested = [type_tested([0, 1]) for type_tested in types_tested]
 
 
+class TestSupportsAppendPopleftTypes(ProtocolSubTypeTests):
+    protocol = t.SupportsAppendPopleft
+    types_tested = [deque]
+    instances_tested = [type_tested([0, 1]) for type_tested in types_tested]
+
+
 class TestHasherTypes(ProtocolSubTypeTests):
     protocol = t.HasherType
     types_tested = [
@@ -138,9 +145,9 @@ class TestXOFTypes(ProtocolSubTypeTests):
 class TestPermutationTypes(ProtocolSubTypeTests):
     protocol = t.PermutationType
     types_tested = [
-        type_tested
-        for type_tested
-        in (t.AffinePermutation, t.AffineXORChain, t.FastAffineXORChain)
+        t.AffinePermutation,
+        t.AffineXORChain,
+        t.FastAffineXORChain,
     ]
     instances_tested = [
         type_tested(key=csprng(type_tested.key_size(16)), config_id=16)
@@ -199,7 +206,10 @@ class TestSecretKeyTypes(ProtocolSubTypeTests):
 class TestAsymmetricKeyTypes(ProtocolSubTypeTests):
     protocol = t.AsymmetricKeyType
     instances_tested = [
-        X25519(), Ed25519(), X25519().generate(), Ed25519().generate()
+        X25519(),
+        Ed25519(),
+        X25519().generate(),
+        Ed25519().generate(),
     ]
     types_tested = [
         instance_tested.__class__ for instance_tested in instances_tested
@@ -237,4 +247,3 @@ class TestKeyExchangeProtocolTypes(ProtocolSubTypeTests):
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

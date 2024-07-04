@@ -12,14 +12,15 @@
 
 
 __all__ = [
-    "FrozenNamespace", "Namespace", "OpenFrozenNamespace", "OpenNamespace"
+    "FrozenNamespace",
+    "Namespace",
+    "OpenFrozenNamespace",
+    "OpenNamespace",
 ]
 
 
 __doc__ = "Definitions for mapping classes."
 
-
-import asyncio
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue
@@ -70,6 +71,8 @@ class OpenNamespace(Namespace):
     Mutable instance.
     """
 
+    __slots__ = ()
+
     def __repr__(self, /, *, mask: bool = False) -> str:
         """
         Pretty displays the instance & its attributes.
@@ -88,15 +91,7 @@ class FrozenNamespace(Namespace):
     Immutable instance. (set once)
     """
 
-    @property
-    def __all__(self, /) -> t.List[str]:
-        """
-        Allows users that have turned their namespace into a Module
-        object to do a `from namespace import *` on the contents of
-        the namespace's mapping. This method excludes exporting private
-        methods & attributes.
-        """
-        return [var for var in self if str(var)[0] != "_"]
+    __slots__ = ()
 
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """
@@ -125,6 +120,8 @@ class OpenFrozenNamespace(FrozenNamespace):
     Immutable instance. (set once)
     """
 
+    __slots__ = ()
+
     def __repr__(self, /, *, mask: bool = False) -> str:
         """
         Pretty displays the instance & its attributes.
@@ -145,4 +142,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

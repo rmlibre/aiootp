@@ -23,14 +23,8 @@ from hashlib import shake_128
 from aiootp._typing import Typing as t
 from aiootp._constants import B_TO_MB_RATIO, DEFAULT_AAD
 from aiootp._constants import INT_BYTES, BIG, SHAKE_128_BLOCKSIZE
-from aiootp._exceptions import Issue, PasscryptIssue
-from aiootp._exceptions import Metadata
-from aiootp.commons import FrozenSlots, FrozenInstance, OpenNamespace
-from aiootp.generics import Domains, ahash_bytes, hash_bytes
-from aiootp.generics import canonical_pack, bytes_are_equal
-from aiootp.randoms import acsprng, csprng
-
-from .config import passcrypt_spec
+from aiootp.commons import FrozenInstance
+from aiootp.generics import Domains, hash_bytes
 
 
 class PasscryptSession(FrozenInstance):
@@ -74,7 +68,6 @@ class PasscryptSession(FrozenInstance):
         tag_size: int,
         config: t.ConfigType,
         aad: bytes = DEFAULT_AAD,
-
     ) -> None:
         """
         Efficiently stores user parameters.
@@ -173,11 +166,13 @@ class PasscryptSession(FrozenInstance):
         """
         self.ram = bytearray()
         size = self.total_size
+        # fmt: off
         max_size = (B_TO_MB_RATIO * 512) - 1  # 512MiB, max digest size
         while size > max_size:                # of shake_128 in python
             self.ram.extend(self.proof.digest(max_size))
             self.proof.update(self.ram[-168:])
             size -= max_size
+        # fmt: on
         if size:
             self.ram.extend(self.proof.digest(size))
             self.proof.update(self.ram[-168:])
@@ -194,4 +189,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

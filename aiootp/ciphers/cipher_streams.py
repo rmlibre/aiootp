@@ -24,7 +24,7 @@ from aiootp._typing import Typing as t
 from aiootp._constants.misc import DEFAULT_AAD
 from aiootp._exceptions import CipherStreamIssue
 from aiootp._gentools import apopleft, popleft, abatch, batch
-from aiootp.asynchs import AsyncInit, asleep
+from aiootp.asynchs import AsyncInit, ConcurrencyGuard, asleep
 
 from .cipher_stream_properties import CipherStreamProperties
 
@@ -68,13 +68,15 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         "_buffer",
         "_byte_count",
         "_config",
-        "_is_digesting",
+        "_digesting_now",
         "_is_finalized",
         "_key_bundle",
         "_padding",
         "_stream",
         "shmac",
     )
+
+    _MAX_SIMULTANEOUS_BUFFERS: int = 1024
 
     async def __init__(
         self,
@@ -105,7 +107,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._config = cipher._config
         self._padding = cipher._padding
         self._byte_count = 0
-        self._is_digesting = False
+        self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
         self._is_finalized = False
         self._buffer = buffer = deque([self._padding.start_padding()])
         self._key_bundle = key_bundle = await cipher._KeyAADBundle(
@@ -118,7 +120,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _iter_shortcuts(
-        self
+        self,
     ) -> t.Tuple[
         t.Callable[..., bytes],
         t.Deque[bytes],
@@ -133,7 +135,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     @property
     def _buffer_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Deque[bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -143,7 +145,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         return self._buffer, self._buffer.append
 
     async def __aiter__(
-        self
+        self,
     ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
@@ -157,7 +159,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
             yield await anext_block_id(block), block
 
     async def afinalize(
-        self
+        self,
     ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
         """
         Instructs the instance to finish receiving data into the buffer
@@ -236,16 +238,12 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         """
         if self._is_finalized:
             raise CipherStreamIssue.stream_has_been_closed()
-        self._byte_count += len(data)
-        data = io.BytesIO(data).read
-        _buffer, append = self._buffer_shortcuts
-        while self._is_digesting:
-            await asleep(0.00001)  # pragma: no cover
-        try:
-            self._is_digesting = True
+
+        async with ConcurrencyGuard(self._digesting_now):
+            self._byte_count += len(data)
+            data = io.BytesIO(data).read
+            _buffer, append = self._buffer_shortcuts
             await self._adigest_data(data, _buffer, append)
-        finally:
-            self._is_digesting = False
         return self
 
 
@@ -288,13 +286,15 @@ class CipherStream(CipherStreamProperties):
         "_buffer",
         "_byte_count",
         "_config",
-        "_is_digesting",
+        "_digesting_now",
         "_is_finalized",
         "_key_bundle",
         "_padding",
         "_stream",
         "shmac",
     )
+
+    _MAX_SIMULTANEOUS_BUFFERS: int = 1024
 
     def __init__(
         self,
@@ -325,7 +325,7 @@ class CipherStream(CipherStreamProperties):
         self._config = cipher._config
         self._padding = cipher._padding
         self._byte_count = 0
-        self._is_digesting = False
+        self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
         self._is_finalized = False
         self._buffer = buffer = deque([self._padding.start_padding()])
         self._key_bundle = key_bundle = cipher._KeyAADBundle(
@@ -338,7 +338,7 @@ class CipherStream(CipherStreamProperties):
 
     @property
     def _iter_shortcuts(
-        self
+        self,
     ) -> t.Tuple[
         t.Callable[..., bytes],
         t.Deque[bytes],
@@ -353,7 +353,7 @@ class CipherStream(CipherStreamProperties):
 
     @property
     def _buffer_shortcuts(
-        self
+        self,
     ) -> t.Tuple[t.Deque[bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
@@ -362,9 +362,7 @@ class CipherStream(CipherStreamProperties):
         """
         return self._buffer, self._buffer.append
 
-    def __iter__(
-        self
-    ) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
+    def __iter__(self) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
         of times in the process of gathering data to buffer for the
@@ -453,16 +451,12 @@ class CipherStream(CipherStreamProperties):
         """
         if self._is_finalized:
             raise CipherStreamIssue.stream_has_been_closed()
-        self._byte_count += len(data)
-        data = io.BytesIO(data).read
-        _buffer, append = self._buffer_shortcuts
-        while self._is_digesting:
-            asynchs.sleep(0.00001)  # pragma: no cover
-        try:
-            self._is_digesting = True
+
+        with ConcurrencyGuard(self._digesting_now, probe_delay=0.0001):
+            self._byte_count += len(data)
+            data = io.BytesIO(data).read
+            _buffer, append = self._buffer_shortcuts
             self._digest_data(data, _buffer, append)
-        finally:
-            self._is_digesting = False
         return self
 
 
@@ -477,4 +471,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

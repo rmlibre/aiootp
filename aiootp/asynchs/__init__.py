@@ -14,9 +14,7 @@
 __all__ = []
 
 
-__doc__ = (
-    "Tools for time, asyncio, multi-threading, & multi-processing."
-)
+__doc__ = "Tools for time, asyncio, multi-threading, & multi-processing."
 
 
 import asyncio
@@ -46,6 +44,7 @@ modules = dict(
 module_api = dict(
     AsyncInit=AsyncInit,
     Clock=Clock,
+    ConcurrencyGuard=ConcurrencyGuard,
     Processes=Processes,
     Threads=Threads,
     __all__=__all__,
@@ -70,4 +69,3 @@ module_api = dict(
     sleep=sleep,
     wrap_in_executor=wrap_in_executor,
 )
-

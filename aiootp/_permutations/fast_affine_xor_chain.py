@@ -68,7 +68,8 @@ class FastAffineXORChain(AffineXORChain):
                 permutation_type=AffinePermutation,
                 permutation_config_id=config_id,
                 key_types=AffineXORChainConfig._FAST_CHAIN_KEY_TYPES,
-            ) for config_id in [*range(1, 33), 64, 128, 192, 256]
+            )
+            for config_id in [*range(1, 33), 64, 128, 192, 256]
         },
         config_type=AffineXORChainConfig,
     )
@@ -100,4 +101,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

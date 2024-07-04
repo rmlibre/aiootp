@@ -19,7 +19,6 @@ class ExampleType:
 
 
 class FalseConfig:
-
     def set_config_id(self, config_id: t.Hashable) -> None:
         self.CONFIG_ID = config_id
 
@@ -29,36 +28,43 @@ class TestConfig:
     uncheckable_types = (t.List[int], t.PositiveRealNumber)
 
     def test_slots_types_enforces_types(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A mismatch between an attribute type & a `slot_types` "
             "delcaration was allowed."
         )
         for declaration in self.types_tested:
+
             class ExampleConfig(Config):
                 __slots__ = ("VAR",)
                 slots_types = dict(VAR=declaration)
+
                 def __init__(self, *, var: declaration) -> None:
                     self.VAR = var
 
-            for attr_type in set(self.types_tested).difference([declaration]):
+            for attr_type in set(self.types_tested).difference(
+                [declaration]
+            ):
                 with Ignore(TypeError, if_else=violation(problem)):
-                    config = ExampleConfig(var=attr_type)
+                    ExampleConfig(var=attr_type)
 
     def test_runtime_uncheckable_types_are_detected(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A runtime-uncheckable type declaration didn't proc an error."
         )
         for declaration in self.uncheckable_types:
-            with Ignore(TypeUncheckableAtRuntime, if_else=violation(problem)):
+            with Ignore(
+                TypeUncheckableAtRuntime, if_else=violation(problem)
+            ):
+
                 class ExampleConfig(Config):
                     __slots__ = ("VAR",)
                     slots_types = dict(VAR=declaration)
+
                     def __init__(self, *, var: declaration) -> None:
                         self.VAR = var
 
 
 class TestConfigMap:
-
     def test_mapping_registers_config_by_id(
         self, mapping: ConfigMap
     ) -> None:
@@ -72,7 +78,7 @@ class TestConfigMap:
     def test_config_id_cannot_change(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "config_id changed without error."
         )
         config_id = 1
@@ -85,7 +91,7 @@ class TestConfigMap:
     def test_config_must_be_config_subclass(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "non-`Config` subclass was allowed to be registered."
         )
         config_id = 1
@@ -97,7 +103,7 @@ class TestConfigMap:
     def test_cannot_be_reassigned(
         self, config: t.ConfigType, mapping: ConfigMap
     ) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "a config was allowed to be reassigned to the map."
         )
         config_id = 1
@@ -114,4 +120,3 @@ class TestConfigMap:
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

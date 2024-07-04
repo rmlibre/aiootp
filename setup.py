@@ -32,7 +32,6 @@ with open("README.rst", "r") as readme:
 if __name__ != "__main__":
     pass
 elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
-
     with open("SIGNATURE.txt", "r") as sig:
         scope = json.loads(sig.read())[PackageSigner._SCOPE]
         print("current version:", __version__)
@@ -53,10 +52,22 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
         path=getpass("secure directory: "),
     )
 
-    if getpass("is the signing key already saved on this device? (Y/n) ").lower().strip().startswith("n"):
-        signer.update_signing_key(bytes.fromhex(getpass("signing key: ").strip()))
+    if (
+        getpass("is the signing key already saved on this device? (Y/n) ")
+        .lower()
+        .strip()
+        .startswith("n")
+    ):
+        signer.update_signing_key(
+            bytes.fromhex(getpass("signing key: ").strip())
+        )
 
-    while getpass("update public credentials? (y/N) ").lower().strip().startswith("y"):
+    while (
+        getpass("update public credentials? (y/N) ")
+        .lower()
+        .strip()
+        .startswith("y")
+    ):
         signer.update_public_credentials(
             **{getpass("name: ").strip(): getpass("value: ")}
         )
@@ -95,8 +106,12 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.8",
-    tests_require=["pytest>=8.1.1", "pytest-asyncio>=0.23.6"],
     install_requires=["aiofiles>=23.2.1", "cryptography>=42.0.8"],
+    tests_require=[
+        "pytest>=8.1.1",
+        "pytest-asyncio>=0.23.6",
+        "ruff>=0.5.0",
+    ],
     classifiers=[
         "Development Status :: 4 - Beta",
         "Framework :: AsyncIO",
@@ -166,47 +181,26 @@ setup(
         "Intended Audience :: Financial and Insurance Industry",
         "License :: OSI Approved :: GNU Affero General Public License v3",
     ],
-    keywords=" ".join(
-        [
-            "xor key salt pepper nonce aad iv siv resuse misuse",
-            "fully context committing commitment",
-            "online AEAD auth authenticated authentication",
-            "shmac hmac nmac mac digest integrity",
-            "infosec opsec appsec privacy engineering",
-            "stream block cipher permutation chunky2048 slick256",
-            "encrypt plaintext",
-            "decrypt ciphertext",
-            "passcrypt passphrase PBKDF",
-            "password based derivation function",
-            "3dh 2dh 25519 x25519 ed25519 curve25519",
-            "diffie hellman sign signature verify verification",
-            "db database value store",
-            "user uuid unique guid global",
-            "transparent encryption decryption",
-            "indistinguishable indistinguishability",
-            "pseudo one time pad onetimepad",
-            "canonical canonicalization domain separation KDF",
-            "bit bits 64 128 256 512 1024 2048 4096",
-            "hash sha sha3 sha-3 keccak",
-            "ephemeral byte entropy",
-            "PRF PRG PRP RNG PRNG CSPRNG",
-            "cryptographically secure",
-            "random number generator",
-            "bitwise operations",
-            "IND CCA CPA RUP",
-            "information cyber security",
-            "active passive adaptive chosen attack",
-            "resistance resistant tweak tweakable",
-            "anonymous anonymity pseudonymous",
-            "symmetric asymmetric",
-            "communications utilities",
-            "simple clean code",
-            "crypto cryptology cryptography cryptanalysis",
-            "beta testing",
-            "data science multi processing threading",
-            "await async asyncio parallel concurrency",
-            "coroutine coroutines asynchronous asynchrony",
-        ]
+    keywords=(
+        "xor key salt pepper nonce aad iv siv resuse misuse fully context "
+        "committing commitment online AEAD auth authenticated "
+        "authentication shmac hmac nmac mac digest integrity infosec opsec "
+        "appsec privacy engineering stream block cipher permutation "
+        "chunky2048 slick256 encrypt plaintext decrypt ciphertext passcrypt"
+        " passphrase PBKDF password based derivation function 3dh 2dh 25519"
+        " x25519 ed25519 curve25519 diffie hellman sign signature verify "
+        "verification db database value store user uuid unique guid global "
+        "transparent encryption decryption indistinguishable "
+        "indistinguishability pseudo one time pad onetimepad canonical "
+        "canonicalization domain separation KDF bit bits 64 128 256 512 "
+        "1024 2048 4096 hash sha sha3 sha-3 keccak ephemeral byte entropy "
+        "PRF PRG PRP RNG PRNG CSPRNG cryptographically secure random number"
+        " generator bitwise operations IND CCA CPA RUP information cyber "
+        "security active passive adaptive chosen attack resistance "
+        "resistant tweak tweakable anonymous anonymity pseudonymous "
+        "symmetric asymmetric communications utilities simple clean code "
+        "crypto cryptology cryptography cryptanalysis beta testing data "
+        "science multi processing threading await async asyncio parallel "
+        "concurrency coroutine coroutines asynchronous asynchrony",
     ),
 ) if __name__ == "__main__" else 0
-

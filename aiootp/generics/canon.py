@@ -41,7 +41,7 @@ from hmac import compare_digest as bytes_are_equal
 from aiootp._typing import Typing as t
 from aiootp._constants import LITTLE, BIG, INT_BYTES
 from aiootp._exceptions import Issue, CanonicalIssue
-from aiootp._gentools import abatch, batch, arange
+from aiootp._gentools import arange
 from aiootp.asynchs import asleep
 
 
@@ -171,8 +171,9 @@ async def acanonical_pack(
     blocksize_blob = blocksize.to_bytes(int_bytes, BIG)
     items = [
         item
-        async for item
-        in aencode_items(blocksize_blob, pad, *items, int_bytes=int_bytes)
+        async for item in aencode_items(
+            blocksize_blob, pad, *items, int_bytes=int_bytes
+        )
     ]
     return fullblock_ljust(b"".join(items), blocksize, pad=pad)
 
@@ -335,4 +336,3 @@ module_api = dict(
     encode_key=encode_key,
     test_canonical_padding=test_canonical_padding,
 )
-

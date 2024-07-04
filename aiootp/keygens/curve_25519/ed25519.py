@@ -18,7 +18,6 @@ __doc__ = "An interface to Ed25519 signing & verifying."
 
 
 from aiootp._typing import Typing as t
-from aiootp._exceptions import Issue
 from aiootp.asynchs import asleep
 
 from .shared_interface import Base25519
@@ -136,4 +135,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

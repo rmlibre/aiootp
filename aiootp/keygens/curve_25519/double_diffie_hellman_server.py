@@ -88,7 +88,7 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         """
         my_identity_key = self._my_identity_key
         my_ephemeral_key = self._my_ephemeral_key = (
-            await self._key_exchange_type().agenerate()
+            await self._key_exchange_type().agenerate()  # fmt: skip
         )
         peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
             peer_ephemeral_key
@@ -153,4 +153,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

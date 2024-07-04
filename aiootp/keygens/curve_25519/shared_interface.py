@@ -14,16 +14,16 @@
 __all__ = ["Base25519"]
 
 
-__doc__ = (
-    "A general type defining an interface to Curve25519 operations."
-)
+__doc__ = "A general type defining an interface to Curve25519 operations."
 
 
 from cryptography.hazmat.primitives.asymmetric.x25519 import (
-    X25519PublicKey, X25519PrivateKey
+    X25519PublicKey,
+    X25519PrivateKey,
 )
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PublicKey, Ed25519PrivateKey
+    Ed25519PublicKey,
+    Ed25519PrivateKey,
 )
 
 from aiootp._typing import Typing as t
@@ -196,4 +196,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

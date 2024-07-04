@@ -20,7 +20,7 @@ __doc__ = "Manages the early secrets used by the package."
 from collections import deque
 
 from aiootp._typing import Typing as t
-from aiootp._constants import PRIMES, BIG
+from aiootp._constants import BIG
 from aiootp._paths import SecurePath, read_salt_file
 from aiootp.asynchs import asleep, ns_counter
 from aiootp.generics import Domains
@@ -122,4 +122,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

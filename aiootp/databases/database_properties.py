@@ -119,12 +119,9 @@ class DatabaseProperties:
         Returns a list of all derived filenames of user-defined tags
         stored in the database object.
         """
-        return {
-            filename
-            for filename in self._maintenance_records.symmetric_difference(
-                self._manifest.__dict__
-            )
-        }
+        return self._maintenance_records.symmetric_difference(
+            self._manifest.__dict__
+        )
 
     @property
     def metatags(self) -> t.Set[str]:
@@ -163,6 +160,12 @@ class DatabaseProperties:
             (len(self) > 0) or self._manifest[self._METATAGS_LEDGERNAME]
         )
 
+    def __len__(self) -> int:
+        """
+        Returns the number tags currently added to the database.
+        """
+        return len(self._manifest) - len(self._maintenance_records)
+
     def __setitem__(self, tag: str, data: t.JSONSerializable) -> None:
         """
         Allows users to add the value `data` under the name `tag`
@@ -194,10 +197,6 @@ class DatabaseProperties:
         with Ignore(FileNotFoundError):
             (self.path / filename).unlink()
 
-    __len__ = lambda self: (
-        len(self._manifest) - len(self._maintenance_records)
-    )
-
 
 module_api = dict(
     DatabaseProperties=t.add_type(DatabaseProperties),
@@ -209,4 +208,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

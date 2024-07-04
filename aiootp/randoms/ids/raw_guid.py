@@ -56,7 +56,8 @@ class RawGUID(FrozenInstance):
                 node_id_bytes=1,
                 ticker_bytes=1,
                 size=config_id,
-            ) for config_id in range(12, 33)
+            )
+            for config_id in range(12, 33)
         },
         config_type=RawGUIDConfig,
     )
@@ -129,4 +130,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

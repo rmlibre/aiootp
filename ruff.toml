@@ -1,0 +1,144 @@
+
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".env",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "env",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+line-length = 76
+indent-width = 4
+target-version = "py38"
+
+
+[lint]
+select = [
+    # "A",  # TODO: decide on using module __doc__ or not
+    "FLY",  # flynt
+    # "ARG",  # TODO: cleaning up so this passes is a goal
+    "ASYNC",  # flake8-async
+    "B",  # flake8-bugbear
+    "C",  # conventions & complexity
+    "E",  # pycodestyle errors
+    "ERA",  # eradicate commented out code
+    "F",  # pyflakes
+    "FBT",  # flake8-boolean-trap
+    "FURB",  # refurb
+    "PERF",  # Perflint
+    "PT",  # pytest-style
+    # "PTH",  # flake8-use-pathlib, TODO: potential
+    "Q",  # flake8-quotes
+    "RSE",  # flake8-raise
+    "S",  # flake8-bandit
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+    # "TD",  # flake8-todos, TODO: follow?
+    "RUF",  # Ruff-specific
+    "UP",  # pyupgrade
+    "W",  # pycodestyle warnings
+]
+ignore = [
+    "B006",  # mutable defaults only used for **unpacking interface
+    "B008",  # random defaults at startup are intended
+    "B028",  # thanks for the warning, if stacklevel was needed
+    "C408",  # string keys aren't better than keyword arguments
+    "COM",  # TODO: use? it's discouraged but nice
+    "E501",  # trust the 76-length enforcement from the formatter
+    "E731",  # TODO: look through lambda's to maybe comply
+    "RUF012",  # sometimes other types better describe class variables
+    "S101",  # sometimes asserts are nice sanity checks
+    "SIM300",  # hey! yoda's alright
+    "UP015",  # `open` params should be explicit
+]
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+
+[lint.per-file-ignores]
+"__init__.py" = [
+    "E402",  # sometimes an init defines things for its subpackages
+    "F403",  # the init are just shuttling names, `import *` == fine
+    "F405",  # honestly, `import *` is ok for shuttling inits
+    "F821",  # (sub)packages don't need to import their modules' names
+    "F822",  # potential NameError warnings ie. `import *`
+]
+"**/_typing/*" = [
+    "A002",  # no control if mirrored interfaces reuse built-in names
+    "FBT001",  # no control over positional boolean params here
+]
+"**/asynchs/aos.py" = [
+    "F822",  # `__all__` declarations exist in `os` module
+]
+"**/randoms/simple.py" = [
+    "S311",  # weak random is labelled in simple module
+]
+"dual_output_shake_cipher_config.py" = [
+    "SIM114",  # TODO: specify branch exceptions & other build limits
+]
+"test_initialization.py" = [
+    "E402",  # there's a wibbly wobbly, timey wimey import sequence here
+    "F401",  # most other tests get their imports from this module
+]
+"**/{tests,docs}/*" = [
+    "C901",  # tests can get complex
+    "F403",  # tests get most of their imports from `import *`
+    "F405",  # `import *` confuses it a lot
+    "F822",  # potential NameError warnings ie. `import *`
+    "S101",  # asserts happen in tests
+    "S311",  # weak random is fine in tests
+]
+
+
+[lint.flake8-quotes]
+docstring-quotes = "double"
+
+
+[format]
+line-ending = "auto"
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = false
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
+
+
+# This file is adapted from the Ruff documentation.
+# https://docs.astral.sh/ruff/configuration/

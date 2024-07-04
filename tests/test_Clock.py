@@ -30,7 +30,6 @@ EPOCHS_TESTED = (
 
 
 class EqualTimingExperiment:
-
     __slots__ = ("early_control", "experiment", "late_control", "epoch")
 
     def __init__(
@@ -41,7 +40,9 @@ class EqualTimingExperiment:
     ):
         self.epoch = epoch
         self.early_control, self.experiment, self.late_control = (
-            control_timer(), experiment_timer(), control_timer()
+            control_timer(),
+            experiment_timer(),
+            control_timer(),
         )
 
     def correct_range(
@@ -56,27 +57,25 @@ class EqualTimingExperiment:
 
 
 class TestAPlatformCounter:
-
     def test_is_monotonic(self) -> None:
-        assert time.get_clock_info("perf_counter").monotonic == True
+        assert time.get_clock_info("perf_counter").monotonic is True
 
     def test_is_nanosecond_precise(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Platform perf counter doesn't have nanosecond resolution."
         )
-        resolution_warning = lambda relay: warnings.warn(problem) or True
+        resolution_warning = lambda _: warnings.warn(problem) or True
         with Ignore(AssertionError, if_except=resolution_warning):
             assert time.get_clock_info("perf_counter").resolution <= 1e-09
         assert time.get_clock_info("perf_counter").resolution <= 1e-07
 
 
 class TestAPlatformTime:
-
     def test_is_at_least_millisecond_precise(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "Platform time doesn't have at least millisecond resolution."
         )
-        resolution_warning = lambda relay: warnings.warn(problem) or True
+        resolution_warning = lambda _: warnings.warn(problem) or True
         with Ignore(AssertionError, if_except=resolution_warning):
             assert time.get_clock_info("time").resolution <= 1e-03
         assert time.get_clock_info("time").resolution <= 1 / 64
@@ -84,7 +83,9 @@ class TestAPlatformTime:
 
 class TestClockConversions:
     seconds_to_nanoseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 1_000_000_000)
+        lambda control, epoch: int(
+            (control - epoch.seconds) * 1_000_000_000
+        )
     )
     seconds_to_microseconds = staticmethod(
         lambda control, epoch: int((control - epoch.seconds) * 1_000_000)
@@ -102,13 +103,20 @@ class TestClockConversions:
         lambda control, epoch: int((control - epoch.seconds) / (60 * 60))
     )
     seconds_to_days = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) / (60 * 60 * 24))
+        lambda control, epoch: int(
+            (control - epoch.seconds) / (60 * 60 * 24)
+        )
     )
     seconds_to_months = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS / 12))
+        lambda control, epoch: int(
+            (control - epoch.seconds)
+            / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS / 12)
+        )
     )
     seconds_to_years = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS))
+        lambda control, epoch: int(
+            (control - epoch.seconds) / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS)
+        )
     )
 
     def test_package_epoch_starts_year_2023(self) -> None:
@@ -263,9 +271,8 @@ class TestClockConversions:
 
 
 class TestClock:
-
     async def test_invalid_unit_throws_error(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "An invalid time unit successfully initialized an instance."
         )
         with Ignore(ValueError, if_else=violation(problem)):
@@ -280,4 +287,3 @@ class TestClock:
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-

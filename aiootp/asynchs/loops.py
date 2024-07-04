@@ -71,7 +71,7 @@ def new_task(coro: t.Awaitable) -> asyncio.Task:
 
 
 def wrap_in_executor(
-    function: t.Callable[..., t.Any]
+    function: t.Callable[..., t.Any],
 ) -> t.Coroutine[t.Any, t.Any, t.Any]:
     """
     A decorator that wraps synchronous blocking IO functions so they
@@ -122,4 +122,3 @@ module_api = dict(
     sleep=sleep,
     wrap_in_executor=wrap_in_executor,
 )
-

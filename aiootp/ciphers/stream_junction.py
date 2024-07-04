@@ -15,15 +15,13 @@ __all__ = ["StreamJunction"]
 
 
 __doc__ = (
-    "Where data & key streams meet for confidentiality & "
-    "authenticity."
+    "Where data & key streams meet for confidentiality & authenticity."
 )
 
 
 from aiootp._typing import Typing as t
 from aiootp._constants import ENCRYPTION, DECRYPTION, ASYNC, SYNC
 from aiootp._exceptions import Issue, KeyAADIssue
-from aiootp.asynchs import asleep
 from aiootp.commons import FrozenInstance
 
 from .stream_hmac import StreamHMAC
@@ -149,4 +147,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

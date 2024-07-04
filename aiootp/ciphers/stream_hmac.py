@@ -18,12 +18,12 @@ __doc__ = "General definition for the StreamHMAC interface."
 
 
 from aiootp._typing import Typing as t
-from aiootp._constants import DEFAULT_AAD, SHAKE_128_BLOCKSIZE, BIG
+from aiootp._constants import DEFAULT_AAD, BIG
 from aiootp._constants import ENCRYPTION, DECRYPTION
 from aiootp._exceptions import Issue, SHMACIssue, ValidationIncomplete
 from aiootp._exceptions import InvalidBlockID, InvalidSHMAC
 from aiootp.asynchs import asleep
-from aiootp.generics import Domains, bytes_are_equal
+from aiootp.generics import bytes_are_equal
 
 from .key_bundle import KeyAADBundle
 
@@ -69,7 +69,7 @@ class StreamHMAC:
         self._result_is_ready = False
         self._register_key_bundle(key_bundle)
         self._initialize_session_state()
-        self._update = self._placeholder_update    # Don't allow updates
+        self._update = self._placeholder_update  # Don't allow updates
         self._aupdate = self._aplaceholder_update  # unless mode is set
 
     def _register_key_bundle(self, key_bundle: KeyAADBundle) -> None:
@@ -113,7 +113,7 @@ class StreamHMAC:
         `PermissionError` if the instance hasn't been finalized.
         """
         if not self._result_is_ready:
-            raise ValidationIncomplete()
+            raise ValidationIncomplete
         return self._result
 
     def _for_encryption(self) -> t.Self:
@@ -223,7 +223,7 @@ class StreamHMAC:
         *,
         size: t.Optional[int] = None,
         aad: bytes = DEFAULT_AAD,
-        _join: t.Callable[..., bytes] = b"".join
+        _join: t.Callable[..., bytes] = b"".join,
     ) -> bytes:
         """
         Returns a `size`-byte block id derived from the current state
@@ -260,7 +260,7 @@ class StreamHMAC:
         *,
         size: t.Optional[int] = None,
         aad: bytes = DEFAULT_AAD,
-        _join: t.Callable[..., bytes] = b"".join
+        _join: t.Callable[..., bytes] = b"".join,
     ) -> bytes:
         """
         Returns a `size`-byte block id derived from the current state
@@ -298,7 +298,7 @@ class StreamHMAC:
         """
         await asleep()
         self._result = self._mac.digest(
-            self.config.SHMAC_DOUBLE_BLOCKSIZE
+            self.config.SHMAC_DOUBLE_BLOCKSIZE  # fmt: skip
         )[self.config.SHMAC_RESULT_SLICE]
 
     def _set_final_result(self) -> None:
@@ -308,7 +308,7 @@ class StreamHMAC:
         the current instance.
         """
         self._result = self._mac.digest(
-            self.config.SHMAC_DOUBLE_BLOCKSIZE
+            self.config.SHMAC_DOUBLE_BLOCKSIZE  # fmt: skip
         )[self.config.SHMAC_RESULT_SLICE]
 
     async def afinalize(self) -> bytes:
@@ -430,4 +430,3 @@ module_api = dict(
     __loader__=__loader__,
     __package__=__package__,
 )
-

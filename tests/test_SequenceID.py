@@ -22,7 +22,7 @@ class TestSequenceIDConfig:
         assert 16 == config.PERMUTATION_CONFIG_ID
 
     async def test_size_must_be_within_bounded_limits(self) -> None:
-        problem = (
+        problem = (  # fmt: skip
             "A size out of bounds was allowed."
         )
         for bad_size in (-1, 0, 4097):
@@ -31,7 +31,6 @@ class TestSequenceIDConfig:
 
 
 class TestSequenceID:
-
     async def test_inversion_correctness(self) -> None:
         for n in range(1, 33):
             for index in range(0, 256, 16):
@@ -52,7 +51,7 @@ class TestSequenceID:
         # the sequence ids produced are unique for every given sequential
         # integer up to the max of the byte domain.
         history = set()
-        for index in range(256 ** n):
+        for index in range(256**n):
             result = sid.new(index)
             assert index == sid.read(result)
             assert result not in history, f"{index=}, {n=}"
@@ -63,10 +62,9 @@ class TestSequenceID:
         assert sid.new(index + 1) == await sid.anew(index + 1)
 
     async def test_sizes(self) -> None:
-
         for n in range(1, 33):
             # the salt must be at least the length of output sizes
-            problem = (
+            problem = (  # fmt: skip
                 "An invalid key size for a specified config_id was allowed."
             )
             with Ignore(KeyError, ValueError, if_else=violation(problem)):
@@ -74,7 +72,9 @@ class TestSequenceID:
                     key=token_bytes(SequenceID.key_size(n - 1)), config_id=n
                 )
 
-            sid = SequenceID(key=token_bytes(SequenceID.key_size(n)), config_id=n)
+            sid = SequenceID(
+                key=token_bytes(SequenceID.key_size(n)), config_id=n
+            )
             # the size of produced sequential ids is the same as the defined
             # size
             result = sid.new(n)
@@ -84,4 +84,3 @@ class TestSequenceID:
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
-
