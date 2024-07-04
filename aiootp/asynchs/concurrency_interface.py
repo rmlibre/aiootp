@@ -46,7 +46,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
     `deque` or `deque`-like double-ended queue. Prevents simultaneous /
     out of order runs of blocks of code. A `deque` is recommended since
     it supports atomic operations. Any atomic, shared datastructure with
-    `append`, `popleft`, & queue[0] methods would fit the API.
+    `append`, `popleft`, & `queue[0]` methods would fit the API.
 
      _____________________________________
     |                                     |
@@ -97,11 +97,11 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
     ) -> None:
         """
         `queue`: Atomic, `deque`-like datastructure that supports `append`,
-                `pop`, & `queue[0]` methods.
+                `popleft`, & `queue[0]` methods.
 
         `probe_delay`: The float/fractional number of seconds to wait
-                before each attempt to detect if instance's token has
-                been authorized to run.
+                before each attempt to detect if the instance's token
+                has been authorized to run.
 
         `token`: The unique authorization token held by this context.
         """

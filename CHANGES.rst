@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- docs(concurrency): fix typos & grammar in doc strings
 
 
 
