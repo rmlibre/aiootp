@@ -299,7 +299,7 @@ async def test_async_block_ids_during_deciphering():
                 )
 
             problem = (  # fmt: skip
-                "An too large block ID was allowed."
+                "A too large block ID was allowed."
             )
             with Ignore(PermissionError, if_else=violation(problem)):
                 expanded_block_id = (
@@ -380,7 +380,7 @@ def test_sync_block_ids_during_deciphering():
                 )
 
             problem = (  # fmt: skip
-                "An too large block ID was allowed."
+                "A too large block ID was allowed."
             )
             with Ignore(PermissionError, if_else=violation(problem)):
                 expanded_block_id = (
