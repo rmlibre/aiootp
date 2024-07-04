@@ -5,19 +5,20 @@ recursive-exclude aiootp/tor/ *
 recursive-exclude aiootp/db/ *
 recursive-exclude logs/ *
 recursive-include licenses/ *
-include LICENSE
-include setup.py
-include setup.cfg
 include .gitignore
-include FAQ.rst
-include logo.png
-include README.rst
 include CHANGES.rst
+include CODE_OF_CONDUCT.md
+include CONTRIBUTING.md
+include FAQ.rst
+include LICENSE
 include MANIFEST.in
+include README.rst
 include SECURITY.md
 include SIGNATURE.txt
-include CONTRIBUTING.md
-include CODE_OF_CONDUCT.md
+include logo.png
+include ruff.toml
+include setup.cfg
+include setup.py
 include aiootp/__init__.py
 include aiootp/_exceptions.py
 include aiootp/_debug_control.py
