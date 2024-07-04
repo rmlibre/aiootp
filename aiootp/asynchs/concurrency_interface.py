@@ -137,7 +137,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         exc_type: t.Optional[type] = None,
         exc_value: t.Optional[Exception] = None,
         traceback: t.Optional[t.TracebackType] = None,
-    ) -> None:
+    ) -> bool:
         """
         Raises `self.IncoherentConcurrencyState` if another instance's
         authorization token has taken this instance's place in the token
@@ -151,8 +151,9 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         await asleep()
         if self.token != self.queue.popleft():
             raise self.IncoherentConcurrencyState from exc_value
-        elif exc_type is not None:
-            raise exc_value from None
+        elif exc_type is None:
+            return True
+        return False
 
     def __exit__(
         self,
@@ -160,7 +161,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         exc_type: t.Optional[type] = None,
         exc_value: t.Optional[Exception] = None,
         traceback: t.Optional[t.TracebackType] = None,
-    ) -> None:
+    ) -> bool:
         """
         Raises `self.IncoherentConcurrencyState` if another instance's
         authorization token has taken this instance's place in the token
@@ -173,8 +174,9 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         """
         if self.token != self.queue.popleft():
             raise self.IncoherentConcurrencyState from exc_value
-        elif exc_type is not None:
-            raise exc_value from None
+        elif exc_type is None:
+            return True
+        return False
 
 
 class ConcurrencyInterface:

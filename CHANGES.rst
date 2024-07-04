@@ -18,6 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- fix(concurrency): rely on context manager boolean control flow
 - docs(concurrency): fix typos & grammar in doc strings
 
 
