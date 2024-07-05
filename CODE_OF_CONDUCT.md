@@ -1,5 +1,5 @@
 
-# Short Norms
+# Norms <sup>*(shortened)*</sup>
 
 No intentional oppression.
 
@@ -28,7 +28,7 @@ Vulnerability and emotions are cherished.
 
 
 
-# Equitible Spaces Norms
+# Equitable Spaces Norms
 
 - No intentional, unchallenged perpetuations of racism, sexism, transphobia, ableism, classism, or any other harmful / supremacist power structures will be tolerated.
 - We defer to each person to decide for themselves whether an action impacted them negatively. We support finding resolutions which prevent repeated harms and abuse. Verbal, physical, and/or sexual assault won't be tolerated.
