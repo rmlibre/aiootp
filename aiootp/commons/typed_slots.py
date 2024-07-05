@@ -164,10 +164,7 @@ class TypedSlots(Slots):
         Sets the attribute if the type is correct.
         """
         self._validate_type(name, value)
-        if name.__class__ is str:
-            object.__setattr__(self, name, value)
-        else:
-            self.__dict__[name] = value
+        super().__setitem__(name, value)
 
 
 class OpenTypedSlots(TypedSlots):
@@ -210,11 +207,7 @@ class FrozenTypedSlots(TypedSlots):
         if name in self:
             raise Issue.cant_reassign_attribute(name)
 
-        self._validate_type(name, value)
-        if name.__class__ is str:
-            object.__setattr__(self, name, value)
-        else:
-            self.__dict__[name] = value
+        super().__setitem__(name, value)
 
     def __delitem__(self, name: str, /) -> None:
         """

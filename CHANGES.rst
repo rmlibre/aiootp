@@ -12,7 +12,7 @@ Changes for version 0.23.10
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- fix(commons): deduplicate logic to keep behavior consistent [#14]
 
 
 Minor Changes

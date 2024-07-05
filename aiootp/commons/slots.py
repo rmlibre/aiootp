@@ -102,15 +102,15 @@ class Slots:
         dictionary offers flexibility, though the interplay with slots
         can cause problems. This initializer avoids setting the names
         declared in `__slots__` within the a potential instance dict.
+
+        This is a general & flexible initializer. Subclasses can improve
+        their performance & documentation by being more specific, ie:
+
+        def __init__(self, a: int, b: int) -> None:
+            self.a = a
+            self.b = b
         """
-        # fmt: off
-        slots = self._slots_set                              # flexible init. not great
-        for name, value in {**dict(mapping), **kw}.items():  # performance. subclasses
-            if name in slots:                                # should prefer specificity
-                object.__setattr__(self, name, value)        # ie. self.a = a
-            else:                                            #     self.b = b
-                self.__dict__[name] = value                  #     ...
-        # fmt: on
+        self.update(mapping, **kw)
 
     def __dir__(self, /) -> t.List[t.Hashable]:
         """
@@ -138,10 +138,9 @@ class Slots:
         """
         Returns a bool of `name`'s membership in the instance.
         """
-        if name.__class__ is str:
-            return hasattr(self, name)
-        else:
-            return name in getattr(self, "__dict__", ())
+        in_slots = name in self._slots_set
+        in_dict = name in getattr(self, "__dict__", ())
+        return (in_slots and hasattr(self, name)) or in_dict
 
     def __setattr__(self, name: str, value: t.Any, /) -> None:
         """
@@ -322,10 +321,8 @@ class FrozenSlots(Slots):
         """
         if name in self:
             raise Issue.cant_reassign_attribute(name)
-        elif name.__class__ is str:
-            object.__setattr__(self, name, value)
-        else:
-            self.__dict__[name] = value
+
+        super().__setitem__(name, value)
 
     def __delitem__(self, name: str, /) -> None:
         """

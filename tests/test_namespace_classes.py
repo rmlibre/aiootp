@@ -304,6 +304,22 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
         assert randoms.token_bits(32) not in obj
         assert None not in obj
 
+    async def test_frozen_state_is_enforced(self) -> None:
+        problem = (  # fmt: skip
+            "A mutation was allowed on a frozen object."
+        )
+        if not self._frozen:
+            return
+
+        obj = self._type(self._items)
+        with Ignore(PermissionError, if_else=violation(problem)):
+            obj.__init__(self._items)
+
+        obj = self._type(self._items)
+        for name, value in self._items.items():
+            with Ignore(PermissionError, if_else=violation(problem)):
+                obj[name] = value
+
 
 class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
     async def test_slots_contains_all_names_with_declared_types(
