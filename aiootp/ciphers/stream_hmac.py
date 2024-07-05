@@ -148,7 +148,7 @@ class StreamHMAC:
         self._avalidated_transform = self._ahash_then_decipher
         return self
 
-    async def _aplaceholder_update(self, *a: t.Any, **kw: t.Any) -> None:
+    async def _aplaceholder_update(self, *_: t.Any, **__: t.Any) -> None:
         """
         This method is overwritten with the propper functionality when a
         cipher mode is declared with either the `_for_encryption` or
@@ -157,7 +157,7 @@ class StreamHMAC:
         """
         raise SHMACIssue.no_cipher_mode_declared()
 
-    def _placeholder_update(self, *a: t.Any, **kw: t.Any) -> None:
+    def _placeholder_update(self, *_: t.Any, **__: t.Any) -> None:
         """
         This method is overwritten with the propper functionality when a
         cipher mode is declared with either the `_for_encryption` or

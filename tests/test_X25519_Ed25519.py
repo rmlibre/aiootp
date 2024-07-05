@@ -252,7 +252,7 @@ def basic_sync_tests(tested_class):
         secret_key_b.import_secret_key(secret_key_b.secret_bytes)
 
 
-async def test_X25519(database, async_database):
+async def test_X25519():
     # Test class constructors
     secret_key_a = await X25519().agenerate()
     secret_key_b = X25519().generate()
@@ -448,7 +448,7 @@ class TestDiffieHellmanProtocols:
         assert client_kdf.sha3_512() == server_kdf.sha3_512()
 
 
-async def test_Ed25519(database, async_database):
+async def test_Ed25519():
     # Test class constructors
     secret_key_a = await Ed25519().agenerate()
     secret_key_b = Ed25519().generate()

@@ -21,6 +21,7 @@ Minor Changes
 - fix(concurrency): rely on context manager boolean control flow
 - docs(coc): fix typos & rename first section
 - docs(concurrency): fix typos & grammar in doc strings
+- style(lint): turn on "ARG" flag & fix associated warnings
 
 
 

@@ -87,7 +87,7 @@ class FastAffineXORChain(AffineXORChain):
         """
         cid = self.config.PERMUTATION_CONFIG_ID
         Permutation = self.config.Permutation
-        aff = Permutation(key=key_reader(), config_id=cid)
+        aff = Permutation(key=key_reader(size), config_id=cid)
         return (aff, aff, aff)
 
 

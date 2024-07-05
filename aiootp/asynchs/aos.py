@@ -45,7 +45,7 @@ from aiootp._typing import Typing as t
 from .loops import asleep, wrap_in_executor
 
 
-async def not_implemented_placeholder(*a: t.Any, **kw: t.Any) -> None:
+async def not_implemented_placeholder(*_: t.Any, **__: t.Any) -> None:
     # fmt: off
     await asleep()                                  # pragma: no cover
     warnings.warn("Function not supported by OS.")  # pragma: no cover

@@ -304,6 +304,19 @@ class TestAffineXORChain:
             )
             assert key == self.recomposed_key(aff)
 
+    async def test_invalid_key_size_is_disallowed(self) -> None:
+        problem = (
+            "An invalid input key size was allowed during initialization."
+        )
+        for size in _test_sizes:
+            key = _key[: self._type.key_size(config_id=size) - 1]
+            with Ignore(ValueError, if_else=violation(problem)):
+                self._type(key=key, config_id=size)
+
+            key = _key[: self._type.key_size(config_id=size) + 1]
+            with Ignore(ValueError, if_else=violation(problem)):
+                self._type(key=key, config_id=size)
+
     async def test_permutation_is_correctly_invertible(self) -> None:
         for size in _test_sizes:
             key = _key[: self._type.key_size(config_id=size)]

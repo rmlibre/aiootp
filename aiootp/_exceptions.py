@@ -144,7 +144,7 @@ class Ignore:
             yield
             return self
 
-        def __call__(self, /, *a, **kw) -> t.Self:
+        def __call__(self, /, *_, **__) -> t.Self:
             return self
 
         def __bool__(self, /) -> bool:

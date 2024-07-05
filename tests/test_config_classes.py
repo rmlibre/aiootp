@@ -89,7 +89,7 @@ class TestConfigMap:
         assert config.CONFIG_ID == 1
 
     def test_config_must_be_config_subclass(
-        self, config: t.ConfigType, mapping: ConfigMap
+        self, mapping: ConfigMap
     ) -> None:
         problem = (  # fmt: skip
             "non-`Config` subclass was allowed to be registered."
