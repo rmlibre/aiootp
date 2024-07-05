@@ -18,15 +18,15 @@ We hope to give users & applications empowering developer-friendly privacy enhan
 
 
 
-.. image:: https://img.shields.io/pypi/v/aiootp?style=flat-square&color=red&logo=pypi
+.. image:: https://img.shields.io/pypi/v/aiootp?style=flat-square&color=darkred&logo=pypi&logoColor=3776AB
     :target: https://pypi.org/project/aiootp/
     :alt: aiootp PyPI Package Version
 
-.. image:: https://img.shields.io/pypi/wheel/aiootp?style=flat-square&color=orange&logo=pypi&logoColor=gold
+.. image:: https://img.shields.io/pypi/wheel/aiootp?style=flat-square&color=darkorange&logo=pypi&logoColor=gold
     :target: https://www.piwheels.org/project/aiootp/
     :alt: Python Wheel Availability Badge
 
-.. image:: https://img.shields.io/pypi/pyversions/aiootp?style=flat-square&color=gold&logo=python&logoColor=cyan
+.. image:: https://img.shields.io/pypi/pyversions/aiootp?style=flat-square&color=gold&logo=python&logoColor=3776AB
     :target: https://github.com/rmlibre/aiootp/actions
     :alt: Python Versions Badge
 
@@ -38,25 +38,25 @@ We hope to give users & applications empowering developer-friendly privacy enhan
    :target: https://github.com/astral-sh/ruff
    :alt: Ruff Formatter Badge
 
-.. image:: https://img.shields.io/badge/coverage-99%25-blue?style=flat-square&logo=codecov&logoColor=maroon
-    :target: https://github.com/rmlibre/aiootp/actions
-    :alt: Test Coverage Badge
-
-.. image:: https://img.shields.io/badge/License-AGPL%20v3-purple?style=flat-square&logo=GNU&logoColor=maroon
-    :target: https://github.com/rmlibre/aiootp/blob/main/LICENSE
-    :alt: Gnu Affero General Public License Badge
-
-.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/linux-python-app.yml?style=flat-square&logo=linux&logoColor=black
+.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/linux-python-app.yml?style=flat-square&color=chartreuse&logo=ubuntu&logoColor=#E95420
     :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml
     :alt: Linux Build Workflow Status
 
-.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/windows-python-app.yml?style=flat-square&logo=windows&logoColor=blue
+.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/windows-python-app.yml?style=flat-square&color=chartreuse&logo=windows&logoColor=00A4EF
     :target: https://github.com/rmlibre/aiootp/actions/workflows/windows-python-app.yml
     :alt: Windows Build Workflow Status
 
-.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/macos-python-app.yml?style=flat-square&logo=apple&logoColor=white
+.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/macos-python-app.yml?style=flat-square&color=chartreuse&logo=apple&logoColor=black
     :target: https://github.com/rmlibre/aiootp/actions/workflows/macos-python-app.yml
     :alt: MacOS Build Workflow Status
+
+.. image:: https://img.shields.io/badge/coverage-99%25-navy?style=flat-square&logo=codecov&logoColor=maroon
+    :target: https://github.com/rmlibre/aiootp/actions
+    :alt: Test Coverage Badge
+
+.. image:: https://img.shields.io/badge/License-AGPL%20v3-purple?style=flat-square&logo=GNU&logoColor=white
+    :target: https://github.com/rmlibre/aiootp/blob/main/LICENSE
+    :alt: Gnu Affero General Public License Badge
 
 
 
