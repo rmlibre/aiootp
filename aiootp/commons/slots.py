@@ -238,7 +238,7 @@ class Slots:
         """
         mapped = name in self._MAPPED_ATTRIBUTES
         unmapped = name in self._UNMAPPED_ATTRIBUTES
-        return (name in self) and (mapped or not unmapped)
+        return mapped or not unmapped
 
     async def __aiter__(self, /) -> t.AsyncGenerator[t.Any, None]:
         """
@@ -253,7 +253,7 @@ class Slots:
         Unpacks instance variable names with with sync iteration.
         """
         for name in collate(self.__slots__, getattr(self, "__dict__", ())):
-            if self._is_mapped_attribute(name):
+            if name in self and self._is_mapped_attribute(name):
                 yield name
 
     def keys(self, /) -> t.Iterable[t.Hashable]:

@@ -24,6 +24,7 @@ Minor Changes
 - docs(perm): add missing operator in doc string examples
 - docs(cipher): fix misuse resistance calculations [#16]
 - docs(concurrency): fix typos & grammar in doc strings
+- perf(commons): separate & order inclusion checks
 - style(lint): turn on "ARG" flag & fix associated warnings
 
 
