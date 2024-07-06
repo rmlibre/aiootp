@@ -95,9 +95,18 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
                 Thus it may simplify implementing efficient features, such
                 as search or routing, though care must still be taken when
                 considering how leaking such metadata may be harmful.
-                Keeping this value constant is strongly discouraged, though
-                the salt misuse-reuse resistance of the cipher extends up
-                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
+
+                Keeping this value constant is strongly discouraged. Though,
+                the cipher's salt misuse-reuse resistance is ruled by the
+                combination of the automatically incorporated `timestamp`,
+                `iv`, & `siv_key`. The risk calculation starts with setting
+                r = len(iv + siv_key) / 3. Then, all else staying constant,
+                once 256**r messages are encrypted within a second, each
+                additional encrypted message within that same second begins
+                to have more than a 256**(-r) chance of generating a repeat
+                context.
+
+                See: https://github.com/rmlibre/aiootp/issues/16
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -313,9 +322,18 @@ class CipherStream(CipherStreamProperties):
                 Thus it may simplify implementing efficient features, such
                 as search or routing, though care must still be taken when
                 considering how leaking such metadata may be harmful.
-                Keeping this value constant is strongly discouraged, though
-                the salt misuse-reuse resistance of the cipher extends up
-                to ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second.
+
+                Keeping this value constant is strongly discouraged. Though,
+                the cipher's salt misuse-reuse resistance is ruled by the
+                combination of the automatically incorporated `timestamp`,
+                `iv`, & `siv_key`. The risk calculation starts with setting
+                r = len(iv + siv_key) / 3. Then, all else staying constant,
+                once 256**r messages are encrypted within a second, each
+                additional encrypted message within that same second begins
+                to have more than a 256**(-r) chance of generating a repeat
+                context.
+
+                See: https://github.com/rmlibre/aiootp/issues/16
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely

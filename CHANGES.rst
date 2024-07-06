@@ -21,6 +21,7 @@ Minor Changes
 
 - fix(concurrency): rely on context manager boolean control flow
 - docs(coc): fix typos & rename first section
+- docs(cipher): salt misuse resistance calculations inaccurate [#16]
 - docs(concurrency): fix typos & grammar in doc strings
 - style(lint): turn on "ARG" flag & fix associated warnings
 
