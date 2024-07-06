@@ -59,9 +59,12 @@ class Padding(FrozenInstance):
         a time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance to an impressive
-        ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second even if
-        the `key`, `salt`, & `aad` remain static.
+        therefore extending salt misuse-reuse resistance. The risk
+        calculation starts with setting r = len(iv + siv_key) / 3. Then,
+        all else staying constant, once 256**r messages are encrypted
+        within a second, each additional encrypted message within that
+        same second begins to have more than a 256**(-r) chance of
+        generating a repeat context.
 
     `Footer`: The end padding is random bytes & an encoded length up to
         the block size. The randomness of the end padding, its minimal
@@ -117,9 +120,12 @@ class Padding(FrozenInstance):
         time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance to an impressive
-        ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second even if
-        the `key`, `salt`, & `aad` remain static.
+        therefore extending salt misuse-reuse resistance. The risk
+        calculation starts with setting r = len(iv + siv_key) / 3. Then,
+        all else staying constant, once 256**r messages are encrypted
+        within a second, each additional encrypted message within that
+        same second begins to have more than a 256**(-r) chance of
+        generating a repeat context.
         """
         return await self._amake_timestamp() + await self._amake_siv_key()
 
@@ -129,9 +135,12 @@ class Padding(FrozenInstance):
         time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance to an impressive
-        ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second even if
-        the `key`, `salt`, & `aad` remain static.
+        therefore extending salt misuse-reuse resistance. The risk
+        calculation starts with setting r = len(iv + siv_key) / 3. Then,
+        all else staying constant, once 256**r messages are encrypted
+        within a second, each additional encrypted message within that
+        same second begins to have more than a 256**(-r) chance of
+        generating a repeat context.
         """
         return self._make_timestamp() + self._make_siv_key()
 
@@ -255,9 +264,12 @@ class Padding(FrozenInstance):
         time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance to an impressive
-        ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second even if
-        the `key`, `salt`, & `aad` remain static.
+        therefore extending salt misuse-reuse resistance. The risk
+        calculation starts with setting r = len(iv + siv_key) / 3. Then,
+        all else staying constant, once 256**r messages are encrypted
+        within a second, each additional encrypted message within that
+        same second begins to have more than a 256**(-r) chance of
+        generating a repeat context.
 
         The end padding is random bytes & an encoded length up to the
         block size. The randomness of the end padding, its minimal
@@ -279,9 +291,12 @@ class Padding(FrozenInstance):
         time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance to an impressive
-        ~256**(len(iv)/2 + len(siv_key)/2) encryptions/second even if
-        the `key`, `salt`, & `aad` remain static.
+        therefore extending salt misuse-reuse resistance. The risk
+        calculation starts with setting r = len(iv + siv_key) / 3. Then,
+        all else staying constant, once 256**r messages are encrypted
+        within a second, each additional encrypted message within that
+        same second begins to have more than a 256**(-r) chance of
+        generating a repeat context.
 
         The end padding is random bytes & an encoded length up to the
         block size. The randomness of the end padding, its minimal
