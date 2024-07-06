@@ -99,10 +99,8 @@ class FrozenNamespace(Namespace):
         """
         if name in self:
             raise Issue.cant_reassign_attribute(name)
-        elif name.__class__ is str:
-            object.__setattr__(self, name, value)
-        else:
-            self.__dict__[name] = value
+
+        super().__setitem__(name, value)
 
     def __delitem__(self, name: str, /) -> None:
         """
