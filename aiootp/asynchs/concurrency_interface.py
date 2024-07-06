@@ -17,11 +17,12 @@ __all__ = ["ConcurrencyGuard", "ConcurrencyInterface"]
 __doc__ = "A general interface for multi-threading & multi-processing."
 
 
+from hmac import compare_digest
 from secrets import token_bytes
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
-from aiootp.commons import OpenFrozenTypedSlots
+from aiootp.commons import FrozenTypedSlots
 
 from . import is_async_function
 from .loops import asleep, sleep, new_event_loop
@@ -40,7 +41,7 @@ def process_probe_delay(cls: t.Any, value: t.Optional[float], /) -> float:
         raise Issue.value_must("probe_delay", "be > 0")
 
 
-class ConcurrencyGuard(OpenFrozenTypedSlots):
+class ConcurrencyGuard(FrozenTypedSlots):
     """
     An interface for queueing execution contexts given only a shared
     `deque` or `deque`-like double-ended queue. Prevents simultaneous /
@@ -116,7 +117,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         in the 0th position of the queue.
         """
         self.queue.append(self.token)
-        while self.queue[0] != self.token:
+        while not compare_digest(self.queue[0], self.token):
             await asleep(self.probe_delay)
         return self
 
@@ -127,7 +128,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         in the 0th position of the queue.
         """
         self.queue.append(self.token)
-        while self.queue[0] != self.token:
+        while not compare_digest(self.queue[0], self.token):
             sleep(self.probe_delay)
         return self
 
@@ -149,7 +150,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
         Otherwise, closes the context silently.
         """
         await asleep()
-        if self.token != self.queue.popleft():
+        if not compare_digest(self.token, self.queue.popleft()):
             raise self.IncoherentConcurrencyState from exc_value
         elif exc_type is None:
             return True
@@ -172,7 +173,7 @@ class ConcurrencyGuard(OpenFrozenTypedSlots):
 
         Otherwise, closes the context silently.
         """
-        if self.token != self.queue.popleft():
+        if not compare_digest(self.token, self.queue.popleft()):
             raise self.IncoherentConcurrencyState from exc_value
         elif exc_type is None:
             return True
