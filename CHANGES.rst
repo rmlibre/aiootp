@@ -13,6 +13,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - fix(commons): deduplicate logic to keep behavior consistent [#14]
+- feat(commons): support tuples of types in ``typed_slots`` classes
 
 
 Minor Changes

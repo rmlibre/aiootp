@@ -11,42 +11,17 @@
 #
 
 
-__all__ = ["Typing"]
+__all__ = ["BytesLike"]
 
 
-__doc__ = "Type-hinting utilities for the package."
+__doc__ = "Tuples defining class categories for runtime type enforcement."
 
 
-from .interface import *
-from ._commons import *
-from ._generics import *
-from ._asynchs import *
-from ._paths import *
-from ._randoms import *
-from ._permutations import *
-from ._ciphers import *
-from ._keygens import *
-from ._databases import *
-from .tuples import *
-
-
-modules = dict(
-    _asynchs=_asynchs,
-    _ciphers=_ciphers,
-    _commons=_commons,
-    _databases=_databases,
-    _generics=_generics,
-    _keygens=_keygens,
-    _paths=_paths,
-    _permutations=_permutations,
-    _randoms=_randoms,
-    interface=interface,
-    tuples=tuples,
-)
+BytesLike = (bytes, bytearray)
 
 
 module_api = dict(
-    Typing=Typing,
+    BytesLike=BytesLike,
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,
