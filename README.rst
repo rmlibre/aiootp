@@ -50,7 +50,7 @@ We hope to give users & applications empowering developer-friendly privacy enhan
     :target: https://github.com/rmlibre/aiootp/actions/workflows/macos-python-app.yml
     :alt: MacOS Build Workflow Status
 
-.. image:: https://img.shields.io/badge/coverage-99%25-navy?style=flat-square&logo=codecov&logoColor=maroon
+.. image:: https://img.shields.io/badge/coverage-99%25-1e4ede?style=flat-square&logo=codecov&logoColor=maroon
     :target: https://github.com/rmlibre/aiootp/actions
     :alt: Test Coverage Badge
 
