@@ -281,6 +281,12 @@ class Slots:
     ) -> None:
         """
         Updates the instance with new key-values from a mapping.
+
+        The defualt ``__init__`` relies on this method. This method
+        shouldn't be overloaded in subclasses without care given to how
+        it will change initialization as well.
+
+        See: https://github.com/rmlibre/aiootp/pull/15
         """
         for name, value in {**dict(mapping), **kw}.items():
             self[name] = value
