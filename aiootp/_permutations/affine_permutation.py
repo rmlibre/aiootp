@@ -47,7 +47,7 @@ class AffinePermutation(FrozenInstance):
     key = token_bytes(AffinePermutation.key_size(domain_size))
     aff = AffinePermutation(key=key, config_id=domain_size)
 
-    domain = tuple(range(256 * domain_size))
+    domain = tuple(range(256 ** domain_size))
     permutation = tuple(aff.permute(i) for i in domain)
     assert domain != permutation
     assert len(domain) == len(set(permutation))

@@ -46,7 +46,7 @@ class FastAffineXORChain(AffineXORChain):
     aff = FastAffineXORChain(key=key, config_id=domain_size)
 
     latin_square = []
-    domain = tuple(range(256 * domain_size))
+    domain = tuple(range(256 ** domain_size))
     for _ in domain:
         row = tuple(aff.permute(element) for element in domain)
         latin_square.append(row)
