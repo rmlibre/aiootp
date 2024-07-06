@@ -42,7 +42,7 @@ We hope to give users & applications empowering developer-friendly privacy enhan
     :target: https://github.com/rmlibre/aiootp/actions/workflows/linux-python-app.yml
     :alt: Linux Build Workflow Status
 
-.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/windows-python-app.yml?style=flat-square&color=chartreuse&logo=windows&logoColor=00A4EF
+.. image:: https://img.shields.io/github/actions/workflow/status/rmlibre/aiootp/windows-python-app.yml?style=flat-square&color=chartreuse&logo=gitforwindows&logoColor=00A4EF
     :target: https://github.com/rmlibre/aiootp/actions/workflows/windows-python-app.yml
     :alt: Windows Build Workflow Status
 
