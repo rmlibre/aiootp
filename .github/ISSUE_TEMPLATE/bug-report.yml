@@ -65,11 +65,10 @@ body:
     attributes:
       label: Steps To Reproduce
       description: Steps to reproduce the behavior.
-      placeholder: |
-        1. In this environment ___
-        2. With this config ___
-        3. Run ___
-        4. See error ___
+      value: |
+        1. With this config: ___
+        2. Run: ___
+        3. See error: ___
     validations:
       required: true
   - type: textarea
@@ -88,7 +87,7 @@ body:
         examples:
           - **OS**: Ubuntu 22.04
           - **Python**: 3.8.10 (`python3 --version`)
-          - **aiootp**: 0.23.7 (`python3 -c "import aiootp; print(aiootp.__version__)"`)
+          - **aiootp**: 0.23.9 (`python3 -c "import aiootp; print(aiootp.__version__)"`)
       value: |
         - OS: ___
         - Python: ___
