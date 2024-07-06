@@ -164,8 +164,7 @@ class ConfigMap(OpenFrozenNamespace):
         if not issubclass(config_type, Config):
             raise Issue.value_must_be_subtype(f"{config_type=}", Config)
         object.__setattr__(self, CONFIG_TYPE, config_type)
-        for config_id, config in {**dict(mapping), **kw}.items():
-            self[config_id] = config
+        super().__init__(mapping, **kw)
 
     def __setitem__(
         self, config_id: t.Hashable, config: t.ConfigType, /

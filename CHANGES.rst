@@ -12,7 +12,7 @@ Changes for version 0.23.10
 Major Changes
 ^^^^^^^^^^^^^
 
-- fix(commons): deduplicate logic to keep behavior consistent [#14]
+- fix(commons): deduplicate logic to keep behavior consistent [#14][#15]
 - feat(commons): support tuples of types in ``typed_slots`` classes
 
 
