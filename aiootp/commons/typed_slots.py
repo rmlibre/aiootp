@@ -89,7 +89,7 @@ class TypedSlots(Slots):
         for name, value in base.slots_types.items():
             try:
                 isinstance(value, value)
-                issubclass(value, value)
+                issubclass(type, value)
             except TypeError as error:
                 raise TypeUncheckableAtRuntime(name, value) from error
             if name not in cls.__slots__:

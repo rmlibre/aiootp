@@ -13,6 +13,7 @@
 
 from test_initialization import *
 
+from aiootp._typing import tuples
 from aiootp.commons.instances import *
 from aiootp.commons.slots import *
 from aiootp.commons.typed_slots import *
@@ -366,6 +367,33 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
 
             with Ignore(TypeError, if_else=is_vague_type):
                 obj[name] = wrong_cls()
+
+    async def test_slots_types_correctly_allows_type_tuples(self) -> None:
+        problem = (  # fmt: skip
+            "A slotted value's type didn't match a type in its declared "
+            "tuple of types."
+        )
+        assert tuples.BytesLike == (bytes, bytearray)
+
+        class Subclass(self._type):
+            __slots__ = ("bytes_like",)
+            slots_types = dict(bytes_like=tuples.BytesLike)
+
+        for acceptable_value in (b"test", bytearray(b"test")):
+            ok_obj = Subclass()
+            ok_obj.bytes_like = acceptable_value
+            assert ok_obj.bytes_like == acceptable_value
+
+            ok_obj = Subclass(bytes_like=acceptable_value)
+            assert ok_obj.bytes_like == acceptable_value
+
+        for unacceptable_value in ("test", list(b"test")):
+            bad_obj = Subclass()
+            with Ignore(TypeError, if_else=violation(problem)):
+                bad_obj.bytes_like = unacceptable_value
+
+            with Ignore(TypeError, if_else=violation(problem)):
+                Subclass(bytes_like=unacceptable_value)
 
 
 # Slots

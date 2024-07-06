@@ -37,6 +37,7 @@ include aiootp/_typing/_paths.py
 include aiootp/_typing/_permutations.py
 include aiootp/_typing/_randoms.py
 include aiootp/_typing/interface.py
+include aiootp/_typing/tuples.py
 include aiootp/_constants/__init__.py
 include aiootp/_constants/datasets.py
 include aiootp/_constants/misc.py
