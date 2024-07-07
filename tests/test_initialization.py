@@ -372,24 +372,18 @@ time_start = clock.make_timestamp()
 
 @pytest.fixture(scope="session")
 def database():
-    print("setup".center(15, "-"))
-
     db = Database(key=key, preload=True)
     db.save_database()
     yield db
 
-    print("teardown".center(18, "-"))
     db.delete_database()
 
 
 @pytest.fixture(scope="session")
 def async_database():
-    print("setup".center(15, "-"))
-
     db = run(AsyncDatabase(key=key, preload=True))
     yield db
 
-    print("teardown".center(18, "-"))
     run(db.adelete_database())
 
 

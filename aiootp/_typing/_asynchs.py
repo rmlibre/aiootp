@@ -31,7 +31,7 @@ class _AsyncOrSyncIterableMeta(type):
     `AsyncIterable` type hinters for the `AsyncOrSyncIterable` subclass.
     """
 
-    def __getitem__(cls, obj: t.Any):
+    def __getitem__(cls, obj: t.Any) -> t.Union:
         return t.Union[t.Iterable[obj], t.AsyncIterable[obj]]
 
 

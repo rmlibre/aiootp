@@ -19,7 +19,7 @@ __doc__ = "A multi-processing interface."
 
 import multiprocessing
 from os import getpid as get_process_id
-import concurrent.futures.process as process
+from concurrent.futures import process
 from concurrent.futures import ProcessPoolExecutor
 
 from aiootp._typing import Typing as t

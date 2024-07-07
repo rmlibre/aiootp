@@ -26,13 +26,15 @@ try:
     Self = typing.Self
 except AttributeError:  # pragma: no cover
     Self = NewType("Self", "Self")  # pragma: no cover
-    # TODO: Remove when Python 3.11 is oldest supported version.
+    # TODO @any: Remove when Python 3.11 is oldest supported version.
 
 
 Cls = NewType("Cls", Self)
 
 
-def _transpose_this_modules_types(class_dict: typing.Dict[str, typing.Any]):
+def _transpose_this_modules_types(
+    class_dict: typing.Dict[str, typing.Any],
+) -> None:
     """
     Inserts the types from this module's global namespace.
     """

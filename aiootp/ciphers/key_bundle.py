@@ -212,7 +212,7 @@ class KeyAADBundle:
         for kdf_name, kdf_session_copy in self._kdfs.new_session(summary):
             setattr(session, kdf_name, kdf_session_copy)
 
-    def _register_shmac(self, shmac) -> None:
+    def _register_shmac(self, shmac: t.StreamHMACType) -> None:
         """
         Registers the shmac which will be tied to the instance for a
         single run of the cipher. Reusing an instance for multiple

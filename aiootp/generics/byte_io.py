@@ -19,6 +19,7 @@ __doc__ = "File IO & bytes encoding utilities."
 
 import aiofiles
 from math import ceil
+from pathlib import Path
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 from aiootp._typing import Typing as t
@@ -129,7 +130,7 @@ class ByteIO(FrozenInstance):
         """
         Reads the bytes data from the file at `path`.
         """
-        with open(path, "rb") as f:
+        with Path(path).open("rb") as f:
             return f.read()
 
     @staticmethod
@@ -145,7 +146,7 @@ class ByteIO(FrozenInstance):
         """
         Writes bytes `data` to the file at `path`.
         """
-        with open(path, "wb+") as f:
+        with Path(path).open("wb+") as f:
             f.write(data)
 
     @staticmethod
@@ -161,7 +162,7 @@ class ByteIO(FrozenInstance):
         """
         Appends bytes `data` to the file at `path`.
         """
-        with open(path, "ab+") as f:
+        with Path(path).open("ab+") as f:
             f.write(data)
 
 

@@ -37,7 +37,7 @@ class EqualTimingExperiment:
         control_timer: t.Callable[[], t.PositiveRealNumber],
         experiment_timer: t.Callable[[], int],
         epoch: int,
-    ):
+    ) -> None:
         self.epoch = epoch
         self.early_control, self.experiment, self.late_control = (
             control_timer(),

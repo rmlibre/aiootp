@@ -17,7 +17,7 @@ from test_initialization import *
 OTHER_TYPE_MAPPING = {Ed25519.__name__: X25519, X25519.__name__: Ed25519}
 
 
-async def basic_async_tests(tested_class):
+async def basic_async_tests(tested_class) -> None:
     secret_key_a = await tested_class().agenerate()
 
     problem = (  # fmt: skip
@@ -146,7 +146,7 @@ async def basic_async_tests(tested_class):
         await secret_key_a.aimport_secret_key(secret_key_a.secret_bytes)
 
 
-def basic_sync_tests(tested_class):
+def basic_sync_tests(tested_class) -> None:
     secret_key_b = tested_class().generate()
 
     # Testing equality of sync constructors
@@ -252,7 +252,7 @@ def basic_sync_tests(tested_class):
         secret_key_b.import_secret_key(secret_key_b.secret_bytes)
 
 
-async def test_X25519():
+async def test_X25519() -> None:
     # Test class constructors
     secret_key_a = await X25519().agenerate()
     secret_key_b = X25519().generate()
@@ -448,7 +448,7 @@ class TestDiffieHellmanProtocols:
         assert client_kdf.sha3_512() == server_kdf.sha3_512()
 
 
-async def test_Ed25519():
+async def test_Ed25519() -> None:
     # Test class constructors
     secret_key_a = await Ed25519().agenerate()
     secret_key_b = Ed25519().generate()

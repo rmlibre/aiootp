@@ -83,10 +83,11 @@ class TestGUID:
             assert runs == len(raw_guids)
             raw_guids_list = sorted(raw_guids)
             for i, raw in enumerate(raw_guids_list):
-                assert raw == raw
                 if i < runs - 1:
+                    assert raw != raw_guids_list[i + 1]
                     assert raw < raw_guids_list[i + 1]
                 else:
+                    assert raw != raw_guids_list[i - 1]
                     assert raw > raw_guids_list[i - 1]
 
     async def test_guid_size_limits(self) -> None:

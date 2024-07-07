@@ -14,7 +14,7 @@
 from test_initialization import *
 
 
-async def test_json_functions():
+async def test_json_functions() -> None:
     for _, cipher, salt, aad in all_ciphers:
         ciphertext_of_dict = cipher.json_encrypt(test_data, salt=salt)
         ciphertext_of_string = cipher.json_encrypt(
@@ -62,7 +62,7 @@ async def test_json_functions():
         )
 
 
-async def test_bytes_functions():
+async def test_bytes_functions() -> None:
     for _, cipher, salt, aad in all_ciphers:
         ciphertext_of_bytes = cipher.bytes_encrypt(
             plaintext_bytes, salt=salt
@@ -110,7 +110,7 @@ async def test_bytes_functions():
         )
 
 
-async def test_token_functions():
+async def test_token_functions() -> None:
     for _, cipher, _, aad in all_ciphers:
         ciphertext_of_bytes = cipher.make_token(plaintext_bytes, aad=aad)
 
@@ -149,7 +149,7 @@ async def test_token_functions():
         )
 
 
-async def test_chunky2048_test_vectors():
+async def test_chunky2048_test_vectors() -> None:
     test_vectors = [chunky2048_test_vector_0]
 
     for test in test_vectors:
@@ -160,7 +160,7 @@ async def test_chunky2048_test_vectors():
         )
 
 
-async def test_slick256_test_vectors():
+async def test_slick256_test_vectors() -> None:
     test_vectors = [slick256_test_vector_0]
 
     for test in test_vectors:

@@ -111,7 +111,7 @@ class TestZCipherTimeToLive:
 
 
 class TestZPasscryptTimeToLive:
-    async def test_async_verfiy_ttl(self):
+    async def test_async_verfiy_ttl(self) -> None:
         problem = (  # fmt: skip
             "Life-time for async passcrypt hashes are malfunctioning."
         )
@@ -124,7 +124,7 @@ class TestZPasscryptTimeToLive:
             )
         assert relay.error.expired_by >= 1
 
-    async def test_sync_verfiy_ttl(self):
+    async def test_sync_verfiy_ttl(self) -> None:
         problem = (  # fmt: skip
             "Life-time for sync passcrypt hashes are malfunctioning."
         )

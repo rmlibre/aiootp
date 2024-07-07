@@ -122,7 +122,7 @@ class PackageVerifier:
         files = summary[self._CHECKSUMS]
         for file_path, purported_hexdigest in files.items():
             purported_digest = bytes.fromhex(purported_hexdigest)
-            with open(path / file_path, "rb") as source_file:
+            with (path / file_path).open("rb") as source_file:
                 digest = self._Hasher(source_file.read()).digest()
                 if not bytes_are_equal(purported_digest, digest):
                     raise PackageSignerIssue.invalid_file_digest(file_path)

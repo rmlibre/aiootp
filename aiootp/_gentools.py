@@ -304,7 +304,7 @@ def count(*, start: int = 0) -> t.Generator[int, None, None]:
 
 
 async def abytes_range(
-    *a, size: int = 8, byte_order: str = BIG
+    *a: int, size: int = 8, byte_order: str = BIG
 ) -> t.AsyncGenerator[int, None]:
     """
     An async version of `builtins.range` wrapped by the `Comprende`
@@ -316,7 +316,7 @@ async def abytes_range(
 
 
 def bytes_range(
-    *a, size: int = 8, byte_order: str = BIG
+    *a: int, size: int = 8, byte_order: str = BIG
 ) -> t.Generator[int, None, None]:
     """
     A synchronous version of `builtins.range` which is wrapped by the

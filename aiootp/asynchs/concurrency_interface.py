@@ -152,9 +152,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         await asleep()
         if not compare_digest(self.token, self.queue.popleft()):
             raise self.IncoherentConcurrencyState from exc_value
-        elif exc_type is None:
-            return True
-        return False
+        return exc_type is None
 
     def __exit__(
         self,
@@ -175,9 +173,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         """
         if not compare_digest(self.token, self.queue.popleft()):
             raise self.IncoherentConcurrencyState from exc_value
-        elif exc_type is None:
-            return True
-        return False
+        return exc_type is None
 
 
 class ConcurrencyInterface:

@@ -154,7 +154,7 @@ class TestEncodingUtilities:
 
 
 class TestCanonicalPack:
-    async def test_empty_pad_is_invalid(self):
+    async def test_empty_pad_is_invalid(self) -> None:
         problem = (  # fmt: skip
             "An empty padding value didn't raise a `TypeError`."
         )
@@ -163,7 +163,7 @@ class TestCanonicalPack:
         async with Ignore(TypeError, if_else=violation(problem)):
             await acanonical_pack(b"test", pad=b"")
 
-    async def test_zero_blocksize_is_invalid(self):
+    async def test_zero_blocksize_is_invalid(self) -> None:
         problem = (  # fmt: skip
             "A negative blocksize value didn't raise a `OverflowError`."
         )
@@ -172,7 +172,7 @@ class TestCanonicalPack:
         async with Ignore(ZeroDivisionError, if_else=violation(problem)):
             await acanonical_pack(b"test", blocksize=0)
 
-    async def test_negative_integer_blocksize_is_invalid(self):
+    async def test_negative_integer_blocksize_is_invalid(self) -> None:
         problem = (  # fmt: skip
             "A negative blocksize value didn't raise a `OverflowError`."
         )
@@ -183,7 +183,7 @@ class TestCanonicalPack:
             async with Ignore(OverflowError, if_else=violation(problem)):
                 await acanonical_pack(b"test", blocksize=blocksize)
 
-    async def test_float_blocksize_is_invalid(self):
+    async def test_float_blocksize_is_invalid(self) -> None:
         problem = (  # fmt: skip
             "A float blocksize value didn't raise an `AttributeError`."
         )
@@ -194,7 +194,9 @@ class TestCanonicalPack:
             async with Ignore(AttributeError, if_else=violation(problem)):
                 await acanonical_pack(b"test", blocksize=blocksize)
 
-    async def test_minimum_size_given_by_item_count_declaration(self):
+    async def test_minimum_size_given_by_item_count_declaration(
+        self,
+    ) -> None:
         problem = (  # fmt: skip
             "An item count declaration which exceeds the count which is"
             "possible given the small size of the packing was allowed."
@@ -219,7 +221,7 @@ class TestCanonicalPack:
                     )
 
 
-async def test_canonical_packs():
+async def test_canonical_packs() -> None:
     PACK_PAD_INDEX = 33
 
     TEST_KEYS = [token_bytes(64) for _ in range(4)]

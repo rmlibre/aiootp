@@ -248,7 +248,7 @@ class PasscryptConfig(Config):
         length_limits = range(self.MIN_SALT_SIZE, self.MAX_SALT_SIZE + 1)
         return (salt.__class__ is bytes) and (len(salt) in length_limits)
 
-    def is_aad(self, aad: bytes):
+    def is_aad(self, aad: bytes) -> bool:
         return aad.__class__ is bytes
 
     def is_mb(self, mb: int) -> bool:

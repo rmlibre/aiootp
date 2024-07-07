@@ -17,7 +17,6 @@ __all__ = []
 __doc__ = "A collection of `pathlib.Path`'s & file IO utilities."
 
 
-import os
 import aiofiles
 from pathlib import Path
 from hashlib import sha3_256
@@ -29,7 +28,7 @@ from ._exceptions import Issue
 from .asynchs import aos
 
 
-# TODO: finish coverage tests
+# TODO @rmlibre: finish coverage tests
 # fmt: off
 
 
@@ -37,8 +36,7 @@ def RootPath() -> Path:
     """
     Returns a `pathlib.Path` object pointing to this module's directory.
     """
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    return Path(dir_path).absolute()
+    return Path(__file__).absolute().parent
 
 
 def DatabasePath() -> Path:
@@ -54,8 +52,6 @@ async def adeniable_filename(key: bytes, *, size: int = 8) -> str:
     XORs `size` length bytes-type segments of a `key`, returning a
     variably forgeable, base-38 encoded hash from the condensed value.
     """
-    global axi_mix
-
     from .generics.transform import axi_mix
 
     if 16 < size < 1:
@@ -69,8 +65,6 @@ def deniable_filename(key: bytes, *, size: int = 8) -> str:
     XORs `size` length bytes-type segments of a `key`, returning a
     variably forgeable, base-38 encoded hash from the condensed value.
     """
-    global xi_mix
-
     from .generics.transform import xi_mix
 
     if 16 < size < 1:
@@ -112,9 +106,10 @@ def make_salt_file(path: Path, *, salt: bytes = b"") -> None:
     `path`. If no `salt` is provided, a new random 32-byte salt is used.
     """
     salt = salt if salt else token_bytes(32)
-    with open(path, "wb") as salt_file:
+    path = Path(path)
+    with path.open("wb") as salt_file:
         salt_file.write(salt)
-    os.chmod(path, 0o000)
+    path.chmod(0o000)
 
 
 async def aread_salt_file(path: t.PathStr) -> bytes:
@@ -140,15 +135,16 @@ def read_salt_file(path: t.PathStr) -> bytes:
     `path`.
     """
     try:
-        os.chmod(path, 0o700)
-        with open(path, "rb") as salt_file:
+        path = Path(path)
+        path.chmod(0o700)
+        with path.open("rb") as salt_file:
             salt = salt_file.read()
             if len(salt) >= 32:
                 return salt
             else:
                 raise ValueError("len(salt) must be >= 32")     # pragma: no cover
     finally:
-        os.chmod(path, 0o000)
+        path.chmod(0o000)
 
 
 async def aupdate_salt_file(path: t.PathStr, *, salt: bytes) -> None:
@@ -174,11 +170,12 @@ def update_salt_file(path: t.PathStr, *, salt: bytes) -> None:
     if len(salt) < 32:
         raise ValueError("len(salt) must be >= 32")             # pragma: no cover
     try:
-        os.chmod(path, 0o700)
-        with open(path, "wb") as salt_file:
+        path = Path(path)
+        path.chmod(0o700)
+        with path.open("wb") as salt_file:
             salt_file.write(salt)
     finally:
-        os.chmod(path, 0o000)
+        path.chmod(0o000)
 
 
 async def adelete_salt_file(path: t.PathStr) -> None:
@@ -195,8 +192,9 @@ def delete_salt_file(path: t.PathStr) -> None:
     Deletes cryptographic salt contained within the file located at
     `path`.
     """
-    os.chmod(path, 0o700)
-    os.remove(path)
+    path = Path(path)
+    path.chmod(0o700)
+    path.unlink(path)
 
 
 async def AsyncSecurePath(
@@ -235,8 +233,8 @@ def SecurePath(
     """
     path = (Path(path).absolute() if path else DatabasePath()) / "secure"
     admin_path = path / "_admin"
-    0 if path.is_dir() else os.mkdir(path)
-    0 if admin_path.is_dir() else os.mkdir(admin_path)
+    0 if path.is_dir() else path.mkdir()
+    0 if admin_path.is_dir() else admin_path.mkdir()
     if key:
         fp = find_salt_file(admin_path if _admin else path, key=key)
         0 if fp.is_file() else make_salt_file(fp)

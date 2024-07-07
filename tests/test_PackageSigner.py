@@ -20,7 +20,7 @@ from aiootp.asynchs import sleep
 from aiootp.keygens.passcrypt.config import passcrypt_spec
 
 
-def test_sign_and_verify():
+def test_sign_and_verify() -> None:
     try:
         test_key = token_bytes(64)
         test_salt = token_bytes(64)
@@ -112,7 +112,7 @@ def test_sign_and_verify():
         test_path = Path(__file__).parent.parent
         for line in filename_sheet:
             filename = line.strip().split(" ")[-1]
-            with open(test_path / filename, "rb") as source_file:
+            with (test_path / filename).open("rb") as source_file:
                 file_data = source_file.read()
                 signer.add_file(filename, file_data)
 

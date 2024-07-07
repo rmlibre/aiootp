@@ -144,7 +144,7 @@ class Ignore:
             yield
             return self
 
-        def __call__(self, /, *_, **__) -> t.Self:
+        def __call__(self, /, *_: t.Any, **__: t.Any) -> t.Self:
             return self
 
         def __bool__(self, /) -> bool:
@@ -332,7 +332,7 @@ class MissingDeclaredVariables(AttributeError):
     """
 
     # fmt: off
-    # TODO: switch templates throughout?
+    # TODO @rmlibre: switch templates throughout?
     # This style of template is safer with
     # untrusted inputs.
     _MESSAGE_TEMPLATE: str = (
@@ -421,7 +421,7 @@ class KDFModeNotDeclared(AttributeError):
     )
 
     def __init__(self, /, *a: t.Any) -> None:
-        return super().__init__(self._MESSAGE_TEMPLATE, *a)
+        super().__init__(self._MESSAGE_TEMPLATE, *a)
 
 
 class TypeUncheckableAtRuntime(TypeError):

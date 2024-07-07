@@ -332,7 +332,7 @@ class TestSaltMisuseReuseResistance:
 
                 for _ in range(self.number_of_tests):
                     key_bundle = await cipher._KeyAADBundle(
-                        **{**kw, **{component: token_bytes(size)}}
+                        **{**kw, component: token_bytes(size)}
                     ).async_mode()
                     object.__setattr__(
                         key_bundle._bundle, "iv_is_fresh", True
@@ -377,7 +377,7 @@ class TestSaltMisuseReuseResistance:
 
                 for _ in range(self.number_of_tests):
                     key_bundle = cipher._KeyAADBundle(
-                        **{**kw, **{component: token_bytes(size)}}
+                        **{**kw, component: token_bytes(size)}
                     ).sync_mode()
                     object.__setattr__(
                         key_bundle._bundle, "iv_is_fresh", True

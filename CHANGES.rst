@@ -12,7 +12,7 @@ Changes for version 0.23.11
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- style(lint): apply Ruff lint & format with more rules [#12]
 
 
 Minor Changes

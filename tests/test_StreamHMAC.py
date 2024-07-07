@@ -90,7 +90,7 @@ class TestStreamHMACStates:
                 await shmac.atest_shmac(shmac.result.hex())
 
 
-async def test_detection_of_ciphertext_modification():
+async def test_detection_of_ciphertext_modification() -> None:
     for config, cipher, *_ in all_ciphers:
         aciphertext = Ciphertext(
             await cipher.abytes_encrypt(plaintext_bytes), config=config
@@ -258,7 +258,7 @@ def ciphertext_stream(config, cipher, salt, aad):
         )
 
 
-async def test_async_block_ids_during_deciphering():
+async def test_async_block_ids_during_deciphering() -> None:
     for config, cipher, salt, aad in all_ciphers:
         cipherstream = aciphertext_stream(config, cipher, salt, aad)
         salt, iv = await cipherstream.asend(None)
@@ -341,7 +341,7 @@ async def test_async_block_ids_during_deciphering():
             shmac._mac.digest()
 
 
-def test_sync_block_ids_during_deciphering():
+def test_sync_block_ids_during_deciphering() -> None:
     for config, cipher, salt, aad in all_ciphers:
         stream = ciphertext_stream(config, cipher, salt, aad)
         salt, iv = stream.send(None)

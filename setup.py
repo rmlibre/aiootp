@@ -12,6 +12,7 @@
 
 
 import json
+from pathlib import Path
 from getpass import getpass
 from setuptools import setup, find_packages
 
@@ -25,14 +26,14 @@ from aiootp import (
 from aiootp import PackageSigner, PackageVerifier
 
 
-with open("README.rst", "r") as readme:
+with Path("README.rst").open("r") as readme:
     long_description = readme.read()
 
 
 if __name__ != "__main__":
     pass
 elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
-    with open("SIGNATURE.txt", "r") as sig:
+    with Path("SIGNATURE.txt").open("r") as sig:
         scope = json.loads(sig.read())[PackageSigner._SCOPE]
         print("current version:", __version__)
         print(f"current build: {scope['build_number']}\n")
@@ -72,7 +73,7 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
             **{getpass("name: ").strip(): getpass("value: ")}
         )
 
-    with open("MANIFEST.in", "r") as manifest:
+    with Path("MANIFEST.in").open("r") as manifest:
         filename_sheet = manifest.read().strip().split("\n")
 
     for line in filename_sheet:
@@ -80,14 +81,14 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
         if "SIGNATURE" in line or not line.startswith("include"):
             continue
         filename = line.split(" ")[-1]
-        with open(filename, "rb") as source_file:
+        with Path(filename).open("rb") as source_file:
             signer.add_file(filename, source_file.read())
 
     signer.sign_package()
     summary = signer.summarize()
     verifier = PackageVerifier(signer.signing_key.public_bytes, path="")
     verifier.verify_summary(summary)
-    with open("SIGNATURE.txt", "w+") as attestation:
+    with Path("SIGNATURE.txt").open("w+") as attestation:
         attestation.write(json.dumps(summary, indent=4))
 
 

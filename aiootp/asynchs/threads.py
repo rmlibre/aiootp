@@ -19,7 +19,7 @@ __doc__ = "A multi-threading interface."
 
 from threading import Thread
 from collections import deque
-import concurrent.futures.thread as thread
+from concurrent.futures import thread
 from _thread import get_ident as get_thread_id
 from concurrent.futures import ThreadPoolExecutor
 

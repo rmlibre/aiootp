@@ -15,7 +15,7 @@ from test_initialization import *
 
 
 class TestDBKDF:
-    async def test_salt_label_makes_state_unique(self, database):
+    async def test_salt_label_makes_state_unique(self, database) -> None:
         key = csprng()
         domain = b"testing"
         kdf = DomainKDF(domain, key=key)
@@ -38,7 +38,7 @@ class TestDBKDF:
 
 
 class TestDatabaseCacheSystem:
-    async def cached_data_remains_unchanged(self, db, subdb):
+    async def cached_data_remains_unchanged(self, db, subdb) -> None:
         assert plaintext_bytes
         assert plaintext_bytes.__class__ is bytes
         assert subdb[tag] == plaintext_bytes
@@ -46,7 +46,9 @@ class TestDatabaseCacheSystem:
         assert test_data.__class__ is dict
         assert db[tag] == test_data
 
-    async def clearing_cache_results_in_null_values(self, db, subdb):
+    async def clearing_cache_results_in_null_values(
+        self, db, subdb
+    ) -> None:
         if issubclass(db.__class__, AsyncDatabase):
             await db.aclear_cache(metatags=True)
         else:
@@ -59,7 +61,7 @@ class TestDatabaseCacheSystem:
 
     async def uncached_loading_from_disk_doesnt_change_data(
         self, db, subdb
-    ):
+    ) -> None:
         if issubclass(db.__class__, AsyncDatabase):
             assert (
                 await subdb.aquery_tag(tag, cache=False) == plaintext_bytes
@@ -71,7 +73,9 @@ class TestDatabaseCacheSystem:
         assert subdb[tag] is None
         assert db[tag] is None
 
-    async def cached_loading_from_disk_doesnt_change_data(self, db, subdb):
+    async def cached_loading_from_disk_doesnt_change_data(
+        self, db, subdb
+    ) -> None:
         if issubclass(db.__class__, AsyncDatabase):
             assert (
                 await subdb.aquery_tag(tag, cache=True) == plaintext_bytes
@@ -83,7 +87,9 @@ class TestDatabaseCacheSystem:
         assert subdb[tag] == plaintext_bytes
         assert db[tag] == test_data
 
-    async def clear_cache_clears_metatags_when_instructed(self, db, subdb):
+    async def clear_cache_clears_metatags_when_instructed(
+        self, db, subdb
+    ) -> None:
         if issubclass(db.__class__, AsyncDatabase):
             assert (
                 await subdb.aquery_tag(tag, cache=True) == plaintext_bytes
@@ -105,7 +111,7 @@ class TestDatabaseCacheSystem:
             assert subdb[tag] is None
             assert subdb.query_tag(tag, cache=False) == plaintext_bytes
 
-    async def test_async_cache_system(self, async_database):
+    async def test_async_cache_system(self, async_database) -> None:
         subdb = await async_database.ametatag(metatag)
         subdb[tag] = plaintext_bytes
         async_database[tag] = test_data.copy()
@@ -124,7 +130,7 @@ class TestDatabaseCacheSystem:
             async_database, subdb
         )
 
-    async def test_sync_cache_system(self, database):
+    async def test_sync_cache_system(self, database) -> None:
         subdb = database.metatag(metatag)
         subdb[tag] = plaintext_bytes
         database[tag] = test_data.copy()
@@ -143,7 +149,7 @@ class TestDatabaseCacheSystem:
 
 
 class TestDatabaseInitialization:
-    async def test_async_key_size_limits(self):
+    async def test_async_key_size_limits(self) -> None:
         problem = (  # fmt: skip
             "a key that's too small was allowed."
         )
@@ -156,7 +162,7 @@ class TestDatabaseInitialization:
             ):
                 await AsyncDatabase(key)
 
-    def test_sync_key_size_limits(self):
+    def test_sync_key_size_limits(self) -> None:
         problem = (  # fmt: skip
             "a key that's too small was allowed."
         )
@@ -432,7 +438,7 @@ class TestDatabases:
         assert not (database._path / database.filename(tag)).is_file()
 
 
-def test_Database_instance(database):
+def test_Database_instance(database) -> None:
     db = Database(key=key, preload=True)
 
     # basic database functionalities work the same across reloads
@@ -446,7 +452,7 @@ def test_Database_instance(database):
     assert db._metatag_key(atag) == database._metatag_key(atag)
 
 
-async def test_AsyncDatabase_instance(database):
+async def test_AsyncDatabase_instance(database) -> None:
     db = await AsyncDatabase(key=key, preload=True)
 
     # basic async database functionalities work the same across reloads
@@ -460,7 +466,7 @@ async def test_AsyncDatabase_instance(database):
     assert await db._ametatag_key(tag) == database._metatag_key(tag)
 
 
-def test_database_ciphers(database):
+def test_database_ciphers(database) -> None:
     # database ciphertexts are unique
     db = database
     cipher = Chunky2048(key)
@@ -510,7 +516,7 @@ def test_database_ciphers(database):
     ) == set(Tables.URL_SAFE.encode()).union(b"%")
 
 
-async def test_async_database_ciphers(async_database):
+async def test_async_database_ciphers(async_database) -> None:
     # async database ciphertexts are unique
     db = async_database
     cipher = Chunky2048(key)
@@ -563,7 +569,7 @@ async def test_async_database_ciphers(async_database):
     ) == set(Tables.URL_SAFE.encode()).union(b"%")
 
 
-async def test_async_tags_metatags():
+async def test_async_tags_metatags() -> None:
     # new, empty databases are falsey
     async_database = await AsyncDatabase(key * 2, preload=True)
     assert not async_database
@@ -629,7 +635,7 @@ async def test_async_tags_metatags():
     await async_database.adelete_database()
 
 
-def test_sync_tags_metatags():
+def test_sync_tags_metatags() -> None:
     # new, empty databases are falsey
     database = Database(key * 2, preload=True)
     assert not database
@@ -695,7 +701,7 @@ def test_sync_tags_metatags():
     database.delete_database()
 
 
-async def test_async_user_profiles(async_database):
+async def test_async_user_profiles(async_database) -> None:
     adb = async_database
     user = await adb.agenerate_profile(**PROFILE_AND_SETTINGS)
 
@@ -737,7 +743,7 @@ async def test_async_user_profiles(async_database):
     assert not (user_copy.path / await user_copy.afilename(atag)).is_file()
 
 
-async def test_user_profiles(database):
+async def test_user_profiles(database) -> None:
     db = database
     user = db.generate_profile(**PROFILE_AND_SETTINGS)
 

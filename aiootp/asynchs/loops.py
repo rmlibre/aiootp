@@ -79,7 +79,7 @@ def wrap_in_executor(
     """
 
     @wraps(function)
-    async def runner(*args, **kwargs):
+    async def runner(*args: t.Any, **kwargs: t.Any) -> t.Any:
         partial_function = partial(function, *args, **kwargs)
         return await get_event_loop().run_in_executor(
             executor=None, func=partial_function

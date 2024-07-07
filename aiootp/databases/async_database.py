@@ -546,7 +546,9 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             setattr(self._cache, filename, result)
         return result
 
-    async def _adelete_file(self, filename: str, *, silent=False) -> None:
+    async def _adelete_file(
+        self, filename: str, *, silent: bool = False
+    ) -> None:
         """
         Deletes a file in the database directory by `filename`.
         """
@@ -808,13 +810,18 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         return self
 
     async def __aexit__(
-        self, exc_type=None, exc_value=None, traceback=None
-    ) -> None:
+        self,
+        /,
+        exc_type: t.Optional[type] = None,
+        exc_value: t.Optional[Exception] = None,
+        traceback: t.Optional[t.TracebackType] = None,
+    ) -> bool:
         """
         The context manager automatically writes database changes made
         by a user to disk.
         """
         await self.asave_database()
+        return exc_type is None
 
 
 module_api = dict(

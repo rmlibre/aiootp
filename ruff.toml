@@ -36,8 +36,8 @@ target-version = "py38"
 
 [lint]
 select = [
-    # "A",  # TODO: decide on using module __doc__ or not
-    "FLY",  # flynt
+    "A",  # flake8-builtins
+    "ANN",  # flake8-annotations
     "ARG",  # flake8-unused-arguments
     "ASYNC",  # flake8-async
     "B",  # flake8-bugbear
@@ -46,21 +46,28 @@ select = [
     "ERA",  # eradicate commented out code
     "F",  # pyflakes
     "FBT",  # flake8-boolean-trap
+    "FLY",  # flynt
     "FURB",  # refurb
     "PERF",  # Perflint
+    "PIE",  # flake8-pie
+    "PL",  # Pylint
     "PT",  # pytest-style
-    # "PTH",  # flake8-use-pathlib, TODO: potential
+    "PTH",  # flake8-use-pathlib
     "Q",  # flake8-quotes
     "RSE",  # flake8-raise
     "S",  # flake8-bandit
     "SIM",  # flake8-simplify
+    "T20",  # flake8-print
     "TCH",  # flake8-type-checking
-    # "TD",  # flake8-todos, TODO: follow?
+    "TD",  # flake8-todos
     "RUF",  # Ruff-specific
     "UP",  # pyupgrade
     "W",  # pycodestyle warnings
 ]
 ignore = [
+    "A001",  # TODO: decide on using module __doc__ or not
+    "ANN101",  # deprecated 'self' annotation requirement
+    "ANN102",  # deprecated 'cls' annotation requirement
     "B006",  # mutable defaults only used for **unpacking interface
     "B008",  # random defaults at startup are intended
     "B028",  # thanks for the warning, if stacklevel was needed
@@ -68,9 +75,14 @@ ignore = [
     "COM",  # TODO: use? it's discouraged but nice
     "E501",  # trust the 76-length enforcement from the formatter
     "E731",  # TODO: look through lambda's to maybe comply
+    "PLE0604",  # runtime will catch non-string __all__ members
+    "PLR0913",  # many arguments is a smell, but sometimes it's practical
+    "PLR2004",  # TODO: refactor out magic values
+    "PLW2901",  # overwriting names is ok
     "RUF012",  # sometimes other types better describe class variables
     "S101",  # sometimes asserts are nice sanity checks
     "SIM300",  # hey! yoda's alright
+    "TD003",  # not all TODOs have an issue link, but should?
     "UP015",  # `open` params should be explicit
 ]
 fixable = ["ALL"]
@@ -88,12 +100,18 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "F821",  # (sub)packages don't need to import their modules' names
     "F822",  # potential NameError warnings ie. `import *`
 ]
+"{issue_reporting,setup}.py" = [
+    "T201",  # legit print use in CLI
+]
 "**/_typing/*" = [
     "A002",  # no control if mirrored interfaces reuse built-in names
     "FBT001",  # no control over positional boolean params here
 ]
 "**/asynchs/aos.py" = [
     "F822",  # `__all__` declarations exist in `os` module
+]
+"**/randoms/_early_salts.py" = [
+    "PLW0603",  # global updates are ok in context of package entropy
 ]
 "**/randoms/simple.py" = [
     "S311",  # weak random is labelled in simple module
@@ -104,15 +122,24 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "dual_output_shake_cipher_config.py" = [
     "SIM114",  # TODO: specify branch exceptions & other build limits
 ]
+"*{config,format}.py" = [
+    "PLR0913",  # config objects can have many argument
+]
 "test_initialization.py" = [
     "E402",  # there's a wibbly wobbly, timey wimey import sequence here
     "F401",  # most other tests get their imports from this module
 ]
 "**/{tests,docs}/*" = [
+    "ANN001",  # type annotations on tests nice but unnecessary
+    "ANN003",  # ''   ''
+    "ANN202",  # ''   ''
     "C901",  # tests can get complex
     "F403",  # tests get most of their imports from `import *`
     "F405",  # `import *` confuses it a lot
     "F822",  # potential NameError warnings ie. `import *`
+    "PLE0605",  # it doesn't think `sorted` returns list
+    "PLR0915",  # TODO: refactor tests so this passes
+    "PLR2004",  # literals can be clearer in tests
     "S101",  # asserts happen in tests
     "S311",  # weak random is fine in tests
 ]

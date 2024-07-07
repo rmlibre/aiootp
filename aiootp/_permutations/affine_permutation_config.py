@@ -75,7 +75,7 @@ class AffinePermutationConfig(Config):
         return top_bit, mask
 
     @staticmethod
-    def _count_bit_switches(number) -> int:
+    def _count_bit_switches(number: int) -> int:
         """
         Allows determining if the provided number has a sufficiently
         distributed number of set bits.

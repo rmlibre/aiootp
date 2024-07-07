@@ -168,7 +168,7 @@ def new_shake_permute_config_copy(
     return config
 
 
-def new_config_copy(_config: t.ConfigType, **kw) -> t.ConfigType:
+def new_config_copy(_config: t.ConfigType, **kw: t.Any) -> t.ConfigType:
     if _config.NAME in dual_output_cipher_names:
         return new_dual_output_config_copy(_config, **kw)
     elif _config.NAME in shake_permute_cipher_names:

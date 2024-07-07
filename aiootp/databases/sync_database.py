@@ -515,7 +515,7 @@ class Database(DatabaseProperties):
             setattr(self._cache, filename, result)
         return result
 
-    def _delete_file(self, filename: str, *, silent=False) -> None:
+    def _delete_file(self, filename: str, *, silent: bool = False) -> None:
         """
         Deletes a file in the database directory by `filename`.
         """
@@ -766,13 +766,18 @@ class Database(DatabaseProperties):
         return self
 
     def __exit__(
-        self, exc_type=None, exc_value=None, traceback=None
-    ) -> None:
+        self,
+        /,
+        exc_type: t.Optional[type] = None,
+        exc_value: t.Optional[Exception] = None,
+        traceback: t.Optional[t.TracebackType] = None,
+    ) -> bool:
         """
         The context manager automatically writes database changes made
         by a user to disk.
         """
         self.save_database()
+        return exc_type is None
 
 
 module_api = dict(

@@ -73,7 +73,7 @@ class DomainKDFType(t.Protocol):
 
 @t.runtime_checkable
 class PublicKeyType(t.Protocol):
-    def public_bytes(self, encoding, format) -> bytes:
+    def public_bytes(self, encoding: t.Any, format: t.Any) -> bytes:
         pass  # pragma: no cover
 
     def public_bytes_raw(self) -> bytes:
@@ -82,7 +82,7 @@ class PublicKeyType(t.Protocol):
 
 @t.runtime_checkable
 class SecretKeyType(t.Protocol):
-    def private_bytes(self, encoding, format) -> bytes:
+    def private_bytes(self, encoding: t.Any, format: t.Any) -> bytes:
         pass  # pragma: no cover
 
     def private_bytes_raw(self) -> bytes:
