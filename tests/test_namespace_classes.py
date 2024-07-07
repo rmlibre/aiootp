@@ -323,7 +323,7 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
 
 
 class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
-    async def test_slots_contains_all_names_with_declared_types(
+    async def test_slots_contains_all_names_in_slots_types(
         self,
     ) -> None:
         problem = (  # fmt: skip
