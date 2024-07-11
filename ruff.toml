@@ -117,13 +117,13 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "S311",  # weak random is labelled in simple module
 ]
 "**/databases/{async,sync}_database.py" = [
-    "ARG002",  # temporary, until `admin` kwarg (non-)usage is decided
+    "ARG002",  # TODO: temp, until `admin` kwarg (non-)usage is decided
 ]
 "dual_output_shake_cipher_config.py" = [
     "SIM114",  # TODO: specify branch exceptions & other build limits
 ]
 "*{config,format}.py" = [
-    "PLR0913",  # config objects can have many argument
+    "PLR0913",  # config objects can have many arguments
 ]
 "test_initialization.py" = [
     "E402",  # there's a wibbly wobbly, timey wimey import sequence here
@@ -137,7 +137,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "F403",  # tests get most of their imports from `import *`
     "F405",  # `import *` confuses it a lot
     "F822",  # potential NameError warnings ie. `import *`
-    "PLE0605",  # it doesn't think `sorted` returns list
+    "PLE0605",  # it doesn't think `sorted` returns a list
     "PLR0915",  # TODO: refactor tests so this passes
     "PLR2004",  # literals can be clearer in tests
     "S101",  # asserts happen in tests
