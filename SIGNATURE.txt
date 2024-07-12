@@ -1,5 +1,5 @@
 {
-    "checksum": "86309ae58eca2c656f539cb745dc91b778908d03497e46b66de292d04e9a9d7975ba0d90fae8467307a6614455965a16",
+    "checksum": "c207b148214e44b672c2dfd0245c65bd354577f3d955da5f4119d9b287f9a7b44db72a0ce48171433b71cc496244dc1f",
     "checksums": {
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
         "CHANGES.rst": "2cc2c4265680d70987e4add92f0d1f68389a3d4db6ffe7977e2a35c3de58f8966feedc6b034b8293a2c04e4f52cf57b5",
@@ -120,7 +120,7 @@
         "aiootp/randoms/threading_safe_entropy_pool.py": "937de28a4ccb5d1e3824396743d0d0808357c89c514c1d48b6838ddd31d86ed5a79a7dabc4c63945deeca6483bcd05f8",
         "aiootp/tor/README_TOR.rst": "d6f1d1a2ecbca1c69f1fa222d91c1c1eba51d3ba742283fd1b0de0539462594a433d53ea4f306d1794d5fd9c5dfb56a6",
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
-        "ruff.toml": "168d6cea8e82b5704c48e6c01250e505df9d32588b6a9eacaf05c5e9c58a9183dbc87e0b4e677400baa52c3cf4d57bdb",
+        "ruff.toml": "995d60b6548a9fe15f505eceb539ba1bb7176701a2256de9a08e486d9fc8124117fe3c30d5058ee4f91fc5e81c6b73cc",
         "setup.cfg": "3e11acf975b198f15a68ff9cc84947c7c3e4914d3a88847cd3fec125cc3cc28641c4aa9cd072532d27bca878a5552130",
         "setup.py": "248be2283df482ce12f9c2a310a8557b71a56db9bb14e160aa95d45edf3b4553131daee9e2253d595633959b35786f63",
         "tests/pytest.ini": "707d3ce22f019e0bada73661b7adc85b9af00f7aacbc1d005c1a41e77964d533a2adbf00f7620044051af1b521961e22",
@@ -171,13 +171,13 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "1",
-        "date": 19913,
+        "build_number": "2",
+        "date": 19916,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
         "package": "aiootp",
         "version": "0.23.11"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "a88cbaab06b58ae4fb4782dd06891c1045bea3c5796e37c1119f40db61be69da2b5c5f61a26290ea6a8b21711bf852ad3e559c449594be718d81b4bbb5a84b02"
+    "signature": "2235d9faaf93eaab4bbd797da88f801fdf74ad2b52e5bddd3f2192744ac3edace9ad774b6fc26c971b4eedf150d534056719c1acbebfe86b7c02461be4b28908"
 }
