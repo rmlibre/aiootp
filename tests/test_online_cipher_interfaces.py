@@ -299,7 +299,7 @@ class TestOnlineCipherInterfaces:
 
         stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
         fut_a = Threads.submit(stream_enc.buffer, data_a)
-        asynchs.sleep(0.001)
+        asynchs.sleep(0.005)
         fut_b = Threads.submit(stream_enc.buffer, data_b)
         fut_a.result()
         fut_b.result()
@@ -311,7 +311,7 @@ class TestOnlineCipherInterfaces:
         ct_a = b"".join(ct[: len(ct) // 2])
         ct_b = b"".join(ct[len(ct) // 2 :])
         fut_a = Threads.submit(stream_dec.buffer, ct_a)
-        asynchs.sleep(0.001)
+        asynchs.sleep(0.005)
         fut_b = Threads.submit(stream_dec.buffer, ct_b)
         fut_a.result()
         fut_b.result()
