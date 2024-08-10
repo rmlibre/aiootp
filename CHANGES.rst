@@ -18,7 +18,8 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- build(ignore): extend & alphabetize with explicit dirs
+- refactor(tests): use more descriptive names
 
 
 
