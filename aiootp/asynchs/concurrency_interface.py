@@ -117,7 +117,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         in the 0th position of the queue.
         """
         self.queue.append(self.token)
-        while not compare_digest(self.queue[0], self.token):
+        while not compare_digest(self.token, self.queue[0]):
             await asleep(self.probe_delay)
         return self
 
@@ -128,7 +128,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         in the 0th position of the queue.
         """
         self.queue.append(self.token)
-        while not compare_digest(self.queue[0], self.token):
+        while not compare_digest(self.token, self.queue[0]):
             sleep(self.probe_delay)
         return self
 

@@ -15,7 +15,7 @@ import warnings
 from hashlib import shake_128
 from collections import deque
 
-from test_initialization import *
+from conftest import *
 
 from aiootp.asynchs.clocks import s_counter
 from aiootp.randoms.entropy_daemon import EntropyDaemon

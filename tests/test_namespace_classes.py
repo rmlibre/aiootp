@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 
 from aiootp._typing import tuples
 from aiootp.commons.instances import *

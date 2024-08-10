@@ -19,6 +19,8 @@ __doc__ = "Streaming manager classes for the package's ciphers."
 
 import io
 from collections import deque
+from hmac import compare_digest
+from secrets import token_bytes
 
 from aiootp._typing import Typing as t
 from aiootp._constants.misc import DEFAULT_AAD
@@ -69,7 +71,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         "_byte_count",
         "_config",
         "_digesting_now",
-        "_is_finalized",
+        "_finalizing_now",
         "_key_bundle",
         "_padding",
         "_stream",
@@ -117,7 +119,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._padding = cipher._padding
         self._byte_count = 0
         self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
-        self._is_finalized = False
+        self._finalizing_now = deque()  # don't let maxlen remove entries
         self._buffer = buffer = deque([self._padding.start_padding()])
         self._key_bundle = key_bundle = await cipher._KeyAADBundle(
             kdfs=cipher._kdfs, salt=salt, aad=aad
@@ -188,18 +190,23 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         async for block_id, ciphertext in stream.afinalize():  # <------
             session.send_packet(block_id + ciphertext)
         """
-        self._is_finalized = True
-        end_padding = await self._padding.aend_padding(self._byte_count)
-        final_blocks = abatch(
-            self._buffer.pop() + end_padding, size=self._config.BLOCKSIZE
-        )
-        async for block in final_blocks:
-            self._buffer.append(block)
-        while self._buffer:
-            block = await self._stream.asend(None)
-            block_id = await self.shmac.anext_block_id(block)
-            yield block_id, block
-        await self.shmac.afinalize()
+        self._finalizing_now.append(token := token_bytes(32))
+        if not compare_digest(token, self._finalizing_now[0]):
+            raise ConcurrencyGuard.IncoherentConcurrencyState
+
+        async with ConcurrencyGuard(self._digesting_now, token=token):
+            end_padding = await self._padding.aend_padding(self._byte_count)
+            final_blocks = abatch(
+                self._buffer.pop() + end_padding,
+                size=self._config.BLOCKSIZE,
+            )
+            async for block in final_blocks:
+                self._buffer.append(block)
+            while self._buffer:
+                block = await self._stream.asend(None)
+                block_id = await self.shmac.anext_block_id(block)
+                yield block_id, block
+            await self.shmac.afinalize()
 
     async def _adigest_data(
         self,
@@ -245,10 +252,9 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         async for block_id, ciphertext in stream.afinalize():
             session.send_packet(block_id + ciphertext)
         """
-        if self._is_finalized:
-            raise CipherStreamIssue.stream_has_been_closed()
-
         async with ConcurrencyGuard(self._digesting_now):
+            if self._finalizing_now:
+                raise CipherStreamIssue.stream_has_been_closed()
             self._byte_count += len(data)
             data = io.BytesIO(data).read
             _buffer, append = self._buffer_shortcuts
@@ -296,7 +302,7 @@ class CipherStream(CipherStreamProperties):
         "_byte_count",
         "_config",
         "_digesting_now",
-        "_is_finalized",
+        "_finalizing_now",
         "_key_bundle",
         "_padding",
         "_stream",
@@ -344,7 +350,7 @@ class CipherStream(CipherStreamProperties):
         self._padding = cipher._padding
         self._byte_count = 0
         self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
-        self._is_finalized = False
+        self._finalizing_now = deque()  # don't let maxlen remove entries
         self._buffer = buffer = deque([self._padding.start_padding()])
         self._key_bundle = key_bundle = cipher._KeyAADBundle(
             kdfs=cipher._kdfs, salt=salt, aad=aad
@@ -411,18 +417,25 @@ class CipherStream(CipherStreamProperties):
         for block_id, ciphertext in stream.finalize():  # <-------------
             session.send_packet(block_id + ciphertext)
         """
-        self._is_finalized = True
-        end_padding = self._padding.end_padding(self._byte_count)
-        final_blocks = batch(
-            self._buffer.pop() + end_padding, size=self._config.BLOCKSIZE
-        )
-        for block in final_blocks:
-            self._buffer.append(block)
-        while self._buffer:
-            block = self._stream.send(None)
-            block_id = self.shmac.next_block_id(block)
-            yield block_id, block
-        self.shmac.finalize()
+        self._finalizing_now.append(token := token_bytes(32))
+        if not compare_digest(token, self._finalizing_now[0]):
+            raise ConcurrencyGuard.IncoherentConcurrencyState
+
+        with ConcurrencyGuard(
+            self._digesting_now, probe_delay=0.0001, token=token
+        ):
+            end_padding = self._padding.end_padding(self._byte_count)
+            final_blocks = batch(
+                self._buffer.pop() + end_padding,
+                size=self._config.BLOCKSIZE,
+            )
+            for block in final_blocks:
+                self._buffer.append(block)
+            while self._buffer:
+                block = self._stream.send(None)
+                block_id = self.shmac.next_block_id(block)
+                yield block_id, block
+            self.shmac.finalize()
 
     def _digest_data(
         self,
@@ -467,10 +480,9 @@ class CipherStream(CipherStreamProperties):
         for block_id, ciphertext in stream.finalize():
             session.send_packet(block_id + ciphertext)
         """
-        if self._is_finalized:
-            raise CipherStreamIssue.stream_has_been_closed()
-
         with ConcurrencyGuard(self._digesting_now, probe_delay=0.0001):
+            if self._finalizing_now:
+                raise CipherStreamIssue.stream_has_been_closed()
             self._byte_count += len(data)
             data = io.BytesIO(data).read
             _buffer, append = self._buffer_shortcuts

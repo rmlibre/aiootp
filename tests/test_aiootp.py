@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 from test_typing import *
 from test_exceptions import *
 from test_commons import *

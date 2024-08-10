@@ -14,7 +14,7 @@
 import io
 from collections import deque
 
-from test_initialization import *
+from conftest import *
 
 from aiootp import _gentools as gentools
 

@@ -13,7 +13,7 @@
 
 import platform
 
-from test_initialization import *
+from conftest import *
 
 
 class BasicTestSuite:

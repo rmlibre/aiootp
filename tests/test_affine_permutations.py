@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 
 from aiootp._permutations.affine_permutation import AffinePermutation
 from aiootp._permutations.affine_xor_chain import AffineXORChain

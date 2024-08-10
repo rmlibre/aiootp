@@ -129,8 +129,8 @@ include aiootp/databases/sync_database.py
 include aiootp/tor/README_TOR.rst
 include aiootp/db/README_DATABASES.rst
 include tests/pytest.ini
+include tests/conftest.py
 include tests/test_aiootp.py
-include tests/test_initialization.py
 include tests/test_typing.py
 include tests/test_Typing_class.py
 include tests/test_typing_protocols.py

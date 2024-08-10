@@ -11,9 +11,12 @@
 #
 
 
+import pytest
 from random import randrange
 
-from test_initialization import *
+from aiootp.asynchs import ConcurrencyGuard
+
+from conftest import *
 
 
 class TestOnlineCipherInterfaces:
@@ -62,7 +65,7 @@ class TestOnlineCipherInterfaces:
                 with Ignore(InterruptedError, if_else=violation(problem)):
                     stream_enc.buffer(pt_enc)
                 with Ignore(InterruptedError, if_else=violation(problem)):
-                    stream_dec.buffer(id_ct[1])
+                    stream_dec.buffer(b"".join(id_ct))
                 stream_dec.shmac.test_shmac(stream_enc.shmac.result)
                 assert (
                     pt_enc == pt_dec
@@ -115,7 +118,7 @@ class TestOnlineCipherInterfaces:
                 with Ignore(InterruptedError, if_else=violation(problem)):
                     await stream_enc.abuffer(pt_enc)
                 with Ignore(InterruptedError, if_else=violation(problem)):
-                    await stream_dec.abuffer(id_ct[1])
+                    await stream_dec.abuffer(b"".join(id_ct))
                 await stream_dec.shmac.atest_shmac(stream_enc.shmac.result)
                 assert (
                     pt_enc == pt_dec
@@ -260,13 +263,11 @@ class TestOnlineCipherInterfaces:
                     )
                     stream_dec.buffer(data)
 
-    async def test_async_concurrency_handling(self) -> None:
+    async def test_async_buffer_concurrency_handling(self) -> None:
         config, cipher, salt, aad = choice(all_ciphers)
         chunk_size = 1024 * config.BLOCKSIZE
-        data_a = (chunk_size * b"a")[
-            config.INNER_HEADER_BYTES : -config.SENTINEL_BYTES
-        ]
-        data_b = chunk_size * b"b"
+        data_a = (chunk_size * b"a")[config.INNER_HEADER_BYTES :]
+        data_b = (chunk_size * b"b")[: -config.SENTINEL_BYTES]
 
         stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
         fut_a = asynchs.new_task(stream_enc.abuffer(data_a))
@@ -290,13 +291,11 @@ class TestOnlineCipherInterfaces:
 
         assert data_a + data_b == pt
 
-    async def test_sync_concurrency_handling(self) -> None:
+    async def test_sync_buffer_concurrency_handling(self) -> None:
         config, cipher, salt, aad = choice(all_ciphers)
         chunk_size = 16 * 1024 * config.BLOCKSIZE
-        data_a = (chunk_size * b"a")[
-            config.INNER_HEADER_BYTES : -config.SENTINEL_BYTES
-        ]
-        data_b = chunk_size * b"b"
+        data_a = (chunk_size * b"a")[config.INNER_HEADER_BYTES :]
+        data_b = (chunk_size * b"b")[: -config.SENTINEL_BYTES]
 
         stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
         fut_a = Threads.submit(stream_enc.buffer, data_a)
@@ -319,6 +318,88 @@ class TestOnlineCipherInterfaces:
         pt = b"".join(stream_dec.finalize())
 
         assert data_a + data_b == pt
+
+    async def test_async_finalize_concurrency_handling(self) -> None:
+        config, cipher, salt, aad = choice(all_ciphers)
+        chunk_size = 1024 * config.BLOCKSIZE
+        data = chunk_size * b"a"
+
+        stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
+        await stream_enc.abuffer(data)
+        finalizing = stream_enc.afinalize()
+        ct = b"".join(await finalizing.asend(None))
+
+        problem = (  # fmt: skip
+            "Multiple calls to afinalize were allowed."
+        )
+        with Ignore(
+            ConcurrencyGuard.IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            async for _ in stream_enc.afinalize():
+                pytest.fail(problem)
+
+        ct += b"".join([b"".join(id_ct) async for id_ct in finalizing])
+
+        stream_dec = await cipher.astream_decrypt(
+            salt=salt, aad=aad, iv=stream_enc.iv
+        )
+        await stream_dec.abuffer(ct)
+        finalizing = stream_dec.afinalize()
+        pt = await finalizing.asend(None)
+
+        problem = (  # fmt: skip
+            "Multiple calls to afinalize were allowed."
+        )
+        with Ignore(
+            ConcurrencyGuard.IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            async for _ in stream_dec.afinalize():
+                pytest.fail(problem)
+
+        pt += b"".join([pt async for pt in finalizing])
+        assert data == pt
+
+    async def test_sync_finalize_concurrency_handling(self) -> None:
+        config, cipher, salt, aad = choice(all_ciphers)
+        chunk_size = 1024 * config.BLOCKSIZE
+        data = chunk_size * b"a"
+
+        stream_enc = cipher.stream_encrypt(salt=salt, aad=aad).buffer(data)
+        finalizing = stream_enc.finalize()
+        ct = b"".join(finalizing.send(None))
+
+        problem = (  # fmt: skip
+            "Multiple calls to finalize were allowed."
+        )
+        with Ignore(
+            ConcurrencyGuard.IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            for _ in stream_enc.finalize():
+                pytest.fail(problem)
+
+        ct += b"".join(b"".join(id_ct) for id_ct in finalizing)
+
+        stream_dec = cipher.stream_decrypt(
+            salt=salt, aad=aad, iv=stream_enc.iv
+        ).buffer(ct)
+        finalizing = stream_dec.finalize()
+        pt = finalizing.send(None)
+
+        problem = (  # fmt: skip
+            "Multiple calls to finalize were allowed."
+        )
+        with Ignore(
+            ConcurrencyGuard.IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            for _ in stream_dec.finalize():
+                pytest.fail(problem)
+
+        pt += b"".join(finalizing)
+        assert data == pt
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

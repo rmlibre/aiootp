@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 from test_high_level_encryption import *
 from test_Padding import *
 from test_StreamHMAC import *

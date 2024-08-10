@@ -15,7 +15,7 @@ import math
 import time
 import warnings
 
-from test_initialization import *
+from conftest import *
 
 
 TIME_RESOLUTION = time.get_clock_info("time").resolution

@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 
 
 async def test_json_functions() -> None:

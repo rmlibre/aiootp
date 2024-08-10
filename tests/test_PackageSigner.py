@@ -13,7 +13,7 @@
 
 import platform
 
-from test_initialization import *
+from conftest import *
 
 from aiootp._paths import DatabasePath
 from aiootp.asynchs import sleep
@@ -93,7 +93,7 @@ def test_sign_and_verify() -> None:
             )
 
         filename_sheet = """
-        include tests/test_initialization.py
+        include tests/conftest.py
         include tests/test_aiootp.py
         include tests/test_generics.py
         include tests/test_ByteIO.py

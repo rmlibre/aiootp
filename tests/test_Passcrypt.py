@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 
 from aiootp._constants.misc import B_TO_MB_RATIO
 from aiootp.keygens.passcrypt import PasscryptHash

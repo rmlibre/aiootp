@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 from test_Clock import *
 from test_ConcurrencyGuard import *
 from test_event_loops import *
