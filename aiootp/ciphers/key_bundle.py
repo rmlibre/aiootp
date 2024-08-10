@@ -11,10 +11,11 @@
 #
 
 
+"""
+Types to manage bundled cipher session values.
+"""
+
 __all__ = ["KeyAADBundle", "KeyAADMode", "KeyAADRegisters", "SaltAADIV"]
-
-
-__doc__ = "Types to manage bundled cipher session values."
 
 
 from secrets import token_bytes

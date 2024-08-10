@@ -11,13 +11,12 @@
 #
 
 
+"""
+General classes that expect subclasses to define attributes in
+`__slots__`.
+"""
+
 __all__ = ["FrozenInstance"]
-
-
-__doc__ = (
-    "General classes that expect subclasses to define attributes in "
-    "`__slots__`."
-)
 
 
 from os import linesep as sep

@@ -11,6 +11,10 @@
 #
 
 
+"""
+Asynchrony event loop tools.
+"""
+
 __all__ = [
     "AsyncInit",
     "asleep",
@@ -26,9 +30,6 @@ __all__ = [
     "sleep",
     "wrap_in_executor",
 ]
-
-
-__doc__ = "Asynchrony event loop tools."
 
 
 import asyncio

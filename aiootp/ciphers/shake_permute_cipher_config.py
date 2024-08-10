@@ -11,13 +11,12 @@
 #
 
 
+"""
+A generic configuration type for the SHAKE permute cipher mode of
+operation.
+"""
+
 __all__ = ["ShakePermuteCipherConfig"]
-
-
-__doc__ = (
-    "A generic configuration type for the SHAKE permute cipher mode of "
-    "operation."
-)
 
 
 from math import ceil

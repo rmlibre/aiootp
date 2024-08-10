@@ -11,13 +11,12 @@
 #
 
 
+"""
+An interface for feeding & retrieving from a SHA3 XOF object used
+as an entropy pool.
+"""
+
 __all__ = ["ThreadingSafeEntropyPool"]
-
-
-__doc__ = (
-    "An interface for feeding & retrieving from a SHA3 XOF object used "
-    "as an entropy pool."
-)
 
 
 from secrets import token_bytes

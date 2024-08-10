@@ -11,10 +11,11 @@
 #
 
 
+"""
+A configuration type for `RawGUID`.
+"""
+
 __all__ = ["RawGUIDConfig", "RawGUIDContainer"]
-
-
-__doc__ = "A configuration type for `RawGUID`."
 
 
 import io

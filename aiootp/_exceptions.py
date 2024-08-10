@@ -11,6 +11,11 @@
 #
 
 
+"""
+Organizes the package's exceptions in declarative & expressive
+classes & methods.
+"""
+
 __all__ = [
     "AuthenticationFailed",
     "CanonicalEncodingError",
@@ -43,12 +48,6 @@ __all__ = [
     "ValidationIncomplete",
     "raise_exception",
 ]
-
-
-__doc__ = (
-    "Organizes the package's exceptions in declarative & expressive "
-    "classes & methods."
-)
 
 
 import asyncio

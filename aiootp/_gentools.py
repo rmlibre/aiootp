@@ -11,10 +11,11 @@
 #
 
 
+"""
+A collection of (async) generator utilities.
+"""
+
 __all__ = []
-
-
-__doc__ = "A collection of (async) generator utilities."
 
 
 import io

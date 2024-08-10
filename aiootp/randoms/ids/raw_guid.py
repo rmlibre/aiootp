@@ -11,10 +11,11 @@
 #
 
 
+"""
+A type for creating unblinded unique bytes values.
+"""
+
 __all__ = ["RawGUID"]
-
-
-__doc__ = "A type for creating unblinded unique bytes values."
 
 
 from aiootp._typing import Typing as t

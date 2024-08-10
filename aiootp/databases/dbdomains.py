@@ -11,10 +11,11 @@
 #
 
 
+"""
+A type for `(Async)Database` domain-separation tasks.
+"""
+
 __all__ = ["DBDomains"]
-
-
-__doc__ = "A type for `(Async)Database` domain-separation tasks."
 
 
 from aiootp._typing import Typing as t

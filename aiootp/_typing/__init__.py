@@ -11,10 +11,11 @@
 #
 
 
+"""
+Type-hinting utilities for the package.
+"""
+
 __all__ = ["Typing"]
-
-
-__doc__ = "Type-hinting utilities for the package."
 
 
 from .interface import *

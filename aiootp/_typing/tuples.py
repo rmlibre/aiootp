@@ -11,10 +11,11 @@
 #
 
 
+"""
+Tuples defining class categories for runtime type enforcement.
+"""
+
 __all__ = ["BytesLike"]
-
-
-__doc__ = "Tuples defining class categories for runtime type enforcement."
 
 
 BytesLike = (bytes, bytearray)

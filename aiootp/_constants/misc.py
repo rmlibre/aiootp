@@ -11,11 +11,10 @@
 #
 
 
-__doc__ = (
-    "A collection constants & precomputed values to standardize, speed "
-    "up, & clean up their usage in the package."
-)
-
+"""
+A collection constants & precomputed values to standardize, speed
+up, & clean up their usage in the package.
+"""
 
 import typing
 import hashlib

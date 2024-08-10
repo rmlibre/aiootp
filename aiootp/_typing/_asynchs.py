@@ -11,13 +11,12 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `asynchs` subpackage.
+"""
+
 __all__ = ["AsyncOrSyncIterable", "ClockType", "Future", "PoolExecutorType"]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `asynchs` subpackage."
-)
 
 
 from concurrent.futures._base import Future

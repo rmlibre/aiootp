@@ -11,10 +11,11 @@
 #
 
 
+"""
+A type-hinting utility for the package.
+"""
+
 __all__ = ["Typing"]
-
-
-__doc__ = "A type-hinting utility for the package."
 
 
 import types

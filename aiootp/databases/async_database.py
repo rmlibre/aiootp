@@ -11,10 +11,11 @@
 #
 
 
+"""
+Implements an asynchronous transparently encrypted database.
+"""
+
 __all__ = ["AsyncDatabase"]
-
-
-__doc__ = "Implements an asynchronous transparently encrypted database."
 
 
 import json

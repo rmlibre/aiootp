@@ -11,10 +11,11 @@
 #
 
 
+"""
+A configuration type for the `AffineXORChain`.
+"""
+
 __all__ = ["AffineXORChainConfig"]
-
-
-__doc__ = "A configuration type for the `AffineXORChain`."
 
 
 from aiootp._typing import Typing as t

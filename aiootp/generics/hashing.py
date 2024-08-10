@@ -11,10 +11,11 @@
 #
 
 
+"""
+Canonicalized keyed hashing functions for SHA3 objects.
+"""
+
 __all__ = ["ahash_bytes", "hash_bytes"]
-
-
-__doc__ = "Canonicalized keyed hashing functions for SHA3 objects."
 
 
 from hashlib import sha3_512

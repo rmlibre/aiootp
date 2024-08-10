@@ -11,6 +11,11 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `generics` subpackage.
+"""
+
 __all__ = [
     "Base64URLSafe",
     "HasherType",
@@ -26,12 +31,6 @@ __all__ = [
     "SupportsPopleft",
     "XOFType",
 ]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `generics` subpackage."
-)
 
 
 from .interface import Typing as t

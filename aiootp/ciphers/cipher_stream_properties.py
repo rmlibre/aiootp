@@ -11,12 +11,11 @@
 #
 
 
+"""
+A definition of shared properties between cipher streaming types.
+"""
+
 __all__ = ["AuthFail", "CipherStreamProperties"]
-
-
-__doc__ = (
-    "A definition of shared properties between cipher streaming types."
-)
 
 
 from aiootp._typing import Typing as t

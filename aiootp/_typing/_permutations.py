@@ -11,13 +11,12 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `_permutations` subpackage.
+"""
+
 __all__ = ["PermutationType"]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `_permutations` subpackage."
-)
 
 
 from .interface import Typing as t

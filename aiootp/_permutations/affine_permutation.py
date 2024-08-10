@@ -11,13 +11,12 @@
 #
 
 
+"""
+A bijective, keyed permutation type based on affine cipher
+arithmetic of varying domain sizes.
+"""
+
 __all__ = ["AffinePermutation"]
-
-
-__doc__ = (
-    "A bijective, keyed permutation type based on affine cipher "
-    "arithmetic of varying domain sizes."
-)
 
 
 from aiootp._typing import Typing as t

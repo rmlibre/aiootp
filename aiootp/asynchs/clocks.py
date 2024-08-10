@@ -11,6 +11,10 @@
 #
 
 
+"""
+Time & timestamping tools.
+"""
+
 __all__ = [
     "Clock",
     "ns_counter",
@@ -25,9 +29,6 @@ __all__ = [
     "this_month",
     "this_year",
 ]
-
-
-__doc__ = "Time & timestamping tools."
 
 
 from time import time_ns, get_clock_info

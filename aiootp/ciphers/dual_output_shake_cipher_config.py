@@ -11,13 +11,12 @@
 #
 
 
+"""
+A generic configuration type for the dual-output SHAKE cipher
+mode of operation.
+"""
+
 __all__ = ["DualOutputShakeCipherConfig"]
-
-
-__doc__ = (
-    "A generic configuration type for the dual-output SHAKE cipher "
-    "mode of operation."
-)
 
 
 from math import ceil

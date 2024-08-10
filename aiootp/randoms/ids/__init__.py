@@ -11,13 +11,12 @@
 #
 
 
+"""
+Types for creating & reading unique unblinded IDs, or IDs blinded
+with bijective, keyed permutations.
+"""
+
 __all__ = ["GUID", "SequenceID"]
-
-
-__doc__ = (
-    "Types for creating & reading unique unblinded IDs, or IDs blinded "
-    "with bijective, keyed permutations."
-)
 
 
 from .sequence_id_config import *

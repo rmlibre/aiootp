@@ -11,13 +11,12 @@
 #
 
 
+"""
+Implements synchronous & asynchronous transparently encrypted data
+persistance classes.
+"""
+
 __all__ = ["AsyncDatabase", "Database"]
-
-
-__doc__ = (
-    "Implements synchronous & asynchronous transparently encrypted data "
-    "persistance classes."
-)
 
 
 from .dbdomains import *

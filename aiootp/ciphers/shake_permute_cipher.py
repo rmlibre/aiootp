@@ -11,6 +11,11 @@
 #
 
 
+"""
+Definitions for compossible types to run the SHAKE permute cipher
+mode of operation.
+"""
+
 __all__ = [
     "ShakePermuteKDFs",
     "ShakePermuteSessionKDFs",
@@ -18,12 +23,6 @@ __all__ = [
     "ShakePermuteStreamHMAC",
     "ShakePermuteStreamJunction",
 ]
-
-
-__doc__ = (
-    "Definitions for compossible types to run the SHAKE permute cipher "
-    "mode of operation."
-)
 
 
 from aiootp._typing import Typing as t

@@ -11,10 +11,11 @@
 #
 
 
+"""
+Manages the early secrets used by the package.
+"""
+
 __all__ = []
-
-
-__doc__ = "Manages the early secrets used by the package."
 
 
 from collections import deque

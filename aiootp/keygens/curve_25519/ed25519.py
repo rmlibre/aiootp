@@ -11,10 +11,11 @@
 #
 
 
+"""
+An interface to Ed25519 signing & verifying.
+"""
+
 __all__ = ["Ed25519"]
-
-
-__doc__ = "An interface to Ed25519 signing & verifying."
 
 
 from aiootp._typing import Typing as t

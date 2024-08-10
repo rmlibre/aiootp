@@ -11,13 +11,12 @@
 #
 
 
+"""
+A chain of `AffinePermutation` objects with distinct keys & which
+have their inputs & outputs XOR'd with key material.
+"""
+
 __all__ = ["AffineXORChain"]
-
-
-__doc__ = (
-    "A chain of `AffinePermutation` objects with distinct keys & which "
-    "have their inputs & outputs XOR'd with key material."
-)
 
 
 import io

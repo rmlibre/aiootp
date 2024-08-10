@@ -11,13 +11,12 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `randoms` subpackage.
+"""
+
 __all__ = ["EntropyHashingType"]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `randoms` subpackage."
-)
 
 
 from .interface import Typing as t

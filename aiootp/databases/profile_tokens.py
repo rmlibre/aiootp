@@ -11,13 +11,12 @@
 #
 
 
+"""
+A type deriving database keys from passphrases using the passcrypt,
+memory-hard hashing function.
+"""
+
 __all__ = ["AsyncProfileTokens", "ProfileTokens"]
-
-
-__doc__ = (
-    "A type deriving database keys from passphrases using the passcrypt, "
-    "memory-hard hashing function."
-)
 
 
 from hashlib import sha3_512

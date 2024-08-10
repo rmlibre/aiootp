@@ -11,12 +11,11 @@
 #
 
 
+"""
+Randomness generation, tools, & unique pseudo-random identifiers.
+"""
+
 __all__ = ["GUID", "SequenceID", "acsprng", "csprng"]
-
-
-__doc__ = (
-    "Randomness generation, tools, & unique pseudo-random identifiers."
-)
 
 
 from .simple import *

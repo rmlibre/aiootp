@@ -11,10 +11,11 @@
 #
 
 
+"""
+Configuration type for `SequenceID`.
+"""
+
 __all__ = ["SequenceIDConfig"]
-
-
-__doc__ = "Configuration type for `SequenceID`."
 
 
 from aiootp._typing import Typing as t

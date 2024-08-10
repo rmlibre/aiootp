@@ -11,10 +11,11 @@
 #
 
 
+"""
+Defines namespace utilities used by the package.
+"""
+
 __all__ = []
-
-
-__doc__ = "Defines namespace utilities used by the package."
 
 
 from .instances import *

@@ -11,13 +11,12 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `commons` subpackage.
+"""
+
 __all__ = ["ConfigType"]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `commons` subpackage."
-)
 
 
 from .interface import Typing as t

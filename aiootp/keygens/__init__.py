@@ -11,6 +11,11 @@
 #
 
 
+"""
+Interfaces for creating, deriving, & using symmetric & asymmetric
+cryptographic keys.
+"""
+
 __all__ = [
     "DomainKDF",
     "Ed25519",
@@ -21,12 +26,6 @@ __all__ = [
     "amnemonic",
     "mnemonic",
 ]
-
-
-__doc__ = (
-    "Interfaces for creating, deriving, & using symmetric & asymmetric "
-    "cryptographic keys."
-)
 
 
 from .domain_kdf import *

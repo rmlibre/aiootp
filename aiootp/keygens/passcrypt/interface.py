@@ -11,13 +11,12 @@
 #
 
 
+"""
+An interface for the passcrypt memory-hard passphrase hashing
+function.
+"""
+
 __all__ = ["Passcrypt", "PasscryptSettings"]
-
-
-__doc__ = (
-    "An interface for the passcrypt memory-hard passphrase hashing "
-    "function."
-)
 
 
 from hashlib import shake_128

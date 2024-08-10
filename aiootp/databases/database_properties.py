@@ -11,13 +11,12 @@
 #
 
 
+"""
+A definition of properties shared between `AsyncDatabase` &
+`Database`.
+"""
+
 __all__ = ["DatabaseProperties"]
-
-
-__doc__ = (
-    "A definition of properties shared between `AsyncDatabase` & "
-    "`Database`."
-)
 
 
 from aiootp._typing import Typing as t

@@ -11,10 +11,11 @@
 #
 
 
+"""
+Implementations of simple keyed permutations.
+"""
+
 __all__ = ["FastAffineXORChain"]
-
-
-__doc__ = "Implementations of simple keyed permutations."
 
 
 from .affine_permutation_config import *

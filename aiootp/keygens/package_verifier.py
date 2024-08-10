@@ -11,13 +11,12 @@
 #
 
 
+"""
+An interface for verfying the authenticity of software package
+hashes & signatures.
+"""
+
 __all__ = ["PackageVerifier"]
-
-
-__doc__ = (
-    "An interface for verfying the authenticity of software package "
-    "hashes & signatures."
-)
 
 
 import json

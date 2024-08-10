@@ -11,6 +11,10 @@
 #
 
 
+"""
+Functions to transform the representation of data.
+"""
+
 __all__ = [
     "abase_as_int",
     "aint_as_base",
@@ -19,9 +23,6 @@ __all__ = [
     "int_as_base",
     "xi_mix",
 ]
-
-
-__doc__ = "Functions to transform the representation of data."
 
 
 from aiootp._typing import Typing as t

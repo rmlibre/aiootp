@@ -11,10 +11,11 @@
 #
 
 
+"""
+File IO & bytes encoding utilities.
+"""
+
 __all__ = ["ByteIO"]
-
-
-__doc__ = "File IO & bytes encoding utilities."
 
 
 import aiofiles

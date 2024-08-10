@@ -11,13 +11,11 @@
 #
 
 
+"""
+An interface for the package's online, salt misuse-reuse resistant,
+"""
+
 __all__ = ["CipherInterface"]
-
-
-__doc__ = (
-    "An interface for the package's online, salt misuse-reuse resistant, "
-    "fully context commiting, tweakable, AEAD ciphers ."
-)
 
 
 import json

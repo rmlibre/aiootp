@@ -11,10 +11,11 @@
 #
 
 
+"""
+Passcrypt configuration logic & constants.
+"""
+
 __all__ = ["PasscryptConfig", "passcrypt_spec"]
-
-
-__doc__ = "Passcrypt configuration logic & constants."
 
 
 from aiootp._typing import Typing as t

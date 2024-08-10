@@ -11,17 +11,16 @@
 #
 
 
+"""
+Cryptographically secure random number generation for the package.
+"""
+
 __all__ = [
     "acsprng",
     "arandom_number_generator",
     "csprng",
     "random_number_generator",
 ]
-
-
-__doc__ = (
-    "Cryptographically secure random number generation for the package."
-)
 
 
 import io

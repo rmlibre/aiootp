@@ -11,10 +11,11 @@
 #
 
 
+"""
+Configuration logic & constants for `Chunky2048`.
+"""
+
 __all__ = ["chunky2048_spec"]
-
-
-__doc__ = "Configuration logic & constants for `Chunky2048`."
 
 
 from hashlib import shake_128

@@ -11,13 +11,12 @@
 #
 
 
+"""
+The server side of a key exchange protocol which can provide server-
+side identity authentication with ephemeral random secrets.
+"""
+
 __all__ = ["DoubleDiffieHellmanServer"]
-
-
-__doc__ = (
-    "The server side of a key exchange protocol which can provide server-"
-    "side identity authentication with ephemeral random secrets."
-)
 
 
 from aiootp._typing import Typing as t

@@ -11,6 +11,18 @@
 #
 
 
+"""
+Wraps file operations from the `os` module in a decorator that runs
+those methods in an async executor. This was adapted from the
+`aiofiles` package:
+
+https://github.com/Tinche/aiofiles/blob/master/aiofiles/os.py
+
+Whose license is Apache License 2.0, available here:
+
+http://www.apache.org/licenses/LICENSE-2.0
+"""
+
 __all__ = [
     "chmod",
     "chown",
@@ -22,19 +34,6 @@ __all__ = [
     "sendfile",
     "stat",
 ]
-
-
-__doc__ = """
-    Wraps file operations from the `os` module in a decorator that runs
-    those methods in an async executor. This was adapted from the
-    `aiofiles` package:
-
-    https://github.com/Tinche/aiofiles/blob/master/aiofiles/os.py
-
-    Whose license is Apache License 2.0, available here:
-
-    http://www.apache.org/licenses/LICENSE-2.0
-    """
 
 
 import os

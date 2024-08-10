@@ -11,18 +11,17 @@
 #
 
 
+"""
+Classes using a `slots_types` mapping to enforce variable-type
+associations on the variables named in their `__slots__`.
+"""
+
 __all__ = [
     "FrozenTypedSlots",
     "OpenFrozenTypedSlots",
     "OpenTypedSlots",
     "TypedSlots",
 ]
-
-
-__doc__ = (
-    "Classes using a `slots_types` mapping to enforce variable-type "
-    "associations on the variables named in their `__slots__`."
-)
 
 
 from aiootp._typing import Typing as t

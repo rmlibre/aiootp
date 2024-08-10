@@ -11,13 +11,12 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `databases` subpackage.
+"""
+
 __all__ = ["AsyncDatabaseType", "DatabaseType"]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `databases` subpackage."
-)
 
 
 from .interface import Typing as t

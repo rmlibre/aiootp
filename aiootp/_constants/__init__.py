@@ -11,10 +11,11 @@
 #
 
 
+"""
+A sub-package to better organize the package's constants.
+"""
+
 __all__ = []
-
-
-__doc__ = "A sub-package to better organize the package's constants."
 
 
 import asyncio

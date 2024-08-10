@@ -11,10 +11,11 @@
 #
 
 
+"""
+Domain separation constants & utilities.
+"""
+
 __all__ = ["Domains", "DomainEncoder"]
-
-
-__doc__ = "Domain separation constants & utilities."
 
 
 from hashlib import shake_128

@@ -11,6 +11,10 @@
 #
 
 
+"""
+Data processing & encoding utilities.
+"""
+
 __all__ = [
     "Domains",
     "abytes_are_equal",
@@ -18,9 +22,6 @@ __all__ = [
     "bytes_are_equal",
     "hash_bytes",
 ]
-
-
-__doc__ = "Data processing & encoding utilities."
 
 
 from .transform import *

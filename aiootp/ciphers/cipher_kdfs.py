@@ -11,10 +11,11 @@
 #
 
 
+"""
+Manager interfaces for cipher KDFs.
+"""
+
 __all__ = ["CipherKDFs", "KeyedCipherKDF", "ShakeConfig"]
-
-
-__doc__ = "Manager interfaces for cipher KDFs."
 
 
 from aiootp._typing import Typing as t

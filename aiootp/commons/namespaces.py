@@ -11,15 +11,16 @@
 #
 
 
+"""
+Definitions for mapping classes.
+"""
+
 __all__ = [
     "FrozenNamespace",
     "Namespace",
     "OpenFrozenNamespace",
     "OpenNamespace",
 ]
-
-
-__doc__ = "Definitions for mapping classes."
 
 
 from aiootp._typing import Typing as t

@@ -11,10 +11,11 @@
 #
 
 
+"""
+A configuration type for `GUID`.
+"""
+
 __all__ = ["GUIDConfig"]
-
-
-__doc__ = "A configuration type for `GUID`."
 
 
 from hashlib import shake_256

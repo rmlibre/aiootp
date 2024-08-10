@@ -11,10 +11,11 @@
 #
 
 
+"""
+Composed passcrypt hash logic, formatting, & parsing types.
+"""
+
 __all__ = ["PasscryptResources", "PasscryptHash"]
-
-
-__doc__ = "Composed passcrypt hash logic, formatting, & parsing types."
 
 
 from io import BytesIO

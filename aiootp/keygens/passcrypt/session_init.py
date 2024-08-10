@@ -11,10 +11,11 @@
 #
 
 
+"""
+Initializer for the `Passcrypt` proof object.
+"""
+
 __all__ = ["PasscryptSession"]
-
-
-__doc__ = "Initializer for the `Passcrypt` proof object."
 
 
 import math

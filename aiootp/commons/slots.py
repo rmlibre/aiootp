@@ -11,13 +11,12 @@
 #
 
 
+"""
+Definitions for mapping classes that expect subclasses to define
+instance attributes in __slots__.
+"""
+
 __all__ = ["FrozenSlots", "OpenFrozenSlots", "OpenSlots", "Slots"]
-
-
-__doc__ = (
-    "Definitions for mapping classes that expect subclasses to define "
-    "instance attributes in __slots__."
-)
 
 
 import asyncio

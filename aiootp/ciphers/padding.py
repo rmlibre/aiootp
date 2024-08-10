@@ -11,10 +11,11 @@
 #
 
 
+"""
+Types for handling plaintext padding.
+"""
+
 __all__ = ["Padding", "PlaintextMeasurements"]
-
-
-__doc__ = "Types for handling plaintext padding."
 
 
 from secrets import token_bytes

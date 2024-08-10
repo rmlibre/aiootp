@@ -11,10 +11,11 @@
 #
 
 
+"""
+Curve25519 interfaces & adapters to the `cryptography` package.
+"""
+
 __all__ = ["Ed25519", "X25519"]
-
-
-__doc__ = "Curve25519 interfaces & adapters to the `cryptography` package."
 
 
 from .shared_interface import *

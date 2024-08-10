@@ -11,13 +11,12 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `_paths` module.
+"""
+
 __all__ = ["Path", "PathStr", "OptionalPath", "OptionalPathStr"]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `_paths` module."
-)
 
 
 from pathlib import Path

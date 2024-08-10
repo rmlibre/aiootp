@@ -11,10 +11,11 @@
 #
 
 
+"""
+Functionalities to engage with users & security researchers.
+"""
+
 __all__ = ["report_security_issue"]
-
-
-__doc__ = "Functionalities to engage with users & security researchers."
 
 
 import sys

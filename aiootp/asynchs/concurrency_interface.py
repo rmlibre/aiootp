@@ -11,10 +11,11 @@
 #
 
 
+"""
+A general interface for multi-threading & multi-processing.
+"""
+
 __all__ = ["ConcurrencyGuard", "ConcurrencyInterface"]
-
-
-__doc__ = "A general interface for multi-threading & multi-processing."
 
 
 from hmac import compare_digest

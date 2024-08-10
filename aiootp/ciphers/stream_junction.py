@@ -11,12 +11,11 @@
 #
 
 
+"""
+Where data & key streams meet for confidentiality & authenticity.
+"""
+
 __all__ = ["StreamJunction"]
-
-
-__doc__ = (
-    "Where data & key streams meet for confidentiality & authenticity."
-)
 
 
 from aiootp._typing import Typing as t

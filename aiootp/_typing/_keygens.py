@@ -11,6 +11,11 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `keygens` subpackage.
+"""
+
 __all__ = [
     "AsymmetricKeyType",
     "DomainKDFType",
@@ -20,12 +25,6 @@ __all__ = [
     "SecretKeyType",
     "SignerType",
 ]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `keygens` subpackage."
-)
 
 
 from .interface import Typing as t

@@ -11,13 +11,12 @@
 #
 
 
+"""
+Functions for converting random keys or passphrases into a [pseudo-]
+random sequences of words.
+"""
+
 __all__ = ["akeyed_choices", "keyed_choices", "amnemonic", "mnemonic"]
-
-
-__doc__ = (
-    "Functions for converting random keys or passphrases into a [pseudo-]"
-    "random sequences of words."
-)
 
 
 from aiootp._typing import Typing as t

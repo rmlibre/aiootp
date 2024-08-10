@@ -11,10 +11,11 @@
 #
 
 
+"""
+A general type defining an interface to Curve25519 operations.
+"""
+
 __all__ = ["Base25519"]
-
-
-__doc__ = "A general type defining an interface to Curve25519 operations."
 
 
 from cryptography.hazmat.primitives.asymmetric.x25519 import (

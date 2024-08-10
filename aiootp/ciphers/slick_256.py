@@ -11,14 +11,13 @@
 #
 
 
+"""
+An interface for one of the package's online salt misuse-reuse
+resistant, fully context commiting, tweakable, AEAD ciphers called
+`Slick256`.
+"""
+
 __all__ = ["Slick256"]
-
-
-__doc__ = (
-    "An interface for one of the package's online salt misuse-reuse "
-    "resistant, fully context commiting, tweakable, AEAD ciphers called "
-    "`Slick256`."
-)
 
 
 from aiootp._typing import Typing as t

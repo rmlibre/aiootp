@@ -11,14 +11,13 @@
 #
 
 
+"""
+Implementations & high-level interfaces to the package's online
+salt misuse-reuse resistant, fully context committing, tweakable,
+AEAD ciphers.
+"""
+
 __all__ = ["ChaCha20Poly1305", "Chunky2048", "Slick256"]
-
-
-__doc__ = (
-    "Implementations & high-level interfaces to the package's online "
-    "salt misuse-reuse resistant, fully context committing, tweakable, "
-    "AEAD ciphers."
-)
 
 
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305

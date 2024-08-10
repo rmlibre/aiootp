@@ -11,6 +11,10 @@
 #
 
 
+"""
+Lower assurance randomness functions.
+"""
+
 __all__ = [
     "acanonical_token",
     "achoice",
@@ -25,9 +29,6 @@ __all__ = [
     "token_bytes",
     "uniform",
 ]
-
-
-__doc__ = "Lower assurance randomness functions."
 
 
 import random as _stdlib_random

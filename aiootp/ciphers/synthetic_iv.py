@@ -11,10 +11,11 @@
 #
 
 
+"""
+A general definition for the SyntheticIV interface.
+"""
+
 __all__ = ["SyntheticIV"]
-
-
-__doc__ = "A general definition for the SyntheticIV interface."
 
 
 from aiootp._typing import Typing as t

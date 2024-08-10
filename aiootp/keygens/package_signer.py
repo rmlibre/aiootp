@@ -11,10 +11,11 @@
 #
 
 
+"""
+An interface for hashing & signing software packages.
+"""
+
 __all__ = ["PackageSigner", "PackageSignerFiles", "PackageSignerScope"]
-
-
-__doc__ = "An interface for hashing & signing software packages."
 
 
 import json

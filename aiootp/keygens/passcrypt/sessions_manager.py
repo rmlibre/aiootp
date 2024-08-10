@@ -11,13 +11,12 @@
 #
 
 
+"""
+A type that manages spawning multiple `Passcrypt` sessions in
+separate processes to run the full algorithm.
+"""
+
 __all__ = ["PasscryptProcesses"]
-
-
-__doc__ = (
-    "A type that manages spawning multiple `Passcrypt` sessions in "
-    "separate processes to run the full algorithm."
-)
 
 
 import math

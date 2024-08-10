@@ -11,10 +11,11 @@
 #
 
 
+"""
+Streaming manager classes for the package's ciphers.
+"""
+
 __all__ = ["AsyncDecipherStream", "DecipherStream"]
-
-
-__doc__ = "Streaming manager classes for the package's ciphers."
 
 
 import io

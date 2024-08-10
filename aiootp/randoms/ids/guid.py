@@ -11,13 +11,12 @@
 #
 
 
+"""
+A type for creating globally unique, pseudo-random identifiers
+using bijective, keyed permutations.
+"""
+
 __all__ = ["GUID"]
-
-
-__doc__ = (
-    "A type for creating globally unique, pseudo-random identifiers "
-    "using bijective, keyed permutations."
-)
 
 
 from aiootp._typing import Typing as t

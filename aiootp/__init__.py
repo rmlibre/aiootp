@@ -11,6 +11,12 @@
 #
 
 
+"""\
+a high-level async cryptographic anonymity library to scale, simplify, \
+& automate privacy best practices for secure data & identity processing, \
+communication, & storage.\
+"""
+
 __version__ = "0.23.12"
 
 
@@ -27,13 +33,6 @@ __PUBLIC_ED25519_KEY__ = (
 
 __PUBLIC_X25519_KEY__ = (
     "4457276dbcae91cc5b69f1aed4384b9eb6f933343bb44d9ed8a80e2ce438a450"
-)
-
-
-__doc__ = (
-    "a high-level async cryptographic anonymity library to scale, simplify, "
-    "& automate privacy best practices for secure data & identity processing, "
-    "communication, & storage."
 )
 
 

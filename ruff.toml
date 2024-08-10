@@ -65,7 +65,6 @@ select = [
     "W",  # pycodestyle warnings
 ]
 ignore = [
-    "A001",  # TODO: decide on using module __doc__ or not
     "ANN101",  # deprecated 'self' annotation requirement
     "ANN102",  # deprecated 'cls' annotation requirement
     "B006",  # mutable defaults only used for **unpacking interface

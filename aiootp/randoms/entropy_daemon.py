@@ -11,13 +11,12 @@
 #
 
 
+"""
+A type responsible for starting an entropy gathering background
+thread.
+"""
+
 __all__ = ["EntropyDaemon"]
-
-
-__doc__ = (
-    "A type responsible for starting an entropy gathering background "
-    "thread."
-)
 
 
 from collections import deque

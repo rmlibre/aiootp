@@ -12,7 +12,7 @@ Changes for version 0.23.12
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- style: apply Ruff rule A001 for module doctring placement
 
 
 Minor Changes

@@ -11,13 +11,12 @@
 #
 
 
+"""
+An interface for key derivation that facilitates domain-separation
+& canonicalized input processing.
+"""
+
 __all__ = ["HashTupleKDF", "DomainKDF"]
-
-
-__doc__ = (
-    "An interface for key derivation that facilitates domain-separation "
-    "& canonicalized input processing."
-)
 
 
 from hashlib import shake_128

@@ -11,10 +11,11 @@
 #
 
 
+"""
+A configurable container interface for ciphertexts.
+"""
+
 __all__ = ["Ciphertext"]
-
-
-__doc__ = "A configurable container interface for ciphertexts."
 
 
 from io import BytesIO

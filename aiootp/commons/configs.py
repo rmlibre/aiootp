@@ -11,10 +11,11 @@
 #
 
 
+"""
+Utilities for creating & managing immutable configurations.
+"""
+
 __all__ = ["Config", "ConfigMap"]
-
-
-__doc__ = "Utilities for creating & managing immutable configurations."
 
 
 from aiootp._typing import Typing as t

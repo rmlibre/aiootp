@@ -11,13 +11,12 @@
 #
 
 
+"""
+A type for converting secret `int`s into bytes-type identification
+numbers using a bijective, keyed permutation.
+"""
+
 __all__ = ["SequenceID"]
-
-
-__doc__ = (
-    "A type for converting secret `int`s into bytes-type identification "
-    "numbers using a bijective, keyed permutation."
-)
 
 
 from aiootp._typing import Typing as t

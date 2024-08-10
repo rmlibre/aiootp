@@ -11,10 +11,11 @@
 #
 
 
+"""
+Tools for time, asyncio, multi-threading, & multi-processing.
+"""
+
 __all__ = []
-
-
-__doc__ = "Tools for time, asyncio, multi-threading, & multi-processing."
 
 
 import asyncio

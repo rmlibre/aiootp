@@ -11,11 +11,10 @@
 #
 
 
-__doc__ = (
-    "A collection of conversion tables & precomputed values to "
-    "standardize, speed up, & clean up their usage in the package."
-)
-
+"""
+A collection of conversion tables & precomputed values to standardize,
+speed up, & clean up their usage in the package.
+"""
 
 from aiootp._typing import Typing as t
 

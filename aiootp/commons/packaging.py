@@ -11,10 +11,11 @@
 #
 
 
+"""
+Standardization utilities for Python packaging.
+"""
+
 __all__ = ["make_module", "remake_module", "remake_subpackage"]
-
-
-__doc__ = "Standardization utilities for Python packaging."
 
 
 import sys

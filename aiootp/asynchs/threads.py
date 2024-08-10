@@ -11,10 +11,11 @@
 #
 
 
+"""
+A multi-threading interface.
+"""
+
 __all__ = ["Threads", "get_thread_id"]
-
-
-__doc__ = "A multi-threading interface."
 
 
 from threading import Thread

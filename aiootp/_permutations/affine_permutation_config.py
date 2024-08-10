@@ -11,10 +11,11 @@
 #
 
 
+"""
+A configuration type for `AffinePermutation`.
+"""
+
 __all__ = ["AffinePermutationConfig"]
-
-
-__doc__ = "A configuration type for `AffinePermutation`."
 
 
 from math import log2

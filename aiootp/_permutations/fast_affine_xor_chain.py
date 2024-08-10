@@ -11,13 +11,12 @@
 #
 
 
+"""
+Improves the efficiency of the `AffineXORChain` by chaining
+duplicates of the same permutation state.
+"""
+
 __all__ = ["FastAffineXORChain"]
-
-
-__doc__ = (
-    "Improves the efficiency of the `AffineXORChain` by chaining "
-    "duplicates of the same permutation state."
-)
 
 
 from aiootp._typing import Typing as t

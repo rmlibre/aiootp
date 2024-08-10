@@ -11,10 +11,11 @@
 #
 
 
+"""
+A collection of `pathlib.Path`'s & file IO utilities.
+"""
+
 __all__ = []
-
-
-__doc__ = "A collection of `pathlib.Path`'s & file IO utilities."
 
 
 import aiofiles

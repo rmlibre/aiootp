@@ -11,10 +11,11 @@
 #
 
 
+"""
+A multi-processing interface.
+"""
+
 __all__ = ["Processes", "get_process_id"]
-
-
-__doc__ = "A multi-processing interface."
 
 
 import multiprocessing

@@ -11,10 +11,11 @@
 #
 
 
+"""
+A controller for toggling debug mode.
+"""
+
 __all__ = ["DebugControl"]
-
-
-__doc__ = "A controller for toggling debug mode."
 
 
 import warnings

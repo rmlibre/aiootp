@@ -11,10 +11,11 @@
 #
 
 
+"""
+General definition for the StreamHMAC interface.
+"""
+
 __all__ = ["StreamHMAC"]
-
-
-__doc__ = "General definition for the StreamHMAC interface."
 
 
 from aiootp._typing import Typing as t

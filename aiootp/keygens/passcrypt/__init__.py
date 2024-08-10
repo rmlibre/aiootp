@@ -11,14 +11,13 @@
 #
 
 
+"""
+Implementation of an Argon2i-like, memory hard, passphrase key
+derivation function that's designed to be resistant to cache-timing
+side-channel attacks & time-memory trade-offs.
+"""
+
 __all__ = ["Passcrypt"]
-
-
-__doc__ = (
-    "Implementation of an Argon2i-like, memory hard, passphrase key "
-    "derivation function that's designed to be resistant to cache-timing "
-    "side-channel attacks & time-memory trade-offs."
-)
 
 
 from .config import *

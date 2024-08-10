@@ -11,10 +11,11 @@
 #
 
 
+"""
+A KDF type for `(Async)Database` operations.
+"""
+
 __all__ = ["DBKDF"]
-
-
-__doc__ = "A KDF type for `(Async)Database` operations."
 
 
 from aiootp._typing import Typing as t

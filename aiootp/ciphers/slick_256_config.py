@@ -11,10 +11,11 @@
 #
 
 
+"""
+Configuration logic & constants for `Slick256`.
+"""
+
 __all__ = ["slick256_spec"]
-
-
-__doc__ = "Configuration logic & constants for `Slick256`."
 
 
 from hashlib import shake_128

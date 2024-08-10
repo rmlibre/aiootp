@@ -11,6 +11,11 @@
 #
 
 
+"""
+Dependency inversion & documentation support for types relevant to
+the `ciphers` subpackage.
+"""
+
 __all__ = [
     "AsyncCipherStreamingType",
     "AsyncDatastream",
@@ -25,12 +30,6 @@ __all__ = [
     "StreamHMACType",
     "SyntheticIVType",
 ]
-
-
-__doc__ = (
-    "Dependency inversion & documentation support for types relevant to "
-    "the `ciphers` subpackage."
-)
 
 
 from .interface import Typing as t

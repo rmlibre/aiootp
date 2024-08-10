@@ -11,6 +11,10 @@
 #
 
 
+"""
+Canonicalization utilities.
+"""
+
 __all__ = [
     "abytes_are_equal",
     "acanonical_pack",
@@ -28,9 +32,6 @@ __all__ = [
     "encode_key",
     "test_canonical_padding",
 ]
-
-
-__doc__ = "Canonicalization utilities."
 
 
 import io

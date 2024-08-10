@@ -11,13 +11,12 @@
 #
 
 
+"""
+A sub-package to implement functionalities to engage with users &
+security researchers.
+"""
+
 __all__ = ["report_security_issue"]
-
-
-__doc__ = (
-    "A sub-package to implement functionalities to engage with users & "
-    "security researchers."
-)
 
 
 from .issue_reporting import *

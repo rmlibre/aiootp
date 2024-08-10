@@ -11,10 +11,11 @@
 #
 
 
+"""
+An interface to X25519 protocols.
+"""
+
 __all__ = ["X25519"]
-
-
-__doc__ = "An interface to X25519 protocols."
 
 
 from aiootp._typing import Typing as t

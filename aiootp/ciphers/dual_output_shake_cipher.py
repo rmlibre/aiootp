@@ -11,6 +11,11 @@
 #
 
 
+"""
+Definitions for compossible types to run the dual-output cipher
+mode of operation.
+"""
+
 __all__ = [
     "DualOutputKDFs",
     "DualOutputSessionKDFs",
@@ -19,12 +24,6 @@ __all__ = [
     "DualOutputSyntheticIV",
     "DualOutputStreamJunction",
 ]
-
-
-__doc__ = (
-    "Definitions for compossible types to run the dual-output cipher "
-    "mode of operation."
-)
 
 
 from aiootp._typing import Typing as t
