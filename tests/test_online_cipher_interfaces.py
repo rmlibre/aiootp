@@ -260,7 +260,7 @@ class TestOnlineCipherInterfaces:
                     )
                     stream_dec.buffer(data)
 
-    async def test_async_concurrency_handling(self) -> None:
+    async def test_async_buffer_concurrency_handling(self) -> None:
         config, cipher, salt, aad = choice(all_ciphers)
         chunk_size = 1024 * config.BLOCKSIZE
         data_a = (chunk_size * b"a")[
@@ -290,7 +290,7 @@ class TestOnlineCipherInterfaces:
 
         assert data_a + data_b == pt
 
-    async def test_sync_concurrency_handling(self) -> None:
+    async def test_sync_buffer_concurrency_handling(self) -> None:
         config, cipher, salt, aad = choice(all_ciphers)
         chunk_size = 16 * 1024 * config.BLOCKSIZE
         data_a = (chunk_size * b"a")[
