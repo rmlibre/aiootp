@@ -263,10 +263,8 @@ class TestOnlineCipherInterfaces:
     async def test_async_buffer_concurrency_handling(self) -> None:
         config, cipher, salt, aad = choice(all_ciphers)
         chunk_size = 1024 * config.BLOCKSIZE
-        data_a = (chunk_size * b"a")[
-            config.INNER_HEADER_BYTES : -config.SENTINEL_BYTES
-        ]
-        data_b = chunk_size * b"b"
+        data_a = (chunk_size * b"a")[config.INNER_HEADER_BYTES :]
+        data_b = (chunk_size * b"b")[: -config.SENTINEL_BYTES]
 
         stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
         fut_a = asynchs.new_task(stream_enc.abuffer(data_a))
@@ -293,10 +291,8 @@ class TestOnlineCipherInterfaces:
     async def test_sync_buffer_concurrency_handling(self) -> None:
         config, cipher, salt, aad = choice(all_ciphers)
         chunk_size = 16 * 1024 * config.BLOCKSIZE
-        data_a = (chunk_size * b"a")[
-            config.INNER_HEADER_BYTES : -config.SENTINEL_BYTES
-        ]
-        data_b = chunk_size * b"b"
+        data_a = (chunk_size * b"a")[config.INNER_HEADER_BYTES :]
+        data_b = (chunk_size * b"b")[: -config.SENTINEL_BYTES]
 
         stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
         fut_a = Threads.submit(stream_enc.buffer, data_a)
