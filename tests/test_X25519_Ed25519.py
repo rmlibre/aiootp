@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 
 
 OTHER_TYPE_MAPPING = {Ed25519.__name__: X25519, X25519.__name__: Ed25519}

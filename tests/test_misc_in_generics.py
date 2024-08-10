@@ -14,7 +14,7 @@
 import io
 from collections import deque
 
-from test_initialization import *
+from conftest import *
 
 from aiootp._constants.misc import BIG
 from aiootp._constants.datasets import Tables

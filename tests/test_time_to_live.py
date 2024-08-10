@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 
 
 # NOTE: The tests run in alphabetical order, so a Z is prepended to their

@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 from test_Clock import TIME_RESOLUTION
 
 from aiootp.randoms.ids.raw_guid_config import RawGUIDContainer

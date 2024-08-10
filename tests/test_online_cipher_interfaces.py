@@ -13,7 +13,7 @@
 
 from random import randrange
 
-from test_initialization import *
+from conftest import *
 
 
 class TestOnlineCipherInterfaces:

@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 
 from aiootp.ciphers.cipher_kdfs import ShakeConfig
 

@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 
 
 async def arun_function(relay: Ignore) -> bool:

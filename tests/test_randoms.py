@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 from test_SequenceID import *
 from test_RawGUID import *
 from test_GUID import *

@@ -11,7 +11,7 @@
 #
 
 
-from test_initialization import *
+from conftest import *
 from test_misc_in_generics import *
 from test_ByteIO import *
 

@@ -13,7 +13,7 @@
 
 from collections import deque
 
-from test_initialization import *
+from conftest import *
 
 from aiootp.asynchs import ConcurrencyGuard
 

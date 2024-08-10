@@ -13,7 +13,7 @@
 
 from base64 import urlsafe_b64encode
 
-from test_initialization import *
+from conftest import *
 
 
 NON_ZERO_PREFIX = choice(list(range(1, 256))).to_bytes(1, BIG)

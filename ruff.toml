@@ -125,7 +125,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "*{config,format}.py" = [
     "PLR0913",  # config objects can have many argument
 ]
-"test_initialization.py" = [
+"conftest.py" = [
     "E402",  # there's a wibbly wobbly, timey wimey import sequence here
     "F401",  # most other tests get their imports from this module
 ]
