@@ -62,7 +62,7 @@ class TestOnlineCipherInterfaces:
                 with Ignore(InterruptedError, if_else=violation(problem)):
                     stream_enc.buffer(pt_enc)
                 with Ignore(InterruptedError, if_else=violation(problem)):
-                    stream_dec.buffer(id_ct[1])
+                    stream_dec.buffer(b"".join(id_ct))
                 stream_dec.shmac.test_shmac(stream_enc.shmac.result)
                 assert (
                     pt_enc == pt_dec
@@ -115,7 +115,7 @@ class TestOnlineCipherInterfaces:
                 with Ignore(InterruptedError, if_else=violation(problem)):
                     await stream_enc.abuffer(pt_enc)
                 with Ignore(InterruptedError, if_else=violation(problem)):
-                    await stream_dec.abuffer(id_ct[1])
+                    await stream_dec.abuffer(b"".join(id_ct))
                 await stream_dec.shmac.atest_shmac(stream_enc.shmac.result)
                 assert (
                     pt_enc == pt_dec
