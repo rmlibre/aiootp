@@ -12,13 +12,18 @@ Changes for version 0.23.11
 Major Changes
 ^^^^^^^^^^^^^
 
+- fix(concurrency): block multiple calls to cipher stream finalization [#19]
+- fix(concurrency): complete all buffers before (a)finalize runs [#19]
 - style(lint): apply Ruff lint & format with more rules [#12]
 
 
 Minor Changes
 ^^^^^^^^^^^^^
 
+- docs(ruff): improve grammar & structure of rule annotations
 - build(ignore): extend & alphabetize with explicit dirs
+- refactor(tests): use more descriptive names
+- refactor: rename test init file to the standard 'conftest.py'
 - refactor(tests): use more descriptive names
 
 
