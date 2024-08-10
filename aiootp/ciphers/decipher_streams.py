@@ -24,7 +24,7 @@ from secrets import token_bytes
 
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
-from aiootp._exceptions import Issue, CipherStreamIssue
+from aiootp._exceptions import Issue, CipherStreamIsClosed
 from aiootp._gentools import apopleft, popleft, abatch, batch
 from aiootp.asynchs import AsyncInit, ConcurrencyGuard, asleep
 
@@ -322,7 +322,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
                 self._finalizing_now
                 and self._finalizing_now[0] not in self._digesting_now
             ):
-                raise CipherStreamIssue.stream_has_been_closed()
+                raise CipherStreamIsClosed
             data = io.BytesIO(data).read
             atest_block_id, append = self._buffer_shortcuts
             await self._adigest_data(data, atest_block_id, append)
@@ -610,7 +610,7 @@ class DecipherStream(CipherStreamProperties):
                 self._finalizing_now
                 and self._finalizing_now[0] not in self._digesting_now
             ):
-                raise CipherStreamIssue.stream_has_been_closed()
+                raise CipherStreamIsClosed
             data = io.BytesIO(data).read
             atest_block_id, append = self._buffer_shortcuts
             self._digest_data(data, atest_block_id, append)

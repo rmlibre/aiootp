@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- refactor: make custom ``CipherStreamIsClosed`` exception
 
 
 

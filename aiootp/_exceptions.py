@@ -15,7 +15,7 @@ __all__ = [
     "AuthenticationFailed",
     "CanonicalEncodingError",
     "CanonicalIssue",
-    "CipherStreamIssue",
+    "CipherStreamIsClosed",
     "DatabaseNotConnected",
     "DatabaseIssue",
     "MissingDeclaredVariables",
@@ -385,6 +385,16 @@ class IncoherentConcurrencyState(RuntimeError):
         super().__init__(self._MESSAGE_TEMPLATE, *a)
 
 
+class CipherStreamIsClosed(InterruptedError):
+    _MESSAGE_TEMPLATE: str = (
+        "The stream has been closed. Cannot add more `data` to the "
+        "buffer of an already closed stream."
+    )
+
+    def __init__(self, /, *a: t.Any) -> None:
+        super().__init__(self._MESSAGE_TEMPLATE, *a)
+
+
 class DatabaseNotConnected(AttributeError):
     _MESSAGE_TEMPLATE: str = (
         "Must first connect to the package signing session's secure "
@@ -696,26 +706,6 @@ class SHMACIssue:
         return InvalidBlockID(cls._INVALID_BLOCK_ID)
 
 
-class CipherStreamIssue:
-    """
-    Organizes messages for raised exceptions related to the classes
-    `(Async)CipherStream` & `(Async)DecipherStream`.
-    """
-
-    __slots__ = ()
-
-    _STREAM_HAS_BEEN_CLOSED: str = (
-        "The stream has been closed. Cannot add more `data` to the "
-        "buffer of an already closed stream."
-    )
-
-    IncoherentConcurrencyState: type = IncoherentConcurrencyState
-
-    @classmethod
-    def stream_has_been_closed(cls, /) -> InterruptedError:
-        return InterruptedError(cls._STREAM_HAS_BEEN_CLOSED)
-
-
 class PasscryptIssue:
     """
     Organizes messages for raised exceptions related to `Passcrypt`.
@@ -981,7 +971,7 @@ module_api = dict(
     AuthenticationFailed=t.add_type(AuthenticationFailed),
     CanonicalEncodingError=t.add_type(CanonicalEncodingError),
     CanonicalIssue=t.add_type(CanonicalIssue),
-    CipherStreamIssue=t.add_type(CipherStreamIssue),
+    CipherStreamIsClosed=t.add_type(CipherStreamIsClosed),
     DatabaseNotConnected=t.add_type(DatabaseNotConnected),
     DatabaseIssue=t.add_type(DatabaseIssue),
     MissingDeclaredVariables=t.add_type(MissingDeclaredVariables),
