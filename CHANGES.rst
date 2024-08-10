@@ -19,6 +19,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - refactor: make custom ``CipherStreamIsClosed`` exception
+- style: apply Ruff rule B008 exception only to ``rng.py`` module
 
 
 

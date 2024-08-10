@@ -68,7 +68,6 @@ ignore = [
     "ANN101",  # deprecated 'self' annotation requirement
     "ANN102",  # deprecated 'cls' annotation requirement
     "B006",  # mutable defaults only used for **unpacking interface
-    "B008",  # random defaults at startup are intended
     "B028",  # thanks for the warning, if stacklevel was needed
     "C408",  # string keys aren't better than keyword arguments
     "COM",  # TODO: use? it's discouraged but nice
@@ -114,6 +113,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 ]
 "**/randoms/simple.py" = [
     "S311",  # weak random is labelled in simple module
+]
+"**/randoms/rng.py" = [
+    "B008",  # random defaults at startup are intended
 ]
 "**/databases/{async,sync}_database.py" = [
     "ARG002",  # TODO: temp, until `admin` kwarg (non-)usage is decided
