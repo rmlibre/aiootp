@@ -21,6 +21,7 @@ Minor Changes
 - test: wait longer for concurrent thread to start running
 - refactor: make custom ``CipherStreamIsClosed`` exception
 - style: apply Ruff rule B008 exception only to ``rng.py`` module
+- style: remove Ruff rule UP015 exception since using pathlib
 
 
 

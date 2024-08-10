@@ -81,7 +81,6 @@ ignore = [
     "S101",  # sometimes asserts are nice sanity checks
     "SIM300",  # hey! yoda's alright
     "TD003",  # not all TODOs have an issue link, but should?
-    "UP015",  # `open` params should be explicit
 ]
 fixable = ["ALL"]
 unfixable = []
