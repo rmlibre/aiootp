@@ -11,7 +11,10 @@
 #
 
 
+import pytest
 from random import randrange
+
+from aiootp.asynchs import ConcurrencyGuard
 
 from conftest import *
 
@@ -315,6 +318,88 @@ class TestOnlineCipherInterfaces:
         pt = b"".join(stream_dec.finalize())
 
         assert data_a + data_b == pt
+
+    async def test_async_finalize_concurrency_handling(self) -> None:
+        config, cipher, salt, aad = choice(all_ciphers)
+        chunk_size = 1024 * config.BLOCKSIZE
+        data = chunk_size * b"a"
+
+        stream_enc = await cipher.astream_encrypt(salt=salt, aad=aad)
+        await stream_enc.abuffer(data)
+        finalizing = stream_enc.afinalize()
+        ct = b"".join(await finalizing.asend(None))
+
+        problem = (  # fmt: skip
+            "Multiple calls to afinalize were allowed."
+        )
+        with Ignore(
+            ConcurrencyGuard.IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            async for _ in stream_enc.afinalize():
+                pytest.fail(problem)
+
+        ct += b"".join([b"".join(id_ct) async for id_ct in finalizing])
+
+        stream_dec = await cipher.astream_decrypt(
+            salt=salt, aad=aad, iv=stream_enc.iv
+        )
+        await stream_dec.abuffer(ct)
+        finalizing = stream_dec.afinalize()
+        pt = await finalizing.asend(None)
+
+        problem = (  # fmt: skip
+            "Multiple calls to afinalize were allowed."
+        )
+        with Ignore(
+            ConcurrencyGuard.IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            async for _ in stream_dec.afinalize():
+                pytest.fail(problem)
+
+        pt += b"".join([pt async for pt in finalizing])
+        assert data == pt
+
+    async def test_sync_finalize_concurrency_handling(self) -> None:
+        config, cipher, salt, aad = choice(all_ciphers)
+        chunk_size = 1024 * config.BLOCKSIZE
+        data = chunk_size * b"a"
+
+        stream_enc = cipher.stream_encrypt(salt=salt, aad=aad).buffer(data)
+        finalizing = stream_enc.finalize()
+        ct = b"".join(finalizing.send(None))
+
+        problem = (  # fmt: skip
+            "Multiple calls to finalize were allowed."
+        )
+        with Ignore(
+            ConcurrencyGuard.IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            for _ in stream_enc.finalize():
+                pytest.fail(problem)
+
+        ct += b"".join(b"".join(id_ct) for id_ct in finalizing)
+
+        stream_dec = cipher.stream_decrypt(
+            salt=salt, aad=aad, iv=stream_enc.iv
+        ).buffer(ct)
+        finalizing = stream_dec.finalize()
+        pt = finalizing.send(None)
+
+        problem = (  # fmt: skip
+            "Multiple calls to finalize were allowed."
+        )
+        with Ignore(
+            ConcurrencyGuard.IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            for _ in stream_dec.finalize():
+                pytest.fail(problem)
+
+        pt += b"".join(finalizing)
+        assert data == pt
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

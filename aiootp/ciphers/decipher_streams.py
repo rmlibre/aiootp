@@ -19,6 +19,8 @@ __doc__ = "Streaming manager classes for the package's ciphers."
 
 import io
 from collections import deque
+from hmac import compare_digest
+from secrets import token_bytes
 
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
@@ -69,7 +71,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         "_bytes_to_trim",
         "_config",
         "_digesting_now",
-        "_is_finalized",
+        "_finalizing_now",
         "_is_streaming",
         "_key_bundle",
         "_padding",
@@ -129,8 +131,8 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._padding = cipher._padding
         self._ttl = ttl
         self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
+        self._finalizing_now = deque()  # don't let maxlen remove entries
         self._is_streaming = False
-        self._is_finalized = False
         self._result_queue = deque()
         self._buffer = buffer = deque()
         self._bytes_to_trim = self._config.INNER_HEADER_BYTES
@@ -246,16 +248,22 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         async for plaintext in stream.afinalize():
             yield plaintext
         """
-        self._is_finalized = True
-        await self.shmac.afinalize()
-        async for result in self:
-            yield result
-        queue = self._result_queue
-        footer_index = await self._padding.adepadding_end_index(queue[-1])
-        async for block in abatch(
-            b"".join(queue)[:footer_index], size=self._config.BLOCKSIZE
-        ):
-            yield block
+        self._finalizing_now.append(token := token_bytes(32))
+        if not compare_digest(token, self._finalizing_now[0]):
+            raise ConcurrencyGuard.IncoherentConcurrencyState
+
+        async with ConcurrencyGuard(self._digesting_now, token=token):
+            await self.shmac.afinalize()
+            async for result in self:
+                yield result
+            queue = self._result_queue
+            footer_index = await self._padding.adepadding_end_index(
+                queue[-1]
+            )
+            async for block in abatch(
+                b"".join(queue)[:footer_index], size=self._config.BLOCKSIZE
+            ):
+                yield block
 
     async def _adigest_data(
         self,
@@ -306,12 +314,12 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         async for plaintext in stream.afinalize():
             yield plaintext
         """
-        if self._is_finalized:
-            raise CipherStreamIssue.stream_has_been_closed()
-        elif not data or len(data) % self.PACKETSIZE:
+        if not data or len(data) % self.PACKETSIZE:
             raise Issue.invalid_length("data", len(data))
 
         async with ConcurrencyGuard(self._digesting_now):
+            if self._finalizing_now:
+                raise CipherStreamIssue.stream_has_been_closed()
             data = io.BytesIO(data).read
             atest_block_id, append = self._buffer_shortcuts
             await self._adigest_data(data, atest_block_id, append)
@@ -358,7 +366,7 @@ class DecipherStream(CipherStreamProperties):
         "_config",
         "_bytes_to_trim",
         "_digesting_now",
-        "_is_finalized",
+        "_finalizing_now",
         "_is_streaming",
         "_key_bundle",
         "_padding",
@@ -418,8 +426,8 @@ class DecipherStream(CipherStreamProperties):
         self._padding = cipher._padding
         self._ttl = ttl
         self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
+        self._finalizing_now = deque()  # don't let maxlen remove entries
         self._is_streaming = False
-        self._is_finalized = False
         self._result_queue = deque()
         self._buffer = buffer = deque()
         self._bytes_to_trim = self._config.INNER_HEADER_BYTES
@@ -529,14 +537,20 @@ class DecipherStream(CipherStreamProperties):
         for plaintext in stream.finalize():
             yield plaintext
         """
-        self._is_finalized = True
-        self.shmac.finalize()
-        yield from self
-        queue = self._result_queue
-        footer_index = self._padding.depadding_end_index(queue[-1])
-        yield from batch(
-            b"".join(queue)[:footer_index], size=self._config.BLOCKSIZE
-        )
+        self._finalizing_now.append(token := token_bytes(32))
+        if not compare_digest(token, self._finalizing_now[0]):
+            raise ConcurrencyGuard.IncoherentConcurrencyState
+
+        with ConcurrencyGuard(
+            self._digesting_now, probe_delay=0.0001, token=token
+        ):
+            self.shmac.finalize()
+            yield from self
+            queue = self._result_queue
+            footer_index = self._padding.depadding_end_index(queue[-1])
+            yield from batch(
+                b"".join(queue)[:footer_index], size=self._config.BLOCKSIZE
+            )
 
     def _digest_data(
         self,
@@ -585,12 +599,12 @@ class DecipherStream(CipherStreamProperties):
         for plaintext in stream.finalize():
             yield plaintext
         """
-        if self._is_finalized:
-            raise CipherStreamIssue.stream_has_been_closed()
-        elif not data or len(data) % self.PACKETSIZE:
+        if not data or len(data) % self.PACKETSIZE:
             raise Issue.invalid_length("data", len(data))
 
         with ConcurrencyGuard(self._digesting_now, probe_delay=0.0001):
+            if self._finalizing_now:
+                raise CipherStreamIssue.stream_has_been_closed()
             data = io.BytesIO(data).read
             atest_block_id, append = self._buffer_shortcuts
             self._digest_data(data, atest_block_id, append)
