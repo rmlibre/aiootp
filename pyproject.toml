@@ -12,8 +12,8 @@ license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.8"
 dependencies = ["aiofiles>=23.2.1", "cryptography>=42.0.8"]
 authors = [
-    {name = "Ricchi Machado", email = "rmlibre@riseup.net"},
-    {name = "Gonzo Investigative Journalism Agency, LLC", email = "gonzo.development@protonmail.ch"}
+    {name = "Gonzo Investigative Journalism Agency, LLC", email = "gonzo.development@protonmail.ch"},
+    {name = "Ricchi Machado", email = "rmlibre@riseup.net"}
 ]
 maintainers = [
     {name = "Ricchi Machado", email = "rmlibre@riseup.net"}
