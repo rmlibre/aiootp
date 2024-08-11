@@ -132,6 +132,7 @@ include licenses/cryptography_LICENSES/LICENSE.txt
 include licenses/pytest-asyncio_LICENSE.txt
 include licenses/pytest_LICENSE.txt
 include logo.png
+include pyproject.toml
 include ruff.toml
 include setup.cfg
 include setup.py

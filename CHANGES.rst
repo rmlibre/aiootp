@@ -12,6 +12,7 @@ Changes for version 0.23.12
 Major Changes
 ^^^^^^^^^^^^^
 
+- build: start transition to the new standard ``pyproject.toml``
 - style: apply Ruff rule A001 for module doctring placement
 
 
