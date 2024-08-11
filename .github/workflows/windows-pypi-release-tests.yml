@@ -23,6 +23,7 @@ jobs:
         choco install git bsdtar -y
         python3 -m pip install --upgrade pip pytest pytest-asyncio coverage ruff aiofiles cryptography
     - name: run tests from pypi tarball
+      shell: bash
       run: |
         PACKAGE_NAME=aiootp
         PACKAGE_VERSION=$(pip3 index versions $PACKAGE_NAME | grep -oE '\([^\)]+\)' | tr -d '()')
