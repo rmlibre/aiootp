@@ -1,18 +1,18 @@
 {
-    "checksum": "6aadfb14fdcf8f9e9425c3700aa3aaccb616b30cdc530cea8df3e91f74204cf91c3781987a70b9a0bfdbcf40d1b2b342",
+    "checksum": "7f440771188107b5d9f1e23d02ab38a09170bf182372cf068d4b1ee9345e42cd533bb89a9d1d49c5048f38e0476866be",
     "checksums": {
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "9f67d780edd0b2d6c97b1fa9f422e650520dce5c4b2809f0023398eed6676e33a800923ed055ef4c2abab300ff63b9cd",
+        "CHANGES.rst": "3637c3ae0b46dac12ceb48187ead14f8c8df9c2dfaab4dd17a29bc60b72b9777887e8dc9214e879a0fef34002f01aaf3",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
-        "MANIFEST.in": "e35e5ea7aa7762c3a62b6083baa48ac8a1a15d16faa6976158baf5008832cc18dd14662748b6934e669a1834a448cd32",
+        "MANIFEST.in": "ed647a46da5c770a43421d78ecf741785ce10354a66eba704ad49fe15a07e9b738e81a916349bc52c373b1627a13c6a3",
         "README.rst": "4ed9c533ea00be65be575d0e1fb8f8bf6affa4b63f138804c94da140454856c660248747c700c3a271f62642371451ca",
         "SECURITY.md": "3edb91af4af405b1bc620c7090bc46e29602d5b3e3cf0ee3013c32894dce1f55402a8e4fc4f7633c4d999f08aa7afb98",
         "aiootp/__engagement/__init__.py": "c35ff456893f72944342077d5cc94a1437f30ad0aa1ffb6ad8925fdc44eaf8aeb950eb4d09529b9a6489f8bd2ab6dc7d",
         "aiootp/__engagement/issue_reporting.py": "83cdea1605a6987ad9a4d1a7752f6a735b025ae9ef8ed63becd78d1cb62b620ca6aa510ccf67aa0e13a81e0ea2d9ecf1",
-        "aiootp/__init__.py": "eae0c11936bf07f2bd7fb12c3cf4aa008e2c5b63b6f594a5b4ad640e0a32910941ca83b499d3258b48ca32c5d53dd002",
+        "aiootp/__init__.py": "5990d14f65f4ac04a8d54856ef770f713d97b98e2f3a48504806d22c332c7c9d0eff1c9bfeec230707f275d1d576c53f",
         "aiootp/_constants/__init__.py": "e24756b0e58a80fadbabb7e217c998d6d942910f53de7d3adad17dd1d930a0e8a2856cc4425e2b3773de0c18fa65606b",
         "aiootp/_constants/datasets.py": "21afb138634fe80f4d7f06a019314e21bbeaa85ad12091e932e6e470b9fbb74c931b26340e093dac20515b07247c36f9",
         "aiootp/_constants/misc.py": "73dd685ef778b3137c4887ca7adc112fd3d0d6587422b93aba4014f22fa74e1df45b870bc12dd4bef95ae44702b974a8",
@@ -128,7 +128,8 @@
         "licenses/pytest-asyncio_LICENSE.txt": "c7eade567a30b0dd5c3b56ebd500733d48a28d92897e69d2dc3130773a3a560e5ff470ae6d5af5b627a204fdaefc4b5c",
         "licenses/pytest_LICENSE.txt": "a8144a38e953dca1ffe5cc0e7dbacdb56bbabf012aba9adf2f65b51ed823f78e7333d82ec9c18cc88b4daba95b7f6330",
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
-        "pyproject.toml": "159417408523b238bd842e97af7dfb36c9c0b9a9e8b2f481c870bbaf5e85e625d9217497185879c1a99abcfcafa05890",
+        "pyproject.toml": "482e4b6f0e4982ecdcbdcd2f2e7287ed98cfacde97d99ea4335e06f9ffa850d3401f5e738c4d78607a3c6a8af1e37a23",
+        "setup.cfg": "09cbcaf58f29823537e017ceaa6077b80f0d1136560c8b705ee9446c57479ef6f29733e540b24fa5cf57cec6f69f8465",
         "setup.py": "adf70ba11864f435b1bbb476c0c8818199b6d945b4ff4fa4a8819b160c8e5ed12abcf58240a7121fd6663be3ccd38b3a",
         "sign_package_build.py": "5e355bba462f8067b0d88666d8e9d1d551c18e28dbd2100edc90e873dedf92e91e11c206c1e119d8ee0cf34f33723aa2",
         "tests/conftest.py": "eb991a9464363bdce93a7fc7938770569ef4884e0c70d8537f7f660501b1fa554cd0be1f21c2313135967a5cf67266e7",
@@ -178,13 +179,13 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "3",
+        "build_number": "0",
         "date": 19946,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "license": "AGPLv3",
         "package": "aiootp",
-        "version": "0.23.12"
+        "version": "0.23.13"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "33d611e0b99c207cff9b8b9aaa35a11ca35c07cf5b20c42f40b2516a3661b0a9dd0f4aa4986d0a7fd7e4964d7f7a2e0e43a36c80892d9cc1e31e77de7cefe902"
+    "signature": "f7d9fc854965724c71fbc9d8452a1b6e0f725619b1de2a4d202fb416e3170ae208d59b54ade12628ff7b186b501d17178a69ae5cbbd85f0993cc1df9b84b3a08"
 }
