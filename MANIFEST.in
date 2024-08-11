@@ -133,6 +133,7 @@ include licenses/pytest-asyncio_LICENSE.txt
 include licenses/pytest_LICENSE.txt
 include logo.png
 include pyproject.toml
+include setup.cfg
 include setup.py
 include sign_package_build.py
 include tests/conftest.py
