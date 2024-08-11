@@ -13,6 +13,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - build: start transition to the new standard ``pyproject.toml``
+- build: continue ``pyproject.toml`` updates for Ruff & manifest
 - style: apply Ruff rule A001 for module doctring placement
 
 
