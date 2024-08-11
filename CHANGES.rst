@@ -5,6 +5,26 @@
 
 
 
+Changes for version 0.23.13
+---------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+- None
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+- ci: attempt bash shell for Windows GH actions tarball tests
+- build(package): swap author order for display purposes
+- build: attempt specifying python versions in wheel file
+
+
+
+
 Changes for version 0.23.12
 ---------------------------
 
