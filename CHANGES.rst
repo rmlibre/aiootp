@@ -19,6 +19,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - ci: attempt bash shell for Windows GH actions tarball tests
+- ci: attempt tar command for Windows GH actions tarball tests
 - build(package): swap author order for display purposes
 - build: attempt specifying python versions in wheel file
 
