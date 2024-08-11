@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiootp"
-version = "0.23.12"
+dynamic = ["version"]
 description = "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage."
 readme = "README.rst"
 license = {text = "AGPL-3.0-only"}
@@ -263,6 +263,10 @@ dev = [
 include-package-data = true
 license-files = ["LICENSE"]
 package-dir = {"" = "aiootp"}
+
+
+[tool.setuptools.dynamic]
+version = {attr = "__init__.__version__"}
 
 
 [tool.pytest.ini_options]
