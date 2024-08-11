@@ -24,6 +24,7 @@ Minor Changes
 - style: apply Ruff rule B008 exception only to ``rng.py`` module
 - style: remove Ruff rule UP015 exception since using pathlib
 - style: clean & sort ``MANIFEST.in`` with git ls-tree
+- refactor: prepare for ``pyproject.toml`` with new signing ceremony file
 
 
 
