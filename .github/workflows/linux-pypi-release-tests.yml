@@ -1,0 +1,35 @@
+name: linux-pypi-tarball-tests
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      max-parallel: 5
+      matrix:
+        python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x"]
+        os: [ubuntu-latest]
+    steps:
+    - uses: actions/checkout@v4
+    - name: setup python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python3 -m pip install --upgrade pip pytest pytest-asyncio coverage ruff aiofiles cryptography
+    - name: run tests from pypi tarball
+      run: |
+        PACKAGE_NAME=aiootp
+        PACKAGE_VERSION=$(pip3 index versions $PACKAGE_NAME | grep -oE '\([^\)]+\)' | tr -d '()')
+        python3 -m pip download $PACKAGE_NAME==$PACKAGE_VERSION --no-deps --no-binary :all:
+        tar -xzvf $PACKAGE_NAME-$PACKAGE_VERSION.tar.gz
+        cd $PACKAGE_NAME-$PACKAGE_VERSION
+        ruff check . && ruff format --line-length=76 --check .
+        cd tests
+        coverage run --omit="**/__engagement/*" --source aiootp -p -m pytest -vv test_aiootp.py
+        coverage combine
+        coverage report

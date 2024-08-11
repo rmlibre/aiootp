@@ -11,6 +11,7 @@
 #
 
 
+import os
 import json
 from pathlib import Path
 from getpass import getpass
@@ -30,7 +31,10 @@ with Path("README.rst").open("r") as readme:
     long_description = readme.read()
 
 
-if __name__ != "__main__":
+if (
+    os.getenv("NOW_BUILDING_AIOOTP").lower().strip() != "true"
+    or __name__ != "__main__"
+):
     pass
 elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
     with Path("SIGNATURE.txt").open("r") as sig:
