@@ -12,6 +12,7 @@ Changes for version 0.23.12
 Major Changes
 ^^^^^^^^^^^^^
 
+- fix(concurrency): use constant-time 'is done' logic for cipher streams
 - build: start transition to the new standard ``pyproject.toml``
 - build: continue ``pyproject.toml`` updates for Ruff & manifest
 - style: apply Ruff rule A001 for module doctring placement

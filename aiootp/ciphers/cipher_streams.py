@@ -254,10 +254,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
             session.send_packet(block_id + ciphertext)
         """
         async with ConcurrencyGuard(self._digesting_now):
-            if (
-                self._finalizing_now
-                and self._finalizing_now[0] not in self._digesting_now
-            ):
+            if await self._aconstant_time_final_context_is_done():
                 raise CipherStreamIsClosed
             self._byte_count += len(data)
             data = io.BytesIO(data).read
@@ -485,10 +482,7 @@ class CipherStream(CipherStreamProperties):
             session.send_packet(block_id + ciphertext)
         """
         with ConcurrencyGuard(self._digesting_now, probe_delay=0.0001):
-            if (
-                self._finalizing_now
-                and self._finalizing_now[0] not in self._digesting_now
-            ):
+            if self._constant_time_final_context_is_done():
                 raise CipherStreamIsClosed
             self._byte_count += len(data)
             data = io.BytesIO(data).read

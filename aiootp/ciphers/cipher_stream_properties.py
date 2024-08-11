@@ -21,7 +21,9 @@ __all__ = ["AuthFail", "CipherStreamProperties"]
 from aiootp._typing import Typing as t
 from aiootp._exceptions import TimestampExpired, IncoherentConcurrencyState
 from aiootp._exceptions import InvalidBlockID, InvalidSHMAC
+from aiootp.asynchs import asleep
 from aiootp.commons import OpenFrozenSlots
+from aiootp.generics import abytes_are_equal, bytes_are_equal
 
 
 class AuthFail(OpenFrozenSlots):
@@ -99,6 +101,41 @@ class CipherStreamProperties:
         the encryption algorithm.
         """
         return self._key_bundle.iv
+
+    async def _aconstant_time_final_context_is_done(self) -> bool:
+        """
+        Tests in constant time whether the queue token set during the
+        (a)finalize call has already been popped from the digesting queue.
+        If so, the stream has been closed so returns `True`. Otherwise
+        returns `False`.
+        """
+        await asleep()
+        if not self._finalizing_now:
+            return False
+
+        final_token = self._finalizing_now[0]
+        membership_tests = [
+            await abytes_are_equal(queued_token, final_token)
+            for queued_token in self._digesting_now
+        ]
+        return not sum(membership_tests)
+
+    def _constant_time_final_context_is_done(self) -> bool:
+        """
+        Tests in constant time whether the queue token set during the
+        (a)finalize call has already been popped from the digesting queue.
+        If so, the stream has been closed so returns `True`. Otherwise
+        returns `False`.
+        """
+        if not self._finalizing_now:
+            return False
+
+        final_token = self._finalizing_now[0]
+        membership_tests = (
+            bytes_are_equal(queued_token, final_token)
+            for queued_token in self._digesting_now
+        )
+        return not sum(membership_tests)
 
 
 module_api = dict(
