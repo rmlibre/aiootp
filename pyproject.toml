@@ -385,6 +385,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "{issue_reporting,setup,sign_package_build}.py" = [
     "T201",  # legit print use in CLI
 ]
+"sign_package_build.py" = [
+    "S603",  # legit shell use to get git file tree to sign
+]
 "**/_typing/*" = [
     "A002",  # no control if mirrored interfaces reuse built-in names
     "FBT001",  # no control over positional boolean params here

@@ -12,7 +12,7 @@ Changes for version 0.23.13
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- build: improve package signing with better logic & git file tree
 
 
 Minor Changes

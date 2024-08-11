@@ -18,6 +18,8 @@ A script to run the package signer over the build.
 import json
 from pathlib import Path
 from getpass import getpass
+from shlex import quote, split
+from subprocess import check_output
 
 from aiootp import (
     __doc__,
@@ -25,17 +27,26 @@ from aiootp import (
     __package__,
     __version__,
     __author__,
+    __PUBLIC_ED25519_KEY__ as aiootp_signing_key,
 )
 from aiootp import PackageSigner, PackageVerifier
 
 
-if __name__ == "__main__" and getpass(
-    "sign package? (y/N) "
-).lower().strip().startswith("y"):
+if __name__ != "__main__":
+    pass
+elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
     with Path("SIGNATURE.txt").open("r") as sig:
         scope = json.loads(sig.read())[PackageSigner._SCOPE]
         print("current version:", __version__)
         print(f"current build: {scope['build_number']}\n")
+
+    git_branch = next(
+        line.strip().split()[-1]
+        for line in check_output(split("git branch")).decode().split("\n")
+        if line.startswith("*")
+    )
+    if f"* {git_branch}" not in check_output(split("git branch")).decode():
+        raise ValueError(f"The value {git_branch=} is invalid.")
 
     signer = PackageSigner(
         package=__package__,
@@ -43,6 +54,7 @@ if __name__ == "__main__" and getpass(
         author=__author__,
         license=__license__,
         description=__doc__,
+        git_branch=git_branch,
         build_number=getpass("build number: "),
     )
     signer.connect_to_secure_database(
@@ -72,20 +84,19 @@ if __name__ == "__main__" and getpass(
             **{getpass("name: ").strip(): getpass("value: ")}
         )
 
-    with Path("MANIFEST.in").open("r") as manifest:
-        filename_sheet = manifest.read().strip().split("\n")
-
-    for line in filename_sheet:
-        line = line.strip()
-        if "SIGNATURE" in line or not line.startswith("include"):
+    git_branch_tree = check_output(
+        split(f"git ls-tree --full-tree -r {quote(git_branch)}")
+    )
+    for line in git_branch_tree.decode().strip().split("\n"):
+        filename = line.strip().split("\t")[-1].strip()
+        if not filename or "SIGNATURE" in filename:
             continue
-        filename = line.split(" ")[-1]
         with Path(filename).open("rb") as source_file:
             signer.add_file(filename, source_file.read())
 
     signer.sign_package()
     summary = signer.summarize()
-    verifier = PackageVerifier(signer.signing_key.public_bytes, path="")
+    verifier = PackageVerifier(bytes.fromhex(aiootp_signing_key), path="")
     verifier.verify_summary(summary)
     with Path("SIGNATURE.txt").open("w+") as attestation:
         attestation.write(json.dumps(summary, indent=4))
