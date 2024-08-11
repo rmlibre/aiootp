@@ -18,7 +18,6 @@ authors = [
 maintainers = [
     {name = "Ricchi Machado", email = "rmlibre@riseup.net"}
 ]
-urls = {"Homepage" = "https://twitter.com/aiootp", "Download" = "https://pypi.org/project/aiootp", "Source" = "https://github.com/rmlibre/aiootp", "Repository" = "https://github.com/rmlibre/aiootp.git", "Tracker" = "https://github.com/rmlibre/aiootp/issues", "Changelog" = "https://github.com/rmlibre/aiootp/blob/main/CHANGES.rst", "Documentation" = "https://github.com/rmlibre/aiootp/blob/main/README.rst"}
 classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: AsyncIO",
@@ -257,6 +256,16 @@ dev = [
     "ruff>=0.5.0",
     "twine>=5.1.1"
 ]
+
+
+[project.urls]
+Homepage = "https://twitter.com/aiootp"
+Download = "https://pypi.org/project/aiootp"
+Source = "https://github.com/rmlibre/aiootp"
+Repository = "https://github.com/rmlibre/aiootp.git"
+Tracker = "https://github.com/rmlibre/aiootp/issues"
+Changelog = "https://github.com/rmlibre/aiootp/blob/main/CHANGES.rst"
+Documentation = "https://github.com/rmlibre/aiootp/blob/main/README.rst"
 
 
 [tool.setuptools]

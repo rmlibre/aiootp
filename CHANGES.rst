@@ -19,6 +19,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - build: use standard SPDX string name for project license
+- build: move links to 'project.urls' table in 'pyproject.toml'
 
 
 
