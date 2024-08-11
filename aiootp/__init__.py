@@ -20,7 +20,7 @@ communication, & storage.\
 __version__ = "0.23.14"
 
 
-__license__ = "AGPLv3"
+__license__ = "AGPL-3.0-only"
 
 
 __author__ = "rmlibre@riseup.net"

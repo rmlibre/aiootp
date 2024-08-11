@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- build: use standard SPDX string name for project license
 
 
 
