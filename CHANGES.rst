@@ -12,7 +12,7 @@ Changes for version 0.23.14
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- build: fix improperly packaged directory structure for wheel
 
 
 Minor Changes

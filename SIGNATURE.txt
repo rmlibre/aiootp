@@ -1,5 +1,5 @@
 {
-    "checksum": "b79db7591144626753f40c3e637515f3452db828e4811f267732ef6efaf24121ab75ffd452f790aed7a74d2589b74f66",
+    "checksum": "ec6188d3707bdb66723dee8b9c8f7e9e9e403e7ad88dbad1b764c61046b74efd247eea686a19c4eede25b333e35038de",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "8391a79d347dd43ac01fc856a8262c24391d3aafc4959a20e8ee626f93aaa4af1d276325d408691d31afd311d88623a5",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "a1ceb5d9b37be6fc24bfe47f129283705b60f173821c6228835cd4faf8cd9db5e77e32f4b93c2054bacd95d4e34dc288",
         ".github/workflows/windows-python-app.yml": "212109a917bf97f26ed5b61d8d0d28051d9f53b01a8f11ac2df50613b76ba8999e5e855e808d2cead808704f3dcfd037",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "fa1bfbcb1b4622aeb01049c807c8d70a06b360febfa215c76bc7494a11b73ef1daed581f985187c96bdec7d96b63d99f",
+        "CHANGES.rst": "e87565a12eca70c5584585c2683790f1213e5f9defea9bb718ebbedd3fceb72407d73a0bbd6672d261f910944b4d2fee",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -22,7 +22,7 @@
         "SECURITY.md": "3edb91af4af405b1bc620c7090bc46e29602d5b3e3cf0ee3013c32894dce1f55402a8e4fc4f7633c4d999f08aa7afb98",
         "aiootp/__engagement/__init__.py": "c35ff456893f72944342077d5cc94a1437f30ad0aa1ffb6ad8925fdc44eaf8aeb950eb4d09529b9a6489f8bd2ab6dc7d",
         "aiootp/__engagement/issue_reporting.py": "83cdea1605a6987ad9a4d1a7752f6a735b025ae9ef8ed63becd78d1cb62b620ca6aa510ccf67aa0e13a81e0ea2d9ecf1",
-        "aiootp/__init__.py": "5990d14f65f4ac04a8d54856ef770f713d97b98e2f3a48504806d22c332c7c9d0eff1c9bfeec230707f275d1d576c53f",
+        "aiootp/__init__.py": "324983940a414b55bd2e435cb3063ca6b962c8803c244826c52912b473c85c215433acbb98427e2b52fa911f0b29f792",
         "aiootp/_constants/__init__.py": "e24756b0e58a80fadbabb7e217c998d6d942910f53de7d3adad17dd1d930a0e8a2856cc4425e2b3773de0c18fa65606b",
         "aiootp/_constants/datasets.py": "21afb138634fe80f4d7f06a019314e21bbeaa85ad12091e932e6e470b9fbb74c931b26340e093dac20515b07247c36f9",
         "aiootp/_constants/misc.py": "73dd685ef778b3137c4887ca7adc112fd3d0d6587422b93aba4014f22fa74e1df45b870bc12dd4bef95ae44702b974a8",
@@ -138,7 +138,7 @@
         "licenses/pytest-asyncio_LICENSE.txt": "c7eade567a30b0dd5c3b56ebd500733d48a28d92897e69d2dc3130773a3a560e5ff470ae6d5af5b627a204fdaefc4b5c",
         "licenses/pytest_LICENSE.txt": "a8144a38e953dca1ffe5cc0e7dbacdb56bbabf012aba9adf2f65b51ed823f78e7333d82ec9c18cc88b4daba95b7f6330",
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
-        "pyproject.toml": "9e00c0b991968d92588a04e131b38c1e94d8a74b5d5f6d72c85329960d60d06363ba706dc2c5f5cfd17126cccd31b388",
+        "pyproject.toml": "bdc545c4e36c52236506d4f73d49faba2ea05cd77891886fbe20a865125f0431248f11c4a8ab9e66a1b2f1e976a72e35",
         "setup.cfg": "09cbcaf58f29823537e017ceaa6077b80f0d1136560c8b705ee9446c57479ef6f29733e540b24fa5cf57cec6f69f8465",
         "setup.py": "adf70ba11864f435b1bbb476c0c8818199b6d945b4ff4fa4a8819b160c8e5ed12abcf58240a7121fd6663be3ccd38b3a",
         "sign_package_build.py": "37b574f6f9b62896a46532977c75e11dd2bff81b0ce2543c981119ab7ea00227c0c86d2c09709339cf44c0f4857728aa",
@@ -189,14 +189,14 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "2",
-        "date": 19946,
+        "build_number": "3",
+        "date": 19947,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
-        "license": "AGPLv3",
+        "license": "AGPL-3.0-only",
         "package": "aiootp",
-        "version": "0.23.13"
+        "version": "0.23.14"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "898f87b56492ce86eb6bfa91b4898b43b2e090f91f0b73f172d542bddf2eeeb53e9f2a53dd2ed003ecc2b03da4217dc6c3147d5673feb345fe18e96b15440c08"
+    "signature": "2fdc8eb1628a395362a74e2eec0bbafa91fb33c13e70bdd9d155379619e3280e2a384d641f33184c3d71fd3fbb0cb654a379fec0b38b6bdc6923bd735856c00b"
 }
