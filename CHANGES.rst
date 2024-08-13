@@ -107,7 +107,6 @@ Minor Changes
 
 - docs(ruff): improve grammar & structure of rule annotations
 - build(ignore): extend & alphabetize with explicit dirs
-- refactor(tests): use more descriptive names
 - refactor: rename test init file to the standard 'conftest.py'
 - refactor(tests): use more descriptive names
 
