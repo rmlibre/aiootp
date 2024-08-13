@@ -5,9 +5,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiootp"
-dynamic = ["version"]
+dynamic = ["version", "readme"]
 description = "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage."
-readme = "README.rst"
 license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.8"
 dependencies = ["aiofiles>=24.1.0", "cryptography>=43.0.0"]
@@ -288,6 +287,7 @@ aiootp = ["db/README_DATABASES.rst", "tor/README_TOR.rst"]
 
 [tool.setuptools.dynamic]
 version = {attr = "aiootp.__init__.__version__"}
+readme = {file = ["README.rst"]}
 
 
 [tool.pytest.ini_options]

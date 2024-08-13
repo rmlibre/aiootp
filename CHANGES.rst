@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- build: use dynamic table to specify the package readme
 
 
 
