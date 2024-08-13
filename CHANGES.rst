@@ -12,7 +12,7 @@ Changes for version 0.23.15
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- build: update dependencies & add coverage to dev & test installs
 
 
 Minor Changes

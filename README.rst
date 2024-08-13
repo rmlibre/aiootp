@@ -68,7 +68,7 @@ Quick Install
 
     $ sudo apt-get install python3 python3-setuptools python3-pip
 
-    $ pip3 install --user --upgrade pip typing aiootp
+    $ pip3 install --user --upgrade pip aiootp
 
 
 
@@ -78,13 +78,14 @@ Run Tests
 
 .. code-block:: shell
 
-    $ pip3 install --user --upgrade ruff pytest pytest-asyncio coverage
+    $ # Install tests dependencies
+    $ pip3 install --user --upgrade aiootp[test]
 
-    $ ruff check . && ruff format --line-length=76 --check .
+    $ cd /path/to/aiootp-repo/
 
-    $ coverage run --source aiootp -p -m pytest -vv tests/test_aiootp.py
+    $ ruff check . && ruff format --check .
 
-    $ coverage combine && coverage html && coverage report
+    $ coverage run && coverage combine && coverage html && coverage report
 
 
 
