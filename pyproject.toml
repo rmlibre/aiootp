@@ -313,6 +313,10 @@ concurrency = ["thread", "multiprocessing"]
 omit = ["**/__engagement/**", "**/db/**", "**/tor/**"]
 
 
+[tool.coverage.html]
+directory = "tests/htmlcov"
+
+
 [tool.ruff]
 exclude = [
     ".bzr",
