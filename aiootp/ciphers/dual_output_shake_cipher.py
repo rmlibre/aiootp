@@ -62,7 +62,9 @@ class DualOutputKDFs(CipherKDFs):
         self.keyed_left_kdf = self.key_base_kdf(LEFT_KDF, key=key)
         self.keyed_right_kdf = self.key_base_kdf(RIGHT_KDF, key=key)
 
-    def new_session(self, summary: bytes) -> t.Iterable[t.XOFType]:
+    def new_session(
+        self, summary: bytes
+    ) -> t.Generator[t.Tuple[str, t.XOFType], None, None]:
         """
         Yields copies of the instance's KDFs that have been given the
         fresh randomness & context of a session's `summary`.

@@ -20,6 +20,7 @@ Minor Changes
 
 - build: use dynamic table to specify the package readme
 - build: specify the coverage htmlcov directory
+- docs: fix wrong typing annotation
 
 
 
