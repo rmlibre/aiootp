@@ -23,6 +23,7 @@ Minor Changes
 - build: specify the coverage htmlcov directory
 - build: remove 'command_line' so coverage can run specific files
 - docs: fix wrong typing annotation
+- test: prepare fixtures to refactor 'test_PackageSigner.py'
 
 
 

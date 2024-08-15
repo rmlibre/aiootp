@@ -11,6 +11,7 @@
 #
 
 
+import platform
 import multiprocessing
 
 
@@ -38,6 +39,7 @@ sys.path.insert(0, _PACKAGE_PATH)
 import aiootp
 from aiootp import *
 from aiootp._paths import *
+from aiootp._paths import DatabasePath
 from aiootp._typing import *
 from aiootp._constants.misc import *
 from aiootp._constants.datasets import *
@@ -49,7 +51,7 @@ from aiootp.commons.slots import Slots, FrozenSlots
 from aiootp.commons.namespaces import Namespace, OpenNamespace
 from aiootp.commons.configs import Config, ConfigMap
 from aiootp.asynchs import Processes, Threads, Clock
-from aiootp.asynchs import run, asleep, get_process_id, get_thread_id
+from aiootp.asynchs import run, asleep, sleep, get_process_id, get_thread_id
 from aiootp.generics import *
 from aiootp.generics import ByteIO
 from aiootp.generics.canon import acanonical_pack, canonical_pack
@@ -68,6 +70,7 @@ DebugControl.disable_debugging()
 # create static values for this test session
 t = Typing
 
+test_path = Path(__file__).parent.parent
 violation = lambda problem: lambda relay: raise_exception(
     AssertionError(f"{problem} : {relay!r}")
 )
@@ -418,6 +421,89 @@ def config():
 @pytest.fixture()
 def mapping():
     return ConfigMap(config_type=ExampleConfig)
+
+
+@pytest.fixture(scope="session")
+def pkg_context() -> Namespace:
+    context = Namespace(
+        test_key=token_bytes(64),
+        test_salt=token_bytes(64),
+        db_directory=DatabasePath(),
+        username=b"test_username",
+        signing_key=PackageSigner.generate_signing_key(),
+        package=aiootp.__package__,
+        version=aiootp.__version__,
+        author=aiootp.__author__,
+        license=aiootp.__license__,
+        description=aiootp.__doc__,
+        date=Clock(DAYS, epoch=0).time(),
+        build_number=0,
+        test_path=test_path,
+    )
+    filename_sheet = """
+    include tests/conftest.py
+    include tests/test_ByteIO.py
+    include tests/test_Database_AsyncDatabase.py
+    include tests/test_Passcrypt.py
+    include tests/test_StreamHMAC.py
+    include tests/test_X25519_Ed25519.py
+    include tests/test_aiootp.py
+    include tests/test_ciphers.py
+    include tests/test_generics.py
+    include tests/test_high_level_encryption.py
+    include tests/test_misc_in_ciphers.py
+    include tests/test_misc_in_generics.py
+    include tests/test_misc_in_randoms.py
+    include tests/test_randoms.py
+    """.strip().split("\n")
+    context.files = [
+        test_path / line.strip().split(" ")[-1] for line in filename_sheet
+    ]
+    return context
+
+
+@pytest.fixture(scope="session")
+def pkg_signer(
+    pkg_context: Namespace,
+) -> t.Generator[t.Tuple[Namespace, PackageSigner], None, None]:
+    signer = PackageSigner(
+        package=pkg_context.package,
+        version=pkg_context.version,
+        author=pkg_context.author,
+        license=pkg_context.license,
+        description=pkg_context.description,
+        build_number=pkg_context.build_number,
+    )
+
+    is_mac_os_issue = lambda _: (platform.system() == "Darwin")
+    while True:
+        sleep(0.001)
+        with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):
+            signer.connect_to_secure_database(
+                username=pkg_context.username,
+                passphrase=pkg_context.test_key,
+                salt=pkg_context.test_salt,
+                path=pkg_context.db_directory,
+                **LOW_PASSCRYPT_SETTINGS,
+            )
+            break
+
+    signer.update_signing_key(pkg_context.signing_key)
+    for path in pkg_context.files:
+        with path.open("rb") as source_file:
+            signer.add_file(str(path), source_file.read())
+
+    signer.sign_package()
+
+    yield signer
+
+    signer.db.delete_database()
+
+
+@pytest.fixture(scope="session")
+def pkg_verifier(pkg_signer: PackageSigner) -> PackageVerifier:
+    public_bytes = pkg_signer.signing_key.public_bytes
+    return PackageVerifier(public_bytes, path=test_path)
 
 
 __all__ = [n for n in globals() if not n.startswith("_")]
