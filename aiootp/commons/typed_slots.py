@@ -139,8 +139,8 @@ class TypedSlots(Slots):
 
     def __init_subclass__(cls, /, *a: t.Any, **kw: t.Any) -> None:
         """
-        Installs a prepared an class-specific type to govern type
-        correctness to all subclasses.
+        Installs a prepared, class-specific type to govern type
+        correctness for all subclasses.
         """
         super().__init_subclass__(*a, **kw)
         cls.slots_types = cls._make_frozen_class_slots_types()
