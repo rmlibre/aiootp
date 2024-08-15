@@ -305,10 +305,11 @@ addopts = [
 
 
 [tool.coverage.run]
+branch = true
 parallel = true
 relative_files = true
 source = ["aiootp"]
-command_line = "-m pytest tests/test_aiootp.py"
+# command_line = "-m pytest tests/test_aiootp.py"
 concurrency = ["thread", "multiprocessing"]
 omit = ["**/__engagement/**", "**/db/**", "**/tor/**"]
 

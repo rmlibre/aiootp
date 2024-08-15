@@ -81,11 +81,13 @@ Run Tests
     $ # Install tests dependencies
     $ pip3 install --user --upgrade aiootp[test]
 
-    $ cd /path/to/aiootp-repo/
+    $ cd /path/to/aiootp-repo-with-tests/
 
     $ ruff check . && ruff format --check .
 
-    $ coverage run && coverage combine && coverage html && coverage report
+    $ coverage run -m pytest tests/test_aiootp.py
+
+    $ coverage combine && coverage html && coverage report
 
 
 
