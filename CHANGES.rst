@@ -24,6 +24,7 @@ Minor Changes
 - build: remove 'command_line' so coverage can run specific files
 - docs: fix wrong typing annotation
 - test: prepare fixtures to refactor 'test_PackageSigner.py'
+- test: refactor 'test_PackageSigner.py' & cover all branches
 
 
 
