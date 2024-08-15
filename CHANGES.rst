@@ -18,6 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- fix: capture ``KeyError`` & raise ``AttributeError`` instead [#8]
 - build: use dynamic table to specify the package readme
 - build: specify the coverage htmlcov directory
 - build: remove 'command_line' so coverage can run specific files

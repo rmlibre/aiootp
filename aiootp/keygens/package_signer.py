@@ -178,9 +178,12 @@ class PackageSigner:
         """
         package = self._scope.package
         aad = canonical_pack(Domains.PACKAGE_SIGNER, package.encode())
-        encrypted_key = self.db[package][self._SIGNING_KEY]
-        if not encrypted_key:
-            raise PackageSignerIssue.SigningKeyNotSet
+        try:
+            encrypted_key = self.db[package][self._SIGNING_KEY]
+            if not encrypted_key:
+                raise KeyError
+        except KeyError as error:
+            raise PackageSignerIssue.SigningKeyNotSet from error
         key = self.db.read_token(encrypted_key, aad=aad)
         return self._Signer().import_secret_key(key)
 
