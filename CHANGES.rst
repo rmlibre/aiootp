@@ -27,6 +27,7 @@ Minor Changes
 - test: prepare fixtures to refactor 'test_PackageSigner.py'
 - test: refactor 'test_PackageSigner.py' & cover all branches
 - test: cover input combinations for ``(a)test_timestamp``
+- refactor: remove unnecessary variable alias
 
 
 

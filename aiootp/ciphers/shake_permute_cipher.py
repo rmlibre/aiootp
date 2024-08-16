@@ -240,11 +240,8 @@ class ShakePermuteStreamJunction(StreamJunction):
         with another SHAKE round key, & feeding the values to the `shmac`
         for validation & distinct altering of the keystream.
         """
-        datastream, validated_transform = (
-            data,
-            shmac._avalidated_transform,
-        )
-        async for block in datastream:
+        validated_transform = shmac._avalidated_transform
+        async for block in data:
             yield await validated_transform(block)
 
     @classmethod
@@ -257,8 +254,8 @@ class ShakePermuteStreamJunction(StreamJunction):
         with another SHAKE round key, & feeding the values to the `shmac`
         for validation & distinct altering of the keystream.
         """
-        datastream, validated_transform = (data, shmac._validated_transform)
-        for block in datastream:
+        validated_transform = shmac._validated_transform
+        for block in data:
             yield validated_transform(block)
 
 
