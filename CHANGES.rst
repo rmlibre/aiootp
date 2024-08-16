@@ -26,6 +26,7 @@ Minor Changes
 - docs: fix docstring typo & grammar
 - test: prepare fixtures to refactor 'test_PackageSigner.py'
 - test: refactor 'test_PackageSigner.py' & cover all branches
+- test: cover input combinations for ``(a)test_timestamp``
 
 
 

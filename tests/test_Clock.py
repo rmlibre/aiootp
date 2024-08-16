@@ -285,5 +285,69 @@ class TestClock:
         assert str(units) in string
         assert str(epoch) in string
 
+    @pytest.mark.parametrize("delta", [1, 2, 32])
+    @pytest.mark.parametrize(
+        "units,min_resolution,timestamp_bytes",
+        [
+            (NANOSECONDS, 2 * 10**8, [8, 9, 10, 11]),
+            (MICROSECONDS, 2 * 10**5, [7, 8, 9, 10]),
+            (MILLISECONDS, 2 * 10**2, [5, 6, 7, 8]),
+            (SECONDS, 1, [4, 5, 6, 7, 8]),
+            (MINUTES, 1, [4, 5, 6, 7, 8]),
+            (HOURS, 1, [3, 5, 6, 8]),
+            (DAYS, 1, [2, 3, 4, 8]),
+            (MONTHS, 1, [2, 3, 4, 8]),
+            (YEARS, 1, [1, 2, 4, 8]),
+        ],
+    )
+    async def test_delta_less_than_equal_to_ttl_passes(
+        self,
+        units: str,
+        min_resolution: int,
+        timestamp_bytes: t.List[int],
+        delta: int,
+    ) -> None:
+        clock = Clock(units)
+        for size in timestamp_bytes:
+            now = clock.make_timestamp(size=size)
+            assert len(now) == size
+            await clock.atest_timestamp(now, ttl=min_resolution * delta)
+            clock.test_timestamp(now, ttl=min_resolution * delta)
+
+    @pytest.mark.parametrize("ttl", [0, 1, 2, 32])
+    @pytest.mark.parametrize(
+        "units,timestamp_bytes",
+        [
+            (NANOSECONDS, [8, 9, 10, 11]),
+            (MICROSECONDS, [7, 8, 9, 10]),
+            (MILLISECONDS, [5, 6, 7, 8]),
+            (SECONDS, [4, 5, 6, 7, 8]),
+            (MINUTES, [4, 5, 6, 7, 8]),
+            (HOURS, [3, 5, 6, 8]),
+            (DAYS, [2, 3, 4, 8]),
+            (MONTHS, [2, 3, 4, 8]),
+            (YEARS, [1, 2, 4, 8]),
+        ],
+    )
+    async def test_delta_greater_than_ttl_fails(
+        self, units: str, timestamp_bytes: t.List[int], ttl: int
+    ) -> None:
+        clock = Clock(units)
+        past_time = max(0, clock.time() - ttl - 1)
+        if ttl - past_time >= 0:
+            ttl = past_time - 1
+        for size in timestamp_bytes:
+            problem = (  # fmt: skip
+                f"Expired {clock=} timestamp of {size=} with {ttl=} was "
+                "not caught."
+            )
+            past = past_time.to_bytes(size, BIG)
+            with Ignore(TimestampExpired, if_else=violation(problem)) as r:
+                await clock.atest_timestamp(past, ttl=ttl)
+            assert r.error.expired_by >= 1
+            with Ignore(TimestampExpired, if_else=violation(problem)) as r:
+                clock.test_timestamp(past, ttl=ttl)
+            assert r.error.expired_by >= 1
+
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
