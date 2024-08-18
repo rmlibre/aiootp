@@ -29,7 +29,12 @@ import hashlib
 import builtins
 from pathlib import Path
 from functools import partial
+from itertools import permutations as perm, combinations as comb
 from hashlib import sha3_256, sha3_512, shake_128, shake_256
+from hypothesis import settings, given, strategies as st
+
+settings.register_profile("default", max_examples=10)
+settings.load_profile("default")
 
 
 _PACKAGE_PATH = str(Path(__file__).absolute().parent.parent)
