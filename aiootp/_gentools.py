@@ -140,7 +140,11 @@ def batch(
 
 
 async def aresize(
-    sequence: t.Sequence[t.Any], /, size: int, *, blocks: int = 0
+    sequence: t.Sequence[t.Any],
+    /,
+    size: int,
+    *,
+    blocks: t.Optional[int] = None,
 ) -> t.AsyncGenerator[t.Sequence[t.Any], None]:
     """
     Runs through a `sequence` & yields `size` sized chunks of the
@@ -148,8 +152,13 @@ async def aresize(
     chunks allowed to be yielded from the generator. By default this
     generator yields all elements in the sequence.
     """
+    if size < 1:
+        raise Issue.value_must("size", "be >0")
+    elif blocks is not None and blocks < 1:
+        raise Issue.value_must("blocks", "be `None` or >0")
+
     length = len(sequence)
-    if not blocks or (blocks * size >= length):
+    if blocks is None or (blocks * size >= length):
         blocks = length + size
     else:
         blocks = (blocks * size) + 1
@@ -160,7 +169,11 @@ async def aresize(
 
 
 def resize(
-    sequence: t.Sequence[t.Any], /, size: int, *, blocks: int = 0
+    sequence: t.Sequence[t.Any],
+    /,
+    size: int,
+    *,
+    blocks: t.Optional[int] = None,
 ) -> t.Generator[t.Sequence[t.Any], None, None]:
     """
     Runs through a `sequence` & yields `size` sized chunks of the
@@ -168,8 +181,13 @@ def resize(
     chunks allowed to be yielded from the generator. By default this
     generator yields all elements in the sequence.
     """
+    if size < 1:
+        raise Issue.value_must("size", "be >0")
+    elif blocks is not None and blocks < 1:
+        raise Issue.value_must("blocks", "be `None` or >0")
+
     length = len(sequence)
-    if not blocks or (blocks * size >= length):
+    if blocks is None or (blocks * size >= length):
         blocks = length + size
     else:
         blocks = (blocks * size) + 1

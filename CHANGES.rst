@@ -30,6 +30,7 @@ Minor Changes
 - test: cover input combinations for ``(a)test_timestamp``
 - test: import ``hypothesis`` in 'conftest.py'
 - refactor: remove unnecessary variable alias
+- refactor: specify input types as positive integers
 
 
 
