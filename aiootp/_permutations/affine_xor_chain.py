@@ -87,7 +87,7 @@ class AffineXORChain(FrozenInstance):
                 permutation_type=AffinePermutation,
                 permutation_config_id=config_id,
             )
-            for config_id in [*range(1, 33), 64, 128, 192, 256]
+            for config_id in [*range(1, 33), 48, 64, 128, 192, 256]
         },
         config_type=AffineXORChainConfig,
     )

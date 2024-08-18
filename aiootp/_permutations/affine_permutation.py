@@ -63,7 +63,7 @@ class AffinePermutation(FrozenInstance):
     _configs = ConfigMap(
         mapping={
             config_id: AffinePermutationConfig(size=config_id)
-            for config_id in [*range(1, 33), 64, 128, 192, 256]
+            for config_id in [*range(1, 33), 48, 64, 128, 192, 256]
         },
         config_type=AffinePermutationConfig,
     )
