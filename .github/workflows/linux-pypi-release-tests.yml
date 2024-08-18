@@ -20,7 +20,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        python3 -m pip install --upgrade pip pytest pytest-asyncio coverage ruff aiofiles cryptography
+        python3 -m pip install --upgrade pip pytest pytest-asyncio coverage ruff hypothesis aiofiles cryptography
     - name: run tests from pypi tarball
       run: |
         PACKAGE_NAME=aiootp

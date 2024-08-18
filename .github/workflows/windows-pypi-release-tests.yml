@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         choco install git -y
-        python3 -m pip install --upgrade pip pytest pytest-asyncio coverage ruff aiofiles cryptography
+        python3 -m pip install --upgrade pip pytest pytest-asyncio coverage ruff hypothesis aiofiles cryptography
     - name: run tests from pypi tarball
       shell: bash
       run: |
