@@ -1,18 +1,18 @@
 {
-    "checksum": "f82e65cdd49cf7931671f687f218b83fddb0b51ffdbbf149295524dda052fd265b6231520f9d1a28f28944f656041132",
+    "checksum": "d8be9f6baf7208196ac0b6fd028f3cfadcdd751e0e621e85657be46ff37328e88ad9d9284115a7b2fccfed9321719a9f",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
-        ".github/workflows/linux-pypi-release-tests.yml": "8391a79d347dd43ac01fc856a8262c24391d3aafc4959a20e8ee626f93aaa4af1d276325d408691d31afd311d88623a5",
+        ".github/workflows/linux-pypi-release-tests.yml": "7d775427d8668d44982155d752c54288cd0335dd47f45e68980bb0816f348ef3b6f54e516c8f7a9f56ec6f48add3111f",
         ".github/workflows/linux-pypi-release.yml": "e92e772eea5f3f2e0a82836ae3275998cbbe3071ec7673ea46a4a2e700f699f07888f31f541950808b5b60881ca3a876",
-        ".github/workflows/linux-python-app.yml": "88e3398adcd350c44d63bb51c747db760bf61939db4848a1bb6e9ee1ad47b1fbb0611b759eff8f93048172251ebcd831",
-        ".github/workflows/macos-pypi-release-tests.yml": "4f277dd0928f122f17aa9eaf186f544cc8d3cef502a39689a3a3ab186417faeeb76ff171ed1ef3c9a0bb7e09916385ce",
+        ".github/workflows/linux-python-app.yml": "3fe959d266f8ec81f45fe0f50d553e7a502f333f2503e37dd866f32587f5650577f257f8bf2152ac468f6d2c4b7d591e",
+        ".github/workflows/macos-pypi-release-tests.yml": "8c6735b42301c4429a5f3dc5ac851b190556a8d292e4e48ff60582601126626e1b7e30b43df8d23e3223b42aa995bd3f",
         ".github/workflows/macos-pypi-release.yml": "978e94f107c232a454b50a86abc0bca08958958cd7b39d45b95150065ee188657c5b14e2526cc4bbf871792a26cb0cf9",
-        ".github/workflows/macos-python-app.yml": "3650ddf92d9ba3f8724d2f7ed8e03edbe7452afa93b439acfb4b0644821e07a5d7a1adc7068314e80481ef7fcdf538c8",
-        ".github/workflows/windows-pypi-release-tests.yml": "2222a4c4e354d74672cab0da0843e0f204283d039f3d39c62ebab84e20bd0a2a84d095948a0ceb682a6d2dc0432259e8",
+        ".github/workflows/macos-python-app.yml": "558890e3203cb5d148771d76be15541581ef7b7926e0941cfede256268f4f20376e65cf13633485a619b3619445989b1",
+        ".github/workflows/windows-pypi-release-tests.yml": "4c93854a2e335b757efa13d884103049f298fb3ce98dd539daccf98581bacf6b7718df13689d27ec2e0a235e0d353911",
         ".github/workflows/windows-pypi-release.yml": "a1ceb5d9b37be6fc24bfe47f129283705b60f173821c6228835cd4faf8cd9db5e77e32f4b93c2054bacd95d4e34dc288",
-        ".github/workflows/windows-python-app.yml": "212109a917bf97f26ed5b61d8d0d28051d9f53b01a8f11ac2df50613b76ba8999e5e855e808d2cead808704f3dcfd037",
+        ".github/workflows/windows-python-app.yml": "c253becb61d64a1739774ef350fece31cfd6a6f0e785569b8f896336e4fe945ba97a86a108d525d5a86cca372f357e0a",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "b50dcc5bc98f46ee56ffc837f8aca54dd1b3c4e5b70221c5e21d67b5f4127b59448a26ce146d5d759a7d9de23419a360",
+        "CHANGES.rst": "fc214e62f79655b734624ff41b22197f445ace862e6e264383270de232ad1681f5d844a2d3cb8560ac68606de63ec3b7",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -189,7 +189,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "2",
+        "build_number": "3",
         "date": 19953,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
@@ -198,5 +198,5 @@
         "version": "0.23.15"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "1d4a571d3cdb26a084321b040307aba04fa5f65d7b539044cf54cb3de08ce3357b0be128b87f9514f6bb65dfe56fa7cb814fa25728884bf7d944f52b7b9c020b"
+    "signature": "d9509f0c48cbc44d929d5432ed34e0096bea6738e5dd6feea26cebd6ab09e567d515b4d87e77bd737ec4aa7fbfb7de103bfc79abe244dcd71c602f008e49eb06"
 }
