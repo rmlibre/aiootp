@@ -78,42 +78,45 @@ class TestInspectTools:
 
 
 class TestGenerators:
-    async def test_bytes_count(self) -> None:
-        for start in (0, 33, 256, 1024):
-            for size in (4, 8):
-                for order in ("little", "big"):
-                    count = start
-                    async for index, aindex in gentools.azip(
-                        gentools.bytes_count(
-                            start=start, size=size, byte_order=order
-                        ),
-                        gentools.abytes_count(
-                            start=start, size=size, byte_order=order
-                        ),
-                    ):
-                        assert index == aindex
-                        assert index == count.to_bytes(size, order)
+    @pytest.mark.parametrize("first,second", [(0, 1), (1, 0)])
+    @pytest.mark.parametrize("order", ["little", "big"])
+    @given(start=st.integers(min_value=0))
+    async def test_bytes_count(
+        self, start: int, order: str, first: int, second: int
+    ) -> None:
+        count = start
+        size = (start.bit_length() // 8) + 2
+        funcs = [gentools.abytes_count, gentools.bytes_count]
+        async for index_0, index_1 in gentools.azip(
+            funcs[first](start=start, size=size, byte_order=order),
+            funcs[second](start=start, size=size, byte_order=order),
+        ):
+            assert index_0 == index_1
+            assert index_0 == count.to_bytes(size, order)
+            count += 1
+            if count > start + 4:
+                break
 
-                        count += 1
-                        if count > start + 4:
-                            break
-
-    async def test_counts(self) -> None:
-        for start in (0, 33, 256, 1024):
-            count = start
-            async for index, aindex in gentools.azip(
-                gentools.count(start=start),
-                gentools.acount(start=start),
-            ):
-                assert index == aindex
-                assert index == count
-
-                count += 1
-                if count > start + 4:
-                    break
+    @pytest.mark.parametrize("first,second", [(0, 1), (1, 0)])
+    @given(start=st.integers())
+    async def test_counts(
+        self, start: int, first: int, second: int
+    ) -> None:
+        count = start
+        funcs = [gentools.acount, gentools.count]
+        async for index_0, index_1 in gentools.azip(
+            funcs[first](start=start), funcs[second](start=start)
+        ):
+            assert index_0 == index_1
+            assert index_0 == count
+            count += 1
+            if count > start + 4:
+                break
 
     async def test_start_must_be_int_for_counts(self) -> None:
-        problem = "A non-int `start` value was allowed."
+        problem = (  # fmt: skip
+            "A non-int `start` value was allowed."
+        )
         for start in (0.0, None, "test", b"test"):
             with Ignore(TypeError, if_else=violation(problem)):
                 async for _ in gentools.acount(start=start):
@@ -122,145 +125,185 @@ class TestGenerators:
                 for _ in gentools.count(start=start):
                     pass
 
-    async def test_bytes_ranges(self) -> None:
-        for start in (0, 33, 256):
-            end = start + 4
-            for size in (4, 8):
-                for order in ("little", "big"):
-                    for skip in (1, 2):
-                        count = start
-                        async for index, aindex in gentools.azip(
-                            gentools.bytes_range(
-                                start,
-                                end,
-                                skip,
-                                size=size,
-                                byte_order=order,
-                            ),
-                            gentools.abytes_range(
-                                start,
-                                end,
-                                skip,
-                                size=size,
-                                byte_order=order,
-                            ),
-                        ):
-                            assert index == aindex
-                            assert index == count.to_bytes(size, order)
-                            assert start <= count < end
-                            count += skip
+    @pytest.mark.parametrize("first,second", [(0, 1), (1, 0)])
+    @pytest.mark.parametrize("order", ["little", "big"])
+    @pytest.mark.parametrize("size", [4, 8])
+    @pytest.mark.parametrize("skip", [1, 2])
+    @pytest.mark.parametrize("start", [0, 33, 256])
+    async def test_bytes_ranges(
+        self,
+        start: int,
+        skip: int,
+        size: int,
+        order: str,
+        first: int,
+        second: int,
+    ) -> None:
+        count = start
+        end = start + 4
+        funcs = [gentools.abytes_range, gentools.bytes_range]
+        async for index_0, index_1 in gentools.azip(
+            funcs[first](start, end, skip, size=size, byte_order=order),
+            funcs[second](start, end, skip, size=size, byte_order=order),
+        ):
+            assert index_0 == index_1
+            assert index_0 == count.to_bytes(size, order)
+            assert start <= count < end
+            count += skip
+        assert (count - start) // skip == len([*range(start, end, skip)])
 
-    async def test_ranges(self) -> None:
-        for start in (0, 33, 256):
-            end = start + 4
-            for skip in (1, 2):
-                count = start
-                async for index, aindex in gentools.azip(
-                    range(start, end, skip),
-                    gentools.arange(start, end, skip),
-                ):
-                    assert index == aindex
-                    assert index == count
-                    assert start <= count < end
-                    count += skip
+    @pytest.mark.parametrize("skip", [1, 2])
+    @pytest.mark.parametrize("start", [0, 33, 256])
+    async def test_ranges(self, start: int, skip: int) -> None:
+        count = start
+        end = start + 4
+        async for index_0, index_1 in gentools.azip(
+            gentools.arange(start, end, skip),
+            range(start, end, skip),
+        ):
+            assert index_0 == index_1
+            assert index_0 == count
+            assert start <= count < end
+            count += skip
+        assert (count - start) // skip == len([*range(start, end, skip)])
 
-    async def test_batches(self) -> None:
-        for blocks in (1, 2, 3):
-            for size in (4, 8, 13):
-                for unit, cls in ((b"a", io.BytesIO), ("a", io.StringIO)):
-                    result = unit.__class__()
-                    data = blocks * size * unit
-                    async for block, ablock in gentools.azip(
-                        gentools.batch(data, size=size, buffer_type=cls),
-                        gentools.abatch(data, size=size, buffer_type=cls),
-                    ):
-                        assert block == ablock
-                        assert len(block) == size
-                        result += block
-                    assert result == data
+    @pytest.mark.parametrize("first,second", [(0, 1), (1, 0)])
+    @pytest.mark.parametrize("size", [4, 8, 13])
+    @pytest.mark.parametrize("blocks", [1, 2, 3])
+    async def test_batches(
+        self, blocks: int, size: int, first: int, second: int
+    ) -> None:
+        for unit, cls in ((b"a", io.BytesIO), ("a", io.StringIO)):
+            result = unit.__class__()
+            data = blocks * size * unit
+            funcs = [gentools.abatch, gentools.batch]
+            async for block_0, block_1 in gentools.azip(
+                funcs[first](data, size=size, buffer_type=cls),
+                funcs[second](data, size=size, buffer_type=cls),
+            ):
+                assert block_0 == block_1
+                assert len(block_0) == size
+                result += block_0
+            assert result == data
 
-    async def test_resizes(self) -> None:
-        for blocks in (1, 2, 3):
-            for size in (4, 6, 8):
-                for unit, cls in (
-                    ([None], list),
-                    ((None,), tuple),
-                    ("a", str),
-                ):
-                    result = cls()
-                    data = 3 * size * unit
-                    async for block, ablock in gentools.azip(
-                        gentools.resize(data, size=size, blocks=blocks),
-                        gentools.aresize(data, size=size, blocks=blocks),
-                    ):
-                        assert block == ablock
-                        assert len(block) == size
-                        result = result + block
-                    assert result == data[: blocks * size]
+    @pytest.mark.parametrize("first,second", [(0, 1), (1, 0)])
+    @pytest.mark.parametrize("unit", [[None], (None,), "a"])
+    @pytest.mark.parametrize("size", [-1, 0, 1, 2, 3, 16])
+    @pytest.mark.parametrize("blocks", [-1, 0, None, 1, 2, 3])
+    async def test_resizes(
+        self,
+        blocks: t.Optional[int],
+        size: int,
+        unit: t.Any,
+        first: int,
+        second: int,
+    ) -> None:
+        data = 16 * unit
+        result = unit.__class__()
+        funcs = [gentools.aresize, gentools.resize]
+        is_not_positive = lambda _: (
+            (size < 1) or (isinstance(blocks, int) and blocks < 1)
+        )
+        with Ignore(ValueError, if_except=is_not_positive):
+            item_count = 0
+            async for block_0, block_1 in gentools.azip(
+                funcs[first](data, size=size, blocks=blocks),
+                funcs[second](data, size=size, blocks=blocks),
+            ):
+                item_count += (block_size := len(block_0))
+                assert block_0 == block_1
+                if block_size < size:
+                    assert data == result + block_0
+                else:
+                    assert size == block_size
+                result = result + block_0
+                assert result == data[:item_count]
+            portion = None if blocks is None else size * blocks
+            assert result == data[:portion]
 
-    async def test_poplefts(self) -> None:
+    @pytest.mark.parametrize("first,second", [(0, 1), (1, 0)])
+    async def test_poplefts(self, first: int, second: int) -> None:
         size = 32
         count = 0
-        container = deque(range(size))
-        acontainer = deque(range(size))
-        for ordering in (
-            (gentools.popleft(container), gentools.apopleft(acontainer)),
-            (gentools.apopleft(acontainer), gentools.popleft(container)),
+        funcs = [gentools.apopleft, gentools.popleft]
+        inputs = [adeq := deque(range(size)), deq := deque(range(size))]
+        async for item_0, item_1 in gentools.azip(
+            funcs[first](inputs[first]), funcs[second](inputs[second])
         ):
-            async for item, aitem in gentools.azip(*ordering):
-                assert item == aitem
-                assert item == count
-                count += 1
-                assert len(container) == len(acontainer)
-                assert len(container) == size - count
+            assert item_0 == item_1
+            assert item_0 == count
+            count += 1
+            assert len(adeq) == len(deq)
+            assert len(adeq) == size - count
+        assert not adeq
 
-    async def test_unpacks(self) -> None:
+    @pytest.mark.parametrize(
+        "first,second,third", [(0, 1, 2), (1, 2, 0), (2, 1, 0)]
+    )
+    async def test_unpacks(
+        self, first: int, second: int, third: int
+    ) -> None:
         count = 0
         size = 32
         iterable = tuple(range(size))
-        aiterable = gentools.arange(size)
-        async for index, aindex, aaindex in gentools.azip(
-            gentools.unpack(iterable),
-            gentools.aunpack(iterable),
-            gentools.aunpack(aiterable),
+        funcs = [gentools.aunpack, gentools.aunpack, gentools.unpack]
+        inputs = [gentools.arange(size), iterable, iterable]
+        async for index_0, index_1, index_2 in gentools.azip(
+            funcs[first](inputs[first]),
+            funcs[second](inputs[second]),
+            funcs[third](inputs[third]),
         ):
-            assert index == aindex
-            assert index == aaindex
-            assert index == count
+            assert index_0 == index_1
+            assert index_0 == index_2
+            assert index_0 == count
             count += 1
+        assert count == size
 
-    async def test_cycles(self) -> None:
+    @given(size=st.integers(min_value=0, max_value=16))
+    @pytest.mark.parametrize(
+        "first,second,third", [(0, 1, 2), (1, 2, 0), (2, 1, 0)]
+    )
+    async def test_cycles(
+        self, first: int, second: int, third: int, size: int
+    ) -> None:
         count = 0
-        size = 16
         iteration = 0
         iterable = tuple(range(size))
-        aiterable = gentools.arange(size)
-        async for index, aindex, aaindex in gentools.azip(
-            gentools.cycle(iterable),
-            gentools.acycle(iterable),
-            gentools.acycle(aiterable),
+        funcs = [gentools.acycle, gentools.acycle, gentools.cycle]
+        inputs = [gentools.arange(size), iterable, iterable]
+        async for index_0, index_1, index_2 in gentools.azip(
+            funcs[first](inputs[first]),
+            funcs[second](inputs[second]),
+            funcs[third](inputs[third]),
         ):
-            assert index == aindex
-            assert index == aaindex
-            assert index == count
+            if size == 0:
+                pytest.fail("Empty iterables produced outputs.")
+            assert index_0 == index_1
+            assert index_0 == index_2
+            assert index_0 == count
             count = (count + 1) % size
             if count == 0:
                 iteration += 1
             if iteration > 2:
                 break
 
-    async def test_collates(self) -> None:
-        count = 0
+    @pytest.mark.parametrize("first,second", [(0, 1), (1, 0)])
+    async def test_collates(self, first: int, second: int) -> None:
         arange = gentools.arange
-        iterable = ((0, 1, 2), (3, 4, 5), (6, 7, 8))
-        aiterable = (arange(0, 3), (3, 4, 5), arange(6, 9))
-        async for index, aindex in gentools.azip(
-            gentools.collate(*iterable),
-            gentools.acollate(*aiterable),
+        funcs = [gentools.acollate, gentools.collate]
+        inputs = [
+            (arange(0, 3), (3, 4, 5), arange(6, 9)),
+            ((0, 1, 2), (3, 4, 5), (6, 7, 8)),
+        ]
+        count = 0
+        async for index_0, index_1 in gentools.azip(
+            funcs[first](*inputs[first]),
+            funcs[second](*inputs[second]),
         ):
-            assert index == aindex
-            assert index == count
+            assert index_0 == index_1
+            assert index_0 == count
             count += 1
+        assert count == len(inputs[1][0] + inputs[1][1] + inputs[1][2])
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
