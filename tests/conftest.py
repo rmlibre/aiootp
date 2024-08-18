@@ -395,7 +395,7 @@ def async_database():
     run(db.adelete_database())
 
 
-@pytest.fixture()
+@pytest.fixture
 def path():
     file_path = Path("byte_io_testing_path.txt").absolute()
 
@@ -418,12 +418,12 @@ class ExampleConfig(Config):
         self.STRING = string
 
 
-@pytest.fixture()
+@pytest.fixture
 def config():
     return ExampleConfig(number=420, string="word")
 
 
-@pytest.fixture()
+@pytest.fixture
 def mapping():
     return ConfigMap(config_type=ExampleConfig)
 

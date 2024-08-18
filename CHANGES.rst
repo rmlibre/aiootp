@@ -14,6 +14,7 @@ Major Changes
 
 - build: update dependencies & add coverage to dev & test installs
 - build: add ``hypothesis`` dependency to dev & test installs
+- build: bump ``ruff`` version & fix new lint rule changes
 
 
 Minor Changes
