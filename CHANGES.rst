@@ -13,6 +13,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - build: update dependencies & add coverage to dev & test installs
+- build: add ``hypothesis`` dependency to dev & test installs
 
 
 Minor Changes
