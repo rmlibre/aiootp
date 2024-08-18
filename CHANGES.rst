@@ -30,6 +30,7 @@ Minor Changes
 - test: cover input combinations for ``(a)test_timestamp``
 - test: import ``hypothesis`` in 'conftest.py'
 - test: parametrize & fuzz 'test_gentools.py' to cover branches
+- test: continue refactor & coverage in 'test_PackageSigner.py'
 - refactor: remove unnecessary variable alias
 - refactor: specify input types as positive integers
 

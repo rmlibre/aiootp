@@ -23,7 +23,7 @@ class TestPackageVerifier:
             "without specifying a relative directory to locate files."
         )
         with Ignore(TypeError, if_else=violation(problem)):
-            PackageVerifier(bytes.fromhex(aiootp.__PUBLIC_ED25519_KEY__))
+            PackageVerifier(pkg_signer.signing_key.public_bytes)
 
         verifier = PackageVerifier(
             pkg_signer.signing_key.public_bytes, verify_files=False
@@ -53,12 +53,12 @@ class TestPackageVerifier:
         filename = randoms.choice(list(summary[CHECKSUMS]))
         summary[CHECKSUMS][filename] = pkg_signer._Hasher().hexdigest()
         problem = (  # fmt: skip
-            "An invalid file digest wasn't detected."
+            f"An digest for file {filename=} wasn't detected."
         )
         with Ignore(InvalidDigest, if_else=violation(problem)):
             verifier._verify_file_checksums(summary)
 
-    async def test_signing_key_interface_is_accepted(
+    async def test_signing_key_input_acceptable_types(
         self, pkg_context: Namespace, pkg_signer: PackageSigner
     ) -> None:
         summary = pkg_signer.summarize()
@@ -67,60 +67,54 @@ class TestPackageVerifier:
             path=pkg_context.test_path,
         )
         verifier.verify_summary(summary)
-
-    async def test_altering_signing_key_fails(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
-    ) -> None:
-        summary = pkg_signer.summarize()
+        verifier = PackageVerifier(
+            pkg_signer.signing_key.public_key, path=pkg_context.test_path
+        )
+        verifier.verify_summary(summary)
         verifier = PackageVerifier(
             pkg_signer.signing_key.public_bytes, path=pkg_context.test_path
         )
+        verifier.verify_summary(summary)
 
+    async def test_altering_signing_key_fails(
+        self,
+        pkg_signer: PackageSigner,
+        pkg_verifier: PackageVerifier,
+    ) -> None:
+        summary = pkg_signer.summarize()
         summary["signing_key"] = X25519().generate().public_bytes.hex()
         problem = (  # fmt: skip
-            "Changed signing_key went uncaught."
+            "An altered `signing_key` went uncaught."
         )
         with Ignore(ValueError, if_else=violation(problem)):
-            verifier.verify_summary(summary)
+            pkg_verifier.verify_summary(summary)
 
         # returning to the original signing key succeeds
         summary["signing_key"] = pkg_signer.signing_key.public_bytes.hex()
-        verifier.verify_summary(summary)
+        pkg_verifier.verify_summary(summary)
 
     async def test_altering_checksum_fails(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_signer: PackageSigner,
+        pkg_verifier: PackageVerifier,
     ) -> None:
         summary = pkg_signer.summarize()
         summary["checksum"] = summary["checksum"][::-1]
-        verifier = PackageVerifier(
-            pkg_signer.signing_key.public_bytes, path=pkg_context.test_path
-        )
         problem = (  # fmt: skip
             "Summary alteration uncaught."
         )
         with Ignore(ValueError, if_else=violation(problem)):
-            verifier.verify_summary(summary)
+            pkg_verifier.verify_summary(summary)
 
         # returning the checksum to the original value succeeds
         summary["checksum"] = summary["checksum"][::-1]
-        verifier.verify_summary(summary)
+        pkg_verifier.verify_summary(summary)
 
         # a json summary also works
-        verifier.verify_summary(json.dumps(summary))
+        pkg_verifier.verify_summary(json.dumps(summary))
 
 
 class TestPackageSigner:
-    async def test_signing_key_interface_is_accepted(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
-    ) -> None:
-        summary = pkg_signer.summarize()
-
-        # The package verifier successfully verifies a correct summary
-        verifier = PackageVerifier(
-            pkg_signer.signing_key.public_bytes, path=pkg_context.test_path
-        )
-        verifier.verify_summary(summary)
-
     async def test_changing_signature_detected_during_summarization(
         self, pkg_context: Namespace, pkg_signer: PackageSigner
     ) -> None:
