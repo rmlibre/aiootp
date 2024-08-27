@@ -113,7 +113,7 @@ class GUIDConfig(Config):
         self.CONFIG_ID = config_id
         self.AAD = aad
         self.SIZE = size
-        self.KEY_SIZE = permutation_type.key_size(config_id)
+        self.KEY_SIZE = permutation_type.key_size(size)
         self._DEFAULT_KEY = self._load_default_key()
         self.RAW_GUID_CONFIG_ID = self._process_raw_guid_config_id(
             raw_guid_config_id

@@ -22,6 +22,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - fix: capture ``KeyError`` & raise ``AttributeError`` instead [#8]
+- fix: use size instead of config_id to determine GUID key_size
 - feat: add 48-byte default permutation config objects
 - feat: add decisecond & centisecond clock configurations
 - build: use dynamic table to specify the package readme
