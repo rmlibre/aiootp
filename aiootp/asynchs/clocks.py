@@ -48,6 +48,8 @@ _YEAR_WITH_LEAP_DAYS: float = 365.24225
 _ONE_NANOSECOND: int = 1
 _ONE_MICROSECOND: int = 1_000
 _ONE_MILLISECOND: int = 1_000_000
+_ONE_CENTISECOND: int = 10_000_000
+_ONE_DECISECOND: int = 100_000_000
 _ONE_SECOND: int = 1_000_000_000
 _ONE_MINUTE: int = 60 * _ONE_SECOND
 _ONE_HOUR: int = 60 * _ONE_MINUTE
@@ -66,6 +68,14 @@ def this_microsecond(epoch: int = 0) -> int:
 
 def this_millisecond(epoch: int = 0) -> int:
     return this_nanosecond(epoch) // _ONE_MILLISECOND
+
+
+def this_centisecond(epoch: int = 0) -> int:
+    return this_nanosecond(epoch) // _ONE_CENTISECOND
+
+
+def this_decisecond(epoch: int = 0) -> int:
+    return this_nanosecond(epoch) // _ONE_DECISECOND
 
 
 def this_second(epoch: int = 0) -> int:
@@ -131,6 +141,8 @@ class Clock(FrozenInstance):
     hour_clock = Clock("hours")
     minute_clock = Clock("minutes")
     second_clock = Clock("seconds")
+    ds_clock = Clock("deciseconds")
+    cs_clock = Clock("centiseconds")
     ms_clock = Clock("milliseconds")
     µs_clock = Clock("microseconds")
     ns_clock = Clock("nanoseconds")
@@ -155,6 +167,8 @@ class Clock(FrozenInstance):
         hours=(this_hour, 60 * 60),
         minutes=(this_minute, 60),
         seconds=(this_second, 1),
+        deciseconds=(this_decisecond, 1e-1),
+        centiseconds=(this_centisecond, 1e-2),
         milliseconds=(this_millisecond, 1e-3),
         microseconds=(this_microsecond, 1e-6),
         nanoseconds=(this_nanosecond, 1e-9),

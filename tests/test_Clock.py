@@ -93,6 +93,12 @@ class TestClockConversions:
     seconds_to_milliseconds = staticmethod(
         lambda control, epoch: int((control - epoch.seconds) * 1_000)
     )
+    seconds_to_centiseconds = staticmethod(
+        lambda control, epoch: int((control - epoch.seconds) * 100)
+    )
+    seconds_to_deciseconds = staticmethod(
+        lambda control, epoch: int((control - epoch.seconds) * 10)
+    )
     seconds_to_seconds = staticmethod(
         lambda control, epoch: int(control - epoch.seconds)
     )
@@ -195,6 +201,44 @@ class TestClockConversions:
                 assert test.experiment in range(
                     span.start - (TIME_VARIANCE // 1_000_000),
                     span.stop + (TIME_VARIANCE // 1_000_000),
+                )
+
+    def test_centiseconds_correctness(self) -> None:
+        for epoch in EPOCHS_TESTED:
+            clock = Clock(CENTISECONDS, epoch=epoch.nanoseconds)
+            test = EqualTimingExperiment(
+                control_timer=time.time,
+                experiment_timer=clock.time,
+                epoch=epoch,
+            )
+            span = test.correct_range(
+                control_conversion=self.seconds_to_centiseconds
+            )
+            if TIME_RESOLUTION <= 1e-09:
+                assert test.experiment in span
+            else:
+                assert test.experiment in range(
+                    span.start - (TIME_VARIANCE // 10_000_000),
+                    span.stop + (TIME_VARIANCE // 10_000_000),
+                )
+
+    def test_deciseconds_correctness(self) -> None:
+        for epoch in EPOCHS_TESTED:
+            clock = Clock(DECISECONDS, epoch=epoch.nanoseconds)
+            test = EqualTimingExperiment(
+                control_timer=time.time,
+                experiment_timer=clock.time,
+                epoch=epoch,
+            )
+            span = test.correct_range(
+                control_conversion=self.seconds_to_deciseconds
+            )
+            if TIME_RESOLUTION <= 1e-09:
+                assert test.experiment in span
+            else:
+                assert test.experiment in range(
+                    span.start - (TIME_VARIANCE // 100_000_000),
+                    span.stop + (TIME_VARIANCE // 100_000_000),
                 )
 
     def test_seconds_correctness(self) -> None:
