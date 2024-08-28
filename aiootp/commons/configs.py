@@ -93,7 +93,9 @@ class Config(OpenFrozenTypedSlots):
         if not hasattr(self, CONFIG_ID):
             object.__setattr__(self, CONFIG_ID, config_id)
         elif config_id != self.CONFIG_ID:
-            raise Issue.value_must(f"{config_id=}", f"{self.CONFIG_ID=}")
+            raise Issue.value_must(
+                f"{config_id=}", f"match {self.CONFIG_ID=}"
+            )
 
 
 class ConfigMap(OpenFrozenNamespace):
