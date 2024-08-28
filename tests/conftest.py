@@ -349,9 +349,6 @@ async def make_async_ttl_cipher_stream() -> (
     )
     await stream.abuffer(plaintext_bytes)
     ciphertext = b"".join(
-        [(block_id + block) async for block_id, block in stream]
-    )
-    ciphertext += b"".join(
         [(block_id + block) async for block_id, block in stream.afinalize()]
     )
     return stream, ciphertext

@@ -39,6 +39,7 @@ Minor Changes
 - refactor: remove unnecessary variable alias
 - refactor: specify input types as positive integers
 - refactor: unify, parametrize, & simplify PackageSigner test values
+- refactor: remove redundant step in test initialization
 
 
 
