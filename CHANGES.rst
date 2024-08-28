@@ -38,6 +38,7 @@ Minor Changes
 - test: continue refactor & coverage in 'test_PackageSigner.py'
 - refactor: remove unnecessary variable alias
 - refactor: specify input types as positive integers
+- refactor: unify, parametrize, & simplify PackageSigner test values
 
 
 

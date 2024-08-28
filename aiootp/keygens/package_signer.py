@@ -46,7 +46,7 @@ class PackageSignerScope(t.OpenNamespace):
         date: int,
         **extras: t.Dict[str, t.JSONSerializable],
     ) -> None:
-        self.__dict__.update(extras)
+        self.update(extras)
         self.package = package
         self.version = version
         self.date = date
@@ -279,7 +279,7 @@ class PackageSigner:
         Updates the package scopes to qualify the package signature of
         the current package version within the instance.
         """
-        self._scope.__dict__.update(scopes)
+        self._scope.update(scopes)
         return self
 
     def update_public_credentials(

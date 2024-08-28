@@ -53,7 +53,7 @@ class TestPackageVerifier:
         filename = randoms.choice(list(summary[CHECKSUMS]))
         summary[CHECKSUMS][filename] = pkg_signer._Hasher().hexdigest()
         problem = (  # fmt: skip
-            f"An digest for file {filename=} wasn't detected."
+            f"An invalid digest for file {filename=} wasn't detected."
         )
         with Ignore(InvalidDigest, if_else=violation(problem)):
             verifier._verify_file_checksums(summary)
@@ -62,19 +62,14 @@ class TestPackageVerifier:
         self, pkg_context: Namespace, pkg_signer: PackageSigner
     ) -> None:
         summary = pkg_signer.summarize()
-        verifier = PackageVerifier(
+        public_keys = [
             Ed25519().import_public_key(pkg_signer.signing_key.public_key),
-            path=pkg_context.test_path,
-        )
-        verifier.verify_summary(summary)
-        verifier = PackageVerifier(
-            pkg_signer.signing_key.public_key, path=pkg_context.test_path
-        )
-        verifier.verify_summary(summary)
-        verifier = PackageVerifier(
-            pkg_signer.signing_key.public_bytes, path=pkg_context.test_path
-        )
-        verifier.verify_summary(summary)
+            pkg_signer.signing_key.public_key,
+            pkg_signer.signing_key.public_bytes,
+        ]
+        for key in public_keys:
+            verifier = PackageVerifier(key, path=pkg_context.test_path)
+            verifier.verify_summary(summary)
 
     async def test_altering_signing_key_fails(
         self,
@@ -118,11 +113,11 @@ class TestPackageSigner:
     async def test_changing_signature_detected_during_summarization(
         self, pkg_context: Namespace, pkg_signer: PackageSigner
     ) -> None:
-        VERSION = pkg_context.version
-        VERSIONS = pkg_signer._VERSIONS
         PACKAGE = pkg_context.package
+        VERSIONS = pkg_signer._VERSIONS
+        VERSION = pkg_context.version
         signature = pkg_signer.db[PACKAGE][VERSIONS][VERSION]
-        pkg_signer.db[PACKAGE][VERSIONS][VERSION] = token_bytes(32).hex()
+        pkg_signer.db[PACKAGE][VERSIONS][VERSION] = token_bytes(64).hex()
 
         problem = (  # fmt: skip
             "Altered signature not detected during summarization."
@@ -177,13 +172,31 @@ class TestPackageSigner:
             for name in pkg_signer._scope
         )
 
+    @given(
+        build_number=st.one_of(
+            st.none(),
+            st.booleans(),
+            st.integers(),
+            st.floats(),  # if nan, can't directly check equality
+            st.text(),
+        ).filter(lambda x: x != 0)
+    )
     async def test_scope_updates_when_instructed(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
+        build_number: t.Hashable,
     ) -> None:
-        assert pkg_signer._scope.build_number == pkg_context.build_number
-        pkg_signer.update_scope(build_number=4)
-        pkg_context.build_number = 4
-        assert pkg_signer._scope.build_number == 4
+        old_number = pkg_context.build_number
+        assert 2 == len({pkg_signer._scope.build_number, build_number})
+        assert 1 == len({pkg_signer._scope.build_number, old_number})
+        pkg_signer.update_scope(build_number=build_number)
+        assert 1 == len({pkg_signer._scope.build_number, build_number})
+        pkg_signer.sign_package()
+
+        pkg_signer.update_scope(build_number=old_number)
+        assert 1 == len({pkg_signer._scope.build_number, old_number})
+        pkg_signer.sign_package()
 
     async def test_file_hashes_are_stored_after_being_added(
         self,
@@ -192,26 +205,28 @@ class TestPackageSigner:
         pkg_verifier: PackageVerifier,
     ) -> None:
         pkg_signer.sign_package()
-        summary = pkg_signer.summarize()
-        pkg_verifier.verify_summary(summary)
-        for path in pkg_context.files:
+        pkg_verifier.verify_summary(summary := pkg_signer.summarize())
+        signer = PackageSigner(**pkg_context.signer_init)
+        signer.connect_to_secure_database(**pkg_context.signer_db_init)
+        signer.update_signing_key(pkg_signer.signing_key)
+        assert signer.db._root_filename == pkg_signer.db._root_filename
+        for index, path in enumerate(pkg_context.files, start=1):
             filename = str(path)
             file_data = path.read_bytes()
-            pkg_signer.add_file(filename, file_data)
-            assert len(pkg_context.files) == len(pkg_signer.files)
-            assert filename in pkg_signer.files
+            signer.add_file(filename, file_data)
+            assert index == len(signer.files)
+            assert filename in signer.files
             assert (
-                pkg_signer.files[filename].digest()
-                != pkg_signer._Hasher().digest()
+                signer.files[filename].digest() != signer._Hasher().digest()
             )
             assert (
-                pkg_signer.files[filename].digest()
-                == pkg_signer._Hasher(file_data).digest()
+                signer.files[filename].digest()
+                == signer._Hasher(file_data).digest()
             )
-        pkg_signer.sign_package()
-        new_summary = pkg_signer.summarize()
+        assert len(signer.files) == len(pkg_context.files)
+        signer.sign_package()
+        pkg_verifier.verify_summary(new_summary := signer.summarize())
         assert summary == new_summary
-        pkg_verifier.verify_summary(new_summary)
 
     async def test_cant_retrieve_signing_key_prior_to_setting(
         self, pkg_context: Namespace, pkg_signer: PackageSigner
@@ -233,7 +248,7 @@ class TestPackageSigner:
             pkg_signer.sign_package()
 
     async def test_update_signing_key_interface_changes_signing_key(
-        self, pkg_signer: PackageSigner
+        self, pkg_context: Namespace, pkg_signer: PackageSigner
     ) -> None:
         summary = pkg_signer.summarize()
         signing_key = pkg_signer.signing_key
@@ -242,11 +257,15 @@ class TestPackageSigner:
             pkg_signer.update_signing_key(new_signing_key)
             pkg_signer.sign_package()
             new_summary = pkg_signer.summarize()
+            verifier = PackageVerifier(
+                new_signing_key, path=pkg_context.test_path
+            )
             assert summary["signing_key"] != new_summary["signing_key"]
             assert (
                 signing_key.public_bytes
                 != pkg_signer.signing_key.public_bytes
             )
+            verifier.verify_summary(new_summary)
         finally:
             pkg_signer.update_signing_key(signing_key)
             pkg_signer.sign_package()
@@ -309,14 +328,7 @@ class TestPackageSigner:
     def test_database_must_be_connected_to_retrieve_signer_state(
         self, pkg_context: Namespace
     ) -> None:
-        signer = PackageSigner(
-            package=pkg_context.package,
-            version=pkg_context.version,
-            author=pkg_context.author,
-            license=pkg_context.license,
-            description=pkg_context.description,
-            build_number=pkg_context.build_number,
-        )
+        signer = PackageSigner(**pkg_context.signer_init)
         problem = (  # fmt: skip
             "Allowed to retrieve database states before connecting to the "
             "database."

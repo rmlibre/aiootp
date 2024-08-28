@@ -430,12 +430,11 @@ def mapping():
 
 @pytest.fixture(scope="session")
 def pkg_context() -> Namespace:
-    context = Namespace(
-        test_key=token_bytes(64),
-        test_salt=token_bytes(64),
-        db_directory=DatabasePath(),
-        username=b"test_username",
+    context = OpenNamespace(
+        test_path=test_path,
         signing_key=PackageSigner.generate_signing_key(),
+    )
+    context.signer_init = OpenNamespace(
         package=aiootp.__package__,
         version=aiootp.__version__,
         author=aiootp.__author__,
@@ -443,8 +442,15 @@ def pkg_context() -> Namespace:
         description=aiootp.__doc__,
         date=Clock(DAYS, epoch=0).time(),
         build_number=0,
-        test_path=test_path,
     )
+    context.signer_db_init = OpenNamespace(
+        username=b"test_username",
+        salt=token_bytes(64),
+        passphrase=token_bytes(64),
+        path=DatabasePath(),
+        **LOW_PASSCRYPT_SETTINGS,
+    )
+    context.update(**context.signer_init, **context.signer_db_init)
     filename_sheet = """
     include tests/conftest.py
     include tests/test_ByteIO.py
@@ -471,26 +477,12 @@ def pkg_context() -> Namespace:
 def pkg_signer(
     pkg_context: Namespace,
 ) -> t.Generator[t.Tuple[Namespace, PackageSigner], None, None]:
-    signer = PackageSigner(
-        package=pkg_context.package,
-        version=pkg_context.version,
-        author=pkg_context.author,
-        license=pkg_context.license,
-        description=pkg_context.description,
-        build_number=pkg_context.build_number,
-    )
-
+    signer = PackageSigner(**pkg_context.signer_init)
     is_mac_os_issue = lambda _: (platform.system() == "Darwin")
     while True:
         sleep(0.001)
         with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):
-            signer.connect_to_secure_database(
-                username=pkg_context.username,
-                passphrase=pkg_context.test_key,
-                salt=pkg_context.test_salt,
-                path=pkg_context.db_directory,
-                **LOW_PASSCRYPT_SETTINGS,
-            )
+            signer.connect_to_secure_database(**pkg_context.signer_db_init)
             break
 
     signer.update_signing_key(pkg_context.signing_key)
@@ -499,9 +491,7 @@ def pkg_signer(
             signer.add_file(str(path), source_file.read())
 
     signer.sign_package()
-
     yield signer
-
     signer.db.delete_database()
 
 
