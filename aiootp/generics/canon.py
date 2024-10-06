@@ -156,18 +156,24 @@ async def acanonical_pack(
     |           Format Diagram:           |
     |_____________________________________|
 
-    I = `int_bytes`
+    s = `int_bytes`
+    b = `blocksize`
+    p = `pad`
+    I = `items`
+    i = item ∈ `items`
+    L(⋅) = len(⋅)
+
     |----  len(result) % blocksize == 0, right padded with `pad`  -----|
      __________________________________________________________________
-    |                   |               |                            | |
-    |   len(Iterable)   |   len(Item)   |            Item            | |
-    |                   |               |                            | |
-    |     I-bytes       |    I-bytes    |           X-bytes          | |
-    |     = W + 2       |    = X        |                            | |
-    |___________________|_______________|____________________________| |
-    |                   |                                            | |
-    |   1 x at start    |           W x once for each item           | |
-    |___________________|____________________________________________|_|
+    |     |      |      |     |      |     |      |                  | |
+    |  s  | L(I) | L(b) |  b  | L(p) |  p  | L(i) |        i         | |
+    |-----|------|------|-----|------|-----|------|------------------| |
+    |     |      |      |     |      |     |      |                  | |
+    | 1 B | s B  | s B  | s B | s B  | 1 B | s B  |        X B       | |
+    |_____|______|______|_____|______|_____|______|__________________| |
+    |                                      |                         | |
+    |         1 x at start                 | I x, once for each item | |
+    |______________________________________|_________________________|_|
     """
     blocksize_blob = blocksize.to_bytes(int_bytes, BIG)
     items = [
@@ -200,18 +206,24 @@ def canonical_pack(
     |           Format Diagram:           |
     |_____________________________________|
 
-    I = `int_bytes`
+    s = `int_bytes`
+    b = `blocksize`
+    p = `pad`
+    I = `items`
+    i = item ∈ `items`
+    L(⋅) = len(⋅)
+
     |----  len(result) % blocksize == 0, right padded with `pad`  -----|
      __________________________________________________________________
-    |                   |               |                            | |
-    |   len(Iterable)   |   len(Item)   |            Item            | |
-    |                   |               |                            | |
-    |     I-bytes       |    I-bytes    |           X-bytes          | |
-    |     = W + 2       |    = X        |                            | |
-    |___________________|_______________|____________________________| |
-    |                   |                                            | |
-    |   1 x at start    |           W x once for each item           | |
-    |___________________|____________________________________________|_|
+    |     |      |      |     |      |     |      |                  | |
+    |  s  | L(I) | L(b) |  b  | L(p) |  p  | L(i) |        i         | |
+    |-----|------|------|-----|------|-----|------|------------------| |
+    |     |      |      |     |      |     |      |                  | |
+    | 1 B | s B  | s B  | s B | s B  | 1 B | s B  |        X B       | |
+    |_____|______|______|_____|______|_____|______|__________________| |
+    |                                      |                         | |
+    |         1 x at start                 | I x, once for each item | |
+    |______________________________________|_________________________|_|
     """
     blocksize_blob = blocksize.to_bytes(int_bytes, BIG)
     items = encode_items(blocksize_blob, pad, *items, int_bytes=int_bytes)
