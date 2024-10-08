@@ -28,6 +28,7 @@ Minor Changes
 - build: use dynamic table to specify the package readme
 - build: specify the coverage htmlcov directory
 - build: remove 'command_line' so coverage can run specific files
+- build: fix deprecation of unset pytest_asyncio fixture loop scope
 - docs: fix wrong typing annotation
 - docs: fix docstring typo & grammar
 - docs: fix grammar of error message

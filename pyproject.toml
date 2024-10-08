@@ -296,6 +296,7 @@ readme = {file = ["README.rst"]}
 asyncio_mode = "auto"
 testpaths = ["tests"]
 cache_dir = "/tmp/.pytest_cache"
+asyncio_default_fixture_loop_scope = "function"
 doctest_optionflags = ["IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
 addopts = [
     "--verbose",
