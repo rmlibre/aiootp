@@ -15,6 +15,7 @@ Major Changes
 - build: update dependencies & add coverage to dev & test installs
 - build: add ``hypothesis`` dependency to dev & test installs
 - build: bump ``ruff`` version & fix new lint rule changes
+- build: add ``build`` dependency to dev installs
 - ci: add ``hypothesis`` to GH actions workflow dependencies
 
 
