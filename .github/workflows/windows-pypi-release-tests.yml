@@ -8,9 +8,9 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 5
+      max-parallel: 6
       matrix:
-        python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x"]
+        python-version: ["3.8.x", "3.9.x", "3.10.x", "3.11.x", "3.12.x", "3.13.x"]
         os: [windows-latest]
     steps:
     - uses: actions/checkout@v4

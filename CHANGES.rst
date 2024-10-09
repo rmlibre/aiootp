@@ -26,6 +26,7 @@ Minor Changes
 - fix: use size instead of config_id to determine GUID key_size
 - feat: add 48-byte default permutation config objects
 - feat: add decisecond & centisecond clock configurations
+- ci: add Python '3.13.x' to GH actions
 - build: use dynamic table to specify the package readme
 - build: specify the coverage htmlcov directory
 - build: remove 'command_line' so coverage can run specific files
