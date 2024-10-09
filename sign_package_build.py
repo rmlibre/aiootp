@@ -100,3 +100,8 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
     verifier.verify_summary(summary)
     with Path("SIGNATURE.txt").open("w+") as attestation:
         attestation.write(json.dumps(summary, indent=4))
+elif getpass("verify package? (y/N) ").lower().strip().startswith("y"):
+    with Path("SIGNATURE.txt").open("r") as attestation:
+        summary = json.loads(attestation.read())
+    verifier = PackageVerifier(bytes.fromhex(aiootp_signing_key), path="")
+    verifier.verify_summary(summary)

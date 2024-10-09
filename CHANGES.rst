@@ -30,6 +30,7 @@ Minor Changes
 - build: specify the coverage htmlcov directory
 - build: remove 'command_line' so coverage can run specific files
 - build: fix deprecation of unset pytest_asyncio fixture loop scope
+- build: add verify package flow to signing ceremony
 - docs: fix wrong typing annotation
 - docs: fix docstring typo & grammar
 - docs: fix grammar of error message
