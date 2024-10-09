@@ -16,6 +16,7 @@ Major Changes
 - build: add ``hypothesis`` dependency to dev & test installs
 - build: bump ``ruff`` version & fix new lint rule changes
 - build: add ``build`` dependency to dev installs
+- build: update metadata to show Python 3.13 support
 - ci: add ``hypothesis`` to GH actions workflow dependencies
 
 
