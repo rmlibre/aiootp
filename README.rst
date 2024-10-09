@@ -66,9 +66,9 @@ Quick Install
 
 .. code-block:: shell
 
-    $ sudo apt-get install python3 python3-setuptools python3-pip
+    $ sudo apt-get install python3 python3-pip
 
-    $ pip3 install --user --upgrade pip aiootp
+    $ pip3 install --user --upgrade aiootp
 
 
 

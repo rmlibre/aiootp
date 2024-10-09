@@ -37,6 +37,7 @@ Minor Changes
 - docs: fix docstring typo & grammar
 - docs: fix grammar of error message
 - docs: fix (a)canonical_pack docstring format diagram
+- docs(readme): clean-up install & test instructions
 - test: prepare fixtures to refactor 'test_PackageSigner.py'
 - test: refactor 'test_PackageSigner.py' & cover all branches
 - test: cover input combinations for ``(a)test_timestamp``
