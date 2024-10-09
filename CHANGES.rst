@@ -46,6 +46,7 @@ Minor Changes
 - refactor: specify input types as positive integers
 - refactor: unify, parametrize, & simplify PackageSigner test values
 - refactor: remove redundant step in test initialization
+- refactor: terminate 'pyproject.toml' container lines with commas
 
 
 

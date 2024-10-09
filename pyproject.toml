@@ -12,10 +12,10 @@ requires-python = ">=3.8"
 dependencies = ["aiofiles>=24.1.0", "cryptography>=43.0.0"]
 authors = [
     {name = "Gonzo Investigative Journalism Agency, LLC", email = "gonzo.development@protonmail.ch"},
-    {name = "Ricchi Machado", email = "rmlibre@riseup.net"}
+    {name = "Ricchi Machado", email = "rmlibre@riseup.net"},
 ]
 maintainers = [
-    {name = "Ricchi Machado", email = "rmlibre@riseup.net"}
+    {name = "Ricchi Machado", email = "rmlibre@riseup.net"},
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -239,7 +239,7 @@ keywords = [
     "coroutine",
     "coroutines",
     "asynchronous",
-    "asynchrony"
+    "asynchrony",
 ]
 
 
@@ -249,7 +249,7 @@ test = [
     "hypothesis>=6.111.0",
     "pytest>=8.3.2",
     "pytest-asyncio>=0.23.8",
-    "ruff>=0.6.1"
+    "ruff>=0.6.1",
 ]
 dev = [
     "build>=1.2.2",
@@ -258,7 +258,7 @@ dev = [
     "pytest>=8.3.2",
     "pytest-asyncio>=0.23.8",
     "ruff>=0.6.1",
-    "twine>=5.1.1"
+    "twine>=5.1.1",
 ]
 
 
@@ -303,7 +303,7 @@ doctest_optionflags = ["IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
 #     "error",
 #     "ignore::RuntimeWarning",
 #     "ignore::DeprecationWarning",
-#     "ignore::pytest.PytestUnraisableExceptionWarning:test_gentools"
+#     "ignore::pytest.PytestUnraisableExceptionWarning:test_gentools",
 # ]
 addopts = [
     "--verbose",
@@ -312,7 +312,7 @@ addopts = [
     "--ignore=aiootp/db/*",
     "--ignore=aiootp/tor/*",
     "--show-capture=all",
-    "--pythonwarnings=default"
+    "--pythonwarnings=default",
 ]
 
 
