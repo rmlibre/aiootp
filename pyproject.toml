@@ -299,12 +299,20 @@ testpaths = ["tests"]
 cache_dir = "/tmp/.pytest_cache"
 asyncio_default_fixture_loop_scope = "function"
 doctest_optionflags = ["IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
+# filterwarnings = [
+#     "error",
+#     "ignore::RuntimeWarning",
+#     "ignore::DeprecationWarning",
+#     "ignore::pytest.PytestUnraisableExceptionWarning:test_gentools"
+# ]
 addopts = [
     "--verbose",
     "--ignore=setup.py",
     "--ignore=docs/*",
     "--ignore=aiootp/db/*",
-    "--ignore=aiootp/tor/*"
+    "--ignore=aiootp/tor/*",
+    "--show-capture=all",
+    "--pythonwarnings=default"
 ]
 
 

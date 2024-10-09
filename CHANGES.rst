@@ -41,6 +41,7 @@ Minor Changes
 - test: import ``hypothesis`` in 'conftest.py'
 - test: parametrize & fuzz 'test_gentools.py' to cover branches
 - test: continue refactor & coverage in 'test_PackageSigner.py'
+- test: configure pytest to display or error on warnings
 - refactor: remove unnecessary variable alias
 - refactor: specify input types as positive integers
 - refactor: unify, parametrize, & simplify PackageSigner test values
