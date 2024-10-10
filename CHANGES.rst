@@ -12,7 +12,7 @@ Changes for version 0.23.16
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- build: remove no longer needed 'setup.py' file
 
 
 Minor Changes
