@@ -9,7 +9,7 @@ dynamic = ["version", "readme"]
 description = "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage."
 license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.8"
-dependencies = ["aiofiles>=24.1.0", "cryptography>=43.0.0"]
+dependencies = ["aiofiles>=24.1.0", "cryptography>=43.0.1"]
 authors = [
     {name = "Gonzo Investigative Journalism Agency, LLC", email = "gonzo.development@protonmail.ch"},
     {name = "Ricchi Machado", email = "rmlibre@riseup.net"},
@@ -247,18 +247,18 @@ keywords = [
 [project.optional-dependencies]
 test = [
     "coverage[toml]>=7.6.1",
-    "hypothesis>=6.111.0",
-    "pytest>=8.3.2",
-    "pytest-asyncio>=0.23.8",
-    "ruff>=0.6.1",
+    "hypothesis>=6.113.0",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.6.9",
 ]
 dev = [
     "build>=1.2.2",
     "coverage[toml]>=7.6.1",
-    "hypothesis>=6.111.0",
-    "pytest>=8.3.2",
-    "pytest-asyncio>=0.23.8",
-    "ruff>=0.6.1",
+    "hypothesis>=6.113.0",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.6.9",
     "twine>=5.1.1",
 ]
 
