@@ -660,7 +660,7 @@ Encrypted URL-safe Base64 encoded tokens.
 _`High-level Generators` .......................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-With these generators, the online nature of the Chunky2048 cipher can be utilized. This means that any arbitrary amount of data can be processed in streams of controllable, buffered chunks. These streaming interfaces automatically handle message padding & depadding, ciphertext validation & detection of out-of-order message blocks.
+With these generators, the online nature of the ``Chunky2048`` & ``Slick256`` ciphers can be utilized. This means that any arbitrary amount of data can be processed in streams of controllable, buffered chunks. These streaming interfaces automatically handle message padding & depadding, ciphertext validation & detection of out-of-order message blocks.
 
 
 Encryption:
