@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- docs: specify bool or None as ``__(a)exit__`` return type
 
 
 

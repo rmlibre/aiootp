@@ -190,7 +190,7 @@ class Ignore:
         exc_type: t.Optional[type] = None,
         exc_value: t.Optional[Exception] = None,
         traceback: t.Optional[t.TracebackType] = None,
-    ) -> bool:
+    ) -> t.Optional[bool]:
         """
         Allows the controlled handling of raised exceptions within the
         context. If an exception specified by the instance is raised,
@@ -217,7 +217,7 @@ class Ignore:
         exc_type: t.Optional[type] = None,
         exc_value: t.Optional[Exception] = None,
         traceback: t.Optional[t.TracebackType] = None,
-    ) -> bool:
+    ) -> t.Optional[bool]:
         """
         Allows the controlled handling of raised exceptions within the
         context. If an exception specified by the instance is raised,
