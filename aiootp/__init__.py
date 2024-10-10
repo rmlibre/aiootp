@@ -17,7 +17,7 @@ a high-level async cryptographic anonymity library to scale, simplify, \
 communication, & storage.\
 """
 
-__version__ = "0.23.15"
+__version__ = "0.23.16"
 
 
 __license__ = "AGPL-3.0-only"
