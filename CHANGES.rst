@@ -14,6 +14,7 @@ Major Changes
 
 - build: remove no longer needed 'setup.py' file
 - build: add missing wheel dependency to dev installs
+- build: add missing setuptools dependency to dev installs
 
 
 Minor Changes
