@@ -24,6 +24,7 @@ Minor Changes
 - docs: specify bool or None as ``__(a)exit__`` return type
 - docs: fix inaccurate changelog message under v0.23.15
 - docs(readme): include ``Slick256`` in online cipher description
+- docs(readme): clean intro instructions & make test/dev section
 
 
 

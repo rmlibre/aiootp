@@ -66,28 +66,45 @@ Quick Install
 
 .. code-block:: shell
 
-    $ sudo apt-get install python3 python3-pip
+    sudo apt-get install python3-pip
 
-    $ pip3 install --user --upgrade aiootp
-
-
+    pip3 install --user --upgrade aiootp
 
 
-Run Tests
----------
+
+
+Development & Testing
+---------------------
 
 .. code-block:: shell
 
-    $ # Install tests dependencies
-    $ pip3 install --user --upgrade aiootp[test]
+    # Setup environment
 
-    $ cd /path/to/aiootp-repo-with-tests/
+    sudo apt-get install pipx
 
-    $ ruff check . && ruff format --check .
+    pipx install uv
 
-    $ coverage run -m pytest tests/test_aiootp.py
+    mkdir aiootp && cd aiootp
 
-    $ coverage combine && coverage html && coverage report
+    git clone https://github.com/rmlibre/aiootp.git && cd aiootp
+
+    uv sync --extra dev && source .venv/bin/activate
+
+
+    # Run formatter, linter, & tests on new changes
+
+    ruff format . && ruff check --fix .
+
+    coverage run -m pytest tests/test_aiootp.py
+
+    coverage combine && coverage report && coverage html
+
+
+    # Tests can also be run across specific Python versions
+
+    uv python install 3.8 3.9 3.10 3.11 3.12 3.13
+
+    uv run --python 3.13 --extra dev coverage run -m pytest tests/test_aiootp.py
 
 
 
