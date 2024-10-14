@@ -25,6 +25,7 @@ Minor Changes
 - docs: fix inaccurate changelog message under v0.23.15
 - docs(readme): include ``Slick256`` in online cipher description
 - docs(readme): clean intro instructions & make test/dev section
+- docs: fix incomplete docstring in 'cipher_interface.py'
 
 
 

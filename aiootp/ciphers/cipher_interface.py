@@ -13,6 +13,7 @@
 
 """
 An interface for the package's online, salt misuse-reuse resistant,
+fully context committing, tweakable, AEAD ciphers.
 """
 
 __all__ = ["CipherInterface"]
