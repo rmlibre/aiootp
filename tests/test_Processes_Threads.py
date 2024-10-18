@@ -11,116 +11,96 @@
 #
 
 
-import platform
-
 from conftest import *
 
 
-class BasicTestSuite:
-    _type: type
-    _id_name: str
-
-    system = platform.system()
-
-    async def aget_ids(self) -> t.Dict[str, int]:
-        from aiootp.asynchs import asleep
-        from aiootp.asynchs.threads import get_thread_id
-        from aiootp.asynchs.processes import get_process_id
-
-        await asleep()
-        return dict(process_id=get_process_id(), thread_id=get_thread_id())
-
-    def get_ids(self) -> t.Dict[str, int]:
-        from aiootp.asynchs.threads import get_thread_id
-        from aiootp.asynchs.processes import get_process_id
-
-        return dict(process_id=get_process_id(), thread_id=get_thread_id())
-
-    async def test_anew(self) -> None:
-        name = self._id_name
-
-        is_non_linux_multiprocessing_issue = lambda _: (
-            (self._type is Processes) and (self.system != "Linux")
-        )
-        with Ignore(
-            IndexError, if_except=is_non_linux_multiprocessing_issue
-        ):
-            result = (await self._type.anew(self.aget_ids))[name]
-            assert result > 0
-            assert result.__class__ is int
-            assert result != (await self.aget_ids())[name]
-            assert result != self.get_ids()[name]
-
-            result = (await self._type.anew(self.get_ids))[name]
-            assert result > 0
-            assert result.__class__ is int
-            assert result != self.get_ids()[name]
-
-    def test_new(self) -> None:
-        name = self._id_name
-
-        is_non_linux_multiprocessing_issue = lambda _: (
-            (self._type is Processes) and (self.system != "Linux")
-        )
-        with Ignore(
-            IndexError, if_except=is_non_linux_multiprocessing_issue
-        ):
-            result = self._type.new(self.get_ids)[name]
-            assert result > 0
-            assert result.__class__ is int
-            assert result != self.get_ids()[name]
-
-    async def test_asubmit(self) -> None:
-        name = self._id_name
-        self._type.reset_pool()
-
-        fut = await self._type.asubmit(self.aget_ids)
-        result = (await fut.aresult())[name]
-        assert result == fut.result()[name]
-        assert result > 0
-        assert result.__class__ is int
-        assert result != (await self.aget_ids())[name]
-        assert result != self.get_ids()[name]
-
-        fut = await self._type.asubmit(self.get_ids)
-        result = (await fut.aresult())[name]
-        assert result == fut.result()[name]
-        assert result > 0
-        assert result.__class__ is int
-        assert result != (await self.aget_ids())[name]
-        assert result != self.get_ids()[name]
-
-    def test_submit(self) -> None:
-        name = self._id_name
-        self._type.reset_pool()
-
-        fut = self._type.submit(self.get_ids)
-        result = fut.result()[name]
-        assert result > 0
-        assert result.__class__ is int
-        assert result != self.get_ids()[name]
-
-    async def test_probe_delay_must_be_positive(self) -> None:
-        problem = (  # fmt: skip
-            "A non-positive probe_delay was allowed."
-        )
-        with Ignore(ValueError, if_else=violation(problem)):
-            await self._type.anew(acsprng, probe_delay=-1)
-
-        with Ignore(ValueError, if_else=violation(problem)):
-            self._type.new(csprng, probe_delay=-1)
+INTERFACES = (Processes, Threads)
 
 
-if platform.system() != "Windows":
+@pytest.mark.parametrize("interface", INTERFACES)
+async def test_anew(interface: t.ConcurrencyInterface) -> None:
+    amethod = interface.aget_id
+    method = interface.get_id
 
-    class TestProcesses(BasicTestSuite):
-        _type: type = Processes
-        _id_name: str = "process_id"
+    result = await interface.anew(amethod)
+    assert result > 0
+    assert result.__class__ is int
+    assert result != await amethod()
+    assert result != method()
+
+    result = await interface.anew(method)
+    assert result > 0
+    assert result.__class__ is int
+    assert result != await amethod()
+    assert result != method()
 
 
-class TestThreads(BasicTestSuite):
-    _type: type = Threads
-    _id_name: str = "thread_id"
+@pytest.mark.parametrize("interface", INTERFACES)
+def test_new(interface: t.ConcurrencyInterface) -> None:
+    method = interface.get_id
+
+    result = interface.new(method)
+    assert result > 0
+    assert result.__class__ is int
+    assert result != method()
+
+
+@pytest.mark.parametrize("interface", INTERFACES)
+async def test_asubmit(interface: t.ConcurrencyInterface) -> None:
+    interface.reset_pool()
+    amethod = interface.aget_id
+    method = interface.get_id
+
+    fut = await interface.asubmit(amethod)
+    result = await fut.aresult()
+    assert result == fut.result()
+    assert result > 0
+    assert result.__class__ is int
+    assert result != await amethod()
+    assert result != method()
+
+    fut = await interface.asubmit(method)
+    result = await fut.aresult()
+    assert result == fut.result()
+    assert result > 0
+    assert result.__class__ is int
+    assert result != await amethod()
+    assert result != method()
+
+
+@pytest.mark.parametrize("interface", INTERFACES)
+def test_submit(interface: t.ConcurrencyInterface) -> None:
+    interface.reset_pool()
+    method = interface.get_id
+
+    fut = interface.submit(method)
+    result = fut.result()
+    assert result > 0
+    assert result.__class__ is int
+    assert result != method()
+
+
+@pytest.mark.parametrize("interface", INTERFACES)
+async def test_probe_delay_must_be_positive(
+    interface: t.ConcurrencyInterface,
+) -> None:
+    amethod = interface.aget_id
+    method = interface.get_id
+
+    problem = (  # fmt: skip
+        "A non-positive probe_delay was allowed."
+    )
+    with Ignore(ValueError, if_else=violation(problem)):
+        await interface.anew(amethod, probe_delay=-1)
+
+    with Ignore(ValueError, if_else=violation(problem)):
+        interface.new(method, probe_delay=-1)
+
+    with Ignore(ValueError, if_else=violation(problem)):
+        await interface.asubmit(amethod, probe_delay=-1)
+
+    with Ignore(ValueError, if_else=violation(problem)):
+        interface.submit(method, probe_delay=-1)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

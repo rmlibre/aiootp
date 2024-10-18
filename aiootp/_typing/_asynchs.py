@@ -16,7 +16,13 @@ Dependency inversion & documentation support for types relevant to
 the `asynchs` subpackage.
 """
 
-__all__ = ["AsyncOrSyncIterable", "ClockType", "Future", "PoolExecutorType"]
+__all__ = [
+    "AsyncOrSyncIterable",
+    "ClockType",
+    "Future",
+    "PoolExecutorType",
+    "QueueType",
+]
 
 
 from concurrent.futures._base import Future
@@ -66,6 +72,29 @@ class PoolExecutorType(t.Protocol):
 
 
 @t.runtime_checkable
+class QueueType(t.Protocol):
+    def get(self, block: bool, timeout: t.Optional[int]) -> t.Any:
+        pass  # pragma: no cover
+
+    def get_nowait(self) -> t.Any:
+        pass  # pragma: no cover
+
+    def put(
+        self, item: t.Any, block: bool, timeout: t.Optional[int]
+    ) -> None:
+        pass  # pragma: no cover
+
+    def put_nowait(self, item: t.Any) -> None:
+        pass  # pragma: no cover
+
+    def empty(self) -> bool:
+        pass  # pragma: no cover
+
+    def full(self) -> bool:
+        pass  # pragma: no cover
+
+
+@t.runtime_checkable
 class ClockType(t.Protocol):
     async def atime(self) -> int:
         pass  # pragma: no cover
@@ -95,6 +124,7 @@ module_api = dict(
     ClockType=t.add_type(ClockType),
     Future=t.add_type(Future),
     PoolExecutorType=t.add_type(PoolExecutorType),
+    QueueType=t.add_type(QueueType),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

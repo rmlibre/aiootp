@@ -155,10 +155,16 @@ class TestPermutationTypes(ProtocolSubTypeTests):
     ]
 
 
+class TestQueueTypes(ProtocolSubTypeTests):
+    protocol = t.QueueType
+    instances_tested = [t.Processes._get_queue(), t.Threads._get_queue()]
+    types_tested = [obj.__class__ for obj in instances_tested]
+
+
 class TestPoolExecutorTypes(ProtocolSubTypeTests):
     protocol = t.PoolExecutorType
-    types_tested = [t.Processes._pool.__class__, t.Threads._pool.__class__]
     instances_tested = [t.Processes._pool, t.Threads._pool]
+    types_tested = [obj.__class__ for obj in instances_tested]
 
 
 class TestAsyncDatabaseType(ProtocolSubTypeTests):
