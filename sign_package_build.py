@@ -40,10 +40,10 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
         print("current version:", __version__)
         print(f"current build: {scope['build_number']}\n")
 
-    git_branch = next(
-        line.strip().split()[-1]
-        for line in check_output(split("git branch")).decode().split("\n")
-        if line.startswith("*")
+    git_branch = (
+        check_output(split("git rev-parse --abbrev-ref HEAD"))
+        .decode()
+        .strip()
     )
     if f"* {git_branch}" not in check_output(split("git branch")).decode():
         raise ValueError(f"The value {git_branch=} is invalid.")
@@ -84,16 +84,25 @@ elif getpass("sign package? (y/N) ").lower().strip().startswith("y"):
             **{getpass("name: ").strip(): getpass("value: ")}
         )
 
+    MANIFEST = ""
+    MANIFEST_EXCLUDES = {".github/", "aiootp/db/", "aiootp/tor/"}
     git_branch_tree = check_output(
         split(f"git ls-tree --full-tree -r {quote(git_branch)}")
     )
     for line in git_branch_tree.decode().strip().split("\n"):
         filename = line.strip().split("\t")[-1].strip()
-        if not filename or "SIGNATURE" in filename:
+        if not filename:
+            continue
+        if not any((exclude in filename) for exclude in MANIFEST_EXCLUDES):
+            MANIFEST += f"include {filename}\n"
+        if "MANIFEST" in filename or "SIGNATURE" in filename:
             continue
         with Path(filename).open("rb") as source_file:
             signer.add_file(filename, source_file.read())
 
+    with Path("MANIFEST.in").open("wb") as manifest:
+        manifest.write(MANIFEST.encode())
+        signer.add_file("MANIFEST.in", MANIFEST.encode())
     signer.sign_package()
     summary = signer.summarize()
     verifier = PackageVerifier(bytes.fromhex(aiootp_signing_key), path="")

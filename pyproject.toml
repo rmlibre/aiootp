@@ -277,18 +277,17 @@ Documentation = "https://github.com/rmlibre/aiootp/blob/main/README.rst"
 
 [tool.setuptools]
 license-files = ["LICENSE"]
-include-package-data = true
 
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["aiootp", "aiootp*"]
-exclude = ["aiootp.db*", "aiootp.tor*"]
-namespaces = false
+namespaces = true
 
 
 [tool.setuptools.package-data]
-aiootp = ["db/README_DATABASES.rst", "tor/README_TOR.rst"]
+"aiootp.db" = ["README_DATABASES.rst"]
+"aiootp.tor" = ["README_TOR.rst"]
 
 
 [tool.setuptools.dynamic]

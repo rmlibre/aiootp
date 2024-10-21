@@ -22,6 +22,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - build: bump dependencies versions
+- build: automate 'MANIFEST.in' & follow setuptools guide
 - docs: specify bool or None as ``__(a)exit__`` return type
 - docs: fix inaccurate changelog message under v0.23.15
 - docs(readme): include ``Slick256`` in online cipher description

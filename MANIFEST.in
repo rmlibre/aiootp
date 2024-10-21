@@ -1,9 +1,3 @@
-global-exclude */__pycache__/*
-global-exclude *.pyc
-global-exclude */*
-recursive-exclude aiootp/tor/ *
-recursive-exclude aiootp/db/ *
-recursive-exclude logs/ *
 include .gitignore
 include CHANGES.rst
 include CODE_OF_CONDUCT.md
@@ -83,7 +77,6 @@ include aiootp/databases/dbdomains.py
 include aiootp/databases/dbkdf.py
 include aiootp/databases/profile_tokens.py
 include aiootp/databases/sync_database.py
-include aiootp/db/README_DATABASES.rst
 include aiootp/generics/__init__.py
 include aiootp/generics/byte_io.py
 include aiootp/generics/canon.py
@@ -122,7 +115,6 @@ include aiootp/randoms/ids/sequence_id_config.py
 include aiootp/randoms/rng.py
 include aiootp/randoms/simple.py
 include aiootp/randoms/threading_safe_entropy_pool.py
-include aiootp/tor/README_TOR.rst
 include licenses/aiofiles_LICENSE.txt
 include licenses/cpython_LICENSE.txt
 include licenses/cryptography_LICENSES/LICENSE.APACHE
@@ -134,7 +126,6 @@ include licenses/pytest_LICENSE.txt
 include logo.png
 include pyproject.toml
 include setup.cfg
-include setup.py
 include sign_package_build.py
 include tests/conftest.py
 include tests/test_ByteIO.py

@@ -1,5 +1,5 @@
 {
-    "checksum": "cdb1e646022adbadb8e20c657538efaade767c4321a4f28dd364b86924d4cc3e656cfb40f6cfceba3aca0ca8aad9d073",
+    "checksum": "72acf1d842b1f283ba4b61cfe09d6d9fb29d8a93c4784242ff1bb4c0878743ef8b157ae81112ab2112c12b1903c1ede7",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,12 +12,12 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "a0af46b8426f1c2c7c5551c8489131d791f064c598923c45a2a2657637ebbbfd51fb6a188d17b55009d919ec638d9687",
+        "CHANGES.rst": "83124bccb47a7a09fe7268beefa763e6fe5a37c78fa4d640d1bf0e2249e7253ce7c6756038f08e8557d18aa06837338c",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
-        "MANIFEST.in": "ed647a46da5c770a43421d78ecf741785ce10354a66eba704ad49fe15a07e9b738e81a916349bc52c373b1627a13c6a3",
+        "MANIFEST.in": "6738c7cdc8fa6f6482c12a88e330a454a36ac3efeaa9b06de94ed1ab6a49706614508284f82c98bf1115715bf8aa8423",
         "README.rst": "c31827a68b87af35f89b3edb34f9a089f1337c0901b0b7b27cc44a4de75bdc5dff15632f2a5999dfd2a0f49555d8467a",
         "SECURITY.md": "3edb91af4af405b1bc620c7090bc46e29602d5b3e3cf0ee3013c32894dce1f55402a8e4fc4f7633c4d999f08aa7afb98",
         "aiootp/__engagement/__init__.py": "c35ff456893f72944342077d5cc94a1437f30ad0aa1ffb6ad8925fdc44eaf8aeb950eb4d09529b9a6489f8bd2ab6dc7d",
@@ -138,9 +138,9 @@
         "licenses/pytest-asyncio_LICENSE.txt": "c7eade567a30b0dd5c3b56ebd500733d48a28d92897e69d2dc3130773a3a560e5ff470ae6d5af5b627a204fdaefc4b5c",
         "licenses/pytest_LICENSE.txt": "a8144a38e953dca1ffe5cc0e7dbacdb56bbabf012aba9adf2f65b51ed823f78e7333d82ec9c18cc88b4daba95b7f6330",
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
-        "pyproject.toml": "6c9bd617669eb93a5d0a28a9c96ff3210ede91dbedd5a297c7f892dd6dd06315f95fbabe455a696a6754d6e999581e8a",
+        "pyproject.toml": "1c186a0a1fb152c66b21a6254d811c252f1cb75e560ea54e026e6ed45337030e5b35968e01176d36cf15428e56031296",
         "setup.cfg": "626717caccecdbf2744c39c91d3f3b7f083afb5614386972f492e24a39850ea489e0292ddbbd0513a62908e217e81d5c",
-        "sign_package_build.py": "944c11821ab5e9d1deffa51df6c372c565c6b920d7ec6212c2bc8f0e234031acc315e830a4460194e25a5d9e43b4760a",
+        "sign_package_build.py": "70d90244eba4f14cabf7476b8cec990884a24c1af2f30af05041131dac88a12e632b75904b616e92625e0bdb0c91baab",
         "tests/conftest.py": "e9a0f368ff9c650bd67dd6451aa7df864131a0e9362fee39f583cfacfb99b111f67e31400d0807eb5c236b3757f6c4e1",
         "tests/test_ByteIO.py": "00082a2677f0df1eaf1b355d2c5e9aed6c38f954ea0d5defeada1ad9870c1254efdc6263779188137567e2db62d0767f",
         "tests/test_Clock.py": "847dffc8c69b4ce5cfda32ba032c4c3ecb347d8565cadcedc03518f94eda240c5a4c8bf6b7aeca1b0a2e9d3992d913c1",
@@ -188,8 +188,8 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "2",
-        "date": 20017,
+        "build_number": "3",
+        "date": 20028,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
         "license": "AGPL-3.0-only",
@@ -197,5 +197,5 @@
         "version": "0.23.16"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "8b5432258e422b21af64b97759fa51d9a48a0acc3fece7dcc0abe327b3f75c45216d302a8c0cecac7b3df7e8cf907abdfc7da3fc63788e3cdd44864dcb914e05"
+    "signature": "980697b0f0259a852451ca2f8cf78b9aa655bac0e75c292621f11ccc81f3524baf216f4d8a92ca309c7398b1f208560252ceafadc37521aabe3bfafb3983d301"
 }
