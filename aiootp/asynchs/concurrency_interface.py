@@ -184,18 +184,27 @@ class ConcurrencyInterface:
 
     __slots__ = ()
 
-    _Manager: type
-
     _default_probe_delay: t.PositiveRealNumber
     _pool: t.PoolExecutorType
     _type: type
 
     BrokenPool: type
 
+    get_id: t.Callable[[], int]
+
+    @classmethod
+    async def aget_id(cls, /) -> int:
+        """
+        Retrieves either the current calling environment's process or
+        thread ID depending on the subclass being `Processes` or `Threads`.
+        """
+        await asleep()
+        return cls.get_id()
+
     @staticmethod
     def _arun_func(
         func: t.Callable[..., t.Any],
-        state: t.Sequence[t.Any],
+        queue: t.QueueType,
         /,
         *args: t.Any,
         **kwargs: t.Any,
@@ -203,18 +212,18 @@ class ConcurrencyInterface:
         """
         Used by the class to retrieve return values from an async or
         sync `func` run in a new process / thread by storing the result
-        in a shared `state` container.
+        in a shared `queue` container.
         """
         if is_async_function(func):
             run = new_event_loop().run_until_complete
-            state.append(run(func(*args, **kwargs)))
+            queue.put_nowait(run(func(*args, **kwargs)))
         else:
-            state.append(func(*args, **kwargs))
+            queue.put_nowait(func(*args, **kwargs))
 
     @staticmethod
     def _run_func(
         func: t.Callable[..., t.Any],
-        state: t.Sequence[t.Any],
+        queue: t.QueueType,
         /,
         *args: t.Any,
         **kwargs: t.Any,
@@ -222,9 +231,9 @@ class ConcurrencyInterface:
         """
         Used by the class to retrieve return values from a sync `func`
         run in a new process / thread by storing the result in a shared
-        `state` container.
+        `queue` container.
         """
-        state.append(func(*args, **kwargs))
+        queue.put_nowait(func(*args, **kwargs))
 
     @classmethod
     async def anew(
@@ -242,17 +251,17 @@ class ConcurrencyInterface:
         coexist with asynchronous code.
         """
         delay = process_probe_delay(cls, probe_delay)
-        state = cls._Manager().list()
+        queue = cls._get_queue()
         task = cls._type(
             target=cls._arun_func,
-            args=(func, state, *args),
+            args=(func, queue, *args),
             kwargs=kwargs,
         )
         task.start()
         while task.is_alive():
             await asleep(delay)
         task.join()
-        return state.pop()
+        return queue.get_nowait()
 
     @classmethod
     def new(
@@ -270,17 +279,17 @@ class ConcurrencyInterface:
         asynchronous code.
         """
         delay = process_probe_delay(cls, probe_delay)
-        state = cls._Manager().list()
+        queue = cls._get_queue()
         task = cls._type(
             target=cls._run_func,
-            args=(func, state, *args),
+            args=(func, queue, *args),
             kwargs=kwargs,
         )
         task.start()
         while task.is_alive():
             sleep(delay)
         task.join()
-        return state.pop()
+        return queue.get_nowait()
 
     @staticmethod
     def _get_result(
@@ -367,7 +376,7 @@ class ConcurrencyInterface:
         /,
         *functions: t.Callable[..., t.Any],
         args: t.Iterable[t.Any] = (),
-        kwargs: t.Mapping[t.Hashable, t.Any] = {},
+        kwargs: t.Mapping[str, t.Any] = {},
     ) -> t.List[t.Any]:
         """
         Sumbits all of the async or synchronous `functions` to the
@@ -389,7 +398,7 @@ class ConcurrencyInterface:
         /,
         *functions: t.Callable[..., t.Any],
         args: t.Iterable[t.Any] = (),
-        kwargs: t.Mapping[t.Hashable, t.Any] = {},
+        kwargs: t.Mapping[str, t.Any] = {},
     ) -> t.List[t.Any]:
         """
         Sumbits all the `functions` to the `Processes._pool` or
@@ -401,15 +410,6 @@ class ConcurrencyInterface:
         finally:
             for task in tasks:
                 task.cancel()
-
-    @classmethod
-    def reset_pool(cls, /) -> None:
-        """
-        When a process or thread pool is broken by an abruptly exited,
-        this method can be called to reset the class' pool object with
-        a new instance.
-        """
-        cls._pool = cls._pool.__class__()
 
 
 module_api = dict(
