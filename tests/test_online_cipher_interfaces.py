@@ -67,9 +67,9 @@ class TestOnlineCipherInterfaces:
                 with Ignore(InterruptedError, if_else=violation(problem)):
                     stream_dec.buffer(b"".join(id_ct))
                 stream_dec.shmac.test_shmac(stream_enc.shmac.result)
-                assert (
-                    pt_enc == pt_dec
-                ), f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
+                assert pt_enc == pt_dec, (
+                    f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
+                )
 
     async def test_async_cipher_decipher_streams_with_varied_data_sizes(
         self,
@@ -120,9 +120,9 @@ class TestOnlineCipherInterfaces:
                 with Ignore(InterruptedError, if_else=violation(problem)):
                     await stream_dec.abuffer(b"".join(id_ct))
                 await stream_dec.shmac.atest_shmac(stream_enc.shmac.result)
-                assert (
-                    pt_enc == pt_dec
-                ), f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
+                assert pt_enc == pt_dec, (
+                    f"{i=} : plaintext_len={len(pt_enc)} : decrypted_plaintext_len={len(pt_dec)}"
+                )
 
     async def test_async_encipher_sync_decipher_interop(self) -> None:
         for _, cipher, salt, aad in all_ciphers:

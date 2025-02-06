@@ -9,7 +9,10 @@ dynamic = ["version", "readme"]
 description = "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage."
 license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.8"
-dependencies = ["aiofiles>=24.1.0", "cryptography>=43.0.1"]
+dependencies = [
+    "aiofiles>=24.1.0",
+    "cryptography>=44.0.1",
+]
 authors = [
     {name = "Gonzo Investigative Journalism Agency, LLC", email = "gonzo.development@protonmail.ch"},
     {name = "Ricchi Machado", email = "rmlibre@riseup.net"},
@@ -248,20 +251,20 @@ keywords = [
 test = [
     "coverage[toml]>=7.6.1",
     "hypothesis>=6.113.0",
-    "pytest>=8.3.3",
+    "pytest>=8.3.4",
     "pytest-asyncio>=0.24.0",
-    "ruff>=0.6.9",
+    "ruff>=0.9.7",
 ]
 dev = [
     "build>=1.2.2",
     "coverage[toml]>=7.6.1",
     "hypothesis>=6.113.0",
-    "pytest>=8.3.3",
+    "pytest>=8.3.4",
     "pytest-asyncio>=0.24.0",
-    "ruff>=0.6.9",
-    "setuptools>=75.1.0",
-    "twine>=5.1.1",
-    "wheel>=0.44.0",
+    "ruff>=0.9.7",
+    "setuptools>=75.3.0",
+    "twine>=6.1.0",
+    "wheel>=0.45.1",
 ]
 
 
@@ -399,8 +402,6 @@ select = [
     "W",  # pycodestyle warnings
 ]
 ignore = [
-    "ANN101",  # deprecated 'self' annotation requirement
-    "ANN102",  # deprecated 'cls' annotation requirement
     "B006",  # mutable defaults only used for **unpacking interface
     "B028",  # thanks for the warning, if stacklevel was needed
     "C408",  # string keys aren't better than keyword arguments
@@ -412,6 +413,8 @@ ignore = [
     "PLR2004",  # TODO: refactor out magic values
     "PLW2901",  # overwriting names is ok
     "RUF012",  # sometimes other types better describe class variables
+    "RUF022",  # semantic groupings > alphabetic ordering
+    "RUF023",  # semantic groupings > alphabetic ordering
     "S101",  # sometimes asserts are nice sanity checks
     "SIM300",  # hey! yoda's alright
     "TD003",  # not all TODOs have an issue link, but should?
@@ -435,11 +438,15 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "T201",  # legit print use in CLI
 ]
 "sign_package_build.py" = [
+    "A004",  # legit built-in python variable use
     "S603",  # legit shell use to get git file tree to sign
 ]
 "**/_typing/*" = [
     "A002",  # no control if mirrored interfaces reuse built-in names
     "FBT001",  # no control over positional boolean params here
+]
+"**/{__engagement/,_constants/,_exceptions.py}**" = [
+    "S105",  # these are constants not credentials
 ]
 "**/asynchs/aos.py" = [
     "F822",  # `__all__` declarations exist in `os` module

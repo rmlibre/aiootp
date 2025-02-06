@@ -39,9 +39,9 @@ class TestPlaintextPadding:
                 # The data is prepended with a constant size inner-header &
                 # appended with extra padding that is measured by the value of
                 # the final byte of padded plaintext modulo the blocksize.
-                assert (
-                    padded_pt[start:end] == pt
-                ), f"{n=} : {sentinel=} : {start=} : {end=}"
+                assert padded_pt[start:end] == pt, (
+                    f"{n=} : {sentinel=} : {start=} : {end=}"
+                )
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

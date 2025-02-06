@@ -99,9 +99,8 @@ class BaseReprControlledTests(BaseVariableHoldingClassTests):
         obj = self._type(self._items)
         string = repr(obj)
         for name, value in self._items.items():
-            if (
-                name[0] == "_"
-                or hasattr(obj, "_is_mapped_attribute")
+            if name[0] == "_" or (
+                hasattr(obj, "_is_mapped_attribute")
                 and not obj._is_mapped_attribute(name)
             ):
                 assert name not in string
@@ -123,9 +122,9 @@ class BaseMaskableReprTests(BaseVariableHoldingClassTests):
             assert str(name) in obj.__repr__(mask=False), name
             assert str(getattr(obj, name)) in obj.__repr__(mask=False), name
             assert str(name) in obj.__repr__(mask=True), name
-            assert str(getattr(obj, name)) not in obj.__repr__(
-                mask=True
-            ), name
+            assert str(getattr(obj, name)) not in obj.__repr__(mask=True), (
+                name
+            )
             DebugControl.enable_debugging(silence_warnings=True)
             assert str(name) in repr(obj), name
             assert str(getattr(obj, name)) in repr(obj), name

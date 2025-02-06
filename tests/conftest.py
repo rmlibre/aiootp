@@ -121,8 +121,7 @@ chunky2048_test_vector_0 = OpenNamespace(
         "531a"
     ),
     shmac=bytes.fromhex(
-        "f791571464dd45754e16d8e6dea2f1a05204dca2510589be012bc5117dfd98"
-        "e8"
+        "f791571464dd45754e16d8e6dea2f1a05204dca2510589be012bc5117dfd98e8"
     ),
     salt=bytes.fromhex("cf3761d57860bdbc"),
     iv=bytes.fromhex("e09d2eee03ae82e6"),
@@ -252,8 +251,7 @@ passcrypt_test_vector_1 = OpenNamespace(
     passphrase=b"test vector passphrase II",
     salt=bytes.fromhex("ca926bc906fa14b886eb"),
     tag=bytes.fromhex(
-        "597dd54fabbeddd3605b3c2bd4ac2c476ac457978ddabf31ccd4a3b8f33942"
-        "e8"
+        "597dd54fabbeddd3605b3c2bd4ac2c476ac457978ddabf31ccd4a3b8f33942e8"
     ),
     hash_passphrase_result=bytes.fromhex(
         "000a59328da314c9000002020209ca926bc906fa14b886eb597dd54fabbedd"
@@ -341,9 +339,9 @@ test_token_ciphertext = ttl_test_cipher.cipher.make_token(
 )
 
 
-async def make_async_ttl_cipher_stream() -> (
-    t.Tuple[t.AsyncCipherStream, bytes]
-):
+async def make_async_ttl_cipher_stream() -> t.Tuple[
+    t.AsyncCipherStream, bytes
+]:
     stream = await ttl_test_cipher.cipher.astream_encrypt(
         salt=ttl_test_cipher.salt, aad=ttl_test_cipher.aad
     )

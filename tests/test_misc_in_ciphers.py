@@ -142,8 +142,7 @@ class TestDatastreamLimits:
         self,
     ) -> None:
         problem = (  # fmt: skip
-            "A sync plaintext block larger than blocksize didn't "
-            "overflow."
+            "A sync plaintext block larger than blocksize didn't overflow."
         )
         for config, cipher, salt, aad in dual_output_ciphers:
             BLOCKSIZE = config.BLOCKSIZE

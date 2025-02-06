@@ -23,7 +23,6 @@ __all__ = [
     "CipherStreamIsClosed",
     "DatabaseNotConnected",
     "DatabaseIssue",
-    "MissingDeclaredVariables",
     "Ignore",
     "ImproperPassphrase",
     "IncoherentConcurrencyState",
@@ -37,6 +36,7 @@ __all__ = [
     "KDFModeNotDeclared",
     "KeyAADIssue",
     "Metadata",
+    "MissingDeclaredVariables",
     "PackageNotSigned",
     "PackageSignerIssue",
     "PasscryptIssue",
@@ -658,8 +658,7 @@ class SHMACIssue:
         "MIN bytes to securely authenticate a block."
     )
     _BLOCK_ID_IS_TOO_BIG: str = (
-        "A block id of SIZE bytes is too big. It can be at most MAX "
-        "bytes."
+        "A block id of SIZE bytes is too big. It can be at most MAX bytes."
     )
     _INVALID_SHMAC: str = (
         "Invalid StreamHMAC hash for the given ciphertext."
