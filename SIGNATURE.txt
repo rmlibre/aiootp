@@ -1,5 +1,5 @@
 {
-    "checksum": "66e4967784477a91ae2474bcbc8778820095165cb329f2bbedf8d35b5e2697452ca7699a868de4db9bf90fb9b4ec2a2d",
+    "checksum": "cb8ab1840a7e8eb56d333873dd0a3dabb568744aa3b05dcfabfec823e1042572b4363600780517fdc6881e2b09ce1206",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -138,7 +138,7 @@
         "licenses/pytest-asyncio_LICENSE.txt": "c7eade567a30b0dd5c3b56ebd500733d48a28d92897e69d2dc3130773a3a560e5ff470ae6d5af5b627a204fdaefc4b5c",
         "licenses/pytest_LICENSE.txt": "a8144a38e953dca1ffe5cc0e7dbacdb56bbabf012aba9adf2f65b51ed823f78e7333d82ec9c18cc88b4daba95b7f6330",
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
-        "pyproject.toml": "b144d8c73dc25de9b967e9ce055cd5db8f49f54c85863afbf35e13722508a0dd9158b45b6733aec0639c6a0ac887959f",
+        "pyproject.toml": "51df8aa63750992bf4864d6fca8a6208e566f5c9d103d8df28c743a05090cf2bca81c2f7a8088f3e15b17aeeada308b5",
         "setup.cfg": "626717caccecdbf2744c39c91d3f3b7f083afb5614386972f492e24a39850ea489e0292ddbbd0513a62908e217e81d5c",
         "sign_package_build.py": "70d90244eba4f14cabf7476b8cec990884a24c1af2f30af05041131dac88a12e632b75904b616e92625e0bdb0c91baab",
         "tests/conftest.py": "6a31793016bdcca9c91232c013073645e39c350b2fa4702c1b6b8fdc82af70b89fe4463e4f4493a100d9a49ed7bd8e7a",
@@ -188,7 +188,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "5",
+        "build_number": "6",
         "date": 20140,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
@@ -197,5 +197,5 @@
         "version": "0.23.16"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "3328268e74c5f4d856b6b2701515a975d1bf288803fdd054ae142129ddae260a6137dc6f4fc934aba56f1d7cb5560b8066ca0b92040b5af44941f92618683003"
+    "signature": "ae4559afe22ee5e7c122959be18cdd469bb8f4c119b6d0c579f658a6548c5524ca4b9e24307c45885d116ab7109dfdd29bedfb5bbcfcd7bbfc8cf551aff65708"
 }
