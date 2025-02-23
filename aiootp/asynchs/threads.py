@@ -31,7 +31,7 @@ from .concurrency_interface import ConcurrencyInterface
 
 class Threads(ConcurrencyInterface):
     """
-    Simplifies spawning & returning the values procuded by `Thread` &
+    Simplifies spawning & returning the values produced by `Thread` &
     `ThreadPoolExecutor` objects with an interface over these types from
     the `threading` & `concurrent.futures` packages.
     """

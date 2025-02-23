@@ -31,7 +31,7 @@ from .concurrency_interface import ConcurrencyInterface
 
 class Processes(ConcurrencyInterface):
     """
-    Simplifies spawning & returning the values procuded by `Process` &
+    Simplifies spawning & returning the values produced by `Process` &
     `ProcessPoolExecutor` objects with an interface over these types
     from the `multiprocessing` & `concurrent.futures` packages.
     """

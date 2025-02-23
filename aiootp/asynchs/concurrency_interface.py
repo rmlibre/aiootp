@@ -72,9 +72,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
         assert mutable_thing[0] == 0  |
         mutable_thing[0] = "done."    |
                                       |
-    ----------------------------------------------------------------------
-    Context A is called first, but Context B is called before it finishes.
-    ----------------------------------------------------------------------
+    --------------------------------------------------------------------
+    Context A is called first, and Context B waits for A to finish.
+    --------------------------------------------------------------------
     """
 
     __slots__ = ("probe_delay", "queue", "token")
