@@ -15,6 +15,11 @@ from base64 import urlsafe_b64encode
 
 from conftest import *
 
+from aiootp._constants.datasets import (
+    _WORD_LIST_256,
+    _WORD_LIST_256_INVERSE,
+)
+
 
 NON_ZERO_PREFIX = choice(list(range(1, 256))).to_bytes(1, BIG)
 data = NON_ZERO_PREFIX + token_bytes(choice(list(range(23, 33))))
@@ -61,6 +66,28 @@ class TestByteIO:
 
         assert set(Tables.BASE_38).issuperset(result)
         assert data == ByteIO.filename_to_bytes(result)
+
+    async def test_abytes_to_phrase(self) -> None:
+        blob = Slick256(csprng(64)).bytes_encrypt(b"")
+
+        phrase = await ByteIO._abytes_to_phrase(blob)
+
+        for byte, word in zip(blob, phrase.split(b" ")):
+            assert word == _WORD_LIST_256[byte]
+            assert byte.to_bytes(1, "big") == _WORD_LIST_256_INVERSE[word]
+
+        assert blob == await ByteIO._aphrase_to_bytes(phrase)
+
+    async def test_bytes_to_phrase(self) -> None:
+        blob = Slick256(csprng(64)).bytes_encrypt(b"")
+
+        phrase = ByteIO._bytes_to_phrase(blob)
+
+        for byte, word in zip(blob, phrase.split(b" ")):
+            assert word == _WORD_LIST_256[byte]
+            assert byte.to_bytes(1, "big") == _WORD_LIST_256_INVERSE[word]
+
+        assert blob == ByteIO._phrase_to_bytes(phrase)
 
     async def test_aread(self, path: t.Path) -> None:
         assert b"" == await ByteIO.aread(path)

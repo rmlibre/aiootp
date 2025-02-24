@@ -25,6 +25,10 @@ from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 from aiootp._typing import Typing as t
 from aiootp._constants import Tables, BIG
+from aiootp._constants.datasets import (
+    _WORD_LIST_256,
+    _WORD_LIST_256_INVERSE,
+)
 from aiootp.commons import FrozenInstance
 from aiootp.asynchs import asleep
 
@@ -117,6 +121,100 @@ class ByteIO(FrozenInstance):
         result = base_as_int(filename, base=38, table=Tables.BASE_38)
         byte_count = ceil(result.bit_length() / 8)
         return result.to_bytes(byte_count, BIG)
+
+    @staticmethod
+    async def _abytes_to_phrase(value: bytes) -> bytes:
+        """
+        **ONGOING DEVELOPMENT**
+
+        Returns a space-delimited bytes-type collection of words which
+        represent an encoding of the bytes-type `value`. The intention
+        is to offer a steganographic-like transform of random
+        appearing blobs of bytes, such as ciphertexts, into phrases
+        which may appear as plausible speech, avoid being flagged, &/or
+        disrupt training algorithms.
+
+        The word-list is optimized to achieve plausibility from random
+        samplings by balancing the following criteria:
+
+        - The most common words used in English
+        - A preference for highly general, conversational words
+        - A representative apportionment of grammatical parts of speech
+        - A preference for highly polysemic words, especially if a word
+          can represent different grammatical parts of speech
+        """
+        await asleep()
+        return b" ".join(_WORD_LIST_256[byte] for byte in value)
+
+    @staticmethod
+    def _bytes_to_phrase(value: bytes) -> bytes:
+        """
+        **ONGOING DEVELOPMENT**
+
+        Returns a space-delimited bytes-type collection of words which
+        represent an encoding of the bytes-type `value`. The intention
+        is to offer a steganographic-like transform of random
+        appearing blobs of bytes, such as ciphertexts, into phrases
+        which may appear as plausible speech, avoid being flagged, &/or
+        disrupt training algorithms.
+
+        The word-list is optimized to achieve plausibility from random
+        samplings by balancing the following criteria:
+
+        - The most common words used in English
+        - A preference for highly general, conversational words
+        - A representative apportionment of grammatical parts of speech
+        - A preference for highly polysemic words, especially if a word
+          can represent different grammatical parts of speech
+        """
+        return b" ".join(_WORD_LIST_256[byte] for byte in value)
+
+    @staticmethod
+    async def _aphrase_to_bytes(phrase: bytes) -> bytes:
+        """
+        **ONGOING DEVELOPMENT**
+
+        Takes a space-delimited bytes-type `phrase` which represents an
+        encoding of a random appearing bytes-type blob, such as a
+        ciphertext, reversing the original steganographic transform.
+
+        The word-list for the phrase is optimized to achieve plausibility
+        from random samplings by balancing the following criteria:
+
+        - The most common words used in English
+        - A preference for highly general, conversational words
+        - A representative apportionment of grammatical parts of speech
+        - A preference for highly polysemic words, especially if a word
+          can represent different grammatical parts of speech
+        """
+        await asleep()
+        return b"".join(
+            _WORD_LIST_256_INVERSE[word]
+            for word in phrase.strip().split(b" ")
+        )
+
+    @staticmethod
+    def _phrase_to_bytes(phrase: bytes) -> bytes:
+        """
+        **ONGOING DEVELOPMENT**
+
+        Takes a space-delimited bytes-type `phrase` which represents an
+        encoding of a random appearing bytes-type blob, such as a
+        ciphertext, reversing the original steganographic transform.
+
+        The word-list for the phrase is optimized to achieve plausibility
+        from random samplings by balancing the following criteria:
+
+        - The most common words used in English
+        - A preference for highly general, conversational words
+        - A representative apportionment of grammatical parts of speech
+        - A preference for highly polysemic words, especially if a word
+          can represent different grammatical parts of speech
+        """
+        return b"".join(
+            _WORD_LIST_256_INVERSE[word]
+            for word in phrase.strip().split(b" ")
+        )
 
     @staticmethod
     async def aread(path: t.PathStr) -> bytes:
