@@ -38,7 +38,7 @@ class Threads(ConcurrencyInterface):
 
     __slots__ = ()
 
-    _default_probe_delay: t.PositiveRealNumber = 0.001
+    _default_probe_delay: float = 0.001
     _pool: t.PoolExecutorType = ThreadPoolExecutor()
     _type: type = Thread
 

@@ -38,7 +38,7 @@ class Processes(ConcurrencyInterface):
 
     __slots__ = ()
 
-    _default_probe_delay: t.PositiveRealNumber = 0.005
+    _default_probe_delay: float = 0.005
     _context: SpawnContext = multiprocessing.get_context("spawn")
     _pool: t.PoolExecutorType = ProcessPoolExecutor(mp_context=_context)
     _type: type = _context.Process

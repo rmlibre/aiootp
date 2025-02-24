@@ -29,15 +29,17 @@ from . import is_async_function
 from .loops import asleep, sleep, new_event_loop
 
 
-def process_probe_delay(cls: t.Any, value: t.Optional[float], /) -> float:
+def process_probe_delay(
+    value: t.Optional[t.PositiveRealNumber], /, *, default: float
+) -> float:
     """
     Ensures the probe frequency is positive & returns it, if it's
     specified. Otherwise, returns `cls`'s default value.
     """
     if value is None:
-        return cls._default_probe_delay
+        return default
     elif value > 0:
-        return value
+        return float(value)
     else:
         raise Issue.value_must("probe_delay", "be > 0")
 
@@ -94,7 +96,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         /,
         queue: t.SupportsAppendPopleft,
         *,
-        probe_delay: t.Optional[float] = None,
+        probe_delay: t.Optional[t.PositiveRealNumber] = None,
         token: t.Optional[bytes] = None,
     ) -> None:
         """
@@ -107,7 +109,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
         `token`: The unique authorization token held by this context.
         """
-        self.probe_delay = process_probe_delay(self, probe_delay)
+        self.probe_delay = process_probe_delay(
+            probe_delay, default=self._default_probe_delay
+        )
         self.queue = queue
         self.token = token_bytes(32) if token is None else token
 
@@ -184,7 +188,7 @@ class ConcurrencyInterface:
 
     __slots__ = ()
 
-    _default_probe_delay: t.PositiveRealNumber
+    _default_probe_delay: float
     _pool: t.PoolExecutorType
     _type: type
 
@@ -250,7 +254,9 @@ class ConcurrencyInterface:
         bound computations, or blocking IO operations, can better
         coexist with asynchronous code.
         """
-        delay = process_probe_delay(cls, probe_delay)
+        delay = process_probe_delay(
+            probe_delay, default=cls._default_probe_delay
+        )
         queue = cls._get_queue()
         task = cls._type(
             target=cls._arun_func,
@@ -278,7 +284,9 @@ class ConcurrencyInterface:
         computations, or blocking IO operations, can better coexist with
         asynchronous code.
         """
-        delay = process_probe_delay(cls, probe_delay)
+        delay = process_probe_delay(
+            probe_delay, default=cls._default_probe_delay
+        )
         queue = cls._get_queue()
         task = cls._type(
             target=cls._run_func,
@@ -310,7 +318,7 @@ class ConcurrencyInterface:
 
     @staticmethod
     def _package_result_methods(
-        future: t.Future, /, *, probe_delay: t.PositiveRealNumber
+        future: t.Future, /, *, probe_delay: float
     ) -> t.Future:
         """
         Inserts methods in the `future` returned from a pool submission
@@ -347,7 +355,9 @@ class ConcurrencyInterface:
         the supplied `*args` & `**kwargs`, then returns the `Future`
         object that's created.
         """
-        delay = process_probe_delay(cls, probe_delay)
+        delay = process_probe_delay(
+            probe_delay, default=cls._default_probe_delay
+        )
         future = cls._pool.submit(cls._get_result, func, *args, **kwargs)
         return cls._package_result_methods(future, probe_delay=delay)
 
@@ -366,7 +376,9 @@ class ConcurrencyInterface:
         `*args` & `**kwargs`, then returns the `Future` object that's
         created.
         """
-        delay = process_probe_delay(cls, probe_delay)
+        delay = process_probe_delay(
+            probe_delay, default=cls._default_probe_delay
+        )
         future = cls._pool.submit(func, *args, **kwargs)
         return cls._package_result_methods(future, probe_delay=delay)
 
