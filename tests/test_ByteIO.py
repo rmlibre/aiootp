@@ -22,7 +22,7 @@ encoded_data = urlsafe_b64encode(data)
 
 
 class TestByteIO:
-    async def test_abytes_to_urlsafe(self) -> bytes:
+    async def test_abytes_to_urlsafe(self) -> None:
         result = await ByteIO.abytes_to_urlsafe(data)
 
         assert data != result
@@ -36,7 +36,7 @@ class TestByteIO:
             assert 0 == len(result) % 4
             assert result == encoded_data
 
-    async def test_bytes_to_urlsafe(self) -> bytes:
+    async def test_bytes_to_urlsafe(self) -> None:
         result = ByteIO.bytes_to_urlsafe(data)
 
         assert data != result
@@ -50,25 +50,25 @@ class TestByteIO:
             assert 0 == len(result) % 4
             assert result == encoded_data
 
-    async def test_abytes_to_filename(self) -> str:
+    async def test_abytes_to_filename(self) -> None:
         result = await ByteIO.abytes_to_filename(data)
 
         assert set(Tables.BASE_38).issuperset(result)
         assert data == await ByteIO.afilename_to_bytes(result)
 
-    async def test_bytes_to_filename(self) -> str:
+    async def test_bytes_to_filename(self) -> None:
         result = ByteIO.bytes_to_filename(data)
 
         assert set(Tables.BASE_38).issuperset(result)
         assert data == ByteIO.filename_to_bytes(result)
 
-    async def test_aread(self, path: t.Path) -> bytes:
+    async def test_aread(self, path: t.Path) -> None:
         assert b"" == await ByteIO.aread(path)
 
         path.write_bytes(data)
         assert data == await ByteIO.aread(path)
 
-    async def test_read(self, path: t.Path) -> bytes:
+    async def test_read(self, path: t.Path) -> None:
         assert b"" == ByteIO.read(path)
 
         path.write_bytes(data)
