@@ -217,20 +217,20 @@ class ByteIO(FrozenInstance):
         )
 
     @staticmethod
-    async def aread(path: t.PathStr) -> bytes:
+    async def aread(path: t.PathStr, size: int = -1) -> bytes:
         """
         Reads the bytes data from the file at `path`.
         """
         async with aiofiles.open(path, "rb") as f:
-            return await f.read()
+            return await f.read(size)
 
     @staticmethod
-    def read(path: t.PathStr) -> bytes:
+    def read(path: t.PathStr, size: int = -1) -> bytes:
         """
         Reads the bytes data from the file at `path`.
         """
         with Path(path).open("rb") as f:
-            return f.read()
+            return f.read(size)
 
     @staticmethod
     async def awrite(path: t.PathStr, data: bytes) -> None:

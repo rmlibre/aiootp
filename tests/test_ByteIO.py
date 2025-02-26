@@ -95,11 +95,17 @@ class TestByteIO:
         path.write_bytes(data)
         assert data == await ByteIO.aread(path)
 
+        for size in range(len(data)):
+            assert data[:size] == ByteIO.read(path, size)
+
     async def test_read(self, path: t.Path) -> None:
         assert b"" == ByteIO.read(path)
 
         path.write_bytes(data)
         assert data == ByteIO.read(path)
+
+        for size in range(len(data)):
+            assert data[:size] == ByteIO.read(path, size)
 
     async def test_awrite(self, path: t.Path) -> None:
         await ByteIO.awrite(path, data)
