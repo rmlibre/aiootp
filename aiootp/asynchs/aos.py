@@ -44,11 +44,17 @@ from aiootp._typing import Typing as t
 from .loops import asleep, wrap_in_executor
 
 
-async def not_implemented_placeholder(*_: t.Any, **__: t.Any) -> None:
-    # fmt: off
-    await asleep()                                  # pragma: no cover
-    warnings.warn("Function not supported by OS.")  # pragma: no cover
-    # fmt: on
+def not_implemented_placeholder(
+    name: str,
+) -> t.Coroutine[t.Any, t.Any, t.Any]:
+    async def function_not_implemented(*_: t.Any, **__: t.Any) -> None:
+        # fmt: off
+        await asleep()                                       # pragma: no cover
+        message = f"`{name}` function not supported by OS."  # pragma: no cover
+        warnings.warn(message)                               # pragma: no cover
+        # fmt: on
+
+    return function_not_implemented
 
 
 defs = {}
@@ -58,7 +64,7 @@ for name in __all__:
     if hasattr(os, name):
         defs[name] = wrap_in_executor(getattr(os, name))
     else:
-        defs[name] = not_implemented_placeholder  # pragma: no cover
+        defs[name] = not_implemented_placeholder(name)  # pragma: no cover
 
 
 globals().update(defs)
