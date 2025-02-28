@@ -121,10 +121,10 @@ class PackageVerifier:
         files = summary[self._CHECKSUMS]
         for file_path, purported_hexdigest in files.items():
             purported_digest = bytes.fromhex(purported_hexdigest)
-            with (path / file_path).open("rb") as source_file:
-                digest = self._Hasher(source_file.read()).digest()
-                if not bytes_are_equal(purported_digest, digest):
-                    raise PackageSignerIssue.invalid_file_digest(file_path)
+            source_data = Path(path / file_path).read_bytes()
+            digest = self._Hasher(source_data).digest()
+            if not bytes_are_equal(purported_digest, digest):
+                raise PackageSignerIssue.invalid_file_digest(file_path)
 
     def verify_summary(
         self,
