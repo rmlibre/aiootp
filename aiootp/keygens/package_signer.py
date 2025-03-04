@@ -54,8 +54,8 @@ class PackageSignerScope(t.OpenNamespace):
 
 class PackageSignerFiles(t.OpenNamespace):
     """
-    Stores the filename, hashing object key-value pairs of a package
-    signing session.
+    Stores the filename, hexdigest key-value pairs of a package signing
+    session.
     """
 
 
@@ -204,10 +204,7 @@ class PackageSigner:
         Returns the instance's package filenames & their hexdigests in
         a JSON ready dictionary.
         """
-        return {
-            filename: hasher.hexdigest()
-            for filename, hasher in sorted(self.files.items())
-        }
+        return dict(sorted(self.files.items()))
 
     @property
     def _summary(self) -> t.JSONObject:
@@ -313,10 +310,10 @@ class PackageSigner:
 
     def add_file(self, filename: str, file_data: bytes) -> t.Self:
         """
-        Stores a `filename` & the hash object of the file's bytes type
+        Stores a `filename` & the hexdigest of the file's bytes type
         contents in the instance's `files` attribute mapping.
         """
-        self.files[filename] = self._Hasher(file_data)
+        self.files[filename] = self._Hasher(file_data).hexdigest()
         return self
 
     def sign_package(self) -> t.Self:

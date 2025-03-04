@@ -162,9 +162,7 @@ def buffer_send(channel: socket.socket, data: bytes) -> int:
 
 def get_and_parse_request(
     channel: socket.socket, cipher: t.CipherInterfaceType
-) -> t.Tuple[
-    bytes, t.Dict[str, t.JSONSerializable], t.List[t.Tuple[str, str]]
-]:
+) -> t.Tuple[bytes, t.Dict[str, t.JSONSerializable], t.Dict[str, str]]:
     """
     Authenticates the received request data from a `channel` using a
     transmission key shared between the service & the requester.
@@ -181,16 +179,15 @@ def get_and_parse_request(
 def produce_signed_summary(
     signer: t.PackageSigner,
     scope: t.Dict[str, t.JSONSerializable],
-    files: t.List[t.Tuple[str, str]],
+    files: t.Dict[str, str],
 ) -> bytes:
     """
-    Ingests the package `scope` & `files` data into the `signer`.
+    Ingests the package `scope` & `files` metadata into the `signer`.
 
     Returns the JSON serialized signed bytes-type summary.
     """
     signer.__init__(**scope)
-    for filename, source_data in files:
-        signer.add_file(filename, bytes.fromhex(source_data))
+    signer.files.update(files)
     signer.sign_package()
     return json.dumps(signer.summarize(), indent=4).encode()
 

@@ -216,12 +216,10 @@ class TestPackageSigner:
             signer.add_file(filename, file_data)
             assert index == len(signer.files)
             assert filename in signer.files
+            assert signer.files[filename] != signer._Hasher().hexdigest()
             assert (
-                signer.files[filename].digest() != signer._Hasher().digest()
-            )
-            assert (
-                signer.files[filename].digest()
-                == signer._Hasher(file_data).digest()
+                signer.files[filename]
+                == signer._Hasher(file_data).hexdigest()
             )
         assert len(signer.files) == len(pkg_context.files)
         signer.sign_package()

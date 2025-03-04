@@ -107,19 +107,20 @@ def update_scope_prompt(branch: str) -> t.Dict[str, t.JSONSerializable]:
 
 def discover_file_inventory(
     git_branch_tree: str,
-) -> t.Tuple[bytes, t.List[t.Tuple[str, str]]]:
+) -> t.Tuple[bytes, t.Dict[str, str]]:
     """
     Dynamically reconstructs the Python 'MANIFEST.in' from the git file
     list, excluding external data directories. The appropriate filenames
-    are bundled along with their source data into a list to be sent over
-    to the signing service.
+    are bundled along with their source data's hexdigests into a dict to
+    be sent over to the signing service.
 
-    Returns the new manifest file, and the bundled file data.
+    Returns the new manifest file, and the bundled file metadata.
     """
     MANIFEST_EXCLUDES = {".github/", "aiootp/db/", "aiootp/tor/"}
     DYNAMIC_FILES = {"MANIFEST.in", "SIGNATURE.txt"}
+    hasher = PackageSigner._Hasher
     manifest = ""
-    files = []
+    files = {}
 
     for line in git_branch_tree.split("\n"):
         if not (filename := line.strip()):
@@ -127,10 +128,11 @@ def discover_file_inventory(
         if all((part not in filename) for part in MANIFEST_EXCLUDES):
             manifest += f"include {filename}\n"
         if filename not in DYNAMIC_FILES:
-            files.append((filename, Path(filename).read_bytes().hex()))
+            hashed_file = hasher(Path(filename).read_bytes())
+            files[filename] = hashed_file.hexdigest()
 
     manifest = manifest.encode()
-    files.append(("MANIFEST.in", manifest.hex()))
+    files["MANIFEST.in"] = hasher(manifest).hexdigest()
     return manifest, files
 
 
@@ -155,12 +157,12 @@ def send_request(
     client: socket.socket,
     cipher: t.CipherInterfaceType,
     scope: t.Dict[str, t.JSONSerializable],
-    files: t.List[t.Tuple[str, str]],
+    files: t.Dict[str, str],
 ) -> bytes:
     """
-    Wraps package `scope` & `files` data within authenticated encryption
-    from the `cipher`, & sends the ciphertext request over the `client`
-    socket to the service.
+    Wraps the package `scope` & `files` metadata within authenticated
+    encryption from the `cipher`, & sends the ciphertext request over
+    the `client` socket to the service.
 
     Returns the request ciphertext header, which is used later to bind
     the service response ciphertext to the current request.
@@ -192,7 +194,7 @@ def request_package_summary_signature(
     get_transmit_key: t.Callable[..., bytes],
 ) -> bytes:
     """
-    Bundles the package data & requests a signature from the signing
+    Bundles the package metadata & requests a signature from the signing
     service over a socket connection. The channel's integrity is ensured
     by the key returned from the `get_transmit_key` callable argument.
 
