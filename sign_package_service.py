@@ -54,6 +54,31 @@ SEND_AAD: bytes = b"provided_build_signature"
 HEADER_SLICE: slice = Cipher._config.HEADER_SLICE
 
 
+IDLE_SHUTDOWN_SIGNALS: t.Tuple[type] = (
+    KeyboardInterrupt,
+    SystemExit,
+    TimeoutError,
+)
+EXIT_SIGNALS: t.Tuple[type] = (
+    KeyboardInterrupt,
+    SystemExit,
+)
+CHANNEL_ERRORS: t.Tuple[type] = (
+    ConnectionAbortedError,
+    ConnectionResetError,
+    TimeoutError,
+)
+PROCESSING_ERRORS: t.Tuple[type] = (
+    TypeError,
+    ValueError,
+    json.JSONDecodeError,
+)
+INTEGRITY_FAILURES: t.Tuple[type] = (
+    Cipher.InvalidSHMAC,
+    Cipher.TimestampExpired,
+)
+
+
 _KEY_NEGOTIATION_FEATURE_FLAG: bool = False
 
 
@@ -220,7 +245,7 @@ def signing_service_loop(
     while True:
         try:
             channel, _ = server.accept()
-        except TimeoutError:
+        except IDLE_SHUTDOWN_SIGNALS:
             break
         try:
             channel.settimeout(TTL)
@@ -232,13 +257,13 @@ def signing_service_loop(
 
             summary = produce_signed_summary(signer, scope, files)
             send_packaged_response(channel, cipher, header, summary)
-        except (SystemExit, KeyboardInterrupt):
+        except EXIT_SIGNALS:
             break
-        except (ConnectionResetError, TimeoutError) as e:
+        except CHANNEL_ERRORS as e:
             print(f"Connection issue encountered: {e!r}")
-        except (TypeError, ValueError, json.JSONDecodeError) as e:
+        except PROCESSING_ERRORS as e:
             print(f"Message issue encountered: {e!r}")
-        except (Cipher.InvalidSHMAC, Cipher.TimestampExpired) as e:
+        except INTEGRITY_FAILURES as e:
             print(f"Invalid request received: {e!r}")
         finally:
             channel.close()

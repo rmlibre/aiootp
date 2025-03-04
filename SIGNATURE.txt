@@ -1,5 +1,5 @@
 {
-    "checksum": "688d90c1bb7443261723722e64489c9e58a4247b5791e4793b8d489a281fd3faa55e5e7b7c0c5702dc6b7302b3b7fe0c",
+    "checksum": "618a0d539f89adb5f0cef9fabdce4cd790e91261b2b786f7d3d8bcb81864b651d95785a4514a3f1f324ff6879713b1e5",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -141,7 +141,7 @@
         "pyproject.toml": "ed87e3086d533c12ef6629569aad0c417bf4a2fcd198748af65bdcf3be09faeddc58c7627ce2a1927966f8c71a42e15e",
         "setup.cfg": "626717caccecdbf2744c39c91d3f3b7f083afb5614386972f492e24a39850ea489e0292ddbbd0513a62908e217e81d5c",
         "sign_package_build.py": "84c22b4757855ae21f2f13c0ff5765c772def245a99c3bb8e8f323f41c005b3b08801164f2e3cee986d4b1993e705b19",
-        "sign_package_service.py": "9e4afd78e42e4186af08abb589cb5e91e456e654f009ab9c5fb2215eed45bdb67c77a55564a0ef3707cc5b3bc69a6635",
+        "sign_package_service.py": "326e9d74f8f7bab50eab3632a5862afe523c56e37efb4202d943ec9cfb184a991015c4146f0a369d6344d09826699cd5",
         "tests/conftest.py": "6a31793016bdcca9c91232c013073645e39c350b2fa4702c1b6b8fdc82af70b89fe4463e4f4493a100d9a49ed7bd8e7a",
         "tests/test_ByteIO.py": "16d35e60c2f1531baca795369e9e3fcd1030731a31da913fe31383b0d5e2ed674afc41090edc504adcf865b56aa7582f",
         "tests/test_Clock.py": "847dffc8c69b4ce5cfda32ba032c4c3ecb347d8565cadcedc03518f94eda240c5a4c8bf6b7aeca1b0a2e9d3992d913c1",
@@ -198,5 +198,5 @@
         "version": "0.23.16"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "c912c9d739ac464a8ecdf697de924868fdaae6fb4eb1ffe68759c8e979e3b9ff7a5e303dbc5f1f33e430f974a7ef5bb9f3215d55be6eae8fae96b7d534fc2409"
+    "signature": "88a5174675bd1259ca83083560eb30d26a2e160d8369e4ecefdffb7c9aa4ba3ac6299e688825de10fa633b88b320c00d6273d95e2266e2dc6e44521b5789c106"
 }
