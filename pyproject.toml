@@ -11,7 +11,7 @@ license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.8"
 dependencies = [
     "aiofiles>=24.1.0",
-    "cryptography>=44.0.1",
+    "cryptography>=44.0.2",
 ]
 authors = [
     {name = "Gonzo Investigative Journalism Agency, LLC", email = "gonzo.development@protonmail.ch"},
@@ -251,18 +251,18 @@ keywords = [
 test = [
     "coverage[toml]>=7.6.1",
     "hypothesis>=6.113.0",
-    "pytest>=8.3.4",
+    "pytest>=8.3.5",
     "pytest-asyncio>=0.24.0",
-    "ruff>=0.9.7",
+    "ruff>=0.9.9",
 ]
 dev = [
     "build>=1.2.2",
     "coverage[toml]>=7.6.1",
     "hypothesis>=6.113.0",
     "ipython>=8.12.3",
-    "pytest>=8.3.4",
+    "pytest>=8.3.5",
     "pytest-asyncio>=0.24.0",
-    "ruff>=0.9.7",
+    "ruff>=0.9.9",
     "setuptools>=75.3.0",
     "twine>=6.1.0",
     "wheel>=0.45.1",
