@@ -1,5 +1,5 @@
 {
-    "checksum": "b30849a5309e24294bbb2daad773048904a59a3ff24432ce2d62adc6c587cafcad9c78974e07fff15a9899fd88b880fe",
+    "checksum": "a0c0df157eba2892c7a969fde842f6e173fb4ab91ad4851b1957cf8c532cff721d662b00ad97df058d0ad12e793deca1",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -140,7 +140,7 @@
         "logo.png": "7cd769aaddcb3a2d14324f9ef325d42f7024d3e5351b49facef79c4f7ab8c050a39d41c31db2b6a786cd684115c05389",
         "pyproject.toml": "ed87e3086d533c12ef6629569aad0c417bf4a2fcd198748af65bdcf3be09faeddc58c7627ce2a1927966f8c71a42e15e",
         "setup.cfg": "626717caccecdbf2744c39c91d3f3b7f083afb5614386972f492e24a39850ea489e0292ddbbd0513a62908e217e81d5c",
-        "sign_package_build.py": "1e8420fb4bbed6891320e4f5b28d9fe8b5150ad5450f7c2f0fe56f9b93c4c1def6e282f178598e52c9a6e0b4efdeec42",
+        "sign_package_build.py": "f0d60327c4596cb140efffc66be4f972ea7f51a954520ce045f06da1f5e62e03c929020d29b54d134735f12591ed12c8",
         "sign_package_service.py": "326e9d74f8f7bab50eab3632a5862afe523c56e37efb4202d943ec9cfb184a991015c4146f0a369d6344d09826699cd5",
         "tests/conftest.py": "6a31793016bdcca9c91232c013073645e39c350b2fa4702c1b6b8fdc82af70b89fe4463e4f4493a100d9a49ed7bd8e7a",
         "tests/test_ByteIO.py": "16d35e60c2f1531baca795369e9e3fcd1030731a31da913fe31383b0d5e2ed674afc41090edc504adcf865b56aa7582f",
@@ -198,5 +198,5 @@
         "version": "0.23.16"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "770a6a6947d232562c74dc8e9d4e56e050bbedfce68118fa01b5af41a1bb60b3db62503388e8653c85a095be5d05fab1fa3c807cea268a6f5f78e1fb9c10ee0f"
+    "signature": "4a846587bf0c8a39aa786e2e5d13b3f09554a65eb42deaa9508db0672a1fd7b82d7c8fe9441f3b6f263795504363cdc6b5821cf1c7fc8622234e34142dd69c00"
 }

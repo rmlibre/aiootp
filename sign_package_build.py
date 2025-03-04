@@ -68,8 +68,8 @@ MANIFEST_EXCLUDES: t.Set[str] = {
     "aiootp/tor/",
 }
 DYNAMIC_FILES: t.Set[str] = {
-    "MANIFEST.in",
-    "SIGNATURE.txt",
+    (MANIFEST_FILENAME := "MANIFEST.in"),
+    (SIGNATURE_FILENAME := "SIGNATURE.txt"),
 }
 
 
@@ -102,7 +102,7 @@ def update_scope_prompt(branch: str) -> t.Dict[str, t.JSONSerializable]:
     """
     print(f"\ncurrent version: {__version__}")
 
-    if (old_signature_file := Path("SIGNATURE.txt")).is_file():
+    if (old_signature_file := Path(SIGNATURE_FILENAME)).is_file():
         old_signature = json.loads(old_signature_file.read_bytes())
         old_scope = old_signature[PackageSigner._SCOPE]
         old_build_number = old_scope["build_number"]
@@ -143,7 +143,7 @@ def discover_file_inventory(
             files[filename] = hashed_file.hexdigest()
 
     manifest = manifest.encode()
-    files["MANIFEST.in"] = Hasher(manifest).hexdigest()
+    files[MANIFEST_FILENAME] = Hasher(manifest).hexdigest()
     return manifest, files
 
 
@@ -216,7 +216,7 @@ def request_package_summary_signature(
     scope = update_scope_prompt(git_branch)
     manifest, files = discover_file_inventory(git_branch_tree)
 
-    Path("MANIFEST.in").write_bytes(manifest)
+    Path(MANIFEST_FILENAME).write_bytes(manifest)
 
     with start_client() as client:
         cipher = Cipher(get_transmit_key())
@@ -231,7 +231,7 @@ elif not getpass("\nsign package? (Y/n) ").lower().strip().startswith("n"):
         get_transmit_key=current_transmit_key
     )
     PackageVerifier(SIGNING_KEY, path="").verify_summary(summary)
-    Path("SIGNATURE.txt").write_bytes(summary)
+    Path(SIGNATURE_FILENAME).write_bytes(summary)
 elif not getpass("verify package? (Y/n) ").lower().strip().startswith("n"):
-    summary = Path("SIGNATURE.txt").read_bytes()
+    summary = Path(SIGNATURE_FILENAME).read_bytes()
     PackageVerifier(SIGNING_KEY, path="").verify_summary(summary)
