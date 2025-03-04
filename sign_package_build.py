@@ -62,6 +62,20 @@ RECV_AAD: bytes = b"provided_build_signature"
 SIGNING_KEY: bytes = bytes.fromhex(__PUBLIC_ED25519_KEY__)
 
 
+MANIFEST_EXCLUDES: t.Set[str] = {
+    ".github/",
+    "aiootp/db/",
+    "aiootp/tor/",
+}
+DYNAMIC_FILES: t.Set[str] = {
+    "MANIFEST.in",
+    "SIGNATURE.txt",
+}
+
+
+Hasher: t.HasherType = PackageSigner._Hasher
+
+
 def discover_git_branch_tree() -> t.Tuple[str, str]:
     """
     Calls & parses git responses to determine the current branch or ref
@@ -116,9 +130,6 @@ def discover_file_inventory(
 
     Returns the new manifest file, and the bundled file metadata.
     """
-    MANIFEST_EXCLUDES = {".github/", "aiootp/db/", "aiootp/tor/"}
-    DYNAMIC_FILES = {"MANIFEST.in", "SIGNATURE.txt"}
-    hasher = PackageSigner._Hasher
     manifest = ""
     files = {}
 
@@ -128,11 +139,11 @@ def discover_file_inventory(
         if all((part not in filename) for part in MANIFEST_EXCLUDES):
             manifest += f"include {filename}\n"
         if filename not in DYNAMIC_FILES:
-            hashed_file = hasher(Path(filename).read_bytes())
+            hashed_file = Hasher(Path(filename).read_bytes())
             files[filename] = hashed_file.hexdigest()
 
     manifest = manifest.encode()
-    files["MANIFEST.in"] = hasher(manifest).hexdigest()
+    files["MANIFEST.in"] = Hasher(manifest).hexdigest()
     return manifest, files
 
 
