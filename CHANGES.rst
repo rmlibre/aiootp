@@ -12,22 +12,36 @@ Changes for version 0.23.16
 Major Changes
 ^^^^^^^^^^^^^
 
+- fix: avoid deprecated 'fork', switch to queues & 'spawn'
 - build: remove no longer needed 'setup.py' file
 - build: add missing wheel dependency to dev installs
 - build: add missing setuptools dependency to dev installs
-- fix: avoid deprecated 'fork', switch to queues & 'spawn'
+- build: send build data over sockets to a local signing service
+- perf: store PackageSigner files as hexdigests to ease transmission
 
 
 Minor Changes
 ^^^^^^^^^^^^^
 
-- build: bump dependencies versions
+- feat: add trial ciphertext<-->phrase steganographic tool
+- feat: add a size argument to ByteIO (a)read methods
+- build: bump dependencies versions & apply new ruff rules
 - build: automate 'MANIFEST.in' & follow setuptools guide
+- build: add ipython to dev installs to standardize & simplify environment setup
 - docs: specify bool or None as ``__(a)exit__`` return type
 - docs: fix inaccurate changelog message under v0.23.15
 - docs(readme): include ``Slick256`` in online cipher description
 - docs(readme): clean intro instructions & make test/dev section
 - docs: fix incomplete docstring in 'cipher_interface.py'
+- docs: fix docstring typos
+- docs: improve docstring clarity
+- docs: correct return type hint on test methods
+- docs: add function name in not implemented warning message
+- test: cover placeholder method in 'aos.py' module
+- refactor: fix concurrency type hints & unnecessary coupling
+- refactor: bundle like-context exceptions into named constants
+- refactor: extract names defined in function to file's config section
+- refactor: use constants for static filenames instead of literals
 
 
 
@@ -39,12 +53,12 @@ Changes for version 0.23.15
 Major Changes
 ^^^^^^^^^^^^^
 
+- ci: add ``hypothesis`` to GH actions workflow dependencies
 - build: update dependencies & add coverage to dev & test installs
 - build: add ``hypothesis`` dependency to dev & test installs
 - build: bump ``ruff`` version & fix new lint rule changes
 - build: add ``build`` dependency to dev installs
 - build: update metadata to show Python 3.13 support
-- ci: add ``hypothesis`` to GH actions workflow dependencies
 
 
 Minor Changes
