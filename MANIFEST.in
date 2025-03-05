@@ -145,6 +145,7 @@ include tests/test_Typing_class.py
 include tests/test_X25519_Ed25519.py
 include tests/test_affine_permutations.py
 include tests/test_aiootp.py
+include tests/test_aos.py
 include tests/test_asynchs.py
 include tests/test_cipher_configs.py
 include tests/test_ciphers.py

@@ -11,12 +11,27 @@
 #
 
 
+import os
+import warnings
+
+from aiootp.asynchs import aos
+
 from conftest import *
-from test_aos import *
-from test_Clock import *
-from test_ConcurrencyGuard import *
-from test_event_loops import *
-from test_Processes_Threads import *
+
+
+OS_VARNAMES: t.List[str] = dir(os)
+
+
+def name_will_proc_warning(name: str) -> bool:
+    return name.isidentifier() and (name not in OS_VARNAMES)
+
+
+@given(name=st.text().filter(name_will_proc_warning))
+async def test_not_implemented_placeholder(name: str) -> None:
+    with warnings.catch_warnings(record=True) as warning:
+        await aos._not_implemented_placeholder(name)()
+
+        assert isinstance(warning[-1].message, UserWarning)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
