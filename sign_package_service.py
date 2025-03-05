@@ -36,6 +36,7 @@ import os
 import json
 import socket
 from getpass import getpass
+from contextlib import contextmanager
 
 from aiootp import __package__, __version__
 from aiootp import Chunky2048 as Cipher
@@ -149,6 +150,27 @@ def make_signer_object() -> PackageSigner:
     update_signing_key_prompt(signer)
     update_public_credentials_prompt(signer)
     return signer
+
+
+@contextmanager
+def start_server(
+    host: str = HOST, port: int = PORT, *, max_channels: int = 1
+) -> socket.socket:
+    """
+    Wraps a new server socket listening on `host`:`port`, in a context
+    guaranteed to close the socket when the context ends.
+
+    Yields the new server socket.
+    """
+    try:
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.settimeout(EXIT_TTL)
+        server.bind((host, port))
+        server.listen(max_channels)
+        yield server
+    finally:
+        server.close()
 
 
 def buffer_recv(channel: socket.socket, size: int) -> bytes:
@@ -282,15 +304,8 @@ def run_signing_service(
     argument.
     """
     signer = make_signer_object()
-    try:
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.settimeout(EXIT_TTL)
-        server.bind((host, port))
-        server.listen(1)
+    with start_server(host=host, port=port) as server:
         signing_service_loop(signer, server, get_transmit_key)
-    finally:
-        server.close()
 
 
 if __name__ == "__main__":
