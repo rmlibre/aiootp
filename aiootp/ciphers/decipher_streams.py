@@ -108,12 +108,13 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
                 combination of the automatically incorporated `timestamp`,
                 `iv`, & `siv_key`. The risk calculation starts with setting
                 r = len(iv + siv_key) / 3. Then, all else staying constant,
-                once 256**r messages are encrypted within a second, each
-                additional encrypted message within that same second begins
-                to have more than a 256**(-r) chance of generating a repeat
-                context.
+                after 256**r messages are encrypted within a second, the
+                probability of a repeat context having occurred is ~256**(-r),
+                with the probability resetting back to negligible each
+                time the timestamp rolls over to the next second.
 
                 See: https://github.com/rmlibre/aiootp/issues/16
+                     https://crypto.stackexchange.com/a/112586
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely
@@ -403,12 +404,13 @@ class DecipherStream(CipherStreamProperties):
                 combination of the automatically incorporated `timestamp`,
                 `iv`, & `siv_key`. The risk calculation starts with setting
                 r = len(iv + siv_key) / 3. Then, all else staying constant,
-                once 256**r messages are encrypted within a second, each
-                additional encrypted message within that same second begins
-                to have more than a 256**(-r) chance of generating a repeat
-                context.
+                after 256**r messages are encrypted within a second, the
+                probability of a repeat context having occurred is ~256**(-r),
+                with the probability resetting back to negligible each
+                time the timestamp rolls over to the next second.
 
                 See: https://github.com/rmlibre/aiootp/issues/16
+                     https://crypto.stackexchange.com/a/112586
 
         `aad`: An arbitrary bytes value that a user decides to categorize
                 keystreams. It's authenticated as associated data & safely

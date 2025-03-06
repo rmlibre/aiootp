@@ -37,6 +37,7 @@ Minor Changes
 - docs: improve docstring clarity
 - docs: correct return type hint on test methods
 - docs: add function name in not implemented warning message
+- docs: reword salt misuse resistance docstrings & add citation
 - test: cover placeholder method in 'aos.py' module
 - refactor: fix concurrency type hints & unnecessary coupling
 - refactor: bundle like-context exceptions into named constants

@@ -1,5 +1,5 @@
 {
-    "checksum": "a9c0eacf11e71bca4818bbb82498d493b47a830c1ac130f24c0fd3ad802ed10c2a539010d5740ab8ccfadc67bbbfc314",
+    "checksum": "ae929d480b47a310d18afd608a2b9ccf939af4da380fa3f0d7ac1ee5786ff35f2baf2fdd1ced9bef8a0f27a201ea0dae",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "79c9a37a91ca8f9ec1a2f3199b8d6dee51cf6d00a1aae6b186ceaeb4fef318b6c57fc6c33d787e760d35be144993f4af",
+        "CHANGES.rst": "d1bcfa8773ed09a74c074cc9d190eba35911d1dca4a6f8ac22fd05ca09d15f172da7df5cd9cbb9d8f60b7b8c1c295593",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -58,16 +58,16 @@
         "aiootp/ciphers/__init__.py": "25b229c3fd4c1a8b883f168980656d8c72915d0f727a418eba47685edc85873854957cf712965fdf53acb92387dab55e",
         "aiootp/ciphers/chunky_2048.py": "0c670a60b1763cbcaa27d8da3fab028c7719f885d86df72428cd73967480fe94622b36d674389a32e3cd481da414b322",
         "aiootp/ciphers/chunky_2048_config.py": "82eb76774817828ffbabd8b4d28945b5329c99a7f795913db7888df468905357bc8f99596a4e936a746200ebc4f3c01d",
-        "aiootp/ciphers/cipher_interface.py": "ad5bd7f81799503db565bea84bef1357448293c7303f21ee44dd6470ac9e57b3b1373346666a978aaa4acfbc848bdcb9",
+        "aiootp/ciphers/cipher_interface.py": "5449c269c55a45c689b33ce4da7d6d16fa5809c3b41d9c2fd61e8f2d110b3bd7c060b685ef6351ad6db2d99e8122c386",
         "aiootp/ciphers/cipher_kdfs.py": "3081c1acf8220d6b071d4b91b03dd0afd2eb5f2bc0a05f961d7bc4ac77060dc2756614bfe2e9c9b66e147a0a1616935e",
-        "aiootp/ciphers/cipher_stream_properties.py": "9e8646b3cfa1f88e3998a678eefd5473394d866f4b1fde0f8d8bd0ab618d50473c990b44cc42b30a53bf723cddc208df",
-        "aiootp/ciphers/cipher_streams.py": "e45c4b03aa9103b6a25a91d1c411aca78581824dc282b58d1182cfea48202377f719b1e235aec0b5bfefb317ebcbb71d",
+        "aiootp/ciphers/cipher_stream_properties.py": "276ad70c646f5c9501ebb93f735399f9340411c8d1b30417963ed52b5c109af0436c476602640ac6fde1fbc42973ee30",
+        "aiootp/ciphers/cipher_streams.py": "80718e2ad631a6fb196e88e0c23c9a0a52b8dffe20d2cd3a8cdb8d0da244fcd0d77ae8edb4002c7be71f30343896fc79",
         "aiootp/ciphers/ciphertext_formatting.py": "1afa7d560911c092069e0731548a0756d94f16ce3c5208ce96e3463dac6ecf199ae81efe9bf50e37a0106a45f6a9719a",
-        "aiootp/ciphers/decipher_streams.py": "03434afec92390a87a9719c68c46001e4f8100870de8b0f8aa74cad5353c2b5aeb91ff318146c43ce94cfc8d28b2244a",
+        "aiootp/ciphers/decipher_streams.py": "557f5ac2386c0601d16a0b03ef5f9c6fbe66aba90a6bc8531e60d493bb71f07f6aecb97fd45f468f89977d25da42593f",
         "aiootp/ciphers/dual_output_shake_cipher.py": "2b0e3f85aae756212a7da590ade434e8e2025a17f0a7f3c610474083e26b25962c8a690ddde1f7bb0d55cae455cbf6d4",
         "aiootp/ciphers/dual_output_shake_cipher_config.py": "36ec1f49c155b44e0486254c7d16dbfbb74fd54d96a9f29c3d3ef034bb559b506f7968750fe054c940d6941b94cf19e6",
-        "aiootp/ciphers/key_bundle.py": "e5e36f1fe7f89aba03c3a051c1e856f30da93ee6986658331f4e241bf799bacc2e3ffe2c7e0160b97d1af557006eb7c7",
-        "aiootp/ciphers/padding.py": "6500b8031edcae7fbc8c2ee07f04f7a281b517c61721db167a07acd14671d31a1c5e8ed2c156e17aba310a9901c6d3eb",
+        "aiootp/ciphers/key_bundle.py": "6100b4afefbd05f0654e6f834dae200387aa9b37b7da1dd7cdc81320632ea40f7ae870564902d110633ab0d5da90cb69",
+        "aiootp/ciphers/padding.py": "ff39b790c7a9deef4c9a52584a7528bab36d6af26256a7536685e2522de151dfb3719d059920c240338b6eb94e577196",
         "aiootp/ciphers/shake_permute_cipher.py": "f3eba48f2b53c1291c94e20a54e051303c0e870f77a23274ff89da2788cf1cd8a60db434cc1019dac9e6081f772302d3",
         "aiootp/ciphers/shake_permute_cipher_config.py": "a6850fd4328e78d7cf74893d5eb68dbdd44fb1c92efab56eb15cc56b516b768bbaaed7eddea77fd010b00943d121bfee",
         "aiootp/ciphers/slick_256.py": "676f0dd964181d4eb5fc41641e79db018b8852051970f55355fcf9ff92bbc7e89b1cd864094774fee564db6921c1f65f",
@@ -191,7 +191,7 @@
     "scope": {
         "author": "rmlibre@riseup.net",
         "build_number": "12",
-        "date": 20152,
+        "date": 20153,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
         "license": "AGPL-3.0-only",
@@ -199,5 +199,5 @@
         "version": "0.23.16"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "6b42dd92c0ecdba8bb3231224ad24638360359176e9f6c5d02590e13384702c431ff3c5ce8a9fd4ea2a9f0dbc79c8a533026b429efeb3b80c2c56182e53cb704"
+    "signature": "0ab6d07e5bbb06f3208ac37c0be2bde53e6b4833605341898ae429abc0e7dece6f9beedd0d9fea330e40df0e9c7fe7ea704174af35a5302f44f6d7c67d0c2b09"
 }

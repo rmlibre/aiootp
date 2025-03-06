@@ -60,12 +60,16 @@ class Padding(FrozenInstance):
         a time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance. The risk
-        calculation starts with setting r = len(iv + siv_key) / 3. Then,
-        all else staying constant, once 256**r messages are encrypted
-        within a second, each additional encrypted message within that
-        same second begins to have more than a 256**(-r) chance of
-        generating a repeat context.
+        therefore extending salt misuse-reuse resistance.
+
+        The risk calculation starts with setting r = len(iv + siv_key) / 3.
+        Then, all else staying constant, after 256**r messages are encrypted
+        within a second, the probability of a repeat context having occurred
+        is ~256**(-r), with the probability resetting back to negligible
+        each time the timestamp rolls over to the next second.
+
+        See: https://github.com/rmlibre/aiootp/issues/16
+             https://crypto.stackexchange.com/a/112586
 
     `Footer`: The end padding is random bytes & an encoded length up to
         the block size. The randomness of the end padding, its minimal
@@ -121,12 +125,16 @@ class Padding(FrozenInstance):
         time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance. The risk
-        calculation starts with setting r = len(iv + siv_key) / 3. Then,
-        all else staying constant, once 256**r messages are encrypted
-        within a second, each additional encrypted message within that
-        same second begins to have more than a 256**(-r) chance of
-        generating a repeat context.
+        therefore extending salt misuse-reuse resistance.
+
+        The risk calculation starts with setting r = len(iv + siv_key) / 3.
+        Then, all else staying constant, after 256**r messages are encrypted
+        within a second, the probability of a repeat context having occurred
+        is ~256**(-r), with the probability resetting back to negligible
+        each time the timestamp rolls over to the next second.
+
+        See: https://github.com/rmlibre/aiootp/issues/16
+             https://crypto.stackexchange.com/a/112586
         """
         return await self._amake_timestamp() + await self._amake_siv_key()
 
@@ -136,12 +144,16 @@ class Padding(FrozenInstance):
         time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance. The risk
-        calculation starts with setting r = len(iv + siv_key) / 3. Then,
-        all else staying constant, once 256**r messages are encrypted
-        within a second, each additional encrypted message within that
-        same second begins to have more than a 256**(-r) chance of
-        generating a repeat context.
+        therefore extending salt misuse-reuse resistance.
+
+        The risk calculation starts with setting r = len(iv + siv_key) / 3.
+        Then, all else staying constant, after 256**r messages are encrypted
+        within a second, the probability of a repeat context having occurred
+        is ~256**(-r), with the probability resetting back to negligible
+        each time the timestamp rolls over to the next second.
+
+        See: https://github.com/rmlibre/aiootp/issues/16
+             https://crypto.stackexchange.com/a/112586
         """
         return self._make_timestamp() + self._make_siv_key()
 
@@ -265,12 +277,16 @@ class Padding(FrozenInstance):
         time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance. The risk
-        calculation starts with setting r = len(iv + siv_key) / 3. Then,
-        all else staying constant, once 256**r messages are encrypted
-        within a second, each additional encrypted message within that
-        same second begins to have more than a 256**(-r) chance of
-        generating a repeat context.
+        therefore extending salt misuse-reuse resistance.
+
+        The risk calculation starts with setting r = len(iv + siv_key) / 3.
+        Then, all else staying constant, after 256**r messages are encrypted
+        within a second, the probability of a repeat context having occurred
+        is ~256**(-r), with the probability resetting back to negligible
+        each time the timestamp rolls over to the next second.
+
+        See: https://github.com/rmlibre/aiootp/issues/16
+             https://crypto.stackexchange.com/a/112586
 
         The end padding is random bytes & an encoded length up to the
         block size. The randomness of the end padding, its minimal
@@ -292,12 +308,16 @@ class Padding(FrozenInstance):
         time-to-live feature for ciphertexts which can mitigate replay
         attacks. Together with the random SIV-key, the uniqueness of the
         session's initialization is ensured on every tick of the clock,
-        therefore extending salt misuse-reuse resistance. The risk
-        calculation starts with setting r = len(iv + siv_key) / 3. Then,
-        all else staying constant, once 256**r messages are encrypted
-        within a second, each additional encrypted message within that
-        same second begins to have more than a 256**(-r) chance of
-        generating a repeat context.
+        therefore extending salt misuse-reuse resistance.
+
+        The risk calculation starts with setting r = len(iv + siv_key) / 3.
+        Then, all else staying constant, after 256**r messages are encrypted
+        within a second, the probability of a repeat context having occurred
+        is ~256**(-r), with the probability resetting back to negligible
+        each time the timestamp rolls over to the next second.
+
+        See: https://github.com/rmlibre/aiootp/issues/16
+             https://crypto.stackexchange.com/a/112586
 
         The end padding is random bytes & an encoded length up to the
         block size. The randomness of the end padding, its minimal
