@@ -44,6 +44,7 @@ Minor Changes
 - refactor: extract names defined in function to file's config section
 - refactor: use constants for static filenames instead of literals
 - refactor: extract server socket init into a context manager
+- refactor: call new functions for default inputs to cipher configs
 
 
 

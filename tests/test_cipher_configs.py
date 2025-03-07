@@ -14,6 +14,10 @@
 from conftest import *
 
 from aiootp.ciphers.cipher_kdfs import ShakeConfig
+from aiootp.ciphers.slick_256_config import _shake_permute_config_inputs
+from aiootp.ciphers.chunky_2048_config import (
+    _dual_output_shake_config_inputs,
+)
 
 
 BLOCK_ID_KDF = "block_id_kdf"
@@ -22,157 +26,23 @@ LEFT_KDF = "left_kdf"
 RIGHT_KDF = "right_kdf"
 
 
-def new_dual_output_config_copy(
-    _config: t.ConfigType,
-    *,
-    name: str = "DualOutputCipher",
-    config_id: bytes = b"DualOutputCipher",
-    blocksize: int = 256,
-    min_padding_blocks: int = 0,
-    epoch_ns: int = EPOCH_NS,
-    time_unit: str = SECONDS,
-    timestamp_bytes: int = 4,
-    siv_key_bytes: int = 16,
-    shmac_bytes: int = 32,
-    block_id_bytes: int = 24,
-    max_block_id_bytes: int = 32,
-    min_block_id_bytes: int = 16,
-    salt_bytes: int = 8,
-    iv_bytes: int = 8,
-    permutation_type: type = FastAffineXORChain,
-    block_id_kdf_config: t.Optional[t.ShakeConfig] = None,
-    shmac_kdf_config: t.Optional[t.ShakeConfig] = None,
-    left_kdf_config: t.Optional[t.ShakeConfig] = None,
-    right_kdf_config: t.Optional[t.ShakeConfig] = None,
+def new_dual_output_shake_config(
+    _config: t.ConfigType, **kw: t.Any
 ) -> t.ConfigType:
-    config = _config.__new__(_config.__class__)
-    config.__init__(
-        name=name,
-        config_id=config_id,
-        blocksize=blocksize,
-        min_padding_blocks=min_padding_blocks,
-        epoch_ns=epoch_ns,
-        time_unit=time_unit,
-        timestamp_bytes=timestamp_bytes,
-        siv_key_bytes=siv_key_bytes,
-        shmac_bytes=shmac_bytes,
-        block_id_bytes=block_id_bytes,
-        max_block_id_bytes=max_block_id_bytes,
-        min_block_id_bytes=min_block_id_bytes,
-        salt_bytes=salt_bytes,
-        iv_bytes=iv_bytes,
-        block_id_kdf=BLOCK_ID_KDF,
-        block_id_kdf_config=ShakeConfig(
-            name=BLOCK_ID_KDF,
-            pad=b"\xac",
-            offset_amount=0,
-            hasher=shake_128,
-            key_slice=slice(None),
-        )
-        if block_id_kdf_config is None
-        else block_id_kdf_config,
-        shmac_kdf=SHMAC_KDF,
-        shmac_kdf_config=ShakeConfig(
-            name=SHMAC_KDF,
-            pad=b"\x9a",
-            offset_amount=0,
-            hasher=shake_128,
-            key_slice=slice(None),
-        )
-        if shmac_kdf_config is None
-        else shmac_kdf_config,
-        left_kdf=LEFT_KDF,
-        left_kdf_config=ShakeConfig(
-            name=LEFT_KDF,
-            pad=b"\x5c",
-            offset_amount=0,
-            hasher=shake_128,
-            key_slice=slice(0, None, 2),  # Even index bytes
-        )
-        if left_kdf_config is None
-        else left_kdf_config,
-        right_kdf=RIGHT_KDF,
-        right_kdf_config=ShakeConfig(
-            name=RIGHT_KDF,
-            pad=b"\x36",
-            offset_amount=0,
-            hasher=shake_128,
-            key_slice=slice(1, None, 2),  # Odd index bytes
-        )
-        if right_kdf_config is None
-        else right_kdf_config,
-        permutation_type=permutation_type,
-    )
-    return config
+    return _config.__class__(**_dual_output_shake_config_inputs(**kw))
 
 
-def new_shake_permute_config_copy(
-    _config: t.ConfigType,
-    *,
-    name: str = "ShakePermuteCipher",
-    config_id: bytes = b"ShakePermuteCipher",
-    blocksize: int = 32,
-    min_padding_blocks: int = 0,
-    epoch_ns: int = EPOCH_NS,
-    time_unit: str = SECONDS,
-    timestamp_bytes: int = 4,
-    siv_key_bytes: int = 8,
-    shmac_bytes: int = 24,
-    block_id_bytes: int = 16,
-    max_block_id_bytes: int = 32,
-    min_block_id_bytes: int = 16,
-    salt_bytes: int = 8,
-    iv_bytes: int = 8,
-    permutation_type: type = FastAffineXORChain,
-    block_id_kdf_config: t.Optional[t.ShakeConfig] = None,
-    shmac_kdf_config: t.Optional[t.ShakeConfig] = None,
+def new_shake_permute_config(
+    _config: t.ConfigType, **kw: t.Any
 ) -> t.ConfigType:
-    config = _config.__new__(_config.__class__)
-    config.__init__(
-        name=name,
-        config_id=config_id,
-        blocksize=blocksize,
-        min_padding_blocks=min_padding_blocks,
-        epoch_ns=epoch_ns,
-        time_unit=time_unit,
-        timestamp_bytes=timestamp_bytes,
-        siv_key_bytes=siv_key_bytes,
-        shmac_bytes=shmac_bytes,
-        block_id_bytes=block_id_bytes,
-        max_block_id_bytes=max_block_id_bytes,
-        min_block_id_bytes=min_block_id_bytes,
-        salt_bytes=salt_bytes,
-        iv_bytes=iv_bytes,
-        block_id_kdf=BLOCK_ID_KDF,
-        block_id_kdf_config=ShakeConfig(
-            name=BLOCK_ID_KDF,
-            pad=b"\x9a",
-            offset_amount=0,
-            hasher=shake_128,
-            key_slice=slice(None),
-        )
-        if block_id_kdf_config is None
-        else block_id_kdf_config,
-        shmac_kdf=SHMAC_KDF,
-        shmac_kdf_config=ShakeConfig(
-            name=SHMAC_KDF,
-            pad=b"\xac",
-            offset_amount=0,
-            hasher=shake_128,
-            key_slice=slice(None),
-        )
-        if shmac_kdf_config is None
-        else shmac_kdf_config,
-        permutation_type=permutation_type,
-    )
-    return config
+    return _config.__class__(**_shake_permute_config_inputs(**kw))
 
 
 def new_config_copy(_config: t.ConfigType, **kw: t.Any) -> t.ConfigType:
     if _config.NAME in dual_output_cipher_names:
-        return new_dual_output_config_copy(_config, **kw)
+        return new_dual_output_shake_config(_config, **kw)
     elif _config.NAME in shake_permute_cipher_names:
-        return new_shake_permute_config_copy(_config, **kw)
+        return new_shake_permute_config(_config, **kw)
 
 
 class TestCipherConfigs:
@@ -182,7 +52,7 @@ class TestCipherConfigs:
         )
         for _config, *_ in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
-                new_dual_output_config_copy(
+                new_dual_output_shake_config(
                     _config, timestamp_bytes=4, siv_key_bytes=11
                 )
 
@@ -192,7 +62,7 @@ class TestCipherConfigs:
         )
         for _config, *_ in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
-                new_dual_output_config_copy(_config, blocksize=255)
+                new_dual_output_shake_config(_config, blocksize=255)
 
     async def test_blocksize_must_be_positive(self) -> None:
         problem = (  # fmt: skip
@@ -211,7 +81,7 @@ class TestCipherConfigs:
         )
         for _config, *_ in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
-                new_dual_output_config_copy(
+                new_dual_output_shake_config(
                     _config,
                     left_kdf_config=ShakeConfig(
                         name=LEFT_KDF,
@@ -273,7 +143,7 @@ class TestCipherConfigs:
         )
         for _config, *_ in shake_permute_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
-                new_shake_permute_config_copy(_config, blocksize=128)
+                new_shake_permute_config(_config, blocksize=128)
 
     async def test_inner_header_doesnt_cause_inadequate_space_for_plaintext(
         self,

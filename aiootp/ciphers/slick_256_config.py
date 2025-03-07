@@ -32,38 +32,55 @@ BLOCK_ID_KDF: str = "block_id_kdf"
 SHMAC_KDF: str = "shmac_kdf"
 
 
+def _shake_permute_config_inputs(**kw: t.Any) -> t.Dict[str, t.Any]:
+    """
+    Simplifies the process of creating new cipher config objects. While
+    this will not generally be needed by users of pre-built recipes,
+    it's quite helpful in testing. Custom configurations can be passed
+    as keyword-arguments, which will override the defaults.
+
+    Returns a dict of the default, or overridden, settings which can
+    then be passed into the config's initializer.
+    """
+    inputs = dict(
+        name="Slick256",
+        config_id=b"Slick256",
+        blocksize=32,
+        min_padding_blocks=0,
+        epoch_ns=EPOCH_NS,
+        time_unit=SECONDS,
+        timestamp_bytes=4,
+        siv_key_bytes=8,
+        shmac_bytes=24,
+        block_id_bytes=16,
+        max_block_id_bytes=32,
+        min_block_id_bytes=16,
+        salt_bytes=8,
+        iv_bytes=8,
+        block_id_kdf=BLOCK_ID_KDF,
+        block_id_kdf_config=ShakeConfig(
+            name=BLOCK_ID_KDF,
+            pad=b"\x9a",
+            offset_amount=0,
+            hasher=shake_128,
+            key_slice=slice(None),
+        ),
+        shmac_kdf=SHMAC_KDF,
+        shmac_kdf_config=ShakeConfig(
+            name=SHMAC_KDF,
+            pad=b"\xac",
+            offset_amount=0,
+            hasher=shake_128,
+            key_slice=slice(None),
+        ),
+        permutation_type=FastAffineXORChain,
+    )
+    inputs.update(kw)
+    return inputs
+
+
 slick256_spec: t.ConfigType = ShakePermuteCipherConfig(
-    name="Slick256",
-    config_id=b"Slick256",
-    blocksize=32,
-    min_padding_blocks=0,
-    epoch_ns=EPOCH_NS,
-    time_unit=SECONDS,
-    timestamp_bytes=4,
-    siv_key_bytes=8,
-    shmac_bytes=24,
-    block_id_bytes=16,
-    max_block_id_bytes=32,
-    min_block_id_bytes=16,
-    salt_bytes=8,
-    iv_bytes=8,
-    block_id_kdf=BLOCK_ID_KDF,
-    block_id_kdf_config=ShakeConfig(
-        name=BLOCK_ID_KDF,
-        pad=b"\x9a",
-        offset_amount=0,
-        hasher=shake_128,
-        key_slice=slice(None),
-    ),
-    shmac_kdf=SHMAC_KDF,
-    shmac_kdf_config=ShakeConfig(
-        name=SHMAC_KDF,
-        pad=b"\xac",
-        offset_amount=0,
-        hasher=shake_128,
-        key_slice=slice(None),
-    ),
-    permutation_type=FastAffineXORChain,
+    **_shake_permute_config_inputs()
 )
 
 
@@ -75,5 +92,6 @@ module_api = dict(
     __spec__=__spec__,
     __loader__=__loader__,
     __package__=__package__,
+    _shake_permute_config_inputs=_shake_permute_config_inputs,
     slick256_spec=slick256_spec,
 )
