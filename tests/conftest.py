@@ -403,6 +403,18 @@ def path():
         file_path.unlink()
 
 
+@pytest.fixture
+def salt_path() -> Path:
+    parent_dir = DatabasePath() / "secure"
+    file_path = parent_dir / "salt_testing_path.txt"
+
+    yield file_path
+
+    if file_path.is_file():
+        file_path.chmod(0o600)
+        file_path.unlink()
+
+
 class ExampleConfig(Config):
     __slots__ = ("NUMBER", "STRING")
 

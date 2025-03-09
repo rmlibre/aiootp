@@ -164,6 +164,7 @@ include tests/test_misc_in_keygens.py
 include tests/test_misc_in_randoms.py
 include tests/test_namespace_classes.py
 include tests/test_online_cipher_interfaces.py
+include tests/test_paths.py
 include tests/test_permutations.py
 include tests/test_randoms.py
 include tests/test_time_to_live.py

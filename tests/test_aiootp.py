@@ -13,6 +13,7 @@
 
 from conftest import *
 from test_typing import *
+from test_paths import *
 from test_exceptions import *
 from test_commons import *
 from test_asynchs import *

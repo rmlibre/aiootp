@@ -1,5 +1,5 @@
 {
-    "checksum": "2dc0316a09bb85622a3d05cbbf193513c6ddac5351b87f2868e4538a2d6fb3014fe74befcc453db87b41f7bd43bd7346",
+    "checksum": "b2c50d7ecf580a472d79a281aa532ae352b55deb4c200bb95c8bf0931889bb44320cd3d5ff7b076a37fd01f93069ac1b",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,12 +12,12 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "8ef7aa994cb25a7f18a02031bc6167e2109d8394552f16702cf85b3101a9bbfc041384e563575e647146641a891030e8",
+        "CHANGES.rst": "a58d03582f1f10802577e5744ba0a1f9afa6d87802b875adba0a89ec0b02407caaa9b3a74cf56dd1d95658f6b49fe7df",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
-        "MANIFEST.in": "7034c6ae64722d252000f66655a60e9e0fa84d0607714efef1257b4c31fc3c72158570e162c0e832834279674ee180e0",
+        "MANIFEST.in": "af72bc3c6d6771bf57f4f372362e7bb0b67ef2fc30117209d1e50517a7653af32316188b418447cad81067314995afe8",
         "README.rst": "c31827a68b87af35f89b3edb34f9a089f1337c0901b0b7b27cc44a4de75bdc5dff15632f2a5999dfd2a0f49555d8467a",
         "SECURITY.md": "3edb91af4af405b1bc620c7090bc46e29602d5b3e3cf0ee3013c32894dce1f55402a8e4fc4f7633c4d999f08aa7afb98",
         "aiootp/__engagement/__init__.py": "c35ff456893f72944342077d5cc94a1437f30ad0aa1ffb6ad8925fdc44eaf8aeb950eb4d09529b9a6489f8bd2ab6dc7d",
@@ -142,7 +142,7 @@
         "setup.cfg": "626717caccecdbf2744c39c91d3f3b7f083afb5614386972f492e24a39850ea489e0292ddbbd0513a62908e217e81d5c",
         "sign_package_build.py": "f0d60327c4596cb140efffc66be4f972ea7f51a954520ce045f06da1f5e62e03c929020d29b54d134735f12591ed12c8",
         "sign_package_service.py": "fde3a3ed995b6d306b820200463bc0aa677383d4a82cd94e6b5fbfbbb104a6d265910d909c993448c72e8a722153c1b9",
-        "tests/conftest.py": "6a31793016bdcca9c91232c013073645e39c350b2fa4702c1b6b8fdc82af70b89fe4463e4f4493a100d9a49ed7bd8e7a",
+        "tests/conftest.py": "8f5be4903d5b1f25703b92db60715218564b9a51b4d3cac3f17125a3e4265ad1abea017002bf20a8a0d4a382634ad620",
         "tests/test_ByteIO.py": "16d35e60c2f1531baca795369e9e3fcd1030731a31da913fe31383b0d5e2ed674afc41090edc504adcf865b56aa7582f",
         "tests/test_Clock.py": "847dffc8c69b4ce5cfda32ba032c4c3ecb347d8565cadcedc03518f94eda240c5a4c8bf6b7aeca1b0a2e9d3992d913c1",
         "tests/test_ConcurrencyGuard.py": "c90f62b8290fb63566fabc4355cda67441a95dd1ec312262b5bae12cf0fdfae694e588c144e77d449e0f6dab6c28324c",
@@ -158,7 +158,7 @@
         "tests/test_Typing_class.py": "6576ee0e2ba5e42165c929107ef895377f6c4d985fc4a70bc3232b007fb844e274c3f0f7fbdab13f8ef194a4ab1c88ab",
         "tests/test_X25519_Ed25519.py": "8a79ca016ebe1a607425f76d7c52f8b80edbe5ba98d570fc421b40b584de936c991d3b98a1d4174d20d699b00bcc3f32",
         "tests/test_affine_permutations.py": "158be4ac3f660b4e90ca5fde9520d4d5dac5cdc4fee6f265377595ac7e1fb2a93636e571cc304cf5412aa302499ea6b7",
-        "tests/test_aiootp.py": "398b342916ff7cb6a587fbbdd8af0e15d7f3aef46d396ebfe54f5c9cf25c2d2b3be905298a6cda6b675b40db30842182",
+        "tests/test_aiootp.py": "1ce05a7611681d046a15626a429bcefbfc85e9b933bfb00e80490cbda0801ebd86e9c3dc565713b8b02b067a92852cf6",
         "tests/test_aos.py": "09e3ce9cf1a033548b85f9b4b557b7352c536aba8f1a8630335f59d10fd10d91926d8d1d004e3fc5a971104fdc91d45a",
         "tests/test_asynchs.py": "d47197a2c24ad01f9e57de34a9219ad07ae53e7ba81a1bf77602e2b53b9ba9c71908eb1473c5775d050cd2535609fa13",
         "tests/test_cipher_configs.py": "3330b952e11513d6f24f72a1cf45c5824af7cc867f3a114ab1a93c5d06190fd7d6e954160e11663fa3b6eaf8976db46b",
@@ -178,6 +178,7 @@
         "tests/test_misc_in_randoms.py": "ae80eee9dbb720eb3e2f7e2c3212aa9c7e124ab24344fa33426cb3f12193fe7efe506a37ce93fe69ae44d6b1d4e12790",
         "tests/test_namespace_classes.py": "c9f88771f1818b28baaa3e86dd76cff54a3a9b842048c7dddc559974ccfa5ff7283001dba34dd8994099ef3ae80d4d66",
         "tests/test_online_cipher_interfaces.py": "7c6d4b4d662bc0e1b0d660aaf87ed59068ac2f4776be1d785234243fe0d262ee51c050b881ab23f29223e3d17b43a2cc",
+        "tests/test_paths.py": "8e78add2d8352702cf952f9f8022751c69c4853f5bad89a6a38f3397dd57d714be6048fba41c24c9be32bd4089c6c79b",
         "tests/test_permutations.py": "0a9767bbc19ca070265f792e2f2f837a244c46ee17447ce0b679a882eced79ed779f30765bbea9544ef8e4df85b1d9ee",
         "tests/test_randoms.py": "056fc3e65dbad03d0bb9044080ea821dfa7f342712fe8ee15335bd3e0e57d21302385c255436d8bf4c442991321e128b",
         "tests/test_time_to_live.py": "ba902ba10362643fba954b16cf4fafc22e9c6e4b42f8bee2af40f8beb41f770d99676a5c9e841ce4c3144781495c621f",
@@ -199,5 +200,5 @@
         "version": "0.23.16"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "df313e37ca297f261c195fe6357633a9885eab99df41f6853788429ba36eecaba3b3a9fec2209bbd394ce9f278d3c897912cf8748c3651e65635119421b89a07"
+    "signature": "8a42c2767164f47616e58c853380232465becf24830004699e3dcd37019b8c4d6918b9256a7cabfe522592a382586c305c7742487ada5301be9cc657d7f5590c"
 }
