@@ -374,7 +374,7 @@ time_start = clock.make_timestamp()
 
 
 @pytest.fixture(scope="session")
-def database():
+def database() -> Database:
     db = Database(key=key, preload=True)
     db.save_database()
     yield db
@@ -383,7 +383,7 @@ def database():
 
 
 @pytest.fixture(scope="session")
-def async_database():
+def async_database() -> AsyncDatabase:
     db = run(AsyncDatabase(key=key, preload=True))
     yield db
 
@@ -391,7 +391,7 @@ def async_database():
 
 
 @pytest.fixture
-def path():
+def path() -> Path:
     file_path = Path("byte_io_testing_path.txt").absolute()
 
     if not file_path.is_file():
@@ -426,12 +426,12 @@ class ExampleConfig(Config):
 
 
 @pytest.fixture
-def config():
+def config() -> ExampleConfig:
     return ExampleConfig(number=420, string="word")
 
 
 @pytest.fixture
-def mapping():
+def mapping() -> ConfigMap:
     return ConfigMap(config_type=ExampleConfig)
 
 
@@ -481,9 +481,7 @@ def pkg_context() -> Namespace:
 
 
 @pytest.fixture(scope="session")
-def pkg_signer(
-    pkg_context: Namespace,
-) -> t.Generator[t.Tuple[Namespace, PackageSigner], None, None]:
+def pkg_signer(pkg_context: Namespace) -> PackageSigner:
     signer = PackageSigner(**pkg_context.signer_init)
     is_mac_os_issue = lambda _: (platform.system() == "Darwin")
     while True:
