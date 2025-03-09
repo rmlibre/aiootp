@@ -1,5 +1,5 @@
 {
-    "checksum": "ff65ace031bd44eaf281172e1e666b6be25fe8749a3df8e37794b9477c998a942ffcc704b29a7e31136e60acac580045",
+    "checksum": "634b932131f0612ea44bc06e7cec05f6b560e8537f7cdde7ee6fb370862d1893c39626a29811d5a4a79e0722d0bc1b6d",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,12 +12,12 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "aa974a18548ee1e1c23c7f9a1a922f68ac043589dac2b24d47d563181d48ef26471200e0709afa8c18914c3853e124a7",
+        "CHANGES.rst": "4cd5f170a6c543b1d5986a74afab3663d3bafd30a67cce6e0b60a28178f1391664311a59e7df23dd4eb3ed71fbab2c64",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
         "LICENSE": "2fd91d4e18d33b7b6cd7ca998fe6d661a04832a04e95b1c4e55d97cad5760db462c6bf7fb3a535a9253771019209d15a",
-        "MANIFEST.in": "af72bc3c6d6771bf57f4f372362e7bb0b67ef2fc30117209d1e50517a7653af32316188b418447cad81067314995afe8",
+        "MANIFEST.in": "2a43d423ab177fabcb8927187e7c64bf623a01d988d18f10ccde38941fb4976a5fe74502ca8cfb9e3ce7f7dfbeb16c3e",
         "README.rst": "c31827a68b87af35f89b3edb34f9a089f1337c0901b0b7b27cc44a4de75bdc5dff15632f2a5999dfd2a0f49555d8467a",
         "SECURITY.md": "3edb91af4af405b1bc620c7090bc46e29602d5b3e3cf0ee3013c32894dce1f55402a8e4fc4f7633c4d999f08aa7afb98",
         "aiootp/__engagement/__init__.py": "c35ff456893f72944342077d5cc94a1437f30ad0aa1ffb6ad8925fdc44eaf8aeb950eb4d09529b9a6489f8bd2ab6dc7d",
@@ -142,7 +142,10 @@
         "setup.cfg": "626717caccecdbf2744c39c91d3f3b7f083afb5614386972f492e24a39850ea489e0292ddbbd0513a62908e217e81d5c",
         "sign_package_build.py": "f0d60327c4596cb140efffc66be4f972ea7f51a954520ce045f06da1f5e62e03c929020d29b54d134735f12591ed12c8",
         "sign_package_service.py": "fde3a3ed995b6d306b820200463bc0aa677383d4a82cd94e6b5fbfbbb104a6d265910d909c993448c72e8a722153c1b9",
-        "tests/conftest.py": "bd4c0418932fc46ea1daa2b932b7fd6d8557ca80ab0c889041d1d69d825c2b61d1bbf14f84f57176490553aadd1ec50d",
+        "tests/chunky_2048_test_vectors.py": "44926601b6de2d5bfc00a7457f842302279aa819ee7ae7bcfdb3375b5d44ce923b66a6e219532ab00bf46e64e51b6fbf",
+        "tests/conftest.py": "f61c110564daffb0ec37c621aed3992952ff280b4f652ba8d3589dad24aa4cf2f0d01cac37ddb355699e5cf3e46d12a7",
+        "tests/passcrypt_test_vectors.py": "172568d307ec779bc129d22e865f1328e015b3934e1694a8bfd6836f97b70e89a16551ad98a68769d43623fa81aae464",
+        "tests/slick_256_test_vectors.py": "cf85033c79f3857deb29b6da3f7e26722a220e9ab3a013c3fbaafd673a1ab9eac45a3456278c9d5ff5bd7b733b88ef01",
         "tests/test_ByteIO.py": "16d35e60c2f1531baca795369e9e3fcd1030731a31da913fe31383b0d5e2ed674afc41090edc504adcf865b56aa7582f",
         "tests/test_Clock.py": "847dffc8c69b4ce5cfda32ba032c4c3ecb347d8565cadcedc03518f94eda240c5a4c8bf6b7aeca1b0a2e9d3992d913c1",
         "tests/test_ConcurrencyGuard.py": "c90f62b8290fb63566fabc4355cda67441a95dd1ec312262b5bae12cf0fdfae694e588c144e77d449e0f6dab6c28324c",
@@ -200,5 +203,5 @@
         "version": "0.23.16"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "a193fb593c2e6936e016b2476d71acdd39ae010e59e44d4e04629f844af4c3ff0538c5f0f04e21131dd45aa68496a9c2415fb25ed973fcfc8bb99c869cd12f05"
+    "signature": "bd176f71f1489ff757a86860167057b591117a45357d83d255d1e83efb1e657591fe65d1cacf06611199f0ddd0754483c67630d02ff66028c39522215fbc1606"
 }

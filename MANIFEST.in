@@ -128,7 +128,10 @@ include pyproject.toml
 include setup.cfg
 include sign_package_build.py
 include sign_package_service.py
+include tests/chunky_2048_test_vectors.py
 include tests/conftest.py
+include tests/passcrypt_test_vectors.py
+include tests/slick_256_test_vectors.py
 include tests/test_ByteIO.py
 include tests/test_Clock.py
 include tests/test_ConcurrencyGuard.py
