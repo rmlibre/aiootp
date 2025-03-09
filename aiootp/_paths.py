@@ -210,9 +210,13 @@ async def AsyncSecureSaltPath(
     path: t.OptionalPathStr = None, *, key: bytes, _admin: bool = False
 ) -> Path:
     """
-    Returns either a directory path where sensitive files are stored, or
-    the file in that directory whose name is derived from `key`. The
-    `_admin` flag is for internal package management of such files.
+    Creates a salt file if it doesn't already exist. Derives its name
+    from the `key` & creates a subdirectory structure to organize the
+    new file, which starts at a root `path`.
+
+    The `_admin` flag is for internal package management of such files.
+
+    Returns the new, or preexisting, salt file's Path object.
     """
     path = (Path(path).absolute() if path else DatabasePath()) / "secure"
     path.is_dir() or await aos.mkdir(path)
@@ -232,9 +236,13 @@ def SecureSaltPath(
     path: t.OptionalPathStr = None, *, key: bytes, _admin: bool = False
 ) -> Path:
     """
-    Returns either a directory path where sensitive files are stored, or
-    the file in that directory whose name is derived from `key`. The
-    `_admin` flag is for internal package management of such files.
+    Creates a salt file if it doesn't already exist. Derives its name
+    from the `key` & creates a subdirectory structure to organize the
+    new file, which starts at a root `path`.
+
+    The `_admin` flag is for internal package management of such files.
+
+    Returns the new, or preexisting, salt file's Path object.
     """
     path = (Path(path).absolute() if path else DatabasePath()) / "secure"
     path.is_dir() or path.mkdir()

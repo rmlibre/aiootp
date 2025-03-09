@@ -44,6 +44,7 @@ Minor Changes
 - docs: add return type hint on test fixtures
 - docs: bump AGPLv3 license date range
 - docs: correct 'test_paths.py' error messages
+- docs: correct outdated '_paths.py' docstrings
 - test: cover placeholder method in 'aos.py' module
 - test: remove leftover usage of 'fork' processes
 - refactor: fix concurrency type hints & unnecessary coupling

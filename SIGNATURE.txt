@@ -1,5 +1,5 @@
 {
-    "checksum": "94577bf50024d74c2b38d8d2f057af4367abfcd25214fdc0088b5eec4fdd3a01737a6e36fda6562ea586ffd719260a9c",
+    "checksum": "a7d03ee059d9b0fadde6a9a4ac25329d09231eb5cd45a986a5a18a223da855b39893a23b2a8f0b05231e86cf61626617",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "151601b7cfe644896908424db3c83c0642f1aba2d61fc272993d61b42486171b6a597c29925b0e6e8afc6f2d60bf6270",
+        "CHANGES.rst": "1031ff3da0d751ad7c5c92a699d80f8e45017fa7ae96ced85f62f1b7a7493bb1a88ee8ae8bf589e2c27e5d72f5a5bb0b",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -29,7 +29,7 @@
         "aiootp/_debug_control.py": "d706d558eda8070e50883da275e0fbd11139190d7bfa31c61eb7873b81b42b87c10e9d0aa23a60258606283b7c9c0687",
         "aiootp/_exceptions.py": "8875ce3c78a78ea380024411b8df154395355840e1c2f8ac3d24e99375f240e33bce808167598bd7c31ee46434f3789c",
         "aiootp/_gentools.py": "0486b10f416023b71b51efc42bdbd8054a352936c970614b6954c692d3ac28f1d8461f89df9ac0af6945a41f35d6d284",
-        "aiootp/_paths.py": "ce4afa12c6ebd74aab4d21970b9f839a5872e8bf471bae3690deb8606d306819da54af159b11947bb68d37c847f20dc7",
+        "aiootp/_paths.py": "68515cf2e03ae543e88773a2e2f90062b0416dd516520ec99f7a9972c4b840c5d543adfb7f5b06ceeb5d8d7031e3b11a",
         "aiootp/_permutations/__init__.py": "4540bcb1f4a936c60fcc077399297702603e9c098e8b9b183e28c73e5c4bfdae7c45ab44b6418276cc199bf5cc57eda7",
         "aiootp/_permutations/affine_permutation.py": "44a7383451b507164b0b0f81b2942100a9a06e417c2bb5373ef60f6da9a812416ac62e881ac9e14e7be19a0f643e083d",
         "aiootp/_permutations/affine_permutation_config.py": "cfe43df0721f4ef96a06780b6710723a4c7291ebb6d89cd0a7bcc69d38b54252d2ce65e2bb325b551eeb49ab4a9cd04e",
@@ -205,5 +205,5 @@
         "version": "0.23.16"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "d0fee7f65dd720a9c4ec7584eed578578a46ac9c481f427103a73631555c98c442171cd67ba958c6af7836c285512a284f4273620fba1be479dcd952568cd30c"
+    "signature": "1bf27bed81e701a51a9a40f5b23564a108d7d0537fcf2299581a43cb46ab656d1cb1cedf6ad0cd8224f3f55448dec64822ef4bc76a1a4f95c1c809576df0e600"
 }
