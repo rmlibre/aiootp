@@ -130,6 +130,7 @@ include sign_package_build.py
 include sign_package_service.py
 include tests/chunky_2048_test_vectors.py
 include tests/conftest.py
+include tests/hypothesis_strategies.py
 include tests/passcrypt_test_vectors.py
 include tests/slick_256_test_vectors.py
 include tests/test_ByteIO.py
@@ -160,6 +161,7 @@ include tests/test_exceptions.py
 include tests/test_generics.py
 include tests/test_gentools.py
 include tests/test_high_level_encryption.py
+include tests/test_hypothesis_strategies.py
 include tests/test_keygens.py
 include tests/test_misc_in_ciphers.py
 include tests/test_misc_in_generics.py

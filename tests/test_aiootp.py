@@ -12,6 +12,7 @@
 
 
 from conftest import *
+from test_hypothesis_strategies import *
 from test_typing import *
 from test_paths import *
 from test_exceptions import *

@@ -11,27 +11,12 @@
 #
 
 
-import os
-import warnings
-
-from aiootp.asynchs import aos
-
 from conftest import *
 
 
-OS_VARNAMES: t.FrozenSet[str] = frozenset(dir(os))
-
-
-def name_will_proc_warning(name: str) -> bool:
-    return name not in OS_VARNAMES
-
-
-@given(name=identifiers().filter(name_will_proc_warning))
-async def test_not_implemented_placeholder(name: str) -> None:
-    with warnings.catch_warnings(record=True) as warning:
-        await aos._not_implemented_placeholder(name)()
-
-        assert isinstance(warning[-1].message, UserWarning)
+@given(identifier=identifiers())
+def test_identifier(identifier: str) -> None:
+    assert identifier.isidentifier()
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

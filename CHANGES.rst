@@ -18,6 +18,7 @@ Major Changes
 - build: add missing setuptools dependency to dev installs
 - build: send build data over sockets to a local signing service
 - test: add full coverage for '_paths.py'
+- test: use new, custom, more efficient hypothesis strategies
 - perf: store PackageSigner files as hexdigests to ease transmission
 - refactor: update '_paths.py' style, names & logic structure
 

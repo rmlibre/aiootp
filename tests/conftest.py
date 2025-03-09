@@ -59,6 +59,7 @@ from aiootp.randoms.simple import *
 from aiootp.ciphers import Ciphertext, Padding
 
 
+from hypothesis_strategies import identifiers
 from chunky_2048_test_vectors import chunky2048_test_vector_0
 from slick_256_test_vectors import slick256_test_vector_0
 from passcrypt_test_vectors import (
