@@ -22,7 +22,7 @@ from collections import deque
 
 from aiootp._typing import Typing as t
 from aiootp._constants import BIG
-from aiootp._paths import SecurePath, read_salt_file
+from aiootp._paths import SecureSaltPath, read_salt_file
 from aiootp.asynchs import asleep, ns_counter
 from aiootp.generics import Domains
 
@@ -35,7 +35,7 @@ _int_pool = deque((token_bits(256), token_bits(256)), maxlen=2)
 
 # create and/or retrieve the device seed stored on the filesystem
 _package_seed_name = Domains.encode_constant(b"package_seed", size=16)
-_package_seed_path = SecurePath(key=_package_seed_name, _admin=True)
+_package_seed_path = SecureSaltPath(key=_package_seed_name, _admin=True)
 _package_seed = read_salt_file(_package_seed_path)
 
 

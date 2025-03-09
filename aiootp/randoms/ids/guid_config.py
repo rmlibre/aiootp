@@ -21,14 +21,14 @@ __all__ = ["GUIDConfig"]
 from hashlib import shake_256
 
 from aiootp._typing import Typing as t
-from aiootp._paths import SecurePath, read_salt_file
+from aiootp._paths import SecureSaltPath, read_salt_file
 from aiootp.commons import Config
 from aiootp.generics import Domains, hash_bytes
 
 
 # ensure the device has created a secret static salt for GUIDs
 _guid_salt_name = Domains.encode_constant(b"default_guid_salt", size=16)
-_guid_salt_path = SecurePath(key=_guid_salt_name, _admin=True)
+_guid_salt_path = SecureSaltPath(key=_guid_salt_name, _admin=True)
 _guid_salt = read_salt_file(_guid_salt_path)
 
 

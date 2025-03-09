@@ -29,10 +29,6 @@ from ._exceptions import Issue
 from .asynchs import aos
 
 
-# TODO @rmlibre: finish coverage tests
-# fmt: off
-
-
 def RootPath() -> Path:
     """
     Returns a `pathlib.Path` object pointing to this module's directory.
@@ -55,8 +51,11 @@ async def adeniable_filename(key: bytes, *, size: int = 8) -> str:
     """
     from .generics.transform import axi_mix
 
-    if 16 < size < 1:
-        raise Issue.value_must("size", "be <= 16 and > 0")      # pragma: no cover
+    if not (16 >= size >= 1):
+        raise Issue.value_must("size", "be <= 16 and > 0")
+    elif not (len(key) >= 2 * size):
+        raise Issue.value_must("size", "be at least 2x key length")
+
     filename = sha3_256(await axi_mix(key, size=size)).digest()
     return await t.ByteIO.abytes_to_filename(filename[FILENAME_HASH_SLICE])
 
@@ -68,8 +67,11 @@ def deniable_filename(key: bytes, *, size: int = 8) -> str:
     """
     from .generics.transform import xi_mix
 
-    if 16 < size < 1:
-        raise Issue.value_must("size", "be <= 16 and > 0")      # pragma: no cover
+    if not (16 >= size >= 1):
+        raise Issue.value_must("size", "be <= 16 and > 0")
+    elif not (len(key) >= 2 * size):
+        raise Issue.value_must("size", "be at least 2x key length")
+
     filename = sha3_256(xi_mix(key, size=size)).digest()
     return t.ByteIO.bytes_to_filename(filename[FILENAME_HASH_SLICE])
 
@@ -96,6 +98,9 @@ async def amake_salt_file(path: Path, *, salt: bytes = b"") -> None:
     `path`. If no `salt` is provided, a new random 32-byte salt is used.
     """
     salt = salt if salt else token_bytes(32)
+    if len(salt) < 32:
+        raise Issue.value_must("salt", "be >= 32-bytes")
+
     async with aiofiles.open(path, "wb") as salt_file:
         await salt_file.write(salt)
     await aos.chmod(path, 0o000)
@@ -107,9 +112,11 @@ def make_salt_file(path: Path, *, salt: bytes = b"") -> None:
     `path`. If no `salt` is provided, a new random 32-byte salt is used.
     """
     salt = salt if salt else token_bytes(32)
+    if len(salt) < 32:
+        raise Issue.value_must("salt", "be >= 32-bytes")
+
     path = Path(path)
-    with path.open("wb") as salt_file:
-        salt_file.write(salt)
+    path.write_bytes(salt)
     path.chmod(0o000)
 
 
@@ -119,13 +126,13 @@ async def aread_salt_file(path: t.PathStr) -> bytes:
     `path`.
     """
     try:
-        await aos.chmod(path, 0o700)
+        await aos.chmod(path, 0o600)
         async with aiofiles.open(path, "rb") as salt_file:
             salt = await salt_file.read()
             if len(salt) >= 32:
                 return salt
             else:
-                raise ValueError("len(salt) must be >= 32")     # pragma: no cover
+                raise Issue.value_must("salt", "be >= 32-bytes")
     finally:
         await aos.chmod(path, 0o000)
 
@@ -137,13 +144,13 @@ def read_salt_file(path: t.PathStr) -> bytes:
     """
     try:
         path = Path(path)
-        path.chmod(0o700)
-        with path.open("rb") as salt_file:
-            salt = salt_file.read()
-            if len(salt) >= 32:
-                return salt
-            else:
-                raise ValueError("len(salt) must be >= 32")     # pragma: no cover
+        path.chmod(0o600)
+        salt = path.read_bytes()
+
+        if len(salt) >= 32:
+            return salt
+        else:
+            raise Issue.value_must("salt", "be >= 32-bytes")
     finally:
         path.chmod(0o000)
 
@@ -153,14 +160,15 @@ async def aupdate_salt_file(path: t.PathStr, *, salt: bytes) -> None:
     Replaces the cryptographic salt contained within the file located at
     `path` with the new `salt` value.
     """
-    if len(salt) < 32:                                          # pragma: no cover
-        raise ValueError("len(salt) must be >= 32")             # pragma: no cover
-    try:                                                        # pragma: no cover
-        await aos.chmod(path, 0o700)                            # pragma: no cover
-        async with aiofiles.open(path, "wb") as salt_file:      # pragma: no cover
-            await salt_file.write(salt)                         # pragma: no cover
-    finally:                                                    # pragma: no cover
-        await aos.chmod(path, 0o000)                            # pragma: no cover
+    if len(salt) < 32:
+        raise Issue.value_must("salt", "be >= 32-bytes")
+
+    try:
+        await aos.chmod(path, 0o600)
+        async with aiofiles.open(path, "wb") as salt_file:
+            await salt_file.write(salt)
+    finally:
+        await aos.chmod(path, 0o000)
 
 
 def update_salt_file(path: t.PathStr, *, salt: bytes) -> None:
@@ -169,12 +177,12 @@ def update_salt_file(path: t.PathStr, *, salt: bytes) -> None:
     `path` with the new `salt` value.
     """
     if len(salt) < 32:
-        raise ValueError("len(salt) must be >= 32")             # pragma: no cover
+        raise Issue.value_must("salt", "be >= 32-bytes")
+
     try:
         path = Path(path)
-        path.chmod(0o700)
-        with path.open("wb") as salt_file:
-            salt_file.write(salt)
+        path.chmod(0o600)
+        path.write_bytes(salt)
     finally:
         path.chmod(0o000)
 
@@ -184,7 +192,7 @@ async def adelete_salt_file(path: t.PathStr) -> None:
     Deletes cryptographic salt contained within the file located at
     `path`.
     """
-    await aos.chmod(path, 0o700)
+    await aos.chmod(path, 0o600)
     await aos.remove(path)
 
 
@@ -194,15 +202,12 @@ def delete_salt_file(path: t.PathStr) -> None:
     `path`.
     """
     path = Path(path)
-    path.chmod(0o700)
+    path.chmod(0o600)
     path.unlink(path)
 
 
-async def AsyncSecurePath(
-    path: t.OptionalPathStr = None,
-    *,
-    key: t.Optional[bytes] = None,
-    _admin: bool = False,
+async def AsyncSecureSaltPath(
+    path: t.OptionalPathStr = None, *, key: bytes, _admin: bool = False
 ) -> Path:
     """
     Returns either a directory path where sensitive files are stored, or
@@ -210,22 +215,21 @@ async def AsyncSecurePath(
     `_admin` flag is for internal package management of such files.
     """
     path = (Path(path).absolute() if path else DatabasePath()) / "secure"
-    admin_path = path / "_admin"
-    0 if path.is_dir() else await aos.mkdir(path)
-    0 if admin_path.is_dir() else await aos.mkdir(admin_path)
-    if key:
-        fp = await afind_salt_file(admin_path if _admin else path, key=key)
-        0 if fp.is_file() else await amake_salt_file(fp)
-        return fp
+    path.is_dir() or await aos.mkdir(path)
+
+    if _admin:
+        admin_path = path / "_admin"
+        admin_path.is_dir() or await aos.mkdir(admin_path)
+        salt_path = await afind_salt_file(admin_path, key=key)
     else:
-        return path                                             # pragma: no cover
+        salt_path = await afind_salt_file(path, key=key)
+
+    salt_path.is_file() or await amake_salt_file(salt_path)
+    return salt_path
 
 
-def SecurePath(
-    path: t.OptionalPathStr = None,
-    *,
-    key: t.Optional[bytes] = None,
-    _admin: bool = False,
+def SecureSaltPath(
+    path: t.OptionalPathStr = None, *, key: bytes, _admin: bool = False
 ) -> Path:
     """
     Returns either a directory path where sensitive files are stored, or
@@ -233,26 +237,25 @@ def SecurePath(
     `_admin` flag is for internal package management of such files.
     """
     path = (Path(path).absolute() if path else DatabasePath()) / "secure"
-    admin_path = path / "_admin"
-    0 if path.is_dir() else path.mkdir()
-    0 if admin_path.is_dir() else admin_path.mkdir()
-    if key:
-        fp = find_salt_file(admin_path if _admin else path, key=key)
-        0 if fp.is_file() else make_salt_file(fp)
-        return fp
+    path.is_dir() or path.mkdir()
+
+    if _admin:
+        admin_path = path / "_admin"
+        admin_path.is_dir() or admin_path.mkdir()
+        salt_path = find_salt_file(admin_path, key=key)
     else:
-        return path                                             # pragma: no cover
+        salt_path = find_salt_file(path, key=key)
 
-
-# fmt: on
+    salt_path.is_file() or make_salt_file(salt_path)
+    return salt_path
 
 
 module_api = dict(
-    AsyncSecurePath=AsyncSecurePath,
+    AsyncSecureSaltPath=AsyncSecureSaltPath,
     DatabasePath=DatabasePath,
     Path=Path,
     RootPath=RootPath,
-    SecurePath=SecurePath,
+    SecureSaltPath=SecureSaltPath,
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

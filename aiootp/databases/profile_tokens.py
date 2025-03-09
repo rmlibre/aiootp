@@ -23,7 +23,7 @@ from hashlib import sha3_512
 
 from aiootp._typing import Typing as t
 from aiootp._constants import MIN_KEY_BYTES
-from aiootp._paths import AsyncSecurePath, SecurePath
+from aiootp._paths import AsyncSecureSaltPath, SecureSaltPath
 from aiootp._paths import aread_salt_file, read_salt_file
 from aiootp.asynchs import asleep
 from aiootp.commons import FrozenSlots
@@ -53,9 +53,8 @@ class AsyncProfileTokens(FrozenSlots):
         which provides an initial form of randomization to cryptographic
         material for all profiles saved under that directory.
         """
-        salt_path = await AsyncSecurePath(
-            path, key=DBDomains.DEVICE_SALT, _admin=True
-        )
+        key = DBDomains.DEVICE_SALT
+        salt_path = await AsyncSecureSaltPath(path, key=key, _admin=True)
         return await aread_salt_file(salt_path)
 
     async def _asummon_profile_salt(
@@ -66,7 +65,7 @@ class AsyncProfileTokens(FrozenSlots):
         help add more entropy to their key derivation functions when
         preparing to open a profile database.
         """
-        salt_path = await AsyncSecurePath(path, key=self._gist)
+        salt_path = await AsyncSecureSaltPath(path, key=self._gist)
         salt = await aread_salt_file(salt_path)
         return salt_path, salt
 
@@ -158,7 +157,8 @@ class ProfileTokens(FrozenSlots):
         which provides an initial form of randomization to cryptographic
         material for all profiles saved under that directory.
         """
-        salt_path = SecurePath(path, key=DBDomains.DEVICE_SALT, _admin=True)
+        key = DBDomains.DEVICE_SALT
+        salt_path = SecureSaltPath(path, key=key, _admin=True)
         return read_salt_file(salt_path)
 
     def _summon_profile_salt(
@@ -169,7 +169,7 @@ class ProfileTokens(FrozenSlots):
         help add more entropy to their key derivation functions when
         preparing to open a profile database.
         """
-        salt_path = SecurePath(path, key=self._gist)
+        salt_path = SecureSaltPath(path, key=self._gist)
         salt = read_salt_file(salt_path)
         return salt_path, salt
 
