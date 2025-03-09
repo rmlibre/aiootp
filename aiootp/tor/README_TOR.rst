@@ -9,7 +9,7 @@ Copyright
 
     © 2019-2021 Gonzo Investigative Journalism Agency, LLC, <gonzo.development@protonmail.ch>
 
-    © 2019-2024 Ricchi (Richard) Machado, <rmlibre@riseup.net>
+    © 2019-2025 Ricchi (Richard) Machado, <rmlibre@riseup.net>
 
 All rights reserved.
 
