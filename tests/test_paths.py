@@ -384,7 +384,7 @@ class TestUpdateSaltFile:
         await p._aupdate_salt_file(salt_path, salt=token_bytes(32))
 
         problem = (  # fmt: skip
-            "Set permissions allowed reading."
+            "Set permissions allowed writing."
         )
         with Ignore(PermissionError, if_else=violation(problem)):
             salt_path.write_bytes(SALT)
@@ -398,7 +398,7 @@ class TestUpdateSaltFile:
         p._update_salt_file(salt_path, salt=token_bytes(32))
 
         problem = (  # fmt: skip
-            "Set permissions allowed reading."
+            "Set permissions allowed writing."
         )
         with Ignore(PermissionError, if_else=violation(problem)):
             salt_path.write_bytes(SALT)
