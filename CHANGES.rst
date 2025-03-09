@@ -42,6 +42,7 @@ Minor Changes
 - docs: reword salt misuse resistance docstrings & add citation
 - docs: add return type hint on test fixtures
 - test: cover placeholder method in 'aos.py' module
+- test: remove leftover usage of 'fork' processes
 - refactor: fix concurrency type hints & unnecessary coupling
 - refactor: bundle like-context exceptions into named constants
 - refactor: extract names defined in function to file's config section

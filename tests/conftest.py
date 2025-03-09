@@ -11,27 +11,18 @@
 #
 
 
-import platform
-import multiprocessing
-
-
-try:
-    multiprocessing.set_start_method("fork", force=True)
-except ValueError:
-    multiprocessing.set_start_method("spawn", force=True)
-multiprocessing.freeze_support()
-
-
 import sys
 import json
 import pytest
 import hashlib
 import builtins
+import platform
 from pathlib import Path
 from functools import partial
 from itertools import permutations as perm, combinations as comb
 from hashlib import sha3_256, sha3_512, shake_128, shake_256
 from hypothesis import settings, given, strategies as st
+
 
 settings.register_profile("default", max_examples=10)
 settings.load_profile("default")
