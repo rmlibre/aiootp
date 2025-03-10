@@ -599,7 +599,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         with Ignore(AttributeError):
             delattr(self._cache, filename)
         with Ignore(LookupError):
-            await self.aquery_tag(tag, cache=True) if cache else 0
+            cache and await self.aquery_tag(tag, cache=True)
         return self
 
     async def aclear_cache(self, *, metatags: bool = True) -> t.Self:

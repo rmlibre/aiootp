@@ -54,6 +54,7 @@ Minor Changes
 - refactor: extract server socket init into a context manager
 - refactor: call new functions for default inputs to cipher configs
 - refactor: move test vectors into their own modules
+- style: replace simple ternary ops with short-circuits
 
 
 

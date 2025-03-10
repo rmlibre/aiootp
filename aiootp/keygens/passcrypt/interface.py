@@ -449,7 +449,7 @@ class Passcrypt(FrozenInstance):
         parts = PasscryptHash(config=config).import_hash(
             composed_passcrypt_hash
         )
-        ttl = ttl if ttl is None else (ttl * NS_TO_S_RATIO)
+        ttl = ttl and (ttl * NS_TO_S_RATIO)
         await config.clock.atest_timestamp(parts.timestamp, ttl=ttl)
         parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
         self = cls(
@@ -510,7 +510,7 @@ class Passcrypt(FrozenInstance):
         parts = PasscryptHash(config=config).import_hash(
             composed_passcrypt_hash
         )
-        ttl = ttl if ttl is None else (ttl * NS_TO_S_RATIO)
+        ttl = ttl and (ttl * NS_TO_S_RATIO)
         config.clock.test_timestamp(parts.timestamp, ttl=ttl)
         parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
         self = cls(

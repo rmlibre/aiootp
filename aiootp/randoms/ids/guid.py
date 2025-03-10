@@ -153,7 +153,7 @@ class GUID(FrozenInstance):
         config_id: t.Hashable = 16,
     ) -> None:
         self.config = c = self._configs[config_id]
-        key = key if key else c._DEFAULT_KEY
+        key = key or c._DEFAULT_KEY
         self._raw_guid = c.RawGUID(node_id=node_id, config_id=config_id)
         self._permutation = self._initialize_permutation(key)
 

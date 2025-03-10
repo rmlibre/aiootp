@@ -564,7 +564,7 @@ class Database(DatabaseProperties):
         with Ignore(AttributeError):
             delattr(self._cache, filename)
         with Ignore(LookupError):
-            self.query_tag(tag, cache=True) if cache else 0
+            cache and self.query_tag(tag, cache=True)
         return self
 
     def clear_cache(self, *, metatags: bool = True) -> t.Self:

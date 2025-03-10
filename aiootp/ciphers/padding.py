@@ -351,7 +351,7 @@ class Padding(FrozenInstance):
         - The appended padding sentinel.
         """
         sentinel = int.from_bytes(data[self.config.SENTINEL_SLICE], BIG)
-        return -(sentinel if sentinel else self.config.PADDING_FRAME)
+        return -(sentinel or self.config.PADDING_FRAME)
 
     def depadding_end_index(self, /, data: bytes) -> int:
         """
@@ -361,7 +361,7 @@ class Padding(FrozenInstance):
         - The appended padding sentinel.
         """
         sentinel = int.from_bytes(data[self.config.SENTINEL_SLICE], BIG)
-        return -(sentinel if sentinel else self.config.PADDING_FRAME)
+        return -(sentinel or self.config.PADDING_FRAME)
 
     async def adepad_plaintext(
         self, /, data: bytes, *, ttl: t.Optional[int] = DEFAULT_TTL

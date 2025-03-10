@@ -113,7 +113,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
             probe_delay, default=self._default_probe_delay
         )
         self.queue = queue
-        self.token = token_bytes(32) if token is None else token
+        self.token = token or token_bytes(32)
 
     async def __aenter__(self, /) -> t.Self:
         """

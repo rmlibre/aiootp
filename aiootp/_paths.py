@@ -97,7 +97,7 @@ async def amake_salt_file(path: Path, *, salt: bytes = b"") -> None:
     Saves a cryptographic `salt` contained within the file located at
     `path`. If no `salt` is provided, a new random 32-byte salt is used.
     """
-    salt = salt if salt else token_bytes(32)
+    salt = salt or token_bytes(32)
     if len(salt) < 32:
         raise Issue.value_must("salt", "be >= 32-bytes")
 
@@ -111,7 +111,7 @@ def make_salt_file(path: Path, *, salt: bytes = b"") -> None:
     Saves a cryptographic `salt` contained within the file located at
     `path`. If no `salt` is provided, a new random 32-byte salt is used.
     """
-    salt = salt if salt else token_bytes(32)
+    salt = salt or token_bytes(32)
     if len(salt) < 32:
         raise Issue.value_must("salt", "be >= 32-bytes")
 

@@ -241,7 +241,7 @@ class StreamHMAC:
         the associated data.
         """
         await asleep()
-        size = size if size else self.config.BLOCK_ID_BYTES
+        size = size or self.config.BLOCK_ID_BYTES
         self._test_block_id_size(size)
         mac = self.config.BLOCK_ID_KDF_CONFIG.factory()
         payload = (
@@ -277,7 +277,7 @@ class StreamHMAC:
         keystream. It's only used to create block ids that authenticate
         the associated data.
         """
-        size = size if size else self.config.BLOCK_ID_BYTES
+        size = size or self.config.BLOCK_ID_BYTES
         self._test_block_id_size(size)
         mac = self.config.BLOCK_ID_KDF_CONFIG.factory()
         payload = (

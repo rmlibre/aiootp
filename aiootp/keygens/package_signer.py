@@ -152,7 +152,7 @@ class PackageSigner:
         self._scope = PackageSignerScope(
             package=package,
             version=version,
-            date=date if date else self._clock.time(),
+            date=date or self._clock.time(),
             **scopes,
         )
 

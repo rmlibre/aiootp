@@ -92,8 +92,8 @@ async def amnemonic(
     are a word-list of 2048 unique, all lowercase english words.
     """
     domain = Domains.MNEMONIC
-    words = words if words else WORD_LIST
-    salt = await acanonical_pack(salt if salt else b"", domain)
+    words = words or WORD_LIST
+    salt = await acanonical_pack(salt or b"", domain)
     if passphrase:
         pcrypt = Passcrypt(**passcrypt_settings, tag_size=MIN_KEY_BYTES)
         key = await pcrypt.anew(passphrase, salt)
@@ -122,8 +122,8 @@ def mnemonic(
     are a word-list of 2048 unique, all lowercase english words.
     """
     domain = Domains.MNEMONIC
-    words = words if words else WORD_LIST
-    salt = canonical_pack(salt if salt else b"", domain)
+    words = words or WORD_LIST
+    salt = canonical_pack(salt or b"", domain)
     if passphrase:
         pcrypt = Passcrypt(**passcrypt_settings, tag_size=MIN_KEY_BYTES)
         key = pcrypt.new(passphrase, salt)

@@ -159,11 +159,9 @@ class Ignore:
     ) -> None:
         placeholder = self._PlaceholderHandler()
         self.ignored_exceptions = exceptions
-        self.except_code = placeholder if if_except is None else if_except
-        self.else_code = placeholder if if_else is None else if_else
-        self.finally_code = (
-            placeholder if finally_run is None else finally_run
-        )
+        self.except_code = if_except or placeholder
+        self.else_code = if_else or placeholder
+        self.finally_code = finally_run or placeholder
         self.bus = t.Namespace()
         self.error = None
         self.traceback = None

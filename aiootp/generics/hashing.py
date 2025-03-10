@@ -48,7 +48,7 @@ async def ahash_bytes(
     obj.update(
         (await aencode_key(key, obj.block_size, pad=pad) if key else b"")
         + await acanonical_pack(
-            (size if size else obj.digest_size).to_bytes(INT_BYTES, BIG),
+            (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
             *collection,
             blocksize=obj.block_size,
             pad=pad,
@@ -80,7 +80,7 @@ def hash_bytes(
     obj.update(
         (encode_key(key, obj.block_size, pad=pad) if key else b"")
         + canonical_pack(
-            (size if size else obj.digest_size).to_bytes(INT_BYTES, BIG),
+            (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
             *collection,
             blocksize=obj.block_size,
             pad=pad,
