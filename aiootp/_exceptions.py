@@ -153,7 +153,7 @@ class Ignore:
         self,
         /,
         *exceptions: Exception,
-        if_except: t.Optional[t.Callable[[t.Self], t.Any]] = None,
+        if_except: t.Optional[t.Callable[[t.Self], bool]] = None,
         if_else: t.Optional[t.Callable[[t.Self], t.Any]] = None,
         finally_run: t.Optional[t.Callable[[t.Self], t.Any]] = None,
     ) -> None:

@@ -18,7 +18,7 @@ None
 Minor Changes
 ^^^^^^^^^^^^^
 
-None
+- docs(exc): specify return type hint for Ignore callable arg
 
 
 
