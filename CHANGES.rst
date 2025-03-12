@@ -19,6 +19,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - build(package): allow but warn of non-standard HEAD names
+- build(package): prompt for desired branch if non-standard
 - docs(exc): specify return type hint for Ignore callable arg
 - test(paths): exempt Windows of need to deny salt file reads
 - test(paths): parametrize & stabilize 'test_paths.py' methods
