@@ -12,6 +12,7 @@
 
 
 import warnings
+from collections import namedtuple
 
 from aiootp import _paths as p
 
@@ -20,6 +21,9 @@ from conftest import *
 
 KEY = token_bytes(32)
 SALT = token_bytes(32)
+
+
+Targets = namedtuple("Targets", ("asynch", "synch"))
 
 
 def is_windows_limitation(_: Ignore) -> bool:
@@ -46,23 +50,21 @@ class TestDeniableFilename:
     Tests for the hash to shrunken filename functionalities.
     """
 
-    @pytest.mark.parametrize("size", [*range(-28, 33, 5)])
-    async def test_async_size_arg_must_be_between_1_and_16_inclusive(
-        self, size: int
-    ) -> None:
-        try:
-            await p.adeniable_filename(KEY, size=size)
-        except ValueError:
-            assert (size > 16) or (size < 1)
-        else:
-            assert 16 >= size >= 1
+    targets = Targets(
+        asynch=p.adeniable_filename,
+        synch=p.deniable_filename,
+    )
 
     @pytest.mark.parametrize("size", [*range(-28, 33, 5)])
+    @pytest.mark.parametrize("target", targets)
     async def test_size_arg_must_be_between_1_and_16_inclusive(
-        self, size: int
+        self, target, size: int
     ) -> None:
         try:
-            p.deniable_filename(KEY, size=size)
+            if target is self.targets.asynch:
+                await target(KEY, size=size)
+            else:
+                target(KEY, size=size)
         except ValueError:
             assert (size > 16) or (size < 1)
         else:
@@ -70,27 +72,17 @@ class TestDeniableFilename:
 
     @pytest.mark.parametrize("size", [4, 8])
     @pytest.mark.parametrize("key_length", [*range(0, 33, 8)])
-    async def test_async_key_length_must_be_at_least_double_size_arg(
-        self, key_length: int, size: int
-    ) -> None:
-        key = token_bytes(key_length)
-
-        try:
-            await p.adeniable_filename(key, size=size)
-        except ValueError:
-            assert key_length < 2 * size
-        else:
-            assert key_length >= 2 * size
-
-    @pytest.mark.parametrize("size", [4, 8])
-    @pytest.mark.parametrize("key_length", [*range(0, 33, 8)])
+    @pytest.mark.parametrize("target", targets)
     async def test_key_length_must_be_at_least_double_size_arg(
-        self, key_length: int, size: int
+        self, target, key_length: int, size: int
     ) -> None:
         key = token_bytes(key_length)
 
         try:
-            p.deniable_filename(key, size=size)
+            if target is self.targets.asynch:
+                await target(key, size=size)
+            else:
+                target(key, size=size)
         except ValueError:
             assert key_length < 2 * size
         else:
@@ -102,95 +94,76 @@ class TestMakeSaltFile:
     Tests for the making protected salt file functionalities.
     """
 
-    async def test_async_given_salt_is_persisted(
-        self, salt_path: t.Path
+    targets = Targets(
+        asynch=p._amake_salt_file,
+        synch=p._make_salt_file,
+    )
+
+    @pytest.mark.parametrize("target", targets)
+    async def test_given_salt_is_persisted(
+        self, target, salt_path: t.Path
     ) -> None:
-        await p._amake_salt_file(salt_path, salt=SALT)
-        salt_path.chmod(0o600)
-
-        assert SALT == salt_path.read_bytes()
-
-    async def test_given_salt_is_persisted(self, salt_path: t.Path) -> None:
-        p._make_salt_file(salt_path, salt=SALT)
-        salt_path.chmod(0o600)
-
-        assert SALT == salt_path.read_bytes()
-
-    async def test_async_new_salt_is_created(
-        self, salt_path: t.Path
-    ) -> None:
-        await p._amake_salt_file(salt_path)
-        salt_path.chmod(0o600)
-
-        salt = salt_path.read_bytes()
-        assert len(salt) == 32
-        assert len(set(salt)) >= 16
-
-    async def test_new_salt_is_created(self, salt_path: t.Path) -> None:
-        p._make_salt_file(salt_path)
-        salt_path.chmod(0o600)
-
-        salt = salt_path.read_bytes()
-        assert len(salt) == 32
-        assert len(set(salt)) >= 16
-
-    @pytest.mark.parametrize("size", [*range(16, 49, 8)])
-    async def test_async_salt_must_be_at_least_32_bytes(
-        self, salt_path: t.Path, size: int
-    ) -> None:
-        salt = token_bytes(size)
-
-        try:
-            await p._amake_salt_file(salt_path, salt=salt)
-        except ValueError:
-            assert size < 32
+        if target is self.targets.asynch:
+            await target(salt_path, salt=SALT)
         else:
-            assert size >= 32
+            target(salt_path, salt=SALT)
+
+        salt_path.chmod(0o600)
+
+        assert SALT == salt_path.read_bytes()
+
+    @pytest.mark.parametrize("target", targets)
+    async def test_new_salt_is_created(
+        self, target, salt_path: t.Path
+    ) -> None:
+        if target is self.targets.asynch:
+            await target(salt_path)
+        else:
+            target(salt_path)
+
+        salt_path.chmod(0o600)
+
+        salt = salt_path.read_bytes()
+        assert len(salt) == 32
+        assert len(set(salt)) >= 16
 
     @pytest.mark.parametrize("size", [*range(16, 49, 8)])
+    @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
-        self, salt_path: t.Path, size: int
+        self, target, salt_path: t.Path, size: int
     ) -> None:
         salt = token_bytes(size)
 
         try:
-            p._make_salt_file(salt_path, salt=salt)
+            if target is self.targets.asynch:
+                await target(salt_path, salt=salt)
+            else:
+                target(salt_path, salt=salt)
         except ValueError:
             assert size < 32
         else:
             assert size >= 32
 
-    async def test_async_no_read_permissions_set_after_creation(
-        self, salt_path: t.Path
-    ) -> None:
-        await p._amake_salt_file(salt_path)
-
-        with Ignore(PermissionError, if_else=is_windows_limitation):
-            salt_path.read_bytes()
-
+    @pytest.mark.parametrize("target", targets)
     async def test_no_read_permissions_set_after_creation(
-        self, salt_path: t.Path
+        self, target, salt_path: t.Path
     ) -> None:
-        p._make_salt_file(salt_path)
+        if target is self.targets.asynch:
+            await target(salt_path)
+        else:
+            target(salt_path)
 
         with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
-    async def test_async_no_write_permissions_set_after_creation(
-        self, salt_path: t.Path
-    ) -> None:
-        await p._amake_salt_file(salt_path)
-
-        problem = (  # fmt: skip
-            "Set permissions allowed writing."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
-            salt_path.write_bytes(SALT)
-
+    @pytest.mark.parametrize("target", targets)
     async def test_no_write_permissions_set_after_creation(
-        self, salt_path: t.Path
+        self, target, salt_path: t.Path
     ) -> None:
-        p._make_salt_file(salt_path)
+        if target is self.targets.asynch:
+            await target(salt_path)
+        else:
+            target(salt_path)
 
         problem = (  # fmt: skip
             "Set permissions allowed writing."
@@ -204,98 +177,71 @@ class TestReadSaltFile:
     Tests for the reading protected salt file functionalities.
     """
 
-    async def test_async_read_doesnt_automate_creation(
-        self, salt_path: t.Path
-    ) -> None:
-        problem = (  # fmt: skip
-            "Reading non-existant salt file didn't raise error."
-        )
-        with Ignore(FileNotFoundError, if_else=violation(problem)):
-            await p._aread_salt_file(salt_path)
+    targets = Targets(
+        asynch=p._aread_salt_file,
+        synch=p._read_salt_file,
+    )
 
+    @pytest.mark.parametrize("target", targets)
     async def test_read_doesnt_automate_creation(
-        self, salt_path: t.Path
+        self, target, salt_path: t.Path
     ) -> None:
         problem = (  # fmt: skip
             "Reading non-existant salt file didn't raise error."
         )
         with Ignore(FileNotFoundError, if_else=violation(problem)):
-            p._read_salt_file(salt_path)
+            if target is self.targets.asynch:
+                await target(salt_path)
+            else:
+                target(salt_path)
 
     @pytest.mark.parametrize("size", [*range(16, 49, 8)])
-    async def test_async_salt_must_be_at_least_32_bytes(
-        self, salt_path: t.Path, size: int
-    ) -> None:
-        salt_path.write_bytes(token_bytes(size))
-        salt_path.chmod(0o000)
-
-        try:
-            await p._aread_salt_file(salt_path)
-        except ValueError:
-            assert size < 32
-        else:
-            assert size >= 32
-
-    @pytest.mark.parametrize("size", [*range(16, 49, 8)])
+    @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
-        self, salt_path: t.Path, size: int
+        self, target, salt_path: t.Path, size: int
     ) -> None:
         salt_path.write_bytes(token_bytes(size))
         salt_path.chmod(0o000)
 
         try:
-            p._read_salt_file(salt_path)
+            if target is self.targets.asynch:
+                await target(salt_path)
+            else:
+                target(salt_path)
         except ValueError:
             assert size < 32
         else:
             assert size >= 32
 
-    async def test_async_no_read_permissions_set_after_reading(
-        self, salt_path: t.Path
-    ) -> None:
-        salt_path.write_bytes(SALT)
-        salt_path.chmod(0o000)
-
-        await p._aread_salt_file(salt_path)
-
-        with Ignore(PermissionError, if_else=is_windows_limitation):
-            salt_path.read_bytes()
-
+    @pytest.mark.parametrize("target", targets)
     async def test_no_read_permissions_set_after_reading(
-        self, salt_path: t.Path
+        self, target, salt_path: t.Path
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
 
-        p._read_salt_file(salt_path)
+        if target is self.targets.asynch:
+            await target(salt_path)
+        else:
+            target(salt_path)
 
         with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
-    async def test_async_no_write_permissions_set_after_reading(
-        self, salt_path: t.Path
-    ) -> None:
-        salt_path.write_bytes(SALT)
-        salt_path.chmod(0o000)
-
-        await p._aread_salt_file(salt_path)
-
-        problem = (  # fmt: skip
-            "Set permissions allowed reading."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
-            salt_path.write_bytes(SALT)
-
+    @pytest.mark.parametrize("target", targets)
     async def test_no_write_permissions_set_after_reading(
-        self, salt_path: t.Path
+        self, target, salt_path: t.Path
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
 
-        p._read_salt_file(salt_path)
+        if target is self.targets.asynch:
+            await target(salt_path)
+        else:
+            target(salt_path)
 
         problem = (  # fmt: skip
-            "Set permissions allowed reading."
+            "Set permissions allowed writing."
         )
         with Ignore(PermissionError, if_else=violation(problem)):
             salt_path.write_bytes(SALT)
@@ -306,99 +252,71 @@ class TestUpdateSaltFile:
     Tests for the updating protected salt file functionalities.
     """
 
-    async def test_async_new_salt_is_created(
-        self, salt_path: t.Path
+    targets = Targets(
+        asynch=p._aupdate_salt_file,
+        synch=p._update_salt_file,
+    )
+
+    @pytest.mark.parametrize("target", targets)
+    async def test_new_salt_is_created(
+        self, target, salt_path: t.Path
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
 
         new_salt = token_bytes(32)
-        await p._aupdate_salt_file(salt_path, salt=new_salt)
-
-        salt_path.chmod(0o600)
-        assert new_salt == salt_path.read_bytes()
-
-    async def test_new_salt_is_created(self, salt_path: t.Path) -> None:
-        salt_path.write_bytes(SALT)
-        salt_path.chmod(0o000)
-
-        new_salt = token_bytes(32)
-        p._update_salt_file(salt_path, salt=new_salt)
-
-        salt_path.chmod(0o600)
-        assert new_salt == salt_path.read_bytes()
-
-    @pytest.mark.parametrize("size", [*range(16, 49, 8)])
-    async def test_async_salt_must_be_at_least_32_bytes(
-        self, salt_path: t.Path, size: int
-    ) -> None:
-        salt_path.write_bytes(SALT)
-        salt_path.chmod(0o000)
-
-        try:
-            await p._aupdate_salt_file(salt_path, salt=csprng(size))
-        except ValueError:
-            assert size < 32
+        if target is self.targets.asynch:
+            await target(salt_path, salt=new_salt)
         else:
-            assert size >= 32
+            target(salt_path, salt=new_salt)
+
+        salt_path.chmod(0o600)
+        assert new_salt == salt_path.read_bytes()
 
     @pytest.mark.parametrize("size", [*range(16, 49, 8)])
+    @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
-        self, salt_path: t.Path, size: int
+        self, target, salt_path: t.Path, size: int
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
 
         try:
-            p._update_salt_file(salt_path, salt=csprng(size))
+            if target is self.targets.asynch:
+                await target(salt_path, salt=csprng(size))
+            else:
+                target(salt_path, salt=csprng(size))
         except ValueError:
             assert size < 32
         else:
             assert size >= 32
 
-    async def test_async_no_read_permissions_set_after_updating(
-        self, salt_path: t.Path
-    ) -> None:
-        salt_path.write_bytes(SALT)
-        salt_path.chmod(0o000)
-
-        await p._aupdate_salt_file(salt_path, salt=token_bytes(32))
-
-        with Ignore(PermissionError, if_else=is_windows_limitation):
-            salt_path.read_bytes()
-
+    @pytest.mark.parametrize("target", targets)
     async def test_no_read_permissions_set_after_updating(
-        self, salt_path: t.Path
+        self, target, salt_path: t.Path
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
 
-        p._update_salt_file(salt_path, salt=token_bytes(32))
+        if target is self.targets.asynch:
+            await target(salt_path, salt=token_bytes(32))
+        else:
+            target(salt_path, salt=token_bytes(32))
 
         with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
-    async def test_async_no_write_permissions_set_after_updating(
-        self, salt_path: t.Path
-    ) -> None:
-        salt_path.write_bytes(SALT)
-        salt_path.chmod(0o000)
-
-        await p._aupdate_salt_file(salt_path, salt=token_bytes(32))
-
-        problem = (  # fmt: skip
-            "Set permissions allowed writing."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
-            salt_path.write_bytes(SALT)
-
+    @pytest.mark.parametrize("target", targets)
     async def test_no_write_permissions_set_after_updating(
-        self, salt_path: t.Path
+        self, target, salt_path: t.Path
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
 
-        p._update_salt_file(salt_path, salt=token_bytes(32))
+        if target is self.targets.asynch:
+            await target(salt_path, salt=token_bytes(32))
+        else:
+            target(salt_path, salt=token_bytes(32))
 
         problem = (  # fmt: skip
             "Set permissions allowed writing."
@@ -412,20 +330,20 @@ class TestDeleteSaltFile:
     Tests for the deleting protected salt file functionalities.
     """
 
-    async def test_async_file_is_removed(self, salt_path: t.Path) -> None:
+    targets = Targets(
+        asynch=p._adelete_salt_file,
+        synch=p._delete_salt_file,
+    )
+
+    @pytest.mark.parametrize("target", targets)
+    async def test_file_is_removed(self, target, salt_path: t.Path) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
 
-        await p._adelete_salt_file(salt_path)
-
-        assert not salt_path.is_file()
-        assert not salt_path.is_dir()
-
-    async def test_file_is_removed(self, salt_path: t.Path) -> None:
-        salt_path.write_bytes(SALT)
-        salt_path.chmod(0o000)
-
-        p._delete_salt_file(salt_path)
+        if target is self.targets.asynch:
+            await target(salt_path)
+        else:
+            target(salt_path)
 
         assert not salt_path.is_file()
         assert not salt_path.is_dir()
@@ -433,73 +351,72 @@ class TestDeleteSaltFile:
 
 class TestSecureSaltPath:
     """
-    Tests for the protected salt file interface functionalities.
+    Tests for the protected salt file target functionalities.
     """
 
-    async def test_async_default_secure_path(self) -> None:
+    ADMIN_KW = dict(key=KEY, _admin=True)
+    KW = dict(key=KEY)
+
+    targets = Targets(
+        asynch=p.AsyncSecureSaltPath,
+        synch=p.SecureSaltPath,
+    )
+
+    @pytest.mark.parametrize("target", targets)
+    async def test_default_secure_path(self, target) -> None:
         path = p.DatabasePath() / "secure"
 
-        result = p.SecureSaltPath(key=KEY)
+        if target is self.targets.asynch:
+            result = await target(**self.KW)
+        else:
+            result = target(**self.KW)
 
         assert str(path) == str(result.parent)
 
-    async def test_default_secure_path(self) -> None:
-        path = p.DatabasePath() / "secure"
-
-        result = p.SecureSaltPath(key=KEY)
-
-        assert str(path) == str(result.parent)
-
-    async def test_async_default_secure_admin_path(self) -> None:
+    @pytest.mark.parametrize("target", targets)
+    async def test_default_secure_admin_path(self, target) -> None:
         path = (p.DatabasePath() / "secure") / "_admin"
 
-        result = await p.AsyncSecureSaltPath(key=KEY, _admin=True)
+        if target is self.targets.asynch:
+            result = await target(**self.ADMIN_KW)
+        else:
+            result = target(**self.ADMIN_KW)
 
         assert str(path) == str(result.parent)
 
-    async def test_default_secure_admin_path(self) -> None:
-        path = (p.DatabasePath() / "secure") / "_admin"
-
-        result = p.SecureSaltPath(key=KEY, _admin=True)
-
-        assert str(path) == str(result.parent)
-
-    async def test_async_same_keys_derive_same_paths(self) -> None:
-        result_0 = await p.AsyncSecureSaltPath(key=KEY)
-        result_1 = await p.AsyncSecureSaltPath(key=KEY)
+    @pytest.mark.parametrize("target", targets)
+    async def test_same_keys_derive_same_paths(self, target) -> None:
+        if target is self.targets.asynch:
+            result_0 = await target(**self.KW)
+            result_1 = await target(**self.KW)
+        else:
+            result_0 = target(**self.KW)
+            result_1 = target(**self.KW)
 
         assert str(result_0) == str(result_1)
 
-    async def test_same_keys_derive_same_paths(self) -> None:
-        result_0 = p.SecureSaltPath(key=KEY)
-        result_1 = p.SecureSaltPath(key=KEY)
+    @pytest.mark.parametrize("target", targets)
+    async def test_same_keys_derive_same_admin_paths(self, target) -> None:
+        if target is self.targets.asynch:
+            result_0 = await target(**self.ADMIN_KW)
+            result_1 = await target(**self.ADMIN_KW)
+        else:
+            result_0 = target(**self.ADMIN_KW)
+            result_1 = target(**self.ADMIN_KW)
 
         assert str(result_0) == str(result_1)
 
-    async def test_async_same_keys_derive_same_admin_paths(self) -> None:
-        result_0 = await p.AsyncSecureSaltPath(key=KEY, _admin=True)
-        result_1 = await p.AsyncSecureSaltPath(key=KEY, _admin=True)
+    @pytest.mark.parametrize("kw", [ADMIN_KW, KW])
+    @pytest.mark.parametrize("target", targets)
+    async def test_zzz_remove_test_files(self, target, kw) -> None:
+        if target is self.targets.asynch:
+            path = await target(**kw)
+        else:
+            path = target(**kw)
 
-        assert str(result_0) == str(result_1)
-
-    async def test_same_keys_derive_same_admin_paths(self) -> None:
-        result_0 = p.SecureSaltPath(key=KEY, _admin=True)
-        result_1 = p.SecureSaltPath(key=KEY, _admin=True)
-
-        assert str(result_0) == str(result_1)
-
-    async def test_zzz_ensure_test_files_are_removed(self) -> None:
-        path = await p.AsyncSecureSaltPath(key=KEY)
-        path.is_file() and path.unlink()
-
-        path = p.SecureSaltPath(key=KEY)
-        path.is_file() and path.unlink()
-
-        path = await p.AsyncSecureSaltPath(key=KEY, _admin=True)
-        path.is_file() and path.unlink()
-
-        path = p.SecureSaltPath(key=KEY, _admin=True)
-        path.is_file() and path.unlink()
+        if path.is_file():
+            path.chmod(0o600)
+            path.unlink()
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
