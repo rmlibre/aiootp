@@ -86,7 +86,7 @@ def discover_git_branch_tree() -> t.Tuple[str, str]:
     branch_command = split("git rev-parse --abbrev-ref HEAD")
     git_branch = check_output(branch_command).strip()
     if b"* " + git_branch not in check_output(split("git branch")):
-        raise ValueError(f"The value {git_branch=} is invalid.")
+        print(f"\nNOTICE: {git_branch=} isn't an existing branch.")
 
     branch_tree_command = split("git ls-files --cached")
     git_branch_tree = check_output(branch_tree_command).strip()
