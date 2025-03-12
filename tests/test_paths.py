@@ -11,6 +11,8 @@
 #
 
 
+import warnings
+
 from aiootp import _paths as p
 
 from conftest import *
@@ -18,6 +20,25 @@ from conftest import *
 
 KEY = token_bytes(32)
 SALT = token_bytes(32)
+
+
+def is_windows_limitation(_: Ignore) -> bool:
+    """
+    On Windows, ``os.chmod(path, 0o000)`` doesn't deny reading attempts
+    the way Unix-like systems do.
+
+    This function raises the intended PermissionError if reading wasn't
+    denied & the tests are being run on an OS which shouldn't have this
+    Windows limitation.
+    """
+    if platform.system() != "Windows":
+        raise PermissionError("Set permissions allowed reading.")
+
+    warnings.warn(
+        "NOTICE: File permissions on Windows don't deny reading of "
+        "sensitive files, like random seed & salt files, as Unix-like "
+        "systems do when os.chmod(path, 0o000) is used."
+    )
 
 
 class TestDeniableFilename:
@@ -144,10 +165,7 @@ class TestMakeSaltFile:
     ) -> None:
         await p._amake_salt_file(salt_path)
 
-        problem = (  # fmt: skip
-            "Set permissions allowed reading."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
     async def test_no_read_permissions_set_after_creation(
@@ -155,10 +173,7 @@ class TestMakeSaltFile:
     ) -> None:
         p._make_salt_file(salt_path)
 
-        problem = (  # fmt: skip
-            "Set permissions allowed reading."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
     async def test_async_no_write_permissions_set_after_creation(
@@ -243,10 +258,7 @@ class TestReadSaltFile:
 
         await p._aread_salt_file(salt_path)
 
-        problem = (  # fmt: skip
-            "Set permissions allowed reading."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
     async def test_no_read_permissions_set_after_reading(
@@ -257,10 +269,7 @@ class TestReadSaltFile:
 
         p._read_salt_file(salt_path)
 
-        problem = (  # fmt: skip
-            "Set permissions allowed reading."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
     async def test_async_no_write_permissions_set_after_reading(
@@ -355,10 +364,7 @@ class TestUpdateSaltFile:
 
         await p._aupdate_salt_file(salt_path, salt=token_bytes(32))
 
-        problem = (  # fmt: skip
-            "Set permissions allowed reading."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
     async def test_no_read_permissions_set_after_updating(
@@ -369,10 +375,7 @@ class TestUpdateSaltFile:
 
         p._update_salt_file(salt_path, salt=token_bytes(32))
 
-        problem = (  # fmt: skip
-            "Set permissions allowed reading."
-        )
-        with Ignore(PermissionError, if_else=violation(problem)):
+        with Ignore(PermissionError, if_else=is_windows_limitation):
             salt_path.read_bytes()
 
     async def test_async_no_write_permissions_set_after_updating(
