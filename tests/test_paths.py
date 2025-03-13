@@ -12,7 +12,6 @@
 
 
 import warnings
-from collections import namedtuple
 
 from aiootp import _paths as p
 
@@ -21,9 +20,6 @@ from conftest import *
 
 KEY = token_bytes(32)
 SALT = token_bytes(32)
-
-
-Targets = namedtuple("Targets", ("asynch", "synch"))
 
 
 def is_windows_limitation(_: Ignore) -> bool:
@@ -43,6 +39,15 @@ def is_windows_limitation(_: Ignore) -> bool:
         "sensitive files, like random seed & salt files, as Unix-like "
         "systems do when os.chmod(path, 0o000) is used."
     )
+
+
+class Targets(t.NamedTuple):
+    """
+    A container for distinct target test functions.
+    """
+
+    asynch: t.Callable[..., t.Awaitable[t.Any]]
+    synch: t.Callable[..., t.Any]
 
 
 class TargetRunner:

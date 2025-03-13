@@ -21,6 +21,7 @@ Minor Changes
 - build(package): allow but warn of non-standard HEAD names
 - build(package): prompt for desired branch if non-standard
 - docs(exc): specify return type hint for Ignore callable arg
+- docs(test): switch Targets to type-hintable NamedTuple type
 - test(paths): exempt Windows of need to deny salt file reads
 - test(paths): parametrize & stabilize 'test_paths.py' methods
 - refactor(perm): use args & concentrate steps in key encoder
