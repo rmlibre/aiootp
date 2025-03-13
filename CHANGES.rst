@@ -23,6 +23,7 @@ Minor Changes
 - docs(exc): specify return type hint for Ignore callable arg
 - test(paths): exempt Windows of need to deny salt file reads
 - test(paths): parametrize & stabilize 'test_paths.py' methods
+- refactor(perm): use args & concentrate steps in key encoder
 
 
 

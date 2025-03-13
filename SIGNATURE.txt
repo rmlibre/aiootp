@@ -1,5 +1,5 @@
 {
-    "checksum": "8b2c313f092a9c7559a5e48087d11b6480671ff920ecac750072500ea5f7bab5d4115ba4795d4afb91231e7524e83fc9",
+    "checksum": "8140d9ffcf1fdb8b67b920a4378c54da45e0f302ddbf9b15b3b2822de9d7733cacc1338a68e43fd3922c2a5b35eb4a33",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "f03aaa90aab154ce3f28b60a2130b00a9dc05db1b7617f1536f7d949c7722846c530458515946cb489f50e8fc3bff28a",
+        "CHANGES.rst": "826df3246ef5f51d6782bf18ed31cbdaa94b2337266a667f3ed2eccc20748b4bd23450c33f418654ee9587448f423124",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -32,7 +32,7 @@
         "aiootp/_paths.py": "0ae850ab67a46ebd870301131e0ca008a45bc2ed2903f886ba5c3dd6a275f510cc097fa7b91fc2fdfe83b6c6c3a064a2",
         "aiootp/_permutations/__init__.py": "4540bcb1f4a936c60fcc077399297702603e9c098e8b9b183e28c73e5c4bfdae7c45ab44b6418276cc199bf5cc57eda7",
         "aiootp/_permutations/affine_permutation.py": "44a7383451b507164b0b0f81b2942100a9a06e417c2bb5373ef60f6da9a812416ac62e881ac9e14e7be19a0f643e083d",
-        "aiootp/_permutations/affine_permutation_config.py": "cfe43df0721f4ef96a06780b6710723a4c7291ebb6d89cd0a7bcc69d38b54252d2ce65e2bb325b551eeb49ab4a9cd04e",
+        "aiootp/_permutations/affine_permutation_config.py": "a58873dbb3447d3631ec9867c4c7c33e1dce0cc9b5553593f406b3dacfeeb1cb505cc48f26641366e95044083c26123d",
         "aiootp/_permutations/affine_xor_chain.py": "2cc9cf40f1714457fc8763f33a05bf4b2ca84496e2f89e845cfa1b27cd4267c5d64bf5ff4ffd0deb6ae80c891491cbb6",
         "aiootp/_permutations/affine_xor_chain_config.py": "059bd0b353de248054cbb8b15216cbc12e2daa0059348c3983026472df71a1cc824f25621bc4c3e0f51c651ea64e4214",
         "aiootp/_permutations/fast_affine_xor_chain.py": "dc2ef61d613b83ffc37f5a9b21a177fb3b2e13a6c90cc03e4ae2ee0eeea1251fed7c38d133c295be5ac9b40f3539f24d",
@@ -197,7 +197,7 @@
     "scope": {
         "author": "rmlibre@riseup.net",
         "build_number": "2",
-        "date": 20159,
+        "date": 20160,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
         "license": "AGPL-3.0-only",
@@ -205,5 +205,5 @@
         "version": "0.23.17"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "8867ea1429088fabccb41c7494112110bfd886172b832c19795ec23408e7213e9bfa8dbde3dbd77638ebf66b8e0760a24ce9612d67434e57198845ea79ee4c00"
+    "signature": "7ee9b3761a258b5ccda99b39fb8189e558ea99a24dd74aab4098d1aa735770aed4cfa69dff1d81455cc1b41e4d020678161bf7a004c9b3c4b524143817143507"
 }

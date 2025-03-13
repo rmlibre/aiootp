@@ -118,17 +118,18 @@ class AffinePermutationConfig(Config):
         of finding the multiplicative key, & its inverse.
         """
 
-        def encode(i: int) -> bytes:
-            return Domains.encode_constant(
+        def encode(i: int, prime: int) -> int:
+            hash_value = Domains.encode_constant(
                 f"multiplicative_key_{i}_{prime}",
                 domain=b"affine_permutation_constant",
                 aad=self.AAD,
                 size=self.SIZE,
             )
+            return int.from_bytes(hash_value, BIG)
 
         top_bit, mask = self._make_multiplier_mask(prime.bit_length())
         for i in counter():
-            key = top_bit | (int.from_bytes(encode(i), BIG) & mask)
+            key = top_bit | (encode(i, prime) & mask)
             if self.is_likely_safe_multiplier(key, prime):
                 return key
 
