@@ -232,6 +232,15 @@ class TestReadSaltFile(TargetRunner):
         with Ignore(PermissionError, if_else=violation(problem)):
             salt_path.write_bytes(SALT)
 
+    @pytest.mark.parametrize("target", targets)
+    async def test_retrieves_persisted_salt(
+        self, target, salt_path: t.Path
+    ) -> None:
+        salt_path.write_bytes(SALT)
+        salt_path.chmod(0o000)
+
+        assert SALT == await self.run(target, salt_path)
+
 
 class TestUpdateSaltFile(TargetRunner):
     """
