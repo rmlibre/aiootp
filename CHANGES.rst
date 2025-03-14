@@ -29,6 +29,7 @@ Minor Changes
 - refactor(test): extract base class from common runner logic
 - refactor(test): remove extra salt file tests during refactor
 - refactor(test): prepare for consolidation & parametrization 1/x
+- refactor(test): prepare for consolidation & parametrization 2/x
 
 
 

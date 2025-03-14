@@ -334,11 +334,15 @@ class AdminContext(dict):
     A container for admin data needed by the test target.
     """
 
+    path: t.Path = (p.DatabasePath() / "secure") / "_admin"
+
 
 class UserContext(dict):
     """
     A container for user data needed by the test target.
     """
+
+    path: t.Path = p.DatabasePath() / "secure"
 
 
 class TargetContexts(t.NamedTuple):
@@ -367,19 +371,15 @@ class TestSecureSaltPath(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_default_secure_path(self, target) -> None:
-        path = p.DatabasePath() / "secure"
-
         result = await self.run(target, **self.kwargs.user_ctx)
 
-        assert str(path) == str(result.parent)
+        assert str(UserContext.path) == str(result.parent)
 
     @pytest.mark.parametrize("target", targets)
     async def test_default_secure_admin_path(self, target) -> None:
-        path = (p.DatabasePath() / "secure") / "_admin"
-
         result = await self.run(target, **self.kwargs.admin_ctx)
 
-        assert str(path) == str(result.parent)
+        assert str(AdminContext.path) == str(result.parent)
 
     @pytest.mark.parametrize("kw", kwargs)
     @pytest.mark.parametrize("target", targets)
