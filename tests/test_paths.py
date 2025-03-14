@@ -375,12 +375,6 @@ class TestSecureSaltPath(TargetRunner):
 
         assert str(UserContext.path) == str(result.parent)
 
-    @pytest.mark.parametrize("target", targets)
-    async def test_default_secure_admin_path(self, target) -> None:
-        result = await self.run(target, **self.kwargs.admin_ctx)
-
-        assert str(AdminContext.path) == str(result.parent)
-
     @pytest.mark.parametrize("kw", kwargs)
     @pytest.mark.parametrize("target", targets)
     async def test_zzz_remove_test_files(self, target, kw) -> None:
@@ -389,6 +383,12 @@ class TestSecureSaltPath(TargetRunner):
         if path.is_file():
             path.chmod(0o600)
             path.unlink()
+
+    @pytest.mark.parametrize("target", targets)
+    async def test_default_secure_admin_path(self, target) -> None:
+        result = await self.run(target, **self.kwargs.admin_ctx)
+
+        assert str(AdminContext.path) == str(result.parent)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
