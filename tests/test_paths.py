@@ -329,13 +329,36 @@ class TestDeleteSaltFile(TargetRunner):
         assert not salt_path.is_dir()
 
 
-class TestSecureSaltPath(TargetRunner):
+class AdminContext(dict):
     """
-    Tests for the protected salt file target functionalities.
+    A container for admin data needed by the test target.
     """
 
-    ADMIN_KW = dict(key=KEY, _admin=True)
-    KW = dict(key=KEY)
+
+class UserContext(dict):
+    """
+    A container for user data needed by the test target.
+    """
+
+
+class TargetContexts(t.NamedTuple):
+    """
+    A container for distinct data contexts needed by the test target.
+    """
+
+    admin_ctx: AdminContext
+    user_ctx: UserContext
+
+
+class TestSecureSaltPath(TargetRunner):
+    """
+    Tests for the protected salt file path interface functionalities.
+    """
+
+    kwargs = TargetContexts(
+        admin_ctx=AdminContext(key=KEY, _admin=True),
+        user_ctx=UserContext(key=KEY),
+    )
 
     targets = Targets(
         asynch=p.AsyncSecureSaltPath,
@@ -346,7 +369,7 @@ class TestSecureSaltPath(TargetRunner):
     async def test_default_secure_path(self, target) -> None:
         path = p.DatabasePath() / "secure"
 
-        result = await self.run(target, **self.KW)
+        result = await self.run(target, **self.kwargs.user_ctx)
 
         assert str(path) == str(result.parent)
 
@@ -354,11 +377,11 @@ class TestSecureSaltPath(TargetRunner):
     async def test_default_secure_admin_path(self, target) -> None:
         path = (p.DatabasePath() / "secure") / "_admin"
 
-        result = await self.run(target, **self.ADMIN_KW)
+        result = await self.run(target, **self.kwargs.admin_ctx)
 
         assert str(path) == str(result.parent)
 
-    @pytest.mark.parametrize("kw", [ADMIN_KW, KW])
+    @pytest.mark.parametrize("kw", kwargs)
     @pytest.mark.parametrize("target", targets)
     async def test_zzz_remove_test_files(self, target, kw) -> None:
         path = await self.run(target, **kw)

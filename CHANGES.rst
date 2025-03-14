@@ -28,6 +28,7 @@ Minor Changes
 - refactor(perm): use args & concentrate steps in key encoder
 - refactor(test): extract base class from common runner logic
 - refactor(test): remove extra salt file tests during refactor
+- refactor(test): prepare for consolidation & parametrization 1/x
 
 
 
