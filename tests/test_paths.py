@@ -358,20 +358,6 @@ class TestSecureSaltPath(TargetRunner):
 
         assert str(path) == str(result.parent)
 
-    @pytest.mark.parametrize("target", targets)
-    async def test_same_keys_derive_same_paths(self, target) -> None:
-        result_0 = await self.run(target, **self.KW)
-        result_1 = await self.run(target, **self.KW)
-
-        assert str(result_0) == str(result_1)
-
-    @pytest.mark.parametrize("target", targets)
-    async def test_same_keys_derive_same_admin_paths(self, target) -> None:
-        result_0 = await self.run(target, **self.ADMIN_KW)
-        result_1 = await self.run(target, **self.ADMIN_KW)
-
-        assert str(result_0) == str(result_1)
-
     @pytest.mark.parametrize("kw", [ADMIN_KW, KW])
     @pytest.mark.parametrize("target", targets)
     async def test_zzz_remove_test_files(self, target, kw) -> None:

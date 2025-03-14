@@ -27,6 +27,7 @@ Minor Changes
 - test(paths): ensure reads return expected salt value
 - refactor(perm): use args & concentrate steps in key encoder
 - refactor(test): extract base class from common runner logic
+- refactor(test): remove extra salt file tests during refactor
 
 
 
