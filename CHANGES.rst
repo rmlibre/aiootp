@@ -25,6 +25,7 @@ Minor Changes
 - test(paths): exempt Windows of need to deny salt file reads
 - test(paths): parametrize & stabilize 'test_paths.py' methods
 - test(paths): ensure reads return expected salt value
+- test(paths): add new tests to 'test_paths.py' after refactor
 - refactor(perm): use args & concentrate steps in key encoder
 - refactor(test): extract base class from common runner logic
 - refactor(test): remove extra salt file tests during refactor

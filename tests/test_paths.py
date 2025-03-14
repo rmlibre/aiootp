@@ -374,7 +374,50 @@ class TestSecureSaltPath(TargetRunner):
     async def test_default_secure_path(self, target, kw) -> None:
         result = await self.run(target, **kw)
 
+        assert isinstance(result, t.Path)
         assert str(kw.path) == str(result.parent)
+
+    @pytest.mark.parametrize("kw", kwargs)
+    @pytest.mark.parametrize("target", targets)
+    async def test_same_keys_derive_same_paths(self, target, kw) -> None:
+        result_0 = await self.run(target, **kw)
+        result_1 = await self.run(target, **kw)
+
+        assert isinstance(result_0, t.Path)
+        assert isinstance(result_1, t.Path)
+        assert str(result_0) == str(result_1)
+
+    @pytest.mark.parametrize("kw", kwargs)
+    @pytest.mark.parametrize("target", targets)
+    async def test_salt_is_static(self, target, kw) -> None:
+        path_0 = await self.run(target, **kw)
+        result_0 = p._read_salt_file(path_0)
+
+        path_1 = await self.run(target, **kw)
+        result_1 = p._read_salt_file(path_1)
+
+        assert len(result_0) == 32
+        assert len(result_1) == 32
+        assert isinstance(result_0, bytes)
+        assert isinstance(result_1, bytes)
+        assert result_0 == result_1
+
+    @pytest.mark.parametrize("kw", kwargs)
+    @pytest.mark.parametrize("target", targets)
+    async def test_first_time_calls_create_salt(self, target, kw) -> None:
+        path = await self.run(target, **kw)
+
+        result_0 = p._read_salt_file(path)
+        p._delete_salt_file(path)
+
+        await self.run(target, **kw)
+        result_1 = p._read_salt_file(path)
+
+        assert len(result_0) == 32
+        assert len(result_1) == 32
+        assert isinstance(result_0, bytes)
+        assert isinstance(result_1, bytes)
+        assert result_0 != result_1
 
     @pytest.mark.parametrize("kw", kwargs)
     @pytest.mark.parametrize("target", targets)
