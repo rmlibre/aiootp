@@ -1,5 +1,5 @@
 {
-    "checksum": "6e3b201780ea6c40694b13233f92bf9cc3c1cb5b28267f25dda280aadb00816450759665a98ee73f3ab44d69bcd372dd",
+    "checksum": "5ae963a21c3b24cacc21af48f860b80b7ce1298a386c03d2d3ead1f40e0daff588cf84e1ae35209ada64e41901cc8a52",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "c4deebcd313928770421c5545e47383bf49cffcffacb3a8415d9e89b10ec7820d1c71ea42129ba94c8b7332897c5884a",
+        "CHANGES.rst": "05e40c44891eaaf1b29057d47d854a83f87dda55a20054dc3d56669653cf249e45ac057afa458ba84bc72069c7b81995",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -183,7 +183,7 @@
         "tests/test_misc_in_randoms.py": "110e933dbed21c3307e62ce590b64021bd6fc943bd04ef8e185ce74908a7d8b89e0c81d606e456aa520173f7866edf22",
         "tests/test_namespace_classes.py": "27cd780450ecafd0db9e5cabfc5bb87700e71052f9541bb2c428ae0829cb0f17c3c89940f54e1d1f3d38399c7697ade5",
         "tests/test_online_cipher_interfaces.py": "129ba9814c80fc3b9c479c296500f7ec840527ae6ab16decf01918d6b87ceac970dec65e535498647220a3cbc58708c4",
-        "tests/test_paths.py": "764bc9bbc70fe37bf870c635a43261509d936ae88a2c697bb2a9c93e51fd7a07197dea8a044d1e1262639b1762d6ba7c",
+        "tests/test_paths.py": "5c8950ec065c0447edb6a65cf5ff1797535b91bf6d71e899829dfb06842e53554f9e338eaec97aec794a148cc55ef034",
         "tests/test_permutations.py": "db0f84975e93682e8df6b9cd91a4879e48a4639fba5cc743502d938839a81daa03559150f287d6b80c5ce2b65f07dee5",
         "tests/test_randoms.py": "794f54c26fa09e07625876a00c7cb0a8cfa83ce891d4085949de9fa3419759d7b0ba395828c5f790199ee16b6e4cb1b8",
         "tests/test_time_to_live.py": "69b08fbfef24e9911a4e300826d80b302db5132daea4891c5b44c1794c3abffaac8d73902a6202296a5d1323903fc2e4",
@@ -205,5 +205,5 @@
         "version": "0.23.17"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "43078f5f3acd42df4cc9fcd944293f4157d69eb8c78e559ba2423fb14031299c53ee78f52efa61f4211f3b4947aded8ca94b45164768989ce8bf49874417e80b"
+    "signature": "f3b9ed054b32ae56887074428ab2a26b9451f927d55642b4269a37236b1af49e833f54f0649334e1cf3288f15dc96dbdcc3ee070e5801bfebec2ae2773f06b0a"
 }

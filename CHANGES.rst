@@ -31,6 +31,8 @@ Minor Changes
 - refactor(test): prepare for consolidation & parametrization 1/x
 - refactor(test): prepare for consolidation & parametrization 2/x
 - refactor(test): prepare for consolidation & parametrization 3/x
+- refactor(test): consolidate & parametrize to simplify new tests
+
 
 
 
