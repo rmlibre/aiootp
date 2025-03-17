@@ -1,5 +1,5 @@
 {
-    "checksum": "e934539b1b8d4f1b42295fbe36f24ba5d9e19d0715376bdb6492617d258e9c200e1ef0a94d8f512ef6ac919e9b5280ae",
+    "checksum": "b539d7aa896889dd6639db96e3c27493ba0e6586589db0ef65838b3dc5208e8440e6ba77dd3b93c004816842a77cb5c6",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,13 +12,13 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "8ea5adfbd9a4675fbb35deed0a534ab86fde4b9bef00688b1cd61f98af8423c67cb1efe17fe631a39d6614287d0e7c9b",
+        "CHANGES.rst": "d1f7b5b06304ab8ac16f1018c620f07a20ee80051fd14ccc649012c80b63004975feba5db3ddfe9262354ada878a1520",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
         "LICENSE": "26a27bf33de01f9b831b918c0fe1080295fe93f7b9f9a20c7d577a29b0f13d42e50612f0e353dc40320ef2d876c05dd0",
         "MANIFEST.in": "4dadd5fabd903c3259732a927cdfde7bfd73fd89096d059028168b2fa8572aa46bffc0503e989a13df360e14d9e3af58",
-        "README.rst": "c31827a68b87af35f89b3edb34f9a089f1337c0901b0b7b27cc44a4de75bdc5dff15632f2a5999dfd2a0f49555d8467a",
+        "README.rst": "c9ecba25703e2f198332e51f81ec1faf72027bfd252aea17b83fea2838421a0d5a3063d443569e2260e89a3f1d30e71f",
         "SECURITY.md": "55ee99fe71c80532838235413ebf27911eaf6a583eaa4089962c7d2bf50071d0a67392adbbc5a132335388a92bbd8440",
         "aiootp/__engagement/__init__.py": "ad203bc1e5fb66181eab0a76bd887e62b023bd71bee4ce8bedc00c181c6dff95375d126dcb933f6b21f6b26acc8ad07a",
         "aiootp/__engagement/issue_reporting.py": "f9ff44be2a1ca884c5c55960ace9faecd270b0e834d7211699489e37f5f10a88a3bbef7b465620f5d97c133ec349d4d6",
@@ -197,7 +197,7 @@
     "scope": {
         "author": "rmlibre@riseup.net",
         "build_number": "2",
-        "date": 20162,
+        "date": 20165,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
         "license": "AGPL-3.0-only",
@@ -205,5 +205,5 @@
         "version": "0.23.17"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "cda5102269e9d566de105d7b2899b82ee65872effdf091c2bea46ef76442087f65afa05e610555ed8d653f03829a7be60767b3c7300502ad20410d0b76f1b107"
+    "signature": "f167cc415e827fee11cf7d6f30009a9be3d85eb2413a376da2a356fac48bb1b50eac3a319b17dc494be6b8d24e1401a3e005d0b3da926404b006dbed7c58de0d"
 }

@@ -458,7 +458,7 @@ As databases grow in the number of tags, metatags & the size of data within, it 
         >>> ["justice", "community"]
 
         uncached_db["favorite_foods"]
-        >>> None
+        >>>
 
         value = await uncached_db.aquery_tag("favorite_foods", cache=True)
 
@@ -470,7 +470,7 @@ As databases grow in the number of tags, metatags & the size of data within, it 
         # Metatags will be loaded, but their tags won't be ->
 
         uncached_db.exercise_routines["gardening"]
-        >>> None
+        >>>
 
         await uncached_db.exercise_routines.aquery_tag("gardening", cache=True)
         >>> {"days": ["monday", "wednesday"]}
@@ -482,12 +482,13 @@ As databases grow in the number of tags, metatags & the size of data within, it 
         # But, tags can also be queried without caching their values,
 
         value = await uncached_db.exercise_routines.aquery_tag("swimming")
+        >>>
 
         value
         >>> {"days": ["thursday", "saturday"]}
 
         uncached_db.exercise_routines["swimming"]
-        >>> None
+        >>>
 
 
         # However, changes to mutable values won't be transmitted to the
