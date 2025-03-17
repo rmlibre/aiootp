@@ -276,10 +276,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         config = self._config
         BLOCKSIZE, BLOCK_ID_BYTES = config.BLOCKSIZE, config.BLOCK_ID_BYTES
         cipher, queue_result = self._digest_data_shortcuts
-        while True:
-            block_id = data(BLOCK_ID_BYTES)
-            if not block_id:
-                break
+        while block_id := data(BLOCK_ID_BYTES):
             block = data(BLOCKSIZE)
             try:
                 await atest_block_id(block_id, block)
@@ -562,10 +559,7 @@ class DecipherStream(CipherStreamProperties):
         config = self._config
         BLOCKSIZE, BLOCK_ID_BYTES = config.BLOCKSIZE, config.BLOCK_ID_BYTES
         cipher, queue_result = self._digest_data_shortcuts
-        while True:
-            block_id = data(BLOCK_ID_BYTES)
-            if not block_id:
-                break
+        while block_id := data(BLOCK_ID_BYTES):
             block = data(BLOCKSIZE)
             try:
                 test_block_id(block_id, block)

@@ -36,7 +36,7 @@ Minor Changes
 - refactor(test): prepare for consolidation & parametrization 2/x
 - refactor(test): prepare for consolidation & parametrization 3/x
 - refactor(test): consolidate & parametrize to simplify new tests
-
+- style(ciphers): merge loop conditional with inner guard clause
 
 
 
