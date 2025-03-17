@@ -1,5 +1,5 @@
 {
-    "checksum": "2cf3576bab87bc6ba13b2a6ead0575b3b8d5479e67334c9c659a9cb4411d8d1773fdf9f5e76e879a93e89bef4058aa7b",
+    "checksum": "89d6746401c88b8d985be3eaa3356e256e3a0814c5e0c80d791c90ee54a9524d3ae6204e630f7a2ff6e18a0ff69acfc2",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "8dd790dc03f906e5848238d09e06e96de8f52d95cd1afca8fb49dd640a6b9725304b16aee8752e13f5229b5a0b18d4c8",
+        "CHANGES.rst": "c0878511b9115e35ecc27081ea583c78a89667566d8f81fa4acf5ad4b514a1522c867acef596dac19c08df1df13a9434",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -152,7 +152,7 @@
         "tests/test_ConcurrencyGuard.py": "096725beeeac84b808efe2994b3cf5d49e13fbb3f1c9d00febe7183ecf26e40fa909726e58565577c1cbb442a610b2f0",
         "tests/test_Database_AsyncDatabase.py": "246c6a5ef8a7681664e350cf5581ba76a7246f10c31a3b63a40d022e0c697fbbbfb4a52213d6237796f0a904c8d100fe",
         "tests/test_GUID.py": "ba621be1247f138e7b85849c8eaef5996c0f999d1ee467e67f7e4de14a047517882042b0ee31542b694f30aa8668e8fb",
-        "tests/test_PackageSigner.py": "1f0e2d37cd5f813e0391515310f8ffb7a1cabe8f0708c0cb92516161aabc42248d0dab1151da286ca145dd5973f9a15f",
+        "tests/test_PackageSigner.py": "a9360e61093254cc00810eb3c8be3de30d427e28b5b7605189892c9ed2768705e62be38246b75d03fca54bf40438e75b",
         "tests/test_Padding.py": "e2dea22dbf750a44a3f14dd388553b4eeb4e49fe8a5bd4a6813d69a363d59003813d9fa4d1d110c31f3001a4a288765c",
         "tests/test_Passcrypt.py": "8b6cc260bc703217556aeb7c0a5231f728fc785bf619760134385ba359c044ac0669a850222fff896afe01ee2bda4980",
         "tests/test_Processes_Threads.py": "38158279b8e61c931632420ee0ca16a3c655491d7fee77c198fb0af820455ecbf699528af1d35d67316d23cafaa1038b",
@@ -205,5 +205,5 @@
         "version": "0.23.17"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "826b1cb70365484cc24ad128337be05fbd3d064f08b26e84bbd4c9e3d7af90c0b3f4844e446968e796942d899cb0ebc455bdae145134395a412532279db91d0c"
+    "signature": "a2f6ab6b8281bcf1e504c87f955491e19a08b4a59f819bf18600d17381983e0f320d1c2f8fb01776dc065bec8258d6c452aefe4aa44cf6451ed980efa945cd09"
 }

@@ -51,7 +51,8 @@ class TestPackageVerifier:
         )
         summary = pkg_signer.summarize()
         filename = randoms.choice(list(summary[CHECKSUMS]))
-        summary[CHECKSUMS][filename] = pkg_signer._Hasher().hexdigest()
+        fake_hashed_file = pkg_signer._Hasher(csprng())
+        summary[CHECKSUMS][filename] = fake_hashed_file.hexdigest()
         problem = (  # fmt: skip
             f"An invalid digest for file {filename=} wasn't detected."
         )
