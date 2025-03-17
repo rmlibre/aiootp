@@ -74,20 +74,27 @@ class TestPackageVerifier:
 
     async def test_altering_signing_key_fails(
         self,
+        pkg_context: Namespace,
         pkg_signer: PackageSigner,
         pkg_verifier: PackageVerifier,
     ) -> None:
         summary = pkg_signer.summarize()
-        summary["signing_key"] = X25519().generate().public_bytes.hex()
+        wrong_summary = summary.copy()
+        wrong_key = X25519().generate().public_bytes
+        wrong_summary["signing_key"] = wrong_key.hex()
+        wrong_verifier = PackageVerifier(
+            wrong_key, path=pkg_context.test_path
+        )
+
         problem = (  # fmt: skip
             "An altered `signing_key` went uncaught."
         )
         with Ignore(ValueError, if_else=violation(problem)):
-            pkg_verifier.verify_summary(summary)
-
-        # returning to the original signing key succeeds
-        summary["signing_key"] = pkg_signer.signing_key.public_bytes.hex()
-        pkg_verifier.verify_summary(summary)
+            wrong_verifier.verify_summary(summary)
+        with Ignore(ValueError, if_else=violation(problem)):
+            wrong_verifier.verify_summary(wrong_summary)
+        with Ignore(ValueError, if_else=violation(problem)):
+            pkg_verifier.verify_summary(wrong_summary)
 
     async def test_altering_checksum_fails(
         self,
