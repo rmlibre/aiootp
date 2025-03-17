@@ -23,6 +23,7 @@ Minor Changes
 - docs(exc): specify return type hint for Ignore callable arg
 - docs(test): switch Targets to type-hintable NamedTuple type
 - docs(readme): display example returns of None consistently
+- docs(readme): describe cipher key sizes as inclusive of 64-bytes
 - test(paths): exempt Windows of need to deny salt file reads
 - test(paths): parametrize & stabilize 'test_paths.py' methods
 - test(paths): ensure reads return expected salt value

@@ -1,5 +1,5 @@
 {
-    "checksum": "b539d7aa896889dd6639db96e3c27493ba0e6586589db0ef65838b3dc5208e8440e6ba77dd3b93c004816842a77cb5c6",
+    "checksum": "8135e2245b149159a5e70bb5cf312093ac87f9e96430422950580009d13db36d1c8c3c12b012c2956bd764299b6e4e17",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,13 +12,13 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "d1f7b5b06304ab8ac16f1018c620f07a20ee80051fd14ccc649012c80b63004975feba5db3ddfe9262354ada878a1520",
+        "CHANGES.rst": "bd17566277b87ebab4ef0daa56009e14738beba7bd70dd5a4e46b260863d420d7aaf83daa47eadaaf40bca4e0a132e3f",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
         "LICENSE": "26a27bf33de01f9b831b918c0fe1080295fe93f7b9f9a20c7d577a29b0f13d42e50612f0e353dc40320ef2d876c05dd0",
         "MANIFEST.in": "4dadd5fabd903c3259732a927cdfde7bfd73fd89096d059028168b2fa8572aa46bffc0503e989a13df360e14d9e3af58",
-        "README.rst": "c9ecba25703e2f198332e51f81ec1faf72027bfd252aea17b83fea2838421a0d5a3063d443569e2260e89a3f1d30e71f",
+        "README.rst": "06f8d2864053b366e9bc2ec61a7d511e7f49533c1762bef0d814d9dfc191ac9ba13b9a3b1cd7da3888a320d935ff906c",
         "SECURITY.md": "55ee99fe71c80532838235413ebf27911eaf6a583eaa4089962c7d2bf50071d0a67392adbbc5a132335388a92bbd8440",
         "aiootp/__engagement/__init__.py": "ad203bc1e5fb66181eab0a76bd887e62b023bd71bee4ce8bedc00c181c6dff95375d126dcb933f6b21f6b26acc8ad07a",
         "aiootp/__engagement/issue_reporting.py": "f9ff44be2a1ca884c5c55960ace9faecd270b0e834d7211699489e37f5f10a88a3bbef7b465620f5d97c133ec349d4d6",
@@ -205,5 +205,5 @@
         "version": "0.23.17"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "f167cc415e827fee11cf7d6f30009a9be3d85eb2413a376da2a356fac48bb1b50eac3a319b17dc494be6b8d24e1401a3e005d0b3da926404b006dbed7c58de0d"
+    "signature": "c9c349acb3ce2980a51faf535a52e5e4a3c48d047ccd7873701287d269b40964ed805ac0a6da00e68a4d39b21ae83792d5b1ccaefe6b9197b21597563433370d"
 }

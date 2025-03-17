@@ -593,9 +593,9 @@ _`Chunky2048 & Slick256 Ciphers` .................. `Table Of Contents`_
 
 ``Chunky2048`` & ``Slick256`` are novel cipher designs that use SHA3 extendable-output functions for key derivation & data authentication. They're distinct by being online, salt misuse-reuse resistant, fully context committing, & tweakable, AEADs.
 
-``Chunky2048`` is a stream cipher that processes blocks of data 256 bytes at a time. It accepts any length of key larger than 64 bytes, with a maximum internal entropy of 600 bytes.
+``Chunky2048`` is a stream cipher that processes blocks of data 256 bytes at a time. It accepts any length of key 64 bytes or larger, with a maximum internal entropy of 600 bytes.
 
-``Slick256`` on the other hand is a 32 byte combined stream & block cipher. Each round it XOR's an independent stream key with data, passes that sum through a keyed permutation, & XOR's the result with another independent stream key. It also accepts any length of key larger than 64 bytes, with a maximum internal entropy of 200 bytes.
+``Slick256`` on the other hand is a 32 byte combined stream & block cipher. Each round it XOR's an independent stream key with data, passes that sum through a keyed permutation, & XOR's the result with another independent stream key. It also accepts any length of key 64 bytes or larger, with a maximum internal entropy of 200 bytes.
 
 They're each designed to be easy to use, difficult to misuse, & future-proof with very wide security margins.
 
