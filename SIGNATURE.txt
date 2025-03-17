@@ -1,5 +1,5 @@
 {
-    "checksum": "8135e2245b149159a5e70bb5cf312093ac87f9e96430422950580009d13db36d1c8c3c12b012c2956bd764299b6e4e17",
+    "checksum": "c5f68c54354bca8f966c7566903bb07ec7fa35de442742e143e4cef24904b564c88fec6cdf5587b0356f341670b95bf8",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "35b0ab3c57c6f08c6e08f5432217e2f3a5c2ffb7cbf102e3c1b719324b80bdc2797ba173cba97adb66f4b8e8dc3a5964",
         ".github/workflows/linux-pypi-release-tests.yml": "655abac0e5be130704567909562ad95001c6cf5f07a462b0fb1f7fea0d3d41b510b916a383ce56620da3073594e9a2e3",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "bd51f4dd0209a1f61cb94d7676b3c8db37a5e2bcc3def58d299ef4da831af19b6de59b847199f092ff66631f983bfd72",
         ".github/workflows/windows-python-app.yml": "1d0f4e525bfefac4ece44081ecae7faaad0ac4044eb94b9823a9a9305127e5abe3dd6b96f602ebf3143b0baf474123e1",
         ".gitignore": "12deb1309e7f3d7c571d7831e99afc0e4f9fbf9c495c91574ffeb4b873d97bb83cb4d81941a7df8f19ec2293ca276ea0",
-        "CHANGES.rst": "bd17566277b87ebab4ef0daa56009e14738beba7bd70dd5a4e46b260863d420d7aaf83daa47eadaaf40bca4e0a132e3f",
+        "CHANGES.rst": "0d7b5b79c864124638d9eeceb186ba4d2b1ce1e41b628251512e1e2f6d1c945273349fdf11d96419587eb60f2fd6b149",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -63,7 +63,7 @@
         "aiootp/ciphers/cipher_stream_properties.py": "2f863a76267993d0f8013a251e072aed200e3b664996f52cab5dca20752b1faf6553fcb380ed73164ce6347495139247",
         "aiootp/ciphers/cipher_streams.py": "4dcba9e2f8b35e5cc5d645994434f019b2431377a278a785f63f51c104c2acb7c261996898f560416c0d44b2f30cc66c",
         "aiootp/ciphers/ciphertext_formatting.py": "813fa477879d42322ced5bafca798c400f2414fab0a27f8e8f94e836d648d9bd826f3b8fe991ec9217a8c182b677dfa3",
-        "aiootp/ciphers/decipher_streams.py": "029a4039754d2d9d6dab6d648b023bfb9372cd4a1f8f8477c7f2e3e99e5836a48bb2ecbaf7b6244cd591feb4a7ae717a",
+        "aiootp/ciphers/decipher_streams.py": "502ebf80ac84dab276b051d848f2ddbe6d0caaf3625c0530edbec4a644d00e7998cb6b8d620411ecf4c107e62e70d704",
         "aiootp/ciphers/dual_output_shake_cipher.py": "d724d43d5b3f744b3a6c2c2206632d295c27abe6670fd34a66fe3656b535f40e15907cfb745bc76cd9a8a12ed48ead67",
         "aiootp/ciphers/dual_output_shake_cipher_config.py": "4f1d27886f34c2e08d0b07fbc6a9becaca531ea7d17c83c3612c055d2359449b8299c8cad49f22406d9a7c5c7bd8d018",
         "aiootp/ciphers/key_bundle.py": "99ab8dd5bfedc571f3301de41e2df3a816da9ef38ad69bc1e415660e750ce205344f7c2cb135cdbf4d233fe555cd1c34",
@@ -205,5 +205,5 @@
         "version": "0.23.17"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "c9c349acb3ce2980a51faf535a52e5e4a3c48d047ccd7873701287d269b40964ed805ac0a6da00e68a4d39b21ae83792d5b1ccaefe6b9197b21597563433370d"
+    "signature": "8e473fd987c911c5ccdcbc0706d225d5735c910bcc277a71a0d2ccea49b5be4035d5af481b7981a56691df83fe00c035ec3175d3112867d5b5d89b6554df5d0b"
 }

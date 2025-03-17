@@ -24,6 +24,7 @@ Minor Changes
 - docs(test): switch Targets to type-hintable NamedTuple type
 - docs(readme): display example returns of None consistently
 - docs(readme): describe cipher key sizes as inclusive of 64-bytes
+- docs(typing): describe queue param correctly as a deque
 - test(paths): exempt Windows of need to deny salt file reads
 - test(paths): parametrize & stabilize 'test_paths.py' methods
 - test(paths): ensure reads return expected salt value
