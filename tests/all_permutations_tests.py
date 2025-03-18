@@ -11,7 +11,6 @@
 #
 
 
-from conftest import *
 from test_affine_permutations import *
 
 

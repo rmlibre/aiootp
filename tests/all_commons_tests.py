@@ -11,7 +11,6 @@
 #
 
 
-from conftest import *
 from test_namespace_classes import *
 from test_config_classes import *
 

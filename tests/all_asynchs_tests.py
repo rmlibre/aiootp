@@ -11,7 +11,6 @@
 #
 
 
-from conftest import *
 from test_aos import *
 from test_Clock import *
 from test_ConcurrencyGuard import *

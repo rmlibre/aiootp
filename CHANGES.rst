@@ -39,6 +39,7 @@ Minor Changes
 - refactor(test): prepare for consolidation & parametrization 3/x
 - refactor(test): consolidate & parametrize to simplify new tests
 - refactor(test): prepare to categorize tests into smaller modules
+- refactor(test): remove unneeded aggregator 'conftest.py' imports
 - style(ciphers): merge loop conditional with inner guard clause
 
 

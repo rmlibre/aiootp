@@ -11,7 +11,6 @@
 #
 
 
-from conftest import *
 from test_Database_AsyncDatabase import *
 
 

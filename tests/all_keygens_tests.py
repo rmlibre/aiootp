@@ -11,7 +11,6 @@
 #
 
 
-from conftest import *
 from test_Passcrypt import *
 from test_X25519_Ed25519 import *
 from test_PackageSigner import *
