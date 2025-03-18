@@ -133,11 +133,16 @@ include tests/all_asynchs_tests.py
 include tests/all_ciphers_tests.py
 include tests/all_commons_tests.py
 include tests/all_databases_tests.py
+include tests/all_exceptions_tests.py
 include tests/all_generics_tests.py
+include tests/all_gentools_tests.py
 include tests/all_keygens_tests.py
+include tests/all_paths_tests.py
 include tests/all_permutations_tests.py
 include tests/all_randoms_tests.py
+include tests/all_test_framework_tests.py
 include tests/all_typing_tests.py
+include tests/all_zzz_time_to_live_tests.py
 include tests/chunky_2048_test_vectors.py
 include tests/conftest.py
 include tests/hypothesis_strategies.py
@@ -173,5 +178,5 @@ include tests/test_misc_in_randoms.py
 include tests/test_namespace_classes.py
 include tests/test_online_cipher_interfaces.py
 include tests/test_paths.py
-include tests/test_time_to_live.py
 include tests/test_typing_protocols.py
+include tests/test_zzz_time_to_live.py

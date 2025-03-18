@@ -11,20 +11,7 @@
 #
 
 
-from all_test_framework_tests import *
-from all_typing_tests import *
-from all_paths_tests import *
-from all_exceptions_tests import *
-from all_commons_tests import *
-from all_asynchs_tests import *
-from all_gentools_tests import *
-from all_generics_tests import *
-from all_permutations_tests import *
-from all_randoms_tests import *
-from all_ciphers_tests import *
-from all_keygens_tests import *
-from all_databases_tests import *
-from all_zzz_time_to_live_tests import *
+from test_paths import *
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
