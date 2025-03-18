@@ -95,7 +95,7 @@ Development & Testing
 
     ruff format . && ruff check --fix .
 
-    coverage run -m pytest tests/test_aiootp.py
+    coverage run -m pytest tests/all_aiootp_tests.py
 
     coverage combine && coverage report && coverage html
 
@@ -104,7 +104,7 @@ Development & Testing
 
     uv python install 3.8 3.9 3.10 3.11 3.12 3.13
 
-    uv run --python 3.13 --extra dev coverage run -m pytest tests/test_aiootp.py
+    uv run --python 3.13 --extra dev coverage run -m pytest tests/all_aiootp_tests.py
 
 
 

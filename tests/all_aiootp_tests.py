@@ -11,20 +11,19 @@
 #
 
 
-from conftest import *
 from test_hypothesis_strategies import *
-from test_typing import *
+from all_typing_tests import *
 from test_paths import *
 from test_exceptions import *
-from test_commons import *
-from test_asynchs import *
+from all_commons_tests import *
+from all_asynchs_tests import *
 from test_gentools import *
-from test_generics import *
-from test_permutations import *
-from test_randoms import *
-from test_ciphers import *
-from test_keygens import *
-from test_databases import *
+from all_generics_tests import *
+from all_permutations_tests import *
+from all_randoms_tests import *
+from all_ciphers_tests import *
+from all_keygens_tests import *
+from all_databases_tests import *
 from test_time_to_live import *
 
 

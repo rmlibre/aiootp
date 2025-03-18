@@ -25,6 +25,6 @@ jobs:
         ruff check . && ruff format --line-length=76 --check .
     - name: test with pytest
       run: |
-        coverage run --omit="aiootp/__engagement/*" --source aiootp -p -m pytest -vv tests/test_aiootp.py
+        coverage run --omit="aiootp/__engagement/*" --source aiootp -p -m pytest -vv tests/all_aiootp_tests.py
         coverage combine
         coverage report

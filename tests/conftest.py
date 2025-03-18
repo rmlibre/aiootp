@@ -309,14 +309,14 @@ def pkg_context() -> Namespace:
     include tests/test_Passcrypt.py
     include tests/test_StreamHMAC.py
     include tests/test_X25519_Ed25519.py
-    include tests/test_aiootp.py
-    include tests/test_ciphers.py
-    include tests/test_generics.py
+    include tests/all_aiootp_tests.py
+    include tests/all_ciphers_tests.py
+    include tests/all_generics_tests.py
     include tests/test_high_level_encryption.py
     include tests/test_misc_in_ciphers.py
     include tests/test_misc_in_generics.py
     include tests/test_misc_in_randoms.py
-    include tests/test_randoms.py
+    include tests/all_randoms_tests.py
     """.strip().split("\n")
     context.files = [
         test_path / line.strip().split(" ")[-1] for line in filename_sheet

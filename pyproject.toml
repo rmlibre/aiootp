@@ -327,7 +327,7 @@ branch = true
 parallel = true
 relative_files = true
 source = ["aiootp"]
-# command_line = "-m pytest tests/test_aiootp.py"
+# command_line = "-m pytest tests/all_aiootp_tests.py"
 concurrency = ["thread", "multiprocessing"]
 omit = ["**/__engagement/**", "**/db/**", "**/tor/**"]
 

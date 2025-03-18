@@ -12,7 +12,7 @@ Changes for version 0.23.17
 Major Changes
 ^^^^^^^^^^^^^
 
-None
+- fix(test): collect names once if pytest runs w/o module specified
 
 
 Minor Changes

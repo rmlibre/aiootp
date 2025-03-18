@@ -30,6 +30,6 @@ jobs:
         cd $PACKAGE_NAME-$PACKAGE_VERSION
         ruff check . && ruff format --line-length=76 --check .
         cd tests
-        coverage run --omit="**/__engagement/*" --source aiootp -p -m pytest -vv test_aiootp.py
+        coverage run --omit="**/__engagement/*" --source aiootp -p -m pytest -vv all_aiootp_tests.py
         coverage combine
         coverage report
