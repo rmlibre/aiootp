@@ -30,11 +30,13 @@ class TestConcurrentExecution:
 
         value_0 = 0
         value_1 = 0
-        asynchs.new_task(increment_over_time(track=0))
+
+        task_0 = asynchs.new_task(increment_over_time(track=0))
         await asleep(0.0001)
         assert 0 < value_0
         assert 0 == value_1
-        asynchs.new_task(increment_over_time(track=1))
+
+        task_1 = asynchs.new_task(increment_over_time(track=1))
         await asleep(0.0001)
         assert 1 < value_0
         assert 0 < value_1
@@ -42,6 +44,9 @@ class TestConcurrentExecution:
         await asleep(0.0001)
         assert 2 < value_0
         assert 1 < value_1
+
+        task_0.cancel()
+        task_1.cancel()
 
     async def test_futures_run_in_background(self) -> None:
         async def increment_over_time(track: int) -> None:
@@ -58,11 +63,13 @@ class TestConcurrentExecution:
 
         value_0 = 0
         value_1 = 0
-        asynchs.new_future(increment_over_time(track=0))
+
+        fut_0 = asynchs.new_future(increment_over_time(track=0))
         await asleep(0.0001)
         assert 0 < value_0
         assert 0 == value_1
-        asynchs.new_future(increment_over_time(track=1))
+
+        fut_1 = asynchs.new_future(increment_over_time(track=1))
         await asleep(0.0001)
         assert 1 < value_0
         assert 0 < value_1
@@ -70,6 +77,9 @@ class TestConcurrentExecution:
         await asleep(0.0001)
         assert 2 < value_0
         assert 1 < value_1
+
+        fut_0.cancel()
+        fut_1.cancel()
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

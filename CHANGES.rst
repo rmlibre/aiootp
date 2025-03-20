@@ -32,6 +32,7 @@ Minor Changes
 - test(paths): add new tests to 'test_paths.py' after refactor
 - test(signer): avoid false negatives if example file is empty
 - test(signer): add cases of wrong signing keys for verification
+- test(async): cancel target tasks & futures explicitly
 - refactor(perm): use args & concentrate steps in key encoder
 - refactor(test): extract base class from common runner logic
 - refactor(test): remove extra salt file tests during refactor
