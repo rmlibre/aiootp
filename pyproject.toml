@@ -313,7 +313,6 @@ doctest_optionflags = ["IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
 # ]
 addopts = [
     "--verbose",
-    "--ignore=setup.py",
     "--ignore=docs/*",
     "--ignore=aiootp/db/*",
     "--ignore=aiootp/tor/*",
@@ -435,7 +434,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "F821",  # (sub)packages don't need to import their modules' names
     "F822",  # potential NameError warnings ie. `import *`
 ]
-"{issue_reporting,setup,sign_package_*}.py" = [
+"{issue_reporting,sign_package_*}.py" = [
     "T201",  # legit print use in CLI
 ]
 "sign_package_build.py" = [

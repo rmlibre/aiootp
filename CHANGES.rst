@@ -20,6 +20,7 @@ Minor Changes
 
 - build(package): allow but warn of non-standard HEAD names
 - build(package): prompt for desired branch if non-standard
+- build(pyproj): remove lingering references to 'setup.py'
 - docs(exc): specify return type hint for Ignore callable arg
 - docs(test): switch Targets to type-hintable NamedTuple type
 - docs(readme): display example returns of None consistently
