@@ -17,3 +17,6 @@
 **/htmlcov/*
 **/logs/*
 **/venv/*
+uv.lock
+requirements.txt
+package-lock.json
