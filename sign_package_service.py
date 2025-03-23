@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+#
 # This file is part of aiootp:
 # a high-level async cryptographic anonymity library to scale, simplify,
 # & automate privacy best practices for secure data & identity processing,
