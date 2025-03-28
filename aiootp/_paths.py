@@ -44,6 +44,23 @@ def DatabasePath() -> Path:
     return RootPath() / "db"
 
 
+def SecurePath(path: t.OptionalPathStr = None) -> Path:
+    """
+    Returns a `pathlib.Path` object pointing to the default directory
+    where secret salts & seeds are saved.
+    """
+    path = Path(path).absolute() if path else DatabasePath()
+    return path / "secure"
+
+
+def AdminPath(path: t.OptionalPathStr = None) -> Path:
+    """
+    Returns a `pathlib.Path` object pointing to the default directory
+    where internal, package-managed salts & seeds are saved.
+    """
+    return SecurePath(path) / "_admin"
+
+
 async def adeniable_filename(key: bytes, *, size: int = 8) -> str:
     """
     XORs `size` length bytes-type segments of a `key`, returning a
@@ -218,15 +235,15 @@ async def AsyncSecureSaltPath(
 
     Returns the new, or preexisting, salt file's Path object.
     """
-    path = (Path(path).absolute() if path else DatabasePath()) / "secure"
-    path.is_dir() or await aos.mkdir(path)
+    secure_path = SecurePath(path)
+    secure_path.is_dir() or await aos.mkdir(secure_path)
 
     if _admin:
-        admin_path = path / "_admin"
+        admin_path = AdminPath(path)
         admin_path.is_dir() or await aos.mkdir(admin_path)
         salt_path = await afind_salt_file(admin_path, key=key)
     else:
-        salt_path = await afind_salt_file(path, key=key)
+        salt_path = await afind_salt_file(secure_path, key=key)
 
     salt_path.is_file() or await amake_salt_file(salt_path)
     return salt_path
@@ -244,25 +261,27 @@ def SecureSaltPath(
 
     Returns the new, or preexisting, salt file's Path object.
     """
-    path = (Path(path).absolute() if path else DatabasePath()) / "secure"
-    path.is_dir() or path.mkdir()
+    secure_path = SecurePath(path)
+    secure_path.is_dir() or secure_path.mkdir()
 
     if _admin:
-        admin_path = path / "_admin"
+        admin_path = AdminPath(path)
         admin_path.is_dir() or admin_path.mkdir()
         salt_path = find_salt_file(admin_path, key=key)
     else:
-        salt_path = find_salt_file(path, key=key)
+        salt_path = find_salt_file(secure_path, key=key)
 
     salt_path.is_file() or make_salt_file(salt_path)
     return salt_path
 
 
 module_api = dict(
+    AdminPath=AdminPath,
     AsyncSecureSaltPath=AsyncSecureSaltPath,
     DatabasePath=DatabasePath,
     Path=Path,
     RootPath=RootPath,
+    SecurePath=SecurePath,
     SecureSaltPath=SecureSaltPath,
     __all__=__all__,
     __doc__=__doc__,

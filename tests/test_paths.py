@@ -334,7 +334,7 @@ class AdminContext(dict):
     A container for admin data needed by the test target.
     """
 
-    path: t.Path = (p.DatabasePath() / "secure") / "_admin"
+    path: t.Path = p.AdminPath()
 
 
 class UserContext(dict):
@@ -342,7 +342,7 @@ class UserContext(dict):
     A container for user data needed by the test target.
     """
 
-    path: t.Path = p.DatabasePath() / "secure"
+    path: t.Path = p.SecurePath()
 
 
 class TargetContexts(t.NamedTuple):
