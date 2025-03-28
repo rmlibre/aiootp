@@ -24,13 +24,13 @@ class BlankType:
 
 class ProtocolSubTypeTests:
     async def test_issubclass_at_runtime(self) -> None:
-        for type_tested in self.types_tested:
-            assert issubclass(type_tested, self.protocol)
+        for cls in self.types_tested:
+            assert issubclass(cls, self.protocol)
             assert not issubclass(BlankType, self.protocol)
 
     async def test_isinstance_at_runtime(self) -> None:
-        for instance_tested in self.instances_tested:
-            assert isinstance(instance_tested, self.protocol)
+        for obj in self.instances_tested:
+            assert isinstance(obj, self.protocol)
             assert not isinstance(BlankType(), self.protocol)
 
 
@@ -50,8 +50,8 @@ class TestStreamHMACTypes(ProtocolSubTypeTests):
         instances_tested.append(cipher.stream_encrypt().shmac)
 
     async def test_hasattr_on_properties(self) -> None:
-        for instance_tested in self.instances_tested:
-            hasattr(instance_tested, "result")
+        for obj in self.instances_tested:
+            hasattr(obj, "result")
 
 
 class TestSyntheticIVTypes(ProtocolSubTypeTests):
@@ -59,9 +59,9 @@ class TestSyntheticIVTypes(ProtocolSubTypeTests):
     types_tested = []
     instances_tested = []
     for _, cipher, *_ in dual_output_ciphers:
-        typ = cipher._Junction._SyntheticIV
-        types_tested.append(typ)
-        instances_tested.append(typ())
+        cls = cipher._Junction._SyntheticIV
+        types_tested.append(cls)
+        instances_tested.append(cls())
 
 
 class TestAsyncCipherStreamingTypes(ProtocolSubTypeTests):
@@ -91,7 +91,7 @@ class TestCipherStreamingTypes(ProtocolSubTypeTests):
 class TestCipherInterfaceTypes(ProtocolSubTypeTests):
     protocol = t.CipherInterfaceType
     types_tested = [cipher.__class__ for (_, cipher, *_) in all_ciphers]
-    instances_tested = [type_tested(key) for type_tested in types_tested]
+    instances_tested = [cls(key) for cls in types_tested]
 
 
 class TestConfigTypes(ProtocolSubTypeTests):
@@ -103,19 +103,19 @@ class TestConfigTypes(ProtocolSubTypeTests):
 class TestSupportsPopleftTypes(ProtocolSubTypeTests):
     protocol = t.SupportsPopleft
     types_tested = [deque]
-    instances_tested = [type_tested([0, 1]) for type_tested in types_tested]
+    instances_tested = [cls([0, 1]) for cls in types_tested]
 
 
 class TestSupportsAppendPopTypes(ProtocolSubTypeTests):
     protocol = t.SupportsAppendPop
     types_tested = [deque, list]
-    instances_tested = [type_tested([0, 1]) for type_tested in types_tested]
+    instances_tested = [cls([0, 1]) for cls in types_tested]
 
 
 class TestSupportsAppendPopleftTypes(ProtocolSubTypeTests):
     protocol = t.SupportsAppendPopleft
     types_tested = [deque]
-    instances_tested = [type_tested([0, 1]) for type_tested in types_tested]
+    instances_tested = [cls([0, 1]) for cls in types_tested]
 
 
 class TestHasherTypes(ProtocolSubTypeTests):
@@ -150,8 +150,8 @@ class TestPermutationTypes(ProtocolSubTypeTests):
         t.FastAffineXORChain,
     ]
     instances_tested = [
-        type_tested(key=csprng(type_tested.key_size(16)), config_id=16)
-        for type_tested in types_tested
+        cls(key=csprng(cls.key_size(16)), config_id=16)
+        for cls in types_tested
     ]
 
 
@@ -170,43 +170,37 @@ class TestPoolExecutorTypes(ProtocolSubTypeTests):
 class TestAsyncDatabaseType(ProtocolSubTypeTests):
     protocol = t.AsyncDatabaseType
     types_tested = [AsyncDatabase]
-    instances_tested = [
-        run(type_tested(key)) for type_tested in types_tested
-    ]
+    instances_tested = [run(cls(key)) for cls in types_tested]
 
 
 class TestDatabaseType(ProtocolSubTypeTests):
     protocol = t.DatabaseType
     types_tested = [Database]
-    instances_tested = [type_tested(key) for type_tested in types_tested]
+    instances_tested = [cls(key) for cls in types_tested]
 
 
 class TestDomainKDFTypes(ProtocolSubTypeTests):
     protocol = t.DomainKDFType
     types_tested = [DomainKDF, t.DBKDF]
     instances_tested = [
-        type_tested(b"test-domain", key=key) for type_tested in types_tested
+        cls(b"test-domain", key=key) for cls in types_tested
     ]
 
 
 class TestPublicKeyTypes(ProtocolSubTypeTests):
     protocol = t.PublicKeyType
     instances_tested = [
-        typ().generate().public_key for typ in (X25519, Ed25519)
+        cls().generate().public_key for cls in (X25519, Ed25519)
     ]
-    types_tested = [
-        instance_tested.__class__ for instance_tested in instances_tested
-    ]
+    types_tested = [obj.__class__ for obj in instances_tested]
 
 
 class TestSecretKeyTypes(ProtocolSubTypeTests):
     protocol = t.SecretKeyType
     instances_tested = [
-        typ().generate().secret_key for typ in (X25519, Ed25519)
+        cls().generate().secret_key for cls in (X25519, Ed25519)
     ]
-    types_tested = [
-        instance_tested.__class__ for instance_tested in instances_tested
-    ]
+    types_tested = [obj.__class__ for obj in instances_tested]
 
 
 class TestAsymmetricKeyTypes(ProtocolSubTypeTests):
@@ -217,25 +211,19 @@ class TestAsymmetricKeyTypes(ProtocolSubTypeTests):
         X25519().generate(),
         Ed25519().generate(),
     ]
-    types_tested = [
-        instance_tested.__class__ for instance_tested in instances_tested
-    ]
+    types_tested = [obj.__class__ for obj in instances_tested]
 
 
 class TestSignerTypes(ProtocolSubTypeTests):
     protocol = t.SignerType
     instances_tested = [Ed25519(), Ed25519().generate()]
-    types_tested = [
-        instance_tested.__class__ for instance_tested in instances_tested
-    ]
+    types_tested = [obj.__class__ for obj in instances_tested]
 
 
 class TestKeyExchangeTypes(ProtocolSubTypeTests):
     protocol = t.KeyExchangeType
     instances_tested = [X25519(), X25519().generate()]
-    types_tested = [
-        instance_tested.__class__ for instance_tested in instances_tested
-    ]
+    types_tested = [obj.__class__ for obj in instances_tested]
 
 
 class TestKeyExchangeProtocolTypes(ProtocolSubTypeTests):
@@ -247,9 +235,7 @@ class TestKeyExchangeProtocolTypes(ProtocolSubTypeTests):
         key.dh3_client(),
         key.dh3_server(),
     ]
-    types_tested = [
-        instance_tested.__class__ for instance_tested in instances_tested
-    ]
+    types_tested = [obj.__class__ for obj in instances_tested]
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
