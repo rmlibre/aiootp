@@ -11,6 +11,7 @@
 #
 
 
+import io
 import warnings
 
 from aiootp import _paths as p
@@ -100,6 +101,57 @@ class TestDeniableFilename(TargetRunner):
             assert key_length < 2 * size
         else:
             assert key_length >= 2 * size
+
+    @pytest.mark.parametrize("size", [4, 8])
+    @pytest.mark.parametrize("key_length", [*range(16, 33, 8)])
+    @pytest.mark.parametrize("target", targets)
+    async def test_same_key_and_size_make_same_name(
+        self, target, key_length: int, size: int
+    ) -> None:
+        key = token_bytes(key_length)
+
+        result_0 = await self.run(target, key, size=size)
+        result_1 = await self.run(target, key, size=size)
+
+        assert result_0 == result_1
+
+    @pytest.mark.parametrize("size", [*range(4, 17, 2)])
+    @pytest.mark.parametrize("key_length", [*range(48, 65, 8)])
+    @pytest.mark.parametrize("target", targets)
+    async def test_different_key_or_size_make_different_name(
+        self, target, key_length: int, size: int
+    ) -> None:
+        key = csprng(key_length)
+
+        result_0 = await self.run(target, key, size=size)
+        result_1 = await self.run(target, key, size=size - 1)
+        result_2 = await self.run(target, key + b"\xff", size=size)
+
+        assert result_0 != result_1
+        assert result_0 != result_2
+        assert result_1 != result_2
+
+    @pytest.mark.parametrize("size", [*range(2, 17, 4)])
+    @pytest.mark.parametrize("key_size_multiple", [*range(2, 8)])
+    @pytest.mark.parametrize("target", targets)
+    async def test_same_names_when_xor_of_key_sections_are_same(
+        self, target, key_size_multiple: int, size: int
+    ) -> None:
+        raw_control = csprng(size)
+        control = int.from_bytes(raw_control, "big")
+        results = {await self.run(target, 3 * raw_control, size=size)}
+
+        for _ in range(number_of_trials := 4):
+            xor_result = 0
+            key = csprng(key_size_multiple * size)
+            key_reader = io.BytesIO(key)
+            while section := key_reader.read(size):
+                xor_result ^= int.from_bytes(section, "big")
+            negative = (xor_result ^ control).to_bytes(size, "big")
+            results.add(await self.run(target, key + negative, size=size))
+
+        assert len(results) != number_of_trials
+        assert len(results) == 1
 
 
 class TestMakeSaltFile(TargetRunner):
