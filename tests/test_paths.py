@@ -154,6 +154,29 @@ class TestDeniableFilename(TargetRunner):
         assert len(results) == 1
 
 
+class TestFindSaltFile(TargetRunner):
+    """
+    Tests for the finding protected salt file functionalities.
+    """
+
+    targets = Targets(
+        asynch=p._afind_salt_file,
+        synch=p._find_salt_file,
+    )
+
+    @pytest.mark.parametrize("target", targets)
+    async def test_salt_is_found_in_provided_dir_with_a_deniable_filename(
+        self, target
+    ) -> None:
+        parent = p.SecurePath()
+        stem = p.deniable_filename(key=KEY, size=8)
+        path = await self.run(target, parent, key=KEY, size=8)
+
+        assert parent == path.parent
+        assert stem == str(path.stem)
+        assert parent / stem == path
+
+
 class TestMakeSaltFile(TargetRunner):
     """
     Tests for the making protected salt file functionalities.

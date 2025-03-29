@@ -93,20 +93,20 @@ def deniable_filename(key: bytes, *, size: int = 8) -> str:
     return t.ByteIO.bytes_to_filename(filename[FILENAME_HASH_SLICE])
 
 
-async def afind_salt_file(path: Path, *, key: bytes) -> Path:
+async def afind_salt_file(path: Path, *, key: bytes, size: int = 8) -> Path:
     """
     Derives the filename to a cryptographic salt from a `key` & returns
     it joined to the provided `path` directory.
     """
-    return path.absolute() / await adeniable_filename(key)
+    return path.absolute() / await adeniable_filename(key, size=size)
 
 
-def find_salt_file(path: Path, *, key: bytes) -> Path:
+def find_salt_file(path: Path, *, key: bytes, size: int = 8) -> Path:
     """
     Derives the filename to a cryptographic salt from a `key` & returns
     it joined to the provided `path` directory.
     """
-    return path.absolute() / deniable_filename(key)
+    return path.absolute() / deniable_filename(key, size=size)
 
 
 async def amake_salt_file(path: Path, *, salt: bytes = b"") -> None:
