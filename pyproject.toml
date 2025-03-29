@@ -88,7 +88,7 @@ classifiers = [
     "Intended Audience :: Information Technology",
     "Intended Audience :: Telecommunications Industry",
     "Intended Audience :: Financial and Insurance Industry",
-    "License :: OSI Approved :: GNU Affero General Public License v3"
+    "License :: OSI Approved :: GNU Affero General Public License v3",
 ]
 keywords = [
     "xor",
