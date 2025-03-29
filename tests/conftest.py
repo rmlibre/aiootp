@@ -12,15 +12,13 @@
 
 
 import sys
-import json
-import pytest
-import hashlib
-import builtins
-import platform
 from pathlib import Path
-from functools import partial
-from itertools import permutations as perm, combinations as comb
-from hashlib import sha3_256, sha3_512, shake_128, shake_256
+
+
+_PACKAGE_PATH = str(Path(__file__).absolute().parent.parent)
+sys.path.insert(0, _PACKAGE_PATH)
+
+
 from hypothesis import settings, given, strategies as st
 
 
@@ -28,9 +26,14 @@ settings.register_profile("default", max_examples=10)
 settings.load_profile("default")
 
 
-_PACKAGE_PATH = str(Path(__file__).absolute().parent.parent)
-sys.path.insert(0, _PACKAGE_PATH)
-
+import json
+import pytest
+import hashlib
+import builtins
+import platform
+from functools import partial
+from itertools import permutations as perm, combinations as comb
+from hashlib import sha3_256, sha3_512, shake_128, shake_256
 
 import aiootp
 from aiootp import *
@@ -57,7 +60,6 @@ from aiootp.generics.transform import axi_mix, xi_mix
 from aiootp.randoms import *
 from aiootp.randoms.simple import *
 from aiootp.ciphers import Ciphertext, Padding
-
 
 from hypothesis_strategies import identifiers
 from chunky_2048_test_vectors import chunky2048_test_vector_0
