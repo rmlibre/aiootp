@@ -156,14 +156,19 @@ class CipherInterface(FrozenInstance):
             await self._padding.apad_plaintext(data),
             size=self._config.BLOCKSIZE,
         )
-        ciphering = self._Junction.abytes_encipher(data, shmac=shmac)
-        ciphertext = (
-            b"".join([block async for block in ciphering]),
-            key_bundle.iv,
-            key_bundle.salt,
+        # fmt: off
+        ciphertext_blob = b"".join([
+            block
+            async for block
+            in self._Junction.abytes_encipher(data, shmac=shmac)
+        ])
+        return b"".join([
             await shmac.afinalize(),
-        )
-        return b"".join(ciphertext[::-1])
+            key_bundle.salt,
+            key_bundle.iv,
+            ciphertext_blob,
+        ])
+        # fmt: on
 
     def bytes_encrypt(
         self,
@@ -208,13 +213,17 @@ class CipherInterface(FrozenInstance):
         data = batch(
             self._padding.pad_plaintext(data), size=self._config.BLOCKSIZE
         )
-        ciphertext = (
-            b"".join(self._Junction.bytes_encipher(data, shmac=shmac)),
-            key_bundle.iv,
-            key_bundle.salt,
-            shmac.finalize(),
+        ciphertext_blob = b"".join(
+            self._Junction.bytes_encipher(data, shmac=shmac)
         )
-        return b"".join(ciphertext[::-1])
+        # fmt: off
+        return b"".join([
+            shmac.finalize(),
+            key_bundle.salt,
+            key_bundle.iv,
+            ciphertext_blob,
+        ])
+        # fmt: on
 
     async def abytes_decrypt(
         self,
@@ -243,10 +252,13 @@ class CipherInterface(FrozenInstance):
         ).async_mode()
         shmac = self._StreamHMAC(key_bundle)._for_decryption()
         ciphertext = abatch(data.ciphertext, size=self._config.BLOCKSIZE)
-        deciphering = self._Junction.abytes_decipher(
-            ciphertext, shmac=shmac
-        )
-        plaintext = b"".join([block async for block in deciphering])
+        # fmt: off
+        plaintext = b"".join([
+            block
+            async for block
+            in self._Junction.abytes_decipher(ciphertext, shmac=shmac)
+        ])
+        # fmt: on
         await shmac.afinalize()
         await shmac.atest_shmac(data.shmac)
         return await self._padding.adepad_plaintext(plaintext, ttl=ttl)
