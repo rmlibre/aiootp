@@ -444,7 +444,7 @@ class TargetContexts(t.NamedTuple):
     user_ctx: UserContext
 
 
-class TestSecureSaltPath(TargetRunner):
+class TestZZZSecureSaltPath(TargetRunner):
     """
     Tests for the protected salt file path interface functionalities.
     """
