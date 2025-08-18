@@ -12,6 +12,7 @@
 
 
 import io
+import random
 import warnings
 
 from aiootp import _paths as p
@@ -19,8 +20,22 @@ from aiootp import _paths as p
 from conftest import *
 
 
+random.seed(csprng(2500))
+
+
 KEY = token_bytes(32)
 SALT = token_bytes(32)
+
+
+def select_k_ints(start: int, end: int, k: int) -> t.List[int]:
+    """
+    Constructs a random distinct list of unique ints for testing a range
+    of options that always includes the extremes of the range.
+    """
+    k = k - 2 if k > 2 else 0
+    ints = [*range(start + 1, end - 1)]
+    random.shuffle(ints)
+    return [start, *sorted(ints[:k]), end - 1]
 
 
 def is_windows_limitation(_: Ignore) -> bool:
@@ -75,7 +90,7 @@ class TestDeniableFilename(TargetRunner):
         synch=p.deniable_filename,
     )
 
-    @pytest.mark.parametrize("size", [*range(-28, 33, 5)])
+    @pytest.mark.parametrize("size", select_k_ints(-16, 33, k=6))
     @pytest.mark.parametrize("target", targets)
     async def test_size_arg_must_be_between_1_and_16_inclusive(
         self, target, size: int
@@ -88,7 +103,7 @@ class TestDeniableFilename(TargetRunner):
             assert 16 >= size >= 1
 
     @pytest.mark.parametrize("size", [4, 8])
-    @pytest.mark.parametrize("key_length", [*range(0, 33, 8)])
+    @pytest.mark.parametrize("key_length", select_k_ints(0, 33, k=6))
     @pytest.mark.parametrize("target", targets)
     async def test_key_length_must_be_at_least_double_size_arg(
         self, target, key_length: int, size: int
@@ -103,7 +118,7 @@ class TestDeniableFilename(TargetRunner):
             assert key_length >= 2 * size
 
     @pytest.mark.parametrize("size", [4, 8])
-    @pytest.mark.parametrize("key_length", [*range(16, 33, 8)])
+    @pytest.mark.parametrize("key_length", select_k_ints(16, 33, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_same_key_and_size_make_same_name(
         self, target, key_length: int, size: int
@@ -115,8 +130,8 @@ class TestDeniableFilename(TargetRunner):
 
         assert result_0 == result_1
 
-    @pytest.mark.parametrize("size", [*range(4, 17, 2)])
-    @pytest.mark.parametrize("key_length", [*range(48, 65, 8)])
+    @pytest.mark.parametrize("size", select_k_ints(4, 17, k=6))
+    @pytest.mark.parametrize("key_length", select_k_ints(48, 65, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_different_key_or_size_make_different_name(
         self, target, key_length: int, size: int
@@ -131,8 +146,8 @@ class TestDeniableFilename(TargetRunner):
         assert result_0 != result_2
         assert result_1 != result_2
 
-    @pytest.mark.parametrize("size", [*range(2, 17, 4)])
-    @pytest.mark.parametrize("key_size_multiple", [*range(2, 8)])
+    @pytest.mark.parametrize("size", select_k_ints(2, 17, k=4))
+    @pytest.mark.parametrize("key_size_multiple", select_k_ints(2, 8, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_same_names_when_xor_of_key_sections_are_same(
         self, target, key_size_multiple: int, size: int
@@ -209,7 +224,7 @@ class TestMakeSaltFile(TargetRunner):
         assert len(salt) == 32
         assert len(set(salt)) >= 16
 
-    @pytest.mark.parametrize("size", [*range(16, 49, 8)])
+    @pytest.mark.parametrize("size", select_k_ints(16, 49, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
         self, target, salt_path: t.Path, size: int
@@ -265,7 +280,7 @@ class TestReadSaltFile(TargetRunner):
         with Ignore(FileNotFoundError, if_else=violation(problem)):
             await self.run(target, salt_path)
 
-    @pytest.mark.parametrize("size", [*range(16, 49, 8)])
+    @pytest.mark.parametrize("size", select_k_ints(16, 49, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
         self, target, salt_path: t.Path, size: int
@@ -340,7 +355,7 @@ class TestUpdateSaltFile(TargetRunner):
         salt_path.chmod(0o600)
         assert new_salt == salt_path.read_bytes()
 
-    @pytest.mark.parametrize("size", [*range(16, 49, 8)])
+    @pytest.mark.parametrize("size", select_k_ints(16, 49, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
         self, target, salt_path: t.Path, size: int
