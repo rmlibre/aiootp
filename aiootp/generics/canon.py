@@ -182,7 +182,7 @@ async def acanonical_pack(
             blocksize_blob, pad, *items, int_bytes=int_bytes
         )
     ]
-    return fullblock_ljust(b"".join(items), blocksize, pad=pad)
+    return await afullblock_ljust(b"".join(items), blocksize, pad=pad)
 
 
 def canonical_pack(
