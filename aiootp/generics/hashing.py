@@ -46,8 +46,10 @@ async def ahash_bytes(
     """
     obj = hasher()
     obj.update(
-        (await aencode_key(key, obj.block_size, pad=pad) if key else b"")
-        + await acanonical_pack(
+        await aencode_key(key, obj.block_size, pad=pad) if key else b""
+    )
+    obj.update(
+        await acanonical_pack(
             (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
             *collection,
             blocksize=obj.block_size,
@@ -77,9 +79,9 @@ def hash_bytes(
     Returns a keyed-hash if `key` is specified.
     """
     obj = hasher()
+    obj.update(encode_key(key, obj.block_size, pad=pad) if key else b"")
     obj.update(
-        (encode_key(key, obj.block_size, pad=pad) if key else b"")
-        + canonical_pack(
+        canonical_pack(
             (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
             *collection,
             blocksize=obj.block_size,
