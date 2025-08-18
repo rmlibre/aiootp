@@ -464,7 +464,7 @@ As databases grow in the number of tags, metatags & the size of data within, it 
 
         assert value == ["justice", "community"]
 
-        assert uncached_db["favorite_foods"] == ["justice", "community"]
+        assert value == uncached_db["favorite_foods"]
 
 
         # Metatags will be loaded, but their tags won't be ->
@@ -603,7 +603,7 @@ They're each designed to be easy to use, difficult to misuse, & future-proof wit
 _`High-level Functions` .......................... `Table Of Contents`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-These premade recipes allow for the easiest usage of the cipher. First, choose a cipher interface.
+These premade recipes allow for the easiest usage of the ciphers. First, choose a cipher interface.
 
 .. code-block:: python
 
