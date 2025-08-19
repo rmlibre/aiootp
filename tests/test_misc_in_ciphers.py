@@ -667,4 +667,23 @@ class TestCipherModes:
                 cipher._StreamHMAC(key_bundle)._for_encryption()
 
 
+class TestKeyAADMode:
+    def test_instance_is_hashable(self) -> None:
+        async_mode = t.KeyAADMode(_mode="async")
+        sync_mode = t.KeyAADMode(_mode="sync")
+
+        assert 2 == len({async_mode: None, sync_mode: None})
+        assert 2 == len({async_mode, sync_mode})
+
+    @given(mode=st.one_of(st.integers(), st.text()))
+    def test_mode_must_be_encodable_type(self, mode) -> None:
+        is_encodable_type = lambda relay: (
+            type(mode) is str
+            or hasattr(mode, "encode")
+            or raise_exception(relay.error)
+        )
+        with Ignore(AttributeError, if_else=is_encodable_type):
+            assert {t.KeyAADMode(_mode=mode)}
+
+
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

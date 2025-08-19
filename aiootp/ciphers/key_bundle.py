@@ -21,7 +21,7 @@ __all__ = ["KeyAADBundle", "KeyAADMode", "KeyAADRegisters", "SaltAADIV"]
 from secrets import token_bytes
 
 from aiootp._typing import Typing as t
-from aiootp._constants import DEFAULT_AAD, ASYNC, SYNC
+from aiootp._constants import DEFAULT_AAD, ASYNC, SYNC, BIG
 from aiootp._exceptions import Issue, KeyAADIssue
 from aiootp.commons import FrozenSlots, OpenFrozenSlots
 from aiootp.generics import canonical_pack
@@ -115,6 +115,18 @@ class KeyAADMode(OpenFrozenSlots):
         if the mode has not been set.
         """
         return self.mode == mode
+
+    def __hash__(self) -> int:
+        """
+        Implements the obligatory override to make instances hashable
+        given the class also implements an `__eq__` dunder method.
+
+        See ruff rule 'PLW1641'.
+        """
+        try:
+            return int.from_bytes(self._mode.encode(), BIG)
+        except AttributeError as error:
+            raise KeyAADIssue.KDFModeNotDeclared from error
 
     @property
     def mode(self) -> str:

@@ -86,9 +86,9 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         secret values involed in the exchange.
         """
         my_identity_key = self._my_identity_key
-        my_ephemeral_key = self._my_ephemeral_key = (
-            await self._key_exchange_type().agenerate()  # fmt: skip
-        )
+        my_ephemeral_key = (
+            self._my_ephemeral_key
+        ) = await self._key_exchange_type().agenerate()
         peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
             peer_ephemeral_key
         )

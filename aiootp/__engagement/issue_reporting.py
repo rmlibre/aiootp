@@ -35,7 +35,7 @@ def report_security_issue() -> None:
     # fmt: off
     # allow the user to configure aiootp to report a bug, but not be
     # obligated to.
-    if not (  # fmt: skip
+    if not (
         input("Want to report a security issue? (y/N) ")
         .lower()
         .strip()

@@ -298,9 +298,9 @@ class StreamHMAC:
         the current instance.
         """
         await asleep()
-        self._result = self._mac.digest(
-            self.config.SHMAC_DOUBLE_BLOCKSIZE  # fmt: skip
-        )[self.config.SHMAC_RESULT_SLICE]
+        self._result = self._mac.digest(self.config.SHMAC_DOUBLE_BLOCKSIZE)[
+            self.config.SHMAC_RESULT_SLICE
+        ]
 
     def _set_final_result(self) -> None:
         """
@@ -308,9 +308,9 @@ class StreamHMAC:
         signals the end of a stream of data that can be validated with
         the current instance.
         """
-        self._result = self._mac.digest(
-            self.config.SHMAC_DOUBLE_BLOCKSIZE  # fmt: skip
-        )[self.config.SHMAC_RESULT_SLICE]
+        self._result = self._mac.digest(self.config.SHMAC_DOUBLE_BLOCKSIZE)[
+            self.config.SHMAC_RESULT_SLICE
+        ]
 
     async def afinalize(self) -> bytes:
         """
