@@ -102,7 +102,7 @@ Development & Testing
 
     # Tests can also be run across specific Python versions
 
-    uv python install 3.8 3.9 3.10 3.11 3.12 3.13
+    uv python install 3.9 3.10 3.11 3.12 3.13
 
     uv run --python 3.13 --extra dev coverage run -m pytest tests/all_aiootp_tests.py
 
@@ -111,7 +111,7 @@ Development & Testing
 
 .. warning::
 
-    ``aiootp`` is **experimental software** that works with Python 3.8+. It's a work in progress. Its algorithms & programming API are likely to change with future updates, & it isn't bug free.
+    ``aiootp`` is **experimental software** that works with Python 3.9+. It's a work in progress. Its algorithms & programming API are likely to change with future updates, & it isn't bug free.
 
     ``aiootp`` provides security tools & misc utilities that're designed to be developer-friendly & privacy preserving.
 
