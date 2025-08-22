@@ -7,7 +7,8 @@ build-backend = "setuptools.build_meta"
 name = "aiootp"
 dynamic = ["version", "readme"]
 description = "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage."
-license = {text = "AGPL-3.0-only"}
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
 requires-python = ">=3.8"
 dependencies = [
     "aiofiles>=24.1.0",
@@ -88,7 +89,6 @@ classifiers = [
     "Intended Audience :: Information Technology",
     "Intended Audience :: Telecommunications Industry",
     "Intended Audience :: Financial and Insurance Industry",
-    "License :: OSI Approved :: GNU Affero General Public License v3",
 ]
 keywords = [
     "xor",
@@ -277,10 +277,6 @@ Repository = "https://github.com/rmlibre/aiootp.git"
 Tracker = "https://github.com/rmlibre/aiootp/issues"
 Changelog = "https://github.com/rmlibre/aiootp/blob/main/CHANGES.rst"
 Documentation = "https://github.com/rmlibre/aiootp/blob/main/README.rst"
-
-
-[tool.setuptools]
-license-files = ["LICENSE"]
 
 
 [tool.setuptools.packages.find]

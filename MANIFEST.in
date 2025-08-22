@@ -119,7 +119,6 @@ include licenses/aiofiles_LICENSE.txt
 include licenses/cpython_LICENSE.txt
 include licenses/cryptography_LICENSES/LICENSE.APACHE
 include licenses/cryptography_LICENSES/LICENSE.BSD
-include licenses/cryptography_LICENSES/LICENSE.PSF
 include licenses/cryptography_LICENSES/LICENSE.txt
 include licenses/pytest-asyncio_LICENSE.txt
 include licenses/pytest_LICENSE.txt
