@@ -13,15 +13,24 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - fix(test): collect names once if pytest runs w/o module specified
+- build(package): remove support for python 3.8
 
 
 Minor Changes
 ^^^^^^^^^^^^^
 
+- build(git): ignore files automatically created by uv
 - build(package): allow but warn of non-standard HEAD names
 - build(package): prompt for desired branch if non-standard
+- build(package): bump dependencies versions
+- build(package): apply dependency upgrades & new ruff rules
+- build(package): update licenses & pyproject per PEP 639
 - build(pyproj): remove lingering references to 'setup.py'
+- build(signer): mark package signing scripts as executable
+- docs(changelog): add current version's missing entries
+- docs(cipher): demo more proper canonical concatenation
 - docs(exc): specify return type hint for Ignore callable arg
+- docs(grammar): fix typo in method docstring
 - docs(test): switch Targets to type-hintable NamedTuple type
 - docs(readme): display example returns of None consistently
 - docs(readme): describe cipher key sizes as inclusive of 64-bytes
@@ -30,10 +39,16 @@ Minor Changes
 - test(paths): parametrize & stabilize 'test_paths.py' methods
 - test(paths): ensure reads return expected salt value
 - test(paths): add new tests to 'test_paths.py' after refactor
+- test(paths): add coverage & unit tests of deniable filenames
+- test(paths): add coverage of (a)find_salt_file func
 - test(signer): avoid false negatives if example file is empty
 - test(signer): add cases of wrong signing keys for verification
 - test(async): cancel target tasks & futures explicitly
+- perf(canon): use an async internal subroutine
+- refactor(hash): split operations over two function calls
+- refactor(paths): extract secure/admin paths into callables
 - refactor(perm): use args & concentrate steps in key encoder
+- refactor(readme): improve summary typo & clarity of example
 - refactor(test): extract base class from common runner logic
 - refactor(test): remove extra salt file tests during refactor
 - refactor(test): prepare for consolidation & parametrization 1/x
@@ -42,7 +57,13 @@ Minor Changes
 - refactor(test): consolidate & parametrize to simplify new tests
 - refactor(test): prepare to categorize tests into smaller modules
 - refactor(test): remove unneeded aggregator 'conftest.py' imports
+- refactor(test): isolate early setup imports
+- refactor(test): use new function for creating random params
+- refactor(test): alphabetize cleanup tests to run after others
 - style(ciphers): merge loop conditional with inner guard clause
+- style(cipher): unfurl cipher streams in a consistent way
+- style(pyproj): terminate container lines with a comma
+- style(test): use more consistent & succinct variable names
 
 
 
