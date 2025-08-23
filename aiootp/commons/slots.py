@@ -100,7 +100,7 @@ class Slots:
         especially when many instances are created. Having an instance
         dictionary offers flexibility, though the interplay with slots
         can cause problems. This initializer avoids setting the names
-        declared in `__slots__` within the a potential instance dict.
+        declared in `__slots__` within a potential instance dict.
 
         This is a general & flexible initializer. Subclasses can improve
         their performance & documentation by being more specific, ie:

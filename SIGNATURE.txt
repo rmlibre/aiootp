@@ -1,5 +1,5 @@
 {
-    "checksum": "f4760bcfd613b5c0d64886005ddf82e43ccef2d2e0036d6e3c7e66e84c4c0aa3c26707a1235e2c51c2df6019dc487df6",
+    "checksum": "bc6db265f9d069b6124d945c5a59fa1f57d97d3a862fc6e4f5a4131a2c11dc252fba359006c09f8cdd420513fed9f0fc",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "ce9e7f27f46c9fae68885ef8b2ffb8e340e4cad4a9a724d321e7a3b97a933aa394ab2c79927a7a84f69568c9e8c97389",
         ".github/workflows/linux-pypi-release-tests.yml": "2c2affb7e1c6c23fb680b6d45007706ee964c68cf4ac361a396f7bd34387f6cf0911e31a460c4b69458a0edb794d4cd0",
@@ -80,7 +80,7 @@
         "aiootp/commons/instances.py": "ed6f26d37c2c6ea26f7c6bd3d8d482a22213fb863668a2875afc5ce3bbbee3172d68b9251a94be0b02265b7ff99080f7",
         "aiootp/commons/namespaces.py": "1a4957a49e000417d7ec8e7d14b763151ac948a95fbea69000dcf5ee66f1edd18500e4c5b28499377878e5d2186963b6",
         "aiootp/commons/packaging.py": "e4e447ec1d58e56e98af4e6c999d224959f90559eea3f3cd0b2ee8abefeb20bb96b3df7d67d4892f44eb75ecd28c8087",
-        "aiootp/commons/slots.py": "d7bec28aea282ec33e139727726b27a7a7803b3f4c5d1aa6ede3fb520e4a53392061a8450bb4298c800178dc1a7c741b",
+        "aiootp/commons/slots.py": "470eeaa2f38d796b06817afcc61f94a5bfb3598ef072fa25691c0c74b5e95431186a04230cce5bf341637f3cf8a3c3f8",
         "aiootp/commons/typed_slots.py": "ad6001c932fe43a6f5d641071d222a90670ce8e0a39d899695336914b6db3b80a3f43604b35a0308ef7ac09dc7b9896e",
         "aiootp/databases/__init__.py": "665e686a7a546382b84d35391502be203d37b2c8bf1f3620e8deaeeeea068d73703899b8319b5e54680d87ecd9d31ee8",
         "aiootp/databases/async_database.py": "1c2a6bc5f8c43f3f97c97a22b596ae863a3e4341d030d281aaf0f348300283487cace225476444701fcd4d43afd86d3d",
@@ -200,8 +200,8 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "4",
-        "date": 20322,
+        "build_number": "5",
+        "date": 20323,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
         "license": "AGPL-3.0-only",
@@ -209,5 +209,5 @@
         "version": "0.23.17"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "7cf65b7a39cbd4279f39afb3cd4eb7db42879858a62ae3ed6508c34cb52be18464d78bcfd906a2ac72271f249bdd5787fb680afbb14e7415904f7558b80e9c0c"
+    "signature": "024858f7c7cbdcd110df74820bf4ac097ffe68d742161f56cbd5931e73a15957dd47c993751b9c564ff4a8f0da8e6c1f9051dc86011e182b2408650152137a0e"
 }
