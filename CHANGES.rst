@@ -12,8 +12,8 @@ Changes for version 0.23.17
 Major Changes
 ^^^^^^^^^^^^^
 
-- fix(test): collect names once if pytest runs w/o module specified
 - build(package): remove support for python 3.8
+- fix(test): collect names once if pytest runs w/o module specified
 
 
 Minor Changes
@@ -28,22 +28,14 @@ Minor Changes
 - build(pyproj): remove lingering references to 'setup.py'
 - build(signer): mark package signing scripts as executable
 - docs(changelog): add current version's missing entries
+- docs(changelog): alphabetize entries by type & scope sections
 - docs(cipher): demo more proper canonical concatenation
 - docs(exc): specify return type hint for Ignore callable arg
 - docs(grammar): fix typo in method docstring
-- docs(test): switch Targets to type-hintable NamedTuple type
 - docs(readme): display example returns of None consistently
 - docs(readme): describe cipher key sizes as inclusive of 64-bytes
+- docs(test): switch Targets to type-hintable NamedTuple type
 - docs(typing): describe queue param correctly as a deque
-- test(paths): exempt Windows of need to deny salt file reads
-- test(paths): parametrize & stabilize 'test_paths.py' methods
-- test(paths): ensure reads return expected salt value
-- test(paths): add new tests to 'test_paths.py' after refactor
-- test(paths): add coverage & unit tests of deniable filenames
-- test(paths): add coverage of (a)find_salt_file func
-- test(signer): avoid false negatives if example file is empty
-- test(signer): add cases of wrong signing keys for verification
-- test(async): cancel target tasks & futures explicitly
 - perf(canon): use an async internal subroutine
 - refactor(hash): split operations over two function calls
 - refactor(paths): extract secure/admin paths into callables
@@ -60,10 +52,19 @@ Minor Changes
 - refactor(test): isolate early setup imports
 - refactor(test): use new function for creating random params
 - refactor(test): alphabetize cleanup tests to run after others
-- style(ciphers): merge loop conditional with inner guard clause
 - style(cipher): unfurl cipher streams in a consistent way
+- style(ciphers): merge loop conditional with inner guard clause
 - style(pyproj): terminate container lines with a comma
 - style(test): use more consistent & succinct variable names
+- test(async): cancel target tasks & futures explicitly
+- test(paths): exempt Windows of need to deny salt file reads
+- test(paths): parametrize & stabilize 'test_paths.py' methods
+- test(paths): ensure reads return expected salt value
+- test(paths): add new tests to 'test_paths.py' after refactor
+- test(paths): add coverage & unit tests of deniable filenames
+- test(paths): add coverage of (a)find_salt_file func
+- test(signer): avoid false negatives if example file is empty
+- test(signer): add cases of wrong signing keys for verification
 
 
 
