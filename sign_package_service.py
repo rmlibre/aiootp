@@ -61,6 +61,7 @@ IDLE_SHUTDOWN_SIGNALS: t.Tuple[type] = (
     KeyboardInterrupt,
     SystemExit,
     TimeoutError,
+    socket.timeout,
 )
 EXIT_SIGNALS: t.Tuple[type] = (
     KeyboardInterrupt,
@@ -70,6 +71,7 @@ CHANNEL_ERRORS: t.Tuple[type] = (
     ConnectionAbortedError,
     ConnectionResetError,
     TimeoutError,
+    socket.timeout,
 )
 PROCESSING_ERRORS: t.Tuple[type] = (
     TypeError,

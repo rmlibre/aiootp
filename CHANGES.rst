@@ -18,7 +18,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
-- None
+- build(signer): include socket time out error in catch statements
 
 
 
