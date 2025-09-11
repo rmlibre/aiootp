@@ -82,7 +82,7 @@ class AffinePermutationConfig(Config):
         distributed number of set bits.
         """
         count = 0
-        binary = bin(number)[2:]
+        binary = f"{number:b}"
         current = binary[:1]
         for bit in binary:
             if bit != current:

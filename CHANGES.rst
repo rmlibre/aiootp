@@ -12,7 +12,7 @@ Changes for version 0.23.18
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- build(pkg): apply dependency upgrades & new ruff rules
 
 
 Minor Changes
