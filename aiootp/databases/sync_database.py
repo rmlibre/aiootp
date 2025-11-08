@@ -184,7 +184,6 @@ class Database(DatabaseProperties):
         self._is_metatag = bool(metatag)
         self._initialize_keys(key)
         self._load_manifest()
-        self._initialize_metatags()
         self.load_database(silent=silent, preload=preload)
 
     @classmethod
@@ -240,6 +239,15 @@ class Database(DatabaseProperties):
             self.IO.bytes_to_urlsafe(salt).decode()
         )
 
+    def _initialize_metatags(self) -> None:
+        """
+        Initializes the values that organize database metatags, which
+        are independent offspring of databases that are accessible by
+        their parent.
+        """
+        if self._METATAGS_LEDGERNAME not in self._manifest:
+            self._manifest[self._METATAGS_LEDGERNAME] = []
+
     def _load_manifest(self) -> None:
         """
         Initalizes the object with a new database file ledger or loads
@@ -252,15 +260,7 @@ class Database(DatabaseProperties):
             self._manifest = Namespace()
             self._root_salt = self._generate_root_salt()
             self._install_root_salt(self._root_salt)
-
-    def _initialize_metatags(self) -> None:
-        """
-        Initializes the values that organize database metatags, which
-        are independent offspring of databases that are accessible by
-        their parent.
-        """
-        if not self.metatags:
-            self._manifest[self._METATAGS_LEDGERNAME] = []
+        self._initialize_metatags()
 
     def load_tags(self, *, silent: bool = False) -> t.Self:
         """
@@ -280,7 +280,7 @@ class Database(DatabaseProperties):
         metatag references are populated in the database's instance
         dictionary, but their internal values are not loaded.
         """
-        for metatag in set(self.metatags):
+        for metatag in self.metatags:
             self.metatag(metatag, preload=preload, silent=silent)
         return self
 

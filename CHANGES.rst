@@ -13,6 +13,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - build(pkg): apply dependency upgrades & new ruff rules
+- fix(db): ensure manifest's metatag field is populated
 
 
 Minor Changes

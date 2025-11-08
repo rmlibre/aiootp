@@ -194,7 +194,6 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         self._is_metatag = bool(metatag)
         await self._ainitialize_keys(key)
         await self._aload_manifest()
-        await self._ainitialize_metatags()
         await self.aload_database(silent=silent, preload=preload)
 
     @classmethod
@@ -252,6 +251,16 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             await self.IO.abytes_to_urlsafe(salt)
         ).decode()
 
+    async def _ainitialize_metatags(self) -> None:
+        """
+        Initializes the values that organize database metatags, which
+        are independent offspring of databases that are accessible by
+        their parent.
+        """
+        await asleep()
+        if self._METATAGS_LEDGERNAME not in self._manifest:
+            self._manifest[self._METATAGS_LEDGERNAME] = []
+
     async def _aload_manifest(self) -> t.JSONObject:
         """
         Initalizes the object with a new database file ledger or loads
@@ -264,15 +273,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             self._manifest = Namespace()
             self._root_salt = await self._agenerate_root_salt()
             await self._ainstall_root_salt(self._root_salt)
-
-    async def _ainitialize_metatags(self) -> None:
-        """
-        Initializes the values that organize database metatags, which
-        are independent offspring of databases that are accessible by
-        their parent.
-        """
-        if not self.metatags:
-            self._manifest[self._METATAGS_LEDGERNAME] = []
+        await self._ainitialize_metatags()
 
     async def aload_tags(self, *, silent: bool = False) -> t.Self:
         """
@@ -299,7 +300,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         metatag references are populated in the database's instance
         dictionary, but their internal values are not loaded.
         """
-        metatags_set = set(self.metatags)
+        metatags_set = self.metatags
         if not metatags_set:
             await asleep()
             return self
