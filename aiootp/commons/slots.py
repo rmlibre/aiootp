@@ -72,6 +72,7 @@ class Slots:
         "values",
         "items",
         "update",
+        "clear",
     )
 
     def __init_subclass__(cls, /, *a: t.Any, **kw: t.Any) -> None:
@@ -289,6 +290,15 @@ class Slots:
         """
         for name, value in {**dict(mapping), **kw}.items():
             self[name] = value
+
+    def clear(self, /) -> None:
+        """
+        Deletes the instance's attribute references from its slots & dict.
+        """
+        getattr(self, "__dict__", []).clear()
+        for name in self.__slots__:
+            if hasattr(self, name):
+                del self[name]
 
 
 class OpenSlots(Slots):

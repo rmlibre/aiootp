@@ -30,42 +30,45 @@ class NamespaceMapping(t.SimpleNamespace):
         super().__init__(**kwargs)
         self.__dict__.update(mapping)
 
-    def __getitem__(self, name: str) -> t.Any:
+    def __getitem__(self, name: str, /) -> t.Any:
         return self.__dict__[name]
 
-    def __setitem__(self, name: str, value: t.Any) -> None:
+    def __setitem__(self, name: str, value: t.Any, /) -> None:
         self.__dict__[name] = value
 
-    def __delitem__(self, name: str) -> None:
+    def __delitem__(self, name: str, /) -> None:
         del self.__dict__[name]
 
-    def __contains__(self, name: str) -> bool:
+    def __contains__(self, name: str, /) -> bool:
         return name in self.__dict__
 
-    def __len__(self) -> int:
+    def __len__(self, /) -> int:
         return len(self.__dict__)
 
-    async def __aiter__(self) -> str:
+    async def __aiter__(self, /) -> str:
         for name in self.__dict__:
             await asyncio.sleep(0)
             yield name
 
-    def __iter__(self) -> str:
+    def __iter__(self, /) -> str:
         yield from self.__dict__
 
-    def keys(self) -> t.Iterable[t.Hashable]:
+    def keys(self, /) -> t.Iterable[t.Hashable]:
         yield from self.__dict__
 
-    def values(self) -> t.Iterable[t.Any]:
+    def values(self, /) -> t.Iterable[t.Any]:
         yield from self.__dict__.values()
 
-    def items(self) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
+    def items(self, /) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
         yield from self.__dict__.items()
 
     def update(
         self, mapping: t.Mapping[str, t.Any] = {}, /, **kw: t.Any
     ) -> None:
         self.__dict__.update(mapping, **kw)
+
+    def clear(self, /) -> None:
+        self.__dict__.clear()
 
 
 def collect_non_private_constants(

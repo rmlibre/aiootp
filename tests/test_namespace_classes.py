@@ -19,13 +19,18 @@ from aiootp.commons.slots import *
 from aiootp.commons.typed_slots import *
 from aiootp.commons.namespaces import *
 from aiootp.commons.configs import *
+from aiootp.randoms import choice
 
 
 class SlotsAttributes:
     __slots__ = ()
 
     _items: t.Dict[str, t.Any] = dict(
-        _private=True, one=1, mapped="value", unmapped=tuple("attr")
+        _private=True,
+        one=1,
+        mapped="value",
+        unmapped=tuple("attr"),
+        slotted="thing",
     )
     _MAPPED_ATTRIBUTES: t.Tuple[str] = tuple(
         name for name in _items if name != "unmapped"
@@ -198,6 +203,48 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
         with self.frozen_violation_catcher("new_value"):
             obj.update(dict(new_value=False), **dict(new_value=True))
             assert obj["new_value"] is True
+
+    async def test_clear_removes_all_values_from_instance(self) -> None:
+        def is_immutable(_: Ignore) -> bool:
+            return self._frozen
+
+        def is_mutable(_: Ignore) -> bool:
+            return not self._frozen
+
+        obj = self._type(self._items)
+        for name in self._items:
+            assert name in obj
+
+        with Ignore(
+            PermissionError, if_except=is_immutable, if_else=is_mutable
+        ):
+            obj.clear()
+
+        with Ignore(
+            AssertionError, if_except=is_immutable, if_else=is_mutable
+        ):
+            for name in self._items:
+                assert name not in obj
+
+    async def test_clear_doesnt_throw_when_partially_full(self) -> None:
+        def is_immutable(_: Ignore) -> bool:
+            return self._frozen
+
+        def is_mutable(_: Ignore) -> bool:
+            return not self._frozen
+
+        obj = self._type(self._items)
+        name = choice(list(self._items))
+
+        with Ignore(
+            PermissionError, if_except=is_immutable, if_else=is_mutable
+        ):
+            del obj[name]
+
+        with Ignore(
+            PermissionError, if_except=is_immutable, if_else=is_mutable
+        ):
+            obj.clear()
 
     async def test_strange_slots_dict_interplay_exists_but_is_avoided(
         self,
@@ -619,19 +666,19 @@ class TestConfigType(
 
 
 class NamespaceType(NamespaceAttributes, Namespace):
-    pass
+    __slots__ = ("slotted",)
 
 
 class OpenNamespaceType(NamespaceAttributes, OpenNamespace):
-    pass
+    __slots__ = ("slotted",)
 
 
 class FrozenNamespaceType(NamespaceAttributes, FrozenNamespace):
-    pass
+    __slots__ = ("slotted",)
 
 
 class OpenFrozenNamespaceType(NamespaceAttributes, OpenFrozenNamespace):
-    pass
+    __slots__ = ("slotted",)
 
 
 class TestNamespaceMapping(
