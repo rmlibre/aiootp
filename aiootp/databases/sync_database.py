@@ -572,7 +572,7 @@ class Database(DatabaseProperties):
         Clears all recent changes in the cache. By default `metatags`
         is truthy, which clears a database's metatag caches.
         """
-        self._cache.__dict__.clear()
+        self._cache.clear()
         if metatags:
             for metatag in self.metatags:
                 getattr(self, metatag).clear_cache(metatags=metatags)
@@ -612,23 +612,23 @@ class Database(DatabaseProperties):
         # It is now accessible from the parent by the tag ->
         assert offspring == parent.sub_database
         """
+        cls = self.__class__
         if hasattr(self, tag):
-            if (
-                issubclass(getattr(self, tag).__class__, self.__class__)
-                and tag not in self.__class__.__dict__
-            ):
-                return self.__dict__[tag]
-            raise Issue.cant_reassign_attribute(tag)  # fixed v0.23.9
-        self.__dict__[tag] = self.__class__(
-            key=self._metatag_key(tag),
-            preload=preload,
-            path=self.path,
-            metatag=True,
-            silent=silent,
-        )
+            tag_cls = getattr(self, tag).__class__
+            if hasattr(cls, tag) or not issubclass(tag_cls, cls):
+                raise Issue.cant_reassign_attribute(tag)  # fixed v0.23.9
+        else:
+            sub_database = cls(
+                key=self._metatag_key(tag),
+                preload=preload,
+                path=self.path,
+                metatag=True,
+                silent=silent,
+            )
+            setattr(self, tag, sub_database)
         if tag not in self.metatags:
-            getattr(self._manifest, self._METATAGS_LEDGERNAME).append(tag)
-        return self.__dict__[tag]
+            self._manifest[self._METATAGS_LEDGERNAME].append(tag)
+        return getattr(self, tag)
 
     def delete_metatag(self, tag: str) -> t.Self:
         """
@@ -637,7 +637,7 @@ class Database(DatabaseProperties):
         if tag not in self.metatags:
             raise DatabaseIssue.no_existing_metatag(tag)
         self.metatag(tag).delete_database()
-        self.__dict__.pop(tag)
+        delattr(self, tag)
         self._manifest[self._METATAGS_LEDGERNAME].remove(tag)
         return self
 
@@ -647,8 +647,8 @@ class Database(DatabaseProperties):
         values so a deleted database no longer makes changes to the
         filesystem.
         """
-        self._manifest.__dict__.clear()
-        self._cache.__dict__.clear()
+        self._manifest.clear()
+        self._cache.clear()
         self.__dict__.clear()
         for base in self.__class__.__mro__:
             for attr in getattr(base, "__slots__", ()):
@@ -672,7 +672,7 @@ class Database(DatabaseProperties):
         """
         for metatag in self.metatags:
             self.metatag(metatag, preload=False).delete_database()
-        for filename in self._manifest.__dict__:
+        for filename in self._manifest:
             self._delete_file(filename, silent=True)
         self._delete_file(self._root_filename, silent=True)
         self._delete_profile_tokens()
@@ -723,7 +723,7 @@ class Database(DatabaseProperties):
         Writes the database's user-defined tags to disk.
         """
         save = self._save_file
-        for filename in self._cache.__dict__:
+        for filename in self._cache:
             save(filename)
 
     def _save_metatags(self) -> None:

@@ -608,7 +608,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         Clears all recent changes in the cache, but this doesn't clear
         a database's metatag caches unless `metatags` is truthy.
         """
-        self._cache.__dict__.clear()
+        self._cache.clear()
         if metatags:
             for metatag in self.metatags:
                 await getattr(self, metatag).aclear_cache(metatags=metatags)
@@ -649,23 +649,23 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         # It is now accessible from the parent by the tag ->
         assert offspring is parent.sub_database
         """
+        cls = self.__class__
         if hasattr(self, tag):
-            if (
-                issubclass(getattr(self, tag).__class__, self.__class__)
-                and tag not in self.__class__.__dict__
-            ):
-                return self.__dict__[tag]
-            raise Issue.cant_reassign_attribute(tag)  # fixed v0.23.9
-        self.__dict__[tag] = await self.__class__(
-            key=await self._ametatag_key(tag),
-            preload=preload,
-            path=self.path,
-            metatag=True,
-            silent=silent,
-        )
+            tag_cls = getattr(self, tag).__class__
+            if hasattr(cls, tag) or not issubclass(tag_cls, cls):
+                raise Issue.cant_reassign_attribute(tag)  # fixed v0.23.9
+        else:
+            sub_database = await cls(
+                key=await self._ametatag_key(tag),
+                preload=preload,
+                path=self.path,
+                metatag=True,
+                silent=silent,
+            )
+            setattr(self, tag, sub_database)
         if tag not in self.metatags:
-            getattr(self._manifest, self._METATAGS_LEDGERNAME).append(tag)
-        return self.__dict__[tag]
+            self._manifest[self._METATAGS_LEDGERNAME].append(tag)
+        return getattr(self, tag)
 
     async def adelete_metatag(self, tag: str) -> t.Self:
         """
@@ -675,7 +675,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             raise DatabaseIssue.no_existing_metatag(tag)
         sub_db = await self.ametatag(tag)
         await sub_db.adelete_database()
-        self.__dict__.pop(tag)
+        delattr(self, tag)
         self._manifest[self._METATAGS_LEDGERNAME].remove(tag)
         return self
 
@@ -685,8 +685,8 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         values so a deleted database no longer makes changes to the
         filesystem.
         """
-        self._manifest.__dict__.clear()
-        self._cache.__dict__.clear()
+        self._manifest.clear()
+        self._cache.clear()
         self.__dict__.clear()
         for base in self.__class__.__mro__:
             await asleep()
@@ -712,7 +712,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         for metatag in self.metatags:
             sub_db = await self.ametatag(metatag, preload=False)
             await sub_db.adelete_database()
-        for filename in self._manifest.__dict__:
+        for filename in self._manifest:
             await self._adelete_file(filename, silent=True)
         await self._adelete_file(self._root_filename, silent=True)
         await self._adelete_profile_tokens()
@@ -765,7 +765,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         Writes the database's user-defined tags to disk.
         """
         save = self._asave_file
-        filenames = self._cache.__dict__
+        filenames = self._cache
         saves = (save(filename) for filename in filenames)
         await gather(*saves)
 

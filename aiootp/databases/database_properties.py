@@ -127,9 +127,7 @@ class DatabaseProperties:
         """
         Returns the list of metatags that a database contains.
         """
-        return set(
-            self._manifest.__dict__.get(self._METATAGS_LEDGERNAME, ())
-        )
+        return set(self._manifest[self._METATAGS_LEDGERNAME])
 
     def _filename(self, tag: str) -> str:
         """
