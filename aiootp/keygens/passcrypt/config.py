@@ -27,6 +27,53 @@ from aiootp.commons import Config
 from aiootp.generics import canonical_pack
 
 
+CONFIG_ID: bytes = b"Passcrypt"
+PASSCRYPT_PAD: bytes = b"\xf2"
+MIN_PASSPHRASE_BYTES: int = 12
+
+
+def _passcrypt_config_inputs(
+    mapping: t.Mapping[t.Hashable, t.Any], **kw: t.Any
+) -> t.Dict[str, t.Any]:
+    """
+    Simplifies the process of creating new passcrypt config objects.
+    While this won't generally be needed by users of pre-built recipes,
+    it's quite helpful in testing. Custom configurations can be passed
+    as a mapping or keyword-arguments, which will override the defaults.
+
+    Returns a dict of the default, or overridden, settings which can
+    then be passed into the config's initializer.
+    """
+    inputs = dict(
+        CONFIG_ID=CONFIG_ID,
+        PASSCRYPT_PAD=PASSCRYPT_PAD,
+        MIN_CORES=1,
+        MAX_CORES=256,
+        DEFAULT_CORES=4,
+        CORES_BYTES=1,
+        MIN_CPU=1,
+        MAX_CPU=256,
+        DEFAULT_CPU=1,
+        CPU_TO_DIGEST_PAIRS_PER_ROW_RATIO=2,
+        CPU_BYTES=1,
+        MIN_MB=1,
+        MAX_MB=256**3,
+        DEFAULT_MB=64,
+        MB_BYTES=3,
+        MIN_SALT_SIZE=4,
+        MAX_SALT_SIZE=256,
+        DEFAULT_SCHEMA_SALT_SIZE=8,
+        SALT_SIZE_BYTES=1,
+        MIN_TAG_SIZE=16,
+        MIN_PASSPHRASE_BYTES=MIN_PASSPHRASE_BYTES,
+        TIME_UNIT=NANOSECONDS,
+        TIMESTAMP_BYTES=SAFE_TIMESTAMP_BYTES,
+        EPOCH_NS=EPOCH_NS,
+    )
+    inputs.update(mapping, **kw)
+    return inputs
+
+
 class PasscryptConfig(Config):
     """
     Specifies the configuration for `Passcrypt`.
@@ -114,35 +161,18 @@ class PasscryptConfig(Config):
     def __init__(
         self,
         *,
-        config_id: t.Hashable,
-        min_passphrase_bytes: int,
-        passcrypt_pad: bytes,
-        epoch_ns: int = EPOCH_NS,
+        CONFIG_ID: t.Hashable,
+        MIN_PASSPHRASE_BYTES: int = MIN_PASSPHRASE_BYTES,
+        EPOCH_NS: int = EPOCH_NS,
+        **kw: t.Any,
     ) -> None:
-        self.MIN_CORES = 1
-        self.MAX_CORES = 256
-        self.DEFAULT_CORES = 4
-        self.CORES_BYTES = 1
-        self.MIN_CPU = 1
-        self.MAX_CPU = 256
-        self.DEFAULT_CPU = 1
-        self.CPU_TO_DIGEST_PAIRS_PER_ROW_RATIO = 2
-        self.CPU_BYTES = 1
-        self.MIN_MB = 1
-        self.MAX_MB = 256**3
-        self.DEFAULT_MB = 64
-        self.MB_BYTES = 3
-        self.MIN_SALT_SIZE = 4
-        self.MAX_SALT_SIZE = 256
-        self.DEFAULT_SCHEMA_SALT_SIZE = 8
-        self.SALT_SIZE_BYTES = 1
-        self.MIN_TAG_SIZE = 16
-        self.TIME_UNIT = NANOSECONDS
-        self.TIMESTAMP_BYTES = SAFE_TIMESTAMP_BYTES
-        self.CONFIG_ID = config_id
-        self.EPOCH_NS = epoch_ns
-        self.MIN_PASSPHRASE_BYTES = min_passphrase_bytes
-        self.PASSCRYPT_PAD = passcrypt_pad
+        inputs = _passcrypt_config_inputs(
+            kw,
+            CONFIG_ID=CONFIG_ID,
+            MIN_PASSPHRASE_BYTES=MIN_PASSPHRASE_BYTES,
+            EPOCH_NS=EPOCH_NS,
+        )
+        self.update(inputs)
         self._initialize_dynamic_values()
         self._construct_metadata_constant()
 
@@ -312,9 +342,7 @@ class PasscryptConfig(Config):
             raise PasscryptIssue.invalid_salt_size(salt_size)
 
 
-passcrypt_spec = PasscryptConfig(
-    config_id=b"Passcrypt", min_passphrase_bytes=12, passcrypt_pad=b"\xf2"
-)
+passcrypt_spec = PasscryptConfig(CONFIG_ID=CONFIG_ID)
 
 
 module_api = dict(
@@ -326,5 +354,6 @@ module_api = dict(
     __spec__=__spec__,
     __loader__=__loader__,
     __package__=__package__,
+    _passcrypt_config_inputs=_passcrypt_config_inputs,
     passcrypt_spec=passcrypt_spec,
 )

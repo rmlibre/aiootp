@@ -213,6 +213,7 @@ class Passcrypt(FrozenInstance):
 
     _PasscryptProcesses: type = PasscryptProcesses
     _PasscryptSettings: type = PasscryptSettings
+    _PasscryptHash: type = PasscryptHash
 
     # An operator of a passphrase database may add a static secret value
     # to the class, referred to as a `pepper`. That value can be set in
@@ -355,7 +356,7 @@ class Passcrypt(FrozenInstance):
         timestamp = await self._config.clock.amake_timestamp()
         salt = await acsprng(self._settings.salt_size)
         tag = await self.anew(passphrase, salt, aad=timestamp + aad)
-        return PasscryptHash(
+        return self._PasscryptHash(
             timestamp=timestamp,
             mb=self._settings.mb,
             cpu=self._settings.cpu,
@@ -394,7 +395,7 @@ class Passcrypt(FrozenInstance):
         timestamp = self._config.clock.make_timestamp()
         salt = csprng(self._settings.salt_size)
         tag = self.new(passphrase, salt, aad=timestamp + aad)
-        return PasscryptHash(
+        return self._PasscryptHash(
             timestamp=timestamp,
             mb=self._settings.mb,
             cpu=self._settings.cpu,
@@ -446,7 +447,7 @@ class Passcrypt(FrozenInstance):
                 `ResourceWarning` if the `cores` specified in the
                 provided hash falls outside of that range.
         """
-        parts = PasscryptHash(config=config).import_hash(
+        parts = cls._PasscryptHash(config=config).import_hash(
             composed_passcrypt_hash
         )
         ttl = ttl and (ttl * NS_TO_S_RATIO)
@@ -507,7 +508,7 @@ class Passcrypt(FrozenInstance):
                 `ResourceWarning` if the `cores` specified in the
                 provided hash falls outside of that range.
         """
-        parts = PasscryptHash(config=config).import_hash(
+        parts = cls._PasscryptHash(config=config).import_hash(
             composed_passcrypt_hash
         )
         ttl = ttl and (ttl * NS_TO_S_RATIO)
