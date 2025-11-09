@@ -116,7 +116,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         preload: bool = False,
     ) -> t.Cls:
         """
-        Creates & loads a profile database for a user from the `tokens`
+        Creates & loads a profile database for a user from the tokens
         passed in.
 
          _____________________________________

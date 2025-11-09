@@ -21,6 +21,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - build(signer): include socket time out error in catch statements
+- docs(fix): unlink docstring reference to changed parameter name
 - fix(db): remove deprecated use of dunder dict on containers
 
 
