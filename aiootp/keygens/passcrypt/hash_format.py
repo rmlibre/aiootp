@@ -59,6 +59,8 @@ class PasscryptHash(FrozenSlots):
         "tag",
     )
 
+    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = ("config",)
+
     def __init__(
         self,
         *,
@@ -68,15 +70,16 @@ class PasscryptHash(FrozenSlots):
         cores: t.Optional[int] = None,
         salt: t.Optional[bytes] = None,
         tag: t.Optional[bytes] = None,
-        config: t.ConfigType = passcrypt_spec,
+        config: t.Optional[t.ConfigType] = passcrypt_spec,
     ) -> None:
         """
         Populates the instance state from the provided session values
         which are composable into a `Passcrypt` hash.
         """
-        object.__setattr__(self, "config", config)
+        if config is not None:
+            self.config = config
         if any((timestamp, mb, cpu, cores, salt, tag)):
-            config.validate_settings(
+            self.config.validate_settings(
                 mb=mb,
                 cpu=cpu,
                 cores=cores,
@@ -89,9 +92,6 @@ class PasscryptHash(FrozenSlots):
             self.cores = cores
             self.salt = salt
             self.tag = tag
-
-    def __iter__(self) -> t.Generator[str, None, None]:
-        yield from self._MAPPED_ATTRIBUTES
 
     @property
     def salt_size(self) -> t.Optional[int]:
@@ -127,6 +127,7 @@ class PasscryptHash(FrozenSlots):
             cores=to_int(read(config.CORES_BYTES), BIG) + 1,
             salt=read(to_int(read(config.SALT_SIZE_BYTES), BIG) + 1),
             tag=read(),
+            config=None,
         )
         return self
 

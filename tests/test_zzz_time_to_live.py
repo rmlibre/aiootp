@@ -110,8 +110,25 @@ class TestZCipherTimeToLive:
         assert relay.error.expired_by >= 1
 
 
+class PasscryptTarget(t.NamedTuple):
+    config: t.PasscryptConfig
+    token: bytes
+
+
 class TestZPasscryptTimeToLive:
-    async def test_async_verfiy_ttl(self) -> None:
+    custom_config = custom_pcrypt._config
+    light_config = light_pcrypt._config
+    async_targets = [
+        PasscryptTarget(custom_config, aexpired_passcrypt_hash_seconds),
+        PasscryptTarget(light_config, aexpired_passcrypt_hash),
+    ]
+    sync_targets = [
+        PasscryptTarget(custom_config, expired_passcrypt_hash_seconds),
+        PasscryptTarget(light_config, expired_passcrypt_hash),
+    ]
+
+    @pytest.mark.parametrize("target", async_targets)
+    async def test_async_verfiy_ttl(self, target: PasscryptTarget) -> None:
         problem = (  # fmt: skip
             "Life-time for async passcrypt hashes are malfunctioning."
         )
@@ -120,11 +137,12 @@ class TestZPasscryptTimeToLive:
         ) as ignored:
             relay = ignored
             await Passcrypt.averify(
-                aexpired_passcrypt_hash, passphrase_0, ttl=1
+                target.token, passphrase_0, ttl=1, config=target.config
             )
         assert relay.error.expired_by >= 1
 
-    async def test_sync_verfiy_ttl(self) -> None:
+    @pytest.mark.parametrize("target", sync_targets)
+    async def test_sync_verfiy_ttl(self, target: PasscryptTarget) -> None:
         problem = (  # fmt: skip
             "Life-time for sync passcrypt hashes are malfunctioning."
         )
@@ -132,7 +150,9 @@ class TestZPasscryptTimeToLive:
             TimestampExpired, if_else=violation(problem)
         ) as ignored:
             relay = ignored
-            Passcrypt.verify(expired_passcrypt_hash, passphrase_0, ttl=1)
+            Passcrypt.verify(
+                target.token, passphrase_0, ttl=1, config=target.config
+            )
         assert relay.error.expired_by >= 1
 
 

@@ -37,7 +37,6 @@ EPOCH: int = 1672531200  # Sun, 01 Jan 2023 00:00:00 UTC
 SAFE_TIMESTAMP_BYTES: int = 8
 DEFAULT_TTL: typing.Optional[int] = None
 DEFAULT_TIMEOUT: int = 0
-NS_TO_S_RATIO: int = 1_000_000_000
 
 
 OMITTED: str = "<omitted>"

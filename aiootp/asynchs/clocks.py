@@ -102,6 +102,16 @@ def this_year(epoch: int = 0) -> int:
     return int(this_nanosecond(epoch) / _ONE_YEAR)
 
 
+class UnitToSeconds(t.NamedTuple):
+    """
+    Organizes conversion & normalization tooling from a time unit to the
+    second.
+    """
+
+    time: t.Callable[..., int]
+    ratio: float
+
+
 class Clock(FrozenInstance):
     """
     A class whose objects are used for creating & measuring bytes-type
@@ -161,17 +171,17 @@ class Clock(FrozenInstance):
     ).resolution
 
     _times: FrozenNamespace = FrozenNamespace(
-        years=(this_year, _ONE_YEAR / _ONE_SECOND),
-        months=(this_month, _ONE_MONTH / _ONE_SECOND),
-        days=(this_day, 24 * 60 * 60),
-        hours=(this_hour, 60 * 60),
-        minutes=(this_minute, 60),
-        seconds=(this_second, 1),
-        deciseconds=(this_decisecond, 1e-1),
-        centiseconds=(this_centisecond, 1e-2),
-        milliseconds=(this_millisecond, 1e-3),
-        microseconds=(this_microsecond, 1e-6),
-        nanoseconds=(this_nanosecond, 1e-9),
+        years=UnitToSeconds(this_year, _ONE_YEAR / _ONE_SECOND),
+        months=UnitToSeconds(this_month, _ONE_MONTH / _ONE_SECOND),
+        days=UnitToSeconds(this_day, 24 * 60 * 60),
+        hours=UnitToSeconds(this_hour, 60 * 60),
+        minutes=UnitToSeconds(this_minute, 60),
+        seconds=UnitToSeconds(this_second, 1),
+        deciseconds=UnitToSeconds(this_decisecond, 1e-1),
+        centiseconds=UnitToSeconds(this_centisecond, 1e-2),
+        milliseconds=UnitToSeconds(this_millisecond, 1e-3),
+        microseconds=UnitToSeconds(this_microsecond, 1e-6),
+        nanoseconds=UnitToSeconds(this_nanosecond, 1e-9),
     )
 
     TimestampExpired: type = TimestampExpired

@@ -19,10 +19,11 @@ function.
 __all__ = ["Passcrypt", "PasscryptSettings"]
 
 
+import math
 from hashlib import shake_128
 
 from aiootp._typing import Typing as t
-from aiootp._constants import NS_TO_S_RATIO, DEFAULT_AAD, DEFAULT_TTL
+from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._exceptions import Issue, PasscryptIssue, TimestampExpired
 from aiootp._exceptions import InvalidPassphrase, ImproperPassphrase
 from aiootp.asynchs import Processes
@@ -353,7 +354,9 @@ class Passcrypt(FrozenInstance):
         these resources, we run the function in another process which
         guarantees the release.
         """
-        timestamp = await self._config.clock.amake_timestamp()
+        timestamp = await self._config.clock.amake_timestamp(
+            size=self._config.TIMESTAMP_BYTES
+        )
         salt = await acsprng(self._settings.salt_size)
         tag = await self.anew(passphrase, salt, aad=timestamp + aad)
         return self._PasscryptHash(
@@ -392,7 +395,9 @@ class Passcrypt(FrozenInstance):
         these resources, we run the function in another process which
         guarantees the release.
         """
-        timestamp = self._config.clock.make_timestamp()
+        timestamp = self._config.clock.make_timestamp(
+            size=self._config.TIMESTAMP_BYTES
+        )
         salt = csprng(self._settings.salt_size)
         tag = self.new(passphrase, salt, aad=timestamp + aad)
         return self._PasscryptHash(
@@ -450,7 +455,7 @@ class Passcrypt(FrozenInstance):
         parts = cls._PasscryptHash(config=config).import_hash(
             composed_passcrypt_hash
         )
-        ttl = ttl and (ttl * NS_TO_S_RATIO)
+        ttl = ttl and math.floor(ttl * config.S_TO_TIME_UNIT_RATIO)
         await config.clock.atest_timestamp(parts.timestamp, ttl=ttl)
         parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
         self = cls(
@@ -511,7 +516,7 @@ class Passcrypt(FrozenInstance):
         parts = cls._PasscryptHash(config=config).import_hash(
             composed_passcrypt_hash
         )
-        ttl = ttl and (ttl * NS_TO_S_RATIO)
+        ttl = ttl and math.floor(ttl * config.S_TO_TIME_UNIT_RATIO)
         config.clock.test_timestamp(parts.timestamp, ttl=ttl)
         parts.in_allowed_ranges(mb_allowed, cpu_allowed, cores_allowed)
         self = cls(

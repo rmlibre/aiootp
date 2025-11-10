@@ -213,6 +213,22 @@ light_pcrypt = Passcrypt(mb=1, cpu=1, cores=1, tag_size=32)
 aexpired_passcrypt_hash = run(light_pcrypt.ahash_passphrase(passphrase_0))
 expired_passcrypt_hash = light_pcrypt.hash_passphrase(passphrase_0)
 
+custom_pcrypt = Passcrypt(
+    mb=1,
+    cpu=1,
+    cores=1,
+    tag_size=32,
+    config=t.PasscryptConfig(
+        CONFIG_ID=b"Passcrypt-timestamp:seconds",
+        TIME_UNIT="seconds",
+        TIMESTAMP_BYTES=4,
+    ),
+)
+aexpired_passcrypt_hash_seconds = run(
+    custom_pcrypt.ahash_passphrase(passphrase_0)
+)
+expired_passcrypt_hash_seconds = custom_pcrypt.hash_passphrase(passphrase_0)
+
 
 clock = Clock(SECONDS, epoch=EPOCH_NS)
 ns_clock = Clock(NANOSECONDS, epoch=EPOCH_NS)

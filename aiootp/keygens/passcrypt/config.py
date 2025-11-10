@@ -113,6 +113,7 @@ class PasscryptConfig(Config):
         "SALT_SIZE_BYTES",
         "SALT_SIZE_SLICE",
         "TIME_UNIT",
+        "S_TO_TIME_UNIT_RATIO",
         "TIMESTAMP_BYTES",
         "TIMESTAMP_SLICE",
         "clock",
@@ -153,6 +154,7 @@ class PasscryptConfig(Config):
         SALT_SIZE_BYTES=int,
         SALT_SIZE_SLICE=slice,
         TIME_UNIT=str,
+        S_TO_TIME_UNIT_RATIO=float,
         TIMESTAMP_BYTES=int,
         TIMESTAMP_SLICE=slice,
         clock=t.ClockType,
@@ -163,6 +165,8 @@ class PasscryptConfig(Config):
         *,
         CONFIG_ID: t.Hashable,
         MIN_PASSPHRASE_BYTES: int = MIN_PASSPHRASE_BYTES,
+        TIME_UNIT: str = NANOSECONDS,
+        TIMESTAMP_BYTES: int = SAFE_TIMESTAMP_BYTES,
         EPOCH_NS: int = EPOCH_NS,
         **kw: t.Any,
     ) -> None:
@@ -170,6 +174,8 @@ class PasscryptConfig(Config):
             kw,
             CONFIG_ID=CONFIG_ID,
             MIN_PASSPHRASE_BYTES=MIN_PASSPHRASE_BYTES,
+            TIME_UNIT=TIME_UNIT,
+            TIMESTAMP_BYTES=TIMESTAMP_BYTES,
             EPOCH_NS=EPOCH_NS,
         )
         self.update(inputs)
@@ -221,6 +227,9 @@ class PasscryptConfig(Config):
             self.HEADER_BYTES + self.MIN_SALT_SIZE + self.MIN_TAG_SIZE
         )
         self.clock = Clock(self.TIME_UNIT, epoch=self.EPOCH_NS)
+        self.S_TO_TIME_UNIT_RATIO = float(
+            1 / Clock._times[self.TIME_UNIT].ratio
+        )
 
     def _construct_metadata_constant(self) -> None:
         """
