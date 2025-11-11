@@ -37,6 +37,7 @@ __all__ = [
     "KeyAADIssue",
     "Metadata",
     "MissingDeclaredVariables",
+    "OverspecifiedVariable",
     "PackageNotSigned",
     "PackageSignerIssue",
     "PasscryptIssue",
@@ -429,6 +430,17 @@ class KDFModeNotDeclared(AttributeError):
 
     def __init__(self, /, *a: t.Any) -> None:
         super().__init__(self._MESSAGE_TEMPLATE, *a)
+
+
+class OverspecifiedVariable(TypeError):
+    _MESSAGE_TEMPLATE: str = (
+        "Specifying the type of the NAME variable is redundant or "
+        "unnecessary."
+    )
+
+    def __init__(self, name: str, /, *a: t.Any) -> None:
+        issue = self._MESSAGE_TEMPLATE
+        super().__init__(issue.replace("NAME", repr(name)), *a)
 
 
 class TypeUncheckableAtRuntime(TypeError):
@@ -984,6 +996,7 @@ module_api = dict(
     KDFModeNotDeclared=t.add_type(KDFModeNotDeclared),
     KeyAADIssue=t.add_type(KeyAADIssue),
     Metadata=t.add_type(Metadata),
+    OverspecifiedVariable=t.add_type(OverspecifiedVariable),
     PackageNotSigned=t.add_type(PackageNotSigned),
     PackageSignerIssue=t.add_type(PackageSignerIssue),
     PasscryptIssue=t.add_type(PasscryptIssue),

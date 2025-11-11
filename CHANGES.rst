@@ -24,6 +24,7 @@ Minor Changes
 - docs(fix): unlink docstring reference to changed parameter name
 - fix(config): allow setting the time unit for passcrypt instances
 - fix(db): remove deprecated use of dunder dict on containers
+- fix(typing): disallow specifying dunder dict type in slots_types
 - refactor(config): simplify interface for low-level Passcrypt helpers
 
 

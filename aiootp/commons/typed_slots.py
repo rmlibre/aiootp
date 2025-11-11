@@ -25,8 +25,10 @@ __all__ = [
 
 
 from aiootp._typing import Typing as t
-from aiootp._exceptions import Issue, TypeUncheckableAtRuntime
+from aiootp._exceptions import Issue
 from aiootp._exceptions import MissingDeclaredVariables
+from aiootp._exceptions import OverspecifiedVariable
+from aiootp._exceptions import TypeUncheckableAtRuntime
 
 from .slots import Slots, OpenFrozenSlots
 
@@ -79,6 +81,9 @@ class TypedSlots(Slots):
         Raises `TypeUncheckableAtRuntime` if a type is invalid as a
         run-time type checker.
 
+        Raises `OverspecifiedVariable` if any subclass defines the type
+        of a `__dict__` attribute in its `slots_types` mapping.
+
         Raises `MissingDeclaredVariables` if a type is declared in the
         `base`'s `slots_types` but not in its (or one of its superclass')
         `__slots__`.
@@ -91,12 +96,12 @@ class TypedSlots(Slots):
                 issubclass(type, value)
             except TypeError as error:
                 raise TypeUncheckableAtRuntime(name, value) from error
-            if name not in cls.__slots__:
-                raise MissingDeclaredVariables(
-                    name, found_in="slots_types", missed="__slots__"
-                )
-            elif name != "__dict__":
-                slots_types[name] = value
+            if name == "__dict__":
+                raise OverspecifiedVariable("__dict__")
+            elif name not in cls.__slots__:
+                kw = dict(found_in="slots_types", missed="__slots__")
+                raise MissingDeclaredVariables(name, **kw)
+            slots_types[name] = value
 
     @classmethod
     def _make_frozen_class_slots_types_container(
@@ -132,9 +137,8 @@ class TypedSlots(Slots):
             .symmetric_difference(slots_types)
         )
         if diff:
-            raise MissingDeclaredVariables(
-                *diff, found_in="__slots__", missed="slots_types"
-            )
+            kw = dict(found_in="__slots__", missed="slots_types")
+            raise MissingDeclaredVariables(*diff, **kw)
         return cls._make_frozen_class_slots_types_container(slots_types)
 
     def __init_subclass__(cls, /, *a: t.Any, **kw: t.Any) -> None:

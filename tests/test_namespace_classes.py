@@ -369,6 +369,21 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
 
 
 class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
+    async def test_dunder_dict_in_slots_types_throws(self) -> None:
+        problem = (
+            "A subclass was allowed to be defined with dunder dict "
+            "given in its slots_types mapping."
+        )
+        with Ignore(t.OverspecifiedVariable, if_else=violation(problem)):
+
+            class OverspecifiedSubclass(self._type):
+                if "__dict__" in self._type.__slots__:
+                    __slots__ = ("a", "b")
+                else:
+                    __slots__ = ("__dict__", "a", "b")
+
+                slots_types = dict(__dict__=dict, a=int, b=int)
+
     async def test_slots_contains_all_names_in_slots_types(
         self,
     ) -> None:
