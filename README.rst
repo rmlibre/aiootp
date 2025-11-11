@@ -102,9 +102,9 @@ Development & Testing
 
     # Tests can also be run across specific Python versions
 
-    uv python install 3.9 3.10 3.11 3.12 3.13
+    uv python install 3.9 3.10 3.11 3.12 3.13 3.14
 
-    uv run --python 3.13 --extra dev coverage run -m pytest tests/all_aiootp_tests.py
+    uv run --python 3.14 --extra dev coverage run -m pytest tests/all_aiootp_tests.py
 
 
 

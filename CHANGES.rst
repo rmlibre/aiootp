@@ -13,6 +13,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - build(pkg): apply dependency upgrades & new ruff rules
+- build(pkg): test & signal support for python 3.14
 - feat(slots): provide a `clear` method for containers
 - fix(db): ensure manifest's metatag field is populated
 
