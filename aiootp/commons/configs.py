@@ -147,10 +147,7 @@ class ConfigMap(OpenFrozenNamespace):
 
     __slots__ = (CONFIG_TYPE,)
 
-    _UNMAPPED_ATTRIBUTES: tuple[str] = (
-        *OpenFrozenNamespace._UNMAPPED_ATTRIBUTES,
-        CONFIG_TYPE,
-    )
+    _UNMAPPED_ATTRIBUTES: tuple[str] = (CONFIG_TYPE,)
 
     def __init__(
         self,

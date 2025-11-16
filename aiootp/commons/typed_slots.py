@@ -67,6 +67,8 @@ class TypedSlots(Slots):
 
     __slots__ = ()
 
+    _UNMAPPED_ATTRIBUTES: tuple[str] = ("slots_types",)
+
     slots_types: t.Mapping[str, t.Any] = dict()
 
     @classmethod

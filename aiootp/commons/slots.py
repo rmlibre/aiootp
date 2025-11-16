@@ -87,6 +87,16 @@ class Slots:
             for subcls in cls.__mro__
             for name in getattr(subcls, "__slots__", ())
         })
+        cls._MAPPED_ATTRIBUTES = tuple({
+            name: None
+            for subcls in cls.__mro__
+            for name in getattr(subcls, "_MAPPED_ATTRIBUTES", ())
+        })
+        cls._UNMAPPED_ATTRIBUTES = tuple({
+            name: None
+            for subcls in cls.__mro__
+            for name in getattr(subcls, "_UNMAPPED_ATTRIBUTES", ())
+        })
         # fmt: on
         cls._slots_set = frozenset(cls.__slots__)
 
