@@ -569,15 +569,14 @@ class DualOutputStreamJunction(StreamJunction):
         then feeds ciphertext into the `shmac` for validation & distinct
         altering of the keystream.
         """
-        datastream, keystream, validated_transform = (
-            data,
+        keystream, validated_transform = (
             shmac._key_bundle._keystream.asend,
             shmac._avalidated_transform,
         )
         yield await cls._SyntheticIV.avalidated_transform(
-            datastream, keystream, shmac
+            data, keystream, shmac
         )
-        async for block in datastream:
+        async for block in data:
             yield await validated_transform(
                 block, await keystream(shmac._ratchet_key)
             )
@@ -591,15 +590,12 @@ class DualOutputStreamJunction(StreamJunction):
         then feeds ciphertext into the `shmac` for validation & distinct
         altering of the keystream.
         """
-        datastream, keystream, validated_transform = (
-            data,
+        keystream, validated_transform = (
             shmac._key_bundle._keystream.send,
             shmac._validated_transform,
         )
-        yield cls._SyntheticIV.validated_transform(
-            datastream, keystream, shmac
-        )
-        for block in datastream:
+        yield cls._SyntheticIV.validated_transform(data, keystream, shmac)
+        for block in data:
             yield validated_transform(block, keystream(shmac._ratchet_key))
 
 

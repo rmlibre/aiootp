@@ -28,6 +28,7 @@ Minor Changes
 - fix(config): fixup bd062e2, making remaining time units picklable
 - fix(db): remove deprecated use of dunder dict on containers
 - fix(typing): disallow specifying dunder dict type in slots_types
+- refactor(cipher): remove unnecessary variable reassignment
 - refactor(config): simplify interface for low-level Passcrypt helpers
 
 
