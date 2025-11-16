@@ -19,7 +19,7 @@ from aiootp.asynchs import aos
 from conftest import *
 
 
-OS_VARNAMES: t.FrozenSet[str] = frozenset(dir(os))
+OS_VARNAMES: frozenset[str] = frozenset(dir(os))
 
 
 def name_will_proc_warning(name: str) -> bool:

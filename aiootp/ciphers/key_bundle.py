@@ -36,7 +36,7 @@ class SaltAADIV(FrozenSlots):
 
     __slots__ = ("salt", "aad", "iv", "config", "iv_is_fresh")
 
-    _MAPPED_ATTRIBUTES: t.Tuple[str] = ("salt", "aad", "iv")
+    _MAPPED_ATTRIBUTES: tuple[str] = ("salt", "aad", "iv")
 
     def __init__(
         self,

@@ -389,7 +389,7 @@ class ConcurrencyInterface:
         *functions: t.Callable[..., t.Any],
         args: t.Iterable[t.Any] = (),
         kwargs: t.Mapping[str, t.Any] = {},
-    ) -> t.List[t.Any]:
+    ) -> list[t.Any]:
         """
         Sumbits all of the async or synchronous `functions` to the
         `Processes._pool` or `Threads._pool` with the given `args` &
@@ -411,7 +411,7 @@ class ConcurrencyInterface:
         *functions: t.Callable[..., t.Any],
         args: t.Iterable[t.Any] = (),
         kwargs: t.Mapping[str, t.Any] = {},
-    ) -> t.List[t.Any]:
+    ) -> list[t.Any]:
         """
         Sumbits all the `functions` to the `Processes._pool` or
         `Threads._pool` with the given `args` & `kwargs`.

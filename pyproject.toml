@@ -364,7 +364,7 @@ exclude = [
 ]
 line-length = 76
 indent-width = 4
-target-version = "py38"
+target-version = "py39"
 
 
 [tool.ruff.lint]

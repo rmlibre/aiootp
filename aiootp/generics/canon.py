@@ -269,7 +269,7 @@ def decode_items(
 
 
 def test_canonical_padding(
-    read: t.Callable[[int], bytes], items: t.Deque[bytes], total_size: int
+    read: t.Callable[[int], bytes], items: deque[bytes], total_size: int
 ) -> None:
     """
     Raises `CanonicalEncodingError` if an invalid type of padding is
@@ -286,7 +286,7 @@ def test_canonical_padding(
         raise CanonicalIssue.invalid_padding()
 
 
-async def acanonical_unpack(items: bytes) -> t.Deque[bytes]:
+async def acanonical_unpack(items: bytes) -> deque[bytes]:
     """
     Extracts the bytes-type values that have been canonically encoded
     into the `items` byte string. `int_bytes` is the number of bytes
@@ -306,7 +306,7 @@ async def acanonical_unpack(items: bytes) -> t.Deque[bytes]:
     return items
 
 
-def canonical_unpack(items: bytes) -> t.Deque[bytes]:
+def canonical_unpack(items: bytes) -> deque[bytes]:
     """
     Extracts the bytes-type values that have been canonically encoded
     into the `items` byte string. `int_bytes` is the number of bytes

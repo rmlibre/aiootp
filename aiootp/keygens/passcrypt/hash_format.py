@@ -50,7 +50,7 @@ class PasscryptHash(FrozenSlots):
 
     __slots__ = ("timestamp", "mb", "cpu", "cores", "salt", "tag", "config")
 
-    _MAPPED_ATTRIBUTES: t.Tuple[str] = (
+    _MAPPED_ATTRIBUTES: tuple[str] = (
         "timestamp",
         "mb",
         "cpu",
@@ -59,7 +59,7 @@ class PasscryptHash(FrozenSlots):
         "tag",
     )
 
-    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = ("config",)
+    _UNMAPPED_ATTRIBUTES: tuple[str] = ("config",)
 
     def __init__(
         self,

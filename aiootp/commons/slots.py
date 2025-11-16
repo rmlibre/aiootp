@@ -62,8 +62,8 @@ class Slots:
 
     __slots__ = ()
 
-    _MAPPED_ATTRIBUTES: t.Tuple[str] = ()
-    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
+    _MAPPED_ATTRIBUTES: tuple[str] = ()
+    _UNMAPPED_ATTRIBUTES: tuple[str] = (
         "__dict__",
         "_MAPPED_ATTRIBUTES",
         "_UNMAPPED_ATTRIBUTES",
@@ -112,7 +112,7 @@ class Slots:
         """
         self.update(mapping, **kw)
 
-    def __dir__(self, /) -> t.List[t.Hashable]:
+    def __dir__(self, /) -> list[t.Hashable]:
         """
         Returns the instance directory.
         """
@@ -269,7 +269,7 @@ class Slots:
         for name in self:
             yield self[name]
 
-    def items(self, /) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
+    def items(self, /) -> t.Iterable[tuple[t.Hashable, t.Any]]:
         """
         Yields the name, value pairs of all items in the instance.
         """

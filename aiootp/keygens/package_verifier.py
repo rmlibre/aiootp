@@ -100,7 +100,7 @@ class PackageVerifier:
         return json.dumps(self._summary_dictionary).encode()
 
     def _import_summary(
-        self, summary: t.Dict[str, t.JSONSerializable]
+        self, summary: dict[str, t.JSONSerializable]
     ) -> None:
         """
         Verifies the package summary checksum & stores its values within
@@ -129,7 +129,7 @@ class PackageVerifier:
     def verify_summary(
         self,
         summary: t.Union[
-            t.Dict[str, t.JSONSerializable], t.JSONDeserializable
+            dict[str, t.JSONSerializable], t.JSONDeserializable
         ],
     ) -> None:
         """

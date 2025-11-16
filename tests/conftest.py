@@ -183,7 +183,7 @@ test_token_ciphertext = ttl_test_cipher.cipher.make_token(
 )
 
 
-async def make_async_ttl_cipher_stream() -> t.Tuple[
+async def make_async_ttl_cipher_stream() -> tuple[
     t.AsyncCipherStream, bytes
 ]:
     stream = await ttl_test_cipher.cipher.astream_encrypt(

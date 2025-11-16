@@ -27,7 +27,7 @@ KEY = token_bytes(32)
 SALT = token_bytes(32)
 
 
-def select_k_ints(start: int, end: int, k: int) -> t.List[int]:
+def select_k_ints(start: int, end: int, k: int) -> list[int]:
     """
     Constructs a random distinct list of unique ints for testing a range
     of options that always includes the extremes of the range.

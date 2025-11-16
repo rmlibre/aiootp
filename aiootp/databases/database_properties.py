@@ -90,7 +90,7 @@ class DatabaseProperties:
         return self.path / self._root_filename
 
     @property
-    def _maintenance_records(self) -> t.Set[str]:
+    def _maintenance_records(self) -> set[str]:
         """
         Returns the ledgernames of entries in the manifest that refer to
         administrative values used by objects to track and coordinate
@@ -99,7 +99,7 @@ class DatabaseProperties:
         return {self._ROOT_SALT_LEDGERNAME, self._METATAGS_LEDGERNAME}
 
     @property
-    def tags(self) -> t.Set[str]:
+    def tags(self) -> set[str]:
         """
         Returns a list of all user-defined names for values stored in
         the database object.
@@ -113,7 +113,7 @@ class DatabaseProperties:
         }
 
     @property
-    def filenames(self) -> t.Set[str]:
+    def filenames(self) -> set[str]:
         """
         Returns a list of all derived filenames of user-defined tags
         stored in the database object.
@@ -123,7 +123,7 @@ class DatabaseProperties:
         )
 
     @property
-    def metatags(self) -> t.Set[str]:
+    def metatags(self) -> set[str]:
         """
         Returns the list of metatags that a database contains.
         """

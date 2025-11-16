@@ -57,10 +57,10 @@ _JSONSerializableBaseTypes = t.NewType(
     t.Union[dict, list, _JSONSerializableNonContainerTypes],
 )
 JSONArray = t.JSONArray = t.NewType(
-    "JSONArray", t.List[_JSONSerializableBaseTypes]
+    "JSONArray", list[_JSONSerializableBaseTypes]
 )
 JSONObject = t.JSONObject = t.NewType(
-    "JSONObject", t.Dict[str, _JSONSerializableBaseTypes]
+    "JSONObject", dict[str, _JSONSerializableBaseTypes]
 )
 JSONSerializable = t.JSONSerializable = t.NewType(
     "JSONSerializable",

@@ -25,7 +25,7 @@ class FalseConfig:
 
 class TestConfig:
     types_tested = (int, str, bytes, list, dict, ExampleType)
-    uncheckable_types = (t.List[int], t.PositiveRealNumber)
+    uncheckable_types = (list[int], t.PositiveRealNumber)
 
     def test_slots_types_enforces_types(self) -> None:
         problem = (  # fmt: skip

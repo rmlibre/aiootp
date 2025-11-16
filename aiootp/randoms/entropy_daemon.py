@@ -53,7 +53,7 @@ class EntropyDaemon:
     def __init__(
         self,
         *,
-        entropy_pool: t.Deque[bytes],
+        entropy_pool: deque[bytes],
         gadget: t.EntropyHashingType,
         max_delay: t.PositiveRealNumber = 1,
     ) -> None:

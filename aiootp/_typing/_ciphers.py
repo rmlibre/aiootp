@@ -152,7 +152,7 @@ class SyntheticIVType(t.Protocol):
 class AsyncCipherStreamingType(t.Protocol):
     async def __aiter__(
         self,
-    ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
+    ) -> t.AsyncGenerator[tuple[bytes, bytes], None]:
         pass  # pragma: no cover
 
     async def abuffer(self, data: bytes) -> t.Self:
@@ -164,7 +164,7 @@ class AsyncCipherStreamingType(t.Protocol):
 
 @t.runtime_checkable
 class CipherStreamingType(t.Protocol):
-    def __iter__(self) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
+    def __iter__(self) -> t.Generator[tuple[bytes, bytes], None, None]:
         pass  # pragma: no cover
 
     def buffer(self, data: bytes) -> t.Self:

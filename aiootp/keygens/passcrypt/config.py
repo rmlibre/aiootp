@@ -34,7 +34,7 @@ MIN_PASSPHRASE_BYTES: int = 12
 
 def _passcrypt_config_inputs(
     mapping: t.Mapping[t.Hashable, t.Any], **kw: t.Any
-) -> t.Dict[str, t.Any]:
+) -> dict[str, t.Any]:
     """
     Simplifies the process of creating new passcrypt config objects.
     While this won't generally be needed by users of pre-built recipes,

@@ -20,8 +20,6 @@ import typing
 import hashlib
 from hashlib import sha3_256, sha3_512, shake_128, shake_256
 
-from aiootp._typing import Typing as t
-
 from . import NamespaceMapping, collect_non_private_constants
 
 
@@ -45,7 +43,7 @@ TB_PORT: int = 9150
 TOR_PORT: int = 9050
 
 # fmt: off
-_algorithms_available: t.Set[str] = set(hashlib.algorithms_available)
+_algorithms_available: set[str] = set(hashlib.algorithms_available)
 HASHER_TYPES: NamespaceMapping = NamespaceMapping(**{
     str(name): NamespaceMapping(
         factory=factory,

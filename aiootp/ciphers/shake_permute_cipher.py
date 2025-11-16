@@ -56,7 +56,7 @@ class ShakePermuteKDFs(CipherKDFs):
 
     def new_session(
         self, summary: bytes
-    ) -> t.Generator[t.Tuple[str, t.XOFType], None, None]:
+    ) -> t.Generator[tuple[str, t.XOFType], None, None]:
         """
         Yields copies of the instance's KDFs that have been given the
         fresh randomness & context of a session's `summary`.

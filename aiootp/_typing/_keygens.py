@@ -155,10 +155,10 @@ class SignerType(AsymmetricKeyType, t.Protocol):
 
 @t.runtime_checkable
 class KeyExchangeProtocolType(t.Protocol):
-    async def asend(self, *keys: bytes) -> t.Union[t.Tuple[bytes], bytes]:
+    async def asend(self, *keys: bytes) -> t.Union[tuple[bytes], bytes]:
         pass  # pragma: no cover
 
-    def send(self, *keys: bytes) -> t.Union[t.Tuple[bytes], bytes]:
+    def send(self, *keys: bytes) -> t.Union[tuple[bytes], bytes]:
         pass  # pragma: no cover
 
     async def areceive(self, *keys: bytes) -> DomainKDFType:

@@ -82,7 +82,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
 
     async def asend(
         self, /, peer_identity_key: t.Union[bytes, t.PublicKeyType]
-    ) -> t.Tuple[bytes, bytes]:
+    ) -> tuple[bytes, bytes]:
         """
         Receives the identity public key of the intended server & returns
         the instance's identity & ephemeral public keys to be sent to the
@@ -97,7 +97,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
 
     def send(
         self, /, peer_identity_key: t.Union[bytes, t.PublicKeyType]
-    ) -> t.Tuple[bytes, bytes]:
+    ) -> tuple[bytes, bytes]:
         """
         Receives the identity public key of the intended server & returns
         the instance's identity & ephemeral public keys to be sent to the

@@ -75,7 +75,7 @@ class FastAffineXORChain(AffineXORChain):
 
     def _initialize_permutations(
         self, key_reader: t.Callable[[int], bytes], size: int
-    ) -> t.Tuple[t.PermutationType]:
+    ) -> tuple[t.PermutationType]:
         """
         Uses the permutation configuration ID saved in the instance's
         config to initialize & return three pointers to the same affine

@@ -44,7 +44,7 @@ class PackageSignerScope(t.OpenNamespace):
         package: str,
         version: str,
         date: int,
-        **extras: t.Dict[str, t.JSONSerializable],
+        **extras: dict[str, t.JSONSerializable],
     ) -> None:
         self.update(extras)
         self.package = package
@@ -119,7 +119,7 @@ class PackageSigner:
     InvalidSignature: type = PackageSignerIssue.InvalidSignature
 
     @classmethod
-    def _database_template(cls) -> t.Dict[str, t.Union[str, t.JSONObject]]:
+    def _database_template(cls) -> dict[str, t.Union[str, t.JSONObject]]:
         """
         Returns the default instance package database values for
         initializing new databases.
@@ -199,7 +199,7 @@ class PackageSigner:
             raise PackageSignerIssue.DatabaseNotConnected from None
 
     @property
-    def _checksums(self) -> t.Dict[str, str]:
+    def _checksums(self) -> dict[str, str]:
         """
         Returns the instance's package filenames & their hexdigests in
         a JSON ready dictionary.
@@ -329,7 +329,7 @@ class PackageSigner:
             )
         return self
 
-    def summarize(self) -> t.Dict[str, t.JSONSerializable]:
+    def summarize(self) -> dict[str, t.JSONSerializable]:
         """
         Assures the stored package checksum signature matches the
         current checksum of the package summary. If valid, the summary

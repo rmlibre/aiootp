@@ -23,6 +23,7 @@ Minor Changes
 
 - build(signer): include socket time out error in catch statements
 - docs(fix): unlink docstring reference to changed parameter name
+- fix(build): update ruff version target & typing annotations
 - fix(config): allow setting the time unit for passcrypt instances
 - fix(db): remove deprecated use of dunder dict on containers
 - fix(typing): disallow specifying dunder dict type in slots_types

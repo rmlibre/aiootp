@@ -59,7 +59,7 @@ class AsyncProfileTokens(FrozenSlots):
 
     async def _asummon_profile_salt(
         self, path: t.PathStr
-    ) -> t.Tuple[t.Path, bytes]:
+    ) -> tuple[t.Path, bytes]:
         """
         Creates or loads a salt value saved on the user filesystem to
         help add more entropy to their key derivation functions when
@@ -161,9 +161,7 @@ class ProfileTokens(FrozenSlots):
         salt_path = SecureSaltPath(path, key=key, _admin=True)
         return read_salt_file(salt_path)
 
-    def _summon_profile_salt(
-        self, path: t.PathStr
-    ) -> t.Tuple[t.Path, bytes]:
+    def _summon_profile_salt(self, path: t.PathStr) -> tuple[t.Path, bytes]:
         """
         Creates or loads a salt value saved on the user filesystem to
         help add more entropy to their key derivation functions when

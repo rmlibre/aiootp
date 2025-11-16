@@ -129,7 +129,7 @@ class AffineXORChain(FrozenInstance):
 
     def _process_mid_key(
         self, key_reader: t.Callable[[int], bytes], size: int
-    ) -> t.Tuple[int, int]:
+    ) -> tuple[int, int]:
         """
         Returns two integer versions with optimal hamming distance of a
         segment of the instance's key. If the segment retrieved isn't
@@ -162,7 +162,7 @@ class AffineXORChain(FrozenInstance):
 
     def _initialize_keys(
         self, key_reader: t.Callable[[int], bytes], size: int
-    ) -> t.Tuple[bytes, bytes, bytes, bytes]:
+    ) -> tuple[bytes, bytes, bytes, bytes]:
         """
         Returns the instance's integer keys that are used to XOR the
         inputs & outputs between the chained calls to its component
@@ -176,7 +176,7 @@ class AffineXORChain(FrozenInstance):
 
     def _initialize_permutations(
         self, key_reader: t.Callable[[int], bytes], size: int
-    ) -> t.Tuple[t.PermutationType]:
+    ) -> tuple[t.PermutationType]:
         """
         Uses the permutation configuration ID saved in the instance's
         config to initialize & return the affine permutations which will

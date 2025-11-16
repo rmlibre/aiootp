@@ -102,7 +102,7 @@ class PasscryptProcesses(FrozenInstance):
         cores: int,
         tag_size: int,
         config: t.ConfigType,
-    ) -> t.List[t.Future]:
+    ) -> list[t.Future]:
         """
         Returns a list of started key derivation sessions that are run
         inside process pool `Future`'s.
@@ -138,7 +138,7 @@ class PasscryptProcesses(FrozenInstance):
         cores: int,
         tag_size: int,
         config: t.ConfigType,
-    ) -> t.List[t.Future]:
+    ) -> list[t.Future]:
         """
         Returns a list of started key derivation sessions that are run
         inside process pool `Future`'s.

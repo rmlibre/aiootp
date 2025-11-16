@@ -34,7 +34,7 @@ Cls = NewType("Cls", Self)
 
 
 def _transpose_this_modules_types(
-    class_dict: typing.Dict[str, typing.Any],
+    class_dict: dict[str, typing.Any],
 ) -> None:
     """
     Inserts the types from this module's global namespace.
@@ -48,7 +48,7 @@ def _transpose_this_modules_types(
 
 
 def _transpose_types_modules_types(
-    class_dict: typing.Dict[str, typing.Any],
+    class_dict: dict[str, typing.Any],
 ) -> None:
     """
     Inserts the types from the standard library's `types` module.
@@ -59,7 +59,7 @@ def _transpose_types_modules_types(
 
 
 def _transpose_typing_modules_types(
-    class_dict: typing.Dict[str, typing.Any],
+    class_dict: dict[str, typing.Any],
 ) -> None:
     """
     Inserts the types from the standard library's `typing` module.

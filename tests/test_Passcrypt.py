@@ -297,7 +297,7 @@ class TestPasscryptMetadataHashes:
 
 class TestPasscryptTestVectors:
     def accrue_failures(
-        self, index: int, failures: t.List[Exception]
+        self, index: int, failures: list[Exception]
     ) -> None:
         return lambda relay: failures.append((index, relay.error)) or True
 

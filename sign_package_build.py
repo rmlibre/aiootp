@@ -64,12 +64,12 @@ RECV_AAD: bytes = b"provided_build_signature"
 SIGNING_KEY: bytes = bytes.fromhex(__PUBLIC_ED25519_KEY__)
 
 
-MANIFEST_EXCLUDES: t.Set[str] = {
+MANIFEST_EXCLUDES: set[str] = {
     ".github/",
     "aiootp/db/",
     "aiootp/tor/",
 }
-DYNAMIC_FILES: t.Set[str] = {
+DYNAMIC_FILES: set[str] = {
     (MANIFEST_FILENAME := "MANIFEST.in"),
     (SIGNATURE_FILENAME := "SIGNATURE.txt"),
 }

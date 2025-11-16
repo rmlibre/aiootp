@@ -134,9 +134,9 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
     @property
     def _iter_shortcuts(
         self,
-    ) -> t.Tuple[
+    ) -> tuple[
         t.Callable[..., bytes],
-        t.Deque[bytes],
+        deque[bytes],
         t.Callable[[None], bytes],
     ]:
         """
@@ -149,7 +149,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
     @property
     def _buffer_shortcuts(
         self,
-    ) -> t.Tuple[t.Deque[bytes], t.Callable[[bytes], None]]:
+    ) -> tuple[deque[bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -159,7 +159,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     async def __aiter__(
         self,
-    ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
+    ) -> t.AsyncGenerator[tuple[bytes, bytes], None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
         of times in the process of gathering data to buffer for the
@@ -173,7 +173,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
 
     async def afinalize(
         self,
-    ) -> t.AsyncGenerator[t.Tuple[bytes, bytes], None]:
+    ) -> t.AsyncGenerator[tuple[bytes, bytes], None]:
         """
         Instructs the instance to finish receiving data into the buffer
         & to flush all ciphertext results out to the user.
@@ -213,7 +213,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
     async def _adigest_data(
         self,
         data: t.Callable[[int], bytes],
-        buffer: t.Deque[bytes],
+        buffer: deque[bytes],
         append: t.Callable[[bytes], None],
     ) -> None:
         """
@@ -366,9 +366,9 @@ class CipherStream(CipherStreamProperties):
     @property
     def _iter_shortcuts(
         self,
-    ) -> t.Tuple[
+    ) -> tuple[
         t.Callable[..., bytes],
-        t.Deque[bytes],
+        deque[bytes],
         t.Callable[[None], bytes],
     ]:
         """
@@ -381,7 +381,7 @@ class CipherStream(CipherStreamProperties):
     @property
     def _buffer_shortcuts(
         self,
-    ) -> t.Tuple[t.Deque[bytes], t.Callable[[bytes], None]]:
+    ) -> tuple[deque[bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -389,7 +389,7 @@ class CipherStream(CipherStreamProperties):
         """
         return self._buffer, self._buffer.append
 
-    def __iter__(self) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
+    def __iter__(self) -> t.Generator[tuple[bytes, bytes], None, None]:
         """
         Allows the object to be entered in for-loops an unlimited amount
         of times in the process of gathering data to buffer for the
@@ -401,7 +401,7 @@ class CipherStream(CipherStreamProperties):
             block = cipher(None)
             yield next_block_id(block), block
 
-    def finalize(self) -> t.Generator[t.Tuple[bytes, bytes], None, None]:
+    def finalize(self) -> t.Generator[tuple[bytes, bytes], None, None]:
         """
         Instructs the instance to finish receiving data into the buffer
         & to flush all ciphertext results out to the user.
@@ -443,7 +443,7 @@ class CipherStream(CipherStreamProperties):
     def _digest_data(
         self,
         data: t.Callable[[int], bytes],
-        buffer: t.Deque[bytes],
+        buffer: deque[bytes],
         append: t.Callable[[bytes], None],
     ) -> None:
         """

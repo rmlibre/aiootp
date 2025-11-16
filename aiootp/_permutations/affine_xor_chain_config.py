@@ -56,7 +56,7 @@ class AffineXORChainConfig(Config):
         Permutation=t.PermutationType,
     )
 
-    _DEFAULT_KEY_TYPES: t.Tuple[t.Tuple[str, int]] = (
+    _DEFAULT_KEY_TYPES: tuple[tuple[str, int]] = (
         ("in_xor", 1),
         ("in_add", 2),
         ("mid_xor", 1),
@@ -64,7 +64,7 @@ class AffineXORChainConfig(Config):
         ("out_xor", 1),
         ("out_add", 2),
     )
-    _FAST_CHAIN_KEY_TYPES: t.Tuple[t.Tuple[str, int]] = (
+    _FAST_CHAIN_KEY_TYPES: tuple[tuple[str, int]] = (
         ("add", 2),
         ("in_xor", 1),
         ("mid_xor", 1),
@@ -82,8 +82,8 @@ class AffineXORChainConfig(Config):
             raise Issue.value_must("size", "be > 0 and <= 4096")
 
     def _process_key_types(
-        self, key_types: t.Optional[t.Tuple[t.Tuple[str, int]]]
-    ) -> t.Tuple[t.Tuple[str, int]]:
+        self, key_types: t.Optional[tuple[tuple[str, int]]]
+    ) -> tuple[tuple[str, int]]:
         """
         Returns `key_types` if it contains at least one (str, int) pair,
         otherwise raises `ValueError`. Unless `key_types` isn't
@@ -134,7 +134,7 @@ class AffineXORChainConfig(Config):
         size: int,
         permutation_type: type,
         permutation_config_id: t.Optional[t.Hashable] = None,
-        key_types: t.Optional[t.Tuple[t.Tuple[str, int]]] = None,
+        key_types: t.Optional[tuple[tuple[str, int]]] = None,
     ) -> None:
         """
         Caches the instance's static configuration after type-checking

@@ -34,7 +34,7 @@ LEFT_KDF: str = "left_kdf"
 RIGHT_KDF: str = "right_kdf"
 
 
-def _dual_output_shake_config_inputs(**kw: t.Any) -> t.Dict[str, t.Any]:
+def _dual_output_shake_config_inputs(**kw: t.Any) -> dict[str, t.Any]:
     """
     Simplifies the process of creating new cipher config objects. While
     this will not generally be needed by users of pre-built recipes,

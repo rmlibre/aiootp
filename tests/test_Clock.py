@@ -348,7 +348,7 @@ class TestClock:
         self,
         units: str,
         min_resolution: int,
-        timestamp_bytes: t.List[int],
+        timestamp_bytes: list[int],
         delta: int,
     ) -> None:
         clock = Clock(units)
@@ -374,7 +374,7 @@ class TestClock:
         ],
     )
     async def test_delta_greater_than_ttl_fails(
-        self, units: str, timestamp_bytes: t.List[int], ttl: int
+        self, units: str, timestamp_bytes: list[int], ttl: int
     ) -> None:
         clock = Clock(units)
         past_time = max(0, clock.time() - ttl - 1)

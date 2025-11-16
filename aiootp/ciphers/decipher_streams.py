@@ -152,7 +152,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
     @property
     def _iter_shortcuts(
         self,
-    ) -> t.Tuple[t.Deque[bytes], t.Callable[[], bytes]]:
+    ) -> tuple[deque[bytes], t.Callable[[], bytes]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -163,7 +163,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
     @property
     def _digest_data_shortcuts(
         self,
-    ) -> t.Tuple[t.Callable[[None], bytes], t.Callable[[bytes], None]]:
+    ) -> tuple[t.Callable[[None], bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -174,7 +174,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
     @property
     def _buffer_shortcuts(
         self,
-    ) -> t.Tuple[t.Callable[..., None], t.Callable[[bytes], None]]:
+    ) -> tuple[t.Callable[..., None], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -182,7 +182,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         """
         return self.shmac.atest_next_block_id, self._buffer.append
 
-    async def _atest_timestamp(self, queue: t.Deque[bytes]) -> None:
+    async def _atest_timestamp(self, queue: deque[bytes]) -> None:
         """
         Raises `TimestampExpired` if the timestamp prepended to the
         plaintext is older than the time-to-live specified by the
@@ -196,7 +196,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
             self._is_streaming = False
             raise error
 
-    async def _aremove_inner_header(self, queue: t.Deque[bytes]) -> None:
+    async def _aremove_inner_header(self, queue: deque[bytes]) -> None:
         """
         Strips the inner header from the buffered plaintext in the queue
         in the cases where the inner header spans multiple blocks.
@@ -441,7 +441,7 @@ class DecipherStream(CipherStreamProperties):
     @property
     def _iter_shortcuts(
         self,
-    ) -> t.Tuple[t.Deque[bytes], t.Callable[[], bytes]]:
+    ) -> tuple[deque[bytes], t.Callable[[], bytes]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -452,7 +452,7 @@ class DecipherStream(CipherStreamProperties):
     @property
     def _digest_data_shortcuts(
         self,
-    ) -> t.Tuple[t.Callable[[None], bytes], t.Callable[[bytes], None]]:
+    ) -> tuple[t.Callable[[None], bytes], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -463,7 +463,7 @@ class DecipherStream(CipherStreamProperties):
     @property
     def _buffer_shortcuts(
         self,
-    ) -> t.Tuple[t.Callable[..., None], t.Callable[[bytes], None]]:
+    ) -> tuple[t.Callable[..., None], t.Callable[[bytes], None]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -471,7 +471,7 @@ class DecipherStream(CipherStreamProperties):
         """
         return self.shmac.test_next_block_id, self._buffer.append
 
-    def _test_timestamp(self, queue: t.Deque[bytes]) -> None:
+    def _test_timestamp(self, queue: deque[bytes]) -> None:
         """
         Raises `TimestampExpired` if the timestamp prepended to the
         plaintext is older than the time-to-live specified by the
@@ -485,7 +485,7 @@ class DecipherStream(CipherStreamProperties):
             self._is_streaming = False
             raise error
 
-    def _remove_inner_header(self, queue: t.Deque[bytes]) -> None:
+    def _remove_inner_header(self, queue: deque[bytes]) -> None:
         """
         Strips the inner header from the buffered plaintext in the queue
         in the cases where the inner header spans multiple blocks.

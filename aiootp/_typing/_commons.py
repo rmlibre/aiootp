@@ -33,7 +33,7 @@ class ConfigType(t.Protocol):
     def values(self) -> t.Generator[t.Any, None, None]:
         pass  # pragma: no cover
 
-    def items(self) -> t.Generator[t.Tuple[str, t.Any], None, None]:
+    def items(self) -> t.Generator[tuple[str, t.Any], None, None]:
         pass  # pragma: no cover
 
     def update(

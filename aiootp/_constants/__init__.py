@@ -59,7 +59,7 @@ class NamespaceMapping(t.SimpleNamespace):
     def values(self, /) -> t.Iterable[t.Any]:
         yield from self.__dict__.values()
 
-    def items(self, /) -> t.Iterable[t.Tuple[t.Hashable, t.Any]]:
+    def items(self, /) -> t.Iterable[tuple[t.Hashable, t.Any]]:
         yield from self.__dict__.items()
 
     def update(

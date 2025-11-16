@@ -224,7 +224,7 @@ def unpack(
 
 async def azip(
     *iterables: t.AsyncOrSyncIterable[t.Any],
-) -> t.AsyncGenerator[t.List[t.Any], None]:
+) -> t.AsyncGenerator[list[t.Any], None]:
     """
     Creates an asynchronous version of the `builtins.zip` function
     which is wrapped by the `Comprende` class.

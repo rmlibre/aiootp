@@ -32,7 +32,7 @@ BLOCK_ID_KDF: str = "block_id_kdf"
 SHMAC_KDF: str = "shmac_kdf"
 
 
-def _shake_permute_config_inputs(**kw: t.Any) -> t.Dict[str, t.Any]:
+def _shake_permute_config_inputs(**kw: t.Any) -> dict[str, t.Any]:
     """
     Simplifies the process of creating new cipher config objects. While
     this will not generally be needed by users of pre-built recipes,

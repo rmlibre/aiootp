@@ -34,7 +34,7 @@ class DebugControl:
 
     _DEBUG_MODE: bool = False
 
-    _switches: t.List[t.Callable[[bool], t.Any]] = []
+    _switches: list[t.Callable[[bool], t.Any]] = []
 
     @classmethod
     def is_debugging(cls, /) -> bool:

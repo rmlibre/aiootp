@@ -147,7 +147,7 @@ class ConfigMap(OpenFrozenNamespace):
 
     __slots__ = (CONFIG_TYPE,)
 
-    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
+    _UNMAPPED_ATTRIBUTES: tuple[str] = (
         *OpenFrozenNamespace._UNMAPPED_ATTRIBUTES,
         CONFIG_TYPE,
     )
