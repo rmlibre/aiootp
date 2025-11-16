@@ -25,6 +25,7 @@ Minor Changes
 - docs(fix): unlink docstring reference to changed parameter name
 - fix(build): update ruff version target & typing annotations
 - fix(config): allow setting the time unit for passcrypt instances
+- fix(config): fixup bd062e2, making remaining time units picklable
 - fix(db): remove deprecated use of dunder dict on containers
 - fix(typing): disallow specifying dunder dict type in slots_types
 - refactor(config): simplify interface for low-level Passcrypt helpers
