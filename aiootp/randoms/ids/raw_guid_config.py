@@ -117,8 +117,6 @@ class RawGUIDContainer(OpenFrozenSlots):
 
     __slots__ = ("timestamp", "token", "node_id", "ticker")
 
-    _MAPPED_ATTRIBUTES: tuple[str] = __slots__
-
     def __init__(self, guid: bytes, *, config: RawGUIDConfig) -> None:
         if not len(guid) == config.SIZE:
             raise Issue.invalid_length("raw guid", config.SIZE)
@@ -127,9 +125,6 @@ class RawGUIDContainer(OpenFrozenSlots):
         self.token = reader(config.PRF_BYTES)
         self.node_id = reader(config.NODE_ID_BYTES)
         self.ticker = reader(config.TICKER_BYTES)
-
-    def __iter__(self) -> t.Generator[str, None, None]:
-        yield from self._MAPPED_ATTRIBUTES
 
     def __hash__(self) -> int:
         return int.from_bytes(self.sort_key, BIG)

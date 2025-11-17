@@ -44,8 +44,6 @@ class PasscryptSettings(OpenFrozenSlots):
 
     __slots__ = ("mb", "cpu", "cores", "tag_size", "salt_size")
 
-    _MAPPED_ATTRIBUTES: tuple[str] = __slots__
-
     def __init__(
         self,
         *,

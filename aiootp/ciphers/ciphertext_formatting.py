@@ -33,7 +33,7 @@ class Ciphertext(OpenFrozenSlots):
 
     __slots__ = ("shmac", "salt", "iv", "ciphertext", "config")
 
-    _MAPPED_ATTRIBUTES: tuple[str] = ("shmac", "salt", "iv", "ciphertext")
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"config"})
 
     InvalidCiphertextSize: type = InvalidCiphertextSize
 
@@ -52,9 +52,6 @@ class Ciphertext(OpenFrozenSlots):
         self.salt = data.read(config.SALT_BYTES)
         self.iv = data.read(config.IV_BYTES)
         self.ciphertext = data.read()
-
-    def __iter__(self) -> t.Generator[str, None, None]:
-        yield from self._MAPPED_ATTRIBUTES
 
     def _ensure_valid_size(self, data_length: int) -> None:
         """

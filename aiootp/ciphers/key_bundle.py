@@ -36,7 +36,9 @@ class SaltAADIV(FrozenSlots):
 
     __slots__ = ("salt", "aad", "iv", "config", "iv_is_fresh")
 
-    _MAPPED_ATTRIBUTES: tuple[str] = ("salt", "aad", "iv")
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset(
+        {"config", "iv_is_fresh"}
+    )
 
     def __init__(
         self,
@@ -51,9 +53,6 @@ class SaltAADIV(FrozenSlots):
         self.aad = aad
         self.iv = self._process_iv(iv)
         self._test_salt_aad_iv(self.salt, self.aad, self.iv)
-
-    def __iter__(self) -> t.Generator[str, None, None]:
-        yield from self._MAPPED_ATTRIBUTES
 
     def _process_iv(self, iv: bytes) -> bytes:
         """

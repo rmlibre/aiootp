@@ -62,18 +62,26 @@ class Slots:
 
     __slots__ = ()
 
-    _MAPPED_ATTRIBUTES: tuple[str] = ()
-    _UNMAPPED_ATTRIBUTES: tuple[str] = (
-        "__dict__",
-        "_MAPPED_ATTRIBUTES",
+    # fmt: off
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"__dict__"})
+    _DIRLESS_ATTRIBUTES: frozenset[str] = frozenset({
         "_UNMAPPED_ATTRIBUTES",
-        "_is_mapped_attribute",
+        "_DIRLESS_ATTRIBUTES",
+        "_RESTRICTED_ATTRIBUTES",
         "keys",
         "values",
         "items",
         "update",
         "clear",
-    )
+    })
+    _RESTRICTED_ATTRIBUTES: frozenset[str] = frozenset({
+        "keys",
+        "values",
+        "items",
+        "update",
+        "clear",
+    })
+    # fmt: on
 
     def __init_subclass__(cls, /, *a: t.Any, **kw: t.Any) -> None:
         """
@@ -82,21 +90,22 @@ class Slots:
         super().__init_subclass__(*a, **kw)
         # Preserve original declaration order & enforce uniqueness
         # fmt: off
-        cls.__slots__ = tuple({
-            name: None
-            for subcls in cls.__mro__
-            for name in getattr(subcls, "__slots__", ())
-        })
-        cls._MAPPED_ATTRIBUTES = tuple({
-            name: None
-            for subcls in cls.__mro__
-            for name in getattr(subcls, "_MAPPED_ATTRIBUTES", ())
-        })
-        cls._UNMAPPED_ATTRIBUTES = tuple({
-            name: None
-            for subcls in cls.__mro__
-            for name in getattr(subcls, "_UNMAPPED_ATTRIBUTES", ())
-        })
+        for collection_type, collection in (
+            (tuple, "__slots__"),
+            (frozenset, "_UNMAPPED_ATTRIBUTES"),
+            (frozenset, "_DIRLESS_ATTRIBUTES"),
+            (frozenset, "_RESTRICTED_ATTRIBUTES"),
+        ):
+            attrs = collection_type({
+                name: None
+                for subcls in cls.__mro__
+                for name in getattr(subcls, collection, ())
+            })
+            setattr(cls, collection, attrs)
+
+        conflicts = cls._RESTRICTED_ATTRIBUTES.intersection(cls.__slots__)
+        if conflicts:
+            raise Issue.slots_conflicts_with_class_variables((*conflicts,))
         # fmt: on
         cls._slots_set = frozenset(cls.__slots__)
 
@@ -126,11 +135,11 @@ class Slots:
         """
         Returns the instance directory.
         """
-        return list(
-            set(object.__dir__(self))
-            .difference(self._UNMAPPED_ATTRIBUTES)
-            .union(self._MAPPED_ATTRIBUTES)
-        )
+        return [
+            name
+            for name in object.__dir__(self)
+            if name not in self._DIRLESS_ATTRIBUTES
+        ]
 
     def __bool__(self, /) -> bool:
         """
@@ -199,7 +208,9 @@ class Slots:
         Transforms bracket item assignment into dotted assignment on the
         instance.
         """
-        if name.__class__ is str:
+        if name in self._RESTRICTED_ATTRIBUTES:
+            raise Issue.cant_reassign_attribute(name)
+        elif name.__class__ is str:
             object.__setattr__(self, name, value)
         else:
             self.__dict__[name] = value
@@ -241,15 +252,6 @@ class Slots:
         end = f",{sep}" if self else ""
         return f"{cls.__qualname__}({start}{body}{end})"
 
-    def _is_mapped_attribute(self, name: str, /) -> bool:
-        """
-        Allows the class to define criteria which include an instance
-        attribute within the mapping unpacking interface.
-        """
-        mapped = name in self._MAPPED_ATTRIBUTES
-        unmapped = name in self._UNMAPPED_ATTRIBUTES
-        return mapped or not unmapped
-
     async def __aiter__(self, /) -> t.AsyncGenerator[t.Any, None]:
         """
         Unpacks instance variable names with with async iteration.
@@ -262,8 +264,9 @@ class Slots:
         """
         Unpacks instance variable names with with sync iteration.
         """
+        unmapped_attributes = self._UNMAPPED_ATTRIBUTES
         for name in collate(self.__slots__, getattr(self, "__dict__", ())):
-            if name in self and self._is_mapped_attribute(name):
+            if name in self and name not in unmapped_attributes:
                 yield name
 
     def keys(self, /) -> t.Iterable[t.Hashable]:

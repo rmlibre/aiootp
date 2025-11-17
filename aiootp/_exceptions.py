@@ -501,6 +501,9 @@ class Issue:
     _BROKEN_POOL_RESTARTED: str = (
         "The process pool was broken & has now been restarted. Try again."
     )
+    _SLOTS_CONFLICTS_WITH_CLASS_VARIABLES: str = (
+        "'CONFLICTS' in __slots__ conflicts with class variable"
+    )
 
     @classmethod
     def invalid_value(cls, name: str, problem: str = "", /) -> ValueError:
@@ -570,6 +573,13 @@ class Issue:
     @classmethod
     def broken_pool_restarted(cls, /) -> RuntimeError:
         return RuntimeError(cls._BROKEN_POOL_RESTARTED)  # pragme: no cover
+
+    @classmethod
+    def slots_conflicts_with_class_variables(
+        cls, conflicts: t.Union[str, t.Container[str]], /
+    ) -> ValueError:
+        issue = cls._SLOTS_CONFLICTS_WITH_CLASS_VARIABLES
+        return ValueError(issue.replace("CONFLICTS", repr(conflicts)))
 
 
 class CanonicalIssue:

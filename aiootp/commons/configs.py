@@ -147,7 +147,7 @@ class ConfigMap(OpenFrozenNamespace):
 
     __slots__ = (CONFIG_TYPE,)
 
-    _UNMAPPED_ATTRIBUTES: tuple[str] = (CONFIG_TYPE,)
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({CONFIG_TYPE})
 
     def __init__(
         self,

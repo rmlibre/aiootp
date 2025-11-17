@@ -50,16 +50,7 @@ class PasscryptHash(FrozenSlots):
 
     __slots__ = ("timestamp", "mb", "cpu", "cores", "salt", "tag", "config")
 
-    _MAPPED_ATTRIBUTES: tuple[str] = (
-        "timestamp",
-        "mb",
-        "cpu",
-        "cores",
-        "salt",
-        "tag",
-    )
-
-    _UNMAPPED_ATTRIBUTES: tuple[str] = ("config",)
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"config"})
 
     def __init__(
         self,

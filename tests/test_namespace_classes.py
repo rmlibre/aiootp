@@ -25,31 +25,30 @@ from aiootp.randoms import choice
 class SlotsAttributes:
     __slots__ = ()
 
-    _items: t.Dict[str, t.Any] = dict(
+    _items: dict[str, t.Any] = dict(
         _private=True,
         one=1,
         mapped="value",
         unmapped=tuple("attr"),
         slotted="thing",
+        dirless=101.01,
     )
-    _MAPPED_ATTRIBUTES: t.Tuple[str] = tuple(
-        name for name in _items if name != "unmapped"
-    )
-    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
-        *Slots._UNMAPPED_ATTRIBUTES,
-        "mapped",
-        "unmapped",
-    )  # Being mapped overrides being unmapped
+
+    # Removes attr from being produced during unpacking & iteration
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"unmapped"})
+
+    # Removes attr from `dir()`
+    _DIRLESS_ATTRIBUTES: frozenset[str] = frozenset({"dirless"})
 
 
 class NamespaceAttributes(SlotsAttributes):
     __slots__ = ()
 
-    _UNMAPPED_ATTRIBUTES: t.Tuple[str] = (
-        *Namespace._UNMAPPED_ATTRIBUTES,
-        "mapped",
-        "unmapped",
-    )  # Being mapped overrides being unmapped
+    # Removes attr from being produced during unpacking & iteration
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"unmapped"})
+
+    # Removes attr from `dir()`
+    _DIRLESS_ATTRIBUTES: frozenset[str] = frozenset({"dirless"})
 
 
 class BaseVariableHoldingClassTests:
@@ -105,8 +104,9 @@ class BaseReprControlledTests(BaseVariableHoldingClassTests):
         string = repr(obj)
         for name, value in self._items.items():
             if name[0] == "_" or (
-                hasattr(obj, "_is_mapped_attribute")
-                and not obj._is_mapped_attribute(name)
+                hasattr(self._type, "_UNMAPPED_ATTRIBUTES")
+                and isinstance(obj, t.Iterable)
+                and name in obj._UNMAPPED_ATTRIBUTES
             ):
                 assert name not in string
             else:
@@ -162,12 +162,9 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
         items = {**self._items, 123: "number"}
         obj = self._type()
         unmapped = set()
-        MAPPED = getattr(obj, "_MAPPED_ATTRIBUTES", ())
         UNMAPPED = getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
         for i, (name, value) in enumerate(items.items(), start=1):
-            if name in MAPPED or name not in UNMAPPED:
-                pass
-            else:
+            if name in UNMAPPED:
                 unmapped.add(name)
             obj[name] = value
             assert name in obj
@@ -293,24 +290,63 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
 
 
 class BaseIndexableTests(BaseVariableHoldingClassTests):
-    async def test_unmapped_attributes_arent_in_dir(self) -> None:
-        obj = self._type(self._items)
-        if not hasattr(obj, "_UNMAPPED_ATTRIBUTES"):
+    async def test_dirless_attributes_arent_in_dir(self) -> None:
+        if not hasattr(self._type, "_DIRLESS_ATTRIBUTES"):
             return
-        if all((type(item) is str) for item in self._items):
-            assert not (
-                set(obj.__class__._UNMAPPED_ATTRIBUTES).difference(
-                    obj.__class__._MAPPED_ATTRIBUTES
-                )
-            ).intersection(value for value in dir(obj))
+
+        obj = self._type(self._items)
+        assert obj.__class__._DIRLESS_ATTRIBUTES == (
+            obj.__class__._DIRLESS_ATTRIBUTES.difference(dir(obj))
+        )
+
+    async def test_unmapped_attributes_are_in_dir(self) -> None:
+        if not hasattr(self._type, "_UNMAPPED_ATTRIBUTES"):
+            return
+
+        obj = self._type(self._items)
+        unmapped = obj.__class__._UNMAPPED_ATTRIBUTES
+        assert not unmapped.intersection(obj).difference(dir(obj))
+
+    async def test_restricted_attributes_cant_be_slots(self) -> None:
+        if not hasattr(self._type, "_RESTRICTED_ATTRIBUTES"):
+            return
+
+        problem = (
+            "a class' restricted attributes were allowed to be specified "
+            "as instance slots."
+        )
+        with Ignore(ValueError, if_else=violation(problem)):
+
+            class ViolatingClass(self._type):
+                __slots__ = (*self._type._RESTRICTED_ATTRIBUTES,)
+
+    async def test_restricted_attributes_cant_be_reassigned(self) -> None:
+        if not hasattr(self._type, "_RESTRICTED_ATTRIBUTES"):
+            return
+
+        problem = (
+            "a class' restricted attribute was allowed to be reassigned "
+            "as an instance attribute."
+        )
+
+        class ViolatingClass(self._type):
+            if "__dict__" in self._type.__slots__:
+                __slots__ = ()
+            else:
+                __slots__ = ("__dict__",)
+
+            _RESTRICTED_ATTRIBUTES = frozenset({"restricted"})
+
+        with Ignore(PermissionError, if_else=violation(problem)):
+            ViolatingClass(restricted=True)
 
     async def test_len_is_number_of_mapped_items_in_instance(self) -> None:
         obj = self._type(self._items)
         assert len(obj) == sum(1 for name in obj)
         assert len(obj) == len(
-            set(self._items)
-            .difference(getattr(obj, "_UNMAPPED_ATTRIBUTES", ()))
-            .union(getattr(obj, "_MAPPED_ATTRIBUTES", ()))
+            set(self._items).difference(
+                getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
+            )
         )
 
     async def test_indexable_iterations(self) -> None:
