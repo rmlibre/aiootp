@@ -172,7 +172,7 @@ class BaseSlotsDerivedClass(BaseVariableHoldingClassTests):
                 # certain subtypes must specify the expected type of the
                 # data held by a declared slot attribute. here we mock a
                 # new attr-type association for the subclass under test
-                slots_types = {obj_attr: None.__class__}
+                slots_types = {obj_attr: t.NoneType}
 
         result = set(getattr(SlotsSubclass, cls_attr))
         root_contribution = set(getattr(Slots, cls_attr))

@@ -36,6 +36,9 @@ __all__ = [
 from .interface import Typing as t
 
 
+NoneType = None.__class__
+
+
 Base64URLSafe = t.Base64URLSafe = t.NewType(
     "Base64URLSafe", t.Union[str, bytes]
 )
@@ -126,6 +129,7 @@ module_api = dict(
     JSONDeserializable=JSONDeserializable,
     JSONObject=JSONObject,
     JSONSerializable=JSONSerializable,
+    NoneType=t.add_type(NoneType),
     Number=Number,
     PositiveRealNumber=PositiveRealNumber,
     RealNumber=RealNumber,
