@@ -42,7 +42,7 @@ class SlotsAttributes:
 
 
 class NamespaceAttributes(SlotsAttributes):
-    __slots__ = ()
+    __slots__ = ("__dict__",)
 
     # Removes attr from being produced during unpacking & iteration
     _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"unmapped"})
@@ -295,9 +295,8 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
             return
 
         obj = self._type(self._items)
-        assert obj.__class__._DIRLESS_ATTRIBUTES == (
-            obj.__class__._DIRLESS_ATTRIBUTES.difference(dir(obj))
-        )
+        dirless_attrs = obj.__class__._DIRLESS_ATTRIBUTES
+        assert dirless_attrs == dirless_attrs.difference(dir(obj))
 
     async def test_unmapped_attributes_are_in_dir(self) -> None:
         if not hasattr(self._type, "_UNMAPPED_ATTRIBUTES"):
@@ -420,9 +419,7 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
 
                 slots_types = dict(__dict__=dict, a=int, b=int)
 
-    async def test_slots_contains_all_names_in_slots_types(
-        self,
-    ) -> None:
+    async def test_slots_contains_all_names_in_slots_types(self) -> None:
         problem = (  # fmt: skip
             "A type was created with a mismatch in variable declarations."
         )
@@ -509,7 +506,7 @@ class FrozenSlotsType(SlotsAttributes, FrozenSlots):
 
 
 class FrozenSlotsDictType(NamespaceAttributes, FrozenSlots):
-    __slots__ = ("__dict__", *BaseVariableHoldingClassTests._items)
+    __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
 
 class OpenFrozenSlotsType(SlotsAttributes, OpenFrozenSlots):
@@ -590,8 +587,8 @@ class TypedSlotsType(SlotsAttributes, TypedSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
     slots_types = {
-        name: BaseVariableHoldingClassTests._items[name].__class__
-        for name in BaseVariableHoldingClassTests._items
+        name: value.__class__
+        for name, value in BaseVariableHoldingClassTests._items.items()
     }
 
 
@@ -599,8 +596,8 @@ class OpenTypedSlotsType(SlotsAttributes, OpenTypedSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
     slots_types = {
-        name: BaseVariableHoldingClassTests._items[name].__class__
-        for name in BaseVariableHoldingClassTests._items
+        name: value.__class__
+        for name, value in BaseVariableHoldingClassTests._items.items()
     }
 
 
@@ -608,17 +605,17 @@ class FrozenTypedSlotsType(SlotsAttributes, FrozenTypedSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
     slots_types = {
-        name: BaseVariableHoldingClassTests._items[name].__class__
-        for name in BaseVariableHoldingClassTests._items
+        name: value.__class__
+        for name, value in BaseVariableHoldingClassTests._items.items()
     }
 
 
 class FrozenTypedSlotsDictType(NamespaceAttributes, FrozenTypedSlots):
-    __slots__ = ("__dict__", *BaseVariableHoldingClassTests._items)
+    __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
     slots_types = {
-        name: BaseVariableHoldingClassTests._items[name].__class__
-        for name in BaseVariableHoldingClassTests._items
+        name: value.__class__
+        for name, value in BaseVariableHoldingClassTests._items.items()
     }
 
 
@@ -626,8 +623,8 @@ class OpenFrozenTypedSlotsType(SlotsAttributes, OpenFrozenTypedSlots):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
     slots_types = {
-        name: BaseVariableHoldingClassTests._items[name].__class__
-        for name in BaseVariableHoldingClassTests._items
+        name: value.__class__
+        for name, value in BaseVariableHoldingClassTests._items.items()
     }
 
 
@@ -697,8 +694,8 @@ class ConfigType(SlotsAttributes, Config):
     __slots__ = tuple(BaseVariableHoldingClassTests._items)
 
     slots_types = {
-        name: BaseVariableHoldingClassTests._items[name].__class__
-        for name in BaseVariableHoldingClassTests._items
+        name: value.__class__
+        for name, value in BaseVariableHoldingClassTests._items.items()
     }
 
 

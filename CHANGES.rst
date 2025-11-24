@@ -32,6 +32,7 @@ Minor Changes
 - fix(typing): disallow specifying dunder dict type in slots_types
 - refactor(cipher): remove unnecessary variable reassignment
 - refactor(config): simplify interface for low-level Passcrypt helpers
+- refactor(misc): improve readability & avoid errors from str typos
 
 
 

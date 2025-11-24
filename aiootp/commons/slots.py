@@ -29,6 +29,13 @@ from aiootp._exceptions import Issue
 from aiootp._gentools import collate
 
 
+DICT: str = "__dict__"
+SLOTS: str = "__slots__"
+UNMAPPED_ATTRIBUTES: str = "_UNMAPPED_ATTRIBUTES"
+DIRLESS_ATTRIBUTES: str = "_DIRLESS_ATTRIBUTES"
+RESTRICTED_ATTRIBUTES: str = "_RESTRICTED_ATTRIBUTES"
+
+
 class Slots:
     """
     A base class which allow subclasses to create very efficient
@@ -63,11 +70,11 @@ class Slots:
     __slots__ = ()
 
     # fmt: off
-    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"__dict__"})
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({DICT})
     _DIRLESS_ATTRIBUTES: frozenset[str] = frozenset({
-        "_UNMAPPED_ATTRIBUTES",
-        "_DIRLESS_ATTRIBUTES",
-        "_RESTRICTED_ATTRIBUTES",
+        UNMAPPED_ATTRIBUTES,
+        DIRLESS_ATTRIBUTES,
+        RESTRICTED_ATTRIBUTES,
         "keys",
         "values",
         "items",
@@ -91,10 +98,10 @@ class Slots:
         # Preserve original declaration order & enforce uniqueness
         # fmt: off
         for collection_type, collection in (
-            (tuple, "__slots__"),
-            (frozenset, "_UNMAPPED_ATTRIBUTES"),
-            (frozenset, "_DIRLESS_ATTRIBUTES"),
-            (frozenset, "_RESTRICTED_ATTRIBUTES"),
+            (tuple, SLOTS),
+            (frozenset, UNMAPPED_ATTRIBUTES),
+            (frozenset, DIRLESS_ATTRIBUTES),
+            (frozenset, RESTRICTED_ATTRIBUTES),
         ):
             attrs = collection_type({
                 name: None
@@ -135,10 +142,11 @@ class Slots:
         """
         Returns the instance directory.
         """
+        dirless_attributes = self._DIRLESS_ATTRIBUTES
         return [
             name
             for name in object.__dir__(self)
-            if name not in self._DIRLESS_ATTRIBUTES
+            if name not in dirless_attributes
         ]
 
     def __bool__(self, /) -> bool:
@@ -158,7 +166,7 @@ class Slots:
         Returns a bool of `name`'s membership in the instance.
         """
         in_slots = name in self._slots_set
-        in_dict = name in getattr(self, "__dict__", ())
+        in_dict = name in getattr(self, DICT, ())
         return (in_slots and hasattr(self, name)) or in_dict
 
     def __setattr__(self, name: str, value: t.Any, /) -> None:
@@ -265,7 +273,7 @@ class Slots:
         Unpacks instance variable names with with sync iteration.
         """
         unmapped_attributes = self._UNMAPPED_ATTRIBUTES
-        for name in collate(self.__slots__, getattr(self, "__dict__", ())):
+        for name in collate(self.__slots__, getattr(self, DICT, ())):
             if name in self and name not in unmapped_attributes:
                 yield name
 
@@ -308,7 +316,7 @@ class Slots:
         """
         Deletes the instance's attribute references from its slots & dict.
         """
-        getattr(self, "__dict__", []).clear()
+        getattr(self, DICT, []).clear()
         for name in self.__slots__:
             if hasattr(self, name):
                 del self[name]
