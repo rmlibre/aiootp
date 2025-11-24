@@ -150,6 +150,38 @@ class BaseFrozenTests(BaseVariableHoldingClassTests):
                 delattr(obj, name)
 
 
+class BaseSlotsDerivedClass(BaseVariableHoldingClassTests):
+    cls_signals: list[tuple[str, type]] = [
+        ("__slots__", tuple),
+        ("_UNMAPPED_ATTRIBUTES", frozenset),
+        ("_DIRLESS_ATTRIBUTES", frozenset),
+        ("_RESTRICTED_ATTRIBUTES", frozenset),
+    ]
+
+    @pytest.mark.parametrize("cls_attr,collection_type", cls_signals)
+    async def test_subclasses_copy_signals_in_mro(
+        self, cls_attr: str, collection_type: type
+    ) -> None:
+        obj_attr: str = f"new_attr_in_{cls_attr.lower()}_collection"
+        new_additions: set[str] = {obj_attr}
+
+        class SlotsSubclass(self._type):
+            vars()[cls_attr] = collection_type(new_additions)
+
+            if cls_attr == "__slots__":
+                # certain subtypes must specify the expected type of the
+                # data held by a declared slot attribute. here we mock a
+                # new attr-type association for the subclass under test
+                slots_types = {obj_attr: None.__class__}
+
+        result = set(getattr(SlotsSubclass, cls_attr))
+        root_contribution = set(getattr(Slots, cls_attr))
+        super_contribution = set(getattr(self._type, cls_attr))
+
+        assert result.issuperset(root_contribution | new_additions)
+        assert result == (super_contribution | new_additions)
+
+
 class BaseDictLikeTests(BaseVariableHoldingClassTests):
     def frozen_violation_catcher(self, name: str) -> Ignore:
         if_except = lambda _: self._frozen
@@ -521,6 +553,7 @@ class TestSlots(
     BaseReprControlledTests,
     BaseMaskableReprTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = SlotsType
     _open: bool = False
@@ -531,6 +564,7 @@ class TestOpenSlots(
     BaseReprControlledTests,
     BaseMaskableReprTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = OpenSlotsType
     _open: bool = True
@@ -542,6 +576,7 @@ class TestFrozenSlots(
     BaseReprControlledTests,
     BaseMaskableReprTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = FrozenSlotsType
     _open: bool = False
@@ -554,6 +589,7 @@ class TestFrozenSlotsDict(
     BaseMaskableReprTests,
     BaseDictLikeTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = FrozenSlotsDictType
     _open: bool = False
@@ -565,6 +601,7 @@ class TestOpenFrozenSlots(
     BaseReprControlledTests,
     BaseMaskableReprTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = OpenFrozenSlotsType
     _open: bool = True
@@ -633,6 +670,7 @@ class TestTypedSlots(
     BaseMaskableReprTests,
     BaseIndexableTests,
     BaseTypedSubclassDefinitionsTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = TypedSlotsType
     _open: bool = False
@@ -644,6 +682,7 @@ class TestOpenTypedSlots(
     BaseMaskableReprTests,
     BaseIndexableTests,
     BaseTypedSubclassDefinitionsTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = OpenTypedSlotsType
     _open: bool = True
@@ -656,6 +695,7 @@ class TestFrozenTypedSlots(
     BaseMaskableReprTests,
     BaseIndexableTests,
     BaseTypedSubclassDefinitionsTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = FrozenTypedSlotsType
     _open: bool = False
@@ -669,6 +709,7 @@ class TestFrozenTypedSlotsDict(
     BaseDictLikeTests,
     BaseIndexableTests,
     BaseTypedSubclassDefinitionsTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = FrozenTypedSlotsDictType
     _open: bool = False
@@ -681,6 +722,7 @@ class TestOpenFrozenTypedSlots(
     BaseMaskableReprTests,
     BaseIndexableTests,
     BaseTypedSubclassDefinitionsTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = OpenFrozenTypedSlotsType
     _open: bool = True
@@ -704,6 +746,7 @@ class TestConfigType(
     BaseReprControlledTests,
     BaseIndexableTests,
     BaseTypedSubclassDefinitionsTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = ConfigType
     _open: bool = True
@@ -743,6 +786,7 @@ class TestNamespace(
     BaseMaskableReprTests,
     BaseDictLikeTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = NamespaceType
     _open: bool = False
@@ -754,6 +798,7 @@ class TestOpenNamespace(
     BaseMaskableReprTests,
     BaseDictLikeTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = OpenNamespaceType
     _open: bool = True
@@ -766,6 +811,7 @@ class TestFrozenNamespace(
     BaseMaskableReprTests,
     BaseDictLikeTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = FrozenNamespaceType
     _open: bool = False
@@ -778,6 +824,7 @@ class TestOpenFrozenNamespace(
     BaseMaskableReprTests,
     BaseDictLikeTests,
     BaseIndexableTests,
+    BaseSlotsDerivedClass,
 ):
     _type: type = OpenFrozenNamespaceType
     _open: bool = True
