@@ -99,7 +99,7 @@ def current_transmit_key(
     **Under Development**: Key negotiation may be implemented in future.
     The parameters signal this possibility, but are currently unused.
     """
-    if _KEY_NEGOTIATION_FEATURE_FLAG and (channel or context):
+    if _KEY_NEGOTIATION_FEATURE_FLAG or channel or context:
         raise NotImplementedError("Key negotiation not available.")
     return bytes.fromhex(os.getenv("_TRANSMIT_KEY"))
 
