@@ -78,7 +78,7 @@ DYNAMIC_FILES: set[str] = {
 Hasher: t.HasherType = PackageSigner._Hasher
 
 
-def discover_git_branch_tree() -> t.Tuple[str, str]:
+def discover_git_branch_tree() -> tuple[str, str]:
     """
     Calls & parses git responses to determine the current branch or ref
     name, & an enumeration of all the filenames tracked in the repo.
@@ -96,7 +96,7 @@ def discover_git_branch_tree() -> t.Tuple[str, str]:
     return git_branch.decode(), git_branch_tree.decode()
 
 
-def update_scope_prompt(branch: str) -> t.Dict[str, t.JSONSerializable]:
+def update_scope_prompt(branch: str) -> dict[str, t.JSONSerializable]:
     """
     Gathers package metadata to be added into the signature context, &
     offers the option via CLI to update the build number.
@@ -124,7 +124,7 @@ def update_scope_prompt(branch: str) -> t.Dict[str, t.JSONSerializable]:
 
 def discover_file_inventory(
     git_branch_tree: str,
-) -> t.Tuple[bytes, t.Dict[str, str]]:
+) -> tuple[bytes, dict[str, str]]:
     """
     Dynamically reconstructs the Python 'MANIFEST.in' from the git file
     list, excluding external data directories. The appropriate filenames
@@ -170,8 +170,8 @@ def start_client(host: str = HOST, port: int = PORT) -> socket.socket:
 def send_request(
     client: socket.socket,
     cipher: t.CipherInterfaceType,
-    scope: t.Dict[str, t.JSONSerializable],
-    files: t.Dict[str, str],
+    scope: dict[str, t.JSONSerializable],
+    files: dict[str, str],
 ) -> bytes:
     """
     Wraps the package `scope` & `files` metadata within authenticated

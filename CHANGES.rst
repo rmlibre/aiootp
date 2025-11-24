@@ -25,6 +25,7 @@ Minor Changes
 
 - build(signer): include socket time out error in catch statements
 - docs(fix): unlink docstring reference to changed parameter name
+- docs(typing): update annotations with new syntax
 - fix(build): update ruff version target & typing annotations
 - fix(config): allow setting the time unit for passcrypt instances
 - fix(config): fixup bd062e2, making remaining time units picklable

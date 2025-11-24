@@ -57,28 +57,28 @@ SEND_AAD: bytes = b"provided_build_signature"
 HEADER_SLICE: slice = Cipher._config.HEADER_SLICE
 
 
-IDLE_SHUTDOWN_SIGNALS: t.Tuple[type] = (
+IDLE_SHUTDOWN_SIGNALS: tuple[type] = (
     KeyboardInterrupt,
     SystemExit,
     TimeoutError,
     socket.timeout,
 )
-EXIT_SIGNALS: t.Tuple[type] = (
+EXIT_SIGNALS: tuple[type] = (
     KeyboardInterrupt,
     SystemExit,
 )
-CHANNEL_ERRORS: t.Tuple[type] = (
+CHANNEL_ERRORS: tuple[type] = (
     ConnectionAbortedError,
     ConnectionResetError,
     TimeoutError,
     socket.timeout,
 )
-PROCESSING_ERRORS: t.Tuple[type] = (
+PROCESSING_ERRORS: tuple[type] = (
     TypeError,
     ValueError,
     json.JSONDecodeError,
 )
-INTEGRITY_FAILURES: t.Tuple[type] = (
+INTEGRITY_FAILURES: tuple[type] = (
     Cipher.InvalidSHMAC,
     Cipher.TimestampExpired,
 )
@@ -213,7 +213,7 @@ def buffer_send(channel: socket.socket, data: bytes) -> int:
 
 def get_and_parse_request(
     channel: socket.socket, cipher: t.CipherInterfaceType
-) -> t.Tuple[bytes, t.Dict[str, t.JSONSerializable], t.Dict[str, str]]:
+) -> tuple[bytes, dict[str, t.JSONSerializable], dict[str, str]]:
     """
     Authenticates the received request data from a `channel` using a
     transmission key shared between the service & the requester.
@@ -229,8 +229,8 @@ def get_and_parse_request(
 
 def produce_signed_summary(
     signer: t.PackageSigner,
-    scope: t.Dict[str, t.JSONSerializable],
-    files: t.Dict[str, str],
+    scope: dict[str, t.JSONSerializable],
+    files: dict[str, str],
 ) -> bytes:
     """
     Ingests the package `scope` & `files` metadata into the `signer`.
