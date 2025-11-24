@@ -109,7 +109,8 @@ class PackageVerifier:
         summary = self._summary_dictionary = {**summary}
         self._checksum = bytes.fromhex(summary.pop(self._CHECKSUM))
         self._signature = bytes.fromhex(summary.pop(self._SIGNATURE))
-        if self._Hasher(self._summary_bytes).digest() != self._checksum:
+        calculated_checksum = self._Hasher(self._summary_bytes).digest()
+        if not bytes_are_equal(calculated_checksum, self._checksum):
             raise Issue.invalid_value("package summary checksum")
 
     def _verify_file_checksums(self, summary: dict) -> None:

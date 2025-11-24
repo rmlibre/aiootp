@@ -1,5 +1,5 @@
 {
-    "checksum": "a5e956a61ba778e263898b068d3c031f0843871253b75bbc526021f7225621ab32c7ce9e69a9f797e0824dee7ba7b953",
+    "checksum": "bc40dcd11e10ad8399ad19c0ebffc6c98c26f6973bc3c426dc4e229bb3cc3b0b250db7d848fed3ed7be1e0aea9527f11",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "ce9e7f27f46c9fae68885ef8b2ffb8e340e4cad4a9a724d321e7a3b97a933aa394ab2c79927a7a84f69568c9e8c97389",
         ".github/workflows/linux-pypi-release-tests.yml": "f528ae0aa32874f5ca32f0cf06a6729d1a79003f614d02b3b673ef9a6e6d4bc6a3c5b558481bdaedea599eebe407fa5e",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "3569d9bb57e3371ba2d8e0916e302eeded4a5baeb7dfa1911860895860e0eed958494023aca05043829de8ab8e840ab1",
         ".github/workflows/windows-python-app.yml": "8b78c7385e069f9564fa7390798cd355e92cdd28bd389ee6fd2bc19d552088141fe85acb9d33b09854c61f2ef7a77812",
         ".gitignore": "7e7ca7a0562488d06a9b661b911eeda0e66fcdf380bd3f86ad9e3cdf7813c6d3db3d393a3c414e70fd3036f0c8218655",
-        "CHANGES.rst": "d540c2ad9f8f21540b2d08542addcaa7498309ca5a39d6af2448425211e7e99e29a17bc97d5b9bf5e40da564c3630a96",
+        "CHANGES.rst": "537def9df360a6142951a9f092f6e03d5219ddbae6def93744dd2bc13531d82bcad8061981e6e4a7e6ced5a24a3d1032",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -108,7 +108,7 @@
         "aiootp/keygens/domain_kdf.py": "bf1b4a09aaf7e1f3024322e980be5f27c5eb0e25238c9a6f322228c810927272e3810e6341135cd10ad4252256d36df9",
         "aiootp/keygens/mnemonics.py": "390bfb86764a7138d6189495f31fed8766092948060582f17965df7ce46ee0f27687ad681455696499619a7eaf26c315",
         "aiootp/keygens/package_signer.py": "edf0fc47ca5df20a21b4d94ff58ef7a41fc57c715f5cf1c14149e677d29eedd761ba61b4edbe37633edc54d39c480b3f",
-        "aiootp/keygens/package_verifier.py": "4e85e9ee63f8360a77e2538fd24cd62600cf0f193d09ca946916579e5f3e567ccc4e86705e5c0cbb5ea03546c4d24892",
+        "aiootp/keygens/package_verifier.py": "db66c82735703966e7f1a38729b82ca5692562433970d0275e02a4c17c4215062369f39314625650d62798173f2f79eb",
         "aiootp/keygens/passcrypt/__init__.py": "10e8785f30b7b737ef84547bf258d95993dbe648263ec3937fe1d8a83c3c0e4f3495cb8840d7e37a45f054979b682cd6",
         "aiootp/keygens/passcrypt/config.py": "be7aa4c1f02a7cd73929a5ef1c77788d8bceb71fb5e68fc102ff019256e45914aeaa5c5d07db68596fa9e33958f9b3be",
         "aiootp/keygens/passcrypt/hash_format.py": "7e739eeb7f112cf059065a50603ff93619765cca145de15840ae039ad48439e33813fc917f7f54de72497de22c5495a9",
@@ -209,5 +209,5 @@
         "version": "0.23.18"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "a255f53d9471573707830aefdc9fd6df1d4d711ea22ede385ba0e48796855ab6121678d1d285d923dccb2156086721bd563725ee243f4edfa697c5a126630a02"
+    "signature": "c4d27f480d9c8cc142df45d31b6296998c01f0d66d7ec06ab8ef8242215fa8e155520de99e795aa5fbde58e5ff499dd89d516948724dad16563c0578e8a67e0f"
 }
