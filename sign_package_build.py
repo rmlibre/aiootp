@@ -133,19 +133,19 @@ def discover_file_inventory(
 
     Returns the new manifest file, and the bundled file metadata.
     """
-    manifest = ""
+    manifest = []
     files = {}
 
     for line in git_branch_tree.split("\n"):
         if not (filename := line.strip()):
             continue
-        if all((part not in filename) for part in MANIFEST_EXCLUDES):
-            manifest += f"include {filename}\n"
+        if not any((part in filename) for part in MANIFEST_EXCLUDES):
+            manifest.append(f"include {filename}\n")
         if filename not in DYNAMIC_FILES:
             hashed_file = Hasher(Path(filename).read_bytes())
             files[filename] = hashed_file.hexdigest()
 
-    manifest = manifest.encode()
+    manifest = "".join(manifest).encode()
     files[MANIFEST_FILENAME] = Hasher(manifest).hexdigest()
     return manifest, files
 
