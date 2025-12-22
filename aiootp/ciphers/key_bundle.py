@@ -49,7 +49,7 @@ class SaltAADIV(FrozenSlots):
         config: t.ConfigType,
     ) -> None:
         self.config = config
-        self.salt = salt or token_bytes(self.config.SALT_BYTES)
+        self.salt = salt or token_bytes(config.SALT_BYTES)
         self.aad = aad
         self.iv = self._process_iv(iv)
         self._test_salt_aad_iv(self.salt, self.aad, self.iv)

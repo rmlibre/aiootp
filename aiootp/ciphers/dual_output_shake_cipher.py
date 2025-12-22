@@ -245,8 +245,8 @@ class DualOutputStreamHMAC(StreamHMAC):
         config = self.config
         try:
             ciphertext_block = (
-                _from_bytes(plaintext_block, BIG)
-                ^ _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
+                _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
+                ^ _from_bytes(plaintext_block, BIG)
             ).to_bytes(config.BLOCKSIZE, BIG)
             await self._aupdate(
                 key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
@@ -271,8 +271,8 @@ class DualOutputStreamHMAC(StreamHMAC):
         config = self.config
         try:
             ciphertext_block = (
-                _from_bytes(plaintext_block, BIG)
-                ^ _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
+                _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
+                ^ _from_bytes(plaintext_block, BIG)
             ).to_bytes(config.BLOCKSIZE, BIG)
             self._update(
                 key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
@@ -302,8 +302,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
             )
             return (
-                _from_bytes(ciphertext_block, BIG)
-                ^ _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
+                _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
+                ^ _from_bytes(ciphertext_block, BIG)
             ).to_bytes(config.BLOCKSIZE, BIG)
         except OverflowError as error:
             raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
@@ -327,8 +327,8 @@ class DualOutputStreamHMAC(StreamHMAC):
                 + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
             )
             return (
-                _from_bytes(ciphertext_block, BIG)
-                ^ _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
+                _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
+                ^ _from_bytes(ciphertext_block, BIG)
             ).to_bytes(config.BLOCKSIZE, BIG)
         except OverflowError as error:
             raise Issue.exceeded_blocksize(config.BLOCKSIZE) from error
