@@ -57,9 +57,16 @@ class CipherInterface(FrozenInstance):
     ciphertext = cipher.json_encrypt(json_plaintext)
     assert json_plaintext == cipher.json_decrypt(ciphertext)
 
-    token_plaintext = b"user_id|session_secret"
-    token = cipher.make_token(token_plaintext)
-    assert token_plaintext == cipher.read_token(token, ttl=3600)
+
+    from collections import deque
+    from aiootp.generics import canonical_pack, canonical_unpack
+
+    parts = deque([b"user_id", b"session_secret"])
+    token_plaintext = canonical_pack(*parts, int_bytes=1)
+    token = cipher.make_token(token_plaintext, aad=b"demo")
+    assert parts == canonical_unpack(
+        cipher.read_token(token, aad=b"demo", ttl=3600)
+    )
 
      _____________________________________
     |                                     |
