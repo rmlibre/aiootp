@@ -36,7 +36,10 @@ __all__ = [
 from .interface import Typing as t
 
 
-NoneType = None.__class__
+if not hasattr(t, "NoneType"):
+    NoneType = t.add_type(None.__class__)
+else:
+    NoneType = t.NoneType
 
 
 Base64URLSafe = t.Base64URLSafe = t.NewType(
@@ -129,7 +132,7 @@ module_api = dict(
     JSONDeserializable=JSONDeserializable,
     JSONObject=JSONObject,
     JSONSerializable=JSONSerializable,
-    NoneType=t.add_type(NoneType),
+    NoneType=NoneType,
     Number=Number,
     PositiveRealNumber=PositiveRealNumber,
     RealNumber=RealNumber,

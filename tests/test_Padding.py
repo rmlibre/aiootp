@@ -34,7 +34,7 @@ class TestPlaintextPadding:
                 sentinel = int.from_bytes(
                     padded_pt[config.SENTINEL_SLICE], BIG
                 )
-                end = -(sentinel if sentinel else config.BLOCKSIZE)
+                end = -(sentinel or config.BLOCKSIZE)
 
                 # The data is prepended with a constant size inner-header &
                 # appended with extra padding that is measured by the value of

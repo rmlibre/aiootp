@@ -247,9 +247,14 @@ class Slots:
         """
         cls = self.__class__
         if mask and not DebugControl.is_debugging():
-            show = lambda value: f"{OMITTED}{value.__class__}"
+
+            def show(value: t.Any) -> str:
+                return f"{OMITTED}{value.__class__}"
         else:
-            show = lambda value: repr(value)
+
+            def show(value: t.Any) -> str:
+                return repr(value)
+
         start = f"{sep}    " if self else ""
         on = f",{sep}    " if self else ", "
         body = on.join(

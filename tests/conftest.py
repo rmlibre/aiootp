@@ -81,8 +81,8 @@ t = Typing
 
 
 test_path = Path(__file__).parent.parent
-violation = lambda problem: lambda relay: raise_exception(
-    AssertionError(f"{problem} : {relay!r}")
+violation = lambda problem: (
+    lambda relay: raise_exception(AssertionError(f"{problem} : {relay!r}"))
 )
 
 
@@ -345,7 +345,7 @@ def pkg_context() -> Namespace:
 @pytest.fixture(scope="session")
 def pkg_signer(pkg_context: Namespace) -> PackageSigner:
     signer = PackageSigner(**pkg_context.signer_init)
-    is_mac_os_issue = lambda _: (platform.system() == "Darwin")
+    is_mac_os_issue = lambda _: platform.system() == "Darwin"
     while True:
         sleep(0.001)
         with Ignore(ConnectionRefusedError, if_except=is_mac_os_issue):
