@@ -20,14 +20,18 @@ __all__ = []
 
 import aiofiles
 from pathlib import Path
-from hashlib import sha3_256
+from hashlib import sha3_256, shake_128
 from secrets import token_bytes
 
 from ._typing import Typing as t
 from ._constants import FILENAME_HASH_SLICE
 from ._exceptions import Issue
-from .asynchs import aos
+from .asynchs import aos, wrap_in_executor, MultiConcurrencyGaurd
+from .generics import Domains, ahash_bytes, hash_bytes
 from .generics.transform import axi_mix, xi_mix
+
+
+guards: MultiConcurrencyGaurd = MultiConcurrencyGaurd()
 
 
 def RootPath() -> Path:
@@ -60,6 +64,32 @@ def AdminPath(path: t.OptionalPathStr = None) -> Path:
     where internal, package-managed salts & seeds are saved.
     """
     return SecurePath(path) / "_admin"
+
+
+async def afilename_to_index_key(filename: str, *, size: int = 8) -> bytes:
+    """
+    Facilitates the creation of uniform index keys to organize objects
+    & procedures by the file targets those keys point to.
+    """
+    return await ahash_bytes(
+        Domains.FILENAME_TO_INDEX,
+        filename.encode(),
+        hasher=shake_128,
+        size=size,
+    )
+
+
+def filename_to_index_key(filename: str, *, size: int = 8) -> bytes:
+    """
+    Facilitates the creation of uniform index keys to organize objects
+    & procedures by the file targets those keys point to.
+    """
+    return hash_bytes(
+        Domains.FILENAME_TO_INDEX,
+        filename.encode(),
+        hasher=shake_128,
+        size=size,
+    )
 
 
 async def adeniable_filename(key: bytes, *, size: int = 8) -> str:
@@ -95,7 +125,8 @@ async def afind_salt_file(path: Path, *, key: bytes, size: int = 8) -> Path:
     Derives the filename to a cryptographic salt from a `key` & returns
     it joined to the provided `path` directory.
     """
-    return path.absolute() / await adeniable_filename(key, size=size)
+    path = await wrap_in_executor(path.absolute)()
+    return path / await adeniable_filename(key, size=size)
 
 
 def find_salt_file(path: Path, *, key: bytes, size: int = 8) -> Path:
@@ -115,9 +146,12 @@ async def amake_salt_file(path: Path, *, salt: bytes = b"") -> None:
     if len(salt) < 32:
         raise Issue.value_must("salt", "be >= 32-bytes")
 
-    async with aiofiles.open(path, "wb") as salt_file:
-        await salt_file.write(salt)
-    await aos.chmod(path, 0o000)
+    path = await wrap_in_executor(path.absolute)()
+    target = await afilename_to_index_key(str(path))
+    async with guards.guard(target):
+        async with aiofiles.open(path, "wb") as salt_file:
+            await salt_file.write(salt)
+        await aos.chmod(path, 0o000)
 
 
 def make_salt_file(path: Path, *, salt: bytes = b"") -> None:
@@ -129,47 +163,54 @@ def make_salt_file(path: Path, *, salt: bytes = b"") -> None:
     if len(salt) < 32:
         raise Issue.value_must("salt", "be >= 32-bytes")
 
-    path = Path(path)
-    path.write_bytes(salt)
-    path.chmod(0o000)
+    target = filename_to_index_key(str(path.absolute()))
+    with guards.guard(target):
+        path = Path(path)
+        path.write_bytes(salt)
+        path.chmod(0o000)
 
 
-async def aread_salt_file(path: t.PathStr) -> bytes:
+async def aread_salt_file(path: Path) -> bytes:
     """
     Returns the cryptographic salt contained within the file located at
     `path`.
     """
-    try:
-        await aos.chmod(path, 0o600)
-        async with aiofiles.open(path, "rb") as salt_file:
-            salt = await salt_file.read()
+    path = await wrap_in_executor(path.absolute)()
+    target = filename_to_index_key(str(path))
+    async with guards.guard(target):
+        try:
+            await aos.chmod(path, 0o600)
+            async with aiofiles.open(path, "rb") as salt_file:
+                salt = await salt_file.read()
+                if len(salt) >= 32:
+                    return salt
+                else:
+                    raise Issue.value_must("salt", "be >= 32-bytes")
+        finally:
+            await aos.chmod(path, 0o000)
+
+
+def read_salt_file(path: Path) -> bytes:
+    """
+    Returns the cryptographic salt contained within the file located at
+    `path`.
+    """
+    target = filename_to_index_key(str(path.absolute()))
+    with guards.guard(target):
+        try:
+            path = Path(path)
+            path.chmod(0o600)
+            salt = path.read_bytes()
+
             if len(salt) >= 32:
                 return salt
             else:
                 raise Issue.value_must("salt", "be >= 32-bytes")
-    finally:
-        await aos.chmod(path, 0o000)
+        finally:
+            path.chmod(0o000)
 
 
-def read_salt_file(path: t.PathStr) -> bytes:
-    """
-    Returns the cryptographic salt contained within the file located at
-    `path`.
-    """
-    try:
-        path = Path(path)
-        path.chmod(0o600)
-        salt = path.read_bytes()
-
-        if len(salt) >= 32:
-            return salt
-        else:
-            raise Issue.value_must("salt", "be >= 32-bytes")
-    finally:
-        path.chmod(0o000)
-
-
-async def aupdate_salt_file(path: t.PathStr, *, salt: bytes) -> None:
+async def aupdate_salt_file(path: Path, *, salt: bytes) -> None:
     """
     Replaces the cryptographic salt contained within the file located at
     `path` with the new `salt` value.
@@ -177,47 +218,57 @@ async def aupdate_salt_file(path: t.PathStr, *, salt: bytes) -> None:
     if len(salt) < 32:
         raise Issue.value_must("salt", "be >= 32-bytes")
 
-    try:
+    path = await wrap_in_executor(path.absolute)()
+    target = await afilename_to_index_key(str(path))
+    async with guards.guard(target):
+        try:
+            await aos.chmod(path, 0o600)
+            async with aiofiles.open(path, "wb") as salt_file:
+                await salt_file.write(salt)
+        finally:
+            await aos.chmod(path, 0o000)
+
+
+def update_salt_file(path: Path, *, salt: bytes) -> None:
+    """
+    Replaces the cryptographic salt contained within the file located at
+    `path` with the new `salt` value.
+    """
+    if len(salt) < 32:
+        raise Issue.value_must("salt", "be >= 32-bytes")
+
+    target = filename_to_index_key(str(path.absolute()))
+    with guards.guard(target):
+        try:
+            path = Path(path)
+            path.chmod(0o600)
+            path.write_bytes(salt)
+        finally:
+            path.chmod(0o000)
+
+
+async def adelete_salt_file(path: Path) -> None:
+    """
+    Deletes cryptographic salt contained within the file located at
+    `path`.
+    """
+    path = await wrap_in_executor(path.absolute)()
+    target = await afilename_to_index_key(str(path))
+    with guards.guard(target):
         await aos.chmod(path, 0o600)
-        async with aiofiles.open(path, "wb") as salt_file:
-            await salt_file.write(salt)
-    finally:
-        await aos.chmod(path, 0o000)
+        await aos.remove(path)
 
 
-def update_salt_file(path: t.PathStr, *, salt: bytes) -> None:
+def delete_salt_file(path: Path) -> None:
     """
-    Replaces the cryptographic salt contained within the file located at
-    `path` with the new `salt` value.
+    Deletes cryptographic salt contained within the file located at
+    `path`.
     """
-    if len(salt) < 32:
-        raise Issue.value_must("salt", "be >= 32-bytes")
-
-    try:
+    target = filename_to_index_key(str(path.absolute()))
+    with guards.guard(target):
         path = Path(path)
         path.chmod(0o600)
-        path.write_bytes(salt)
-    finally:
-        path.chmod(0o000)
-
-
-async def adelete_salt_file(path: t.PathStr) -> None:
-    """
-    Deletes cryptographic salt contained within the file located at
-    `path`.
-    """
-    await aos.chmod(path, 0o600)
-    await aos.remove(path)
-
-
-def delete_salt_file(path: t.PathStr) -> None:
-    """
-    Deletes cryptographic salt contained within the file located at
-    `path`.
-    """
-    path = Path(path)
-    path.chmod(0o600)
-    path.unlink(path)
+        path.unlink(path)
 
 
 async def AsyncSecureSaltPath(

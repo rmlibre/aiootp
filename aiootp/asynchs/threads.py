@@ -39,12 +39,12 @@ class Threads(ConcurrencyInterface):
     __slots__ = ()
 
     _default_probe_delay: float = 0.001
-    _pool: t.PoolExecutorType = ThreadPoolExecutor()
     _type: type = Thread
 
     BrokenPool: type = thread.BrokenThreadPool
 
     get_id: t.Callable[[], int] = get_thread_id
+    pool: t.PoolExecutorType = ThreadPoolExecutor()
 
     @classmethod
     def _get_queue(cls, /, maxsize: int = 1) -> t.QueueType:
@@ -60,7 +60,7 @@ class Threads(ConcurrencyInterface):
         method can be called to reset the class' pool object with a new
         instance.
         """
-        cls._pool = cls._pool.__class__()
+        cls.pool = cls.pool.__class__()
 
 
 module_api = dict(

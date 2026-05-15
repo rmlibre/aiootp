@@ -46,6 +46,7 @@ module_api = dict(
     AsyncInit=AsyncInit,
     Clock=Clock,
     ConcurrencyGuard=ConcurrencyGuard,
+    MultiConcurrencyGaurd=MultiConcurrencyGaurd,
     Processes=Processes,
     Threads=Threads,
     __all__=__all__,

@@ -163,7 +163,7 @@ class TestQueueTypes(ProtocolSubTypeTests):
 
 class TestPoolExecutorTypes(ProtocolSubTypeTests):
     protocol = t.PoolExecutorType
-    instances_tested = [t.Processes._pool, t.Threads._pool]
+    instances_tested = [t.Processes.pool, t.Threads.pool]
     types_tested = [obj.__class__ for obj in instances_tested]
 
 

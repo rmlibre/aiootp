@@ -283,7 +283,7 @@ class Passcrypt(FrozenInstance):
                 key=await sessions[0].aresult(),
             )
         except Exception as error:
-            if Processes._pool._broken:
+            if Processes.pool._broken:
                 Processes.reset_pool()
                 raise Issue.broken_pool_restarted() from error
             raise error
@@ -321,7 +321,7 @@ class Passcrypt(FrozenInstance):
                 key=sessions[0].result(),
             )
         except Exception as error:
-            if Processes._pool._broken:
+            if Processes.pool._broken:
                 Processes.reset_pool()
                 raise Issue.broken_pool_restarted() from error
             raise error

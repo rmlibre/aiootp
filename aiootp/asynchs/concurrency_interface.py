@@ -15,11 +15,16 @@
 A general interface for multi-threading & multi-processing.
 """
 
-__all__ = ["ConcurrencyGuard", "ConcurrencyInterface"]
+__all__ = [
+    "ConcurrencyGuard",
+    "ConcurrencyInterface",
+    "MultiConcurrencyGaurd",
+]
 
 
 from hmac import compare_digest
 from secrets import token_bytes
+from collections import defaultdict, deque
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
@@ -79,9 +84,10 @@ class ConcurrencyGuard(FrozenTypedSlots):
     --------------------------------------------------------------------
     """
 
-    __slots__ = ("probe_delay", "queue", "token")
+    __slots__ = ("_append_token_manually", "probe_delay", "queue", "token")
 
     slots_types: t.Mapping[str, type] = dict(
+        _append_token_manually=bool,
         probe_delay=float,
         queue=t.SupportsAppendPopleft,
         token=bytes,
@@ -98,6 +104,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         *,
         probe_delay: t.Optional[t.PositiveRealNumber] = None,
         token: t.Optional[bytes] = None,
+        append_token_manually: bool = False,
     ) -> None:
         """
         `queue`: Atomic, `deque`-like datastructure that supports `append`,
@@ -108,12 +115,27 @@ class ConcurrencyGuard(FrozenTypedSlots):
                 has been authorized to run.
 
         `token`: The unique authorization token held by this context.
+
+        `append_token_manually`: Signals to the instance that the caller
+                will manually append the instance token to the queue to
+                acheive the desired ordering of events. This overrides
+                the default behavior of the token being automatically
+                appended when the instance context manager is entered.
+                The instance remains responsible for automatically
+                removing the token from the queue when the context
+                manager is exited.
+                ********
+                CAUTION: If the instance is used multiple times as a
+                ******** context manager, setting this bool to True means
+                the token also MUST be appended manually the same number
+                of times. Failing to do so will cause a deadlock.
         """
         self.probe_delay = process_probe_delay(
             probe_delay, default=self._default_probe_delay
         )
         self.queue = queue
         self.token = token or token_bytes(32)
+        self._append_token_manually = append_token_manually
 
     async def __aenter__(self, /) -> t.Self:
         """
@@ -121,7 +143,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
         the instance's unique authorization token is the current token
         in the 0th position of the queue.
         """
-        self.queue.append(self.token)
+        if not self._append_token_manually:
+            self.queue.append(self.token)
         while not compare_digest(self.token, self.queue[0]):
             await asleep(self.probe_delay)
         return self
@@ -132,7 +155,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
         the instance's unique authorization token is the current token
         in the 0th position of the queue.
         """
-        self.queue.append(self.token)
+        if not self._append_token_manually:
+            self.queue.append(self.token)
         while not compare_digest(self.token, self.queue[0]):
             sleep(self.probe_delay)
         return self
@@ -181,6 +205,175 @@ class ConcurrencyGuard(FrozenTypedSlots):
         return exc_type is None
 
 
+class DefaultDictOfDeques(defaultdict):
+    """
+    A mapping of target ID keys to deque queues which are used to
+    enforce the turn order of distinct execution contexts only if the
+    target keys are the same between them.
+    """
+
+    __slots__ = ()
+
+    def __init__(self, /) -> None:
+        """
+        Applies `collections.deque` as the default value type of new
+        instances.
+        """
+        super().__init__(deque)
+
+    def __setitem__(self, name: t.Hashable, value: deque, /) -> None:
+        """
+        Before adding values to the collection, ensures they're of type
+        `collections.deque`.
+        """
+        if value.__class__ is not deque:
+            raise Issue.value_must_be_type("value", deque) from None
+
+        super().__setitem__(name, value)
+
+    def update(
+        self,
+        targets: t.Mapping[t.Hashable, deque] = {},
+        /,
+        **target_deque_pairs: deque,
+    ) -> None:
+        """
+        Updates the instance with new key-values from a mapping of
+        `targets`, & optional keyword arguments. Operations on targets
+        only need concurrency management if the target keys are the same,
+        so those on different targets are allowed to run freely &
+        independently from each other. Before adding values to the
+        collection, ensures they're of type `collections.deque`.
+        """
+        for name, value in {**dict(targets), **target_deque_pairs}.items():
+            self[name] = value  # type enforcement happens here
+
+
+class MultiConcurrencyGaurd(FrozenTypedSlots):
+    """
+    Facilitates async/thread-safety for execution contexts which can be
+    categorized by a hashable target key from call-sites. Executuion
+    contexts which operate on distinct targets are allowed to run freely
+    & independently from each other, & those operating on the same
+    target will delay their turn to run by appending their unique tokens
+    to atomic queues & awaiting their arrival at the front of the queue.
+
+     _____________________________________
+    |                                     |
+    |            Usage Example:           |
+    |_____________________________________|
+
+    from asyncio import gather
+    from pathlib import Path
+    from typing import Awaitable, Callable
+
+    from aiootp.asynchs import MultiConcurrencyGuard
+
+
+    async def do_something(
+        target: str,
+        guards: MultiConcurrencyGuard,
+        mutate_or_read_target: Callable[..., Awaitable],
+    ) -> None:
+        '''
+        Applies protection against race conditions for operations on
+        the same target between distinct execution contexts.
+        '''
+        async with guards.guard(target):
+            await mutate_or_read_target(target)
+
+
+    guards = MultiConcurrencyGuard()
+    filenames = list(Path().iterdir())
+
+    tasks = [
+        do_something(filename, guards, operation)
+        for operation in user_actions
+        for filename in filenames
+    ]
+    await gather(*tasks)
+    """
+
+    __slots__ = ("targets",)
+
+    _Guard: type = ConcurrencyGuard
+    _Targets: type = DefaultDictOfDeques
+
+    IncoherentConcurrencyState: type = IncoherentConcurrencyState
+
+    slots_types = dict(targets=_Targets)
+
+    def __init__(
+        self,
+        targets: t.Optional[_Targets] = None,
+        /,
+        **target_name_deque_pairs: deque,
+    ) -> None:
+        """
+        Initializes the instance with a default mapping of target ID
+        keys to deque queues.
+        """
+        self.targets = self._Targets() if targets is None else targets
+        self.targets.update(target_name_deque_pairs)
+
+    def guard(
+        self,
+        /,
+        target: t.Hashable,
+        *,
+        probe_delay: t.Optional[t.PositiveRealNumber] = None,
+        token: t.Optional[bytes] = None,
+        append_token_manually: bool = False,
+    ) -> _Guard:
+        """
+        Returns the guard instance which can be entered using either the
+        sync or async context manager syntaxes.
+
+        `target`: A hashable index key used to identify resources which
+                need the async/thread-safety of atomic turn ordering for
+                their execution contexts.
+
+        `probe_delay`: The float/fractional number of seconds to wait
+                before each attempt to detect if the instance's token
+                has been authorized to run.
+
+        `token`: The unique authorization token held by this context.
+
+        `append_token_manually`: Signals to the instance that the caller
+                will manually append the instance token to the queue to
+                acheive the desired ordering of events. This overrides
+                the default behavior of the token being automatically
+                appended when the instance context manager is entered.
+                The instance remains responsible for automatically
+                removing the token from the queue when the context
+                manager is exited.
+                ********
+                CAUTION: If the instance is used multiple times as a
+                ******** context manager, setting this bool to True means
+                the token also MUST be appended manually the same number
+                of times. Failing to do so will cause a deadlock.
+
+         _____________________________________
+        |                                     |
+        |           Syntax Example:           |
+        |_____________________________________|
+
+        guards = MultiConcurrencyGuard()
+
+        async with guards.guard(target):
+            await async_mutate_or_read_target(target)
+
+        with guards.guard(target):
+            mutate_or_read_target(target)
+        """
+        return self._Guard(
+            queue=self.targets[target],
+            probe_delay=probe_delay,
+            token=token,
+            append_token_manually=append_token_manually,
+        )
+
+
 class ConcurrencyInterface:
     """
     Defines an interface for managing tasks & pools of threads & processes.
@@ -189,12 +382,12 @@ class ConcurrencyInterface:
     __slots__ = ()
 
     _default_probe_delay: float
-    _pool: t.PoolExecutorType
     _type: type
 
     BrokenPool: type
 
     get_id: t.Callable[[], int]
+    pool: t.PoolExecutorType
 
     @classmethod
     async def aget_id(cls, /) -> int:
@@ -219,8 +412,13 @@ class ConcurrencyInterface:
         in a shared `queue` container.
         """
         if is_async_function(func):
-            run = new_event_loop().run_until_complete
-            queue.put_nowait(run(func(*args, **kwargs)))
+            try:
+                loop = new_event_loop()
+                run = loop.run_until_complete
+                queue.put_nowait(run(func(*args, **kwargs)))
+            finally:
+                run(loop.shutdown_asyncgens())
+                loop.close()
         else:
             queue.put_nowait(func(*args, **kwargs))
 
@@ -311,8 +509,13 @@ class ConcurrencyInterface:
         the class' pool.
         """
         if is_async_function(func):
-            run = new_event_loop().run_until_complete
-            return run(func(*args, **kwargs))
+            try:
+                loop = new_event_loop()
+                run = loop.run_until_complete
+                return run(func(*args, **kwargs))
+            finally:
+                run(loop.shutdown_asyncgens())
+                loop.close()
         else:
             return func(*args, **kwargs)
 
@@ -358,7 +561,7 @@ class ConcurrencyInterface:
         delay = process_probe_delay(
             probe_delay, default=cls._default_probe_delay
         )
-        future = cls._pool.submit(cls._get_result, func, *args, **kwargs)
+        future = cls.pool.submit(cls._get_result, func, *args, **kwargs)
         return cls._package_result_methods(future, probe_delay=delay)
 
     @classmethod
@@ -379,7 +582,7 @@ class ConcurrencyInterface:
         delay = process_probe_delay(
             probe_delay, default=cls._default_probe_delay
         )
-        future = cls._pool.submit(func, *args, **kwargs)
+        future = cls.pool.submit(func, *args, **kwargs)
         return cls._package_result_methods(future, probe_delay=delay)
 
     @classmethod
@@ -392,7 +595,7 @@ class ConcurrencyInterface:
     ) -> list[t.Any]:
         """
         Sumbits all of the async or synchronous `functions` to the
-        `Processes._pool` or `Threads._pool` with the given `args` &
+        `Processes.pool` or `Threads.pool` with the given `args` &
         `kwargs`.
         """
         tasks = [
@@ -413,8 +616,8 @@ class ConcurrencyInterface:
         kwargs: t.Mapping[str, t.Any] = {},
     ) -> list[t.Any]:
         """
-        Sumbits all the `functions` to the `Processes._pool` or
-        `Threads._pool` with the given `args` & `kwargs`.
+        Sumbits all the `functions` to the `Processes.pool` or
+        `Threads.pool` with the given `args` & `kwargs`.
         """
         tasks = [cls.submit(func, *args, **kwargs) for func in functions]
         try:
@@ -427,6 +630,8 @@ class ConcurrencyInterface:
 module_api = dict(
     ConcurrencyGuard=t.add_type(ConcurrencyGuard),
     ConcurrencyInterface=t.add_type(ConcurrencyInterface),
+    DefaultDictOfDeques=t.add_type(DefaultDictOfDeques),
+    MultiConcurrencyGaurd=t.add_type(MultiConcurrencyGaurd),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

@@ -16,6 +16,7 @@ Major Changes
 - build(pkg): test & signal support for python 3.14
 - feat(slots): provide a `clear` method for containers
 - feat(slots): pass (un)mapped attributes down class hierarchy
+- feat(asynchs): define a lock type for multi-target async-safety
 - fix(slots): refine splat logic, dir results & attr restrictions
 - fix(db): ensure manifest's metatag field is populated
 

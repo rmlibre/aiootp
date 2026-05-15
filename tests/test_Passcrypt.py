@@ -627,19 +627,19 @@ class TestPasscryptConcurrencyInterface:
         problem = (  # fmt: skip
             "The algorithm wasn't halted by a broken process pool."
         )
-        Processes._pool._broken = True
+        Processes.pool._broken = True
         with Ignore(RuntimeError, if_else=violation(problem)):
             await self.pcrypt.ahash_passphrase(passphrase)
-        assert not Processes._pool._broken
+        assert not Processes.pool._broken
 
     async def test_sync_broken_pool_is_restarted(self) -> None:
         problem = (  # fmt: skip
             "The algorithm wasn't halted by a broken process pool."
         )
-        Processes._pool._broken = True
+        Processes.pool._broken = True
         with Ignore(RuntimeError, if_else=violation(problem)):
             self.pcrypt.hash_passphrase(passphrase)
-        assert not Processes._pool._broken
+        assert not Processes.pool._broken
 
 
 class TestPasscryptSession:

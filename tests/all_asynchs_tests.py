@@ -14,6 +14,7 @@
 from test_aos import *
 from test_Clock import *
 from test_ConcurrencyGuard import *
+from test_MultiConcurrencyGuard import *
 from test_event_loops import *
 from test_Processes_Threads import *
 

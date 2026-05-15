@@ -40,12 +40,12 @@ class Processes(ConcurrencyInterface):
 
     _default_probe_delay: float = 0.005
     _context: SpawnContext = multiprocessing.get_context("spawn")
-    _pool: t.PoolExecutorType = ProcessPoolExecutor(mp_context=_context)
     _type: type = _context.Process
 
     BrokenPool: type = process.BrokenProcessPool
 
     get_id: t.Callable[[], int] = get_process_id
+    pool: t.PoolExecutorType = ProcessPoolExecutor(mp_context=_context)
 
     @classmethod
     def _get_queue(cls, /, maxsize: int = 1) -> t.QueueType:
@@ -62,7 +62,7 @@ class Processes(ConcurrencyInterface):
         method can be called to reset the class' pool object with a new
         instance with its default multiprocessing context.
         """
-        cls._pool = cls._pool.__class__(mp_context=cls._context)
+        cls.pool = cls.pool.__class__(mp_context=cls._context)
 
 
 module_api = dict(
