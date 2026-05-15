@@ -607,12 +607,12 @@ class CanonicalIssue:
     )
 
     @classmethod
-    def item_length_mismatch(cls, /) -> CanonicalEncodingError:
-        return CanonicalEncodingError(cls._ITEM_LENGTH_MISMATCH)
-
-    @classmethod
     def inflated_size_declaration(cls, /) -> CanonicalEncodingError:
         return CanonicalEncodingError(cls._INFLATED_SIZE_DECLARATION)
+
+    @classmethod
+    def item_length_mismatch(cls, /) -> CanonicalEncodingError:
+        return CanonicalEncodingError(cls._ITEM_LENGTH_MISMATCH)
 
     @classmethod
     def invalid_padding(cls, /) -> CanonicalEncodingError:

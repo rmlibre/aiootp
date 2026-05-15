@@ -27,6 +27,7 @@ from ._typing import Typing as t
 from ._constants import FILENAME_HASH_SLICE
 from ._exceptions import Issue
 from .asynchs import aos
+from .generics.transform import axi_mix, xi_mix
 
 
 def RootPath() -> Path:
@@ -66,8 +67,6 @@ async def adeniable_filename(key: bytes, *, size: int = 8) -> str:
     XORs `size` length bytes-type segments of a `key`, returning a
     variably forgeable, base-38 encoded hash from the condensed value.
     """
-    from .generics.transform import axi_mix
-
     if not (16 >= size >= 1):
         raise Issue.value_must("size", "be <= 16 and > 0")
     elif not (len(key) >= 2 * size):
@@ -82,8 +81,6 @@ def deniable_filename(key: bytes, *, size: int = 8) -> str:
     XORs `size` length bytes-type segments of a `key`, returning a
     variably forgeable, base-38 encoded hash from the condensed value.
     """
-    from .generics.transform import xi_mix
-
     if not (16 >= size >= 1):
         raise Issue.value_must("size", "be <= 16 and > 0")
     elif not (len(key) >= 2 * size):

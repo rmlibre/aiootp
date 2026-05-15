@@ -98,6 +98,7 @@ class CipherInterface(FrozenInstance):
     _AsyncDecipherStream: type = AsyncDecipherStream
     _DecipherStream: type = DecipherStream
     _Ciphertext: type = Ciphertext
+    _Padding: type = Padding
 
     _config: t.ConfigType
     _padding: t.PaddingType
@@ -107,7 +108,7 @@ class CipherInterface(FrozenInstance):
         Populates class specific configuration during class definition
         to reduce instance initialization costs.
         """
-        cls._padding = Padding(config=cls._config)
+        cls._padding = cls._Padding(config=cls._config)
         super().__init_subclass__(*a, **kw)
 
     def __init__(self, /, key: bytes) -> None:

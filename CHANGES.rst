@@ -38,6 +38,7 @@ Minor Changes
 - refactor(cipher): remove unnecessary variable reassignment
 - refactor(config): simplify interface for low-level Passcrypt helpers
 - refactor(misc): improve readability & avoid errors from str typos
+- refactor(misc): improve readability & adherence to style conventions
 - refactor(signer): use str join instead of quadratic str concat
 - style(cipher): shorten code lines where possible
 - test(slots): ensure class signals combine along the MRO

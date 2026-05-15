@@ -222,6 +222,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         """
         BLOCKSIZE = self._config.BLOCKSIZE
         if buffer and len(buffer[-1]) != BLOCKSIZE:
+            await asleep()
             missing_bytes = BLOCKSIZE - len(buffer[-1])
             chunk = data(missing_bytes)
             buffer[-1] += chunk

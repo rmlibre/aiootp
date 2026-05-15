@@ -283,18 +283,16 @@ class Clock(FrozenInstance):
         Takes a `timestamp` & returns the integer difference between
         the instance's conception of the current time & the timestamp.
         """
-        return await self.atime() - await self.aread_timestamp(
-            timestamp, byte_order=byte_order
-        )
+        stamp = await self.aread_timestamp(timestamp, byte_order=byte_order)
+        return await self.atime() - stamp
 
     def delta(self, /, timestamp: bytes, *, byte_order: str = BIG) -> int:
         """
         Takes a `timestamp` & returns the integer difference between
         the instance's conception of the current time & the timestamp.
         """
-        return self.time() - self.read_timestamp(
-            timestamp, byte_order=byte_order
-        )
+        stamp = self.read_timestamp(timestamp, byte_order=byte_order)
+        return self.time() - stamp
 
     async def atest_timestamp(
         self,
