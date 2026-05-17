@@ -37,9 +37,9 @@ from .interface import Typing as t
 
 
 if not hasattr(t, "NoneType"):
-    NoneType = t.add_type(None.__class__)
+    NoneType = t.add_type(None.__class__)  # pragma: no cover
 else:
-    NoneType = t.NoneType
+    NoneType = t.NoneType  # pragma: no cover
 
 
 Base64URLSafe = t.Base64URLSafe = t.NewType(

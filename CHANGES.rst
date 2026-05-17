@@ -42,6 +42,7 @@ Minor Changes
 - refactor(misc): improve readability & adherence to style conventions
 - refactor(signer): use str join instead of quadratic str concat
 - style(cipher): shorten code lines where possible
+- test(cov): ignore no-op lines from coverage report
 - test(slots): ensure class signals combine along the MRO
 
 

@@ -37,7 +37,9 @@ class _AsyncOrSyncIterableMeta(type):
     """
 
     def __getitem__(cls, obj: t.Any) -> t.Union:
-        return t.Union[t.Iterable[obj], t.AsyncIterable[obj]]
+        return t.Union[
+            t.Iterable[obj], t.AsyncIterable[obj]
+        ]  # pragma: no cover
 
 
 class AsyncOrSyncIterable(metaclass=_AsyncOrSyncIterableMeta):
