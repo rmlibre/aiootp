@@ -27,6 +27,7 @@ Minor Changes
 - build(signer): include socket time out error in catch statements
 - docs(cipher): demo more proper canonical concatenation
 - docs(fix): unlink docstring reference to changed parameter name
+- docs(legal): bump AGPLv3 license date range
 - docs(typing): update annotations with new syntax
 - docs(typing): reference NoneType for runtime type checking
 - fix(build): update ruff version target & typing annotations
