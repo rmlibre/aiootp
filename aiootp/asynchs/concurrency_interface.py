@@ -28,6 +28,7 @@ from collections import defaultdict, deque
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
+from aiootp._exceptions import Metadata, SingleUseObjectWasReused
 from aiootp.commons import FrozenTypedSlots
 
 from . import is_async_function
@@ -84,10 +85,17 @@ class ConcurrencyGuard(FrozenTypedSlots):
     --------------------------------------------------------------------
     """
 
-    __slots__ = ("_append_token_manually", "probe_delay", "queue", "token")
+    __slots__ = (
+        "_append_token_manually",
+        "_use_tracker",
+        "probe_delay",
+        "queue",
+        "token",
+    )
 
     slots_types: t.Mapping[str, type] = dict(
         _append_token_manually=bool,
+        _use_tracker=deque,
         probe_delay=float,
         queue=t.SupportsAppendPopleft,
         token=bytes,
@@ -125,10 +133,12 @@ class ConcurrencyGuard(FrozenTypedSlots):
                 removing the token from the queue when the context
                 manager is exited.
                 ********
-                CAUTION: If the instance is used multiple times as a
-                ******** context manager, setting this bool to True means
-                the token also MUST be appended manually the same number
-                of times. Failing to do so will cause a deadlock.
+                CAUTION: Care must be taken not to use the same token
+                ******** multiple times. Doing so may cause a deadlock,
+                incoherent state, or exception if two instances with the
+                same token enter their contexts simultaneously, and then
+                during exit, pop a token off the queue expecting it to
+                be their own.
         """
         self.probe_delay = process_probe_delay(
             probe_delay, default=self._default_probe_delay
@@ -136,6 +146,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         self.queue = queue
         self.token = token or token_bytes(32)
         self._append_token_manually = append_token_manually
+        self._use_tracker = deque()
 
     async def __aenter__(self, /) -> t.Self:
         """
@@ -143,6 +154,10 @@ class ConcurrencyGuard(FrozenTypedSlots):
         the instance's unique authorization token is the current token
         in the 0th position of the queue.
         """
+        self._use_tracker.append(True)
+        if len(self._use_tracker) > 1:
+            raise SingleUseObjectWasReused(Metadata(self))
+
         if not self._append_token_manually:
             self.queue.append(self.token)
         while not compare_digest(self.token, self.queue[0]):
@@ -155,6 +170,10 @@ class ConcurrencyGuard(FrozenTypedSlots):
         the instance's unique authorization token is the current token
         in the 0th position of the queue.
         """
+        self._use_tracker.append(True)
+        if len(self._use_tracker) > 1:
+            raise SingleUseObjectWasReused(Metadata(self))
+
         if not self._append_token_manually:
             self.queue.append(self.token)
         while not compare_digest(self.token, self.queue[0]):
@@ -348,10 +367,12 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
                 removing the token from the queue when the context
                 manager is exited.
                 ********
-                CAUTION: If the instance is used multiple times as a
-                ******** context manager, setting this bool to True means
-                the token also MUST be appended manually the same number
-                of times. Failing to do so will cause a deadlock.
+                CAUTION: Care must be taken not to use the same token
+                ******** multiple times. Doing so may cause a deadlock,
+                incoherent state, or exception if two instances with the
+                same token enter their contexts simultaneously, and then
+                during exit, pop a token off the queue expecting it to
+                be their own.
 
          _____________________________________
         |                                     |

@@ -5,6 +5,24 @@
 
 
 
+Changes for version 0.24.0
+--------------------------
+
+
+Major Changes
+^^^^^^^^^^^^^
+
+- None
+
+
+Minor Changes
+^^^^^^^^^^^^^
+
+- fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
+
+
+
+
 Changes for version 0.23.18
 ---------------------------
 

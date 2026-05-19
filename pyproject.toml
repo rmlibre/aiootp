@@ -476,6 +476,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "E402",  # there's a wibbly wobbly, timey wimey import sequence here
     "F401",  # most other tests get their imports from this module
 ]
+"test_ConcurrencyGuard.py" = [
+    "SIM117",  # it's clearer to stagger with statements here
+]
 "**/{tests,docs}/*" = [
     "ANN001",  # type annotations on tests nice but unnecessary
     "ANN003",  # ''   ''

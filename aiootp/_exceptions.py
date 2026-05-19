@@ -43,6 +43,7 @@ __all__ = [
     "PasscryptIssue",
     "SHMACIssue",
     "SigningKeyNotSet",
+    "SingleUseObjectWasReused",
     "TimestampExpired",
     "TypeUncheckableAtRuntime",
     "UndefinedRequiredAttributes",
@@ -347,6 +348,19 @@ class MissingDeclaredVariables(AttributeError):
         super().__init__(
             "".join(mold + part for mold, part in zip(msg, report))
         )
+
+
+class SingleUseObjectWasReused(RuntimeError):
+    """
+    Thrown when reuse of a single-use object is detected.
+    """
+
+    _MESSAGE_TEMPLATE: str = "A single-use object of type CLASS was reused."
+
+    def __init__(self, obj_metadata: Metadata) -> None:
+        template = self._MESSAGE_TEMPLATE
+        message = template.replace("CLASS", repr(obj_metadata.type))
+        super().__init__(message)
 
 
 class InvalidCiphertextSize(ValueError):
@@ -1012,6 +1026,7 @@ module_api = dict(
     PasscryptIssue=t.add_type(PasscryptIssue),
     SHMACIssue=t.add_type(SHMACIssue),
     SigningKeyNotSet=t.add_type(SigningKeyNotSet),
+    SingleUseObjectWasReused=t.add_type(SingleUseObjectWasReused),
     TimestampExpired=t.add_type(TimestampExpired),
     TypeUncheckableAtRuntime=t.add_type(TypeUncheckableAtRuntime),
     UndefinedRequiredAttributes=t.add_type(UndefinedRequiredAttributes),
