@@ -1,5 +1,5 @@
 {
-    "checksum": "b36aad7aaed11d00230b60c6accf292bcd511661a9cc051be86509414ccc09aa09149d9221a529ce64b3371186a6ae49",
+    "checksum": "bf9204762700e3c3f03933698ac85c8b470109dc098285cd03c354fafc7540714f3edf032a00cb5f4c445e0cddc6744f",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "ce9e7f27f46c9fae68885ef8b2ffb8e340e4cad4a9a724d321e7a3b97a933aa394ab2c79927a7a84f69568c9e8c97389",
         ".github/workflows/linux-pypi-release-tests.yml": "f528ae0aa32874f5ca32f0cf06a6729d1a79003f614d02b3b673ef9a6e6d4bc6a3c5b558481bdaedea599eebe407fa5e",
@@ -22,7 +22,7 @@
         "SECURITY.md": "f984bffe35a3a08032a4b0cca214a8258d9e1c723f3c470fa65322a010c1abbafad09fbed781fd958aefa5e700f06cbc",
         "aiootp/__engagement/__init__.py": "1c0c74d8463eb3d38cf60fdf7c2affd6a64ee76e5dd87721e621a4f7d87c933cfcd56c321147a227c8fafa56e1e7820e",
         "aiootp/__engagement/issue_reporting.py": "ef60c219c8728480853a17e5618f2680206bec384a2cefb9fe7c4db295fc7f8062d85dda6245b6abe08e71ef0177834d",
-        "aiootp/__init__.py": "907979f9e7c0e6a0b9be3d6fe90bdda1c955311e8a7aff9eb4fc7c15595239088e1bd8a9d9f84966940b9fa50f06ecbc",
+        "aiootp/__init__.py": "f5b81a34b1c79a46ea8eb299d9bb4ccc54b0d5bb5c0998f4b900c0fd32a67424ed81ed316e986ae2c276fbbac03b7b03",
         "aiootp/_constants/__init__.py": "96114bb3529bbc1bedc913ff96e1bd3a841b686a9b1e79f63b2c916ae19751523b5cae7e0571ecd6297d029dd45468e9",
         "aiootp/_constants/datasets.py": "9594dc73d62416579ecabadd19bdcf183de91ac0b18f0df02445474dfd4bec871a7f1313c4cd5e52ca964d7d5237b81f",
         "aiootp/_constants/misc.py": "4ee4d3945fbb9f37d09c96cd9e2291b979c1633549ce98cf0bafe8f6be12b646352f249efc356dd59065fad6cd304e96",
@@ -201,14 +201,14 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "7",
-        "date": 20591,
+        "build_number": "0",
+        "date": 20592,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
         "license": "AGPL-3.0-only",
         "package": "aiootp",
-        "version": "0.23.18"
+        "version": "0.24.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "29661020aa3b88662754f22e9d99e6fe12a6c64acefe8904a77408bbc807e439bb96b3e281f2357b95adac29a7c73ebe266a34afcfe780ccb249a0e489327f0f"
+    "signature": "e3c46bbe104f44936dd363695cfaa1a58efb3b02cdcfe27cd5c1453fcf2f353f39a2af34e536a55a2c69457c442c48a74d192286395b1b60051e34dd35919201"
 }
