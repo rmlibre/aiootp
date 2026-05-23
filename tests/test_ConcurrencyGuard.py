@@ -29,12 +29,12 @@ class TestConcurrencyGuard:
         with Ignore(error, if_else=violation(problem)):
             queue = deque()
             async with ConcurrencyGuard(queue):
-                queue.appendleft(token_bytes(32))
+                queue.appendleft(ConcurrencyGuard(queue))
 
         with Ignore(error, if_else=violation(problem)):
             queue = deque()
             async with ConcurrencyGuard(queue):
-                queue[0] = token_bytes(32)
+                queue[0] = ConcurrencyGuard(queue)
 
         with Ignore(IndexError, if_else=violation(problem)):
             queue = deque()
@@ -51,12 +51,12 @@ class TestConcurrencyGuard:
         with Ignore(error, if_else=violation(problem)):
             queue = deque()
             with ConcurrencyGuard(queue):
-                queue.appendleft(token_bytes(32))
+                queue.appendleft(ConcurrencyGuard(queue))
 
         with Ignore(error, if_else=violation(problem)):
             queue = deque()
             with ConcurrencyGuard(queue):
-                queue[0] = token_bytes(32)
+                queue[0] = ConcurrencyGuard(queue)
 
         with Ignore(IndexError, if_else=violation(problem)):
             queue = deque()
@@ -89,6 +89,22 @@ class TestConcurrencyGuard:
             with instance:
                 pass
 
+    async def test_non_exclusive_instance_may_only_be_used_once(
+        self,
+    ) -> None:
+        queue = deque()
+        policy = ConcurrencyGuard.policies.NonExclusive()
+        with (instance := ConcurrencyGuard(queue, policy=policy)):
+            pass
+
+        problem = (
+            "A single-use ConcurrencyGuard object was allowed to be used "
+            "multiple times as a context manager."
+        )
+        with Ignore(t.SingleUseObjectWasReused, if_else=violation(problem)):
+            with instance:
+                pass
+
     async def test_mixed_instance_may_only_be_used_once(self) -> None:
         queue = deque()
         with (instance := ConcurrencyGuard(queue)):
@@ -101,6 +117,36 @@ class TestConcurrencyGuard:
         with Ignore(t.SingleUseObjectWasReused, if_else=violation(problem)):
             async with instance:
                 pass
+
+    @pytest.mark.parametrize(
+        "policy_cls", ConcurrencyGuard.policies.values()
+    )
+    async def test_async_policy_must_be_instance_not_class(
+        self, policy_cls
+    ) -> None:
+        queue = deque()
+        problem = (
+            "A non-instantiated policy was allowed as the provided policy"
+        )
+        with Ignore(TypeError, if_else=violation(problem)):
+            ConcurrencyGuard(queue, policy=policy_cls)
+
+        ConcurrencyGuard(queue, policy=policy_cls())
+
+    @pytest.mark.parametrize(
+        "policy_cls", ConcurrencyGuard.policies.values()
+    )
+    async def test_sync_policy_must_be_instance_not_class(
+        self, policy_cls
+    ) -> None:
+        queue = deque()
+        problem = (
+            "A non-instantiated policy was allowed as the provided policy"
+        )
+        with Ignore(TypeError, if_else=violation(problem)):
+            ConcurrencyGuard(queue, policy=policy_cls)
+
+        ConcurrencyGuard(queue, policy=policy_cls())
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

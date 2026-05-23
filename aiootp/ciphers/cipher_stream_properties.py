@@ -116,8 +116,8 @@ class CipherStreamProperties:
 
         final_token = self._finalizing_now[0]
         membership_tests = [
-            await abytes_are_equal(queued_token, final_token)
-            for queued_token in self._digesting_now
+            await abytes_are_equal(queued_context.token, final_token)
+            for queued_context in self._digesting_now
         ]
         return not sum(membership_tests)
 
@@ -133,8 +133,8 @@ class CipherStreamProperties:
 
         final_token = self._finalizing_now[0]
         membership_tests = (
-            bytes_are_equal(queued_token, final_token)
-            for queued_token in self._digesting_now
+            bytes_are_equal(queued_context.token, final_token)
+            for queued_context in self._digesting_now
         )
         return not sum(membership_tests)
 

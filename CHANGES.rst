@@ -12,7 +12,7 @@ Changes for version 0.24.0
 Major Changes
 ^^^^^^^^^^^^^
 
-- None
+- feat(cguard): refactor distinct behaviors into new policy types
 
 
 Minor Changes

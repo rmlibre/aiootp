@@ -454,6 +454,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "**/asynchs/aos.py" = [
     "F822",  # `__all__` declarations exist in `os` module
 ]
+"**/asynchs/concurrency_interface.py" = [
+    "ARG002",  # some methods overridden as no-ops
+]
 "**/randoms/_early_salts.py" = [
     "PLW0603",  # global updates are ok in context of package entropy
 ]

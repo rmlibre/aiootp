@@ -121,9 +121,62 @@ class ClockType(t.Protocol):
         pass  # pragma: no cover
 
 
+@t.runtime_checkable
+class ConcurrencyGuardType(t.Protocol):
+    async def __aenter__(self, /) -> t.Self:
+        pass  # pragma: no cover
+
+    def __enter__(self, /) -> t.Self:
+        pass  # pragma: no cover
+
+    async def __aexit__(
+        self,
+        /,
+        exc_type: t.Optional[type] = None,
+        exc_value: t.Optional[Exception] = None,
+        traceback: t.Optional[t.TracebackType] = None,
+    ) -> bool:
+        pass  # pragma: no cover
+
+    def __exit__(
+        self,
+        /,
+        exc_type: t.Optional[type] = None,
+        exc_value: t.Optional[Exception] = None,
+        traceback: t.Optional[t.TracebackType] = None,
+    ) -> bool:
+        pass  # pragma: no cover
+
+
+@t.runtime_checkable
+class ConcurrencyGuardPolicy(t.Protocol):
+    def __bool__(self, /) -> bool:
+        pass  # pragma: no cover
+
+    def use(self, /, guard: t.ConcurrencyGuardType) -> None:
+        pass  # pragma: no cover
+
+    def get_in_queue(self, /, guard: t.ConcurrencyGuardType) -> None:
+        pass  # pragma: no cover
+
+    def get_off_queue(self, /, guard: t.ConcurrencyGuardType) -> None:
+        pass  # pragma: no cover
+
+    def notify_on(self, /, guard: t.ConcurrencyGuardType) -> None:
+        pass  # pragma: no cover
+
+    def notify_off(self, /, guard: t.ConcurrencyGuardType) -> None:
+        pass  # pragma: no cover
+
+    def is_free_to_run(self, /, guard: t.ConcurrencyGuardType) -> bool:
+        pass  # pragma: no cover
+
+
 module_api = dict(
     AsyncOrSyncIterable=t.add_type(AsyncOrSyncIterable),
     ClockType=t.add_type(ClockType),
+    ConcurrencyGuardPolicy=t.add_type(ConcurrencyGuardPolicy),
+    ConcurrencyGuardType=t.add_type(ConcurrencyGuardType),
     Future=t.add_type(Future),
     PoolExecutorType=t.add_type(PoolExecutorType),
     QueueType=t.add_type(QueueType),
