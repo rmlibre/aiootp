@@ -454,7 +454,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "**/asynchs/aos.py" = [
     "F822",  # `__all__` declarations exist in `os` module
 ]
-"**/asynchs/concurrency_interface.py" = [
+"**/asynchs/concurrency_guard.py" = [
     "ARG002",  # some methods overridden as no-ops
 ]
 "**/randoms/_early_salts.py" = [

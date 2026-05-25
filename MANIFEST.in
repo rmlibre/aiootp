@@ -39,6 +39,7 @@ include aiootp/_typing/tuples.py
 include aiootp/asynchs/__init__.py
 include aiootp/asynchs/aos.py
 include aiootp/asynchs/clocks.py
+include aiootp/asynchs/concurrency_guard.py
 include aiootp/asynchs/concurrency_interface.py
 include aiootp/asynchs/loops.py
 include aiootp/asynchs/processes.py

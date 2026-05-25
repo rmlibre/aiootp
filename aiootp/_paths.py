@@ -177,7 +177,7 @@ async def aread_salt_file(path: Path) -> bytes:
     """
     path = await wrap_in_executor(path.absolute)()
     target = filename_to_index_key(str(path))
-    async with guards.guard(target):
+    async with guards.monitor(target):
         try:
             await aos.chmod(path, 0o600)
             async with aiofiles.open(path, "rb") as salt_file:
@@ -196,7 +196,7 @@ def read_salt_file(path: Path) -> bytes:
     `path`.
     """
     target = filename_to_index_key(str(path.absolute()))
-    with guards.guard(target):
+    with guards.monitor(target):
         try:
             path = Path(path)
             path.chmod(0o600)

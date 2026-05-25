@@ -14,8 +14,8 @@
 from collections import defaultdict, deque
 
 from aiootp.asynchs.loops import gather
-from aiootp.asynchs.concurrency_interface import DefaultDictOfDeques
-from aiootp.asynchs.concurrency_interface import MultiConcurrencyGaurd
+from aiootp.asynchs.concurrency_guard import DefaultDictOfDeques
+from aiootp.asynchs.concurrency_guard import MultiConcurrencyGaurd
 
 from conftest import *
 

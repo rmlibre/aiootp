@@ -13,6 +13,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - feat(cguard): refactor distinct behaviors into new policy types
+- refactor(cguard): split interfaces into separate modules
 
 
 Minor Changes

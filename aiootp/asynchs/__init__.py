@@ -27,6 +27,7 @@ from inspect import iscoroutinefunction as is_async_function
 from .loops import *
 from .clocks import *
 from .aos import *
+from .concurrency_guard import *
 from .concurrency_interface import *
 from .processes import *
 from .threads import *
