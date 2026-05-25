@@ -20,6 +20,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
+- perf(commons): check contains on set instead of tuple
 
 
 

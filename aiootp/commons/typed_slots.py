@@ -100,7 +100,7 @@ class TypedSlots(Slots):
                 raise TypeUncheckableAtRuntime(name, value) from error
             if name == "__dict__":
                 raise OverspecifiedVariable("__dict__")
-            elif name not in cls.__slots__:
+            elif name not in cls._slots_set:
                 kw = dict(found_in="slots_types", missed="__slots__")
                 raise MissingDeclaredVariables(name, **kw)
             slots_types[name] = value
