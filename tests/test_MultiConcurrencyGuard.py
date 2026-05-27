@@ -13,7 +13,7 @@
 
 from collections import defaultdict, deque
 
-from aiootp.asynchs.loops import gather
+from aiootp.asynchs.loops import gather, new_task
 from aiootp.asynchs.concurrency_guard import DefaultDictOfDeques
 from aiootp.asynchs.concurrency_guard import MultiConcurrencyGaurd
 
@@ -42,8 +42,12 @@ class TestDefaultDictOfDeques:
         with Ignore(TypeError, if_else=violation(problem)):
             mapping["setitem_test"] = value
 
+        mapping["setitem_test"] = deque()
+
         with Ignore(TypeError, if_else=violation(problem)):
             mapping.update(update_test=value)
+
+        mapping.update(update_test=deque())
 
 
 class TestMultiConcurrencyGaurd:
@@ -51,13 +55,14 @@ class TestMultiConcurrencyGaurd:
         async def record_ordering(
             target: t.Hashable, instance: MultiConcurrencyGaurd
         ) -> None:
+            await arandom_sleep(0.0001)
             async with instance:
                 await arandom_sleep(0.0001)
                 target_results.append(target)
                 token_results[target].append(instance.token)
 
         guards = MultiConcurrencyGaurd()
-        Policy = guards._Guard.policies.AppendTokenManually
+        Policy = guards.policies.QueueManually
 
         unique_targets = [*range(64)]
         targets = 4 * unique_targets
@@ -68,7 +73,7 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         for target, instance in instances:
             queues[target].append(instance.token)
-            instance.queue.append(instance)
+            guards.queues[target].append(instance)
 
         target_results = []
         token_results = defaultdict(list)
@@ -96,13 +101,14 @@ class TestMultiConcurrencyGaurd:
             items: t.Tuple[t.Hashable, MultiConcurrencyGaurd],
         ) -> None:
             target, instance = items
+            random_sleep(0.0001)
             with instance:
                 random_sleep(0.0001)
                 target_results.append(target)
                 token_results[target].append(instance.token)
 
         guards = MultiConcurrencyGaurd()
-        Policy = guards._Guard.policies.AppendTokenManually
+        Policy = guards.policies.QueueManually
 
         unique_targets = [*range(64)]
         targets = 4 * unique_targets
@@ -113,7 +119,7 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         for target, instance in instances:
             queues[target].append(instance.token)
-            instance.queue.append(instance)
+            guards.queues[target].append(instance)
 
         target_results = []
         token_results = defaultdict(list)
@@ -145,15 +151,19 @@ class TestMultiConcurrencyGaurd:
         async def record_ordering(
             target: t.Hashable, instance: MultiConcurrencyGaurd
         ) -> None:
+            await arandom_sleep(0.0001)
             async with instance:
                 await arandom_sleep(0.0001)
                 target_results.append(target)
-                if instance.policy:
+                if instance.policy.is_exclusive():
                     token_results[target].append(instance.token)
-                    assert all(obs.policy for obs in instance.observers)
+                    assert all(
+                        obs.policy.is_exclusive()
+                        for obs in instance.observers
+                    )
                     observers[target].pop()
                 else:
-                    assert not instance.observers[0].policy
+                    assert not instance.observers[0].policy.is_exclusive()
                     observers[target].popleft()
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
@@ -164,7 +174,7 @@ class TestMultiConcurrencyGaurd:
             )
 
         guards = MultiConcurrencyGaurd()
-        Policy = guards._Guard.policies.AppendTokenManually
+        Policy = guards.policies.QueueManually
 
         unique_targets = [*range(64)]
         targets = 4 * unique_targets
@@ -172,10 +182,10 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         observers = defaultdict(deque)
         for target, instance in instances:
-            if instance.policy:
+            if instance.policy.is_exclusive():
                 observers[target].append(instance)
                 queues[target].append(instance.token)
-                instance.queue.append(instance)
+                guards.queues[target].append(instance)
             else:
                 observers[target].appendleft(instance)
 
@@ -199,7 +209,7 @@ class TestMultiConcurrencyGaurd:
         for target, instance in instances:
             assert len(instance.queue) == 0, target
             assert len(instance.observers) == 0, target
-            if instance.policy:
+            if instance.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
     async def test_free_thread_queue_execution_order_is_respected(
@@ -209,15 +219,19 @@ class TestMultiConcurrencyGaurd:
             items: t.Tuple[t.Hashable, MultiConcurrencyGaurd],
         ) -> None:
             target, instance = items
+            random_sleep(0.0001)
             with instance:
                 random_sleep(0.0001)
                 target_results.append(target)
-                if instance.policy:
+                if instance.policy.is_exclusive():
                     token_results[target].append(instance.token)
-                    assert all(obs.policy for obs in instance.observers)
+                    assert all(
+                        obs.policy.is_exclusive()
+                        for obs in instance.observers
+                    )
                     observers[target].pop()
                 else:
-                    assert not instance.observers[0].policy
+                    assert not instance.observers[0].policy.is_exclusive()
                     observers[target].popleft()
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
@@ -228,7 +242,7 @@ class TestMultiConcurrencyGaurd:
             )
 
         guards = MultiConcurrencyGaurd()
-        Policy = guards._Guard.policies.AppendTokenManually
+        Policy = guards.policies.QueueManually
 
         unique_targets = [*range(64)]
         targets = 4 * unique_targets
@@ -236,11 +250,12 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         observers = defaultdict(deque)
         for target, instance in instances:
-            if instance.policy:
+            if instance.policy.is_exclusive():
                 observers[target].append(instance)
                 queues[target].append(instance.token)
-                instance.queue.append(instance)
+                guards.queues[target].append(instance)
             else:
+                assert isinstance(queues[target], list)
                 observers[target].appendleft(instance)
 
         target_results = []
@@ -266,7 +281,7 @@ class TestMultiConcurrencyGaurd:
         for target, instance in instances:
             assert len(instance.queue) == 0, target
             assert len(instance.observers) == 0, target
-            if instance.policy:
+            if instance.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
     async def test_guard_method_needs_exclusive_policy(self) -> None:
@@ -279,12 +294,12 @@ class TestMultiConcurrencyGaurd:
         with Ignore(TypeError, if_else=violation(problem)):
             guards.guard(
                 target="test",
-                policy=guards._Guard.policies.NonExclusive(),
+                policy=guards.policies.NonExclusive(),
             )
 
         guards.guard(
             target="test",
-            policy=guards._Guard.policies.Exclusive(),
+            policy=guards.policies.Exclusive(),
         )
 
     async def test_monitor_method_needs_non_exclusive_policy(self) -> None:
@@ -297,13 +312,132 @@ class TestMultiConcurrencyGaurd:
         with Ignore(TypeError, if_else=violation(problem)):
             guards.monitor(
                 target="test",
-                policy=guards._Guard.policies.Exclusive(),
+                policy=guards.policies.Exclusive(),
             )
 
         guards.monitor(
             target="test",
-            policy=guards._Guard.policies.NonExclusive(),
+            policy=guards.policies.NonExclusive(),
         )
+
+    async def test_async_references_cleaned_when_work_is_done(self) -> None:
+        async def record_ordering(
+            target: t.Hashable,
+            instance: MultiConcurrencyGaurd,
+            *,
+            is_spontaneous: bool = True,
+        ) -> None:
+            await arandom_sleep(0.0001)
+            async with instance:
+                await arandom_sleep(0.0001)
+                assert target in guards.users
+                if instance.policy.is_exclusive():
+                    assert instance.token == instance.queue[0].token
+                else:
+                    assert instance.token not in instance.queue
+
+                if is_spontaneous or token_bits(3) < 0b110:
+                    return
+                task = record_ordering(
+                    target, choose_policy(target), is_spontaneous=True
+                )
+                spontaneous_tasks.append(new_task(task))
+
+        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+            return (
+                guards.guard(target)
+                if token_bits(1)
+                else guards.monitor(target)
+            )
+
+        guards = MultiConcurrencyGaurd()
+
+        unique_targets = [*range(64)]
+        targets = 4 * unique_targets
+        instances = [(target, choose_policy(target)) for target in targets]
+        spontaneous_tasks = deque()
+
+        tasks = [
+            record_ordering(target, instance, is_spontaneous=False)
+            for target, instance in instances
+        ]
+        await gather(*tasks)
+        await gather(*spontaneous_tasks)
+
+        # are the target references cleaned up after all work is done?
+        for target in unique_targets:
+            assert target not in guards.observers
+            assert target not in guards.queues
+            assert target not in guards.users
+
+        assert not guards.observers
+        assert not guards.queues
+        assert not guards.users
+
+    async def test_sync_references_cleaned_when_work_is_done(self) -> None:
+        def record_ordering(
+            target: t.Hashable,
+            instance: MultiConcurrencyGaurd,
+            *,
+            is_spontaneous: bool,
+        ) -> None:
+            random_sleep(0.0001)
+            with instance:
+                random_sleep(0.0001)
+                assert target in guards.users
+                if instance.policy.is_exclusive():
+                    assert instance.token == instance.queue[0].token
+                else:
+                    assert instance.token not in instance.queue
+
+                if is_spontaneous or token_bits(3) < 0b110:
+                    return
+                task = Threads._type(
+                    target=record_ordering,
+                    args=(target, choose_policy(target)),
+                    kwargs=dict(is_spontaneous=True),
+                )
+                spontaneous_tasks.append(task)
+                task.start()
+
+        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+            return (
+                guards.guard(target)
+                if token_bits(1)
+                else guards.monitor(target)
+            )
+
+        guards = MultiConcurrencyGaurd()
+
+        unique_targets = [*range(64)]
+        targets = 4 * unique_targets
+        instances = [(target, choose_policy(target)) for target in targets]
+        spontaneous_tasks = deque()
+
+        tasks = [
+            Threads._type(
+                target=record_ordering,
+                args=(target, choose_policy(target)),
+                kwargs=dict(is_spontaneous=False),
+            )
+            for target, instance in instances
+        ]
+        for task in tasks:
+            task.start()
+        for task in tasks:
+            task.join()
+        for task in spontaneous_tasks:
+            task.join()
+
+        # are the target references cleaned up after all work is done?
+        for target in unique_targets:
+            assert target not in guards.observers
+            assert target not in guards.queues
+            assert target not in guards.users
+
+        assert not guards.observers
+        assert not guards.queues
+        assert not guards.users
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

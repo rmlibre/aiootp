@@ -19,7 +19,10 @@ the `asynchs` subpackage.
 __all__ = [
     "AsyncOrSyncIterable",
     "ClockType",
+    "ConcurrencyGuardType",
+    "ConcurrencyGuardPolicy",
     "Future",
+    "MultiConcurrencyGaurdType",
     "PoolExecutorType",
     "QueueType",
 ]
@@ -150,25 +153,50 @@ class ConcurrencyGuardType(t.Protocol):
 
 @t.runtime_checkable
 class ConcurrencyGuardPolicy(t.Protocol):
-    def __bool__(self, /) -> bool:
+    def is_exclusive(self, /) -> bool:
         pass  # pragma: no cover
 
-    def use(self, /, guard: t.ConcurrencyGuardType) -> None:
+    def use(self, /, guard: ConcurrencyGuardType) -> None:
         pass  # pragma: no cover
 
-    def get_in_queue(self, /, guard: t.ConcurrencyGuardType) -> None:
+    def get_in_queue(self, /, guard: ConcurrencyGuardType) -> None:
         pass  # pragma: no cover
 
-    def get_off_queue(self, /, guard: t.ConcurrencyGuardType) -> None:
+    def get_off_queue(self, /, guard: ConcurrencyGuardType) -> None:
         pass  # pragma: no cover
 
-    def notify_on(self, /, guard: t.ConcurrencyGuardType) -> None:
+    def notify_on(self, /, guard: ConcurrencyGuardType) -> None:
         pass  # pragma: no cover
 
-    def notify_off(self, /, guard: t.ConcurrencyGuardType) -> None:
+    def notify_off(self, /, guard: ConcurrencyGuardType) -> None:
         pass  # pragma: no cover
 
-    def is_free_to_run(self, /, guard: t.ConcurrencyGuardType) -> bool:
+    def is_free_to_run(self, /, guard: ConcurrencyGuardType) -> bool:
+        pass  # pragma: no cover
+
+
+@t.runtime_checkable
+class MultiConcurrencyGaurdType(t.Protocol):
+    def guard(
+        self,
+        /,
+        target: t.Hashable,
+        *,
+        policy: t.Optional[ConcurrencyGuardPolicy] = None,
+        probe_delay: t.Optional[t.PositiveRealNumber] = None,
+        token: t.Optional[bytes] = None,
+    ) -> ConcurrencyGuardType:
+        pass  # pragma: no cover
+
+    def monitor(
+        self,
+        /,
+        target: t.Hashable,
+        *,
+        policy: t.Optional[ConcurrencyGuardPolicy] = None,
+        probe_delay: t.Optional[t.PositiveRealNumber] = None,
+        token: t.Optional[bytes] = None,
+    ) -> ConcurrencyGuardType:
         pass  # pragma: no cover
 
 
@@ -178,6 +206,7 @@ module_api = dict(
     ConcurrencyGuardPolicy=t.add_type(ConcurrencyGuardPolicy),
     ConcurrencyGuardType=t.add_type(ConcurrencyGuardType),
     Future=t.add_type(Future),
+    MultiConcurrencyGaurdType=t.add_type(MultiConcurrencyGaurdType),
     PoolExecutorType=t.add_type(PoolExecutorType),
     QueueType=t.add_type(QueueType),
     __all__=__all__,
