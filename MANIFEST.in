@@ -133,6 +133,7 @@ include tests/all_asynchs_tests.py
 include tests/all_ciphers_tests.py
 include tests/all_commons_tests.py
 include tests/all_databases_tests.py
+include tests/all_debug_control_tests.py
 include tests/all_exceptions_tests.py
 include tests/all_generics_tests.py
 include tests/all_gentools_tests.py
@@ -152,6 +153,7 @@ include tests/test_ByteIO.py
 include tests/test_Clock.py
 include tests/test_ConcurrencyGuard.py
 include tests/test_Database_AsyncDatabase.py
+include tests/test_DebugControl.py
 include tests/test_GUID.py
 include tests/test_MultiConcurrencyGuard.py
 include tests/test_PackageSigner.py

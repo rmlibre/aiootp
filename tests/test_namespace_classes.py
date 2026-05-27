@@ -255,6 +255,11 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
             for name in self._items:
                 assert name not in obj
 
+        with Ignore(
+            PermissionError, if_except=is_immutable, if_else=is_mutable
+        ):
+            obj.clear()
+
     async def test_clear_doesnt_throw_when_partially_full(self) -> None:
         def is_immutable(_: Ignore) -> bool:
             return self._frozen

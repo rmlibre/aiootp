@@ -22,6 +22,7 @@ Minor Changes
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
 - perf(commons): check contains on set instead of tuple
 - refactor(misc): rename, move & type methods, imports & args
+- test(cov): expand tests to cover missing branches
 
 
 
