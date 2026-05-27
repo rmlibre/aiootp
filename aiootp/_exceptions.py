@@ -553,12 +553,12 @@ class Issue:
         return PermissionError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
-    def value_must_be_type(cls, name: str, clss: t.Any, /) -> TypeError:
+    def must_be_type(cls, name: str, clss: t.Any, /) -> TypeError:
         issue = cls._VALUE_MUST_BE_TYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
 
     @classmethod
-    def value_must_be_subtype(cls, name: str, clss: t.Any, /) -> TypeError:
+    def must_be_subtype(cls, name: str, clss: t.Any, /) -> TypeError:
         issue = cls._VALUE_MUST_BE_SUBTYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
 
@@ -814,7 +814,7 @@ class PasscryptIssue:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if metadata.type is not bytes:
-            return Issue.value_must_be_type("`passphrase`", bytes)
+            return Issue.must_be_type("`passphrase`", bytes)
         issue = cls._IMPROPER_PASSPHRASE
         missing = c.MIN_PASSPHRASE_BYTES - metadata.size
         error = ImproperPassphrase(issue.replace("NEED", str(missing)))
@@ -826,7 +826,7 @@ class PasscryptIssue:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if metadata.type is not bytes:
-            return Issue.value_must_be_type("`salt`", bytes)
+            return Issue.must_be_type("`salt`", bytes)
         # fmt: off
         return ValueError(
             cls
@@ -838,14 +838,14 @@ class PasscryptIssue:
 
     @classmethod
     def improper_aad(cls, /) -> TypeError:
-        return Issue.value_must_be_type("`aad`", bytes)
+        return Issue.must_be_type("`aad`", bytes)
 
     @classmethod
     def invalid_mb(cls, mb: int, /) -> ValueError:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if mb.__class__ is not int:
-            return Issue.value_must_be_type("`mb`", int)
+            return Issue.must_be_type("`mb`", int)
         # fmt: off
         return ValueError(
             cls
@@ -861,7 +861,7 @@ class PasscryptIssue:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if cpu.__class__ is not int:
-            return Issue.value_must_be_type("`cpu`", int)
+            return Issue.must_be_type("`cpu`", int)
         # fmt: off
         return ValueError(
             cls
@@ -877,7 +877,7 @@ class PasscryptIssue:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if cores.__class__ is not int:
-            return Issue.value_must_be_type("`cores`", int)
+            return Issue.must_be_type("`cores`", int)
         # fmt: off
         return ValueError(
             cls
@@ -893,7 +893,7 @@ class PasscryptIssue:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if tag_size.__class__ is not int:
-            return Issue.value_must_be_type("`tag_size`", int)
+            return Issue.must_be_type("`tag_size`", int)
         # fmt: off
         return ValueError(
             cls
@@ -908,7 +908,7 @@ class PasscryptIssue:
         from .keygens.passcrypt.config import passcrypt_spec as c
 
         if salt_size.__class__ is not int:
-            return Issue.value_must_be_type("`salt_size`", int)
+            return Issue.must_be_type("`salt_size`", int)
         # fmt: off
         return ValueError(
             cls

@@ -135,7 +135,7 @@ class CipherKDFs(FrozenInstance):
         Throws exception if `key` violates type & min size requirements.
         """
         if key.__class__ is not bytes:
-            raise Issue.value_must_be_type("key", bytes)
+            raise Issue.must_be_type("key", bytes)
         elif len(key) < MIN_KEY_BYTES:
             raise KeyAADIssue.invalid_key_size(len(key), MIN_KEY_BYTES)
 

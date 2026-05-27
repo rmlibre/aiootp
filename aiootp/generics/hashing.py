@@ -32,7 +32,7 @@ async def ahash_bytes(
     hasher: t.Callable[[bytes], t.HasherType] = sha3_512,
     pad: bytes = b"\x00",
     size: t.Optional[int] = None,
-    key: bytes = b"",
+    key: t.Optional[bytes] = None,
 ) -> bytes:
     """
     Joins the `collection` of `bytes`-type objects with a canonical
@@ -45,9 +45,8 @@ async def ahash_bytes(
     Returns a keyed-hash if `key` is specified.
     """
     obj = hasher()
-    obj.update(
-        await aencode_key(key, obj.block_size, pad=pad) if key else b""
-    )
+    if key is not None:
+        obj.update(await aencode_key(key, obj.block_size, pad=pad))
     obj.update(
         await acanonical_pack(
             (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
@@ -66,7 +65,7 @@ def hash_bytes(
     hasher: t.Callable[[bytes], t.HasherType] = sha3_512,
     pad: bytes = b"\x00",
     size: t.Optional[int] = None,
-    key: bytes = b"",
+    key: t.Optional[bytes] = None,
 ) -> bytes:
     """
     Joins the `collection` of `bytes`-type objects with a canonical
@@ -79,7 +78,8 @@ def hash_bytes(
     Returns a keyed-hash if `key` is specified.
     """
     obj = hasher()
-    obj.update(encode_key(key, obj.block_size, pad=pad) if key else b"")
+    if key is not None:
+        obj.update(encode_key(key, obj.block_size, pad=pad))
     obj.update(
         canonical_pack(
             (size or obj.digest_size).to_bytes(INT_BYTES, BIG),

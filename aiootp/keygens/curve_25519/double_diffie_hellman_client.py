@@ -69,9 +69,9 @@ class DoubleDiffieHellmanClient(FrozenInstance):
         self, /, key_exchange_type: type, *, kdf_type: type
     ) -> None:
         if not issubclass(kdf_type, t.DomainKDFType):
-            raise Issue.value_must_be_subtype("KDF type", t.DomainKDFType)
+            raise Issue.must_be_subtype("KDF type", t.DomainKDFType)
         elif not issubclass(key_exchange_type, t.KeyExchangeType):
-            raise Issue.value_must_be_subtype("KEX type", t.KeyExchangeType)
+            raise Issue.must_be_subtype("KEX type", t.KeyExchangeType)
         self._kdf_type = kdf_type
         self._key_exchange_type = key_exchange_type
         self._sanitize = key_exchange_type._process_public_key

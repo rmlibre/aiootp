@@ -445,7 +445,7 @@ class CipherInterface(FrozenInstance):
                 each permutation of `key`, `salt`, & `iv`.
         """
         if data.__class__ is not bytes:
-            raise Issue.value_must_be_type("token data", bytes)
+            raise Issue.must_be_type("token data", bytes)
         ciphertext = await self.abytes_encrypt(data, aad=aad)
         return await ByteIO.abytes_to_urlsafe(ciphertext)
 
@@ -463,7 +463,7 @@ class CipherInterface(FrozenInstance):
                 each permutation of `key`, `salt`, & `iv`.
         """
         if data.__class__ is not bytes:
-            raise Issue.value_must_be_type("token data", bytes)
+            raise Issue.must_be_type("token data", bytes)
         ciphertext = self.bytes_encrypt(data, aad=aad)
         return ByteIO.bytes_to_urlsafe(ciphertext)
 

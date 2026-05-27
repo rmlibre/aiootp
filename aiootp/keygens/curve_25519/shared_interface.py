@@ -63,7 +63,7 @@ class Base25519(FrozenInstance):
         elif issubclass(key_type, cls.SecretKey):
             return secret_key
         else:
-            raise Issue.value_must_be_type("secret_key", "valid key type")
+            raise Issue.must_be_type("secret_key", "valid key type")
 
     @classmethod
     def _process_public_key(
@@ -80,7 +80,7 @@ class Base25519(FrozenInstance):
         elif issubclass(key_type, cls.PublicKey):
             return public_key
         else:
-            raise Issue.value_must_be_type("public_key", "valid key type")
+            raise Issue.must_be_type("public_key", "valid key type")
 
     async def aimport_secret_key(
         self, secret_key: t.Union[bytes, t.SecretKeyType], /

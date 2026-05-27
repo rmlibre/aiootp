@@ -69,9 +69,9 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         self, /, my_identity_key: t.KeyExchangeType, *, kdf_type: type
     ) -> None:
         if not issubclass(kdf_type, t.DomainKDFType):
-            raise Issue.value_must_be_subtype("KDF type", t.DomainKDFType)
+            raise Issue.must_be_subtype("KDF type", t.DomainKDFType)
         elif not isinstance(my_identity_key, t.KeyExchangeType):
-            raise Issue.value_must_be_type("KEX ID key", t.KeyExchangeType)
+            raise Issue.must_be_type("KEX ID key", t.KeyExchangeType)
         self._kdf_type = kdf_type
         self._key_exchange_type = my_identity_key.__class__
         self._my_identity_key = my_identity_key

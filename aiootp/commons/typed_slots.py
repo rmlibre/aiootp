@@ -161,7 +161,7 @@ class TypedSlots(Slots):
 
         value_type = self.slots_types[name]
         if not isinstance(value, value_type):
-            raise Issue.value_must_be_type(name, value_type)
+            raise Issue.must_be_type(name, value_type)
 
     def __setitem__(self, name: str, value: t.Any, /) -> None:
         """

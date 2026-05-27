@@ -64,7 +64,7 @@ class StreamHMAC:
         completed.
         """
         if not issubclass(key_bundle.__class__, KeyAADBundle):
-            raise Issue.value_must_be_type("key_bundle", KeyAADBundle)
+            raise Issue.must_be_type("key_bundle", KeyAADBundle)
         self._mode = None
         self._is_finalized = False
         self._result_is_ready = False
@@ -365,7 +365,7 @@ class StreamHMAC:
         associated data with the block.
         """
         if untrusted_block_id.__class__ is not bytes:
-            raise Issue.value_must_be_type("untrusted_block_id", bytes)
+            raise Issue.must_be_type("untrusted_block_id", bytes)
         size = len(untrusted_block_id)
         block_id = await self.anext_block_id(next_block, size=size, aad=aad)
         if not bytes_are_equal(untrusted_block_id, block_id):
@@ -392,7 +392,7 @@ class StreamHMAC:
         associated data with the block.
         """
         if untrusted_block_id.__class__ is not bytes:
-            raise Issue.value_must_be_type("untrusted_block_id", bytes)
+            raise Issue.must_be_type("untrusted_block_id", bytes)
         size = len(untrusted_block_id)
         block_id = self.next_block_id(next_block, size=size, aad=aad)
         if not bytes_are_equal(untrusted_block_id, block_id):
@@ -405,7 +405,7 @@ class StreamHMAC:
         the shmac doesn't match.
         """
         if untrusted_shmac.__class__ is not bytes:
-            raise Issue.value_must_be_type("untrusted_shmac", bytes)
+            raise Issue.must_be_type("untrusted_shmac", bytes)
         elif not bytes_are_equal(untrusted_shmac, self.result):
             raise SHMACIssue.invalid_shmac()
 
@@ -416,7 +416,7 @@ class StreamHMAC:
         the shmac doesn't match.
         """
         if untrusted_shmac.__class__ is not bytes:
-            raise Issue.value_must_be_type("untrusted_shmac", bytes)
+            raise Issue.must_be_type("untrusted_shmac", bytes)
         elif not bytes_are_equal(untrusted_shmac, self.result):
             raise SHMACIssue.invalid_shmac()
 

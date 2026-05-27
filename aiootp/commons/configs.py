@@ -162,7 +162,7 @@ class ConfigMap(OpenFrozenNamespace):
         provided mappings of config IDs to config objects.
         """
         if not issubclass(config_type, Config):
-            raise Issue.value_must_be_subtype(f"{config_type=}", Config)
+            raise Issue.must_be_subtype(f"{config_type=}", Config)
         object.__setattr__(self, CONFIG_TYPE, config_type)
         super().__init__(mapping, **kw)
 
@@ -176,7 +176,7 @@ class ConfigMap(OpenFrozenNamespace):
         """
         config.set_config_id(config_id)
         if not issubclass(config.__class__, self.CONFIG_TYPE):
-            raise Issue.value_must_be_type("config", self.CONFIG_TYPE)
+            raise Issue.must_be_type("config", self.CONFIG_TYPE)
         elif config_id in self and self[config_id] is not config:
             raise Issue.cant_reassign_attribute(f"{config_id=}")
         if config_id.__class__ is str:

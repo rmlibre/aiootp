@@ -420,7 +420,7 @@ class DefaultDictOfDeques(defaultdict):
         `collections.deque`.
         """
         if value.__class__ is not deque:
-            raise Issue.value_must_be_type("value", deque) from None
+            raise Issue.must_be_type("value", deque) from None
 
         super().__setitem__(name, value)
 

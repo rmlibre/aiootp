@@ -302,7 +302,7 @@ async def acount(*, start: int = 0) -> t.AsyncGenerator[int, None]:
     Unendingly yields incrementing numbers starting from `start`.
     """
     if start.__class__ is not int:
-        raise Issue.value_must_be_type("start", int)
+        raise Issue.must_be_type("start", int)
     index = start
     while True:
         await asyncio.sleep(0)
@@ -315,7 +315,7 @@ def count(*, start: int = 0) -> t.Generator[int, None, None]:
     Unendingly yields incrementing numbers starting from `start`.
     """
     if start.__class__ is not int:
-        raise Issue.value_must_be_type("start", int)
+        raise Issue.must_be_type("start", int)
     index = start
     while True:
         yield index

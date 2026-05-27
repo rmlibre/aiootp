@@ -74,13 +74,13 @@ class SaltAADIV(FrozenSlots):
         """
         config = self.config
         if salt.__class__ is not bytes:
-            raise Issue.value_must_be_type("salt", bytes)
+            raise Issue.must_be_type("salt", bytes)
         elif len(salt) != config.SALT_BYTES:
             raise Issue.invalid_length("salt", config.SALT_BYTES)
         elif aad.__class__ is not bytes:
-            raise Issue.value_must_be_type("aad", bytes)
+            raise Issue.must_be_type("aad", bytes)
         elif iv.__class__ is not bytes:
-            raise Issue.value_must_be_type("iv", bytes)
+            raise Issue.must_be_type("iv", bytes)
         elif len(iv) != config.IV_BYTES:
             raise Issue.invalid_length("iv", config.IV_BYTES)
 
@@ -192,7 +192,7 @@ class KeyAADBundle:
         decryption.
         """
         if not issubclass(kdfs.__class__, CipherKDFs):
-            raise Issue.value_must_be_type("kdfs", CipherKDFs)
+            raise Issue.must_be_type("kdfs", CipherKDFs)
         self.config = kdfs.config
         self._kdfs = kdfs
         self._session = self._Session()

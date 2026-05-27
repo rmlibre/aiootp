@@ -25,10 +25,8 @@ from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 from aiootp._typing import Typing as t
 from aiootp._constants import Tables, BIG
-from aiootp._constants.datasets import (
-    _WORD_LIST_256,
-    _WORD_LIST_256_INVERSE,
-)
+from aiootp._constants.datasets import _WORD_LIST_256
+from aiootp._constants.datasets import _WORD_LIST_256_INVERSE
 from aiootp.commons import FrozenInstance
 from aiootp.asynchs import asleep
 
