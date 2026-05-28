@@ -12,6 +12,7 @@ Changes for version 0.24.0
 Major Changes
 ^^^^^^^^^^^^^
 
+- build(pkg): remove support for python 3.9 & upgrade deps
 - feat(cguard): refactor distinct behaviors into new policy types
 - feat(cguard): automate ref cleanup, improve logic, docs & tests
 - refactor(cguard): split interfaces into separate modules

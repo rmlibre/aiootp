@@ -9,10 +9,10 @@ dynamic = ["version", "readme"]
 description = "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage."
 license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "aiofiles>=25.1.0",
-    "cryptography>=47.0.0",
+    "cryptography>=48.0.0",
 ]
 authors = [
     {name = "Gonzo Investigative Journalism Agency, LLC", email = "gonzo.development@protonmail.ch"},
@@ -70,7 +70,6 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -249,20 +248,20 @@ keywords = [
 
 [project.optional-dependencies]
 test = [
-    "coverage[toml]>=7.10.7",
-    "hypothesis>=6.141.1",
-    "pytest>=8.4.2",
-    "pytest-asyncio>=1.2.0",
-    "ruff>=0.15.12",
+    "coverage[toml]>=7.14.1",
+    "hypothesis>=6.155.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.15",
 ]
 dev = [
-    "build>=1.4.4",
-    "coverage[toml]>=7.10.7",
+    "build>=1.5.0",
+    "coverage[toml]>=7.14.1",
     "hypothesis>=6.141.1",
-    "ipython>=8.18.1",
-    "pytest>=8.4.2",
-    "pytest-asyncio>=1.2.0",
-    "ruff>=0.15.12",
+    "ipython>=8.39.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.15.15",
     "setuptools>=82.0.1",
     "twine>=6.2.0",
     "wheel>=0.47.0",
