@@ -3,6 +3,9 @@ name: windows-build
 on:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
