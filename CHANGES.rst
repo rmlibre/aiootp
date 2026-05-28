@@ -21,6 +21,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - feat(cguard): provide methods to track instance context state stages
+- feat(cguard): provide method to track unused instances
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
 - perf(commons): check contains on set instead of tuple
 - refactor(cguard): split management types into new module

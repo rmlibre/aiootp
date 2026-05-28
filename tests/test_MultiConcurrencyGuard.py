@@ -444,16 +444,31 @@ class TestMultiConcurrencyGaurd:
             _: t.Hashable, instance: MultiConcurrencyGaurd
         ) -> None:
             await arandom_sleep(0.0001)
+            assert instance.is_unused()
+            assert not instance.is_pending()
+            assert not instance.is_running()
+            assert not instance.is_done()
+
+            instance.policy.use(instance)
+            assert not instance.is_unused()
             assert instance.is_pending()
+            assert not instance.is_running()
+            assert not instance.is_done()
+
+            instance._use_tracker.clear()
+            assert instance.is_unused()
+            assert not instance.is_pending()
             assert not instance.is_running()
             assert not instance.is_done()
 
             async with instance:
                 await arandom_sleep(0.0001)
+                assert not instance.is_unused()
                 assert not instance.is_pending()
                 assert instance.is_running()
                 assert not instance.is_done()
 
+            assert not instance.is_unused()
             assert not instance.is_pending()
             assert not instance.is_running()
             assert instance.is_done()
@@ -481,16 +496,31 @@ class TestMultiConcurrencyGaurd:
             _: t.Hashable, instance: MultiConcurrencyGaurd
         ) -> None:
             random_sleep(0.0001)
+            assert instance.is_unused()
+            assert not instance.is_pending()
+            assert not instance.is_running()
+            assert not instance.is_done()
+
+            instance.policy.use(instance)
+            assert not instance.is_unused()
             assert instance.is_pending()
+            assert not instance.is_running()
+            assert not instance.is_done()
+
+            instance._use_tracker.clear()
+            assert instance.is_unused()
+            assert not instance.is_pending()
             assert not instance.is_running()
             assert not instance.is_done()
 
             with instance:
                 random_sleep(0.0001)
+                assert not instance.is_unused()
                 assert not instance.is_pending()
                 assert instance.is_running()
                 assert not instance.is_done()
 
+            assert not instance.is_unused()
             assert not instance.is_pending()
             assert not instance.is_running()
             assert instance.is_done()

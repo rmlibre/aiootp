@@ -275,29 +275,31 @@ class ConcurrencyGuard(FrozenTypedSlots):
     with ConcurrencyGuard(            |  with ConcurrencyGuard(
         queue,                        |      queue,
         observers=observers,          |      observers=observers,
-        policy=NonExclusivePolicy(),  |  ) as guard_b:
-    ) as guard_a:                     |      assert guard_b.is_running()
-        assert guard_a.is_running()   |      assert guard_a.is_done()
-        ...                           |      assert guard_c.is_done()
-        assert guard_c.is_running()   |      assert guard_d.is_pending()
+        policy=NonExclusivePolicy(),  |  ) as b:
+    ) as a:                           |      assert b.is_running()
+        assert a.is_running()         |      assert a.is_done()
+        ...                           |      assert c.is_done()
+        assert c.is_running()         |      assert d.is_pending()
         ...                           |
-        assert guard_b.is_pending()   |
+        assert b.is_pending()         |
                                       |
             -----------------         |        -----------------
             |   Context C   |         |        |   Context D   |
             -----------------         |        -----------------
                                       |
-    with ConcurrencyGuard(            |  assert guard_b.is_pending()
-        queue,                        |
-        observers=observers,          |  with ConcurrencyGuard(
-        policy=NonExclusivePolicy(),  |      queue,
-    ) as guard_c:                     |      observers=observers,
-        assert guard_c.is_running()   |      policy=NonExclusivePolicy(),
-        ...                           |  ) as guard_d:
-        assert guard_a.is_running()   |      assert guard_d.is_running()
-        assert guard_b.is_pending()   |      assert guard_a.is_done()
-                                      |      assert guard_b.is_done()
-                                      |      assert guard_c.is_done()
+    with ConcurrencyGuard(            |  d = ConcurrencyGuard(
+        queue,                        |      queue,
+        observers=observers,          |      observers=observers,
+        policy=NonExclusivePolicy(),  |      policy=NonExclusivePolicy(),
+    ) as c:                           |  )
+        assert c.is_running()         |  assert d.is_unused()
+        ...                           |  assert b.is_pending()
+        assert a.is_running()         |
+        assert b.is_pending()         |  with d:
+                                      |      assert d.is_running()
+                                      |      assert a.is_done()
+                                      |      assert b.is_done()
+                                      |      assert c.is_done()
                                       |
     --------------------------------------------------------------------
     Explanation:
@@ -395,21 +397,40 @@ class ConcurrencyGuard(FrozenTypedSlots):
         self.queue = queue
         self.token = token or token_bytes(32)
 
+    def is_unused(self, /) -> bool:
+        """
+        Returns `True` if the guard instance still hasn't been placed
+        in a context manager, so it has sent no usage signals at all.
+        Otherwise returns `False`.
+
+        Unused state:
+
+        _use_tracker == deque([], maxlen=2)
+        """
+        return not self._use_tracker
+
     def is_pending(self, /) -> bool:
         """
-        Returns `True` if the guard instance still hasn't signaled that
-        it's begun moving to enter the context. Otherwise returns
-        `False` if either it has signaled this move, or it has signaled
-        that it has exited the context.
+        Returns `True` if the guard instance has signaled that it's
+        ready & waiting for its turn, but its turn hasn't yet arrived.
+        Otherwise returns `False`.
+
+        Pending state:
+
+        _use_tracker == deque([False], maxlen=2)
         """
-        return len(self._use_tracker) < 2
+        return len(self._use_tracker) == 1
 
     def is_running(self, /) -> bool:
         """
-        Returns `True` if the guard instance has signaled that it has
+        Returns `True` if the guard instance's turn has arrived & it has
         begun moving to enter the context. Otherwise returns `False` if
         either it hasn't signaled this move, or it has signaled that it
         has exited the context.
+
+        Running state:
+
+        _use_tracker == deque([False, True], maxlen=2)
         """
         try:
             return self._use_tracker[-1]
@@ -420,6 +441,10 @@ class ConcurrencyGuard(FrozenTypedSlots):
         """
         Returns `True` if the guard instance has signaled that it's
         already exited the context. Otherwise returns `False`.
+
+        Done state:
+
+        _use_tracker == deque([True, False], maxlen=2)
         """
         try:
             return self._use_tracker[0]

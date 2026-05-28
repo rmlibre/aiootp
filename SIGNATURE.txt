@@ -1,5 +1,5 @@
 {
-    "checksum": "309a029f72633bd0b61328df58e7a289abc0b594be3b2e58a599575a73b39c1a87ae5e46d53f4353c3ccdf3c33dacc86",
+    "checksum": "d25e197cf7220146f09d6f04364f399511d1e9fe1b9c95da9e53bc6ea2e746df1fa9d878de928ff4b38f4a5f5cc08f2e",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "ce9e7f27f46c9fae68885ef8b2ffb8e340e4cad4a9a724d321e7a3b97a933aa394ab2c79927a7a84f69568c9e8c97389",
         ".github/workflows/linux-pypi-release-tests.yml": "f528ae0aa32874f5ca32f0cf06a6729d1a79003f614d02b3b673ef9a6e6d4bc6a3c5b558481bdaedea599eebe407fa5e",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "3569d9bb57e3371ba2d8e0916e302eeded4a5baeb7dfa1911860895860e0eed958494023aca05043829de8ab8e840ab1",
         ".github/workflows/windows-python-app.yml": "8b78c7385e069f9564fa7390798cd355e92cdd28bd389ee6fd2bc19d552088141fe85acb9d33b09854c61f2ef7a77812",
         ".gitignore": "7e7ca7a0562488d06a9b661b911eeda0e66fcdf380bd3f86ad9e3cdf7813c6d3db3d393a3c414e70fd3036f0c8218655",
-        "CHANGES.rst": "b26c7eea74febbc792baba2f437ab17f0de46daefa17eda31d2a91b2ceccb2b079f8ac8dbb23dcac3078ff1455e07d4b",
+        "CHANGES.rst": "68773155faebab2ceda31e6f07d21bafbd413f822a5b24122727fff5a324e605d4d2b110bac756f350071288638df6df",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -51,9 +51,9 @@
         "aiootp/asynchs/__init__.py": "a0392528e8e8941c99e091b2b1f5a943e9144a5bef0568b99a17394a609d1fa2a294020a097ee95fe44dc25dc9624ae2",
         "aiootp/asynchs/aos.py": "6d641980c6dee58c531fe1fdf45b10537f6acf32ffba2235c47864131a7855db7a3bc0b8ca97f61f80722a503a027358",
         "aiootp/asynchs/clocks.py": "700ec95781fb70fb03b5bc40c9d878351715f756bc5bfa4259549ce000e86594bf00838eb7e2bf58ba270ce35595a818",
-        "aiootp/asynchs/concurrency_guard.py": "00e84d7746c1f718d92c2cd342174bfe37447ecb000e18cc6fa684ce673ccc70457c3eb2b7ef82f7ef6b40afcc5fd475",
+        "aiootp/asynchs/concurrency_guard.py": "1fad6a40ee661657bd89bcc47f8e112f5714f43d3bd69e9c6464ed6f740730d7eddc61b73666778f772b8757539f9011",
         "aiootp/asynchs/concurrency_interface.py": "6b681eeb9918b61be3547c46cca441cf8d79bde3346da39f5e73f161d3b28473260da965e3a00e50ddfbb41064aa8376",
-        "aiootp/asynchs/guard_manager.py": "163bdb86063b62eee5acffee8c90cbf2cf675f155f6de2cf075c6138713066c0f2525fbac5e5420c1cff9087aba8df3d",
+        "aiootp/asynchs/guard_manager.py": "8ae22e62cdea509ab67924c3951633cdd0dc5df8e9adeb662a50161d5c01a6ace86b5e7555695adb2ccd978dc97ba841",
         "aiootp/asynchs/loops.py": "ee5c754e1ffd9d44cfa40d18f0a23e1059bb712e2eb2c00e678ee0ad4d8b67172524aa95095e21e6805bd77ec9c320fd",
         "aiootp/asynchs/processes.py": "9451d523e01b50d6e9b72eefb138145f3fe3b5df512b390dfe49c5824e38decd9419f29b176471f30febb04a4728de01",
         "aiootp/asynchs/threads.py": "4b36db98a80bdbda74d92127d81b5a0063bc34a447b9717e925678b24c5e0d036cc5196768bb01fa6aaeb00075acff5b",
@@ -170,7 +170,7 @@
         "tests/test_Database_AsyncDatabase.py": "64bb8d51766bc2a7e5242333b05b3e5a2b9bfe0cb634ec23ab4705d7886d3022292c4c6ab0d0a8b8aa7d47dfe4657fa4",
         "tests/test_DebugControl.py": "8c029c866021cfa2bfab72cc2e065f6094d4563c6771d0fab6beb70ec9b794d02fbfe0371f3214cfb24b712f88ce411b",
         "tests/test_GUID.py": "364dc1f5a5516b6268cc984ae4d36c12847dbf083345a1f08bfc283ff517aeb7c906843379dcd4b4a2631016e3c62dce",
-        "tests/test_MultiConcurrencyGuard.py": "5aaf32618f0f808115741056f706672fe096f0cc3431f1da2de7ed454a055f066236c32b0b94ba284b3c5abe887d2ec9",
+        "tests/test_MultiConcurrencyGuard.py": "49b4a10c920fe09f7a29c7b19a0303b5a0c4581344e3dab27e7640595b6c8b57d1076cde9423785d4a31eb30474aa4ec",
         "tests/test_PackageSigner.py": "f4860bdc58e2a1c249cd3c70e3af32347711d4bdd8d94198fc8e1f5b34bc751f67a408744b798de6c011bcb150d3864a",
         "tests/test_Padding.py": "752e75dd09628b10e47bdc3852022b743bf94267d74d28d95856af071b4862017b0acf95b851a1205418db62b3443bcf",
         "tests/test_Passcrypt.py": "e7c97d8bf70926484153424325df23eeaaa7d08a695d0030523d5e92b3089cfcd329c051899e6d99e985531b2e822907",
@@ -205,7 +205,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "11",
+        "build_number": "12",
         "date": 20601,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
@@ -214,5 +214,5 @@
         "version": "0.24.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "ceac338232582910c5878c3dee45db09671a5f81c142ab03fc3d36b0d777ab553231fa3e695fa2d47c41fffe7b8a047cd1f988c530a0a2e3683120c6d175180f"
+    "signature": "c5eac1bccb4b8e5b85485a50f6723a3a472b713c7bb594885824a7cd2a40d61e9a5b61b5fe25e15d07f944822b4d5db55657a2a2ac25a42a876e3117d2541605"
 }

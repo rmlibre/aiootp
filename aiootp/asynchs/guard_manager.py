@@ -109,11 +109,13 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
             |   Context C   |         |        |   Context D   |
             -----------------         |        -----------------
                                       |
-    with guards.monitor(target) as c: |  assert b.is_pending()
-        assert c.is_running()         |
-        ...                           |  with guards.monitor(target) as d:
-        assert a.is_running()         |      assert d.is_running()
-        assert b.is_pending()         |      assert a.is_done()
+    with guards.monitor(target) as c: |  d = guards.monitor(target)
+        assert c.is_running()         |  assert d.is_unused()
+        ...                           |  assert b.is_pending()
+        assert a.is_running()         |
+        assert b.is_pending()         |  with d:
+                                      |      assert d.is_running()
+                                      |      assert a.is_done()
                                       |      assert b.is_done()
                                       |      assert c.is_done()
                                       |
