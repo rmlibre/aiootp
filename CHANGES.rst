@@ -20,6 +20,7 @@ Major Changes
 Minor Changes
 ^^^^^^^^^^^^^
 
+- feat(cguard): provide methods to track instance context state stages
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
 - perf(commons): check contains on set instead of tuple
 - refactor(misc): rename, move & type methods, imports & args

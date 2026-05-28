@@ -439,5 +439,86 @@ class TestMultiConcurrencyGaurd:
         assert not guards.queues
         assert not guards.users
 
+    async def test_async_use_tracker_stages(self) -> None:
+        async def track_stages(
+            _: t.Hashable, instance: MultiConcurrencyGaurd
+        ) -> None:
+            await arandom_sleep(0.0001)
+            assert instance.is_pending()
+            assert not instance.is_running()
+            assert not instance.is_done()
+
+            async with instance:
+                await arandom_sleep(0.0001)
+                assert not instance.is_pending()
+                assert instance.is_running()
+                assert not instance.is_done()
+
+            assert not instance.is_pending()
+            assert not instance.is_running()
+            assert instance.is_done()
+
+        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+            return (
+                guards.guard(target)
+                if token_bits(1)
+                else guards.monitor(target)
+            )
+
+        guards = MultiConcurrencyGaurd()
+
+        unique_targets = [*range(64)]
+        targets = 4 * unique_targets
+        instances = [(target, choose_policy(target)) for target in targets]
+
+        tasks = [
+            track_stages(target, instance) for target, instance in instances
+        ]
+        await gather(*tasks)
+
+    async def test_sync_use_tracker_stages(self) -> None:
+        def track_stages(
+            _: t.Hashable, instance: MultiConcurrencyGaurd
+        ) -> None:
+            random_sleep(0.0001)
+            assert instance.is_pending()
+            assert not instance.is_running()
+            assert not instance.is_done()
+
+            with instance:
+                random_sleep(0.0001)
+                assert not instance.is_pending()
+                assert instance.is_running()
+                assert not instance.is_done()
+
+            assert not instance.is_pending()
+            assert not instance.is_running()
+            assert instance.is_done()
+
+        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+            return (
+                guards.guard(target)
+                if token_bits(1)
+                else guards.monitor(target)
+            )
+
+        guards = MultiConcurrencyGaurd()
+
+        unique_targets = [*range(64)]
+        targets = 4 * unique_targets
+        instances = [(target, choose_policy(target)) for target in targets]
+
+        tasks = [
+            Threads._type(
+                target=track_stages,
+                args=(target, choose_policy(target)),
+            )
+            for target, instance in instances
+        ]
+        for task in tasks:
+            task.start()
+        for task in tasks:
+            task.join()
+
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

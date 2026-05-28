@@ -52,7 +52,7 @@ class ExclusivePolicy(FrozenInstance):
         Uses an atomic deque to invalidate multiple uses of the guard
         instance.
         """
-        (tracker := guard._use_tracker).append(True)
+        (tracker := guard._use_tracker).append(False)
 
         if len(tracker) > 1:
             raise SingleUseObjectWasReused(Metadata(guard))
@@ -83,6 +83,7 @@ class ExclusivePolicy(FrozenInstance):
         different from the token retrieved from the removed guard,
         raises `IncoherentConcurrencyState`.
         """
+        guard._use_tracker.append(False)
         if not compare_digest(guard.token, guard.queue.popleft().token):
             raise guard.IncoherentConcurrencyState
 
@@ -94,7 +95,9 @@ class ExclusivePolicy(FrozenInstance):
         """
         is_next_in_queue = compare_digest(guard.token, guard.queue[0].token)
         no_others_running = guard.observers[0].policy.is_exclusive()
-        return is_next_in_queue and no_others_running
+        if can_run := is_next_in_queue and no_others_running:
+            guard._use_tracker.append(True)
+        return can_run
 
 
 class QueueManuallyPolicy(ExclusivePolicy):
@@ -147,7 +150,7 @@ class NonExclusivePolicy(FrozenInstance):
         Uses an atomic deque to invalidate multiple uses of the guard
         instance.
         """
-        (tracker := guard._use_tracker).append(True)
+        (tracker := guard._use_tracker).append(False)
 
         if len(tracker) > 1:
             raise SingleUseObjectWasReused(Metadata(guard))
@@ -188,6 +191,7 @@ class NonExclusivePolicy(FrozenInstance):
         order queue immediately after their turn in the order queue has
         arrived & they've prepended themselves to the observers deque.
         """
+        guard._use_tracker.append(False)
 
     def is_free_to_run(self, /, guard: t.ConcurrencyGuardType) -> bool:
         """
@@ -200,6 +204,7 @@ class NonExclusivePolicy(FrozenInstance):
         if can_run := compare_digest(guard.token, guard.queue[0].token):
             guard.observers.appendleft(guard)  # append first to rule-
             guard.queue.popleft()  # out race-conditions
+            guard._use_tracker.append(True)
         return can_run
 
 
@@ -352,6 +357,37 @@ class ConcurrencyGuard(FrozenTypedSlots):
             await asleep(self.probe_delay)
 
         return self
+
+    def is_pending(self, /) -> bool:
+        """
+        Returns `True` if the guard instance still hasn't signaled that
+        it's begun moving to enter the context. Otherwise returns
+        `False` if either it has signaled this move, or it has signaled
+        that it has exited the context.
+        """
+        return len(self._use_tracker) < 2
+
+    def is_running(self, /) -> bool:
+        """
+        Returns `True` if the guard instance has signaled that it has
+        begun moving to enter the context. Otherwise returns `False` if
+        either it hasn't signaled this move, or it has signaled that it
+        has exited the context.
+        """
+        try:
+            return self._use_tracker[-1]
+        except IndexError:
+            return False
+
+    def is_done(self, /) -> bool:
+        """
+        Returns `True` if the guard instance has signaled that it's
+        already exited the context. Otherwise returns `False`.
+        """
+        try:
+            return self._use_tracker[0]
+        except IndexError:
+            return False
 
     def __enter__(self, /) -> t.Self:
         """
