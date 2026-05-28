@@ -61,7 +61,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
                            ----------------------
                            |   Shared Context   |
                            ----------------------
+
                        guards = MultiConcurrencyGuard()
+                           target = "config.yaml"
                            -----------------------
             -----------------         |        -----------------
             |   Context A   |         |        |   Context B   |
@@ -75,7 +77,55 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         mutable_thing[0] = "done."    |
                                       |
     --------------------------------------------------------------------
+    Explanation:
+
     Context A is called first, & Context B waits for A to finish.
+    --------------------------------------------------------------------
+
+     _____________________________________
+    |                                     |
+    |         Example As Diagram:         |
+    |_____________________________________|
+
+                           ----------------------
+                           |   Shared Context   |
+                           ----------------------
+
+                       guards = MultiConcurrencyGuard()
+                           target = "config.yaml"
+                           -----------------------
+            -----------------         |        -----------------
+            |   Context A   |         |        |   Context B   |
+            -----------------         |        -----------------
+                                      |
+    with guards.monitor(target) as a: |  with guards.guard(target) as b:
+        assert a.is_running()         |      assert b.is_running()
+        ...                           |      assert a.is_done()
+        assert c.is_running()         |      assert c.is_done()
+        ...                           |      assert d.is_pending()
+        assert b.is_pending()         |
+                                      |
+            -----------------         |        -----------------
+            |   Context C   |         |        |   Context D   |
+            -----------------         |        -----------------
+                                      |
+    with guards.monitor(target) as c: |  assert b.is_pending()
+        assert c.is_running()         |
+        ...                           |  with guards.monitor(target) as d:
+        assert a.is_running()         |      assert d.is_running()
+        assert b.is_pending()         |      assert a.is_done()
+                                      |      assert b.is_done()
+                                      |      assert c.is_done()
+                                      |
+    --------------------------------------------------------------------
+    Explanation:
+
+    Context A is entered first, then Context C. Since they both have non-
+    exclusive policies, they can both run simultaneously. But Context B
+    waits for them to finish so that it can take exclusive control of
+    execution time. Context D enters last, & even though it uses a non-
+    exclusive policy, it will wait for Context B to finish because b's
+    exclusive policy ensures no other contexts are running while b is.
     --------------------------------------------------------------------
     """
 
@@ -202,22 +252,23 @@ class DefaultDictOfDeques(defaultdict):
     __slots__ = ("__queue", "__observers")
 
     _Guard: t.ConcurrencyGuardType = ConcurrencyGuard
+    _Type: t.SupportsAppendPopleft = deque
 
     def __init__(self, /) -> None:
         """
-        Applies `collections.deque` as the default value type of new
-        instances.
+        Applies `collections.deque` or a subclass thereof as the default
+        value type of new instances.
         """
-        super().__init__(deque)
-        self.__queue = deque()
-        self.__observers = deque()
+        super().__init__(self._Type)
+        self.__queue = self._Type()
+        self.__observers = self._Type()
 
     def __setitem__(
         self, name: t.Hashable, value: deque[t.ConcurrencyGuardType], /
     ) -> None:
         """
         Before adding values to the collection, ensures they're of type
-        `collections.deque`.
+        `collections.deque` or a subclass thereof.
         """
         if not issubclass(value.__class__, deque):
             raise Issue.must_be_subtype("value", deque) from None
@@ -233,7 +284,8 @@ class DefaultDictOfDeques(defaultdict):
         """
         Updates the instance with new key-values from a mapping of
         `queues`, & optional keyword arguments. Before adding values to
-        the collection, ensures they're of type `collections.deque`.
+        the collection, ensures they're of type `collections.deque` or a
+        subclass thereof.
         """
         for name, value in {**dict(queues), **target_deque_pairs}.items():
             self[name] = value  # type enforcement happens here
@@ -327,9 +379,9 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
 
     def __init__(
         self,
-        queues: t.Optional[_Queues] = None,
         /,
         *,
+        queues: t.Optional[_Queues] = None,
         observers: t.Optional[_Observers] = None,
         users: t.Optional[_Users] = None,
     ) -> None:

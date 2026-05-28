@@ -24,6 +24,7 @@ Minor Changes
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
 - perf(commons): check contains on set instead of tuple
 - refactor(cguard): split management types into new module
+- refactor(cguard): swap method definition orders & improve docs
 - refactor(misc): rename, move & type methods, imports & args
 - test(cov): expand tests to cover missing branches
 

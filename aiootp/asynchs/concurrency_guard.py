@@ -250,7 +250,64 @@ class ConcurrencyGuard(FrozenTypedSlots):
         mutable_thing[0] = "done."    |
                                       |
     --------------------------------------------------------------------
+    Explanation:
+
     Context A is called first, & Context B waits for A to finish.
+    --------------------------------------------------------------------
+
+     _____________________________________
+    |                                     |
+    |         Example As Diagram:         |
+    |_____________________________________|
+
+                           ----------------------
+                           |   Shared Context   |
+                           ----------------------
+
+                               queue = deque()
+                             observers = deque()
+        NonExclusivePolicy = ConcurrencyGuard.policies.NonExclusive
+                           -----------------------
+            -----------------         |        -----------------
+            |   Context A   |         |        |   Context B   |
+            -----------------         |        -----------------
+                                      |
+    with ConcurrencyGuard(            |  with ConcurrencyGuard(
+        queue,                        |      queue,
+        observers=observers,          |      observers=observers,
+        policy=NonExclusivePolicy(),  |  ) as guard_b:
+    ) as guard_a:                     |      assert guard_b.is_running()
+        assert guard_a.is_running()   |      assert guard_a.is_done()
+        ...                           |      assert guard_c.is_done()
+        assert guard_c.is_running()   |      assert guard_d.is_pending()
+        ...                           |
+        assert guard_b.is_pending()   |
+                                      |
+            -----------------         |        -----------------
+            |   Context C   |         |        |   Context D   |
+            -----------------         |        -----------------
+                                      |
+    with ConcurrencyGuard(            |  assert guard_b.is_pending()
+        queue,                        |
+        observers=observers,          |  with ConcurrencyGuard(
+        policy=NonExclusivePolicy(),  |      queue,
+    ) as guard_c:                     |      observers=observers,
+        assert guard_c.is_running()   |      policy=NonExclusivePolicy(),
+        ...                           |  ) as guard_d:
+        assert guard_a.is_running()   |      assert guard_d.is_running()
+        assert guard_b.is_pending()   |      assert guard_a.is_done()
+                                      |      assert guard_b.is_done()
+                                      |      assert guard_c.is_done()
+                                      |
+    --------------------------------------------------------------------
+    Explanation:
+
+    Context A is entered first, then Context C. Since they both have non-
+    exclusive policies, they can both run simultaneously. But Context B
+    waits for them to finish so that it can take exclusive control of
+    execution time. Context D enters last, & even though it uses a non-
+    exclusive policy, it will wait for Context B to finish because b's
+    exclusive policy ensures no other contexts are running while b is.
     --------------------------------------------------------------------
     """
 
@@ -282,6 +339,21 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
     IncoherentConcurrencyState: type = IncoherentConcurrencyState
 
+    def _set_policy(
+        self, /, policy: t.Optional[t.ConcurrencyGuardPolicy]
+    ) -> None:
+        """
+        Ensures the passed policy value is an instance of a policy class
+        which matches the ConcurrencyGuardPolicy protocol. If `None` is
+        passed, then a default ExclusivePolicy instance is chosen.
+        """
+        if policy is None:
+            self.policy = self.policies.Exclusive()
+        elif isinstance(policy, type):
+            raise Issue.must_be_type("policy", t.ConcurrencyGuardPolicy)
+        else:
+            self.policy = policy
+
     def __init__(
         self,
         /,
@@ -300,7 +372,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
                 any running non-exclusive guard instances on the 0th
                 side of the queue, & any waiting/running exclusive guard
                 instances on the -1th side. This queue is not ordered,
-                but the invariant stated above is preserved.
+                but the invariant stated above is preserved. A shared
+                deque only needs to be provided by the user if they'll
+                be utilizing non-exclusive policies.
 
         `policy`: A `ConcurrencyGuard` policy instance which manages the
                 logic necessary for async/thread-safe ordering of
@@ -320,39 +394,6 @@ class ConcurrencyGuard(FrozenTypedSlots):
         self.observers = deque() if observers is None else observers
         self.queue = queue
         self.token = token or token_bytes(32)
-
-    def _set_policy(
-        self, /, policy: t.Optional[t.ConcurrencyGuardPolicy]
-    ) -> None:
-        """
-        Ensures the passed policy value is an instance of a policy class
-        which matches the ConcurrencyGuardPolicy protocol. If `None` is
-        passed, then a default ExclusivePolicy instance is chosen.
-        """
-        if policy is None:
-            self.policy = self.policies.Exclusive()
-        elif isinstance(policy, type):
-            raise Issue.must_be_type("policy", t.ConcurrencyGuardPolicy)
-        else:
-            self.policy = policy
-
-    async def __aenter__(self, /) -> t.Self:
-        """
-        Prevents entering the context by asynchronously sleeping until
-        the instance's unique authorization token is the current token
-        in the 0th position of the order queue & other logic depending
-        on the instance's policy.
-        """
-        await asleep()
-        policy = self.policy
-        policy.use(self)
-        policy.notify_on(self)
-        policy.get_in_queue(self)
-
-        while not policy.is_free_to_run(self):
-            await asleep(self.probe_delay)
-
-        return self
 
     def is_pending(self, /) -> bool:
         """
@@ -384,6 +425,24 @@ class ConcurrencyGuard(FrozenTypedSlots):
             return self._use_tracker[0]
         except IndexError:
             return False
+
+    async def __aenter__(self, /) -> t.Self:
+        """
+        Prevents entering the context by asynchronously sleeping until
+        the instance's unique authorization token is the current token
+        in the 0th position of the order queue & other logic depending
+        on the instance's policy.
+        """
+        await asleep()
+        policy = self.policy
+        policy.use(self)
+        policy.notify_on(self)
+        policy.get_in_queue(self)
+
+        while not policy.is_free_to_run(self):
+            await asleep(self.probe_delay)
+
+        return self
 
     def __enter__(self, /) -> t.Self:
         """
