@@ -28,6 +28,7 @@ from .loops import *
 from .clocks import *
 from .aos import *
 from .concurrency_guard import *
+from .guard_manager import *
 from .concurrency_interface import *
 from .processes import *
 from .threads import *
@@ -36,7 +37,9 @@ from .threads import *
 modules = dict(
     aos=aos,
     clocks=clocks,
+    concurrency_guard=concurrency_guard,
     concurrency_interface=concurrency_interface,
+    guard_manager=guard_manager,
     loops=loops,
     processes=processes,
     threads=threads,
@@ -47,6 +50,7 @@ module_api = dict(
     AsyncInit=AsyncInit,
     Clock=Clock,
     ConcurrencyGuard=ConcurrencyGuard,
+    DefaultDictOfDeques=DefaultDictOfDeques,
     MultiConcurrencyGaurd=MultiConcurrencyGaurd,
     Processes=Processes,
     Threads=Threads,

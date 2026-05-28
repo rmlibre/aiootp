@@ -13,8 +13,8 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - feat(cguard): refactor distinct behaviors into new policy types
-- refactor(cguard): split interfaces into separate modules
 - feat(cguard): automate ref cleanup, improve logic, docs & tests
+- refactor(cguard): split interfaces into separate modules
 
 
 Minor Changes
@@ -23,6 +23,7 @@ Minor Changes
 - feat(cguard): provide methods to track instance context state stages
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
 - perf(commons): check contains on set instead of tuple
+- refactor(cguard): split management types into new module
 - refactor(misc): rename, move & type methods, imports & args
 - test(cov): expand tests to cover missing branches
 

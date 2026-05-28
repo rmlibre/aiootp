@@ -41,6 +41,7 @@ include aiootp/asynchs/aos.py
 include aiootp/asynchs/clocks.py
 include aiootp/asynchs/concurrency_guard.py
 include aiootp/asynchs/concurrency_interface.py
+include aiootp/asynchs/guard_manager.py
 include aiootp/asynchs/loops.py
 include aiootp/asynchs/processes.py
 include aiootp/asynchs/threads.py
