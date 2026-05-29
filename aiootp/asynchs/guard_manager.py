@@ -210,11 +210,10 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         prior to returning.
         """
         try:
-            ok = await super().__aexit__(exc_type, exc_value, traceback)
+            return await super().__aexit__(exc_type, exc_value, traceback)
         finally:
             manager, target = self._refs.manager, self._refs.target
             await manager._acleanup_references(target)
-        return ok
 
     def __exit__(
         self,
@@ -237,11 +236,10 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         prior to returning.
         """
         try:
-            ok = super().__exit__(exc_type, exc_value, traceback)
+            return super().__exit__(exc_type, exc_value, traceback)
         finally:
             manager, target = self._refs.manager, self._refs.target
             manager._cleanup_references(target)
-        return ok
 
 
 class DefaultDictOfDeques(defaultdict):

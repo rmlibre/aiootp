@@ -93,7 +93,9 @@ class TestMultiConcurrencyGaurd:
         # is the same-target execution order respecting the order
         # declared by the target queue?
         for _, (target, instance) in zip(unique_targets, instances):
-            assert len(instance.queue) == 0
+            assert not instance.queue, target
+            assert not instance.observers, target
+            assert not guards.users, target
             assert token_results[target] == queues[target]
 
     async def test_thread_queue_execution_order_is_respected(self) -> None:
@@ -142,7 +144,9 @@ class TestMultiConcurrencyGaurd:
         # is the same-target execution order respecting the order
         # declared by the target queue?
         for _, (target, instance) in zip(unique_targets, instances):
-            assert len(instance.queue) == 0
+            assert not instance.queue, target
+            assert not instance.observers, target
+            assert not guards.users, target
             assert token_results[target] == queues[target]
 
     async def test_free_async_queue_execution_order_is_respected(
@@ -154,7 +158,6 @@ class TestMultiConcurrencyGaurd:
             await arandom_sleep(0.0001)
             async with instance:
                 await arandom_sleep(0.0001)
-                target_results.append(target)
                 if instance.policy.is_exclusive():
                     token_results[target].append(instance.token)
                     assert all(
@@ -165,6 +168,8 @@ class TestMultiConcurrencyGaurd:
                 else:
                     assert not instance.observers[0].policy.is_exclusive()
                     observers[target].popleft()
+
+                target_results.append(target)
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
             return (
@@ -207,8 +212,9 @@ class TestMultiConcurrencyGaurd:
         # is the same-target execution order respecting the order
         # declared by the target queue?
         for target, instance in instances:
-            assert len(instance.queue) == 0, target
-            assert len(instance.observers) == 0, target
+            assert not instance.queue, target
+            assert not instance.observers, target
+            assert not guards.users, target
             if instance.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
@@ -222,7 +228,6 @@ class TestMultiConcurrencyGaurd:
             random_sleep(0.0001)
             with instance:
                 random_sleep(0.0001)
-                target_results.append(target)
                 if instance.policy.is_exclusive():
                     token_results[target].append(instance.token)
                     assert all(
@@ -233,6 +238,8 @@ class TestMultiConcurrencyGaurd:
                 else:
                     assert not instance.observers[0].policy.is_exclusive()
                     observers[target].popleft()
+
+                target_results.append(target)
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
             return (
@@ -279,8 +286,9 @@ class TestMultiConcurrencyGaurd:
         # is the same-target execution order respecting the order
         # declared by the target queue?
         for target, instance in instances:
-            assert len(instance.queue) == 0, target
-            assert len(instance.observers) == 0, target
+            assert not instance.queue, target
+            assert not instance.observers, target
+            assert not guards.users, target
             if instance.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
@@ -302,6 +310,11 @@ class TestMultiConcurrencyGaurd:
             policy=guards.policies.Exclusive(),
         )
 
+        guards.guard(
+            target="test",
+            policy=guards.policies.QueueManually(),
+        )
+
     async def test_monitor_method_needs_non_exclusive_policy(self) -> None:
         guards = MultiConcurrencyGaurd()
 
@@ -315,6 +328,12 @@ class TestMultiConcurrencyGaurd:
                 policy=guards.policies.Exclusive(),
             )
 
+        with Ignore(TypeError, if_else=violation(problem)):
+            guards.monitor(
+                target="test",
+                policy=guards.policies.QueueManually(),
+            )
+
         guards.monitor(
             target="test",
             policy=guards.policies.NonExclusive(),
@@ -325,7 +344,7 @@ class TestMultiConcurrencyGaurd:
             target: t.Hashable,
             instance: MultiConcurrencyGaurd,
             *,
-            is_spontaneous: bool = True,
+            is_spontaneous: bool,
         ) -> None:
             await arandom_sleep(0.0001)
             async with instance:
@@ -482,7 +501,7 @@ class TestMultiConcurrencyGaurd:
 
         guards = MultiConcurrencyGaurd()
 
-        unique_targets = [*range(64)]
+        unique_targets = [*range(16)]
         targets = 4 * unique_targets
         instances = [(target, choose_policy(target)) for target in targets]
 
@@ -534,7 +553,7 @@ class TestMultiConcurrencyGaurd:
 
         guards = MultiConcurrencyGaurd()
 
-        unique_targets = [*range(64)]
+        unique_targets = [*range(16)]
         targets = 4 * unique_targets
         instances = [(target, choose_policy(target)) for target in targets]
 

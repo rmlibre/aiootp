@@ -30,6 +30,7 @@ Minor Changes
 - refactor(cguard): split management types into new module
 - refactor(cguard): swap method definition orders & improve docs
 - refactor(misc): rename, move & type methods, imports & args
+- test(cguard): cleanup & add tests, remove redundant variable
 - test(cov): expand tests to cover missing branches
 
 
