@@ -22,6 +22,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - build(gh): add explicit read-only permissions to workflow files
+- docs(cguard): fix docstrings & match the details of new updates
 - feat(cguard): provide methods to track instance context state stages
 - feat(cguard): provide method to track unused instances
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse

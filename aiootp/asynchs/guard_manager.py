@@ -164,11 +164,11 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
     async def __aenter__(self, /) -> t.Self:
         """
         Prevents entering the context by asynchronously sleeping until
-        the instance's unique authorization token is the current token
-        in the 0th position of the order queue & other logic depending
-        on the instance's policy. Allows the manager to pass the correct
-        state to the instance prior to running the context start-up
-        code.
+        the instance's unique authorization token is held by the current
+        instance in the 0th position of the order queue, & other logic
+        depending on the instance's policy. Allows the manager to pass
+        the correct state to the instance prior to running the context
+        start-up code.
         """
         await asleep()
 
@@ -179,11 +179,11 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
     def __enter__(self, /) -> t.Self:
         """
         Prevents entering the context by synchronously sleeping until
-        the instance's unique authorization token is the current token
-        in the 0th position of the order queue & other logic depending
-        on the instance's policy. Allows the manager to pass the correct
-        state to the instance prior to running the context start-up
-        code.
+        the instance's unique authorization token is held by the current
+        instance in the 0th position of the order queue, & other logic
+        depending on the instance's policy. Allows the manager to pass
+        the correct state to the instance prior to running the context
+        start-up code.
         """
         manager, target = self._refs.manager, self._refs.target
         manager._initialize_guard(target, self)
@@ -197,9 +197,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         traceback: t.Optional[t.TracebackType] = None,
     ) -> bool:
         """
-        Raises `self.IncoherentConcurrencyState` if another instance's
-        authorization token has taken this instance's place in the token
-        queue.
+        If using an exclusive policy, raises `IncoherentConcurrencyState`
+        if another instance with a different authorization token has
+        taken this instance's place in the order queue.
 
         Otherwise, raises any exception raised in the context's code
         block.
@@ -224,9 +224,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         traceback: t.Optional[t.TracebackType] = None,
     ) -> bool:
         """
-        Raises `self.IncoherentConcurrencyState` if another instance's
-        authorization token has taken this instance's place in the token
-        queue.
+        If using an exclusive policy, raises `IncoherentConcurrencyState`
+        if another instance with a different authorization token has
+        taken this instance's place in the order queue.
 
         Otherwise, raises any exception raised in the context's code
         block.
@@ -303,9 +303,9 @@ class DefaultDictOfDeques(defaultdict):
     def non_exclusive_context(self) -> t.ConcurrencyGuardType:
         """
         Creates contexts which allow other non-exclusive contexts to run
-        which don't modify the collection's state simultaneously, but
-        which concede their starts until any new exclusive contexts
-        finish.
+        simultaneously such as those which don't modify the collection's
+        state, but will concede their starts until any new exclusive
+        contexts finish.
         """
         return self._Guard(
             self.__queue,
@@ -319,10 +319,11 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
     Facilitates async/thread-safety for execution contexts which can be
     categorized by a hashable target key from call-sites. Execution
     contexts which operate on distinct targets are allowed to run freely
-    & independently from each other, & those operating on the same
-    target will delay their turn to run by appending their unique tokens
-    to atomic queues & awaiting their arrival at the front of the order
-    queue.
+    & independently from each other. Those operating on the same target
+    will delay their turn or run freely depending on whether they're
+    using an exclusive or non-exclusive policy, & whether there's
+    already an exclusive context running or there are only non-exclusive
+    contexts running.
 
      _____________________________________
     |                                     |
@@ -407,8 +408,8 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
     ) -> None:
         """
         Ensures the target references given to the guard instance are
-        consistent with the other running instances of the same target
-        Since only reads are done an async/thread-safe non-exclusive
+        consistent with the other running instances of the same target.
+        Since only reads are done, an async/thread-safe non-exclusive
         execution context is used to avoid race-conditions with any
         potentially running exclusive contexts that would be changing
         the state.
@@ -430,8 +431,8 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
     ) -> None:
         """
         Ensures the target references given to the guard instance are
-        consistent with the other running instances of the same target
-        Since only reads are done an async/thread-safe non-exclusive
+        consistent with the other running instances of the same target.
+        Since only reads are done, an async/thread-safe non-exclusive
         execution context is used to avoid race-conditions with any
         potentially running exclusive contexts that would be changing
         the state.

@@ -454,9 +454,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
     async def __aenter__(self, /) -> t.Self:
         """
         Prevents entering the context by asynchronously sleeping until
-        the instance's unique authorization token is the current token
-        in the 0th position of the order queue & other logic depending
-        on the instance's policy.
+        the instance's unique authorization token is held by the current
+        instance in the 0th position of the order queue, & other logic
+        depending on the instance's policy.
         """
         await asleep()
         policy = self.policy
@@ -472,9 +472,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
     def __enter__(self, /) -> t.Self:
         """
         Prevents entering the context by synchronously sleeping until
-        the instance's unique authorization token is the current token
-        in the 0th position of the order queue & other logic depending
-        on the instance's policy.
+        the instance's unique authorization token is held by the current
+        instance in the 0th position of the order queue, & other logic
+        depending on the instance's policy.
         """
         policy = self.policy
         policy.use(self)
@@ -494,9 +494,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
         traceback: t.Optional[t.TracebackType] = None,
     ) -> bool:
         """
-        Raises `self.IncoherentConcurrencyState` if another instance's
-        authorization token has taken this instance's place in the token
-        queue.
+        If using an exclusive policy, raises `IncoherentConcurrencyState`
+        if another instance with a different authorization token has
+        taken this instance's place in the order queue.
 
         Otherwise, raises any exception raised in the context's code
         block.
@@ -516,9 +516,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
         traceback: t.Optional[t.TracebackType] = None,
     ) -> bool:
         """
-        Raises `self.IncoherentConcurrencyState` if another instance's
-        authorization token has taken this instance's place in the token
-        queue.
+        If using an exclusive policy, raises `IncoherentConcurrencyState`
+        if another instance with a different authorization token has
+        taken this instance's place in the order queue.
 
         Otherwise, raises any exception raised in the context's code
         block.
