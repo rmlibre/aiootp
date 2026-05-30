@@ -34,6 +34,14 @@ from .concurrency_interface import process_probe_delay
 
 
 class ExclusivePolicy(FrozenInstance):
+    """
+    Signals to the `ConcurrencyGuard` instance that when it arrives at
+    the front of the order queue, & there are no other non-exclusive
+    guards running, that it may run freely. Until the guard exits its
+    context & its policy removes it from the order queue, no other
+    guards will be allowed to run.
+    """
+
     __slots__ = ()
 
     def is_exclusive(self, /) -> bool:
@@ -154,11 +162,11 @@ class NonExclusivePolicy(FrozenInstance):
     def notify_on(self, /, guard: t.ConcurrencyGuardType) -> None:
         """
         A no-op since non-exclusive policies notify other guards using
-        the observers deque only after they've arrived at the front of
-        the order queue. This is safe because either an exclusive guard
-        just finished running & removed itself from the order queue,
-        meaning there are now no other guards running; or only non-
-        exclusive guards are running, which is allowed.
+        the observers deque only after the guard instance has arrived at
+        the front of the order queue. This is safe because either an
+        exclusive guard just finished running & was removed from the
+        order queue, meaning there are now no other guards running; or
+        only non-exclusive guards are running, which is allowed.
         """
 
     def notify_off(self, /, guard: t.ConcurrencyGuardType) -> None:
@@ -173,7 +181,7 @@ class NonExclusivePolicy(FrozenInstance):
         Adds the guard instance to the order queue. Using a non-
         exclusive policy, the guard will wait for it's turn on the order
         queue to notify other guards that it is running using the
-        observer deque. It will then remove itself immediately from the
+        observer deque. It will then immediately be removed from the
         order queue allowing other non-exclusive guards to run, &
         exclusive guards to wait for all non-exclusive guards to signal
         they're done running by each of them removing a prepended guard
@@ -411,9 +419,10 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
     def is_pending(self, /) -> bool:
         """
-        Returns `True` if the guard instance has signaled that it's
-        ready & waiting for its turn, but its turn hasn't yet arrived.
-        Otherwise returns `False`.
+        Returns `True` if the guard instance has been placed in a
+        context manager, & has signaled that it's ready & waiting for
+        its turn, but its turn hasn't yet arrived. Otherwise returns
+        `False`.
 
         Pending state:
 

@@ -260,8 +260,8 @@ class DefaultDictOfDeques(defaultdict):
         value type of new instances.
         """
         super().__init__(self._Type)
-        self.__queue = self._Type()
-        self.__observers = self._Type()
+        self.__queue = deque()
+        self.__observers = deque()
 
     def __setitem__(
         self, name: t.Hashable, value: deque[t.ConcurrencyGuardType], /

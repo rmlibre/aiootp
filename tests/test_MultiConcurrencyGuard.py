@@ -32,7 +32,7 @@ class TestDefaultDictOfDeques:
             st.tuples(st.binary(max_size=64)),
         )
     )
-    async def test_added_values_must_be_deques(self, value) -> None:
+    async def test_adding_non_deques_is_not_allowed(self, value) -> None:
         mapping = DefaultDictOfDeques()
 
         problem = (  # fmt: skip
@@ -42,12 +42,23 @@ class TestDefaultDictOfDeques:
         with Ignore(TypeError, if_else=violation(problem)):
             mapping["setitem_test"] = value
 
-        mapping["setitem_test"] = deque()
-
         with Ignore(TypeError, if_else=violation(problem)):
             mapping.update(update_test=value)
 
+    async def test_adding_deques_is_allowed(self) -> None:
+        mapping = DefaultDictOfDeques()
+
+        mapping["setitem_test"] = deque()
         mapping.update(update_test=deque())
+
+    async def test_adding_deque_subclass_is_allowed(self) -> None:
+        class DequeSubclass(deque):
+            pass
+
+        mapping = DefaultDictOfDeques()
+
+        mapping["setitem_test"] = DequeSubclass()
+        mapping.update(update_test=DequeSubclass())
 
 
 class TestMultiConcurrencyGaurd:
@@ -95,7 +106,6 @@ class TestMultiConcurrencyGaurd:
         for _, (target, instance) in zip(unique_targets, instances):
             assert not instance.queue, target
             assert not instance.observers, target
-            assert not guards.users, target
             assert token_results[target] == queues[target]
 
     async def test_thread_queue_execution_order_is_respected(self) -> None:
@@ -146,7 +156,6 @@ class TestMultiConcurrencyGaurd:
         for _, (target, instance) in zip(unique_targets, instances):
             assert not instance.queue, target
             assert not instance.observers, target
-            assert not guards.users, target
             assert token_results[target] == queues[target]
 
     async def test_free_async_queue_execution_order_is_respected(
@@ -214,7 +223,7 @@ class TestMultiConcurrencyGaurd:
         for target, instance in instances:
             assert not instance.queue, target
             assert not instance.observers, target
-            assert not guards.users, target
+            assert not observers[target], target
             if instance.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
@@ -288,7 +297,7 @@ class TestMultiConcurrencyGaurd:
         for target, instance in instances:
             assert not instance.queue, target
             assert not instance.observers, target
-            assert not guards.users, target
+            assert not observers[target], target
             if instance.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
@@ -568,6 +577,33 @@ class TestMultiConcurrencyGaurd:
             task.start()
         for task in tasks:
             task.join()
+
+    async def test_use_tracker_stages_manually(self) -> None:
+        guards = MultiConcurrencyGaurd()
+
+        for instance in [guards.monitor(0), guards.guard(0)]:
+            assert instance.is_unused()
+            assert not instance.is_pending()
+            assert not instance.is_running()
+            assert not instance.is_done()
+
+            instance._use_tracker.append(False)
+            assert not instance.is_unused()
+            assert instance.is_pending()
+            assert not instance.is_running()
+            assert not instance.is_done()
+
+            instance._use_tracker.append(True)
+            assert not instance.is_unused()
+            assert not instance.is_pending()
+            assert instance.is_running()
+            assert not instance.is_done()
+
+            instance._use_tracker.append(False)
+            assert not instance.is_unused()
+            assert not instance.is_pending()
+            assert not instance.is_running()
+            assert instance.is_done()
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
