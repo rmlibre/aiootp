@@ -111,8 +111,8 @@ class QueueManuallyPolicy(ExclusivePolicy):
     desired ordering of events. This overrides the default behavior of
     the guard being automatically appended when the instance context
     manager is entered. The instance remains responsible for
-    automatically removing the appropriate guard from the order queue
-    when the context manager is exited.
+    automatically being removed from the order queue when the context
+    manager is exited.
     ********
     CAUTION: Care must be taken not to use the same guard token multiple
     ******** times. Doing so may cause a deadlock, incoherent state, or
@@ -212,17 +212,53 @@ class NonExclusivePolicy(FrozenInstance):
         return can_run
 
 
+class NonExclusiveQueueManuallyPolicy(NonExclusivePolicy):
+    """
+    Signals to the `ConcurrencyGuard` instance that the caller will
+    manually append the guard instance to the order queue to achieve the
+    desired ordering of events. This overrides the default behavior of
+    the guard being automatically appended when the instance context
+    manager is entered. The instance remains responsible for
+    automatically being removed from the order queue when it detects its
+    turn to run has come. Non-exclusive policies don't ensure the
+    deterministic ordering of events when run simultaneously with other
+    guards using non-exclusive policies, but this policy can be used for
+    ordering events to run before or after other guards using exclusive
+    policies as desired.
+    ********
+    CAUTION: Care must be taken not to use the same guard token multiple
+    ******** times. Doing so may cause a deadlock, incoherent state, or
+    exception if two instances with the same token enter their contexts
+    simultaneously, & then during exit, pop a guard off the queue
+    expecting it to be itself.
+    """
+
+    __slots__ = ()
+
+    def get_in_queue(self, /, guard: t.ConcurrencyGuardType) -> None:
+        """
+        A no-op since the caller has signaled that they'll handle
+        appending the guard to the order queue manually.
+        """
+
+
 class ConcurrencyGuardPolicies(OpenFrozenTypedSlots):
     """
     An efficient & typed mapping container for policy types.
     """
 
-    __slots__ = ("Exclusive", "QueueManually", "NonExclusive")
+    __slots__ = (
+        "Exclusive",
+        "QueueManually",
+        "NonExclusive",
+        "NonExclusiveQueueManually",
+    )
 
     slots_types = dict(
         Exclusive=t.ConcurrencyGuardPolicy,
         QueueManually=t.ConcurrencyGuardPolicy,
         NonExclusive=t.ConcurrencyGuardPolicy,
+        NonExclusiveQueueManually=t.ConcurrencyGuardPolicy,
     )
 
 
@@ -345,6 +381,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         Exclusive=ExclusivePolicy,
         QueueManually=QueueManuallyPolicy,
         NonExclusive=NonExclusivePolicy,
+        NonExclusiveQueueManually=NonExclusiveQueueManuallyPolicy,
     )
 
     IncoherentConcurrencyState: type = IncoherentConcurrencyState
@@ -545,6 +582,9 @@ module_api = dict(
     ConcurrencyGuardPolicies=t.add_type(ConcurrencyGuardPolicies),
     ExclusivePolicy=t.add_type(ExclusivePolicy),
     NonExclusivePolicy=t.add_type(NonExclusivePolicy),
+    NonExclusiveQueueManuallyPolicy=t.add_type(
+        NonExclusiveQueueManuallyPolicy
+    ),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

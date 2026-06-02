@@ -184,11 +184,12 @@ class TestMultiConcurrencyGaurd:
             return (
                 guards.guard(target, policy=Policy())
                 if token_bits(1)
-                else guards.monitor(target)
+                else guards.monitor(target, policy=NonExclusivePolicy())
             )
 
         guards = MultiConcurrencyGaurd()
         Policy = guards.policies.QueueManually
+        NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
 
         unique_targets = [*range(64)]
         targets = 4 * unique_targets
@@ -196,10 +197,10 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         observers = defaultdict(deque)
         for target, instance in instances:
+            guards.queues[target].append(instance)
             if instance.policy.is_exclusive():
                 observers[target].append(instance)
                 queues[target].append(instance.token)
-                guards.queues[target].append(instance)
             else:
                 observers[target].appendleft(instance)
 
@@ -254,11 +255,12 @@ class TestMultiConcurrencyGaurd:
             return (
                 guards.guard(target, policy=Policy())
                 if token_bits(1)
-                else guards.monitor(target)
+                else guards.monitor(target, policy=NonExclusivePolicy())
             )
 
         guards = MultiConcurrencyGaurd()
         Policy = guards.policies.QueueManually
+        NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
 
         unique_targets = [*range(64)]
         targets = 4 * unique_targets
@@ -266,10 +268,10 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         observers = defaultdict(deque)
         for target, instance in instances:
+            guards.queues[target].append(instance)
             if instance.policy.is_exclusive():
                 observers[target].append(instance)
                 queues[target].append(instance.token)
-                guards.queues[target].append(instance)
             else:
                 assert isinstance(queues[target], list)
                 observers[target].appendleft(instance)
@@ -301,52 +303,41 @@ class TestMultiConcurrencyGaurd:
             if instance.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
-    async def test_guard_method_needs_exclusive_policy(self) -> None:
+    @pytest.mark.parametrize(
+        "policy_cls", MultiConcurrencyGaurd.policies.values()
+    )
+    async def test_guard_method_needs_exclusive_policy(
+        self, policy_cls
+    ) -> None:
         guards = MultiConcurrencyGaurd()
 
-        problem = (  # fmt: skip
-            "A non-exclusive policy was able to be passed into the "
-            "guard() method."
-        )
-        with Ignore(TypeError, if_else=violation(problem)):
-            guards.guard(
-                target="test",
-                policy=guards.policies.NonExclusive(),
+        if issubclass(policy_cls, guards.policies.NonExclusive):
+            problem = (  # fmt: skip
+                "A non-exclusive policy was able to be passed into the "
+                "guard() method."
             )
+            with Ignore(TypeError, if_else=violation(problem)):
+                guards.guard(target="test", policy=policy_cls())
+        else:
+            guards.guard(target="test", policy=policy_cls())
 
-        guards.guard(
-            target="test",
-            policy=guards.policies.Exclusive(),
-        )
-
-        guards.guard(
-            target="test",
-            policy=guards.policies.QueueManually(),
-        )
-
-    async def test_monitor_method_needs_non_exclusive_policy(self) -> None:
+    @pytest.mark.parametrize(
+        "policy_cls", MultiConcurrencyGaurd.policies.values()
+    )
+    async def test_monitor_method_needs_non_exclusive_policy(
+        self, policy_cls
+    ) -> None:
         guards = MultiConcurrencyGaurd()
 
-        problem = (  # fmt: skip
-            "An exclusive policy was able to be passed into the "
-            "monitor() method."
-        )
-        with Ignore(TypeError, if_else=violation(problem)):
-            guards.monitor(
-                target="test",
-                policy=guards.policies.Exclusive(),
+        if issubclass(policy_cls, guards.policies.Exclusive):
+            problem = (  # fmt: skip
+                "An exclusive policy was able to be passed into the "
+                "monitor() method."
             )
-
-        with Ignore(TypeError, if_else=violation(problem)):
-            guards.monitor(
-                target="test",
-                policy=guards.policies.QueueManually(),
-            )
-
-        guards.monitor(
-            target="test",
-            policy=guards.policies.NonExclusive(),
-        )
+            with Ignore(TypeError, if_else=violation(problem)):
+                guards.monitor(target="test", policy=policy_cls())
+        else:
+            guards.monitor(target="test", policy=policy_cls())
 
     async def test_async_references_cleaned_when_work_is_done(self) -> None:
         async def record_ordering(
