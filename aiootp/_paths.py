@@ -66,7 +66,7 @@ def AdminPath(path: t.OptionalPathStr = None) -> Path:
     return SecurePath(path) / "_admin"
 
 
-async def afilename_to_index_key(filename: str, *, size: int = 8) -> bytes:
+async def afilename_to_index_key(filename: str, *, size: int = 32) -> bytes:
     """
     Facilitates the creation of uniform index keys to organize objects
     & procedures by the file targets those keys point to.
@@ -79,7 +79,7 @@ async def afilename_to_index_key(filename: str, *, size: int = 8) -> bytes:
     )
 
 
-def filename_to_index_key(filename: str, *, size: int = 8) -> bytes:
+def filename_to_index_key(filename: str, *, size: int = 32) -> bytes:
     """
     Facilitates the creation of uniform index keys to organize objects
     & procedures by the file targets those keys point to.
