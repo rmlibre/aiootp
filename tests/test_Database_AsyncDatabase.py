@@ -405,6 +405,56 @@ class TestDatabases:
         with Ignore(LookupError, if_else=violation(problem)):
             database.save_tag(tag)
 
+    async def test_async_save_tag_without_drop_cache_keeps_cache(
+        self, async_database: AsyncDatabase
+    ) -> None:
+        tag = "tested_tag"
+        async with async_database as db:
+            filename = await db.afilename(tag)
+            path = db.path / filename
+            assert tag not in db
+            assert filename not in db._cache
+            assert not path.is_file()
+
+            db[tag] = test_data
+            assert tag in db
+            assert filename in db._cache
+            assert db[tag] == test_data
+            assert not path.is_file()
+
+            await db.asave_tag(tag, drop_cache=False)
+            assert tag in db
+            assert filename in db._cache
+            assert db[tag] == test_data
+            assert path.is_file()
+
+            await db.apop_tag(tag)
+
+    async def test_sync_save_tag_without_drop_cache_keeps_cache(
+        self, database: Database
+    ) -> None:
+        with database as db:
+            tag = "tested_tag"
+            filename = db.filename(tag)
+            path = db.path / filename
+            assert tag not in db
+            assert filename not in db._cache
+            assert not path.is_file()
+
+            db[tag] = test_data
+            assert tag in db
+            assert filename in db._cache
+            assert db[tag] == test_data
+            assert not path.is_file()
+
+            db.save_tag(tag, drop_cache=False)
+            assert tag in db
+            assert filename in db._cache
+            assert db[tag] == test_data
+            assert path.is_file()
+
+            db.pop_tag(tag)
+
     async def test_async_delitem_removes_tags(
         self, async_database: AsyncDatabase
     ) -> None:
@@ -701,86 +751,130 @@ def test_sync_tags_metatags() -> None:
     database.delete_database()
 
 
-async def test_async_user_profiles(async_database) -> None:
-    adb = async_database
-    user = await adb.agenerate_profile(**PROFILE_AND_SETTINGS)
+class TestUserProfiles:
+    async def test_async_initialization_and_deletion(self) -> None:
+        adb = AsyncDatabase
+        user = await adb.agenerate_profile(**PROFILE_AND_SETTINGS)
 
-    async with user:
-        user[atag] = atest_data
+        async with user:
+            user[atag] = atest_data
 
-    # equivalent async profiles contain their own copies of stored data
-    user_copy = await adb.agenerate_profile(
-        **PROFILE_AND_SETTINGS, preload=True
-    )
-    assert user[atag] == user_copy[atag]
-    assert user.tags == user_copy.tags
-    assert user[atag]
-    assert user[atag] == atest_data
-    assert user[atag].__class__ is dict
-    assert user[atag] == user_copy[atag]
-    assert user[atag] is not user_copy[atag]
+        # equivalent async profiles contain their own copies of stored data
+        user_copy = await adb.agenerate_profile(
+            **PROFILE_AND_SETTINGS, preload=True
+        )
+        assert user[atag] == user_copy[atag]
+        assert user.tags == user_copy.tags
+        assert user[atag]
+        assert user[atag] == atest_data
+        assert user[atag].__class__ is dict
+        assert user[atag] == user_copy[atag]
+        assert user[atag] is not user_copy[atag]
 
-    # async profiles are automatically saved to disk when initialized
-    assert user_copy._root_path.is_file()
-    assert user_copy._profile_tokens._salt_path.is_file()
-    assert (user_copy.path / await user_copy.afilename(atag)).is_file()
+        # async profiles are automatically saved to disk when initialized
+        root_path = user_copy._root_path
+        salt_path = user_copy._profile_tokens._salt_path
+        assert root_path.is_file()
+        assert salt_path.is_file()
+        assert (user_copy.path / await user_copy.afilename(atag)).is_file()
 
-    # async & sync profile contructors are equivalent
-    sync_user = Database.generate_profile(
-        **PROFILE_AND_SETTINGS, preload=True
-    )
-    assert sync_user[atag] == user[atag]
-    assert sync_user.tags == user.tags
-    assert sync_user[atag]
-    assert sync_user[atag] == atest_data
-    assert sync_user[atag].__class__ is dict
-    assert sync_user[atag] is not user[atag]
+        # async & sync profile contructors are equivalent
+        sync_user = Database.generate_profile(
+            **PROFILE_AND_SETTINGS, preload=True
+        )
+        assert sync_user[atag] == user[atag]
+        assert sync_user.tags == user.tags
+        assert sync_user[atag]
+        assert sync_user[atag] == atest_data
+        assert sync_user[atag].__class__ is dict
+        assert sync_user[atag] is not user[atag]
 
-    # deleting an async profile removes its files from the filesystem
-    await user.adelete_database()
-    assert not user_copy._root_path.is_file()
-    assert not user_copy._profile_tokens._salt_path.is_file()
-    assert not (user_copy.path / await user_copy.afilename(atag)).is_file()
+        # deleting an async profile removes its files from the filesystem
+        await user.adelete_database()
+        assert not root_path.is_file()
+        assert not salt_path.is_file()
+        assert not (
+            user_copy.path / await user_copy.afilename(atag)
+        ).is_file()
 
+    async def test_async_profile_deletes_when_salt_file_missing(
+        self,
+    ) -> None:
+        try:
+            user_copy = await AsyncDatabase.agenerate_profile(
+                **PROFILE_AND_SETTINGS, preload=True
+            )
+            root_path = user_copy._root_path
+            salt_path = user_copy._profile_tokens._salt_path
 
-async def test_user_profiles(database) -> None:
-    db = database
-    user = db.generate_profile(**PROFILE_AND_SETTINGS)
+            assert salt_path.is_file()
+            assert root_path.is_file()
+            salt_path.unlink()
+            assert not salt_path.is_file()
+        finally:
+            await user_copy.adelete_database()
+            assert not root_path.is_file()
 
-    with user:
-        user[tag] = test_data
+    async def test_sync_initialization_and_deletion(self) -> None:
+        db = Database
+        user = db.generate_profile(**PROFILE_AND_SETTINGS)
 
-    # equivalent profiles contain their own copies of stored data
-    user_copy = db.generate_profile(**PROFILE_AND_SETTINGS, preload=True)
-    assert user[tag] == user_copy[tag]
-    assert user.tags == user_copy.tags
-    assert user[tag]
-    assert user[tag] == atest_data
-    assert user[tag].__class__ is dict
-    assert user[tag] == user_copy[tag]
-    assert user[tag] is not user_copy[tag]
+        with user:
+            user[tag] = test_data
 
-    # profiles are automatically saved to disk when initialized
-    assert user_copy._root_path.is_file()
-    assert user_copy._profile_tokens._salt_path.is_file()
-    assert (user_copy.path / user_copy.filename(tag)).is_file()
+        # equivalent profiles contain their own copies of stored data
+        user_copy = db.generate_profile(
+            **PROFILE_AND_SETTINGS, preload=True
+        )
+        assert user[tag] == user_copy[tag]
+        assert user.tags == user_copy.tags
+        assert user[tag]
+        assert user[tag] == atest_data
+        assert user[tag].__class__ is dict
+        assert user[tag] == user_copy[tag]
+        assert user[tag] is not user_copy[tag]
 
-    # async & sync profile contructors are equivalent
-    async_user = await AsyncDatabase.agenerate_profile(
-        **PROFILE_AND_SETTINGS, preload=True
-    )
-    assert async_user[tag] == user[tag]
-    assert async_user.tags == user.tags
-    assert async_user[tag]
-    assert async_user[tag] == test_data
-    assert async_user[tag].__class__ is dict
-    assert async_user[tag] is not user[tag]
+        # profiles are automatically saved to disk when initialized
+        root_path = user_copy._root_path
+        salt_path = user_copy._profile_tokens._salt_path
+        assert root_path.is_file()
+        assert salt_path.is_file()
+        assert (user_copy.path / user_copy.filename(tag)).is_file()
 
-    # deleting a profile removes its files from the filesystem
-    user.delete_database()
-    assert not user_copy._root_path.is_file()
-    assert not user_copy._profile_tokens._salt_path.is_file()
-    assert not (user_copy.path / user_copy.filename(tag)).is_file()
+        # async & sync profile contructors are equivalent
+        async_user = await AsyncDatabase.agenerate_profile(
+            **PROFILE_AND_SETTINGS, preload=True
+        )
+        assert async_user[tag] == user[tag]
+        assert async_user.tags == user.tags
+        assert async_user[tag]
+        assert async_user[tag] == test_data
+        assert async_user[tag].__class__ is dict
+        assert async_user[tag] is not user[tag]
+
+        # deleting a profile removes its files from the filesystem
+        user.delete_database()
+        assert not root_path.is_file()
+        assert not salt_path.is_file()
+        assert not (user_copy.path / user_copy.filename(tag)).is_file()
+
+    async def test_sync_profile_deletes_when_salt_file_missing(
+        self,
+    ) -> None:
+        try:
+            user_copy = Database.generate_profile(
+                **PROFILE_AND_SETTINGS, preload=True
+            )
+            root_path = user_copy._root_path
+            salt_path = user_copy._profile_tokens._salt_path
+
+            assert salt_path.is_file()
+            assert root_path.is_file()
+            salt_path.unlink()
+            assert not salt_path.is_file()
+        finally:
+            user_copy.delete_database()
+            assert not root_path.is_file()
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
