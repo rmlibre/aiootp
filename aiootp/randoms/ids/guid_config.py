@@ -62,7 +62,7 @@ class GUIDConfig(Config):
     _DEFAULT_SALT_DOMAIN: t.AnyStr = b"default_guid_salt"
 
     def _process_raw_guid_config_id(
-        self, raw_guid_config_id: t.Optional[t.Hashable]
+        self, raw_guid_config_id: t.Hashable | None
     ) -> t.Hashable:
         """
         Returns the `RawGUID` config ID if specified. If not, the
@@ -74,7 +74,7 @@ class GUIDConfig(Config):
             return raw_guid_config_id
 
     def _process_permutation_config_id(
-        self, permutation_config_id: t.Optional[t.Hashable]
+        self, permutation_config_id: t.Hashable | None
     ) -> t.Hashable:
         """
         Returns the permutation config ID if specified. If not, the
@@ -106,8 +106,8 @@ class GUIDConfig(Config):
         size: int,
         raw_guid_type: type,
         permutation_type: t.PermutationType,
-        raw_guid_config_id: t.Optional[t.Hashable] = None,
-        permutation_config_id: t.Optional[t.Hashable] = None,
+        raw_guid_config_id: t.Hashable | None = None,
+        permutation_config_id: t.Hashable | None = None,
         aad: bytes = b"",
     ) -> None:
         self.CONFIG_ID = config_id

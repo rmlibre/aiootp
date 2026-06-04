@@ -192,7 +192,7 @@ class TestGenerators:
     @pytest.mark.parametrize("blocks", [-1, 0, None, 1, 2, 3])
     async def test_resizes(
         self,
-        blocks: t.Optional[int],
+        blocks: int | None,
         size: int,
         unit: t.Any,
         first: int,

@@ -139,9 +139,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         self,
         /,
         *,
-        policy: t.Optional[t.ConcurrencyGuardPolicy] = None,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
-        token: t.Optional[bytes] = None,
+        policy: t.ConcurrencyGuardPolicy | None = None,
+        probe_delay: t.PositiveRealNumber | None = None,
+        token: bytes | None = None,
     ) -> None:
         """
         `policy`: A `ManagedConcurrencyGuard` policy instance which
@@ -192,9 +192,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
     async def __aexit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
     ) -> bool:
         """
         If using an exclusive policy, raises `IncoherentConcurrencyState`
@@ -218,9 +218,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
     def __exit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
     ) -> bool:
         """
         If using an exclusive policy, raises `IncoherentConcurrencyState`
@@ -382,9 +382,9 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         self,
         /,
         *,
-        queues: t.Optional[_Queues] = None,
-        observers: t.Optional[_Observers] = None,
-        users: t.Optional[_Users] = None,
+        queues: _Queues | None = None,
+        observers: _Observers | None = None,
+        users: _Users | None = None,
     ) -> None:
         """
         Initializes the instance with its defaultdict subclass mappings
@@ -462,9 +462,9 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         /,
         target: t.Hashable,
         *,
-        policy: t.Optional[t.ConcurrencyGuardPolicy] = None,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
-        token: t.Optional[bytes] = None,
+        policy: t.ConcurrencyGuardPolicy | None = None,
+        probe_delay: t.PositiveRealNumber | None = None,
+        token: bytes | None = None,
     ) -> _ManagedGuard:
         """
         Returns an exclusive guard instance which can be entered using
@@ -514,9 +514,9 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         /,
         target: t.Hashable,
         *,
-        policy: t.Optional[t.ConcurrencyGuardPolicy] = None,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
-        token: t.Optional[bytes] = None,
+        policy: t.ConcurrencyGuardPolicy | None = None,
+        probe_delay: t.PositiveRealNumber | None = None,
+        token: bytes | None = None,
     ) -> _ManagedGuard:
         """
         Returns the non-exclusive guard instance which can be entered

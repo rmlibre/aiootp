@@ -88,7 +88,7 @@ _KEY_NEGOTIATION_FEATURE_FLAG: bool = False
 
 
 def current_transmit_key(
-    channel: t.Optional[socket.socket] = None, context: t.Any = None
+    channel: socket.socket | None = None, context: t.Any = None
 ) -> bytes:
     """
     Supports future key rotation implementations by querying for the

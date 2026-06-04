@@ -222,7 +222,7 @@ class StreamHMAC:
         self,
         next_block: bytes,
         *,
-        size: t.Optional[int] = None,
+        size: int | None = None,
         aad: bytes = DEFAULT_AAD,
         _join: t.Callable[..., bytes] = b"".join,
     ) -> bytes:
@@ -259,7 +259,7 @@ class StreamHMAC:
         self,
         next_block: bytes,
         *,
-        size: t.Optional[int] = None,
+        size: int | None = None,
         aad: bytes = DEFAULT_AAD,
         _join: t.Callable[..., bytes] = b"".join,
     ) -> bytes:

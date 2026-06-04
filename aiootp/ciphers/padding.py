@@ -364,7 +364,7 @@ class Padding(FrozenInstance):
         return -(sentinel or self.config.PADDING_FRAME)
 
     async def adepad_plaintext(
-        self, /, data: bytes, *, ttl: t.Optional[int] = DEFAULT_TTL
+        self, /, data: bytes, *, ttl: int | None = DEFAULT_TTL
     ) -> bytes:
         """
         Returns `data` after these values are removed:
@@ -380,7 +380,7 @@ class Padding(FrozenInstance):
         return data[start_index:end_index]
 
     def depad_plaintext(
-        self, /, data: bytes, *, ttl: t.Optional[int] = DEFAULT_TTL
+        self, /, data: bytes, *, ttl: int | None = DEFAULT_TTL
     ) -> bytes:
         """
         Returns `data` after these values are removed:

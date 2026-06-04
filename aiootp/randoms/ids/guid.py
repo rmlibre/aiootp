@@ -148,7 +148,7 @@ class GUID(FrozenInstance):
     def __init__(
         self,
         *,
-        key: t.Optional[bytes] = None,
+        key: bytes | None = None,
         node_id: bytes = b"\x00",
         config_id: t.Hashable = 16,
     ) -> None:

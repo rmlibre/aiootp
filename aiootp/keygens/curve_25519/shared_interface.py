@@ -143,14 +143,14 @@ class Base25519(FrozenInstance):
         return self.import_secret_key(self.SecretKey.generate())
 
     @property
-    def secret_key(self, /) -> t.Optional[t.SecretKeyType]:
+    def secret_key(self, /) -> t.SecretKeyType | None:
         """
         Returns the instance's secret key object.
         """
         return self._secret_key
 
     @property
-    def public_key(self, /) -> t.Optional[t.PublicKeyType]:
+    def public_key(self, /) -> t.PublicKeyType | None:
         """
         Returns the instance's public key object.
         """

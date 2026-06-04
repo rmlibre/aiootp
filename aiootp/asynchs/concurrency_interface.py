@@ -26,7 +26,7 @@ from .loops import asleep, sleep, new_event_loop
 
 
 def process_probe_delay(
-    value: t.Optional[t.PositiveRealNumber], /, *, default: float
+    value: t.PositiveRealNumber | None, /, *, default: float
 ) -> float:
     """
     Ensures the probe frequency is positive & returns it, if it's
@@ -109,7 +109,7 @@ class ConcurrencyInterface:
         func: t.Callable[..., t.Any],
         /,
         *args: t.Any,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
+        probe_delay: t.PositiveRealNumber | None = None,
         **kwargs: t.Any,
     ) -> t.Any:
         """
@@ -139,7 +139,7 @@ class ConcurrencyInterface:
         func: t.Callable[..., t.Any],
         /,
         *args: t.Any,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
+        probe_delay: t.PositiveRealNumber | None = None,
         **kwargs: t.Any,
     ) -> t.Any:
         """
@@ -215,7 +215,7 @@ class ConcurrencyInterface:
         func: t.Callable[..., t.Any],
         /,
         *args: t.Any,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
+        probe_delay: t.PositiveRealNumber | None = None,
         **kwargs: t.Any,
     ) -> t.Future:
         """
@@ -236,7 +236,7 @@ class ConcurrencyInterface:
         func: t.Callable[..., t.Any],
         /,
         *args: t.Any,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
+        probe_delay: t.PositiveRealNumber | None = None,
         **kwargs: t.Any,
     ) -> t.Future:
         """

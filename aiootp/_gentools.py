@@ -144,7 +144,7 @@ async def aresize(
     /,
     size: int,
     *,
-    blocks: t.Optional[int] = None,
+    blocks: int | None = None,
 ) -> t.AsyncGenerator[t.Sequence[t.Any], None]:
     """
     Runs through a `sequence` & yields `size` sized chunks of the
@@ -173,7 +173,7 @@ def resize(
     /,
     size: int,
     *,
-    blocks: t.Optional[int] = None,
+    blocks: int | None = None,
 ) -> t.Generator[t.Sequence[t.Any], None, None]:
     """
     Runs through a `sequence` & yields `size` sized chunks of the
@@ -345,7 +345,7 @@ def bytes_range(
         yield result.to_bytes(size, byte_order)
 
 
-async def arange(*a: t.Optional[int]) -> t.AsyncGenerator[int, None]:
+async def arange(*a: int | None) -> t.AsyncGenerator[int, None]:
     """
     An async version of `builtins.range`.
     """

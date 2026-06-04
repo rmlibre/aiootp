@@ -58,7 +58,7 @@ class PoolExecutorType(t.Protocol):
         self,
         fn: t.Callable[..., t.Any],
         *iterables: t.Any,
-        timeout: t.Optional[t.PositiveRealNumber],
+        timeout: t.PositiveRealNumber | None,
         chunksize: int,
     ) -> t.Iterator[t.Any]:
         pass  # pragma: no cover
@@ -78,15 +78,13 @@ class PoolExecutorType(t.Protocol):
 
 @t.runtime_checkable
 class QueueType(t.Protocol):
-    def get(self, block: bool, timeout: t.Optional[int]) -> t.Any:
+    def get(self, block: bool, timeout: int | None) -> t.Any:
         pass  # pragma: no cover
 
     def get_nowait(self) -> t.Any:
         pass  # pragma: no cover
 
-    def put(
-        self, item: t.Any, block: bool, timeout: t.Optional[int]
-    ) -> None:
+    def put(self, item: t.Any, block: bool, timeout: int | None) -> None:
         pass  # pragma: no cover
 
     def put_nowait(self, item: t.Any) -> None:
@@ -114,12 +112,12 @@ class ClockType(t.Protocol):
         pass  # pragma: no cover
 
     async def atest_timestamp(
-        self, timestamp: bytes, ttl: t.Optional[int], *, byte_order: str
+        self, timestamp: bytes, ttl: int | None, *, byte_order: str
     ) -> None:
         pass  # pragma: no cover
 
     def test_timestamp(
-        self, timestamp: bytes, ttl: t.Optional[int], *, byte_order: str
+        self, timestamp: bytes, ttl: int | None, *, byte_order: str
     ) -> None:
         pass  # pragma: no cover
 
@@ -135,18 +133,18 @@ class ConcurrencyGuardType(t.Protocol):
     async def __aexit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
     ) -> bool:
         pass  # pragma: no cover
 
     def __exit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
     ) -> bool:
         pass  # pragma: no cover
 
@@ -182,9 +180,9 @@ class MultiConcurrencyGaurdType(t.Protocol):
         /,
         target: t.Hashable,
         *,
-        policy: t.Optional[ConcurrencyGuardPolicy] = None,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
-        token: t.Optional[bytes] = None,
+        policy: ConcurrencyGuardPolicy | None = None,
+        probe_delay: t.PositiveRealNumber | None = None,
+        token: bytes | None = None,
     ) -> ConcurrencyGuardType:
         pass  # pragma: no cover
 
@@ -193,9 +191,9 @@ class MultiConcurrencyGaurdType(t.Protocol):
         /,
         target: t.Hashable,
         *,
-        policy: t.Optional[ConcurrencyGuardPolicy] = None,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
-        token: t.Optional[bytes] = None,
+        policy: ConcurrencyGuardPolicy | None = None,
+        probe_delay: t.PositiveRealNumber | None = None,
+        token: bytes | None = None,
     ) -> ConcurrencyGuardType:
         pass  # pragma: no cover
 

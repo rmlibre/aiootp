@@ -31,8 +31,8 @@ async def ahash_bytes(
     *collection: bytes,
     hasher: t.Callable[[bytes], t.HasherType] = sha3_512,
     pad: bytes = b"\x00",
-    size: t.Optional[int] = None,
-    key: t.Optional[bytes] = None,
+    size: int | None = None,
+    key: bytes | None = None,
 ) -> bytes:
     """
     Joins the `collection` of `bytes`-type objects with a canonical
@@ -64,8 +64,8 @@ def hash_bytes(
     *collection: bytes,
     hasher: t.Callable[[bytes], t.HasherType] = sha3_512,
     pad: bytes = b"\x00",
-    size: t.Optional[int] = None,
-    key: t.Optional[bytes] = None,
+    size: int | None = None,
+    key: bytes | None = None,
 ) -> bytes:
     """
     Joins the `collection` of `bytes`-type objects with a canonical

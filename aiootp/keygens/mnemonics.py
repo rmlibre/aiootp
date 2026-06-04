@@ -77,11 +77,11 @@ def keyed_choices(
 
 
 async def amnemonic(
-    passphrase: t.Optional[bytes] = None,
+    passphrase: bytes | None = None,
     size: int = 8,
     *,
-    salt: t.Optional[bytes] = None,
-    words: t.Optional[t.Sequence[t.Any]] = None,
+    salt: bytes | None = None,
+    words: t.Sequence[t.Any] | None = None,
     **passcrypt_settings: t.Union[int, t.ConfigType],
 ) -> list[bytes]:
     """
@@ -107,11 +107,11 @@ async def amnemonic(
 
 
 def mnemonic(
-    passphrase: t.Optional[bytes] = None,
+    passphrase: bytes | None = None,
     size: int = 8,
     *,
-    salt: t.Optional[bytes] = None,
-    words: t.Optional[t.Sequence[t.Any]] = None,
+    salt: bytes | None = None,
+    words: t.Sequence[t.Any] | None = None,
     **passcrypt_settings: t.Union[int, t.ConfigType],
 ) -> list[bytes]:
     """

@@ -82,7 +82,7 @@ class AffineXORChainConfig(Config):
             raise Issue.value_must("size", "be > 0 and <= 4096")
 
     def _process_key_types(
-        self, key_types: t.Optional[tuple[tuple[str, int]]]
+        self, key_types: tuple[tuple[str, int]] | None
     ) -> tuple[tuple[str, int]]:
         """
         Returns `key_types` if it contains at least one (str, int) pair,
@@ -104,7 +104,7 @@ class AffineXORChainConfig(Config):
             return key_types
 
     def _process_permutation_config_id(
-        self, permutation_config_id: t.Optional[t.Hashable]
+        self, permutation_config_id: t.Hashable | None
     ) -> t.Hashable:
         """
         Returns the input `permutation_config_id` if it's provided,
@@ -133,8 +133,8 @@ class AffineXORChainConfig(Config):
         config_id: t.Hashable,
         size: int,
         permutation_type: type,
-        permutation_config_id: t.Optional[t.Hashable] = None,
-        key_types: t.Optional[tuple[tuple[str, int]]] = None,
+        permutation_config_id: t.Hashable | None = None,
+        key_types: tuple[tuple[str, int]] | None = None,
     ) -> None:
         """
         Caches the instance's static configuration after type-checking

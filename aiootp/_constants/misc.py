@@ -16,7 +16,6 @@ A collection constants & precomputed values to standardize, speed
 up, & clean up their usage in the package.
 """
 
-import typing
 import hashlib
 from hashlib import sha3_256, sha3_512, shake_128, shake_256
 
@@ -33,7 +32,7 @@ FILENAME_HASH_BYTES: int = 24
 
 EPOCH: int = 1672531200  # Sun, 01 Jan 2023 00:00:00 UTC
 SAFE_TIMESTAMP_BYTES: int = 8
-DEFAULT_TTL: typing.Optional[int] = None
+DEFAULT_TTL: int | None = None
 DEFAULT_TIMEOUT: int = 0
 
 

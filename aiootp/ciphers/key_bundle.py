@@ -42,9 +42,9 @@ class SaltAADIV(FrozenSlots):
 
     def __init__(
         self,
-        salt: t.Optional[bytes] = None,
+        salt: bytes | None = None,
         aad: bytes = DEFAULT_AAD,
-        iv: t.Optional[bytes] = None,
+        iv: bytes | None = None,
         *,
         config: t.ConfigType,
     ) -> None:
@@ -180,9 +180,9 @@ class KeyAADBundle:
         self,
         kdfs: CipherKDFs,
         *,
-        salt: t.Optional[bytes] = None,
+        salt: bytes | None = None,
         aad: bytes = DEFAULT_AAD,
-        iv: t.Optional[bytes] = None,
+        iv: bytes | None = None,
     ) -> None:
         """
         Stores the `salt`, `aad` & `iv` & initializes the session KDFs

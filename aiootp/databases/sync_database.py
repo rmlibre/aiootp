@@ -389,7 +389,7 @@ class Database(DatabaseProperties):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> bytes:
         """
         Decrypts the `ciphertext` bytes with keys specific to the
@@ -412,7 +412,7 @@ class Database(DatabaseProperties):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> t.Union[bytes, t.JSONSerializable]:
         """
         Decrypts the `ciphertext` bytes with keys specific to the
@@ -435,7 +435,7 @@ class Database(DatabaseProperties):
         *,
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> bytes:
         """
         Decrypts the urlsafe base64 encoded `token` with keys specific
@@ -492,7 +492,7 @@ class Database(DatabaseProperties):
         self,
         tag: str,
         *,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
         silent: bool = False,
         cache: bool = False,
     ) -> t.Union[bytes, t.JSONSerializable]:
@@ -769,9 +769,9 @@ class Database(DatabaseProperties):
     def __exit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
     ) -> bool:
         """
         The context manager automatically writes database changes made

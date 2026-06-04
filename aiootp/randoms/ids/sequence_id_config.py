@@ -48,7 +48,7 @@ class SequenceIDConfig(Config):
             raise Issue.value_must("size", "be > 0 and <= 4096")
 
     def _process_permutation_config_id(
-        self, permutation_config_id: t.Optional[t.Hashable]
+        self, permutation_config_id: t.Hashable | None
     ) -> t.Hashable:
         """
         Allows the configuration ID given to the initializer of the
@@ -67,7 +67,7 @@ class SequenceIDConfig(Config):
         config_id: t.Hashable,
         size: int,
         permutation_type: t.PermutationType,
-        permutation_config_id: t.Optional[t.Hashable] = None,
+        permutation_config_id: t.Hashable | None = None,
     ) -> None:
         self.CONFIG_ID = config_id
         self.SIZE = self._process_size(size)

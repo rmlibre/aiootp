@@ -85,7 +85,7 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self,
         cipher: t.CipherInterfaceType,
         *,
-        salt: t.Optional[bytes] = None,
+        salt: bytes | None = None,
         aad: bytes = DEFAULT_AAD,
     ) -> None:
         """
@@ -318,7 +318,7 @@ class CipherStream(CipherStreamProperties):
         self,
         cipher: t.CipherInterfaceType,
         *,
-        salt: t.Optional[bytes] = None,
+        salt: bytes | None = None,
         aad: bytes = DEFAULT_AAD,
     ) -> None:
         """

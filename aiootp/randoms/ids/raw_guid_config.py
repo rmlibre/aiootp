@@ -80,7 +80,7 @@ class RawGUIDConfig(Config):
             raise Issue.invalid_length("stated guid size", size)
         return size
 
-    def _process_clock(self, clock: t.Optional[type]) -> type:
+    def _process_clock(self, clock: type | None) -> type:
         """
         Returns a default clock if one isn't provided.
         """
@@ -97,7 +97,7 @@ class RawGUIDConfig(Config):
         node_id_bytes: int,
         ticker_bytes: int,
         size: int,
-        clock: t.Optional[t.ClockType] = None,
+        clock: t.ClockType | None = None,
         prf: t.Callable[[int], bytes] = token_bytes,
     ) -> None:
         self.TIMESTAMP_BYTES = timestamp_bytes

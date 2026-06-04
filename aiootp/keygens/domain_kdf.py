@@ -78,7 +78,7 @@ class HashTupleKDF(FrozenInstance):
     async def _arun_kdf(
         self,
         *data: bytes,
-        size: t.Optional[int] = None,
+        size: int | None = None,
         aad: bytes,
         obj: t.SimpleNamespace,
     ) -> bytes:
@@ -100,7 +100,7 @@ class HashTupleKDF(FrozenInstance):
     def _run_kdf(
         self,
         *data: bytes,
-        size: t.Optional[int] = None,
+        size: int | None = None,
         aad: bytes,
         obj: t.SimpleNamespace,
     ) -> bytes:

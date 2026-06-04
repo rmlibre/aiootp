@@ -155,9 +155,9 @@ class Ignore:
         self,
         /,
         *exceptions: Exception,
-        if_except: t.Optional[t.Callable[[t.Self], bool]] = None,
-        if_else: t.Optional[t.Callable[[t.Self], t.Any]] = None,
-        finally_run: t.Optional[t.Callable[[t.Self], t.Any]] = None,
+        if_except: t.Callable[[t.Self], bool] | None = None,
+        if_else: t.Callable[[t.Self], t.Any] | None = None,
+        finally_run: t.Callable[[t.Self], t.Any] | None = None,
     ) -> None:
         placeholder = self._PlaceholderHandler()
         self.ignored_exceptions = exceptions
@@ -187,10 +187,10 @@ class Ignore:
     async def __aexit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
-    ) -> t.Optional[bool]:
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
+    ) -> bool | None:
         """
         Allows the controlled handling of raised exceptions within the
         context. If an exception specified by the instance is raised,
@@ -214,10 +214,10 @@ class Ignore:
     def __exit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
-    ) -> t.Optional[bool]:
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
+    ) -> bool | None:
         """
         Allows the controlled handling of raised exceptions within the
         context. If an exception specified by the instance is raised,

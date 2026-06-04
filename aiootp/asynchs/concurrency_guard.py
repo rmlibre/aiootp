@@ -387,7 +387,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
     IncoherentConcurrencyState: type = IncoherentConcurrencyState
 
     def _set_policy(
-        self, /, policy: t.Optional[t.ConcurrencyGuardPolicy]
+        self, /, policy: t.ConcurrencyGuardPolicy | None
     ) -> None:
         """
         Ensures the passed policy value is an instance of a policy class
@@ -406,10 +406,10 @@ class ConcurrencyGuard(FrozenTypedSlots):
         /,
         queue: deque[t.ConcurrencyGuardType],
         *,
-        observers: t.Optional[deque[t.ConcurrencyGuardType]] = None,
-        policy: t.Optional[t.ConcurrencyGuardPolicy] = None,
-        probe_delay: t.Optional[t.PositiveRealNumber] = None,
-        token: t.Optional[bytes] = None,
+        observers: deque[t.ConcurrencyGuardType] | None = None,
+        policy: t.ConcurrencyGuardPolicy | None = None,
+        probe_delay: t.PositiveRealNumber | None = None,
+        token: bytes | None = None,
     ) -> None:
         """
         `queue`: Shared, atomic `deque` data structure used to order the
@@ -531,9 +531,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
     async def __aexit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
     ) -> bool:
         """
         If using an exclusive policy, raises `IncoherentConcurrencyState`
@@ -553,9 +553,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
     def __exit__(
         self,
         /,
-        exc_type: t.Optional[type] = None,
-        exc_value: t.Optional[Exception] = None,
-        traceback: t.Optional[t.TracebackType] = None,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
     ) -> bool:
         """
         If using an exclusive policy, raises `IncoherentConcurrencyState`

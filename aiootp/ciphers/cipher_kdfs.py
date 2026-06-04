@@ -63,7 +63,7 @@ class ShakeConfig(Config):
         pad: bytes,
         offset_amount: int,
         hasher: t.Callable,
-        key_slice: t.Optional[slice],
+        key_slice: slice | None,
     ) -> None:
         self.name = name
         self.pad = pad

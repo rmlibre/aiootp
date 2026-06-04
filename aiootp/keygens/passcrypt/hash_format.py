@@ -55,13 +55,13 @@ class PasscryptHash(FrozenSlots):
     def __init__(
         self,
         *,
-        timestamp: t.Optional[bytes] = None,
-        mb: t.Optional[int] = None,
-        cpu: t.Optional[int] = None,
-        cores: t.Optional[int] = None,
-        salt: t.Optional[bytes] = None,
-        tag: t.Optional[bytes] = None,
-        config: t.Optional[t.ConfigType] = passcrypt_spec,
+        timestamp: bytes | None = None,
+        mb: int | None = None,
+        cpu: int | None = None,
+        cores: int | None = None,
+        salt: bytes | None = None,
+        tag: bytes | None = None,
+        config: t.ConfigType | None = passcrypt_spec,
     ) -> None:
         """
         Populates the instance state from the provided session values
@@ -85,7 +85,7 @@ class PasscryptHash(FrozenSlots):
             self.tag = tag
 
     @property
-    def salt_size(self) -> t.Optional[int]:
+    def salt_size(self) -> int | None:
         """
         Returns the length of the `salt` value stored in the instance
         state. If the `salt` has not been set, returns `None`.
@@ -94,7 +94,7 @@ class PasscryptHash(FrozenSlots):
         return len(salt) if salt else None
 
     @property
-    def tag_size(self) -> t.Optional[int]:
+    def tag_size(self) -> int | None:
         """
         Returns the length of the `tag` value stored in the instance
         state. If the `tag` has not been set, returns `None`.

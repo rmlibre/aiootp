@@ -34,7 +34,7 @@ from aiootp.asynchs import asleep
 
 async def abase_as_int(
     string: t.AnyStr,
-    base: t.Optional[int] = None,
+    base: int | None = None,
     *,
     table: t.AnyStr = Tables.ASCII_95,
 ) -> int:
@@ -58,7 +58,7 @@ async def abase_as_int(
 
 def base_as_int(
     string: t.AnyStr,
-    base: t.Optional[int] = None,
+    base: int | None = None,
     *,
     table: t.AnyStr = Tables.ASCII_95,
 ) -> int:
@@ -80,7 +80,7 @@ def base_as_int(
 
 async def aint_as_base(
     number: int,
-    base: t.Optional[int] = None,
+    base: int | None = None,
     *,
     table: t.AnyStr = Tables.ASCII_95,
 ) -> t.AnyStr:
@@ -107,7 +107,7 @@ async def aint_as_base(
 
 def int_as_base(
     number: int,
-    base: t.Optional[int] = None,
+    base: int | None = None,
     *,
     table: t.AnyStr = Tables.ASCII_95,
 ) -> t.AnyStr:

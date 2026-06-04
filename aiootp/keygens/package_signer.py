@@ -141,7 +141,7 @@ class PackageSigner:
         self,
         package: str,
         version: str,
-        date: t.Optional[int] = None,
+        date: int | None = None,
         **scopes: t.JSONSerializable,
     ) -> None:
         """

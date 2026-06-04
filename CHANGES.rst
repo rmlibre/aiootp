@@ -23,6 +23,7 @@ Minor Changes
 
 - build(gh): add explicit read-only permissions to workflow files
 - docs(cguard): fix docstrings & match the details of new updates
+- docs(typing): remove deprecated use of Optional in annotations
 - feat(cguard): provide methods to track instance context state stages
 - feat(cguard): provide method to track unused instances
 - feat(cguard): provide a non-exclusive queue manually policy

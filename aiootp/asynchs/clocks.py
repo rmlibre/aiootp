@@ -298,7 +298,7 @@ class Clock(FrozenInstance):
         self,
         /,
         timestamp: bytes,
-        ttl: t.Optional[int],
+        ttl: int | None,
         *,
         byte_order: str = BIG,
     ) -> None:
@@ -319,7 +319,7 @@ class Clock(FrozenInstance):
         self,
         /,
         timestamp: bytes,
-        ttl: t.Optional[int],
+        ttl: int | None,
         *,
         byte_order: str = BIG,
     ) -> None:

@@ -125,7 +125,7 @@ class CipherInterface(FrozenInstance):
         /,
         data: bytes,
         *,
-        salt: t.Optional[bytes] = None,
+        salt: bytes | None = None,
         aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
@@ -183,7 +183,7 @@ class CipherInterface(FrozenInstance):
         /,
         data: bytes,
         *,
-        salt: t.Optional[bytes] = None,
+        salt: bytes | None = None,
         aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
@@ -239,7 +239,7 @@ class CipherInterface(FrozenInstance):
         data: bytes,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> bytes:
         """
         Returns the plaintext bytes from the bytes ciphertext `data`. The
@@ -277,7 +277,7 @@ class CipherInterface(FrozenInstance):
         data: bytes,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> bytes:
         """
         Returns the plaintext bytes from the bytes ciphertext `data`. The
@@ -310,7 +310,7 @@ class CipherInterface(FrozenInstance):
         /,
         data: t.JSONSerializable,
         *,
-        salt: t.Optional[bytes] = None,
+        salt: bytes | None = None,
         aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
@@ -350,7 +350,7 @@ class CipherInterface(FrozenInstance):
         /,
         data: t.JSONSerializable,
         *,
-        salt: t.Optional[bytes] = None,
+        salt: bytes | None = None,
         aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
@@ -391,7 +391,7 @@ class CipherInterface(FrozenInstance):
         data: bytes,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> t.JSONSerializable:
         """
         Decrypts the bytes ciphertext `data` & returns the loaded JSON
@@ -414,7 +414,7 @@ class CipherInterface(FrozenInstance):
         data: bytes,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> t.JSONSerializable:
         """
         Decrypts the bytes ciphertext `data` & returns the loaded JSON
@@ -473,7 +473,7 @@ class CipherInterface(FrozenInstance):
         token: t.Base64URLSafe,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> bytes:
         """
         Decodes a ciphertext `token` & returns the decrypted token
@@ -499,7 +499,7 @@ class CipherInterface(FrozenInstance):
         token: t.Base64URLSafe,
         *,
         aad: bytes = DEFAULT_AAD,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> bytes:
         """
         Decodes a ciphertext `token` & returns the decrypted token
@@ -520,7 +520,7 @@ class CipherInterface(FrozenInstance):
         return self.bytes_decrypt(ciphertext, aad=aad, ttl=ttl)
 
     async def astream_encrypt(
-        self, /, *, salt: t.Optional[bytes] = None, aad: bytes = DEFAULT_AAD
+        self, /, *, salt: bytes | None = None, aad: bytes = DEFAULT_AAD
     ) -> AsyncCipherStream:
         """
         Returns an object to manage encrypting a stream of plaintext.
@@ -552,7 +552,7 @@ class CipherInterface(FrozenInstance):
         return await self._AsyncCipherStream(self, salt=salt, aad=aad)
 
     def stream_encrypt(
-        self, /, *, salt: t.Optional[bytes] = None, aad: bytes = DEFAULT_AAD
+        self, /, *, salt: bytes | None = None, aad: bytes = DEFAULT_AAD
     ) -> CipherStream:
         """
         Returns an object to manage encrypting a stream of plaintext.
@@ -590,7 +590,7 @@ class CipherInterface(FrozenInstance):
         salt: bytes,
         aad: bytes = DEFAULT_AAD,
         iv: bytes,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> AsyncDecipherStream:
         """
         Returns an object to manage decrypting a stream of ciphertext.
@@ -636,7 +636,7 @@ class CipherInterface(FrozenInstance):
         salt: bytes,
         aad: bytes = DEFAULT_AAD,
         iv: bytes,
-        ttl: t.Optional[int] = DEFAULT_TTL,
+        ttl: int | None = DEFAULT_TTL,
     ) -> DecipherStream:
         """
         Returns an object to manage decrypting a stream of ciphertext.

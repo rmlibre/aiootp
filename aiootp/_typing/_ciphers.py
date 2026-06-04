@@ -88,25 +88,23 @@ class PaddingType(t.Protocol):
         pass  # pragma: no cover
 
     async def adepad_plaintext(
-        self, data: bytes, *, ttl: t.Optional[int]
+        self, data: bytes, *, ttl: int | None
     ) -> bytes:
         pass  # pragma: no cover
 
-    def depad_plaintext(
-        self, data: bytes, *, ttl: t.Optional[int]
-    ) -> bytes:
+    def depad_plaintext(self, data: bytes, *, ttl: int | None) -> bytes:
         pass  # pragma: no cover
 
 
 @t.runtime_checkable
 class StreamHMACType(t.Protocol):
     async def anext_block_id(
-        self, next_block: bytes, *, size: t.Optional[int], aad: bytes
+        self, next_block: bytes, *, size: int | None, aad: bytes
     ) -> bytes:
         pass  # pragma: no cover
 
     def next_block_id(
-        self, next_block: bytes, *, size: t.Optional[int], aad: bytes
+        self, next_block: bytes, *, size: int | None, aad: bytes
     ) -> bytes:
         pass  # pragma: no cover
 
@@ -180,7 +178,7 @@ class CipherInterfaceType(t.Protocol):
         self,
         data: bytes,
         *,
-        salt: t.Optional[bytes],
+        salt: bytes | None,
         aad: bytes,
     ) -> bytes:
         pass  # pragma: no cover
@@ -189,18 +187,18 @@ class CipherInterfaceType(t.Protocol):
         self,
         data: bytes,
         *,
-        salt: t.Optional[bytes],
+        salt: bytes | None,
         aad: bytes,
     ) -> bytes:
         pass  # pragma: no cover
 
     async def abytes_decrypt(
-        self, data: bytes, *, aad: bytes, ttl: t.Optional[int]
+        self, data: bytes, *, aad: bytes, ttl: int | None
     ) -> bytes:
         pass  # pragma: no cover
 
     def bytes_decrypt(
-        self, data: bytes, *, aad: bytes, ttl: t.Optional[int]
+        self, data: bytes, *, aad: bytes, ttl: int | None
     ) -> bytes:
         pass  # pragma: no cover
 
@@ -208,7 +206,7 @@ class CipherInterfaceType(t.Protocol):
         self,
         data: t.JSONSerializable,
         *,
-        salt: t.Optional[bytes],
+        salt: bytes | None,
         aad: bytes,
     ) -> bytes:
         pass  # pragma: no cover
@@ -217,18 +215,18 @@ class CipherInterfaceType(t.Protocol):
         self,
         data: t.JSONSerializable,
         *,
-        salt: t.Optional[bytes],
+        salt: bytes | None,
         aad: bytes,
     ) -> bytes:
         pass  # pragma: no cover
 
     async def ajson_decrypt(
-        self, data: bytes, *, aad: bytes, ttl: t.Optional[int]
+        self, data: bytes, *, aad: bytes, ttl: int | None
     ) -> t.JSONSerializable:
         pass  # pragma: no cover
 
     def json_decrypt(
-        self, data: bytes, *, aad: bytes, ttl: t.Optional[int]
+        self, data: bytes, *, aad: bytes, ttl: int | None
     ) -> t.JSONSerializable:
         pass  # pragma: no cover
 
@@ -239,32 +237,32 @@ class CipherInterfaceType(t.Protocol):
         pass  # pragma: no cover
 
     async def aread_token(
-        self, token: t.Base64URLSafe, *, aad: bytes, ttl: t.Optional[int]
+        self, token: t.Base64URLSafe, *, aad: bytes, ttl: int | None
     ) -> bytes:
         pass  # pragma: no cover
 
     def read_token(
-        self, token: t.Base64URLSafe, *, aad: bytes, ttl: t.Optional[int]
+        self, token: t.Base64URLSafe, *, aad: bytes, ttl: int | None
     ) -> bytes:
         pass  # pragma: no cover
 
     async def astream_encrypt(
-        self, *, salt: t.Optional[bytes], aad: bytes
+        self, *, salt: bytes | None, aad: bytes
     ) -> AsyncCipherStreamingType:
         pass  # pragma: no cover
 
     def stream_encrypt(
-        self, *, salt: t.Optional[bytes], aad: bytes
+        self, *, salt: bytes | None, aad: bytes
     ) -> CipherStreamingType:
         pass  # pragma: no cover
 
     async def astream_decrypt(
-        self, *, salt: bytes, aad: bytes, iv: bytes, ttl: t.Optional[int]
+        self, *, salt: bytes, aad: bytes, iv: bytes, ttl: int | None
     ) -> AsyncCipherStreamingType:
         pass  # pragma: no cover
 
     def stream_decrypt(
-        self, *, salt: bytes, aad: bytes, iv: bytes, ttl: t.Optional[int]
+        self, *, salt: bytes, aad: bytes, iv: bytes, ttl: int | None
     ) -> CipherStreamingType:
         pass  # pragma: no cover
 
