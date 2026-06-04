@@ -436,7 +436,7 @@ class TestMultiConcurrencyGaurd:
         tasks = [
             Threads._type(
                 target=record_ordering,
-                args=(target, choose_policy(target)),
+                args=(target, instance),
                 kwargs=dict(is_spontaneous=False),
             )
             for target, instance in instances
@@ -560,7 +560,7 @@ class TestMultiConcurrencyGaurd:
         tasks = [
             Threads._type(
                 target=track_stages,
-                args=(target, choose_policy(target)),
+                args=(target, instance),
             )
             for target, instance in instances
         ]
