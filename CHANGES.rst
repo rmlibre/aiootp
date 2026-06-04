@@ -35,6 +35,7 @@ Minor Changes
 - refactor(misc): rename, move & type methods, imports & args
 - test(cguard): cleanup & add tests, remove redundant variable
 - test(cguard): use already created instances instead of new ones
+- test(cguard): create 3x more non-exclusive guards than exclusive ones
 - test(cov): expand tests to cover missing branches
 - test(cov): refactor & expand tests to cover missing branches
 

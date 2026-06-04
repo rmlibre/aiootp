@@ -182,9 +182,9 @@ class TestMultiConcurrencyGaurd:
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
             return (
-                guards.guard(target, policy=Policy())
-                if token_bits(1)
-                else guards.monitor(target, policy=NonExclusivePolicy())
+                guards.monitor(target, policy=NonExclusivePolicy())
+                if token_bits(2)
+                else guards.guard(target, policy=Policy())
             )
 
         guards = MultiConcurrencyGaurd()
@@ -253,9 +253,9 @@ class TestMultiConcurrencyGaurd:
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
             return (
-                guards.guard(target, policy=Policy())
-                if token_bits(1)
-                else guards.monitor(target, policy=NonExclusivePolicy())
+                guards.monitor(target, policy=NonExclusivePolicy())
+                if token_bits(2)
+                else guards.guard(target, policy=Policy())
             )
 
         guards = MultiConcurrencyGaurd()
@@ -364,9 +364,9 @@ class TestMultiConcurrencyGaurd:
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
             return (
-                guards.guard(target)
-                if token_bits(1)
-                else guards.monitor(target)
+                guards.monitor(target)
+                if token_bits(2)
+                else guards.guard(target)
             )
 
         guards = MultiConcurrencyGaurd()
@@ -421,9 +421,9 @@ class TestMultiConcurrencyGaurd:
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
             return (
-                guards.guard(target)
-                if token_bits(1)
-                else guards.monitor(target)
+                guards.monitor(target)
+                if token_bits(2)
+                else guards.guard(target)
             )
 
         guards = MultiConcurrencyGaurd()
@@ -494,9 +494,9 @@ class TestMultiConcurrencyGaurd:
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
             return (
-                guards.guard(target)
-                if token_bits(1)
-                else guards.monitor(target)
+                guards.monitor(target)
+                if token_bits(2)
+                else guards.guard(target)
             )
 
         guards = MultiConcurrencyGaurd()
@@ -546,9 +546,9 @@ class TestMultiConcurrencyGaurd:
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicy:
             return (
-                guards.guard(target)
-                if token_bits(1)
-                else guards.monitor(target)
+                guards.monitor(target)
+                if token_bits(2)
+                else guards.guard(target)
             )
 
         guards = MultiConcurrencyGaurd()
