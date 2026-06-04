@@ -478,10 +478,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
         _use_tracker == deque([False, True], maxlen=2)
         """
-        try:
-            return self._use_tracker[-1]
-        except IndexError:
-            return False
+        tracker = self._use_tracker
+        return bool(tracker) and tracker[-1]
 
     def is_done(self, /) -> bool:
         """
@@ -492,10 +490,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
         _use_tracker == deque([True, False], maxlen=2)
         """
-        try:
-            return self._use_tracker[0]
-        except IndexError:
-            return False
+        tracker = self._use_tracker
+        return bool(tracker) and tracker[0]
 
     async def __aenter__(self, /) -> t.Self:
         """
