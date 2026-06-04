@@ -41,7 +41,7 @@ class ThreadingSafeEntropyPool(FrozenInstance):
         self,
         data: bytes,
         *,
-        obj: t.Callable[[bytes], t.Union[t.HasherType, t.XOFType]],
+        obj: t.Callable[[bytes], t.HasherType | t.XOFType],
         pool: t.Sequence[bytes],
     ) -> None:
         """

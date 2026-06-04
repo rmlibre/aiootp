@@ -525,7 +525,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         ttl: int | None = DEFAULT_TTL,
         silent: bool = False,
         cache: bool = False,
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         """
         Allows users to retrieve the value stored under the name `tag`
         from the database.
@@ -562,7 +562,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def apop_tag(
         self, tag: str, *, silent: bool = False
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         """
         Returns a value from the database by it's `tag` & deletes the
         associated file in the database directory.

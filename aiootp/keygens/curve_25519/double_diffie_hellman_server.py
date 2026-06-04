@@ -78,7 +78,7 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         self._sanitize = self._key_exchange_type._process_public_key
 
     async def areceive(
-        self, /, peer_ephemeral_key: t.Union[bytes, t.PublicKeyType]
+        self, /, peer_ephemeral_key: t.PublicKeyType | bytes
     ) -> t.DomainKDFType:
         """
         Receives the identity public key from an intended client, &
@@ -103,7 +103,7 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         )
 
     def receive(
-        self, /, peer_ephemeral_key: t.Union[bytes, t.PublicKeyType]
+        self, /, peer_ephemeral_key: t.PublicKeyType | bytes
     ) -> t.DomainKDFType:
         """
         Receives the identity public key from an intended client, &

@@ -119,7 +119,7 @@ class PackageSigner:
     InvalidSignature: type = PackageSignerIssue.InvalidSignature
 
     @classmethod
-    def _database_template(cls) -> dict[str, t.Union[str, t.JSONObject]]:
+    def _database_template(cls) -> dict[str, str | t.JSONObject]:
         """
         Returns the default instance package database values for
         initializing new databases.
@@ -247,7 +247,7 @@ class PackageSigner:
         passphrase: bytes,
         salt: bytes = b"",
         path: t.OptionalPathStr = None,
-        **passcrypt_settings: t.Union[int, t.ConfigType],
+        **passcrypt_settings: t.ConfigType | int,
     ) -> t.Self:
         """
         Opens an encrypted database connection using the Passcrypt
@@ -292,7 +292,7 @@ class PackageSigner:
         return self
 
     def update_signing_key(
-        self, signing_key: t.Union[bytes, t.SecretKeyType, t.SignerType]
+        self, signing_key: t.SecretKeyType | bytes | t.SignerType
     ) -> t.Self:
         """
         Updates the package's secret signing key as an encrypted token

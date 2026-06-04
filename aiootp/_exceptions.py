@@ -590,7 +590,7 @@ class Issue:
 
     @classmethod
     def slots_conflicts_with_class_variables(
-        cls, conflicts: t.Union[str, t.Container[str]], /
+        cls, conflicts: str | t.Container[str], /
     ) -> ValueError:
         issue = cls._SLOTS_CONFLICTS_WITH_CLASS_VARIABLES
         return ValueError(issue.replace("CONFLICTS", repr(conflicts)))
@@ -988,9 +988,7 @@ class PackageSignerIssue:
     SigningKeyNotSet: type = SigningKeyNotSet
 
     @classmethod
-    def invalid_file_digest(
-        cls, filename: t.Union[str, Path], /
-    ) -> InvalidDigest:
+    def invalid_file_digest(cls, filename: Path | str, /) -> InvalidDigest:
         issue = cls._INVALID_FILE_DIGEST
         return InvalidDigest(issue.replace("FILENAME", repr(filename)))
 

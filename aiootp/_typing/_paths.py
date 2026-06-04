@@ -24,7 +24,7 @@ from pathlib import Path
 from .interface import Typing as t
 
 
-PathStr = t.PathStr = t.NewType("PathStr", t.Union[Path, str])
+PathStr = t.PathStr = t.NewType("PathStr", Path | str)
 OptionalPath = t.OptionalPath = t.NewType("OptionalPath", Path | None)
 OptionalPathStr = t.OptionalPathStr = t.NewType(
     "OptionalPathStr", PathStr | None

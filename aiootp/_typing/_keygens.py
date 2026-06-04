@@ -94,22 +94,22 @@ class SecretKeyType(t.Protocol):
 @t.runtime_checkable
 class AsymmetricKeyType(t.Protocol):
     async def aimport_secret_key(
-        self, secret_key: t.Union[bytes, SecretKeyType]
+        self, secret_key: SecretKeyType | bytes
     ) -> t.Self:
         pass  # pragma: no cover
 
     def import_secret_key(
-        self, secret_key: t.Union[bytes, SecretKeyType]
+        self, secret_key: SecretKeyType | bytes
     ) -> t.Self:
         pass  # pragma: no cover
 
     async def aimport_public_key(
-        self, public_key: t.Union[bytes, PublicKeyType]
+        self, public_key: bytes | PublicKeyType
     ) -> t.Self:
         pass  # pragma: no cover
 
     def import_public_key(
-        self, public_key: t.Union[bytes, PublicKeyType]
+        self, public_key: bytes | PublicKeyType
     ) -> t.Self:
         pass  # pragma: no cover
 
@@ -139,7 +139,7 @@ class SignerType(AsymmetricKeyType, t.Protocol):
         signature: bytes,
         data: bytes,
         *,
-        public_key: t.Union[None, bytes, PublicKeyType],
+        public_key: PublicKeyType | bytes | None,
     ) -> None:
         pass  # pragma: no cover
 
@@ -148,17 +148,17 @@ class SignerType(AsymmetricKeyType, t.Protocol):
         signature: bytes,
         data: bytes,
         *,
-        public_key: t.Union[None, bytes, PublicKeyType],
+        public_key: PublicKeyType | bytes | None,
     ) -> None:
         pass  # pragma: no cover
 
 
 @t.runtime_checkable
 class KeyExchangeProtocolType(t.Protocol):
-    async def asend(self, *keys: bytes) -> t.Union[tuple[bytes], bytes]:
+    async def asend(self, *keys: bytes) -> tuple[bytes] | bytes:
         pass  # pragma: no cover
 
-    def send(self, *keys: bytes) -> t.Union[tuple[bytes], bytes]:
+    def send(self, *keys: bytes) -> tuple[bytes] | bytes:
         pass  # pragma: no cover
 
     async def areceive(self, *keys: bytes) -> DomainKDFType:
@@ -170,12 +170,10 @@ class KeyExchangeProtocolType(t.Protocol):
 
 @t.runtime_checkable
 class KeyExchangeType(AsymmetricKeyType, t.Protocol):
-    async def aexchange(
-        self, public_key: t.Union[PublicKeyType, bytes]
-    ) -> bytes:
+    async def aexchange(self, public_key: PublicKeyType | bytes) -> bytes:
         pass  # pragma: no cover
 
-    def exchange(self, public_key: t.Union[PublicKeyType, bytes]) -> bytes:
+    def exchange(self, public_key: PublicKeyType | bytes) -> bytes:
         pass  # pragma: no cover
 
     @classmethod

@@ -413,7 +413,7 @@ class Database(DatabaseProperties):
         filename: str = "",
         aad: bytes = DEFAULT_AAD,
         ttl: int | None = DEFAULT_TTL,
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         """
         Decrypts the `ciphertext` bytes with keys specific to the
         `filename` value & JSON loads the resulting plaintext bytes.
@@ -495,7 +495,7 @@ class Database(DatabaseProperties):
         ttl: int | None = DEFAULT_TTL,
         silent: bool = False,
         cache: bool = False,
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         """
         Allows users to retrieve the value stored under the name `tag`
         from the database.
@@ -528,7 +528,7 @@ class Database(DatabaseProperties):
 
     def pop_tag(
         self, tag: str, *, silent: bool = False
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         """
         Returns a value from the database by it's `tag` & deletes the
         associated file in the database directory.

@@ -83,8 +83,8 @@ class TripleDiffieHellmanServer(FrozenInstance):
     async def areceive(
         self,
         /,
-        peer_identity_key: t.Union[bytes, t.PublicKeyType],
-        peer_ephemeral_key: t.Union[bytes, t.PublicKeyType],
+        peer_identity_key: t.PublicKeyType | bytes,
+        peer_ephemeral_key: t.PublicKeyType | bytes,
     ) -> t.DomainKDFType:
         """
         Receives the identity & ephemeral public keys from an intended
@@ -116,8 +116,8 @@ class TripleDiffieHellmanServer(FrozenInstance):
     def receive(
         self,
         /,
-        peer_identity_key: t.Union[bytes, t.PublicKeyType],
-        peer_ephemeral_key: t.Union[bytes, t.PublicKeyType],
+        peer_identity_key: t.PublicKeyType | bytes,
+        peer_ephemeral_key: t.PublicKeyType | bytes,
     ) -> t.DomainKDFType:
         """
         Receives the identity & ephemeral public keys from an intended

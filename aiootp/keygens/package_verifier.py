@@ -67,7 +67,7 @@ class PackageVerifier:
 
     def __init__(
         self,
-        public_signing_key: t.Union[bytes, t.PublicKeyType, t.SignerType],
+        public_signing_key: t.PublicKeyType | bytes | t.SignerType,
         *,
         path: t.OptionalPathStr = None,
         verify_files: bool = True,
@@ -129,9 +129,7 @@ class PackageVerifier:
 
     def verify_summary(
         self,
-        summary: t.Union[
-            dict[str, t.JSONSerializable], t.JSONDeserializable
-        ],
+        summary: dict[str, t.JSONSerializable] | t.JSONDeserializable,
     ) -> None:
         """
         Verifies the purported checksum of a package summary & the

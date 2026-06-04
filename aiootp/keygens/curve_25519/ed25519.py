@@ -94,7 +94,7 @@ class Ed25519(Base25519):
         signature: bytes,
         data: bytes,
         *,
-        public_key: t.Union[None, bytes, t.Ed25519PublicKey] = None,
+        public_key: t.Ed25519PublicKey | bytes | None = None,
     ) -> None:
         """
         Receives a `signature` to verify data with the instance's
@@ -111,7 +111,7 @@ class Ed25519(Base25519):
         signature: bytes,
         data: bytes,
         *,
-        public_key: t.Union[None, bytes, t.Ed25519PublicKey] = None,
+        public_key: t.Ed25519PublicKey | bytes | None = None,
     ) -> None:
         """
         Receives a `signature` to verify data with the instance's

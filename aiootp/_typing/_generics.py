@@ -42,25 +42,23 @@ else:
     NoneType = t.NoneType  # pragma: no cover
 
 
-Base64URLSafe = t.Base64URLSafe = t.NewType(
-    "Base64URLSafe", t.Union[str, bytes]
-)
+Base64URLSafe = t.Base64URLSafe = t.NewType("Base64URLSafe", str | bytes)
 
 
-Number = t.Number = t.NewType("Number", t.Union[int, float, complex])
-RealNumber = t.RealNumber = t.NewType("RealNumber", t.Union[int, float])
+Number = t.Number = t.NewType("Number", int | float | complex)
+RealNumber = t.RealNumber = t.NewType("RealNumber", int | float)
 PositiveRealNumber = t.PositiveRealNumber = t.NewType(
-    "PositiveRealNumber", t.Union[int, float]
+    "PositiveRealNumber", int | float
 )
 
 
 _JSONSerializableNonContainerTypes = t.NewType(
     "_JSONSerializableNonContainerTypes",
-    t.Union[str, float, int, bool, None],
+    str | float | int | bool | None,
 )
 _JSONSerializableBaseTypes = t.NewType(
     "_JSONSerializableBaseTypes",
-    t.Union[dict, list, _JSONSerializableNonContainerTypes],
+    dict | list | _JSONSerializableNonContainerTypes,
 )
 JSONArray = t.JSONArray = t.NewType(
     "JSONArray", list[_JSONSerializableBaseTypes]
@@ -70,10 +68,10 @@ JSONObject = t.JSONObject = t.NewType(
 )
 JSONSerializable = t.JSONSerializable = t.NewType(
     "JSONSerializable",
-    t.Union[JSONObject, JSONArray, _JSONSerializableNonContainerTypes],
+    JSONObject | JSONArray | _JSONSerializableNonContainerTypes,
 )
 JSONDeserializable = t.JSONDeserializable = t.NewType(
-    "JSONDeserializable", t.Union[str, bytes, bytearray]
+    "JSONDeserializable", str | bytes | bytearray
 )
 
 

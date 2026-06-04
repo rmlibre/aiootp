@@ -199,9 +199,7 @@ class DualOutputKeyAADBundle(KeyAADBundle):
     @property
     def _keystream(
         self,
-    ) -> t.Union[
-        t.Generator[bytes, bytes, None], t.AsyncGenerator[bytes, bytes]
-    ]:
+    ) -> t.Generator[bytes, bytes, None] | t.AsyncGenerator[bytes, bytes]:
         """
         Returns the private keystream coroutine used in the `DualOutput`
         cipher to encrypt / decrypt data. The coroutine can be either

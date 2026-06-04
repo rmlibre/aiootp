@@ -51,12 +51,12 @@ class AsyncDatabaseType(t.Protocol):
 
     async def aquery_tag(
         self, tag: str, *, silent: bool, cache: bool
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         pass  # pragma: no cover
 
     async def apop_tag(
         self, tag: str, *, silent: bool
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         pass  # pragma: no cover
 
     async def arollback_tag(self, tag: str, *, cache: bool) -> t.Self:
@@ -109,12 +109,12 @@ class DatabaseType(t.Protocol):
 
     def query_tag(
         self, tag: str, *, silent: bool, cache: bool
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         pass  # pragma: no cover
 
     def pop_tag(
         self, tag: str, *, silent: bool
-    ) -> t.Union[bytes, t.JSONSerializable]:
+    ) -> t.JSONSerializable | bytes:
         pass  # pragma: no cover
 
     def rollback_tag(self, tag: str, *, cache: bool) -> t.Self:

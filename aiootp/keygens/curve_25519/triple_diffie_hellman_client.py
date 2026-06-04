@@ -81,7 +81,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
         self._sanitize = self._key_exchange_type._process_public_key
 
     async def asend(
-        self, /, peer_identity_key: t.Union[bytes, t.PublicKeyType]
+        self, /, peer_identity_key: t.PublicKeyType | bytes
     ) -> tuple[bytes, bytes]:
         """
         Receives the identity public key of the intended server & returns
@@ -96,7 +96,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
         )
 
     def send(
-        self, /, peer_identity_key: t.Union[bytes, t.PublicKeyType]
+        self, /, peer_identity_key: t.PublicKeyType | bytes
     ) -> tuple[bytes, bytes]:
         """
         Receives the identity public key of the intended server & returns
@@ -111,7 +111,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
         )
 
     async def areceive(
-        self, /, peer_ephemeral_key: t.Union[bytes, t.PublicKeyType]
+        self, /, peer_ephemeral_key: t.PublicKeyType | bytes
     ) -> t.DomainKDFType:
         """
         Receives the ephemeral public key that could've been sent from a
@@ -137,7 +137,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
         )
 
     def receive(
-        self, /, peer_ephemeral_key: t.Union[bytes, t.PublicKeyType]
+        self, /, peer_ephemeral_key: t.PublicKeyType | bytes
     ) -> t.DomainKDFType:
         """
         Receives the ephemeral public key that could've been sent from a

@@ -42,7 +42,7 @@ AsyncKeystream = t.AsyncKeystream = t.NewType(
     "AsyncKeystream", t.AsyncGenerator[bytes, bytes]
 )
 AsyncOrSyncKeystream = t.AsyncOrSyncKeystream = t.NewType(
-    "AsyncOrSyncKeystream", t.Union[AsyncKeystream, Keystream]
+    "AsyncOrSyncKeystream", AsyncKeystream | Keystream
 )
 
 
@@ -51,7 +51,7 @@ AsyncDatastream = t.AsyncDatastream = t.NewType(
     "AsyncDatastream", t.AsyncIterable[bytes]
 )
 AsyncOrSyncDatastream = t.AsyncOrSyncDatastream = t.NewType(
-    "AsyncOrSyncDatastream", t.Union[AsyncDatastream, Datastream]
+    "AsyncOrSyncDatastream", AsyncDatastream | Datastream
 )
 
 

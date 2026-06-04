@@ -172,7 +172,7 @@ class DatabaseProperties:
         setattr(self._cache, filename, data)
         setattr(self._manifest, filename, tag)
 
-    def __getitem__(self, tag: str) -> t.Union[bytes, t.JSONSerializable]:
+    def __getitem__(self, tag: str) -> t.JSONSerializable | bytes:
         """
         Allows users to retrieve the value stored under the name `tag`
         from the database cache.
