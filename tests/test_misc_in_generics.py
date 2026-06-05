@@ -207,17 +207,19 @@ class TestCanonicalPack:
             for int_bytes in tested_int_bytes:
                 test = canonical_pack(*data, int_bytes=int_bytes)
                 with Ignore(
-                    CanonicalEncodingError, if_else=violation(problem)
+                    CanonicalEncodingError,
+                    if_else=violation(problem),
                 ):
                     canonical_unpack(
-                        (test[0] + 1).to_bytes(1, BIG) + test[1:]
+                        (test[0] + 1).to_bytes(1, BIG) + test[1:],
                     )
                 test = canonical_pack(*data, int_bytes=int_bytes)
                 async with Ignore(
-                    CanonicalEncodingError, if_else=violation(problem)
+                    CanonicalEncodingError,
+                    if_else=violation(problem),
                 ):
                     await acanonical_unpack(
-                        (test[0] + 1).to_bytes(1, BIG) + test[1:]
+                        (test[0] + 1).to_bytes(1, BIG) + test[1:],
                     )
 
 
@@ -244,9 +246,9 @@ async def test_canonical_packs() -> None:
 
     # the options can be used together
     assert canonical_unpack(
-        canonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16)
+        canonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16),
     ) == await acanonical_unpack(
-        await acanonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16)
+        await acanonical_pack(b"", pad=b"0", blocksize=127, int_bytes=16),
     )
 
     test_inputs = [
@@ -309,34 +311,58 @@ async def test_canonical_packs() -> None:
             if digest_size:
                 # keyed hashing of packed items works as expected
                 assert keyed_obj.digest() == hash_bytes(
-                    *inputs, pad=pad, key=key, hasher=hasher
+                    *inputs,
+                    pad=pad,
+                    key=key,
+                    hasher=hasher,
                 )
                 assert keyed_obj.digest() == await ahash_bytes(
-                    *inputs, pad=pad, key=key, hasher=hasher
+                    *inputs,
+                    pad=pad,
+                    key=key,
+                    hasher=hasher,
                 )
 
                 # un-keyed hashing of packed items works as expected
                 assert obj.digest() == hash_bytes(
-                    *inputs, pad=pad, hasher=hasher
+                    *inputs,
+                    pad=pad,
+                    hasher=hasher,
                 )
                 assert obj.digest() == await ahash_bytes(
-                    *inputs, pad=pad, hasher=hasher
+                    *inputs,
+                    pad=pad,
+                    hasher=hasher,
                 )
             else:
                 # keyed hashing of packed items works as expected
                 assert keyed_obj.digest(64) == hash_bytes(
-                    *inputs, pad=pad, key=key, hasher=hasher, size=64
+                    *inputs,
+                    pad=pad,
+                    key=key,
+                    hasher=hasher,
+                    size=64,
                 )
                 assert keyed_obj.digest(64) == await ahash_bytes(
-                    *inputs, pad=pad, key=key, hasher=hasher, size=64
+                    *inputs,
+                    pad=pad,
+                    key=key,
+                    hasher=hasher,
+                    size=64,
                 )
 
                 # un-keyed hashing of packed items works as expected
                 assert obj.digest(64) == hash_bytes(
-                    *inputs, pad=pad, hasher=hasher, size=64
+                    *inputs,
+                    pad=pad,
+                    hasher=hasher,
+                    size=64,
                 )
                 assert obj.digest(64) == await ahash_bytes(
-                    *inputs, pad=pad, hasher=hasher, size=64
+                    *inputs,
+                    pad=pad,
+                    hasher=hasher,
+                    size=64,
                 )
 
         # the same inputs produce the same outputs
@@ -368,10 +394,14 @@ async def test_canonical_packs() -> None:
             # on the size of integers used to represent item lengths
             for int_bytes in test_int_bytes:
                 result = canonical_pack(
-                    *inputs, pad=pad, int_bytes=int_bytes
+                    *inputs,
+                    pad=pad,
+                    int_bytes=int_bytes,
                 )
                 aresult = await acanonical_pack(
-                    *inputs, pad=pad, int_bytes=int_bytes
+                    *inputs,
+                    pad=pad,
+                    int_bytes=int_bytes,
                 )
                 assert result == aresult
                 assert (result[4 * int_bytes + 1] == pad[0]) if pad else 1

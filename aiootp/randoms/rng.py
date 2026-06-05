@@ -56,7 +56,9 @@ _gadget = ThreadingSafeEntropyPool(
 
 # begin the entropy gathering daemon
 _entropy_daemon = EntropyDaemon(
-    gadget=_gadget, entropy_pool=_pool, max_delay=1
+    gadget=_gadget,
+    entropy_pool=_pool,
+    max_delay=1,
 ).start()
 _entropy_daemon.set_temporary_max_delay(max_delay=0.001, duration=2)
 
@@ -69,7 +71,8 @@ async def acsprng(
     size: int = 64,
     *,
     entropy: t.Any = _gadget.hash(
-        _salt(pool=_pool, gadget=_gadget).to_bytes(32, BIG), size=16
+        _salt(pool=_pool, gadget=_gadget).to_bytes(32, BIG),
+        size=16,
     ),
 ) -> bytes:
     """
@@ -91,7 +94,8 @@ def csprng(
     size: int = 64,
     *,
     entropy: t.Any = _gadget.hash(
-        _salt(pool=_pool, gadget=_gadget).to_bytes(32, BIG), size=16
+        _salt(pool=_pool, gadget=_gadget).to_bytes(32, BIG),
+        size=16,
     ),
 ) -> bytes:
     """
@@ -110,7 +114,10 @@ def csprng(
 
 
 async def arandom_number_generator(
-    size: int = 64, *, entropy: t.Any = csprng(32), freshness: int = 8
+    size: int = 64,
+    *,
+    entropy: t.Any = csprng(32),
+    freshness: int = 8,
 ) -> bytes:
     """
     Returns a `size`-byte random bytestring derived from the package's
@@ -174,7 +181,10 @@ async def arandom_number_generator(
 
         async def create_unique_multiple(seed: int) -> int:
             return await _asalt_multiply(
-                size, seed, await atoken_bits(256), pool=_pool
+                size,
+                seed,
+                await atoken_bits(256),
+                pool=_pool,
             )
 
         async def modular_multiplication() -> None:
@@ -208,7 +218,10 @@ async def arandom_number_generator(
 
 
 def random_number_generator(
-    size: int = 64, *, entropy: t.Any = csprng(32), freshness: int = 8
+    size: int = 64,
+    *,
+    entropy: t.Any = csprng(32),
+    freshness: int = 8,
 ) -> bytes:
     """
     Returns a `size`-byte random bytestring derived from the package's
@@ -262,9 +275,12 @@ def random_number_generator(
     the pool to 32 ratcheting states, & hashing it with the persistent
     `shake_256` object, then 256-bits of entropy will have been reached.
     """
-    return _run(
-        arandom_number_generator(size, entropy=entropy, freshness=freshness)
+    rng = arandom_number_generator(
+        size,
+        entropy=entropy,
+        freshness=freshness,
     )
+    return _run(rng)
 
 
 # update the device seed with new entropy

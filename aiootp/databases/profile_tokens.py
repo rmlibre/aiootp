@@ -58,7 +58,8 @@ class AsyncProfileTokens(FrozenSlots):
         return await aread_salt_file(salt_path)
 
     async def _asummon_profile_salt(
-        self, path: t.PathStr
+        self,
+        path: t.PathStr,
     ) -> tuple[t.Path, bytes]:
         """
         Creates or loads a salt value saved on the user filesystem to
@@ -119,10 +120,11 @@ class AsyncProfileTokens(FrozenSlots):
             hasher=sha3_512,
         )
         self._salt_path, self._salt = await self._asummon_profile_salt(
-            path=path
+            path=path,
         )
         self.login_key = await self._agenerate_profile_login_key(
-            passphrase, **passcrypt_settings
+            passphrase,
+            **passcrypt_settings,
         )
         return self
 
@@ -222,7 +224,8 @@ class ProfileTokens(FrozenSlots):
         )
         self._salt_path, self._salt = self._summon_profile_salt(path=path)
         self.login_key = self._generate_profile_login_key(
-            passphrase, **passcrypt_settings
+            passphrase,
+            **passcrypt_settings,
         )
         return self
 

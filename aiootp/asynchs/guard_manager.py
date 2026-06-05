@@ -40,7 +40,8 @@ class SelfReferences(OpenFrozenTypedSlots):
     __slots__ = ("manager", "target")
 
     slots_types = dict(
-        manager=t.MultiConcurrencyGaurdType, target=t.Hashable
+        manager=t.MultiConcurrencyGaurdType,
+        target=t.Hashable,
     )
 
 
@@ -157,7 +158,8 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         self._set_policy(policy)
         self._use_tracker = deque(maxlen=2)
         self.probe_delay = process_probe_delay(
-            probe_delay, default=self._default_probe_delay
+            probe_delay,
+            default=self._default_probe_delay,
         )
         self.token = token or token_bytes(32)
 
@@ -264,7 +266,10 @@ class DefaultDictOfDeques(defaultdict):
         self.__observers = deque()
 
     def __setitem__(
-        self, name: t.Hashable, value: deque[t.ConcurrencyGuardType], /
+        self,
+        name: t.Hashable,
+        value: deque[t.ConcurrencyGuardType],
+        /,
     ) -> None:
         """
         Before adding values to the collection, ensures they're of type
@@ -402,7 +407,10 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         self.users = self._Users() if users is None else users
 
     async def _ainitialize_guard(
-        self, /, target: t.Hashable, guard: t.ConcurrencyGuardType
+        self,
+        /,
+        target: t.Hashable,
+        guard: t.ConcurrencyGuardType,
     ) -> None:
         """
         Ensures the target references given to the guard instance are
@@ -425,7 +433,10 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
             users.popleft()
 
     def _initialize_guard(
-        self, /, target: t.Hashable, guard: t.ConcurrencyGuardType
+        self,
+        /,
+        target: t.Hashable,
+        guard: t.ConcurrencyGuardType,
     ) -> None:
         """
         Ensures the target references given to the guard instance are
@@ -448,7 +459,10 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
             users.popleft()
 
     def _pass_self_references(
-        self, /, target: t.Hashable, guard: t.ConcurrencyGuardType
+        self,
+        /,
+        target: t.Hashable,
+        guard: t.ConcurrencyGuardType,
     ) -> None:
         """
         Gives the guard instance access to the references the manager
@@ -504,7 +518,9 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
             raise Issue.must_be_subtype("policy", ExclusivePolicy)
 
         guard = self._ManagedGuard(
-            policy=policy, probe_delay=probe_delay, token=token
+            policy=policy,
+            probe_delay=probe_delay,
+            token=token,
         )
         self._pass_self_references(target, guard)
         return guard
@@ -561,7 +577,9 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
             raise Issue.must_be_subtype("policy", NonExclusivePolicy)
 
         guard = self._ManagedGuard(
-            policy=policy, probe_delay=probe_delay, token=token
+            policy=policy,
+            probe_delay=probe_delay,
+            token=token,
         )
         self._pass_self_references(target, guard)
         return guard

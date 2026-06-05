@@ -27,13 +27,15 @@ RIGHT_KDF = "right_kdf"
 
 
 def new_dual_output_shake_config(
-    _config: t.ConfigType, **kw: t.Any
+    _config: t.ConfigType,
+    **kw: t.Any,
 ) -> t.ConfigType:
     return _config.__class__(**_dual_output_shake_config_inputs(**kw))
 
 
 def new_shake_permute_config(
-    _config: t.ConfigType, **kw: t.Any
+    _config: t.ConfigType,
+    **kw: t.Any,
 ) -> t.ConfigType:
     return _config.__class__(**_shake_permute_config_inputs(**kw))
 
@@ -53,7 +55,9 @@ class TestCipherConfigs:
         for _config, *_ in dual_output_ciphers:
             with Ignore(ValueError, if_else=violation(problem)):
                 new_dual_output_shake_config(
-                    _config, timestamp_bytes=4, siv_key_bytes=11
+                    _config,
+                    timestamp_bytes=4,
+                    siv_key_bytes=11,
                 )
 
     async def test_blocksize_size_must_be_even(self) -> None:
@@ -109,7 +113,9 @@ class TestCipherConfigs:
         for _config, *_ in shake_permute_ciphers:
             config = new_config_copy(_config)
             object.__setattr__(
-                config, "BLOCKSIZE", config.SHMAC_BLOCKSIZE + 1
+                config,
+                "BLOCKSIZE",
+                config.SHMAC_BLOCKSIZE + 1,
             )
             with Ignore(ValueError, if_else=violation(problem)):
                 config._ensure_extracted_entropy_less_than_kdf_blocksize()
@@ -117,7 +123,9 @@ class TestCipherConfigs:
         for _config, *_ in dual_output_ciphers:
             config = new_config_copy(_config)
             object.__setattr__(
-                config, "BLOCKSIZE", 2 * config.SHMAC_BLOCKSIZE + 1
+                config,
+                "BLOCKSIZE",
+                2 * config.SHMAC_BLOCKSIZE + 1,
             )
             with Ignore(ValueError, if_else=violation(problem)):
                 config._ensure_extracted_entropy_less_than_kdf_blocksize()
@@ -175,7 +183,8 @@ class TestCipherConfigs:
             config = new_config_copy(_config)
             object.__delattr__(config, await achoice(config.__slots__))
             with Ignore(
-                UndefinedRequiredAttributes, if_else=violation(problem)
+                UndefinedRequiredAttributes,
+                if_else=violation(problem),
             ):
                 config._ensure_all_attributes_have_been_defined()
 
@@ -185,7 +194,8 @@ class TestCipherConfigs:
         extra_padding = token_bits(3) or 1
         for control_config, control_cipher, *_ in all_ciphers:
             config = new_config_copy(
-                control_config, min_padding_blocks=extra_padding
+                control_config,
+                min_padding_blocks=extra_padding,
             )
 
             class ExtraPaddingCipher(control_cipher.__class__):
@@ -226,9 +236,10 @@ class TestCipherConfigs:
         for control_config, control_cipher, salt, aad in all_ciphers:
             config = new_config_copy(control_config, name="AlteredCipher")
             assert config.PACKED_METADATA != control_config.PACKED_METADATA
-            assert config.SHMAC_KDF_CONFIG.factory().digest(
-                32
-            ) != control_config.SHMAC_KDF_CONFIG.factory().digest(32)
+
+            tested_kdf = config.SHMAC_KDF_CONFIG.factory()
+            control_kdf = control_config.SHMAC_KDF_CONFIG.factory()
+            assert tested_kdf.digest(32) != control_kdf.digest(32)
 
             class AlteredCipher(control_cipher.__class__):
                 __slots__ = ()

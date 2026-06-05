@@ -46,11 +46,7 @@ class DualOutputKDFs(CipherKDFs):
     for dual-output mode ciphers.
     """
 
-    __slots__ = (
-        "keyed_shmac_kdf",
-        "keyed_left_kdf",
-        "keyed_right_kdf",
-    )
+    __slots__ = ("keyed_shmac_kdf", "keyed_left_kdf", "keyed_right_kdf")
 
     def __init__(self, key: bytes, *, config: t.ConfigType) -> None:
         """
@@ -63,7 +59,8 @@ class DualOutputKDFs(CipherKDFs):
         self.keyed_right_kdf = self.key_base_kdf(RIGHT_KDF, key=key)
 
     def new_session(
-        self, summary: bytes
+        self,
+        summary: bytes,
     ) -> t.Generator[tuple[str, t.XOFType], None, None]:
         """
         Yields copies of the instance's KDFs that have been given the
@@ -80,12 +77,7 @@ class DualOutputSessionKDFs(FrozenInstance):
     contextualized functions.
     """
 
-    __slots__ = (
-        "keystream",
-        "shmac_kdf",
-        "left_kdf",
-        "right_kdf",
-    )
+    __slots__ = ("keystream", "shmac_kdf", "left_kdf", "right_kdf")
 
     def __init__(self) -> None:
         pass
@@ -249,7 +241,7 @@ class DualOutputStreamHMAC(StreamHMAC):
             await self._aupdate(
                 key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
                 + ciphertext_block
-                + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
+                + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE],
             )
             return ciphertext_block
         except OverflowError as error:
@@ -275,7 +267,7 @@ class DualOutputStreamHMAC(StreamHMAC):
             self._update(
                 key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
                 + ciphertext_block
-                + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
+                + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE],
             )
             return ciphertext_block
         except OverflowError as error:
@@ -297,7 +289,7 @@ class DualOutputStreamHMAC(StreamHMAC):
             await self._aupdate(
                 key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
                 + ciphertext_block
-                + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
+                + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE],
             )
             return (
                 _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
@@ -322,7 +314,7 @@ class DualOutputStreamHMAC(StreamHMAC):
             self._update(
                 key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
                 + ciphertext_block
-                + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
+                + key[config.EMBEDDED_RIGHT_CAPACITY_SLICE],
             )
             return (
                 _from_bytes(key[config.EMBEDDED_CIPHERTEXT_SLICE], BIG)
@@ -433,10 +425,10 @@ class DualOutputSyntheticIV(SyntheticIV):
         shmac._mac.update(
             header
             + masked_header
-            + shmac._current_digest[config.SIV_DIGEST_SLICE]
+            + shmac._current_digest[config.SIV_DIGEST_SLICE],
         )
         key = await keystream(
-            shmac._mac.digest(config.SHMAC_DOUBLE_BLOCKSIZE)
+            shmac._mac.digest(config.SHMAC_DOUBLE_BLOCKSIZE),
         )
         l_capacity = key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
         r_capacity = key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
@@ -462,12 +454,12 @@ class DualOutputSyntheticIV(SyntheticIV):
         config = shmac.config
         header = block[config.INNER_HEADER_SLICE]
         masked_header = shmac._permutation.permute(
-            int.from_bytes(header, BIG)
+            int.from_bytes(header, BIG),
         ).to_bytes(config.INNER_HEADER_BYTES, BIG)
         shmac._mac.update(
             header
             + masked_header
-            + shmac._current_digest[config.SIV_DIGEST_SLICE]
+            + shmac._current_digest[config.SIV_DIGEST_SLICE],
         )
         key = keystream(shmac._mac.digest(config.SHMAC_DOUBLE_BLOCKSIZE))
         l_capacity = key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
@@ -495,16 +487,16 @@ class DualOutputSyntheticIV(SyntheticIV):
         masked_header = block[config.INNER_HEADER_SLICE]
         header = (
             await shmac._permutation.ainvert(
-                int.from_bytes(masked_header, BIG)
+                int.from_bytes(masked_header, BIG),
             )
         ).to_bytes(config.INNER_HEADER_BYTES, BIG)
         shmac._mac.update(
             header
             + masked_header
-            + shmac._current_digest[config.SIV_DIGEST_SLICE]
+            + shmac._current_digest[config.SIV_DIGEST_SLICE],
         )
         key = await keystream(
-            shmac._mac.digest(config.SHMAC_DOUBLE_BLOCKSIZE)
+            shmac._mac.digest(config.SHMAC_DOUBLE_BLOCKSIZE),
         )
         l_capacity = key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
         r_capacity = key[config.EMBEDDED_RIGHT_CAPACITY_SLICE]
@@ -530,12 +522,12 @@ class DualOutputSyntheticIV(SyntheticIV):
         config = shmac.config
         masked_header = block[config.INNER_HEADER_SLICE]
         header = shmac._permutation.invert(
-            int.from_bytes(masked_header, BIG)
+            int.from_bytes(masked_header, BIG),
         ).to_bytes(config.INNER_HEADER_BYTES, BIG)
         shmac._mac.update(
             header
             + masked_header
-            + shmac._current_digest[config.SIV_DIGEST_SLICE]
+            + shmac._current_digest[config.SIV_DIGEST_SLICE],
         )
         key = keystream(shmac._mac.digest(config.SHMAC_DOUBLE_BLOCKSIZE))
         l_capacity = key[config.EMBEDDED_LEFT_CAPACITY_SLICE]
@@ -560,7 +552,10 @@ class DualOutputStreamJunction(StreamJunction):
 
     @classmethod
     async def acombine_streams(
-        cls, data: t.AsyncDatastream, *, shmac: t.StreamHMACType
+        cls,
+        data: t.AsyncDatastream,
+        *,
+        shmac: t.StreamHMACType,
     ) -> t.AsyncGenerator[bytes, None]:
         """
         Bitwise XORs a ciphertext or plaintext datastream with a keystream
@@ -572,16 +567,22 @@ class DualOutputStreamJunction(StreamJunction):
             shmac._avalidated_transform,
         )
         yield await cls._SyntheticIV.avalidated_transform(
-            data, keystream, shmac
+            data,
+            keystream,
+            shmac,
         )
         async for block in data:
             yield await validated_transform(
-                block, await keystream(shmac._ratchet_key)
+                block,
+                await keystream(shmac._ratchet_key),
             )
 
     @classmethod
     def combine_streams(
-        cls, data: t.Datastream, *, shmac: t.StreamHMACType
+        cls,
+        data: t.Datastream,
+        *,
+        shmac: t.StreamHMACType,
     ) -> t.Generator[bytes, None, None]:
         """
         Bitwise XORs a ciphertext or plaintext datastream with a keystream

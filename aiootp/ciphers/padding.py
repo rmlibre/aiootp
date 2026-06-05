@@ -193,7 +193,9 @@ class Padding(FrozenInstance):
         return token_bytes(self.config.PADDING_FRAME)
 
     async def _adata_measurements(
-        self, /, size: int
+        self,
+        /,
+        size: int,
     ) -> PlaintextMeasurements:
         """
         Does padding measurements based on the `size` of some unpadded
@@ -224,7 +226,9 @@ class Padding(FrozenInstance):
         )
 
     async def _amake_end_padding(
-        self, /, report: PlaintextMeasurements
+        self,
+        /,
+        report: PlaintextMeasurements,
     ) -> bytes:
         """
         Returns an excess (frame) of random padding & its encoded length
@@ -364,7 +368,11 @@ class Padding(FrozenInstance):
         return -(sentinel or self.config.PADDING_FRAME)
 
     async def adepad_plaintext(
-        self, /, data: bytes, *, ttl: int | None = DEFAULT_TTL
+        self,
+        /,
+        data: bytes,
+        *,
+        ttl: int | None = DEFAULT_TTL,
     ) -> bytes:
         """
         Returns `data` after these values are removed:
@@ -380,7 +388,11 @@ class Padding(FrozenInstance):
         return data[start_index:end_index]
 
     def depad_plaintext(
-        self, /, data: bytes, *, ttl: int | None = DEFAULT_TTL
+        self,
+        /,
+        data: bytes,
+        *,
+        ttl: int | None = DEFAULT_TTL,
     ) -> bytes:
         """
         Returns `data` after these values are removed:

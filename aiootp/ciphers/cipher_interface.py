@@ -157,7 +157,9 @@ class CipherInterface(FrozenInstance):
                 each permutation of `key`, `salt`, & `iv`.
         """
         key_bundle = await self._KeyAADBundle(
-            self._kdfs, salt=salt, aad=aad
+            self._kdfs,
+            salt=salt,
+            aad=aad,
         ).async_mode()
         shmac = self._StreamHMAC(key_bundle)._for_encryption()
         data = abatch(
@@ -215,14 +217,17 @@ class CipherInterface(FrozenInstance):
                 each permutation of `key`, `salt`, & `iv`.
         """
         key_bundle = self._KeyAADBundle(
-            self._kdfs, salt=salt, aad=aad
+            self._kdfs,
+            salt=salt,
+            aad=aad,
         ).sync_mode()
         shmac = self._StreamHMAC(key_bundle)._for_encryption()
         data = batch(
-            self._padding.pad_plaintext(data), size=self._config.BLOCKSIZE
+            self._padding.pad_plaintext(data),
+            size=self._config.BLOCKSIZE,
         )
         ciphertext_blob = b"".join(
-            self._Junction.bytes_encipher(data, shmac=shmac)
+            self._Junction.bytes_encipher(data, shmac=shmac),
         )
         # fmt: off
         return b"".join([
@@ -256,7 +261,10 @@ class CipherInterface(FrozenInstance):
         """
         data = self._Ciphertext(data, config=self._config)
         key_bundle = await self._KeyAADBundle(
-            self._kdfs, salt=data.salt, aad=aad, iv=data.iv
+            self._kdfs,
+            salt=data.salt,
+            aad=aad,
+            iv=data.iv,
         ).async_mode()
         shmac = self._StreamHMAC(key_bundle)._for_decryption()
         ciphertext = abatch(data.ciphertext, size=self._config.BLOCKSIZE)
@@ -294,12 +302,15 @@ class CipherInterface(FrozenInstance):
         """
         data = self._Ciphertext(data, config=self._config)
         key_bundle = self._KeyAADBundle(
-            self._kdfs, salt=data.salt, aad=aad, iv=data.iv
+            self._kdfs,
+            salt=data.salt,
+            aad=aad,
+            iv=data.iv,
         ).sync_mode()
         shmac = self._StreamHMAC(key_bundle)._for_decryption()
         ciphertext = batch(data.ciphertext, size=self._config.BLOCKSIZE)
         plaintext = b"".join(
-            self._Junction.bytes_decipher(ciphertext, shmac=shmac)
+            self._Junction.bytes_decipher(ciphertext, shmac=shmac),
         )
         shmac.finalize()
         shmac.test_shmac(data.shmac)
@@ -342,7 +353,9 @@ class CipherInterface(FrozenInstance):
                 each permutation of `key`, `salt`, & `iv`.
         """
         return await self.abytes_encrypt(
-            json.dumps(data).encode(), salt=salt, aad=aad
+            json.dumps(data).encode(),
+            salt=salt,
+            aad=aad,
         )
 
     def json_encrypt(
@@ -382,7 +395,9 @@ class CipherInterface(FrozenInstance):
                 each permutation of `key`, `salt`, & `iv`.
         """
         return self.bytes_encrypt(
-            json.dumps(data).encode(), salt=salt, aad=aad
+            json.dumps(data).encode(),
+            salt=salt,
+            aad=aad,
         )
 
     async def ajson_decrypt(
@@ -432,7 +447,11 @@ class CipherInterface(FrozenInstance):
         return json.loads(self.bytes_decrypt(data, aad=aad, ttl=ttl))
 
     async def amake_token(
-        self, /, data: bytes, *, aad: bytes = DEFAULT_AAD
+        self,
+        /,
+        data: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
         Encrypts the bytes `data` & returns a urlsafe encoded ciphertext
@@ -450,7 +469,11 @@ class CipherInterface(FrozenInstance):
         return await ByteIO.abytes_to_urlsafe(ciphertext)
 
     def make_token(
-        self, /, data: bytes, *, aad: bytes = DEFAULT_AAD
+        self,
+        /,
+        data: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
         Encrypts the bytes `data` & returns a urlsafe encoded ciphertext
@@ -520,7 +543,11 @@ class CipherInterface(FrozenInstance):
         return self.bytes_decrypt(ciphertext, aad=aad, ttl=ttl)
 
     async def astream_encrypt(
-        self, /, *, salt: bytes | None = None, aad: bytes = DEFAULT_AAD
+        self,
+        /,
+        *,
+        salt: bytes | None = None,
+        aad: bytes = DEFAULT_AAD,
     ) -> AsyncCipherStream:
         """
         Returns an object to manage encrypting a stream of plaintext.
@@ -552,7 +579,11 @@ class CipherInterface(FrozenInstance):
         return await self._AsyncCipherStream(self, salt=salt, aad=aad)
 
     def stream_encrypt(
-        self, /, *, salt: bytes | None = None, aad: bytes = DEFAULT_AAD
+        self,
+        /,
+        *,
+        salt: bytes | None = None,
+        aad: bytes = DEFAULT_AAD,
     ) -> CipherStream:
         """
         Returns an object to manage encrypting a stream of plaintext.
@@ -626,7 +657,11 @@ class CipherInterface(FrozenInstance):
                 the decrypted message.
         """
         return await self._AsyncDecipherStream(
-            self, salt=salt, aad=aad, iv=iv, ttl=ttl
+            self,
+            salt=salt,
+            aad=aad,
+            iv=iv,
+            ttl=ttl,
         )
 
     def stream_decrypt(
@@ -672,7 +707,11 @@ class CipherInterface(FrozenInstance):
                 the decrypted message.
         """
         return self._DecipherStream(
-            self, salt=salt, aad=aad, iv=iv, ttl=ttl
+            self,
+            salt=salt,
+            aad=aad,
+            iv=iv,
+            ttl=ttl,
         )
 
 

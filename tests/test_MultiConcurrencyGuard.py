@@ -30,7 +30,7 @@ class TestDefaultDictOfDeques:
             st.text(),
             st.lists(st.binary(max_size=64)),
             st.tuples(st.binary(max_size=64)),
-        )
+        ),
     )
     async def test_adding_non_deques_is_not_allowed(self, value) -> None:
         mapping = DefaultDictOfDeques()
@@ -64,7 +64,8 @@ class TestDefaultDictOfDeques:
 class TestMultiConcurrencyGaurd:
     async def test_async_queue_execution_order_is_respected(self) -> None:
         async def record_ordering(
-            target: t.Hashable, instance: MultiConcurrencyGaurd
+            target: t.Hashable,
+            instance: MultiConcurrencyGaurd,
         ) -> None:
             await arandom_sleep(0.0001)
             async with instance:
@@ -162,7 +163,8 @@ class TestMultiConcurrencyGaurd:
         self,
     ) -> None:
         async def record_ordering(
-            target: t.Hashable, instance: MultiConcurrencyGaurd
+            target: t.Hashable,
+            instance: MultiConcurrencyGaurd,
         ) -> None:
             await arandom_sleep(0.0001)
             async with instance:
@@ -304,10 +306,12 @@ class TestMultiConcurrencyGaurd:
                 assert token_results[target] == queues[target], target
 
     @pytest.mark.parametrize(
-        "policy_cls", MultiConcurrencyGaurd.policies.values()
+        "policy_cls",
+        MultiConcurrencyGaurd.policies.values(),
     )
     async def test_guard_method_needs_exclusive_policy(
-        self, policy_cls
+        self,
+        policy_cls,
     ) -> None:
         guards = MultiConcurrencyGaurd()
 
@@ -322,10 +326,12 @@ class TestMultiConcurrencyGaurd:
             guards.guard(target="test", policy=policy_cls())
 
     @pytest.mark.parametrize(
-        "policy_cls", MultiConcurrencyGaurd.policies.values()
+        "policy_cls",
+        MultiConcurrencyGaurd.policies.values(),
     )
     async def test_monitor_method_needs_non_exclusive_policy(
-        self, policy_cls
+        self,
+        policy_cls,
     ) -> None:
         guards = MultiConcurrencyGaurd()
 
@@ -358,7 +364,9 @@ class TestMultiConcurrencyGaurd:
                 if is_spontaneous or token_bits(3) < 0b110:
                     return
                 task = record_ordering(
-                    target, choose_policy(target), is_spontaneous=True
+                    target,
+                    choose_policy(target),
+                    is_spontaneous=True,
                 )
                 spontaneous_tasks.append(new_task(task))
 
@@ -460,7 +468,8 @@ class TestMultiConcurrencyGaurd:
 
     async def test_async_use_tracker_stages(self) -> None:
         async def track_stages(
-            _: t.Hashable, instance: MultiConcurrencyGaurd
+            _: t.Hashable,
+            instance: MultiConcurrencyGaurd,
         ) -> None:
             await arandom_sleep(0.0001)
             assert instance.is_unused()
@@ -512,7 +521,8 @@ class TestMultiConcurrencyGaurd:
 
     async def test_sync_use_tracker_stages(self) -> None:
         def track_stages(
-            _: t.Hashable, instance: MultiConcurrencyGaurd
+            _: t.Hashable,
+            instance: MultiConcurrencyGaurd,
         ) -> None:
             random_sleep(0.0001)
             assert instance.is_unused()
@@ -558,10 +568,7 @@ class TestMultiConcurrencyGaurd:
         instances = [(target, choose_policy(target)) for target in targets]
 
         tasks = [
-            Threads._type(
-                target=track_stages,
-                args=(target, instance),
-            )
+            Threads._type(target=track_stages, args=(target, instance))
             for target, instance in instances
         ]
         for task in tasks:

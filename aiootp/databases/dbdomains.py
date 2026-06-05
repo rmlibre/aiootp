@@ -30,7 +30,9 @@ class DBDomains(DomainEncoder):
     __slots__ = ()
 
     _encode: t.Callable = lambda constant: DomainEncoder.encode_constant(
-        constant, domain=b"database_constants", size=16
+        constant,
+        domain=b"database_constants",
+        size=16,
     )
 
     ROOT_KDF: bytes = _encode("root_kdf")

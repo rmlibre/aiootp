@@ -54,7 +54,10 @@ class DomainKDFType(t.Protocol):
         pass  # pragma: no cover
 
     async def ashake_128(
-        self, *data: bytes, size: int, aad: bytes
+        self,
+        *data: bytes,
+        size: int,
+        aad: bytes,
     ) -> bytes:
         pass  # pragma: no cover
 
@@ -62,7 +65,10 @@ class DomainKDFType(t.Protocol):
         pass  # pragma: no cover
 
     async def ashake_256(
-        self, *data: bytes, size: int, aad: bytes
+        self,
+        *data: bytes,
+        size: int,
+        aad: bytes,
     ) -> bytes:
         pass  # pragma: no cover
 
@@ -94,22 +100,26 @@ class SecretKeyType(t.Protocol):
 @t.runtime_checkable
 class AsymmetricKeyType(t.Protocol):
     async def aimport_secret_key(
-        self, secret_key: SecretKeyType | bytes
+        self,
+        secret_key: SecretKeyType | bytes,
     ) -> t.Self:
         pass  # pragma: no cover
 
     def import_secret_key(
-        self, secret_key: SecretKeyType | bytes
+        self,
+        secret_key: SecretKeyType | bytes,
     ) -> t.Self:
         pass  # pragma: no cover
 
     async def aimport_public_key(
-        self, public_key: bytes | PublicKeyType
+        self,
+        public_key: bytes | PublicKeyType,
     ) -> t.Self:
         pass  # pragma: no cover
 
     def import_public_key(
-        self, public_key: bytes | PublicKeyType
+        self,
+        public_key: bytes | PublicKeyType,
     ) -> t.Self:
         pass  # pragma: no cover
 

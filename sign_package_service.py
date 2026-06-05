@@ -88,7 +88,8 @@ _KEY_NEGOTIATION_FEATURE_FLAG: bool = False
 
 
 def current_transmit_key(
-    channel: socket.socket | None = None, context: t.Any = None
+    channel: socket.socket | None = None,
+    context: t.Any = None,
 ) -> bytes:
     """
     Supports future key rotation implementations by querying for the
@@ -116,7 +117,7 @@ def update_signing_key_prompt(signer: PackageSigner) -> None:
         .startswith("n")
     ):
         signer.update_signing_key(
-            bytes.fromhex(getpass("signing key: ").strip())
+            bytes.fromhex(getpass("signing key: ").strip()),
         )
 
 
@@ -132,7 +133,7 @@ def update_public_credentials_prompt(signer: PackageSigner) -> None:
         .startswith("y")
     ):
         signer.update_public_credentials(
-            **{getpass("name: ").strip(): getpass("value: ")}
+            **{getpass("name: ").strip(): getpass("value: ")},
         )
 
 
@@ -158,7 +159,10 @@ def make_signer_object() -> PackageSigner:
 
 @contextmanager
 def start_server(
-    host: str = HOST, port: int = PORT, *, max_channels: int = 1
+    host: str = HOST,
+    port: int = PORT,
+    *,
+    max_channels: int = 1,
 ) -> socket.socket:
     """
     Wraps a new server socket listening on `host`:`port`, in a context
@@ -212,7 +216,8 @@ def buffer_send(channel: socket.socket, data: bytes) -> int:
 
 
 def get_and_parse_request(
-    channel: socket.socket, cipher: t.CipherInterfaceType
+    channel: socket.socket,
+    cipher: t.CipherInterfaceType,
 ) -> tuple[bytes, dict[str, t.JSONSerializable], dict[str, str]]:
     """
     Authenticates the received request data from a `channel` using a

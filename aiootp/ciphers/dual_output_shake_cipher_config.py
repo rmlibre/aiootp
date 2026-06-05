@@ -257,7 +257,9 @@ class DualOutputShakeCipherConfig(Config):
         self.INNER_BODY_SLICE = slice(self.INNER_HEADER_BYTES, None, 1)
         self.TIMESTAMP_SLICE = slice(0, self.TIMESTAMP_BYTES, 1)
         self.SIV_KEY_SLICE = slice(
-            self.TIMESTAMP_BYTES, self.INNER_HEADER_BYTES, 1
+            self.TIMESTAMP_BYTES,
+            self.INNER_HEADER_BYTES,
+            1,
         )
 
     def _compute_header_measurements(self) -> None:
@@ -272,10 +274,14 @@ class DualOutputShakeCipherConfig(Config):
         self.BLOCK_ID_SLICE = slice(0, self.BLOCK_ID_BYTES, 1)
         self.SHMAC_SLICE = slice(0, self.SHMAC_BYTES, 1)
         self.SALT_SLICE = slice(
-            self.SHMAC_BYTES, self.SHMAC_BYTES + self.SALT_BYTES, 1
+            self.SHMAC_BYTES,
+            self.SHMAC_BYTES + self.SALT_BYTES,
+            1,
         )
         self.IV_SLICE = slice(
-            self.SHMAC_BYTES + self.SALT_BYTES, self.HEADER_BYTES, 1
+            self.SHMAC_BYTES + self.SALT_BYTES,
+            self.HEADER_BYTES,
+            1,
         )
 
     def _compute_permutation_integration_measurements(self) -> None:
@@ -286,10 +292,12 @@ class DualOutputShakeCipherConfig(Config):
         self.FIRST_DIGEST_SLICE = slice(0, self.SHMAC_BLOCKSIZE, 1)
         self.PERMUTATION_CONFIG_ID = self.INNER_HEADER_BYTES
         self.PERMUTATION_KEY_BYTES = self.Permutation.key_size(
-            self.PERMUTATION_CONFIG_ID  # TODO @rmlibre: test less than shmac blocksize
+            self.PERMUTATION_CONFIG_ID,  # TODO @rmlibre: test less than shmac blocksize
         )
         self.PERMUTATION_KEY_SLICE = slice(
-            -self.PERMUTATION_KEY_BYTES, None, 1
+            -self.PERMUTATION_KEY_BYTES,
+            None,
+            1,
         )
         self.PRIMER_KEY_BYTES = self.SHMAC_BLOCKSIZE * (
             1 + ceil(self.PERMUTATION_KEY_BYTES / self.SHMAC_BLOCKSIZE)
@@ -314,13 +322,19 @@ class DualOutputShakeCipherConfig(Config):
             self.SHMAC_DOUBLE_BLOCKSIZE - self.BLOCKSIZE
         ) // 2
         self.EMBEDDED_LEFT_CAPACITY_SLICE = slice(
-            0, self.EMBEDDED_CAPACITY_BYTES, 1
+            0,
+            self.EMBEDDED_CAPACITY_BYTES,
+            1,
         )
         self.EMBEDDED_RIGHT_CAPACITY_SLICE = slice(
-            -self.EMBEDDED_CAPACITY_BYTES, None, 1
+            -self.EMBEDDED_CAPACITY_BYTES,
+            None,
+            1,
         )
         self.EMBEDDED_CIPHERTEXT_SLICE = slice(
-            self.EMBEDDED_CAPACITY_BYTES, -self.EMBEDDED_CAPACITY_BYTES, 1
+            self.EMBEDDED_CAPACITY_BYTES,
+            -self.EMBEDDED_CAPACITY_BYTES,
+            1,
         )
         self.FIRST_CONTENT_BYTES = self.BLOCKSIZE - self.INNER_HEADER_BYTES
         self.FIRST_CONTENT_SLICE = slice(self.INNER_HEADER_BYTES, None, 1)
@@ -424,7 +438,7 @@ class DualOutputShakeCipherConfig(Config):
         """
         if self.INNER_HEADER_BYTES % 2:
             raise ValueError(
-                "INNER_HEADER_BYTES *cannot* be an odd number!"
+                "INNER_HEADER_BYTES *cannot* be an odd number!",
             )
 
     def _ensure_blocksize_is_even(self) -> None:
@@ -463,7 +477,7 @@ class DualOutputShakeCipherConfig(Config):
         entropy_window = left_kdf + right_kdf
         if self.BLOCKSIZE > entropy_window:
             raise ValueError(
-                "BLOCKSIZE *must* sum to <= the left + right blocksizes!"
+                "BLOCKSIZE *must* sum to <= the left + right blocksizes!",
             )
 
     def _ensure_min_block_id_size_isnt_larger_than_max(self) -> None:
@@ -473,7 +487,7 @@ class DualOutputShakeCipherConfig(Config):
         if self.MIN_BLOCK_ID_BYTES > self.MAX_BLOCK_ID_BYTES:
             raise ValueError(
                 "The MIN_BLOCK_ID_BYTES mustn't be larger than the "
-                "MAX_BLOCK_ID_BYTES."
+                "MAX_BLOCK_ID_BYTES.",
             )
 
     def _ensure_inner_header_leaves_adequate_space(self) -> None:
@@ -511,25 +525,25 @@ class DualOutputShakeCipherConfig(Config):
         ).to_bytes(self.FIRST_CONTENT_BYTES, BIG)
         if len(ciphertext) != self.BLOCKSIZE:
             raise ValueError(
-                "Derived SIV measurements were invalid!"
+                "Derived SIV measurements were invalid!",
             )  # pragma: no cover
         elif (
             len(l_capacity + ciphertext + r_capacity)
             != self.SHMAC_DOUBLE_BLOCKSIZE
         ):
             raise ValueError(
-                "Derived SIV measurements were invalid!"
+                "Derived SIV measurements were invalid!",
             )  # pragma: no cover
         elif (
             len(
                 header
                 + masked_header
-                + token_bytes(self.SHMAC_BLOCKSIZE)[self.SIV_DIGEST_SLICE]
+                + token_bytes(self.SHMAC_BLOCKSIZE)[self.SIV_DIGEST_SLICE],
             )
             != self.SHMAC_BLOCKSIZE
         ):
             raise ValueError(
-                "Derived SIV measurements were invalid!"
+                "Derived SIV measurements were invalid!",
             )  # pragma: no cover
 
     def _perform_correctness_checks(self) -> None:

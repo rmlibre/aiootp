@@ -36,10 +36,13 @@ class TestDatastreamLimits:
         for config, cipher, salt, aad in dual_output_ciphers:
             BLOCKSIZE = config.BLOCKSIZE
             ainvalid_size_datastream = abatch(
-                plaintext_bytes, size=BLOCKSIZE + 1
+                plaintext_bytes,
+                size=BLOCKSIZE + 1,
             )
             akey_bundle = await cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).async_mode()
             shmac = cipher._StreamHMAC(akey_bundle)._for_encryption()
 
@@ -48,7 +51,8 @@ class TestDatastreamLimits:
             )
             async with Ignore(OverflowError, if_else=violation(problem)):
                 async for _ in cipher._Junction.abytes_encipher(
-                    ainvalid_size_datastream, shmac=shmac
+                    ainvalid_size_datastream,
+                    shmac=shmac,
                 ):
                     pass
 
@@ -58,10 +62,13 @@ class TestDatastreamLimits:
         for config, cipher, salt, aad in dual_output_ciphers:
             BLOCKSIZE = config.BLOCKSIZE
             invalid_size_datastream = batch(
-                plaintext_bytes, size=BLOCKSIZE + 1
+                plaintext_bytes,
+                size=BLOCKSIZE + 1,
             )
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
 
@@ -70,7 +77,8 @@ class TestDatastreamLimits:
             )
             with Ignore(OverflowError, if_else=violation(problem)):
                 for _ in cipher._Junction.bytes_encipher(
-                    invalid_size_datastream, shmac=shmac
+                    invalid_size_datastream,
+                    shmac=shmac,
                 ):
                     pass
 
@@ -81,7 +89,9 @@ class TestDatastreamLimits:
             ainvalid_size_datastream = aempty_stream()
             await ainvalid_size_datastream.asend(None)
             akey_bundle = await cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).async_mode()
             shmac = cipher._StreamHMAC(akey_bundle)._for_encryption()
 
@@ -90,7 +100,8 @@ class TestDatastreamLimits:
             )
             async with Ignore(ValueError, if_else=violation(problem)):
                 async for _ in cipher._Junction.abytes_encipher(
-                    ainvalid_size_datastream, shmac=shmac
+                    ainvalid_size_datastream,
+                    shmac=shmac,
                 ):
                     pass
 
@@ -101,7 +112,9 @@ class TestDatastreamLimits:
             invalid_size_datastream = empty_stream()
             invalid_size_datastream.send(None)
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
 
@@ -110,7 +123,8 @@ class TestDatastreamLimits:
             )
             with Ignore(ValueError, if_else=violation(problem)):
                 for _ in cipher._Junction.bytes_encipher(
-                    invalid_size_datastream, shmac=shmac
+                    invalid_size_datastream,
+                    shmac=shmac,
                 ):
                     pass
 
@@ -208,7 +222,8 @@ class TestCipherInputs:
             )
             with Ignore(TypeError, if_else=violation(problem)):
                 cipher._KeyAADBundle(
-                    cipher._kdfs, salt=csprng(config.SALT_BYTES // 2).hex()
+                    cipher._kdfs,
+                    salt=csprng(config.SALT_BYTES // 2).hex(),
                 )
 
             problem = (  # fmt: skip
@@ -232,7 +247,8 @@ class TestCipherInputs:
             )
             with Ignore(TypeError, if_else=violation(problem)):
                 cipher._KeyAADBundle(
-                    cipher._kdfs, iv=token_bytes(config.IV_BYTES // 2).hex()
+                    cipher._kdfs,
+                    iv=token_bytes(config.IV_BYTES // 2).hex(),
                 )
 
             problem = (  # fmt: skip
@@ -240,7 +256,8 @@ class TestCipherInputs:
             )
             with Ignore(ValueError, if_else=violation(problem)):
                 cipher._KeyAADBundle(
-                    cipher._kdfs, iv=token_bytes(config.IV_BYTES + 1)
+                    cipher._kdfs,
+                    iv=token_bytes(config.IV_BYTES + 1),
                 )
 
 
@@ -331,15 +348,17 @@ class TestSaltMisuseReuseResistance:
 
                 for _ in range(self.number_of_tests):
                     key_bundle = await cipher._KeyAADBundle(
-                        **{**kw, component: token_bytes(size)}
+                        **{**kw, component: token_bytes(size)},
                     ).async_mode()
                     object.__setattr__(
-                        key_bundle._bundle, "iv_is_fresh", True
+                        key_bundle._bundle,
+                        "iv_is_fresh",
+                        True,
                     )
                     aciphertext = await cipher._Junction.abytes_encipher(
                         abatch(static_plaintext, size=config.BLOCKSIZE),
                         shmac=cipher._StreamHMAC(
-                            key_bundle
+                            key_bundle,
                         )._for_encryption(),
                     ).asend(None)
                     aciphertexts.add(aciphertext)
@@ -376,15 +395,17 @@ class TestSaltMisuseReuseResistance:
 
                 for _ in range(self.number_of_tests):
                     key_bundle = cipher._KeyAADBundle(
-                        **{**kw, component: token_bytes(size)}
+                        **{**kw, component: token_bytes(size)},
                     ).sync_mode()
                     object.__setattr__(
-                        key_bundle._bundle, "iv_is_fresh", True
+                        key_bundle._bundle,
+                        "iv_is_fresh",
+                        True,
                     )
                     ciphertext = cipher._Junction.bytes_encipher(
                         batch(static_plaintext, size=config.BLOCKSIZE),
                         shmac=cipher._StreamHMAC(
-                            key_bundle
+                            key_bundle,
                         )._for_encryption(),
                     ).send(None)
                     ciphertexts.add(ciphertext)
@@ -410,7 +431,9 @@ class TestCipherModes:
         )
         for _, cipher, salt, aad in all_ciphers:
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             )
             assert not hasattr(key_bundle, "mode")
             with Ignore(t.KDFModeNotDeclared, if_else=violation(problem)):
@@ -425,11 +448,14 @@ class TestCipherModes:
         for config, cipher, salt, aad in all_ciphers:
             data = b"test_data..."
             key_bundle = await cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).async_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             data = batch(
-                cipher._padding.pad_plaintext(data), size=config.BLOCKSIZE
+                cipher._padding.pad_plaintext(data),
+                size=config.BLOCKSIZE,
             )
             with Ignore(ValueError, if_else=violation(problem)):
                 b"".join(cipher._Junction.bytes_encipher(data, shmac=shmac))
@@ -443,17 +469,21 @@ class TestCipherModes:
         for config, cipher, salt, aad in all_ciphers:
             data = b"test_data..."
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             data = abatch(
-                cipher._padding.pad_plaintext(data), size=config.BLOCKSIZE
+                cipher._padding.pad_plaintext(data),
+                size=config.BLOCKSIZE,
             )
             with Ignore(ValueError, if_else=violation(problem)):
                 [
                     block
                     async for block in cipher._Junction.abytes_encipher(
-                        data, shmac=shmac
+                        data,
+                        shmac=shmac,
                     )
                 ]
 
@@ -465,10 +495,14 @@ class TestCipherModes:
         )
         for config, cipher, _, aad in all_ciphers:
             data = Ciphertext(
-                cipher.bytes_encrypt(b"test_data..."), config=config
+                cipher.bytes_encrypt(b"test_data..."),
+                config=config,
             )
             key_bundle = await cipher._KeyAADBundle(
-                cipher._kdfs, salt=data.salt, aad=aad, iv=data.iv
+                cipher._kdfs,
+                salt=data.salt,
+                aad=aad,
+                iv=data.iv,
             ).async_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
             data = batch(data.ciphertext, size=config.BLOCKSIZE)
@@ -483,10 +517,14 @@ class TestCipherModes:
         )
         for config, cipher, _, aad in all_ciphers:
             data = Ciphertext(
-                cipher.bytes_encrypt(b"test_data..."), config=config
+                cipher.bytes_encrypt(b"test_data..."),
+                config=config,
             )
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=data.salt, aad=aad, iv=data.iv
+                cipher._kdfs,
+                salt=data.salt,
+                aad=aad,
+                iv=data.iv,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
             data = abatch(data.ciphertext, size=config.BLOCKSIZE)
@@ -494,7 +532,8 @@ class TestCipherModes:
                 [
                     block
                     async for block in cipher._Junction.abytes_decipher(
-                        data, shmac=shmac
+                        data,
+                        shmac=shmac,
                     )
                 ]
 
@@ -507,17 +546,21 @@ class TestCipherModes:
         for config, cipher, salt, aad in all_ciphers:
             data = b"test_data..."
             key_bundle = await cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).async_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             data = abatch(
-                cipher._padding.pad_plaintext(data), size=config.BLOCKSIZE
+                cipher._padding.pad_plaintext(data),
+                size=config.BLOCKSIZE,
             )
             with Ignore(ValueError, if_else=violation(problem)):
                 [
                     block
                     async for block in cipher._Junction.abytes_decipher(
-                        data, shmac=shmac
+                        data,
+                        shmac=shmac,
                     )
                 ]
 
@@ -530,11 +573,14 @@ class TestCipherModes:
         for config, cipher, salt, aad in all_ciphers:
             data = b"test_data..."
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()  # enc
             data = batch(
-                cipher._padding.pad_plaintext(data), size=config.BLOCKSIZE
+                cipher._padding.pad_plaintext(data),
+                size=config.BLOCKSIZE,
             )
             with Ignore(ValueError, if_else=violation(problem)):
                 b"".join(cipher._Junction.bytes_decipher(data, shmac=shmac))
@@ -547,10 +593,14 @@ class TestCipherModes:
         )
         for config, cipher, _, aad in all_ciphers:
             data = Ciphertext(
-                cipher.bytes_encrypt(b"test_data..."), config=config
+                cipher.bytes_encrypt(b"test_data..."),
+                config=config,
             )
             key_bundle = await cipher._KeyAADBundle(
-                cipher._kdfs, salt=data.salt, aad=aad, iv=data.iv
+                cipher._kdfs,
+                salt=data.salt,
+                aad=aad,
+                iv=data.iv,
             ).async_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
             data = abatch(data.ciphertext, size=config.BLOCKSIZE)
@@ -558,7 +608,8 @@ class TestCipherModes:
                 [
                     block
                     async for block in cipher._Junction.abytes_encipher(
-                        data, shmac=shmac
+                        data,
+                        shmac=shmac,
                     )
                 ]
 
@@ -570,10 +621,14 @@ class TestCipherModes:
         )
         for config, cipher, _, aad in all_ciphers:
             data = Ciphertext(
-                cipher.bytes_encrypt(b"test_data..."), config=config
+                cipher.bytes_encrypt(b"test_data..."),
+                config=config,
             )
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=data.salt, aad=aad, iv=data.iv
+                cipher._kdfs,
+                salt=data.salt,
+                aad=aad,
+                iv=data.iv,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
             data = batch(data.ciphertext, size=config.BLOCKSIZE)
@@ -586,14 +641,18 @@ class TestCipherModes:
         )
         for _, cipher, salt, aad in all_ciphers:
             key_bundle = await cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).async_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             with Ignore(PermissionError, if_else=violation(problem)):
                 shmac._for_encryption()
 
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             with Ignore(PermissionError, if_else=violation(problem)):
@@ -607,13 +666,17 @@ class TestCipherModes:
         )
         for _, cipher, salt, aad in all_ciphers:
             key_bundle = await cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).async_mode()
             with Ignore(PermissionError, if_else=violation(problem)):
                 cipher._StreamHMAC(key_bundle)._for_decryption()
 
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             with Ignore(PermissionError, if_else=violation(problem)):
                 cipher._StreamHMAC(key_bundle)._for_decryption()

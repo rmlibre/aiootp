@@ -37,7 +37,10 @@ class ConfigType(t.Protocol):
         pass  # pragma: no cover
 
     def update(
-        self, mapping: t.Mapping[t.Hashable, t.Any], /, **kw: t.Any
+        self,
+        mapping: t.Mapping[t.Hashable, t.Any],
+        /,
+        **kw: t.Any,
     ) -> None:
         pass  # pragma: no cover
 

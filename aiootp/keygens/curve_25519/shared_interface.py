@@ -50,7 +50,9 @@ class Base25519(FrozenInstance):
 
     @classmethod
     def _process_secret_key(
-        cls, secret_key: t.SecretKeyType | bytes, /
+        cls,
+        secret_key: t.SecretKeyType | bytes,
+        /,
     ) -> t.SecretKeyType:
         """
         If `secret_key` is either of `bytes` or `cls.SecretKey` type,
@@ -67,7 +69,9 @@ class Base25519(FrozenInstance):
 
     @classmethod
     def _process_public_key(
-        cls, public_key: t.PublicKeyType | bytes, /
+        cls,
+        public_key: t.PublicKeyType | bytes,
+        /,
     ) -> t.PublicKeyType:
         """
         If `public_key` is either of `bytes` or `cls.PublicKey` type,
@@ -83,7 +87,9 @@ class Base25519(FrozenInstance):
             raise Issue.must_be_type("public_key", "valid key type")
 
     async def aimport_secret_key(
-        self, secret_key: t.SecretKeyType | bytes, /
+        self,
+        secret_key: t.SecretKeyType | bytes,
+        /,
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
@@ -93,7 +99,9 @@ class Base25519(FrozenInstance):
         return self.import_secret_key(secret_key)
 
     def import_secret_key(
-        self, secret_key: t.SecretKeyType | bytes, /
+        self,
+        secret_key: t.SecretKeyType | bytes,
+        /,
     ) -> t.Self:
         """
         Populates an instance from the received `secret_key` that is
@@ -107,7 +115,9 @@ class Base25519(FrozenInstance):
         return self
 
     async def aimport_public_key(
-        self, public_key: t.PublicKeyType | bytes, /
+        self,
+        public_key: t.PublicKeyType | bytes,
+        /,
     ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is
@@ -117,7 +127,9 @@ class Base25519(FrozenInstance):
         return self.import_public_key(public_key)
 
     def import_public_key(
-        self, public_key: t.PublicKeyType | bytes, /
+        self,
+        public_key: t.PublicKeyType | bytes,
+        /,
     ) -> t.Self:
         """
         Populates an instance from the received `public_key` that is

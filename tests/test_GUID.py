@@ -53,10 +53,11 @@ class TestGUID:
 
             reconstructed_rawguid = b"".join(unmasked_guid.values())
             int_reconstructed_rawguid = int.from_bytes(
-                reconstructed_rawguid, BIG
+                reconstructed_rawguid,
+                BIG,
             )
             permuted_rawguid = await guid._permutation.apermute(
-                int_reconstructed_rawguid
+                int_reconstructed_rawguid,
             )
             assert masked_guid == permuted_rawguid.to_bytes(size, BIG)
 
@@ -66,10 +67,11 @@ class TestGUID:
 
             reconstructed_rawguid = b"".join(unmasked_guid.values())
             int_reconstructed_rawguid = int.from_bytes(
-                reconstructed_rawguid, BIG
+                reconstructed_rawguid,
+                BIG,
             )
             permuted_rawguid = guid._permutation.permute(
-                int_reconstructed_rawguid
+                int_reconstructed_rawguid,
             )
             assert masked_guid == permuted_rawguid.to_bytes(size, BIG)
 

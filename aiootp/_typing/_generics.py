@@ -48,7 +48,8 @@ Base64URLSafe = t.Base64URLSafe = t.NewType("Base64URLSafe", str | bytes)
 Number = t.Number = t.NewType("Number", int | float | complex)
 RealNumber = t.RealNumber = t.NewType("RealNumber", int | float)
 PositiveRealNumber = t.PositiveRealNumber = t.NewType(
-    "PositiveRealNumber", int | float
+    "PositiveRealNumber",
+    int | float,
 )
 
 
@@ -61,17 +62,20 @@ _JSONSerializableBaseTypes = t.NewType(
     dict | list | _JSONSerializableNonContainerTypes,
 )
 JSONArray = t.JSONArray = t.NewType(
-    "JSONArray", list[_JSONSerializableBaseTypes]
+    "JSONArray",
+    list[_JSONSerializableBaseTypes],
 )
 JSONObject = t.JSONObject = t.NewType(
-    "JSONObject", dict[str, _JSONSerializableBaseTypes]
+    "JSONObject",
+    dict[str, _JSONSerializableBaseTypes],
 )
 JSONSerializable = t.JSONSerializable = t.NewType(
     "JSONSerializable",
     JSONObject | JSONArray | _JSONSerializableNonContainerTypes,
 )
 JSONDeserializable = t.JSONDeserializable = t.NewType(
-    "JSONDeserializable", str | bytes | bytearray
+    "JSONDeserializable",
+    str | bytes | bytearray,
 )
 
 

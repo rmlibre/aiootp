@@ -36,7 +36,10 @@ class AuthFail(OpenFrozenSlots):
     __slots__ = ("block_id", "block", "buffer")
 
     def __init__(
-        self, block_id: bytes, block: bytes, buffer: t.Callable
+        self,
+        block_id: bytes,
+        block: bytes,
+        buffer: t.Callable,
     ) -> None:
         self.block_id = block_id
         self.block = block

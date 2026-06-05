@@ -93,7 +93,9 @@ def _salt_multiply(*numbers: int, pool: t.Sequence[bytes]) -> int:
 
 
 async def _asalt(
-    *, pool: t.Sequence[bytes], gadget: t.EntropyHashingType
+    *,
+    pool: t.Sequence[bytes],
+    gadget: t.EntropyHashingType,
 ) -> int:
     """
     Returns a 256-bit number derived from cached & ratcheted system

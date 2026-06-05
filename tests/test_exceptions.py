@@ -55,7 +55,8 @@ def run_function_order_checking(*, name: str) -> None:
 class TestIgnore:
     async def test_if_else_runs_when_no_exceptions(self) -> None:
         async with Ignore(
-            ZeroDivisionError, if_else=arun_function
+            ZeroDivisionError,
+            if_else=arun_function,
         ) as relay:
             pass
         assert relay.bus.error is None
@@ -66,7 +67,8 @@ class TestIgnore:
 
     async def test_if_else_doesnt_run_when_exceptions(self) -> None:
         async with Ignore(
-            ZeroDivisionError, if_else=arun_function
+            ZeroDivisionError,
+            if_else=arun_function,
         ) as relay:
             raise ZeroDivisionError
         assert not hasattr(relay.bus, "error")
@@ -77,7 +79,8 @@ class TestIgnore:
 
     async def test_if_except_doesnt_run_when_no_exceptions(self) -> None:
         async with Ignore(
-            ZeroDivisionError, if_except=arun_function
+            ZeroDivisionError,
+            if_except=arun_function,
         ) as relay:
             pass
         assert not hasattr(relay.bus, "error")
@@ -89,7 +92,8 @@ class TestIgnore:
     async def test_if_except_doesnt_run_when_wrong_exceptions(self) -> None:
         try:
             async with Ignore(
-                ZeroDivisionError, if_except=arun_function
+                ZeroDivisionError,
+                if_except=arun_function,
             ) as relay:
                 raise TypeError
         except TypeError:
@@ -107,7 +111,8 @@ class TestIgnore:
 
     async def test_if_except_runs_when_correct_exceptions(self) -> None:
         async with Ignore(
-            ZeroDivisionError, if_except=arun_function
+            ZeroDivisionError,
+            if_except=arun_function,
         ) as relay:
             raise ZeroDivisionError
         assert relay.bus.error.__class__ is ZeroDivisionError
@@ -121,7 +126,8 @@ class TestIgnore:
     ) -> None:
         try:
             async with Ignore(
-                ZeroDivisionError, if_except=arun_function_return_false
+                ZeroDivisionError,
+                if_except=arun_function_return_false,
             ) as relay:
                 raise ZeroDivisionError
         except ZeroDivisionError as exception:
@@ -130,7 +136,8 @@ class TestIgnore:
 
         try:
             with Ignore(
-                ZeroDivisionError, if_except=run_function_return_false
+                ZeroDivisionError,
+                if_except=run_function_return_false,
             ) as relay:
                 raise ZeroDivisionError
         except ZeroDivisionError as exception:

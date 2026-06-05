@@ -69,7 +69,11 @@ class TripleDiffieHellmanClient(FrozenInstance):
     )
 
     def __init__(
-        self, /, my_identity_key: t.KeyExchangeType, *, kdf_type: type
+        self,
+        /,
+        my_identity_key: t.KeyExchangeType,
+        *,
+        kdf_type: type,
     ) -> None:
         if not issubclass(kdf_type, t.DomainKDFType):
             raise Issue.must_be_subtype("KDF type", t.DomainKDFType)
@@ -81,7 +85,9 @@ class TripleDiffieHellmanClient(FrozenInstance):
         self._sanitize = self._key_exchange_type._process_public_key
 
     async def asend(
-        self, /, peer_identity_key: t.PublicKeyType | bytes
+        self,
+        /,
+        peer_identity_key: t.PublicKeyType | bytes,
     ) -> tuple[bytes, bytes]:
         """
         Receives the identity public key of the intended server & returns
@@ -96,7 +102,9 @@ class TripleDiffieHellmanClient(FrozenInstance):
         )
 
     def send(
-        self, /, peer_identity_key: t.PublicKeyType | bytes
+        self,
+        /,
+        peer_identity_key: t.PublicKeyType | bytes,
     ) -> tuple[bytes, bytes]:
         """
         Receives the identity public key of the intended server & returns
@@ -111,7 +119,9 @@ class TripleDiffieHellmanClient(FrozenInstance):
         )
 
     async def areceive(
-        self, /, peer_ephemeral_key: t.PublicKeyType | bytes
+        self,
+        /,
+        peer_ephemeral_key: t.PublicKeyType | bytes,
     ) -> t.DomainKDFType:
         """
         Receives the ephemeral public key that could've been sent from a
@@ -122,7 +132,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
         my_ephemeral_key = self._my_ephemeral_key
         peer_identity_key = self._peer_identity_key
         peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
-            peer_ephemeral_key
+            peer_ephemeral_key,
         )
         shared_key_ad = await my_ephemeral_key.aexchange(peer_identity_key)
         shared_key_bc = await my_identity_key.aexchange(peer_ephemeral_key)
@@ -137,7 +147,9 @@ class TripleDiffieHellmanClient(FrozenInstance):
         )
 
     def receive(
-        self, /, peer_ephemeral_key: t.PublicKeyType | bytes
+        self,
+        /,
+        peer_ephemeral_key: t.PublicKeyType | bytes,
     ) -> t.DomainKDFType:
         """
         Receives the ephemeral public key that could've been sent from a
@@ -148,7 +160,7 @@ class TripleDiffieHellmanClient(FrozenInstance):
         my_ephemeral_key = self._my_ephemeral_key
         peer_identity_key = self._peer_identity_key
         peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
-            peer_ephemeral_key
+            peer_ephemeral_key,
         )
         shared_key_ad = my_ephemeral_key.exchange(peer_identity_key)
         shared_key_bc = my_identity_key.exchange(peer_ephemeral_key)

@@ -41,16 +41,19 @@ class TestPasscryptMetadataHashes:
         assert type(self.metadata_hash) is bytes
 
     async def test_async_hash_reconstruction(self) -> None:
-        apcrypt_hash = PasscryptHash(config=self.config).import_hash(
-            self.ametadata_hash
-        )
+        pcrypt = PasscryptHash(config=self.config)
+        apcrypt_hash = pcrypt.import_hash(self.ametadata_hash)
         ahash_check = await self.pcrypt.anew(
-            self.passphrase, apcrypt_hash.salt, aad=apcrypt_hash.timestamp
+            self.passphrase,
+            apcrypt_hash.salt,
+            aad=apcrypt_hash.timestamp,
         )
         assert apcrypt_hash.tag_size == len(ahash_check)
         assert ahash_check == self.ametadata_hash[-apcrypt_hash.tag_size :]
         assert ahash_check == self.pcrypt.new(
-            self.passphrase, apcrypt_hash.salt, aad=apcrypt_hash.timestamp
+            self.passphrase,
+            apcrypt_hash.salt,
+            aad=apcrypt_hash.timestamp,
         )
         assert {**apcrypt_hash} == dict(
             timestamp=apcrypt_hash.timestamp,
@@ -66,7 +69,8 @@ class TestPasscryptMetadataHashes:
             + (apcrypt_hash.cpu - 1).to_bytes(config.CPU_BYTES, BIG)
             + (apcrypt_hash.cores - 1).to_bytes(config.CORES_BYTES, BIG)
             + (len(apcrypt_hash.salt) - 1).to_bytes(
-                config.SALT_SIZE_BYTES, BIG
+                config.SALT_SIZE_BYTES,
+                BIG,
             )
             + apcrypt_hash.salt
             + apcrypt_hash.tag
@@ -74,15 +78,19 @@ class TestPasscryptMetadataHashes:
 
     async def test_sync_hash_reconstruction(self) -> None:
         pcrypt_hash = PasscryptHash(config=self.config).import_hash(
-            self.metadata_hash
+            self.metadata_hash,
         )
         hash_check = self.pcrypt.new(
-            self.passphrase, pcrypt_hash.salt, aad=pcrypt_hash.timestamp
+            self.passphrase,
+            pcrypt_hash.salt,
+            aad=pcrypt_hash.timestamp,
         )
         assert pcrypt_hash.tag_size == len(hash_check)
         assert hash_check == self.metadata_hash[-pcrypt_hash.tag_size :]
         assert hash_check == await self.pcrypt.anew(
-            self.passphrase, pcrypt_hash.salt, aad=pcrypt_hash.timestamp
+            self.passphrase,
+            pcrypt_hash.salt,
+            aad=pcrypt_hash.timestamp,
         )
         assert {**pcrypt_hash} == dict(
             timestamp=pcrypt_hash.timestamp,
@@ -106,10 +114,14 @@ class TestPasscryptMetadataHashes:
 
     async def test_verify_methods_detect_correct_passphrase(self) -> None:
         await Passcrypt.averify(
-            self.ametadata_hash, self.passphrase, config=self.config
+            self.ametadata_hash,
+            self.passphrase,
+            config=self.config,
         )
         Passcrypt.verify(
-            self.metadata_hash, self.passphrase, config=self.config
+            self.metadata_hash,
+            self.passphrase,
+            config=self.config,
         )
 
     async def test_wrong_passphrase_fails_async(self) -> None:
@@ -117,7 +129,8 @@ class TestPasscryptMetadataHashes:
             "An invalid passphrase passed async verification."
         )
         with Ignore(
-            Passcrypt.InvalidPassphrase, if_else=violation(problem)
+            Passcrypt.InvalidPassphrase,
+            if_else=violation(problem),
         ):
             await Passcrypt.averify(
                 self.ametadata_hash,
@@ -130,7 +143,8 @@ class TestPasscryptMetadataHashes:
             "An invalid passphrase passed sync verification."
         )
         with Ignore(
-            Passcrypt.InvalidPassphrase, if_else=violation(problem)
+            Passcrypt.InvalidPassphrase,
+            if_else=violation(problem),
         ):
             Passcrypt.verify(
                 self.metadata_hash,
@@ -297,7 +311,9 @@ class TestPasscryptMetadataHashes:
 
 class TestPasscryptTestVectors:
     def accrue_failures(
-        self, index: int, failures: list[Exception]
+        self,
+        index: int,
+        failures: list[Exception],
     ) -> None:
         return lambda relay: failures.append((index, relay.error)) or True
 
@@ -364,17 +380,20 @@ class TestPasscryptInputsOutputs:
             "Empty passphrase was allowed."
         )
         with Ignore(
-            Passcrypt.ImproperPassphrase, if_else=violation(problem)
+            Passcrypt.ImproperPassphrase,
+            if_else=violation(problem),
         ):
             PasscryptSession(b"", self.salt, aad=b"", **self.settings)
 
         with Ignore(
-            Passcrypt.ImproperPassphrase, if_else=violation(problem)
+            Passcrypt.ImproperPassphrase,
+            if_else=violation(problem),
         ):
             self.pcrypt.new(b"", self.salt)
 
         async with Ignore(
-            Passcrypt.ImproperPassphrase, if_else=violation(problem)
+            Passcrypt.ImproperPassphrase,
+            if_else=violation(problem),
         ):
             await self.pcrypt.anew(b"", self.salt)
 
@@ -391,12 +410,14 @@ class TestPasscryptInputsOutputs:
 
         with Ignore(ValueError, if_else=violation(problem)):
             self.pcrypt.new(
-                (config.MIN_PASSPHRASE_BYTES - 1) * b"p", self.salt
+                (config.MIN_PASSPHRASE_BYTES - 1) * b"p",
+                self.salt,
             )
 
         async with Ignore(ValueError, if_else=violation(problem)):
             await self.pcrypt.anew(
-                (config.MIN_PASSPHRASE_BYTES - 1) * b"p", self.salt
+                (config.MIN_PASSPHRASE_BYTES - 1) * b"p",
+                self.salt,
             )
 
     async def test_passphrase_must_be_bytes(self) -> None:
@@ -405,7 +426,9 @@ class TestPasscryptInputsOutputs:
         )
         with Ignore(TypeError, if_else=violation(problem)):
             PasscryptSession(
-                "a string passphrase", self.salt, **self.settings
+                "a string passphrase",
+                self.salt,
+                **self.settings,
             )
 
         with Ignore(TypeError, if_else=violation(problem)):
@@ -458,7 +481,10 @@ class TestPasscryptInputsOutputs:
         )
         with Ignore(TypeError, if_else=violation(problem)):
             PasscryptSession(
-                key, self.salt, aad="some string aad", **self.settings
+                key,
+                self.salt,
+                aad="some string aad",
+                **self.settings,
             )
 
         with Ignore(TypeError, if_else=violation(problem)):
@@ -613,11 +639,9 @@ class TestPasscryptInputsOutputs:
             )
 
     async def test_inner_work_memory_output_size(self) -> None:
-        assert SHAKE_128_BLOCKSIZE == len(
-            PasscryptProcesses._passcrypt(
-                PasscryptSession(key, self.salt, **self.settings)
-            )
-        )
+        session = PasscryptSession(key, self.salt, **self.settings)
+        result = PasscryptProcesses._passcrypt(session)
+        assert SHAKE_128_BLOCKSIZE == len(result)
 
 
 class TestPasscryptConcurrencyInterface:

@@ -37,7 +37,7 @@ class SaltAADIV(FrozenSlots):
     __slots__ = ("salt", "aad", "iv", "config", "iv_is_fresh")
 
     _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset(
-        {"config", "iv_is_fresh"}
+        {"config", "iv_is_fresh"},
     )
 
     def __init__(

@@ -40,7 +40,10 @@ class HashTupleKDF(FrozenInstance):
     _type: t.Callable[..., t.XOFType]
 
     def __init_subclass__(
-        cls, *a: t.Any, salt_label: t.AnyStr, **kw: t.Any
+        cls,
+        *a: t.Any,
+        salt_label: t.AnyStr,
+        **kw: t.Any,
     ) -> None:
         """
         Ensures subclasses can define custom key & base type hasher
@@ -51,11 +54,15 @@ class HashTupleKDF(FrozenInstance):
         super().__init_subclass__(*a, **kw)
         cls._TYPE_BLOCKSIZE: int = cls._type().block_size
         cls._new_payload: t.Callable[[], t.XOFType] = cls._type(
-            Domains.encode_constant(salt_label, size=cls._TYPE_BLOCKSIZE)
+            Domains.encode_constant(salt_label, size=cls._TYPE_BLOCKSIZE),
         ).copy
 
     def _initialize_payload(
-        self, domain: bytes, data: t.Iterable[bytes], *, key: bytes
+        self,
+        domain: bytes,
+        data: t.Iterable[bytes],
+        *,
+        key: bytes,
     ) -> None:
         """
         Canonically encodes then hashes the domain, key & first batch of
@@ -64,16 +71,15 @@ class HashTupleKDF(FrozenInstance):
         for other key derivation procedures.
         """
         self._payload = self._new_payload()
-        self._payload.update(
-            hash_bytes(
-                Domains.KDF,
-                domain,
-                *data,
-                key=key + domain,
-                size=self._payload.block_size,
-                hasher=self._type,
-            )
+        canonicalized_hash = hash_bytes(
+            Domains.KDF,
+            domain,
+            *data,
+            key=key + domain,
+            size=self._payload.block_size,
+            hasher=self._type,
         )
+        self._payload.update(canonicalized_hash)
 
     async def _arun_kdf(
         self,
@@ -168,9 +174,11 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         if not data:
             raise Issue.value_must("update data", "not be empty")
         payload = self._payload
-        payload.update(
-            await acanonical_pack(*data, blocksize=payload.block_size)
+        canonicalized_data = await acanonical_pack(
+            *data,
+            blocksize=payload.block_size,
         )
+        payload.update(canonicalized_data)
         return self
 
     def update(self, *data: bytes) -> t.Self:
@@ -190,7 +198,9 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         Return the keyed sha3_256 hash of the instance's state.
         """
         return await self._arun_kdf(
-            *data, aad=aad, obj=HASHER_TYPES["sha3_256"]
+            *data,
+            aad=aad,
+            obj=HASHER_TYPES["sha3_256"],
         )
 
     def sha3_256(self, *data: bytes, aad: bytes = b"") -> bytes:
@@ -204,7 +214,9 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         Return the keyed sha3_512 hash of the instance's state.
         """
         return await self._arun_kdf(
-            *data, aad=aad, obj=HASHER_TYPES["sha3_512"]
+            *data,
+            aad=aad,
+            obj=HASHER_TYPES["sha3_512"],
         )
 
     def sha3_512(self, *data: bytes, aad: bytes = b"") -> bytes:
@@ -214,13 +226,19 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         return self._run_kdf(*data, aad=aad, obj=HASHER_TYPES["sha3_512"])
 
     async def ashake_128(
-        self, *data: bytes, size: int, aad: bytes = b""
+        self,
+        *data: bytes,
+        size: int,
+        aad: bytes = b"",
     ) -> bytes:
         """
         Return the keyed shake_128 hash of the instance's state.
         """
         return await self._arun_kdf(
-            *data, size=size, aad=aad, obj=HASHER_TYPES["shake_128"]
+            *data,
+            size=size,
+            aad=aad,
+            obj=HASHER_TYPES["shake_128"],
         )
 
     def shake_128(self, *data: bytes, size: int, aad: bytes = b"") -> bytes:
@@ -228,17 +246,26 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         Return the keyed shake_128 hash of the instance's state.
         """
         return self._run_kdf(
-            *data, size=size, aad=aad, obj=HASHER_TYPES["shake_128"]
+            *data,
+            size=size,
+            aad=aad,
+            obj=HASHER_TYPES["shake_128"],
         )
 
     async def ashake_256(
-        self, *data: bytes, size: int, aad: bytes = b""
+        self,
+        *data: bytes,
+        size: int,
+        aad: bytes = b"",
     ) -> bytes:
         """
         Return the keyed shake_256 hash of the instance's state.
         """
         return await self._arun_kdf(
-            *data, size=size, aad=aad, obj=HASHER_TYPES["shake_256"]
+            *data,
+            size=size,
+            aad=aad,
+            obj=HASHER_TYPES["shake_256"],
         )
 
     def shake_256(self, *data: bytes, size: int, aad: bytes = b"") -> bytes:
@@ -246,7 +273,10 @@ class DomainKDF(HashTupleKDF, salt_label=b"domain_kdf_salt"):
         Return the keyed shake_256 hash of the instance's state.
         """
         return self._run_kdf(
-            *data, size=size, aad=aad, obj=HASHER_TYPES["shake_256"]
+            *data,
+            size=size,
+            aad=aad,
+            obj=HASHER_TYPES["shake_256"],
         )
 
 

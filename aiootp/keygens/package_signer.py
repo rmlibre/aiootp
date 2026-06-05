@@ -70,6 +70,7 @@ class PackageSigner:
 
     import json
     from getpass import getpass
+    from pathlib import Path
     from aiootp import PackageSigner
 
     signer = PackageSigner(
@@ -87,12 +88,14 @@ class PackageSigner:
     with open("MANIFEST.in", "r") as manifest:
         filename_sheet = manifest.read().split("\n")
 
+    include_statement = "include "
+    filename_start = len(include_statement)
     for line in filename_sheet:
-        if not line.startswith("include"):
+        if not line.startswith(include_statement):
             continue
-        filename = line.strip().split(" ")[-1]
-        with open(filename, "rb") as source_file:
-            signer.add_file(filename, source_file.read())
+        file_path = Path(line[filename_start:])
+        with open(file_path, "rb") as source_file:
+            signer.add_file(str(file_path), source_file.read())
 
     signer.sign_package()
     signer.db.save_database()
@@ -216,7 +219,7 @@ class PackageSigner:
         return {
             self._CHECKSUMS: dict(self._checksums.items()),
             self._PUBLIC_CREDENTIALS: dict(
-                sorted(self._public_credentials.items())
+                sorted(self._public_credentials.items()),
             ),
             self._SCOPE: dict(sorted(self._scope.items())),
             self._SIGNING_KEY: self.signing_key.public_bytes.hex(),
@@ -280,7 +283,8 @@ class PackageSigner:
         return self
 
     def update_public_credentials(
-        self, **credentials: t.JSONSerializable
+        self,
+        **credentials: t.JSONSerializable,
     ) -> t.Self:
         """
         Updates the public credentials to be associated with the package
@@ -292,7 +296,8 @@ class PackageSigner:
         return self
 
     def update_signing_key(
-        self, signing_key: t.SecretKeyType | bytes | t.SignerType
+        self,
+        signing_key: t.SecretKeyType | bytes | t.SignerType,
     ) -> t.Self:
         """
         Updates the package's secret signing key as an encrypted token
@@ -303,9 +308,8 @@ class PackageSigner:
             signing_key = self._Signer().import_secret_key(signing_key)
         package = self._scope.package
         aad = canonical_pack(Domains.PACKAGE_SIGNER, package.encode())
-        self.db[package][self._SIGNING_KEY] = self.db.make_token(
-            signing_key.secret_bytes, aad=aad
-        ).decode()
+        token = self.db.make_token(signing_key.secret_bytes, aad=aad)
+        self.db[package][self._SIGNING_KEY] = token.decode()
         return self
 
     def add_file(self, filename: str, file_data: bytes) -> t.Self:
@@ -323,10 +327,11 @@ class PackageSigner:
         save the signature to disk.
         """
         checksum = self._checksum
+        version = self._scope.version
+        signature = self.signing_key.sign(checksum).hex()
+        payload = {version: signature}
         with self.db as db:
-            db[self._scope.package][self._VERSIONS].update(
-                {self._scope.version: self.signing_key.sign(checksum).hex()}
-            )
+            db[self._scope.package][self._VERSIONS].update(payload)
         return self
 
     def summarize(self) -> dict[str, t.JSONSerializable]:

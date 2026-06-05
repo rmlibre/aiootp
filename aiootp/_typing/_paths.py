@@ -27,7 +27,8 @@ from .interface import Typing as t
 PathStr = t.PathStr = t.NewType("PathStr", Path | str)
 OptionalPath = t.OptionalPath = t.NewType("OptionalPath", Path | None)
 OptionalPathStr = t.OptionalPathStr = t.NewType(
-    "OptionalPathStr", PathStr | None
+    "OptionalPathStr",
+    PathStr | None,
 )
 
 

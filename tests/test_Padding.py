@@ -32,7 +32,8 @@ class TestPlaintextPadding:
                 pt = n * b"0"
                 padded_pt = Pad.pad_plaintext(pt)
                 sentinel = int.from_bytes(
-                    padded_pt[config.SENTINEL_SLICE], BIG
+                    padded_pt[config.SENTINEL_SLICE],
+                    BIG,
                 )
                 end = -(sentinel or config.BLOCKSIZE)
 

@@ -53,12 +53,7 @@ class AffinePermutation(FrozenInstance):
     assert domain == tuple(aff.invert(i) for i in permutation)
     """
 
-    __slots__ = (
-        "_MAX",
-        "_PRIME",
-        "_additive_key",
-        "config",
-    )
+    __slots__ = ("_MAX", "_PRIME", "_additive_key", "config")
 
     _configs = ConfigMap(
         mapping={

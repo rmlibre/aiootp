@@ -28,7 +28,10 @@ class AsyncDatabaseType(t.Protocol):
         pass  # pragma: no cover
 
     async def aload_metatags(
-        self, *, preload: bool, silent: bool
+        self,
+        *,
+        preload: bool,
+        silent: bool,
     ) -> t.Self:
         pass  # pragma: no cover
 
@@ -45,17 +48,28 @@ class AsyncDatabaseType(t.Protocol):
         pass  # pragma: no cover
 
     async def aset_tag(
-        self, tag: str, data: t.JSONSerializable, *, cache: bool
+        self,
+        tag: str,
+        data: t.JSONSerializable,
+        *,
+        cache: bool,
     ) -> t.Self:
         pass  # pragma: no cover
 
     async def aquery_tag(
-        self, tag: str, *, silent: bool, cache: bool
+        self,
+        tag: str,
+        *,
+        silent: bool,
+        cache: bool,
     ) -> t.JSONSerializable | bytes:
         pass  # pragma: no cover
 
     async def apop_tag(
-        self, tag: str, *, silent: bool
+        self,
+        tag: str,
+        *,
+        silent: bool,
     ) -> t.JSONSerializable | bytes:
         pass  # pragma: no cover
 
@@ -66,7 +80,11 @@ class AsyncDatabaseType(t.Protocol):
         pass  # pragma: no cover
 
     async def ametatag(
-        self, tag: str, *, preload: bool, silent: bool
+        self,
+        tag: str,
+        *,
+        preload: bool,
+        silent: bool,
     ) -> t.Cls:
         pass  # pragma: no cover
 
@@ -77,7 +95,11 @@ class AsyncDatabaseType(t.Protocol):
         pass  # pragma: no cover
 
     async def asave_tag(
-        self, tag: str, *, admin: bool, drop_cache: bool
+        self,
+        tag: str,
+        *,
+        admin: bool,
+        drop_cache: bool,
     ) -> t.Self:
         pass  # pragma: no cover
 
@@ -103,17 +125,28 @@ class DatabaseType(t.Protocol):
         pass  # pragma: no cover
 
     def set_tag(
-        self, tag: str, data: t.JSONSerializable, *, cache: bool
+        self,
+        tag: str,
+        data: t.JSONSerializable,
+        *,
+        cache: bool,
     ) -> t.Self:
         pass  # pragma: no cover
 
     def query_tag(
-        self, tag: str, *, silent: bool, cache: bool
+        self,
+        tag: str,
+        *,
+        silent: bool,
+        cache: bool,
     ) -> t.JSONSerializable | bytes:
         pass  # pragma: no cover
 
     def pop_tag(
-        self, tag: str, *, silent: bool
+        self,
+        tag: str,
+        *,
+        silent: bool,
     ) -> t.JSONSerializable | bytes:
         pass  # pragma: no cover
 
@@ -133,7 +166,11 @@ class DatabaseType(t.Protocol):
         pass  # pragma: no cover
 
     def save_tag(
-        self, tag: str, *, admin: bool, drop_cache: bool
+        self,
+        tag: str,
+        *,
+        admin: bool,
+        drop_cache: bool,
     ) -> t.Self:
         pass  # pragma: no cover
 

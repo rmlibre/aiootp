@@ -55,7 +55,8 @@ class ShakePermuteKDFs(CipherKDFs):
         self.keyed_shmac_kdf = self.key_base_kdf(SHMAC_KDF, key=key)
 
     def new_session(
-        self, summary: bytes
+        self,
+        summary: bytes,
     ) -> t.Generator[tuple[str, t.XOFType], None, None]:
         """
         Yields copies of the instance's KDFs that have been given the
@@ -130,7 +131,7 @@ class ShakePermuteStreamHMAC(StreamHMAC):
             ciphertext = (
                 out_key
                 ^ await self._permutation.auncapped_permute(
-                    in_key ^ _from_bytes(plaintext, BIG)
+                    in_key ^ _from_bytes(plaintext, BIG),
                 )
             ).to_bytes(c.BLOCKSIZE, BIG)
             await self._aupdate(plaintext + ciphertext + digest)  # 168 bytes
@@ -158,7 +159,7 @@ class ShakePermuteStreamHMAC(StreamHMAC):
             ciphertext = (
                 out_key
                 ^ self._permutation.uncapped_permute(
-                    in_key ^ _from_bytes(plaintext, BIG)
+                    in_key ^ _from_bytes(plaintext, BIG),
                 )
             ).to_bytes(c.BLOCKSIZE, BIG)
             self._update(plaintext + ciphertext + digest)  # 168 bytes
@@ -186,7 +187,7 @@ class ShakePermuteStreamHMAC(StreamHMAC):
             plaintext = (
                 in_key
                 ^ await self._permutation.auncapped_invert(
-                    out_key ^ _from_bytes(ciphertext, BIG)
+                    out_key ^ _from_bytes(ciphertext, BIG),
                 )
             ).to_bytes(c.BLOCKSIZE, BIG)
             await self._aupdate(plaintext + ciphertext + digest)  # 168 bytes
@@ -214,7 +215,7 @@ class ShakePermuteStreamHMAC(StreamHMAC):
             plaintext = (
                 in_key
                 ^ self._permutation.uncapped_invert(
-                    out_key ^ _from_bytes(ciphertext, BIG)
+                    out_key ^ _from_bytes(ciphertext, BIG),
                 )
             ).to_bytes(c.BLOCKSIZE, BIG)
             self._update(plaintext + ciphertext + digest)  # 168 bytes
@@ -232,7 +233,10 @@ class ShakePermuteStreamJunction(StreamJunction):
 
     @classmethod
     async def acombine_streams(
-        cls, data: t.AsyncDatastream, *, shmac: StreamHMAC
+        cls,
+        data: t.AsyncDatastream,
+        *,
+        shmac: StreamHMAC,
     ) -> t.AsyncGenerator[bytes, None]:
         """
         XORs each ciphertext or plaintext block with a SHAKE round key,
@@ -246,7 +250,10 @@ class ShakePermuteStreamJunction(StreamJunction):
 
     @classmethod
     def combine_streams(
-        cls, data: t.Datastream, *, shmac: StreamHMAC
+        cls,
+        data: t.Datastream,
+        *,
+        shmac: StreamHMAC,
     ) -> t.Generator[bytes, None, None]:
         """
         XORs each ciphertext or plaintext block with a SHAKE round key,

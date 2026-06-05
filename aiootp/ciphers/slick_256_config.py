@@ -80,7 +80,7 @@ def _shake_permute_config_inputs(**kw: t.Any) -> dict[str, t.Any]:
 
 
 slick256_spec: t.ConfigType = ShakePermuteCipherConfig(
-    **_shake_permute_config_inputs()
+    **_shake_permute_config_inputs(),
 )
 
 

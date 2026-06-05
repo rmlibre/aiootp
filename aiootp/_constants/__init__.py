@@ -25,7 +25,9 @@ from aiootp._typing import Typing as t
 
 class NamespaceMapping(t.SimpleNamespace):
     def __init__(
-        self, mapping: t.Mapping[str, t.Any] = {}, **kwargs: t.Any
+        self,
+        mapping: t.Mapping[str, t.Any] = {},
+        **kwargs: t.Any,
     ) -> None:
         super().__init__(**kwargs)
         self.__dict__.update(mapping)
@@ -63,7 +65,10 @@ class NamespaceMapping(t.SimpleNamespace):
         yield from self.__dict__.items()
 
     def update(
-        self, mapping: t.Mapping[str, t.Any] = {}, /, **kw: t.Any
+        self,
+        mapping: t.Mapping[str, t.Any] = {},
+        /,
+        **kw: t.Any,
     ) -> None:
         self.__dict__.update(mapping, **kw)
 

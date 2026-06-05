@@ -119,10 +119,12 @@ class TestConcurrencyGuard:
                 pass
 
     @pytest.mark.parametrize(
-        "policy_cls", ConcurrencyGuard.policies.values()
+        "policy_cls",
+        ConcurrencyGuard.policies.values(),
     )
     async def test_async_policy_must_be_instance_not_class(
-        self, policy_cls
+        self,
+        policy_cls,
     ) -> None:
         queue = deque()
         problem = (
@@ -134,10 +136,12 @@ class TestConcurrencyGuard:
         ConcurrencyGuard(queue, policy=policy_cls())
 
     @pytest.mark.parametrize(
-        "policy_cls", ConcurrencyGuard.policies.values()
+        "policy_cls",
+        ConcurrencyGuard.policies.values(),
     )
     async def test_sync_policy_must_be_instance_not_class(
-        self, policy_cls
+        self,
+        policy_cls,
     ) -> None:
         queue = deque()
         problem = (

@@ -94,7 +94,8 @@ class Config(OpenFrozenTypedSlots):
             object.__setattr__(self, CONFIG_ID, config_id)
         elif config_id != self.CONFIG_ID:
             raise Issue.value_must(
-                f"{config_id=}", f"match {self.CONFIG_ID=}"
+                f"{config_id=}",
+                f"match {self.CONFIG_ID=}",
             )
 
 
@@ -167,7 +168,10 @@ class ConfigMap(OpenFrozenNamespace):
         super().__init__(mapping, **kw)
 
     def __setitem__(
-        self, config_id: t.Hashable, config: t.ConfigType, /
+        self,
+        config_id: t.Hashable,
+        config: t.ConfigType,
+        /,
     ) -> None:
         """
         Sets a `config` by its `config_id` reference. If the `config_id`

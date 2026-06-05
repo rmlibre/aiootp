@@ -98,7 +98,9 @@ class MemoizedCipher(FrozenSlots):
     def __iter__(
         self,
     ) -> t.Generator[
-        None, t.Union[t.ConfigType, t.CipherInterfaceType, bytes], None
+        None,
+        t.Union[t.ConfigType, t.CipherInterfaceType, bytes],
+        None,
     ]:
         yield self.config
         yield self.cipher
@@ -167,41 +169,51 @@ atest_data = test_data.copy()
 ttl_test_cipher = choice(all_ciphers)
 atest_json_ciphertext = run(
     ttl_test_cipher.cipher.ajson_encrypt(
-        atest_data, aad=ttl_test_cipher.aad
-    )
+        atest_data,
+        aad=ttl_test_cipher.aad,
+    ),
 )
 test_json_ciphertext = ttl_test_cipher.cipher.json_encrypt(
-    test_data, aad=ttl_test_cipher.aad
+    test_data,
+    aad=ttl_test_cipher.aad,
 )
 atest_token_ciphertext = run(
     ttl_test_cipher.cipher.amake_token(
-        plaintext_bytes, aad=ttl_test_cipher.aad
-    )
+        plaintext_bytes,
+        aad=ttl_test_cipher.aad,
+    ),
 )
 test_token_ciphertext = ttl_test_cipher.cipher.make_token(
-    plaintext_bytes, aad=ttl_test_cipher.aad
+    plaintext_bytes,
+    aad=ttl_test_cipher.aad,
 )
 
 
 async def make_async_ttl_cipher_stream() -> tuple[
-    t.AsyncCipherStream, bytes
+    t.AsyncCipherStream,
+    bytes,
 ]:
     stream = await ttl_test_cipher.cipher.astream_encrypt(
-        salt=ttl_test_cipher.salt, aad=ttl_test_cipher.aad
+        salt=ttl_test_cipher.salt,
+        aad=ttl_test_cipher.aad,
     )
     await stream.abuffer(plaintext_bytes)
     ciphertext = b"".join(
-        [(block_id + block) async for block_id, block in stream.afinalize()]
+        [
+            (block_id + block)
+            async for block_id, block in stream.afinalize()
+        ],
     )
     return stream, ciphertext
 
 
 attl_cipher_stream, attl_stream_ciphertext = run(
-    make_async_ttl_cipher_stream()
+    make_async_ttl_cipher_stream(),
 )
 
 ttl_cipher_stream = ttl_test_cipher.cipher.stream_encrypt(
-    salt=ttl_test_cipher.salt, aad=ttl_test_cipher.aad
+    salt=ttl_test_cipher.salt,
+    aad=ttl_test_cipher.aad,
 )
 ttl_cipher_stream.buffer(plaintext_bytes)
 ttl_stream_ciphertext = b"".join(
@@ -225,7 +237,7 @@ custom_pcrypt = Passcrypt(
     ),
 )
 aexpired_passcrypt_hash_seconds = run(
-    custom_pcrypt.ahash_passphrase(passphrase_0)
+    custom_pcrypt.ahash_passphrase(passphrase_0),
 )
 expired_passcrypt_hash_seconds = custom_pcrypt.hash_passphrase(passphrase_0)
 

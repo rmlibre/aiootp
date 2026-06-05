@@ -69,11 +69,13 @@ class TestSequenceID:
             )
             with Ignore(KeyError, ValueError, if_else=violation(problem)):
                 sid = SequenceID(
-                    key=token_bytes(SequenceID.key_size(n - 1)), config_id=n
+                    key=token_bytes(SequenceID.key_size(n - 1)),
+                    config_id=n,
                 )
 
             sid = SequenceID(
-                key=token_bytes(SequenceID.key_size(n)), config_id=n
+                key=token_bytes(SequenceID.key_size(n)),
+                config_id=n,
             )
             # the size of produced sequential ids is the same as the defined
             # size

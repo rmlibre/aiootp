@@ -84,45 +84,46 @@ class TestAPlatformTime:
 class TestClockConversions:
     seconds_to_nanoseconds = staticmethod(
         lambda control, epoch: int(
-            (control - epoch.seconds) * 1_000_000_000
-        )
+            (control - epoch.seconds) * 1_000_000_000,
+        ),
     )
     seconds_to_microseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 1_000_000)
+        lambda control, epoch: int((control - epoch.seconds) * 1_000_000),
     )
     seconds_to_milliseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 1_000)
+        lambda control, epoch: int((control - epoch.seconds) * 1_000),
     )
     seconds_to_centiseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 100)
+        lambda control, epoch: int((control - epoch.seconds) * 100),
     )
     seconds_to_deciseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 10)
+        lambda control, epoch: int((control - epoch.seconds) * 10),
     )
     seconds_to_seconds = staticmethod(
-        lambda control, epoch: int(control - epoch.seconds)
+        lambda control, epoch: int(control - epoch.seconds),
     )
     seconds_to_minutes = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) / 60)
+        lambda control, epoch: int((control - epoch.seconds) / 60),
     )
     seconds_to_hours = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) / (60 * 60))
+        lambda control, epoch: int((control - epoch.seconds) / (60 * 60)),
     )
     seconds_to_days = staticmethod(
         lambda control, epoch: int(
-            (control - epoch.seconds) / (60 * 60 * 24)
-        )
+            (control - epoch.seconds) / (60 * 60 * 24),
+        ),
     )
     seconds_to_months = staticmethod(
         lambda control, epoch: int(
             (control - epoch.seconds)
-            / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS / 12)
-        )
+            / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS / 12),
+        ),
     )
     seconds_to_years = staticmethod(
         lambda control, epoch: int(
-            (control - epoch.seconds) / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS)
-        )
+            (control - epoch.seconds)
+            / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS),
+        ),
     )
 
     def test_package_epoch_starts_year_2023(self) -> None:
@@ -155,7 +156,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             span = test.correct_range(
-                control_conversion=self.seconds_to_nanoseconds
+                control_conversion=self.seconds_to_nanoseconds,
             )
             if TIME_RESOLUTION <= 1e-09:
                 assert test.experiment in span
@@ -174,7 +175,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             span = test.correct_range(
-                control_conversion=self.seconds_to_microseconds
+                control_conversion=self.seconds_to_microseconds,
             )
             if TIME_RESOLUTION <= 1e-09:
                 assert test.experiment in span
@@ -193,7 +194,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             span = test.correct_range(
-                control_conversion=self.seconds_to_milliseconds
+                control_conversion=self.seconds_to_milliseconds,
             )
             if TIME_RESOLUTION <= 1e-09:
                 assert test.experiment in span
@@ -212,7 +213,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             span = test.correct_range(
-                control_conversion=self.seconds_to_centiseconds
+                control_conversion=self.seconds_to_centiseconds,
             )
             if TIME_RESOLUTION <= 1e-09:
                 assert test.experiment in span
@@ -231,7 +232,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             span = test.correct_range(
-                control_conversion=self.seconds_to_deciseconds
+                control_conversion=self.seconds_to_deciseconds,
             )
             if TIME_RESOLUTION <= 1e-09:
                 assert test.experiment in span
@@ -250,7 +251,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_seconds
+                control_conversion=self.seconds_to_seconds,
             )
 
     def test_minutes_correctness(self) -> None:
@@ -262,7 +263,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_minutes
+                control_conversion=self.seconds_to_minutes,
             )
 
     def test_hours_correctness(self) -> None:
@@ -274,7 +275,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_hours
+                control_conversion=self.seconds_to_hours,
             )
 
     def test_days_correctness(self) -> None:
@@ -286,7 +287,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_days
+                control_conversion=self.seconds_to_days,
             )
 
     def test_months_correctness(self) -> None:
@@ -298,7 +299,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_months
+                control_conversion=self.seconds_to_months,
             )
 
     def test_years_correctness(self) -> None:
@@ -310,7 +311,7 @@ class TestClockConversions:
                 epoch=epoch,
             )
             assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_years
+                control_conversion=self.seconds_to_years,
             )
 
 
@@ -374,7 +375,10 @@ class TestClock:
         ],
     )
     async def test_delta_greater_than_ttl_fails(
-        self, units: str, timestamp_bytes: list[int], ttl: int
+        self,
+        units: str,
+        timestamp_bytes: list[int],
+        ttl: int,
     ) -> None:
         clock = Clock(units)
         past_time = max(0, clock.time() - ttl - 1)

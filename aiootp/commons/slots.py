@@ -117,7 +117,10 @@ class Slots:
         cls._slots_set = frozenset(cls.__slots__)
 
     def __init__(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
+        self,
+        mapping: t.Mapping[t.Hashable, t.Any] = {},
+        /,
+        **kw: t.Any,
     ) -> None:
         """
         Maps user-defined kwargs to instance attributes. If a subclass
@@ -303,7 +306,10 @@ class Slots:
             yield name, self[name]
 
     def update(
-        self, mapping: t.Mapping[t.Hashable, t.Any] = {}, /, **kw: t.Any
+        self,
+        mapping: t.Mapping[t.Hashable, t.Any] = {},
+        /,
+        **kw: t.Any,
     ) -> None:
         """
         Updates the instance with new key-values from a mapping.

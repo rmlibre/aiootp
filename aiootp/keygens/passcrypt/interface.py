@@ -251,7 +251,11 @@ class Passcrypt(FrozenInstance):
         )
 
     async def anew(
-        self, passphrase: bytes, salt: bytes, *, aad: bytes = DEFAULT_AAD
+        self,
+        passphrase: bytes,
+        salt: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
         Returns just the `tag_size`-byte hash of the `passphrase`
@@ -289,7 +293,11 @@ class Passcrypt(FrozenInstance):
             raise error
 
     def new(
-        self, passphrase: bytes, salt: bytes, *, aad: bytes = DEFAULT_AAD
+        self,
+        passphrase: bytes,
+        salt: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
         Returns just the `tag_size`-byte hash of the `passphrase`
@@ -327,7 +335,10 @@ class Passcrypt(FrozenInstance):
             raise error
 
     async def ahash_passphrase(
-        self, passphrase: bytes, *, aad: bytes = DEFAULT_AAD
+        self,
+        passphrase: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
         Returns the passcrypt difficulty settings, salt & hash of the
@@ -353,7 +364,7 @@ class Passcrypt(FrozenInstance):
         guarantees the release.
         """
         timestamp = await self._config.clock.amake_timestamp(
-            size=self._config.TIMESTAMP_BYTES
+            size=self._config.TIMESTAMP_BYTES,
         )
         salt = await acsprng(self._settings.salt_size)
         tag = await self.anew(passphrase, salt, aad=timestamp + aad)
@@ -368,7 +379,10 @@ class Passcrypt(FrozenInstance):
         ).export_hash()
 
     def hash_passphrase(
-        self, passphrase: bytes, *, aad: bytes = DEFAULT_AAD
+        self,
+        passphrase: bytes,
+        *,
+        aad: bytes = DEFAULT_AAD,
     ) -> bytes:
         """
         Returns the passcrypt difficulty settings, salt & hash of the
@@ -394,7 +408,7 @@ class Passcrypt(FrozenInstance):
         guarantees the release.
         """
         timestamp = self._config.clock.make_timestamp(
-            size=self._config.TIMESTAMP_BYTES
+            size=self._config.TIMESTAMP_BYTES,
         )
         salt = csprng(self._settings.salt_size)
         tag = self.new(passphrase, salt, aad=timestamp + aad)
@@ -451,7 +465,7 @@ class Passcrypt(FrozenInstance):
                 provided hash falls outside of that range.
         """
         parts = cls._PasscryptHash(config=config).import_hash(
-            composed_passcrypt_hash
+            composed_passcrypt_hash,
         )
         ttl = ttl and math.floor(ttl * config.S_TO_TIME_UNIT_RATIO)
         await config.clock.atest_timestamp(parts.timestamp, ttl=ttl)
@@ -464,7 +478,9 @@ class Passcrypt(FrozenInstance):
             config=config,
         )
         untrusted_hash = await self.anew(
-            passphrase, parts.salt, aad=parts.timestamp + aad
+            passphrase,
+            parts.salt,
+            aad=parts.timestamp + aad,
         )
         if not bytes_are_equal(untrusted_hash, parts.tag):
             raise PasscryptIssue.verification_failed()
@@ -512,7 +528,7 @@ class Passcrypt(FrozenInstance):
                 provided hash falls outside of that range.
         """
         parts = cls._PasscryptHash(config=config).import_hash(
-            composed_passcrypt_hash
+            composed_passcrypt_hash,
         )
         ttl = ttl and math.floor(ttl * config.S_TO_TIME_UNIT_RATIO)
         config.clock.test_timestamp(parts.timestamp, ttl=ttl)
@@ -525,7 +541,9 @@ class Passcrypt(FrozenInstance):
             config=config,
         )
         untrusted_hash = self.new(
-            passphrase, parts.salt, aad=parts.timestamp + aad
+            passphrase,
+            parts.salt,
+            aad=parts.timestamp + aad,
         )
         if not bytes_are_equal(untrusted_hash, parts.tag):
             raise PasscryptIssue.verification_failed()

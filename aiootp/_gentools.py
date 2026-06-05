@@ -75,7 +75,11 @@ def is_generator(obj: t.Any, /) -> bool:
 
 
 async def abatch(
-    sequence: bytes, /, *, size: int, buffer_type: type = io.BytesIO
+    sequence: bytes,
+    /,
+    *,
+    size: int,
+    buffer_type: type = io.BytesIO,
 ) -> t.AsyncGenerator[bytes, None]:
     """
     Runs through a sequence & yields `size` sized chunks of the bytes
@@ -108,7 +112,11 @@ async def abatch(
 
 
 def batch(
-    sequence: bytes, /, *, size: int, buffer_type: type = io.BytesIO
+    sequence: bytes,
+    /,
+    *,
+    size: int,
+    buffer_type: type = io.BytesIO,
 ) -> t.Generator[bytes, None, None]:
     """
     Runs through a sequence & yields `size` sized chunks of the bytes
@@ -163,7 +171,8 @@ async def aresize(
     else:
         blocks = (blocks * size) + 1
     async for previous_end, end in azip(
-        range(0, blocks, size), range(size, blocks, size)
+        range(0, blocks, size),
+        range(size, blocks, size),
     ):
         yield sequence[previous_end:end]
 
@@ -192,13 +201,15 @@ def resize(
     else:
         blocks = (blocks * size) + 1
     for previous_end, end in zip(
-        range(0, blocks, size), range(size, blocks, size)
+        range(0, blocks, size),
+        range(size, blocks, size),
     ):
         yield sequence[previous_end:end]
 
 
 async def aunpack(
-    iterable: t.AsyncOrSyncIterable[t.Any], /
+    iterable: t.AsyncOrSyncIterable[t.Any],
+    /,
 ) -> t.AsyncGenerator[t.Any, None]:
     """
     Runs through an iterable &/or async iterable & yields elements one
@@ -214,7 +225,8 @@ async def aunpack(
 
 
 def unpack(
-    iterable: t.Iterable[t.Any], /
+    iterable: t.Iterable[t.Any],
+    /,
 ) -> t.Generator[t.Any, None, None]:
     """
     Runs through an iterable & yields elements one at a time.
@@ -238,7 +250,8 @@ async def azip(
 
 
 async def acycle(
-    iterable: t.AsyncOrSyncIterable[t.Any], /
+    iterable: t.AsyncOrSyncIterable[t.Any],
+    /,
 ) -> t.AsyncGenerator[t.Any, None]:
     """
     Unendingly cycles in order over the elements of an async iterable.
@@ -273,7 +286,10 @@ def cycle(iterable: t.Iterable[t.Any], /) -> t.Generator[t.Any, None, None]:
 
 
 async def abytes_count(
-    *, start: int = 0, size: int = 8, byte_order: str = BIG
+    *,
+    start: int = 0,
+    size: int = 8,
+    byte_order: str = BIG,
 ) -> t.AsyncGenerator[bytes, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
@@ -286,7 +302,10 @@ async def abytes_count(
 
 
 def bytes_count(
-    *, start: int = 0, size: int = 8, byte_order: str = BIG
+    *,
+    start: int = 0,
+    size: int = 8,
+    byte_order: str = BIG,
 ) -> t.Generator[bytes, None, None]:
     """
     Unendingly yields incrementing numbers starting from `start`.
@@ -323,7 +342,9 @@ def count(*, start: int = 0) -> t.Generator[int, None, None]:
 
 
 async def abytes_range(
-    *a: int, size: int = 8, byte_order: str = BIG
+    *a: int,
+    size: int = 8,
+    byte_order: str = BIG,
 ) -> t.AsyncGenerator[int, None]:
     """
     An async version of `builtins.range` wrapped by the `Comprende`
@@ -335,7 +356,9 @@ async def abytes_range(
 
 
 def bytes_range(
-    *a: int, size: int = 8, byte_order: str = BIG
+    *a: int,
+    size: int = 8,
+    byte_order: str = BIG,
 ) -> t.Generator[int, None, None]:
     """
     A synchronous version of `builtins.range` which is wrapped by the
@@ -383,7 +406,8 @@ def collate(
 
 
 async def apopleft(
-    queue: t.SupportsPopleft, /
+    queue: t.SupportsPopleft,
+    /,
 ) -> t.AsyncGenerator[t.Any, None]:
     """
     An async generator which calls the `popleft()` method on `queue`

@@ -42,12 +42,14 @@ class TestAffinePermutationConfig:
         config_id = 1
         config = t.AffinePermutation._configs[config_id]
         config.is_likely_safe_multiplier(
-            config.MULTIPLICATIVE_KEY, prime=257
+            config.MULTIPLICATIVE_KEY,
+            prime=257,
         )
         for bad_prime in (2, 23, 59, 97, 137, 179, 251):
             with Ignore(ValueError, if_else=violation(problem)):
                 config.is_likely_safe_multiplier(
-                    config.MULTIPLICATIVE_KEY, prime=bad_prime
+                    config.MULTIPLICATIVE_KEY,
+                    prime=bad_prime,
                 )
 
 
@@ -163,11 +165,7 @@ class TestAffineXORChainConfig:
                 )
 
     async def test_permutation_cid_defaults_to_instance_cid(self) -> None:
-        config = t.AffineXORChainConfig(
-            config_id=32,
-            size=32,
-            **self.kw,
-        )
+        config = t.AffineXORChainConfig(config_id=32, size=32, **self.kw)
         assert 32 == config.PERMUTATION_CONFIG_ID
 
     async def test_permutation_type_is_enforced(self) -> None:
@@ -213,7 +211,8 @@ class TestAffineXORChain:
                 aff._process_out_key,
             ):
                 assert aff.config.XOR_KEY_SIZE * b"A" == tested_method(
-                    key_reader=key_reader, size=aff.config.XOR_KEY_SIZE
+                    key_reader=key_reader,
+                    size=aff.config.XOR_KEY_SIZE,
                 ).to_bytes(aff.config.XOR_KEY_SIZE, BIG)
 
                 with Ignore(ValueError, if_else=violation(problem)):
@@ -233,7 +232,8 @@ class TestAffineXORChain:
             raw_key = int.from_bytes(aff.config.XOR_KEY_SIZE * b"A", BIG)
 
             assert (IPAD ^ raw_key, OPAD ^ raw_key) == tested_method(
-                key_reader=key_reader, size=aff.config.XOR_KEY_SIZE
+                key_reader=key_reader,
+                size=aff.config.XOR_KEY_SIZE,
             )
 
             with Ignore(ValueError, if_else=violation(problem)):

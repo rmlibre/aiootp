@@ -146,13 +146,12 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         ).async_mode()
         self.shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
         self._stream = cipher._Junction.abytes_decipher(
-            apopleft(buffer), shmac=self.shmac
+            apopleft(buffer),
+            shmac=self.shmac,
         )
 
     @property
-    def _iter_shortcuts(
-        self,
-    ) -> tuple[deque[bytes], t.Callable[[], bytes]]:
+    def _iter_shortcuts(self) -> tuple[deque[bytes], t.Callable[[], bytes]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -256,10 +255,11 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
                 yield result
             queue = self._result_queue
             footer_index = await self._padding.adepadding_end_index(
-                queue[-1]
+                queue[-1],
             )
             async for block in abatch(
-                b"".join(queue)[:footer_index], size=self._config.BLOCKSIZE
+                b"".join(queue)[:footer_index],
+                size=self._config.BLOCKSIZE,
             ):
                 yield block
 
@@ -435,13 +435,12 @@ class DecipherStream(CipherStreamProperties):
         ).sync_mode()
         self.shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
         self._stream = cipher._Junction.bytes_decipher(
-            popleft(buffer), shmac=self.shmac
+            popleft(buffer),
+            shmac=self.shmac,
         )
 
     @property
-    def _iter_shortcuts(
-        self,
-    ) -> tuple[deque[bytes], t.Callable[[], bytes]]:
+    def _iter_shortcuts(self) -> tuple[deque[bytes], t.Callable[[], bytes]]:
         """
         Returns method pointers so calls in tight loops during
         processing don't have to continually getattr on instance
@@ -536,14 +535,17 @@ class DecipherStream(CipherStreamProperties):
             raise ConcurrencyGuard.IncoherentConcurrencyState
 
         with ConcurrencyGuard(
-            self._digesting_now, probe_delay=0.0001, token=token
+            self._digesting_now,
+            probe_delay=0.0001,
+            token=token,
         ):
             self.shmac.finalize()
             yield from self
             queue = self._result_queue
             footer_index = self._padding.depadding_end_index(queue[-1])
             yield from batch(
-                b"".join(queue)[:footer_index], size=self._config.BLOCKSIZE
+                b"".join(queue)[:footer_index],
+                size=self._config.BLOCKSIZE,
             )
 
     def _digest_data(

@@ -74,7 +74,9 @@ class FastAffineXORChain(AffineXORChain):
     )
 
     def _initialize_permutations(
-        self, key_reader: t.Callable[[int], bytes], size: int
+        self,
+        key_reader: t.Callable[[int], bytes],
+        size: int,
     ) -> tuple[t.PermutationType]:
         """
         Uses the permutation configuration ID saved in the instance's

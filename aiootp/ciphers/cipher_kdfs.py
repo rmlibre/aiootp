@@ -76,7 +76,9 @@ class ShakeConfig(Config):
         self.key_slice = key_slice
 
     def prepare_factory(
-        self, config_id: bytes, packed_metadata: bytes
+        self,
+        config_id: bytes,
+        packed_metadata: bytes,
     ) -> t.Self:
         """
         Domain separates each KDF with a unique salt based on the
@@ -89,7 +91,7 @@ class ShakeConfig(Config):
                 domain=config_id,
                 aad=packed_metadata,
                 size=self.double_blocksize,
-            )
+            ),
         ).copy
         return self
 
@@ -117,7 +119,7 @@ class KeyedCipherKDF(FrozenInstance):
         session_kdf = self.kdf.copy()
         session_kdf.update(
             fullblock_ljust(summary, config.blocksize, pad=config.pad)
-            + config.offset
+            + config.offset,
         )
         return session_kdf
 

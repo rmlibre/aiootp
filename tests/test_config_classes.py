@@ -41,9 +41,8 @@ class TestConfig:
                 def __init__(self, *, var: declaration) -> None:
                     self.VAR = var
 
-            for attr_type in set(self.types_tested).difference(
-                [declaration]
-            ):
+            tested_types = set(self.types_tested)
+            for attr_type in tested_types.difference([declaration]):
                 with Ignore(TypeError, if_else=violation(problem)):
                     ExampleConfig(var=attr_type)
 
@@ -53,7 +52,8 @@ class TestConfig:
         )
         for declaration in self.uncheckable_types:
             with Ignore(
-                TypeUncheckableAtRuntime, if_else=violation(problem)
+                TypeUncheckableAtRuntime,
+                if_else=violation(problem),
             ):
 
                 class ExampleConfig(Config):
@@ -66,7 +66,8 @@ class TestConfig:
 
 class TestConfigMap:
     def test_mapping_registers_config_by_id(
-        self, mapping: ConfigMap
+        self,
+        mapping: ConfigMap,
     ) -> None:
         for config_id in ("one", b"one", 1):
             config = ExampleConfig(number=420, string="word")
@@ -76,7 +77,9 @@ class TestConfigMap:
             assert config is mapping[config_id]
 
     def test_config_id_cannot_change(
-        self, config: t.ConfigType, mapping: ConfigMap
+        self,
+        config: t.ConfigType,
+        mapping: ConfigMap,
     ) -> None:
         problem = (  # fmt: skip
             "config_id changed without error."
@@ -89,7 +92,8 @@ class TestConfigMap:
         assert config.CONFIG_ID == 1
 
     def test_config_must_be_config_subclass(
-        self, mapping: ConfigMap
+        self,
+        mapping: ConfigMap,
     ) -> None:
         problem = (  # fmt: skip
             "non-`Config` subclass was allowed to be registered."
@@ -101,7 +105,9 @@ class TestConfigMap:
             mapping[config_id] = FalseConfig()
 
     def test_cannot_be_reassigned(
-        self, config: t.ConfigType, mapping: ConfigMap
+        self,
+        config: t.ConfigType,
+        mapping: ConfigMap,
     ) -> None:
         problem = (  # fmt: skip
             "a config was allowed to be reassigned to the map."
@@ -112,7 +118,9 @@ class TestConfigMap:
             mapping[config_id] = ExampleConfig(number=111, string="abd")
 
     def test_reassigning_doesnt_throw_when_same_object(
-        self, config: t.ConfigType, mapping: ConfigMap
+        self,
+        config: t.ConfigType,
+        mapping: ConfigMap,
     ) -> None:
         config_id = 1
         mapping[config_id] = config

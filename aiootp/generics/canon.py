@@ -56,7 +56,10 @@ async def abytes_are_equal(value_0: bytes, value_1: bytes) -> bool:
 
 
 async def afullblock_ljust(
-    data: bytes, blocksize: int, *, pad: bytes = b"\x00"
+    data: bytes,
+    blocksize: int,
+    *,
+    pad: bytes = b"\x00",
 ) -> bytes:
     """
     Right pads a `bytes`-type `data` value to a multiple of the
@@ -67,7 +70,10 @@ async def afullblock_ljust(
 
 
 def fullblock_ljust(
-    data: bytes, blocksize: int, *, pad: bytes = b"\x00"
+    data: bytes,
+    blocksize: int,
+    *,
+    pad: bytes = b"\x00",
 ) -> bytes:
     """
     Right pads a `bytes`-type `data` value to a multiple of the
@@ -77,7 +83,10 @@ def fullblock_ljust(
 
 
 async def aencode_key(
-    key: bytes, blocksize: int, *, pad: bytes = b"\x00"
+    key: bytes,
+    blocksize: int,
+    *,
+    pad: bytes = b"\x00",
 ) -> bytes:
     """
     Returns a symmetric `key` canonically encoded so as to be
@@ -89,12 +98,17 @@ async def aencode_key(
     key_length = len(key).to_bytes(8, LITTLE)
     bsize = blocksize.to_bytes(8, LITTLE)
     return await afullblock_ljust(
-        b"".join((key, key_length, bsize, pad)), blocksize, pad=pad
+        b"".join((key, key_length, bsize, pad)),
+        blocksize,
+        pad=pad,
     )
 
 
 def encode_key(
-    key: bytes, blocksize: int, *, pad: bytes = b"\x00"
+    key: bytes,
+    blocksize: int,
+    *,
+    pad: bytes = b"\x00",
 ) -> bytes:
     """
     Returns a symmetric `key` canonically encoded so as to be
@@ -106,12 +120,15 @@ def encode_key(
     key_length = len(key).to_bytes(8, LITTLE)
     bsize = blocksize.to_bytes(8, LITTLE)
     return fullblock_ljust(
-        b"".join((key, key_length, bsize, pad)), blocksize, pad=pad
+        b"".join((key, key_length, bsize, pad)),
+        blocksize,
+        pad=pad,
     )
 
 
 async def aencode_items(
-    *items: bytes, int_bytes: int = INT_BYTES
+    *items: bytes,
+    int_bytes: int = INT_BYTES,
 ) -> t.AsyncGenerator[bytes, None]:
     """
     Yields each item in `items` with encoded length metadata attached.
@@ -124,7 +141,8 @@ async def aencode_items(
 
 
 def encode_items(
-    *items: bytes, int_bytes: int = INT_BYTES
+    *items: bytes,
+    int_bytes: int = INT_BYTES,
 ) -> t.Generator[bytes, None, None]:
     """
     Yields each item in `items` with encoded length metadata attached.
@@ -179,7 +197,10 @@ async def acanonical_pack(
     items = [
         item
         async for item in aencode_items(
-            blocksize_blob, pad, *items, int_bytes=int_bytes
+            blocksize_blob,
+            pad,
+            *items,
+            int_bytes=int_bytes,
         )
     ]
     return await afullblock_ljust(b"".join(items), blocksize, pad=pad)
@@ -231,7 +252,9 @@ def canonical_pack(
 
 
 async def adecode_items(
-    read: t.Callable[[int], bytes], item_count: int, int_bytes: int
+    read: t.Callable[[int], bytes],
+    item_count: int,
+    int_bytes: int,
 ) -> t.AsyncGenerator[bytes, None]:
     """
     Extracts each size-item pair from the `read` callable, which
@@ -250,7 +273,9 @@ async def adecode_items(
 
 
 def decode_items(
-    read: t.Callable[[int], bytes], item_count: int, int_bytes: int
+    read: t.Callable[[int], bytes],
+    item_count: int,
+    int_bytes: int,
 ) -> t.Generator[bytes, None, None]:
     """
     Extracts each size-item pair from the `read` callable, which
@@ -269,7 +294,9 @@ def decode_items(
 
 
 def test_canonical_padding(
-    read: t.Callable[[int], bytes], items: deque[bytes], total_size: int
+    read: t.Callable[[int], bytes],
+    items: deque[bytes],
+    total_size: int,
 ) -> None:
     """
     Raises `CanonicalEncodingError` if an invalid type of padding is
@@ -319,7 +346,8 @@ def canonical_unpack(items: bytes) -> deque[bytes]:
     if total_size < int_bytes * (item_count + 1) + 3:
         raise CanonicalIssue.inflated_size_declaration()
     items = deque(
-        decode_items(read, item_count, int_bytes), maxlen=item_count
+        decode_items(read, item_count, int_bytes),
+        maxlen=item_count,
     )
     test_canonical_padding(read, items, total_size)
     return items

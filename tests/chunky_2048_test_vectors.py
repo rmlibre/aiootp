@@ -21,10 +21,10 @@ chunky2048_test_vector_0 = OpenNamespace(
     key=bytes.fromhex(
         "54868dc506d99611adb67f1b41eda44fd7151e135860a6d791cad6df6715bd"
         "5204713bc2b064e88a429b93aaa282d9cc7c0c5cdaaffb65cc268b7acedd5e"
-        "531a"
+        "531a",
     ),
     shmac=bytes.fromhex(
-        "f791571464dd45754e16d8e6dea2f1a05204dca2510589be012bc5117dfd98e8"
+        "f791571464dd45754e16d8e6dea2f1a05204dca2510589be012bc5117dfd98e8",
     ),
     salt=bytes.fromhex("cf3761d57860bdbc"),
     iv=bytes.fromhex("e09d2eee03ae82e6"),
@@ -38,6 +38,6 @@ chunky2048_test_vector_0 = OpenNamespace(
         "064b2fe8676dc2fff3a3a895381cbf8d5aa04970c4f210ae323a5274c8f703"
         "4167ba0f7042e17d748d68327d2219c83bf4e4fb9f5d36c0b0c5ca661db09c"
         "b887d2bd39589d2e12f7a799b2e3e1cad7a7dbfd4c9d1a46de6ed5e51d7561"
-        "70de526f4c4fa9fb"
+        "70de526f4c4fa9fb",
     ),
 )

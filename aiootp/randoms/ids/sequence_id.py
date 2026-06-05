@@ -94,7 +94,10 @@ class SequenceID(FrozenInstance):
         return self.config.Permutation(key=key, config_id=config_id)
 
     def __init__(
-        self, *, key: bytes | None, config_id: t.Hashable = 12
+        self,
+        *,
+        key: bytes | None,
+        config_id: t.Hashable = 12,
     ) -> None:
         """
         Initialized the keyed permutation.

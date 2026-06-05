@@ -33,7 +33,8 @@ MIN_PASSPHRASE_BYTES: int = 12
 
 
 def _passcrypt_config_inputs(
-    mapping: t.Mapping[t.Hashable, t.Any], **kw: t.Any
+    mapping: t.Mapping[t.Hashable, t.Any],
+    **kw: t.Any,
 ) -> dict[str, t.Any]:
     """
     Simplifies the process of creating new passcrypt config objects.
@@ -197,7 +198,9 @@ class PasscryptConfig(Config):
         self.HEADER_SLICE = slice(0, self.HEADER_BYTES, 1)
         self.TIMESTAMP_SLICE = slice(0, self.TIMESTAMP_BYTES, 1)
         self.MB_SLICE = slice(
-            self.TIMESTAMP_BYTES, self.TIMESTAMP_BYTES + self.MB_BYTES, 1
+            self.TIMESTAMP_BYTES,
+            self.TIMESTAMP_BYTES + self.MB_BYTES,
+            1,
         )
         self.MB_RESOURCE_SAFETY_RANGE = range(self.MIN_MB, 512)
         self.CPU_SLICE = slice(
@@ -228,7 +231,7 @@ class PasscryptConfig(Config):
         )
         self.clock = Clock(self.TIME_UNIT, epoch=self.EPOCH_NS)
         self.S_TO_TIME_UNIT_RATIO = float(
-            1 / Clock._times[self.TIME_UNIT].ratio
+            1 / Clock._times[self.TIME_UNIT].ratio,
         )
 
     def _construct_metadata_constant(self) -> None:
@@ -313,7 +316,10 @@ class PasscryptConfig(Config):
         return salt_size_is_int and (salt_size in salt_size_limits)
 
     def validate_inputs(
-        self, passphrase: bytes, salt: bytes, aad: bytes
+        self,
+        passphrase: bytes,
+        salt: bytes,
+        aad: bytes,
     ) -> None:
         """
         Makes sure `passphrase`, `salt`, & `aad` are to specification.

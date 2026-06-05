@@ -147,7 +147,9 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             path=path,
         )
         profile_db = await cls(
-            key=tokens.login_key, path=path, preload=preload
+            key=tokens.login_key,
+            path=path,
+            preload=preload,
         )
         if not profile_db._root_path.is_file():
             await profile_db.asave_database()
@@ -222,7 +224,8 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         """
         ciphertext = await self.IO.aread(path=self._root_path)
         key = await self._root_kdf.ashake_128(
-            aad=self._DBDomains.MANIFEST, size=SHAKE_128_BLOCKSIZE
+            aad=self._DBDomains.MANIFEST,
+            size=SHAKE_128_BLOCKSIZE,
         )
         return await self._Cipher(key).ajson_decrypt(ciphertext)
 
@@ -231,7 +234,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         Returns the decoded raw bytes root salt from the manifest.
         """
         return await self.IO.aurlsafe_to_bytes(
-            self._manifest[self._ROOT_SALT_LEDGERNAME]
+            self._manifest[self._ROOT_SALT_LEDGERNAME],
         )
 
     async def _agenerate_root_salt(self) -> bytes:
@@ -292,7 +295,10 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         return self
 
     async def aload_metatags(
-        self, *, preload: bool = True, silent: bool = False
+        self,
+        *,
+        preload: bool = True,
+        silent: bool = False,
     ) -> t.Self:
         """
         Specifically loads all of the database's metatag values into the
@@ -481,7 +487,9 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         return await self._TokenCipher(key).aread_token(token, ttl=ttl)
 
     async def _asave_ciphertext(
-        self, filename: str, ciphertext: bytes
+        self,
+        filename: str,
+        ciphertext: bytes,
     ) -> None:
         """
         Saves the encrypted value `ciphertext` in the database file
@@ -491,7 +499,11 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         await self.IO.awrite(path=path, data=ciphertext)
 
     async def aset_tag(
-        self, tag: str, data: t.JSONSerializable, *, cache: bool = True
+        self,
+        tag: str,
+        data: t.JSONSerializable,
+        *,
+        cache: bool = True,
     ) -> t.Self:
         """
         Allows users to add the value `data` under the name `tag`
@@ -505,7 +517,10 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         return self
 
     async def _aquery_ciphertext(
-        self, filename: str, *, silent: bool = False
+        self,
+        filename: str,
+        *,
+        silent: bool = False,
     ) -> None:
         """
         Retrieves the value stored in the database which has the given
@@ -538,7 +553,9 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             return
 
         result = await self.abytes_decrypt(
-            ciphertext, filename=filename, ttl=ttl
+            ciphertext,
+            filename=filename,
+            ttl=ttl,
         )
         if result[:BYTES_FLAG_SIZE] == BYTES_FLAG:
             result = result[BYTES_FLAG_SIZE:]  # Remove bytes value flag
@@ -549,7 +566,10 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         return result
 
     async def _adelete_file(
-        self, filename: str, *, silent: bool = False
+        self,
+        filename: str,
+        *,
+        silent: bool = False,
     ) -> None:
         """
         Deletes a file in the database directory by `filename`.
@@ -561,7 +581,10 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
                 raise error from None
 
     async def apop_tag(
-        self, tag: str, *, silent: bool = False
+        self,
+        tag: str,
+        *,
+        silent: bool = False,
     ) -> t.JSONSerializable | bytes:
         """
         Returns a value from the database by it's `tag` & deletes the
@@ -585,7 +608,10 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         return value
 
     async def arollback_tag(
-        self, tag: str, *, cache: bool = False
+        self,
+        tag: str,
+        *,
+        cache: bool = False,
     ) -> t.Self:
         """
         Clears the new `tag` data from the cache which undoes any
@@ -620,11 +646,17 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         Derives the metatag's database key given a user-defined `tag`.
         """
         return await self._root_kdf.asha3_512(
-            self._root_salt, tag.encode(), aad=self._DBDomains.METATAG_KEY
+            self._root_salt,
+            tag.encode(),
+            aad=self._DBDomains.METATAG_KEY,
         )
 
     async def ametatag(
-        self, tag: str, *, preload: bool = False, silent: bool = False
+        self,
+        tag: str,
+        *,
+        preload: bool = False,
+        silent: bool = False,
     ) -> t.Cls:
         """
         Allows a user to create offspring of a database instance to
@@ -724,7 +756,8 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         """
         manifest = self._manifest.__dict__
         key = await self._root_kdf.ashake_128(
-            aad=self._DBDomains.MANIFEST, size=SHAKE_128_BLOCKSIZE
+            aad=self._DBDomains.MANIFEST,
+            size=SHAKE_128_BLOCKSIZE,
         )
         return await self._Cipher(key).ajson_encrypt(manifest)
 
@@ -746,7 +779,10 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         await self._asave_manifest(manifest)
 
     async def _asave_file(
-        self, filename: str, *, admin: bool = False
+        self,
+        filename: str,
+        *,
+        admin: bool = False,
     ) -> None:
         """
         Writes the cached value for a user-specified `filename` to the
@@ -780,7 +816,11 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         await gather(*saves)
 
     async def asave_tag(
-        self, tag: str, *, admin: bool = False, drop_cache: bool = False
+        self,
+        tag: str,
+        *,
+        admin: bool = False,
+        drop_cache: bool = False,
     ) -> t.Self:
         """
         Writes the cached value for a user-specified `tag` to the user

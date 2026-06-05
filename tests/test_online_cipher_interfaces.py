@@ -25,7 +25,9 @@ class TestOnlineCipherInterfaces:
     ) -> None:
         for config, cipher, salt, aad in all_ciphers:
             for i in range(
-                0, 512 - config.INNER_HEADER_BYTES - 1, randrange(1, 64)
+                0,
+                512 - config.INNER_HEADER_BYTES - 1,
+                randrange(1, 64),
             ):
                 stream_enc = cipher.stream_encrypt(salt=salt, aad=aad)
                 pt_enc = i * b"a"
@@ -38,7 +40,8 @@ class TestOnlineCipherInterfaces:
                 )
                 for var in ("salt", "iv", "aad", "PACKETSIZE"):
                     assert getattr(stream_enc, var) == getattr(
-                        stream_dec, var
+                        stream_dec,
+                        var,
                     )
                 pt_dec = b""
                 join = b"".join
@@ -48,7 +51,7 @@ class TestOnlineCipherInterfaces:
                     )
                     with Ignore(ValueError, if_else=violation(problem)):
                         stream_dec.buffer(
-                            join(id_ct)[: stream_dec.PACKETSIZE - 1]
+                            join(id_ct)[: stream_dec.PACKETSIZE - 1],
                         )
 
                     stream_dec.buffer(join(id_ct))
@@ -76,10 +79,13 @@ class TestOnlineCipherInterfaces:
     ) -> None:
         for config, cipher, salt, aad in all_ciphers:
             for i in range(
-                0, 512 - config.INNER_HEADER_BYTES - 1, randrange(1, 64)
+                0,
+                512 - config.INNER_HEADER_BYTES - 1,
+                randrange(1, 64),
             ):
                 stream_enc = await cipher.astream_encrypt(
-                    salt=salt, aad=aad
+                    salt=salt,
+                    aad=aad,
                 )
                 pt_enc = i * b"a"
                 await stream_enc.abuffer(pt_enc)
@@ -91,7 +97,8 @@ class TestOnlineCipherInterfaces:
                 )
                 for var in ("salt", "iv", "aad", "PACKETSIZE"):
                     assert getattr(stream_enc, var) == getattr(
-                        stream_dec, var
+                        stream_dec,
+                        var,
                     )
                 pt_dec = b""
                 join = b"".join
@@ -101,7 +108,7 @@ class TestOnlineCipherInterfaces:
                     )
                     with Ignore(ValueError, if_else=violation(problem)):
                         await stream_dec.abuffer(
-                            join(id_ct)[: stream_dec.PACKETSIZE - 1]
+                            join(id_ct)[: stream_dec.PACKETSIZE - 1],
                         )
 
                     await stream_dec.abuffer(join(id_ct))
@@ -131,7 +138,9 @@ class TestOnlineCipherInterfaces:
             await stream_enc.abuffer(pt_enc)
 
             stream_dec = cipher.stream_decrypt(
-                salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
+                salt=stream_enc.salt,
+                aad=stream_enc.aad,
+                iv=stream_enc.iv,
             )
             for var in ("salt", "iv", "aad", "PACKETSIZE"):
                 assert getattr(stream_enc, var) == getattr(stream_dec, var)
@@ -146,10 +155,12 @@ class TestOnlineCipherInterfaces:
                     "An altered block_id was not detected."
                 )
                 fake_block_id = xi_mix(
-                    block_id + b"\x01", size=len(block_id)
+                    block_id + b"\x01",
+                    size=len(block_id),
                 )
                 with Ignore(
-                    InvalidBlockID, if_else=violation(problem)
+                    InvalidBlockID,
+                    if_else=violation(problem),
                 ) as relay:
                     stream_dec.buffer(fake_block_id + block)
                 assert fake_block_id == relay.error.failure_state.block_id
@@ -161,7 +172,8 @@ class TestOnlineCipherInterfaces:
                 )
                 fake_block = xi_mix(block + b"\x01", size=len(block))
                 with Ignore(
-                    InvalidBlockID, if_else=violation(problem)
+                    InvalidBlockID,
+                    if_else=violation(problem),
                 ) as relay:
                     stream_dec.buffer(block_id + fake_block)
                 assert block_id == relay.error.failure_state.block_id
@@ -186,7 +198,9 @@ class TestOnlineCipherInterfaces:
             stream_enc.buffer(pt_enc)
 
             stream_dec = await cipher.astream_decrypt(
-                salt=stream_enc.salt, aad=stream_enc.aad, iv=stream_enc.iv
+                salt=stream_enc.salt,
+                aad=stream_enc.aad,
+                iv=stream_enc.iv,
             )
             for var in ("salt", "iv", "aad", "PACKETSIZE"):
                 assert getattr(stream_enc, var) == getattr(stream_dec, var)
@@ -201,10 +215,12 @@ class TestOnlineCipherInterfaces:
                     "An altered block_id was not detected."
                 )
                 fake_block_id = xi_mix(
-                    block_id + b"\x01", size=len(block_id)
+                    block_id + b"\x01",
+                    size=len(block_id),
                 )
                 async with Ignore(
-                    InvalidBlockID, if_else=violation(problem)
+                    InvalidBlockID,
+                    if_else=violation(problem),
                 ) as relay:
                     await stream_dec.abuffer(fake_block_id + block)
                 assert fake_block_id == relay.error.failure_state.block_id
@@ -216,7 +232,8 @@ class TestOnlineCipherInterfaces:
                 )
                 fake_block = xi_mix(block + b"\x01", size=len(block))
                 async with Ignore(
-                    InvalidBlockID, if_else=violation(problem)
+                    InvalidBlockID,
+                    if_else=violation(problem),
                 ) as relay:
                     await stream_dec.abuffer(block_id + fake_block)
                 assert block_id == relay.error.failure_state.block_id
@@ -253,13 +270,15 @@ class TestOnlineCipherInterfaces:
 
                 with Ignore(*errors, if_else=violation(problem)):
                     astream_dec = await cipher.astream_decrypt(
-                        salt=salt, iv=csprng(config.IV_BYTES)
+                        salt=salt,
+                        iv=csprng(config.IV_BYTES),
                     )
                     await astream_dec.abuffer(data)
 
                 with Ignore(*errors, if_else=violation(problem)):
                     stream_dec = cipher.stream_decrypt(
-                        salt=salt, iv=csprng(config.IV_BYTES)
+                        salt=salt,
+                        iv=csprng(config.IV_BYTES),
                     )
                     stream_dec.buffer(data)
 
@@ -278,7 +297,9 @@ class TestOnlineCipherInterfaces:
         ct = [b"".join(id_ct) async for id_ct in stream_enc.afinalize()]
 
         stream_dec = await cipher.astream_decrypt(
-            salt=salt, aad=aad, iv=stream_enc.iv
+            salt=salt,
+            aad=aad,
+            iv=stream_enc.iv,
         )
         ct_a = b"".join(ct[: len(ct) // 2])
         ct_b = b"".join(ct[len(ct) // 2 :])
@@ -306,7 +327,9 @@ class TestOnlineCipherInterfaces:
         ct = [b"".join(id_ct) for id_ct in stream_enc.finalize()]
 
         stream_dec = cipher.stream_decrypt(
-            salt=salt, aad=aad, iv=stream_enc.iv
+            salt=salt,
+            aad=aad,
+            iv=stream_enc.iv,
         )
         ct_a = b"".join(ct[: len(ct) // 2])
         ct_b = b"".join(ct[len(ct) // 2 :])
@@ -342,7 +365,9 @@ class TestOnlineCipherInterfaces:
         ct += b"".join([b"".join(id_ct) async for id_ct in finalizing])
 
         stream_dec = await cipher.astream_decrypt(
-            salt=salt, aad=aad, iv=stream_enc.iv
+            salt=salt,
+            aad=aad,
+            iv=stream_enc.iv,
         )
         await stream_dec.abuffer(ct)
         finalizing = stream_dec.afinalize()
@@ -383,7 +408,9 @@ class TestOnlineCipherInterfaces:
         ct += b"".join(b"".join(id_ct) for id_ct in finalizing)
 
         stream_dec = cipher.stream_decrypt(
-            salt=salt, aad=aad, iv=stream_enc.iv
+            salt=salt,
+            aad=aad,
+            iv=stream_enc.iv,
         ).buffer(ct)
         finalizing = stream_dec.finalize()
         pt = finalizing.send(None)

@@ -114,7 +114,9 @@ class AffineXORChain(FrozenInstance):
             raise Issue.invalid_length(f"{cls} key", key_size)
 
     def _process_in_key(
-        self, key_reader: t.Callable[[int], bytes], size: int
+        self,
+        key_reader: t.Callable[[int], bytes],
+        size: int,
     ) -> int:
         """
         Returns an integer version of a segment of the instance's key
@@ -128,7 +130,9 @@ class AffineXORChain(FrozenInstance):
             raise Issue.invalid_length("in xor key", size)
 
     def _process_mid_key(
-        self, key_reader: t.Callable[[int], bytes], size: int
+        self,
+        key_reader: t.Callable[[int], bytes],
+        size: int,
     ) -> tuple[int, int]:
         """
         Returns two integer versions with optimal hamming distance of a
@@ -147,7 +151,9 @@ class AffineXORChain(FrozenInstance):
             raise Issue.invalid_length("mid xor key", size)
 
     def _process_out_key(
-        self, key_reader: t.Callable[[int], bytes], size: int
+        self,
+        key_reader: t.Callable[[int], bytes],
+        size: int,
     ) -> int:
         """
         Returns an integer version of a segment of the instance's key
@@ -161,7 +167,9 @@ class AffineXORChain(FrozenInstance):
             raise Issue.invalid_length("out xor key", size)
 
     def _initialize_keys(
-        self, key_reader: t.Callable[[int], bytes], size: int
+        self,
+        key_reader: t.Callable[[int], bytes],
+        size: int,
     ) -> tuple[bytes, bytes, bytes, bytes]:
         """
         Returns the instance's integer keys that are used to XOR the
@@ -175,7 +183,9 @@ class AffineXORChain(FrozenInstance):
         )
 
     def _initialize_permutations(
-        self, key_reader: t.Callable[[int], bytes], size: int
+        self,
+        key_reader: t.Callable[[int], bytes],
+        size: int,
     ) -> tuple[t.PermutationType]:
         """
         Uses the permutation configuration ID saved in the instance's
@@ -251,9 +261,9 @@ class AffineXORChain(FrozenInstance):
         """
         return await self._aff_out.apermute(
             await self._aff_mid.apermute(
-                await self._aff_in.apermute(value) ^ self._in_mid_key
+                await self._aff_in.apermute(value) ^ self._in_mid_key,
             )
-            ^ self._out_mid_key
+            ^ self._out_mid_key,
         )
 
     def uncapped_permute(self, value: int, /) -> int:
@@ -264,9 +274,9 @@ class AffineXORChain(FrozenInstance):
         """
         return self._aff_out.permute(
             self._aff_mid.permute(
-                self._aff_in.permute(value) ^ self._in_mid_key
+                self._aff_in.permute(value) ^ self._in_mid_key,
             )
-            ^ self._out_mid_key
+            ^ self._out_mid_key,
         )
 
     async def apermute(self, value: int, /) -> int:
@@ -279,9 +289,9 @@ class AffineXORChain(FrozenInstance):
             await self._aff_out.apermute(
                 await self._aff_mid.apermute(
                     await self._aff_in.apermute(value ^ self._in_key)
-                    ^ self._in_mid_key
+                    ^ self._in_mid_key,
                 )
-                ^ self._out_mid_key
+                ^ self._out_mid_key,
             )
             ^ self._out_key
         )
@@ -296,9 +306,9 @@ class AffineXORChain(FrozenInstance):
             self._aff_out.permute(
                 self._aff_mid.permute(
                     self._aff_in.permute(value ^ self._in_key)
-                    ^ self._in_mid_key
+                    ^ self._in_mid_key,
                 )
-                ^ self._out_mid_key
+                ^ self._out_mid_key,
             )
             ^ self._out_key
         )
@@ -310,9 +320,9 @@ class AffineXORChain(FrozenInstance):
         """
         return await self._aff_in.ainvert(
             await self._aff_mid.ainvert(
-                await self._aff_out.ainvert(value) ^ self._out_mid_key
+                await self._aff_out.ainvert(value) ^ self._out_mid_key,
             )
-            ^ self._in_mid_key
+            ^ self._in_mid_key,
         )
 
     def uncapped_invert(self, value: int, /) -> int:
@@ -322,9 +332,9 @@ class AffineXORChain(FrozenInstance):
         """
         return self._aff_in.invert(
             self._aff_mid.invert(
-                self._aff_out.invert(value) ^ self._out_mid_key
+                self._aff_out.invert(value) ^ self._out_mid_key,
             )
-            ^ self._in_mid_key
+            ^ self._in_mid_key,
         )
 
     async def ainvert(self, value: int, /) -> int:
@@ -335,9 +345,9 @@ class AffineXORChain(FrozenInstance):
             await self._aff_in.ainvert(
                 await self._aff_mid.ainvert(
                     await self._aff_out.ainvert(value ^ self._out_key)
-                    ^ self._out_mid_key
+                    ^ self._out_mid_key,
                 )
-                ^ self._in_mid_key
+                ^ self._in_mid_key,
             )
             ^ self._in_key
         )
@@ -350,9 +360,9 @@ class AffineXORChain(FrozenInstance):
             self._aff_in.invert(
                 self._aff_mid.invert(
                     self._aff_out.invert(value ^ self._out_key)
-                    ^ self._out_mid_key
+                    ^ self._out_mid_key,
                 )
-                ^ self._in_mid_key
+                ^ self._in_mid_key,
             )
             ^ self._in_key
         )

@@ -16,7 +16,8 @@ from conftest import *
 
 class TestPackageVerifier:
     async def test_path_needed_to_verify_file_hashes(
-        self, pkg_signer: PackageSigner
+        self,
+        pkg_signer: PackageSigner,
     ) -> None:
         problem = (  # fmt: skip
             "The default `verify_files=True` was allowed to initialize "
@@ -26,12 +27,15 @@ class TestPackageVerifier:
             PackageVerifier(pkg_signer.signing_key.public_bytes)
 
         verifier = PackageVerifier(
-            pkg_signer.signing_key.public_bytes, verify_files=False
+            pkg_signer.signing_key.public_bytes,
+            verify_files=False,
         )
         verifier.verify_summary(pkg_signer.summarize())
 
     async def test_if_path_given_verify_files_must_be_true(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         problem = (  # fmt: skip
             "A verifier was initialized with conflicting flags."
@@ -44,10 +48,13 @@ class TestPackageVerifier:
             )
 
     async def test_verifier_detects_wrong_file_digest(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         verifier = PackageVerifier(
-            pkg_signer.signing_key.public_bytes, path=pkg_context.test_path
+            pkg_signer.signing_key.public_bytes,
+            path=pkg_context.test_path,
         )
         summary = pkg_signer.summarize()
         filename = randoms.choice(list(summary[CHECKSUMS]))
@@ -60,7 +67,9 @@ class TestPackageVerifier:
             verifier._verify_file_checksums(summary)
 
     async def test_signing_key_input_acceptable_types(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         summary = pkg_signer.summarize()
         public_keys = [
@@ -83,7 +92,8 @@ class TestPackageVerifier:
         wrong_key = X25519().generate().public_bytes
         wrong_summary["signing_key"] = wrong_key.hex()
         wrong_verifier = PackageVerifier(
-            wrong_key, path=pkg_context.test_path
+            wrong_key,
+            path=pkg_context.test_path,
         )
 
         problem = (  # fmt: skip
@@ -119,7 +129,9 @@ class TestPackageVerifier:
 
 class TestPackageSigner:
     async def test_changing_signature_detected_during_summarization(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         PACKAGE = pkg_context.package
         VERSIONS = pkg_signer._VERSIONS
@@ -138,7 +150,8 @@ class TestPackageSigner:
         pkg_signer.summarize()
 
     async def test_signing_key_in_summary_is_hex_public_key(
-        self, pkg_signer: PackageSigner
+        self,
+        pkg_signer: PackageSigner,
     ) -> None:
         summary = pkg_signer.summarize()
         assert len(summary["signing_key"]) == 64
@@ -148,11 +161,14 @@ class TestPackageSigner:
         )
 
     async def test_altering_the_signature_summary_fails(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         summary = pkg_signer.summarize()
         verifier = PackageVerifier(
-            pkg_signer.signing_key.public_bytes, path=pkg_context.test_path
+            pkg_signer.signing_key.public_bytes,
+            path=pkg_context.test_path,
         )
 
         problem = (  # fmt: skip
@@ -163,7 +179,8 @@ class TestPackageSigner:
             verifier.verify_summary(fake_summary)
 
     async def test_unmodified_signer_summary_is_deterministic(
-        self, pkg_signer: PackageSigner
+        self,
+        pkg_signer: PackageSigner,
     ) -> None:
         summary = pkg_signer.summarize()
         for _ in range(2):
@@ -172,7 +189,9 @@ class TestPackageSigner:
             assert summary == json.loads(json.dumps(pkg_signer.summarize()))
 
     async def test_scope_items_show_in_repr(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         _repr = repr(pkg_signer)
         assert all(
@@ -187,7 +206,7 @@ class TestPackageSigner:
             st.integers(),
             st.floats(),  # if nan, can't directly check equality
             st.text(),
-        ).filter(lambda x: x != 0)
+        ).filter(lambda x: x != 0),
     )
     async def test_scope_updates_when_instructed(
         self,
@@ -235,7 +254,9 @@ class TestPackageSigner:
         assert summary == new_summary
 
     async def test_cant_retrieve_signing_key_prior_to_setting(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         signing_key = pkg_signer.signing_key
         pkg_signer.db[pkg_context.package]["versions"] = {}
@@ -254,7 +275,9 @@ class TestPackageSigner:
             pkg_signer.sign_package()
 
     async def test_update_signing_key_interface_changes_signing_key(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         summary = pkg_signer.summarize()
         signing_key = pkg_signer.signing_key
@@ -264,7 +287,8 @@ class TestPackageSigner:
             pkg_signer.sign_package()
             new_summary = pkg_signer.summarize()
             verifier = PackageVerifier(
-                new_signing_key, path=pkg_context.test_path
+                new_signing_key,
+                path=pkg_context.test_path,
             )
             assert summary["signing_key"] != new_summary["signing_key"]
             assert (
@@ -277,7 +301,8 @@ class TestPackageSigner:
             pkg_signer.sign_package()
 
     async def test_update_signing_key_interface_acceptable_types(
-        self, pkg_signer: PackageSigner
+        self,
+        pkg_signer: PackageSigner,
     ) -> None:
         # update_signing_key expects a bytes, Ed25519PrivateKey or an Ed25519 object
         pkg_signer.update_signing_key(pkg_signer.signing_key)
@@ -290,15 +315,17 @@ class TestPackageSigner:
         )
         with Ignore(TypeError, if_else=violation(problem)):
             pkg_signer.update_signing_key(
-                bytearray(pkg_signer.signing_key.secret_bytes)
+                bytearray(pkg_signer.signing_key.secret_bytes),
             )
         with Ignore(TypeError, if_else=violation(problem)):
             pkg_signer.update_signing_key(
-                pkg_signer.signing_key.secret_bytes.hex()
+                pkg_signer.signing_key.secret_bytes.hex(),
             )
 
     async def test_cant_retrieve_signature_prior_to_signing(
-        self, pkg_context: Namespace, pkg_signer: PackageSigner
+        self,
+        pkg_context: Namespace,
+        pkg_signer: PackageSigner,
     ) -> None:
         del pkg_signer.db[pkg_context.package]["versions"][
             pkg_context.version
@@ -313,14 +340,15 @@ class TestPackageSigner:
         assert pkg_signer._signature
 
     async def test_update_public_credentials_updates_state(
-        self, pkg_signer: PackageSigner
+        self,
+        pkg_signer: PackageSigner,
     ) -> None:
         public_credentials = pkg_signer.db["aiootp"]["public_credentials"]
         summary = pkg_signer.summarize()
         assert not public_credentials
         assert "x25519_public_key" not in public_credentials
         pkg_signer.update_public_credentials(
-            x25519_public_key=aiootp.__PUBLIC_X25519_KEY__
+            x25519_public_key=aiootp.__PUBLIC_X25519_KEY__,
         )
         pkg_signer.sign_package()
         new_summary = pkg_signer.summarize()
@@ -332,7 +360,8 @@ class TestPackageSigner:
         )
 
     def test_database_must_be_connected_to_retrieve_signer_state(
-        self, pkg_context: Namespace
+        self,
+        pkg_context: Namespace,
     ) -> None:
         signer = PackageSigner(**pkg_context.signer_init)
         problem = (  # fmt: skip

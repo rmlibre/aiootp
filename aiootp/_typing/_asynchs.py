@@ -110,12 +110,20 @@ class ClockType(t.Protocol):
         pass  # pragma: no cover
 
     async def atest_timestamp(
-        self, timestamp: bytes, ttl: int | None, *, byte_order: str
+        self,
+        timestamp: bytes,
+        ttl: int | None,
+        *,
+        byte_order: str,
     ) -> None:
         pass  # pragma: no cover
 
     def test_timestamp(
-        self, timestamp: bytes, ttl: int | None, *, byte_order: str
+        self,
+        timestamp: bytes,
+        ttl: int | None,
+        *,
+        byte_order: str,
     ) -> None:
         pass  # pragma: no cover
 

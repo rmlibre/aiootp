@@ -21,7 +21,7 @@ slick256_test_vector_0 = OpenNamespace(
     key=bytes.fromhex(
         "54868dc506d99611adb67f1b41eda44fd7151e135860a6d791cad6df6715bd"
         "5204713bc2b064e88a429b93aaa282d9cc7c0c5cdaaffb65cc268b7acedd5e"
-        "531a"
+        "531a",
     ),
     shmac=bytes.fromhex("5e6011b3b1ae4314b4192a1e6a18b2ca8130bc5cafcd7287"),
     salt=bytes.fromhex("cf3761d57860bdbc"),
@@ -31,6 +31,6 @@ slick256_test_vector_0 = OpenNamespace(
         "f73e7361a73af3eeabc88247555e06fc5bdaea10482c8351eab3ee9cfcc6fe"
         "f678b1171e6458fcef3d27896bee262769a742f8ffce51cd44db2a8e5673f4"
         "5770df4b907683c881049f15a92bed514613378ec4beb07766e809b5f68e1e"
-        "326bc7"
+        "326bc7",
     ),
 )

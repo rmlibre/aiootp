@@ -13,6 +13,7 @@ Major Changes
 ^^^^^^^^^^^^^
 
 - build(pkg): remove support for python 3.9 & upgrade deps
+- build(ruff): apply new rules, including very impactful COM812
 - feat(cguard): refactor distinct behaviors into new policy types
 - feat(cguard): automate ref cleanup, improve logic, docs & tests
 - refactor(cguard): split interfaces into separate modules

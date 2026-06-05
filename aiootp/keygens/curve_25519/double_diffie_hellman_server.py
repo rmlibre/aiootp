@@ -66,7 +66,11 @@ class DoubleDiffieHellmanServer(FrozenInstance):
     )
 
     def __init__(
-        self, /, my_identity_key: t.KeyExchangeType, *, kdf_type: type
+        self,
+        /,
+        my_identity_key: t.KeyExchangeType,
+        *,
+        kdf_type: type,
     ) -> None:
         if not issubclass(kdf_type, t.DomainKDFType):
             raise Issue.must_be_subtype("KDF type", t.DomainKDFType)
@@ -78,7 +82,9 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         self._sanitize = self._key_exchange_type._process_public_key
 
     async def areceive(
-        self, /, peer_ephemeral_key: t.PublicKeyType | bytes
+        self,
+        /,
+        peer_ephemeral_key: t.PublicKeyType | bytes,
     ) -> t.DomainKDFType:
         """
         Receives the identity public key from an intended client, &
@@ -90,7 +96,7 @@ class DoubleDiffieHellmanServer(FrozenInstance):
             self._my_ephemeral_key
         ) = await self._key_exchange_type().agenerate()
         peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
-            peer_ephemeral_key
+            peer_ephemeral_key,
         )
         shared_key_ad = await my_identity_key.aexchange(peer_ephemeral_key)
         shared_key_cd = await my_ephemeral_key.aexchange(peer_ephemeral_key)
@@ -103,7 +109,9 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         )
 
     def receive(
-        self, /, peer_ephemeral_key: t.PublicKeyType | bytes
+        self,
+        /,
+        peer_ephemeral_key: t.PublicKeyType | bytes,
     ) -> t.DomainKDFType:
         """
         Receives the identity public key from an intended client, &
@@ -115,7 +123,7 @@ class DoubleDiffieHellmanServer(FrozenInstance):
             self._key_exchange_type().generate()
         )
         peer_ephemeral_key = self._peer_ephemeral_key = self._sanitize(
-            peer_ephemeral_key
+            peer_ephemeral_key,
         )
         shared_key_ad = my_identity_key.exchange(peer_ephemeral_key)
         shared_key_cd = my_ephemeral_key.exchange(peer_ephemeral_key)

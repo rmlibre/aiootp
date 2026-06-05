@@ -124,11 +124,14 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._finalizing_now = deque()  # don't let maxlen remove entries
         self._buffer = buffer = deque([self._padding.start_padding()])
         self._key_bundle = key_bundle = await cipher._KeyAADBundle(
-            kdfs=cipher._kdfs, salt=salt, aad=aad
+            kdfs=cipher._kdfs,
+            salt=salt,
+            aad=aad,
         ).async_mode()
         self.shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
         self._stream = cipher._Junction.abytes_encipher(
-            apopleft(buffer), shmac=self.shmac
+            apopleft(buffer),
+            shmac=self.shmac,
         )
 
     @property
@@ -357,11 +360,14 @@ class CipherStream(CipherStreamProperties):
         self._finalizing_now = deque()  # don't let maxlen remove entries
         self._buffer = buffer = deque([self._padding.start_padding()])
         self._key_bundle = key_bundle = cipher._KeyAADBundle(
-            kdfs=cipher._kdfs, salt=salt, aad=aad
+            kdfs=cipher._kdfs,
+            salt=salt,
+            aad=aad,
         ).sync_mode()
         self.shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
         self._stream = cipher._Junction.bytes_encipher(
-            popleft(buffer), shmac=self.shmac
+            popleft(buffer),
+            shmac=self.shmac,
         )
 
     @property
@@ -426,7 +432,9 @@ class CipherStream(CipherStreamProperties):
             raise ConcurrencyGuard.IncoherentConcurrencyState
 
         with ConcurrencyGuard(
-            self._digesting_now, probe_delay=0.0001, token=token
+            self._digesting_now,
+            probe_delay=0.0001,
+            token=token,
         ):
             end_padding = self._padding.end_padding(self._byte_count)
             final_blocks = batch(

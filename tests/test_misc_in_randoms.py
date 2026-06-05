@@ -50,7 +50,7 @@ class TestRandomSleeps:
             0.6 * self.span + self.max_ideal_overhead
         ):
             warnings.warn(
-                f"NOTICE: span={self.span} : {average_arandom_sleep=}"
+                f"NOTICE: span={self.span} : {average_arandom_sleep=}",
             )
 
     async def test_sync_random_sleep(self) -> None:
@@ -68,7 +68,7 @@ class TestRandomSleeps:
             0.6 * self.span + self.max_ideal_overhead
         ):
             warnings.warn(
-                f"NOTICE: span={self.span} : {average_random_sleep=}"
+                f"NOTICE: span={self.span} : {average_random_sleep=}",
             )
 
 
@@ -104,7 +104,9 @@ class TestEntropyDaemon:
     pool = deque([csprng(32), csprng(32)], maxlen=32)
     gadget = ThreadingSafeEntropyPool(csprng(), obj=shake_128, pool=pool)
     daemon = EntropyDaemon(
-        entropy_pool=pool, gadget=gadget, max_delay=0.025
+        entropy_pool=pool,
+        gadget=gadget,
+        max_delay=0.025,
     )
 
     async def test_aaa_start_daemon(self) -> None:
@@ -173,7 +175,7 @@ class TestCSPRNG:
         runs = 32
         entropy_pool = set()
         await Threads.agather(
-            *[try_to_make_duplicate_readouts for _ in range(runs)]
+            *[try_to_make_duplicate_readouts for _ in range(runs)],
         )
         assert runs**2 == len(entropy_pool)
 
@@ -185,7 +187,7 @@ class TestCSPRNG:
         runs = 32
         entropy_pool = set()
         Threads.gather(
-            *[try_to_make_duplicate_readouts for _ in range(runs)]
+            *[try_to_make_duplicate_readouts for _ in range(runs)],
         )
         assert runs**2 == len(entropy_pool)
 

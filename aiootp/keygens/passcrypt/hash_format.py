@@ -139,7 +139,10 @@ class PasscryptHash(FrozenSlots):
         return b"".join(passcrypt_hash)
 
     def in_allowed_ranges(
-        self, mb_allowed: range, cpu_allowed: range, cores_allowed: range
+        self,
+        mb_allowed: range,
+        cpu_allowed: range,
+        cores_allowed: range,
     ) -> bool:
         """
         Procs a `ResourceWarning` exception if any of the range objects

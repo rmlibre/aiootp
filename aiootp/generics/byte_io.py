@@ -88,7 +88,9 @@ class ByteIO(FrozenInstance):
         very wide array of platforms.
         """
         return await aint_as_base(
-            int.from_bytes(value, BIG), base=38, table=Tables.BASE_38
+            int.from_bytes(value, BIG),
+            base=38,
+            table=Tables.BASE_38,
         )
 
     @staticmethod
@@ -99,7 +101,9 @@ class ByteIO(FrozenInstance):
         very wide array of platforms.
         """
         return int_as_base(
-            int.from_bytes(value, BIG), base=38, table=Tables.BASE_38
+            int.from_bytes(value, BIG),
+            base=38,
+            table=Tables.BASE_38,
         )
 
     @staticmethod

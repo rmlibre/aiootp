@@ -82,7 +82,8 @@ class AffineXORChainConfig(Config):
             raise Issue.value_must("size", "be > 0 and <= 4096")
 
     def _process_key_types(
-        self, key_types: tuple[tuple[str, int]] | None
+        self,
+        key_types: tuple[tuple[str, int]] | None,
     ) -> tuple[tuple[str, int]]:
         """
         Returns `key_types` if it contains at least one (str, int) pair,
@@ -104,7 +105,8 @@ class AffineXORChainConfig(Config):
             return key_types
 
     def _process_permutation_config_id(
-        self, permutation_config_id: t.Hashable | None
+        self,
+        permutation_config_id: t.Hashable | None,
     ) -> t.Hashable:
         """
         Returns the input `permutation_config_id` if it's provided,
@@ -124,7 +126,8 @@ class AffineXORChainConfig(Config):
             return permutation_type
         else:
             raise Issue.must_be_subtype(
-                f"{permutation_type=}", t.PermutationType
+                f"{permutation_type=}",
+                t.PermutationType,
             )
 
     def __init__(
@@ -153,7 +156,7 @@ class AffineXORChainConfig(Config):
         self.ADD_KEY_SIZE = 2 * self.SIZE
         self.XOR_KEY_SIZE = self.SIZE
         self.PERMUTATION_CONFIG_ID = self._process_permutation_config_id(
-            permutation_config_id
+            permutation_config_id,
         )
         self.Permutation = self._process_permutation(permutation_type)
 

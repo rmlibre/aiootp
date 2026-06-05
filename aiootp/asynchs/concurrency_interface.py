@@ -26,7 +26,10 @@ from .loops import asleep, sleep, new_event_loop
 
 
 def process_probe_delay(
-    value: t.PositiveRealNumber | None, /, *, default: float
+    value: t.PositiveRealNumber | None,
+    /,
+    *,
+    default: float,
 ) -> float:
     """
     Ensures the probe frequency is positive & returns it, if it's
@@ -119,7 +122,8 @@ class ConcurrencyInterface:
         coexist with asynchronous code.
         """
         delay = process_probe_delay(
-            probe_delay, default=cls._default_probe_delay
+            probe_delay,
+            default=cls._default_probe_delay,
         )
         queue = cls._get_queue()
         task = cls._type(
@@ -149,7 +153,8 @@ class ConcurrencyInterface:
         asynchronous code.
         """
         delay = process_probe_delay(
-            probe_delay, default=cls._default_probe_delay
+            probe_delay,
+            default=cls._default_probe_delay,
         )
         queue = cls._get_queue()
         task = cls._type(
@@ -187,7 +192,10 @@ class ConcurrencyInterface:
 
     @staticmethod
     def _package_result_methods(
-        future: t.Future, /, *, probe_delay: float
+        future: t.Future,
+        /,
+        *,
+        probe_delay: float,
     ) -> t.Future:
         """
         Inserts methods in the `future` returned from a pool submission
@@ -225,7 +233,8 @@ class ConcurrencyInterface:
         object that's created.
         """
         delay = process_probe_delay(
-            probe_delay, default=cls._default_probe_delay
+            probe_delay,
+            default=cls._default_probe_delay,
         )
         future = cls.pool.submit(cls._get_result, func, *args, **kwargs)
         return cls._package_result_methods(future, probe_delay=delay)
@@ -246,7 +255,8 @@ class ConcurrencyInterface:
         created.
         """
         delay = process_probe_delay(
-            probe_delay, default=cls._default_probe_delay
+            probe_delay,
+            default=cls._default_probe_delay,
         )
         future = cls.pool.submit(func, *args, **kwargs)
         return cls._package_result_methods(future, probe_delay=delay)

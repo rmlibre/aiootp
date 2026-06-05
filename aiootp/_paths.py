@@ -272,7 +272,10 @@ def delete_salt_file(path: Path) -> None:
 
 
 async def AsyncSecureSaltPath(
-    path: t.OptionalPathStr = None, *, key: bytes, _admin: bool = False
+    path: t.OptionalPathStr = None,
+    *,
+    key: bytes,
+    _admin: bool = False,
 ) -> Path:
     """
     Creates a salt file if it doesn't already exist. Derives its name
@@ -298,7 +301,10 @@ async def AsyncSecureSaltPath(
 
 
 def SecureSaltPath(
-    path: t.OptionalPathStr = None, *, key: bytes, _admin: bool = False
+    path: t.OptionalPathStr = None,
+    *,
+    key: bytes,
+    _admin: bool = False,
 ) -> Path:
     """
     Creates a salt file if it doesn't already exist. Derives its name

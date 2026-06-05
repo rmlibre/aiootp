@@ -18,7 +18,8 @@ async def test_json_functions() -> None:
     for _, cipher, salt, aad in all_ciphers:
         ciphertext_of_dict = cipher.json_encrypt(test_data, salt=salt)
         ciphertext_of_string = cipher.json_encrypt(
-            plaintext_string, salt=salt
+            plaintext_string,
+            salt=salt,
         )
 
         # plaintext is not trivially detected in ciphertext
@@ -27,22 +28,28 @@ async def test_json_functions() -> None:
 
         # no two ciphertexts are ever the same
         assert ciphertext_of_dict != await cipher.ajson_encrypt(
-            test_data, salt=salt
+            test_data,
+            salt=salt,
         )
         assert ciphertext_of_string != await cipher.ajson_encrypt(
-            plaintext_string, salt=salt
+            plaintext_string,
+            salt=salt,
         )
 
         assert ciphertext_of_dict != cipher.json_encrypt(test_data)
         assert ciphertext_of_string != await cipher.ajson_encrypt(
-            plaintext_string
+            plaintext_string,
         )
 
         assert ciphertext_of_dict != cipher.json_encrypt(
-            test_data, salt=salt, aad=aad
+            test_data,
+            salt=salt,
+            aad=aad,
         )
         assert ciphertext_of_string != await cipher.ajson_encrypt(
-            plaintext_string, salt=salt, aad=aad
+            plaintext_string,
+            salt=salt,
+            aad=aad,
         )
 
         # decryption of correct ciphertext & key of json data doesn't fail
@@ -55,20 +62,22 @@ async def test_json_functions() -> None:
         # async decryption with correct ciphertext & key of json data
         # doesn't fail & is sound
         assert plaintext_of_dict == await cipher.ajson_decrypt(
-            ciphertext_of_dict
+            ciphertext_of_dict,
         )
         assert plaintext_of_string == await cipher.ajson_decrypt(
-            ciphertext_of_string
+            ciphertext_of_string,
         )
 
 
 async def test_bytes_functions() -> None:
     for _, cipher, salt, aad in all_ciphers:
         ciphertext_of_bytes = cipher.bytes_encrypt(
-            plaintext_bytes, salt=salt
+            plaintext_bytes,
+            salt=salt,
         )
         ciphertext_of_string = cipher.bytes_encrypt(
-            plaintext_string.encode(), salt=salt
+            plaintext_string.encode(),
+            salt=salt,
         )
 
         # plaintext is not trivially detected in ciphertext
@@ -77,22 +86,28 @@ async def test_bytes_functions() -> None:
 
         # no two ciphertexts are ever the same
         assert ciphertext_of_bytes != await cipher.abytes_encrypt(
-            plaintext_bytes, salt=salt
+            plaintext_bytes,
+            salt=salt,
         )
         assert ciphertext_of_string != await cipher.abytes_encrypt(
-            plaintext_string.encode(), salt=salt
+            plaintext_string.encode(),
+            salt=salt,
         )
 
         assert ciphertext_of_bytes != cipher.bytes_encrypt(plaintext_bytes)
         assert ciphertext_of_string != await cipher.abytes_encrypt(
-            plaintext_string.encode()
+            plaintext_string.encode(),
         )
 
         assert ciphertext_of_bytes != cipher.bytes_encrypt(
-            plaintext_bytes, salt=salt, aad=aad
+            plaintext_bytes,
+            salt=salt,
+            aad=aad,
         )
         assert ciphertext_of_string != await cipher.abytes_encrypt(
-            plaintext_string.encode(), salt=salt, aad=aad
+            plaintext_string.encode(),
+            salt=salt,
+            aad=aad,
         )
 
         # decryption of correct ciphertext & key doesn't fail & is sound
@@ -103,10 +118,10 @@ async def test_bytes_functions() -> None:
 
         # async decryption with correct ciphertext & key doesn't fail & is sound
         assert plaintext_of_bytes == await cipher.abytes_decrypt(
-            ciphertext_of_bytes
+            ciphertext_of_bytes,
         )
         assert plaintext_of_string == await cipher.abytes_decrypt(
-            ciphertext_of_string
+            ciphertext_of_string,
         )
 
 
@@ -124,28 +139,34 @@ async def test_token_functions() -> None:
             assert cipher.make_token("plaintext", aad=aad)
 
         assert ciphertext_of_bytes != cipher.make_token(
-            plaintext_bytes, aad=aad
+            plaintext_bytes,
+            aad=aad,
         )
         assert ciphertext_of_bytes != await cipher.amake_token(
-            plaintext_bytes, aad=aad
+            plaintext_bytes,
+            aad=aad,
         )
         assert ciphertext_of_bytes != cipher.make_token(plaintext_bytes)
         assert ciphertext_of_bytes != await cipher.amake_token(
-            plaintext_bytes
+            plaintext_bytes,
         )
 
         # token decryption of correct ciphertext & key doesn't fail & is sound
         assert plaintext_bytes == cipher.read_token(
-            ciphertext_of_bytes, aad=aad
+            ciphertext_of_bytes,
+            aad=aad,
         )
         assert plaintext_bytes == cipher.read_token(
-            ciphertext_of_bytes.decode(), aad=aad
+            ciphertext_of_bytes.decode(),
+            aad=aad,
         )
         assert plaintext_bytes == await cipher.aread_token(
-            ciphertext_of_bytes, aad=aad
+            ciphertext_of_bytes,
+            aad=aad,
         )
         assert plaintext_bytes == await cipher.aread_token(
-            ciphertext_of_bytes.decode(), aad=aad
+            ciphertext_of_bytes.decode(),
+            aad=aad,
         )
 
 

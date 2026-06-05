@@ -169,7 +169,7 @@ class Clock(FrozenInstance):
     __slots__ = ("_epoch", "_resolution_needed", "_time", "_units")
 
     _SYSTEM_TIME_RESOLUTION: t.PositiveRealNumber = get_clock_info(
-        "time"
+        "time",
     ).resolution
 
     _times: FrozenNamespace = FrozenNamespace(
@@ -189,7 +189,11 @@ class Clock(FrozenInstance):
     TimestampExpired: type = TimestampExpired
 
     def __init__(
-        self, /, units: str = SECONDS, *, epoch: int = EPOCH_NS
+        self,
+        /,
+        units: str = SECONDS,
+        *,
+        epoch: int = EPOCH_NS,
     ) -> None:
         """
         Create an object which can create & measure bytes-type
@@ -258,7 +262,11 @@ class Clock(FrozenInstance):
         return self.time().to_bytes(size, byte_order)
 
     async def aread_timestamp(
-        self, /, timestamp: bytes, *, byte_order: str = BIG
+        self,
+        /,
+        timestamp: bytes,
+        *,
+        byte_order: str = BIG,
     ) -> int:
         """
         Returns the integer representation of the `byte_order`-endian
@@ -268,7 +276,11 @@ class Clock(FrozenInstance):
         return int.from_bytes(timestamp, byte_order)
 
     def read_timestamp(
-        self, /, timestamp: bytes, *, byte_order: str = BIG
+        self,
+        /,
+        timestamp: bytes,
+        *,
+        byte_order: str = BIG,
     ) -> int:
         """
         Returns the integer representation of the `byte_order`-endian
@@ -277,7 +289,11 @@ class Clock(FrozenInstance):
         return int.from_bytes(timestamp, byte_order)
 
     async def adelta(
-        self, /, timestamp: bytes, *, byte_order: str = BIG
+        self,
+        /,
+        timestamp: bytes,
+        *,
+        byte_order: str = BIG,
     ) -> int:
         """
         Takes a `timestamp` & returns the integer difference between

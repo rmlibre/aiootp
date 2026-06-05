@@ -75,11 +75,11 @@ class DatabaseProperties:
         """
         Returns the filename string of database's manifest.
         """
-        return self._encode_filename(
-            self._root_kdf.shake_128(
-                size=FILENAME_HASH_BYTES, aad=self._DBDomains.ROOT_FILENAME
-            )
+        filename = self._root_kdf.shake_128(
+            size=FILENAME_HASH_BYTES,
+            aad=self._DBDomains.ROOT_FILENAME,
         )
+        return self._encode_filename(filename)
 
     @property
     def _root_path(self) -> t.Path:
@@ -105,11 +105,10 @@ class DatabaseProperties:
         the database object.
         """
         manifest = self._manifest
+        admin_files = self._maintenance_records
         return {
             getattr(manifest, filename)
-            for filename in self._maintenance_records.symmetric_difference(
-                manifest
-            )
+            for filename in admin_files.symmetric_difference(manifest)
         }
 
     @property
@@ -118,9 +117,8 @@ class DatabaseProperties:
         Returns a list of all derived filenames of user-defined tags
         stored in the database object.
         """
-        return self._maintenance_records.symmetric_difference(
-            self._manifest.__dict__
-        )
+        admin_files = self._maintenance_records
+        return admin_files.symmetric_difference(self._manifest.__dict__)
 
     @property
     def metatags(self) -> set[str]:
@@ -153,9 +151,9 @@ class DatabaseProperties:
         """
         Returns `True` if the instance has any tags or metatags set.
         """
-        return bool(
-            (len(self) > 0) or self._manifest[self._METATAGS_LEDGERNAME]
-        )
+        contains_tags = len(self)
+        contains_metatags = self._manifest[self._METATAGS_LEDGERNAME]
+        return bool(contains_tags or contains_metatags)
 
     def __len__(self) -> int:
         """

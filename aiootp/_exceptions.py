@@ -320,7 +320,7 @@ class UndefinedRequiredAttributes(AttributeError):
         super().__init__(
             self
             ._MESSAGE_TEMPLATE
-            .replace("UNDEFINED_ATTRIBUTES", repr(undefined_attributes))
+            .replace("UNDEFINED_ATTRIBUTES", repr(undefined_attributes)),
         )
         # fmt: on
 
@@ -346,7 +346,7 @@ class MissingDeclaredVariables(AttributeError):
         msg = self._MESSAGE_TEMPLATE
         report = (repr(names), repr(found_in), repr(missed), ".")
         super().__init__(
-            "".join(mold + part for mold, part in zip(msg, report))
+            "".join(mold + part for mold, part in zip(msg, report)),
         )
 
 
@@ -547,7 +547,10 @@ class Issue:
 
     @classmethod
     def value_already_set(
-        cls, obj: str, context: str, /
+        cls,
+        obj: str,
+        context: str,
+        /,
     ) -> PermissionError:
         issue = cls._VALUE_ALREADY_SET.replace("OBJECT", str(obj))
         return PermissionError(issue.replace("CONTEXT", str(context)))
@@ -579,7 +582,10 @@ class Issue:
 
     @classmethod
     def unused_parameters(
-        cls, params: t.Any, context: str, /
+        cls,
+        params: t.Any,
+        context: str,
+        /,
     ) -> ValueError:
         issue = cls._UNUSED_PARAMETERS.replace("PARAMETERS", repr(params))
         return ValueError(issue.replace("CONTEXT", str(context)))
@@ -590,7 +596,9 @@ class Issue:
 
     @classmethod
     def slots_conflicts_with_class_variables(
-        cls, conflicts: str | t.Container[str], /
+        cls,
+        conflicts: str | t.Container[str],
+        /,
     ) -> ValueError:
         issue = cls._SLOTS_CONFLICTS_WITH_CLASS_VARIABLES
         return ValueError(issue.replace("CONFLICTS", repr(conflicts)))
@@ -715,7 +723,10 @@ class SHMACIssue:
 
     @classmethod
     def block_id_is_too_small(
-        cls, size: int, min_size: int, /
+        cls,
+        size: int,
+        min_size: int,
+        /,
     ) -> PermissionError:
         issue = cls._BLOCK_ID_IS_TOO_SMALL.replace("SIZE", repr(size))
         issue = issue.replace("MIN", repr(min_size))
@@ -723,7 +734,10 @@ class SHMACIssue:
 
     @classmethod
     def block_id_is_too_big(
-        cls, size: int, max_size: int, /
+        cls,
+        size: int,
+        max_size: int,
+        /,
     ) -> PermissionError:
         issue = cls._BLOCK_ID_IS_TOO_BIG.replace("SIZE", repr(size))
         issue = issue.replace("MAX", repr(max_size))
@@ -832,7 +846,7 @@ class PasscryptIssue:
             cls
             ._IMPROPER_SALT
             .replace("MIN_SALT_SIZE", repr(c.MIN_SALT_SIZE))
-            .replace("MAX_SALT_SIZE", repr(c.MAX_SALT_SIZE))
+            .replace("MAX_SALT_SIZE", repr(c.MAX_SALT_SIZE)),
         )
         # fmt: on
 
@@ -852,7 +866,7 @@ class PasscryptIssue:
             ._INVALID_MB
             .replace("MIN_MB", repr(c.MIN_MB))
             .replace("MAX_MB", repr(c.MAX_MB))
-            .replace("MB", repr(mb))
+            .replace("MB", repr(mb)),
         )
         # fmt: on
 
@@ -868,7 +882,7 @@ class PasscryptIssue:
             ._INVALID_CPU
             .replace("MIN_CPU", repr(c.MIN_CPU))
             .replace("MAX_CPU", repr(c.MAX_CPU))
-            .replace("CPU", repr(cpu))
+            .replace("CPU", repr(cpu)),
         )
         # fmt: on
 
@@ -884,7 +898,7 @@ class PasscryptIssue:
             ._INVALID_CORES
             .replace("MIN_CORES", repr(c.MIN_CORES))
             .replace("MAX_CORES", repr(c.MAX_CORES))
-            .replace("CORES", repr(cores))
+            .replace("CORES", repr(cores)),
         )
         # fmt: on
 
@@ -899,7 +913,7 @@ class PasscryptIssue:
             cls
             ._INVALID_TAG_SIZE
             .replace("MIN_TAG_SIZE", repr(c.MIN_TAG_SIZE))
-            .replace("SIZE", repr(tag_size))
+            .replace("SIZE", repr(tag_size)),
         )
         # fmt: on
 
@@ -915,13 +929,16 @@ class PasscryptIssue:
             ._INVALID_SALT_SIZE
             .replace("MIN_SALT_SIZE", repr(c.MIN_SALT_SIZE))
             .replace("MAX_SALT_SIZE", repr(c.MAX_SALT_SIZE))
-            .replace("SIZE", repr(salt_size))
+            .replace("SIZE", repr(salt_size)),
         )
         # fmt: on
 
     @classmethod
     def untrusted_resource_consumption(
-        cls, parameter: str, header: t.Mapping[str, int], /
+        cls,
+        parameter: str,
+        header: t.Mapping[str, int],
+        /,
     ) -> ResourceWarning:
         value = header[parameter]
         issue = cls._UNTRUSTED_RESOURCE_CONSUMPTION

@@ -204,7 +204,7 @@ class ShakePermuteCipherConfig(Config):
         self.SHMAC_RESULT_SLICE = slice(-self.SHMAC_BYTES, None, 1)
         self.PERMUTATION_CONFIG_ID = self.BLOCKSIZE
         self.PERMUTATION_KEY_BYTES = self.Permutation.key_size(
-            self.PERMUTATION_CONFIG_ID
+            self.PERMUTATION_CONFIG_ID,
         )
 
     def _compute_inner_header_measurements(self) -> None:
@@ -218,7 +218,9 @@ class ShakePermuteCipherConfig(Config):
         self.INNER_BODY_SLICE = slice(self.INNER_HEADER_BYTES, None, 1)
         self.TIMESTAMP_SLICE = slice(0, self.TIMESTAMP_BYTES, 1)
         self.SIV_KEY_SLICE = slice(
-            self.TIMESTAMP_BYTES, self.INNER_HEADER_BYTES, 1
+            self.TIMESTAMP_BYTES,
+            self.INNER_HEADER_BYTES,
+            1,
         )
 
     def _compute_header_measurements(self) -> None:
@@ -232,10 +234,14 @@ class ShakePermuteCipherConfig(Config):
         self.BLOCK_ID_SLICE = slice(0, self.BLOCK_ID_BYTES, 1)
         self.SHMAC_SLICE = slice(0, self.SHMAC_BYTES, 1)
         self.SALT_SLICE = slice(
-            self.SHMAC_BYTES, self.SHMAC_BYTES + self.SALT_BYTES, 1
+            self.SHMAC_BYTES,
+            self.SHMAC_BYTES + self.SALT_BYTES,
+            1,
         )
         self.IV_SLICE = slice(
-            self.SHMAC_BYTES + self.SALT_BYTES, self.HEADER_BYTES, 1
+            self.SHMAC_BYTES + self.SALT_BYTES,
+            self.HEADER_BYTES,
+            1,
         )
 
     def _compute_permutation_integration_measurements(self) -> None:
@@ -244,15 +250,19 @@ class ShakePermuteCipherConfig(Config):
         """
         self.FIRST_DIGEST_SLICE = slice(0, self.SHMAC_BLOCKSIZE, 1)
         self.PERMUTATION_DIGEST_SLICE = slice(
-            2 * self.BLOCKSIZE, self.SHMAC_BLOCKSIZE, 1
+            2 * self.BLOCKSIZE,
+            self.SHMAC_BLOCKSIZE,
+            1,
         )
         self.IN_KEY_SLICE = slice(0, self.BLOCKSIZE, 1)
         self.OUT_KEY_SLICE = slice(self.BLOCKSIZE, 2 * self.BLOCKSIZE, 1)
         self.PERMUTATION_KEY_SLICE = slice(
-            -self.PERMUTATION_KEY_BYTES, None, 1
+            -self.PERMUTATION_KEY_BYTES,
+            None,
+            1,
         )
         self.PRIMER_KEY_BYTES = self.SHMAC_BLOCKSIZE * ceil(
-            1 + self.PERMUTATION_KEY_BYTES / self.SHMAC_BLOCKSIZE
+            1 + self.PERMUTATION_KEY_BYTES / self.SHMAC_BLOCKSIZE,
         )
         # fmt: off
         self.PERMUTATION_TEST_VECTOR = self.Permutation(
@@ -366,7 +376,7 @@ class ShakePermuteCipherConfig(Config):
         if self.MIN_BLOCK_ID_BYTES > self.MAX_BLOCK_ID_BYTES:
             raise ValueError(
                 "The MIN_BLOCK_ID_BYTES mustn't be larger than the "
-                "MAX_BLOCK_ID_BYTES."
+                "MAX_BLOCK_ID_BYTES.",
             )
 
     def _ensure_max_information_of_block_smaller_than_state(self) -> None:
@@ -378,7 +388,7 @@ class ShakePermuteCipherConfig(Config):
         if self.SHMAC_BLOCKSIZE < 2 * self.BLOCKSIZE + 32:
             raise ValueError(
                 "The BLOCKSIZE can't be greater than half the block "
-                "size of the SHAKE object + 32 bytes."
+                "size of the SHAKE object + 32 bytes.",
             )
 
     def _ensure_inner_header_leaves_adequate_space(self) -> None:

@@ -53,7 +53,7 @@ new_future = asyncio.ensure_future
 # WARNING: This will also reveal potentially sensitive values in object
 # repr's that are omitted by default.
 DebugControl._switches.append(
-    lambda: get_event_loop().set_debug(DebugControl.is_debugging())
+    lambda: get_event_loop().set_debug(DebugControl.is_debugging()),
 )
 
 
@@ -83,7 +83,8 @@ def wrap_in_executor(
     async def runner(*args: t.Any, **kwargs: t.Any) -> t.Any:
         partial_function = partial(function, *args, **kwargs)
         return await get_event_loop().run_in_executor(
-            executor=None, func=partial_function
+            executor=None,
+            func=partial_function,
         )
 
     return runner

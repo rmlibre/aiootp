@@ -76,7 +76,9 @@ class X25519(Base25519):
     SecretKey: type = t.X25519PrivateKey
 
     async def aexchange(
-        self, public_key: t.PublicKeyType | bytes, /
+        self,
+        public_key: t.PublicKeyType | bytes,
+        /,
     ) -> bytes:
         """
         Takes in a public key from a communicating party & uses the

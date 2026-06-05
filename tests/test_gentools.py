@@ -82,7 +82,11 @@ class TestGenerators:
     @pytest.mark.parametrize("order", ["little", "big"])
     @given(start=st.integers(min_value=0))
     async def test_bytes_count(
-        self, start: int, order: str, first: int, second: int
+        self,
+        start: int,
+        order: str,
+        first: int,
+        second: int,
     ) -> None:
         count = start
         size = (start.bit_length() // 8) + 2
@@ -100,12 +104,16 @@ class TestGenerators:
     @pytest.mark.parametrize("first,second", [(0, 1), (1, 0)])
     @given(start=st.integers())
     async def test_counts(
-        self, start: int, first: int, second: int
+        self,
+        start: int,
+        first: int,
+        second: int,
     ) -> None:
         count = start
         funcs = [gentools.acount, gentools.count]
         async for index_0, index_1 in gentools.azip(
-            funcs[first](start=start), funcs[second](start=start)
+            funcs[first](start=start),
+            funcs[second](start=start),
         ):
             assert index_0 == index_1
             assert index_0 == count
@@ -171,7 +179,11 @@ class TestGenerators:
     @pytest.mark.parametrize("size", [4, 8, 13])
     @pytest.mark.parametrize("blocks", [1, 2, 3])
     async def test_batches(
-        self, blocks: int, size: int, first: int, second: int
+        self,
+        blocks: int,
+        size: int,
+        first: int,
+        second: int,
     ) -> None:
         for unit, cls in ((b"a", io.BytesIO), ("a", io.StringIO)):
             result = unit.__class__()
@@ -228,7 +240,8 @@ class TestGenerators:
         funcs = [gentools.apopleft, gentools.popleft]
         inputs = [adeq := deque(range(size)), deq := deque(range(size))]
         async for item_0, item_1 in gentools.azip(
-            funcs[first](inputs[first]), funcs[second](inputs[second])
+            funcs[first](inputs[first]),
+            funcs[second](inputs[second]),
         ):
             assert item_0 == item_1
             assert item_0 == count
@@ -238,10 +251,14 @@ class TestGenerators:
         assert not adeq
 
     @pytest.mark.parametrize(
-        "first,second,third", [(0, 1, 2), (1, 2, 0), (2, 1, 0)]
+        "first,second,third",
+        [(0, 1, 2), (1, 2, 0), (2, 1, 0)],
     )
     async def test_unpacks(
-        self, first: int, second: int, third: int
+        self,
+        first: int,
+        second: int,
+        third: int,
     ) -> None:
         count = 0
         size = 32
@@ -261,10 +278,15 @@ class TestGenerators:
 
     @given(size=st.integers(min_value=0, max_value=16))
     @pytest.mark.parametrize(
-        "first,second,third", [(0, 1, 2), (1, 2, 0), (2, 1, 0)]
+        "first,second,third",
+        [(0, 1, 2), (1, 2, 0), (2, 1, 0)],
     )
     async def test_cycles(
-        self, first: int, second: int, third: int, size: int
+        self,
+        first: int,
+        second: int,
+        third: int,
+        size: int,
     ) -> None:
         count = 0
         iteration = 0

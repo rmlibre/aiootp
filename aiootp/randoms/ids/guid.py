@@ -163,7 +163,7 @@ class GUID(FrozenInstance):
         bijective, keyed permutation.
         """
         guid = await self._permutation.apermute(
-            int.from_bytes(await self._raw_guid.anew(), BIG)
+            int.from_bytes(await self._raw_guid.anew(), BIG),
         )
         return guid.to_bytes(self.config.SIZE, BIG)
 
@@ -173,7 +173,7 @@ class GUID(FrozenInstance):
         bijective, keyed permutation.
         """
         return self._permutation.permute(
-            int.from_bytes(self._raw_guid.new(), BIG)
+            int.from_bytes(self._raw_guid.new(), BIG),
         ).to_bytes(self.config.SIZE, BIG)
 
     async def aread(self, guid: bytes) -> RawGUIDContainer:
@@ -186,7 +186,7 @@ class GUID(FrozenInstance):
         guid = int.from_bytes(guid, BIG)
         original = await self._permutation.ainvert(guid)
         return await self._raw_guid.aread(
-            original.to_bytes(self.config.SIZE, BIG)
+            original.to_bytes(self.config.SIZE, BIG),
         )
 
     def read(self, guid: bytes) -> RawGUIDContainer:

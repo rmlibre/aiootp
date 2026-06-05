@@ -72,7 +72,7 @@ class TestAsyncCipherStreamingTypes(ProtocolSubTypeTests):
     instances_tested = [
         run(t.AsyncCipherStream(cipher)),
         run(t.AsyncDecipherStream(
-            cipher, salt=salt, iv=csprng(config.IV_BYTES)
+            cipher, salt=salt, iv=csprng(config.IV_BYTES),
         )),
     ]
     # fmt: on

@@ -387,7 +387,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
     IncoherentConcurrencyState: type = IncoherentConcurrencyState
 
     def _set_policy(
-        self, /, policy: t.ConcurrencyGuardPolicy | None
+        self,
+        /,
+        policy: t.ConcurrencyGuardPolicy | None,
     ) -> None:
         """
         Ensures the passed policy value is an instance of a policy class
@@ -436,7 +438,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
         self._set_policy(policy)
         self._use_tracker = deque(maxlen=2)
         self.probe_delay = process_probe_delay(
-            probe_delay, default=self._default_probe_delay
+            probe_delay,
+            default=self._default_probe_delay,
         )
         self.observers = deque() if observers is None else observers
         self.queue = queue
@@ -579,7 +582,7 @@ module_api = dict(
     ExclusivePolicy=t.add_type(ExclusivePolicy),
     NonExclusivePolicy=t.add_type(NonExclusivePolicy),
     NonExclusiveQueueManuallyPolicy=t.add_type(
-        NonExclusiveQueueManuallyPolicy
+        NonExclusiveQueueManuallyPolicy,
     ),
     __all__=__all__,
     __doc__=__doc__,

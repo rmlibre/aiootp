@@ -107,7 +107,7 @@ class AffinePermutationConfig(Config):
         return bool(
             (multiplier & 1)
             and ((sqrt_prime << 2) > multiplier > sqrt_prime)
-            and (max_flips > (prime_size / 4) > min_flips)
+            and (max_flips > (prime_size / 4) > min_flips),
         )
 
     def _derive_new_multiplier(self, prime: int) -> int:

@@ -53,7 +53,7 @@ def is_windows_limitation(_: Ignore) -> bool:
     warnings.warn(
         "NOTICE: File permissions on Windows don't deny reading of "
         "sensitive files, like random seed & salt files, as Unix-like "
-        "systems do when os.chmod(path, 0o000) is used."
+        "systems do when os.chmod(path, 0o000) is used.",
     )
 
 
@@ -93,7 +93,9 @@ class TestDeniableFilename(TargetRunner):
     @pytest.mark.parametrize("size", select_k_ints(-16, 33, k=6))
     @pytest.mark.parametrize("target", targets)
     async def test_size_arg_must_be_between_1_and_16_inclusive(
-        self, target, size: int
+        self,
+        target,
+        size: int,
     ) -> None:
         try:
             await self.run(target, KEY, size=size)
@@ -106,7 +108,10 @@ class TestDeniableFilename(TargetRunner):
     @pytest.mark.parametrize("key_length", select_k_ints(0, 33, k=6))
     @pytest.mark.parametrize("target", targets)
     async def test_key_length_must_be_at_least_double_size_arg(
-        self, target, key_length: int, size: int
+        self,
+        target,
+        key_length: int,
+        size: int,
     ) -> None:
         key = token_bytes(key_length)
 
@@ -121,7 +126,10 @@ class TestDeniableFilename(TargetRunner):
     @pytest.mark.parametrize("key_length", select_k_ints(16, 33, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_same_key_and_size_make_same_name(
-        self, target, key_length: int, size: int
+        self,
+        target,
+        key_length: int,
+        size: int,
     ) -> None:
         key = token_bytes(key_length)
 
@@ -134,7 +142,10 @@ class TestDeniableFilename(TargetRunner):
     @pytest.mark.parametrize("key_length", select_k_ints(48, 65, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_different_key_or_size_make_different_name(
-        self, target, key_length: int, size: int
+        self,
+        target,
+        key_length: int,
+        size: int,
     ) -> None:
         key = csprng(key_length)
 
@@ -150,7 +161,10 @@ class TestDeniableFilename(TargetRunner):
     @pytest.mark.parametrize("key_size_multiple", select_k_ints(2, 8, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_same_names_when_xor_of_key_sections_are_same(
-        self, target, key_size_multiple: int, size: int
+        self,
+        target,
+        key_size_multiple: int,
+        size: int,
     ) -> None:
         raw_control = csprng(size)
         control = int.from_bytes(raw_control, "big")
@@ -174,14 +188,12 @@ class TestFindSaltFile(TargetRunner):
     Tests for the finding protected salt file functionalities.
     """
 
-    targets = Targets(
-        asynch=p._afind_salt_file,
-        synch=p._find_salt_file,
-    )
+    targets = Targets(asynch=p._afind_salt_file, synch=p._find_salt_file)
 
     @pytest.mark.parametrize("target", targets)
     async def test_salt_is_found_in_provided_dir_with_a_deniable_filename(
-        self, target
+        self,
+        target,
     ) -> None:
         parent = p.SecurePath()
         stem = p.deniable_filename(key=KEY, size=8)
@@ -197,14 +209,13 @@ class TestMakeSaltFile(TargetRunner):
     Tests for the making protected salt file functionalities.
     """
 
-    targets = Targets(
-        asynch=p._amake_salt_file,
-        synch=p._make_salt_file,
-    )
+    targets = Targets(asynch=p._amake_salt_file, synch=p._make_salt_file)
 
     @pytest.mark.parametrize("target", targets)
     async def test_given_salt_is_persisted(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         await self.run(target, salt_path, salt=SALT)
 
@@ -214,7 +225,9 @@ class TestMakeSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_new_salt_is_created(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         await self.run(target, salt_path)
 
@@ -227,7 +240,10 @@ class TestMakeSaltFile(TargetRunner):
     @pytest.mark.parametrize("size", select_k_ints(16, 49, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
-        self, target, salt_path: t.Path, size: int
+        self,
+        target,
+        salt_path: t.Path,
+        size: int,
     ) -> None:
         salt = token_bytes(size)
 
@@ -240,7 +256,9 @@ class TestMakeSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_no_read_permissions_set_after_creation(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         await self.run(target, salt_path)
 
@@ -249,7 +267,9 @@ class TestMakeSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_no_write_permissions_set_after_creation(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         await self.run(target, salt_path)
 
@@ -265,14 +285,13 @@ class TestReadSaltFile(TargetRunner):
     Tests for the reading protected salt file functionalities.
     """
 
-    targets = Targets(
-        asynch=p._aread_salt_file,
-        synch=p._read_salt_file,
-    )
+    targets = Targets(asynch=p._aread_salt_file, synch=p._read_salt_file)
 
     @pytest.mark.parametrize("target", targets)
     async def test_read_doesnt_automate_creation(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         problem = (  # fmt: skip
             "Reading non-existant salt file didn't raise error."
@@ -283,7 +302,10 @@ class TestReadSaltFile(TargetRunner):
     @pytest.mark.parametrize("size", select_k_ints(16, 49, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
-        self, target, salt_path: t.Path, size: int
+        self,
+        target,
+        salt_path: t.Path,
+        size: int,
     ) -> None:
         salt_path.write_bytes(token_bytes(size))
         salt_path.chmod(0o000)
@@ -297,7 +319,9 @@ class TestReadSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_no_read_permissions_set_after_reading(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
@@ -309,7 +333,9 @@ class TestReadSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_no_write_permissions_set_after_reading(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
@@ -324,7 +350,9 @@ class TestReadSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_retrieves_persisted_salt(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
@@ -344,7 +372,9 @@ class TestUpdateSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_new_salt_is_created(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
@@ -358,7 +388,10 @@ class TestUpdateSaltFile(TargetRunner):
     @pytest.mark.parametrize("size", select_k_ints(16, 49, k=4))
     @pytest.mark.parametrize("target", targets)
     async def test_salt_must_be_at_least_32_bytes(
-        self, target, salt_path: t.Path, size: int
+        self,
+        target,
+        salt_path: t.Path,
+        size: int,
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
@@ -372,7 +405,9 @@ class TestUpdateSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_no_read_permissions_set_after_updating(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
@@ -384,7 +419,9 @@ class TestUpdateSaltFile(TargetRunner):
 
     @pytest.mark.parametrize("target", targets)
     async def test_no_write_permissions_set_after_updating(
-        self, target, salt_path: t.Path
+        self,
+        target,
+        salt_path: t.Path,
     ) -> None:
         salt_path.write_bytes(SALT)
         salt_path.chmod(0o000)
@@ -454,10 +491,7 @@ class TestZZZSecureSaltPath(TargetRunner):
         user_ctx=UserContext(key=KEY),
     )
 
-    targets = Targets(
-        asynch=p.AsyncSecureSaltPath,
-        synch=p.SecureSaltPath,
-    )
+    targets = Targets(asynch=p.AsyncSecureSaltPath, synch=p.SecureSaltPath)
 
     @pytest.mark.parametrize("kw", kwargs)
     @pytest.mark.parametrize("target", targets)

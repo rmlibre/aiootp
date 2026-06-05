@@ -53,7 +53,7 @@ def report_security_issue() -> None:
     print(
         "\nWe'll ask for your email address & a passphrase to encrypt"
         "\nthe keys, that will be generated automatically, locally on"
-        "\nyour device."
+        "\nyour device.",
     )
 
     mb: str = input(
@@ -62,7 +62,7 @@ def report_security_issue() -> None:
         "\n1024 Mebibytes (1 GiB) is recommended, but choose according"
         "\nto what your machine has available, & how much you'd like"
         "\nto protect the passphrase & the conversation keys on your"
-        "\ndevice: "
+        "\ndevice: ",
     )
 
     # give the user the power to choose the strength of the password
@@ -72,7 +72,7 @@ def report_security_issue() -> None:
             mb: int = max([int(mb), 1])
             if input(
                 f"\nAre you sure you'd like to use {mb} MiB of RAM to hash this"
-                "\npassphrase? (Y/n) "
+                "\npassphrase? (Y/n) ",
             ).lower().strip().startswith("n"):
                 raise PermissionError
             break
@@ -82,7 +82,7 @@ def report_security_issue() -> None:
             print("\nOk, let's try again.")
         mb: str = input(
             "\nHow much RAM, in Mebibytes (1 MiB == 1024*1024 B), would "
-            "\nyou like to use to hash this passphrase? "
+            "\nyou like to use to hash this passphrase? ",
         )
 
     your_email_address: bytes = input("\nYour email address: ").encode()
@@ -106,12 +106,12 @@ def report_security_issue() -> None:
         if not db[CONVERSATION]:
             db[CONVERSATION] = {PERIOD_KEYS: []}
         db[CONVERSATION][PERIOD_KEYS] = list(
-            deque(db[CONVERSATION][PERIOD_KEYS], maxlen=3)
+            deque(db[CONVERSATION][PERIOD_KEYS], maxlen=3),
         )
         db[CONVERSATION][PERIOD_KEYS].append(
             db.make_token(
-                your_public_key.secret_bytes, aad=PERIOD_KEY.encode()
-            ).decode()
+                your_public_key.secret_bytes, aad=PERIOD_KEY.encode(),
+            ).decode(),
         )
 
     # receive the security issue report
@@ -122,17 +122,17 @@ def report_security_issue() -> None:
         "\n* Name of source file(s) which participate in the issue"
         "\n* Step-by-step instructions to reproduce the issue"
         "\n* Proof-of-concept or exploit code (if possible)"
-        "\n* Whether or not you'd like an email response"
+        "\n* Whether or not you'd like an email response",
     )
     print(
         "\nPlease type or paste your message here. Hit CTRL-D (or "
-        "\nCTRL-Z on Windows) to finish the message:\n"
+        "\nCTRL-Z on Windows) to finish the message:\n",
     )
     message: bytes = Chunky2048._padding.pad_plaintext(
         canonical_pack(
             your_email_address,
             b"".join(line.encode() for line in sys.stdin),
-        )
+        ),
     )
 
     # derive the user's report keys
@@ -149,7 +149,7 @@ def report_security_issue() -> None:
 
     # encrypt the message payload
     encrypted_message: bytes = ChaCha20Poly1305(key).encrypt(
-        nonce=siv[:12], data=message, associated_data=siv
+        nonce=siv[:12], data=message, associated_data=siv,
     )
 
     # display ciphertext payload, what to expect & thank yous
@@ -164,7 +164,7 @@ def report_security_issue() -> None:
 
     print(
         "\nThanks for your report! You should receive a response "
-        "\nwithin two weeks. Your secret key has been saved locally."
+        "\nwithin two weeks. Your secret key has been saved locally.",
     )
     # fmt: on
 

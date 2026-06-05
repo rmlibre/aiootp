@@ -210,7 +210,8 @@ class Database(DatabaseProperties):
         """
         ciphertext = self.IO.read(path=self._root_path)
         key = self._root_kdf.shake_128(
-            aad=self._DBDomains.MANIFEST, size=SHAKE_128_BLOCKSIZE
+            aad=self._DBDomains.MANIFEST,
+            size=SHAKE_128_BLOCKSIZE,
         )
         return self._Cipher(key).json_decrypt(ciphertext)
 
@@ -219,7 +220,7 @@ class Database(DatabaseProperties):
         Returns the decoded raw bytes root salt from the manifest.
         """
         return self.IO.urlsafe_to_bytes(
-            self._manifest[self._ROOT_SALT_LEDGERNAME]
+            self._manifest[self._ROOT_SALT_LEDGERNAME],
         )
 
     def _generate_root_salt(self) -> bytes:
@@ -272,7 +273,10 @@ class Database(DatabaseProperties):
         return self
 
     def load_metatags(
-        self, *, preload: bool = True, silent: bool = False
+        self,
+        *,
+        preload: bool = True,
+        silent: bool = False,
     ) -> t.Self:
         """
         Specifically loads all of the database's metatag values into the
@@ -461,7 +465,11 @@ class Database(DatabaseProperties):
         self.IO.write(path=path, data=ciphertext)
 
     def set_tag(
-        self, tag: str, data: t.JSONSerializable, *, cache: bool = True
+        self,
+        tag: str,
+        data: t.JSONSerializable,
+        *,
+        cache: bool = True,
     ) -> t.Self:
         """
         Allows users to add the value `data` under the name `tag`
@@ -475,7 +483,10 @@ class Database(DatabaseProperties):
         return self
 
     def _query_ciphertext(
-        self, filename: str, *, silent: bool = False
+        self,
+        filename: str,
+        *,
+        silent: bool = False,
     ) -> None:
         """
         Retrieves the value stored in the database which has the given
@@ -527,7 +538,10 @@ class Database(DatabaseProperties):
                 raise error from None
 
     def pop_tag(
-        self, tag: str, *, silent: bool = False
+        self,
+        tag: str,
+        *,
+        silent: bool = False,
     ) -> t.JSONSerializable | bytes:
         """
         Returns a value from the database by it's `tag` & deletes the
@@ -583,11 +597,17 @@ class Database(DatabaseProperties):
         Derives the metatag's database key given a user-defined `tag`.
         """
         return self._root_kdf.sha3_512(
-            self._root_salt, tag.encode(), aad=self._DBDomains.METATAG_KEY
+            self._root_salt,
+            tag.encode(),
+            aad=self._DBDomains.METATAG_KEY,
         )
 
     def metatag(
-        self, tag: str, *, preload: bool = False, silent: bool = False
+        self,
+        tag: str,
+        *,
+        preload: bool = False,
+        silent: bool = False,
     ) -> t.Cls:
         """
         Allows a user to create offspring of a database instance to
@@ -684,7 +704,8 @@ class Database(DatabaseProperties):
         """
         manifest = self._manifest.__dict__
         key = self._root_kdf.shake_128(
-            aad=self._DBDomains.MANIFEST, size=SHAKE_128_BLOCKSIZE
+            aad=self._DBDomains.MANIFEST,
+            size=SHAKE_128_BLOCKSIZE,
         )
         return self._Cipher(key).json_encrypt(manifest)
 
@@ -734,7 +755,11 @@ class Database(DatabaseProperties):
             getattr(self, metatag).save_database()
 
     def save_tag(
-        self, tag: str, *, admin: bool = False, drop_cache: bool = False
+        self,
+        tag: str,
+        *,
+        admin: bool = False,
+        drop_cache: bool = False,
     ) -> t.Self:
         """
         Writes the cached value for a user-specified `tag` to the user

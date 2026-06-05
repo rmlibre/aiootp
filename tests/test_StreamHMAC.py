@@ -53,7 +53,9 @@ class TestStreamHMACStates:
         )
         for _, cipher, salt, aad in all_ciphers:
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             with Ignore(t.ValidationIncomplete, if_else=violation(problem)):
@@ -65,7 +67,9 @@ class TestStreamHMACStates:
         )
         for _, cipher, salt, aad in all_ciphers:
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             shmac.finalize()
@@ -80,7 +84,9 @@ class TestStreamHMACStates:
         )
         for _, cipher, salt, aad in all_ciphers:
             key_bundle = cipher._KeyAADBundle(
-                cipher._kdfs, salt=salt, aad=aad
+                cipher._kdfs,
+                salt=salt,
+                aad=aad,
             ).sync_mode()
             shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
             shmac.finalize()
@@ -93,7 +99,8 @@ class TestStreamHMACStates:
 async def test_detection_of_ciphertext_modification() -> None:
     for config, cipher, *_ in all_ciphers:
         aciphertext = Ciphertext(
-            await cipher.abytes_encrypt(plaintext_bytes), config=config
+            await cipher.abytes_encrypt(plaintext_bytes),
+            config=config,
         )
 
         ######
@@ -106,7 +113,7 @@ async def test_detection_of_ciphertext_modification() -> None:
                 aciphertext.salt,
                 aciphertext.iv,
                 aciphertext.ciphertext,
-            ]
+            ],
         )
 
         # async ciphertext doesn't obviously contain plaintext
@@ -156,7 +163,8 @@ async def test_detection_of_ciphertext_modification() -> None:
         ######
         ###### test the ciphertext container class
         ciphertext = Ciphertext(
-            cipher.bytes_encrypt(plaintext_bytes), config=config
+            cipher.bytes_encrypt(plaintext_bytes),
+            config=config,
         )
 
         # ciphertext container packs sync ciphertexts correctly
@@ -168,7 +176,7 @@ async def test_detection_of_ciphertext_modification() -> None:
                 ciphertext.salt,
                 ciphertext.iv,
                 ciphertext.ciphertext,
-            ]
+            ],
         )
 
         # sync ciphertext doesn't obviously contain plaintext
@@ -212,7 +220,9 @@ async def test_detection_of_ciphertext_modification() -> None:
 
 async def aciphertext_stream(config, cipher, salt, aad):
     key_bundle = await cipher._KeyAADBundle(
-        cipher._kdfs, salt=salt, aad=aad
+        cipher._kdfs,
+        salt=salt,
+        aad=aad,
     ).async_mode()
     shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
     datastream = abatch(
@@ -236,7 +246,9 @@ async def aciphertext_stream(config, cipher, salt, aad):
 
 def ciphertext_stream(config, cipher, salt, aad):
     key_bundle = cipher._KeyAADBundle(
-        cipher._kdfs, salt=salt, aad=aad
+        cipher._kdfs,
+        salt=salt,
+        aad=aad,
     ).sync_mode()
     shmac = cipher._StreamHMAC(key_bundle)._for_encryption()
     datastream = batch(
@@ -252,10 +264,7 @@ def ciphertext_stream(config, cipher, salt, aad):
         first_ciphertext_block,
     )
     for ciphertext_block in cipherstream:
-        yield (
-            shmac.next_block_id(ciphertext_block),
-            ciphertext_block,
-        )
+        yield (shmac.next_block_id(ciphertext_block), ciphertext_block)
 
 
 async def test_async_block_ids_during_deciphering() -> None:
@@ -263,13 +272,17 @@ async def test_async_block_ids_during_deciphering() -> None:
         cipherstream = aciphertext_stream(config, cipher, salt, aad)
         salt, iv = await cipherstream.asend(None)
         key_bundle = await cipher._KeyAADBundle(
-            cipher._kdfs, salt=salt, aad=aad, iv=iv
+            cipher._kdfs,
+            salt=salt,
+            aad=aad,
+            iv=iv,
         ).async_mode()
         shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
 
         ciphertext = []
         deciphering = cipher._Junction.abytes_decipher(
-            aunpack(ciphertext), shmac=shmac
+            aunpack(ciphertext),
+            shmac=shmac,
         )
 
         padded_plaintext = b""
@@ -283,10 +296,12 @@ async def test_async_block_ids_during_deciphering() -> None:
             )
             with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
                 fake_block_id = await axi_mix(
-                    block_id + b"\x01", size=config.BLOCK_ID_BYTES
+                    block_id + b"\x01",
+                    size=config.BLOCK_ID_BYTES,
                 )
                 await shmac.atest_next_block_id(
-                    fake_block_id, ciphertext_block
+                    fake_block_id,
+                    ciphertext_block,
                 )
 
             problem = (  # fmt: skip
@@ -297,7 +312,8 @@ async def test_async_block_ids_during_deciphering() -> None:
                     : config.MIN_BLOCK_ID_BYTES - 1
                 ]
                 await shmac.atest_next_block_id(
-                    truncated_block_id, ciphertext_block
+                    truncated_block_id,
+                    ciphertext_block,
                 )
 
             problem = (  # fmt: skip
@@ -308,7 +324,8 @@ async def test_async_block_ids_during_deciphering() -> None:
                     config.MAX_BLOCK_ID_BYTES + 1
                 ) * b"\xff"
                 await shmac.atest_next_block_id(
-                    expanded_block_id, ciphertext_block
+                    expanded_block_id,
+                    ciphertext_block,
                 )
 
             problem = (  # fmt: skip
@@ -316,7 +333,8 @@ async def test_async_block_ids_during_deciphering() -> None:
             )
             with Ignore(TypeError, if_else=violation(problem)):
                 await shmac.atest_next_block_id(
-                    block_id.hex(), ciphertext_block
+                    block_id.hex(),
+                    ciphertext_block,
                 )
 
             problem = (  # fmt: skip
@@ -324,12 +342,14 @@ async def test_async_block_ids_during_deciphering() -> None:
             )
             with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
                 fake_block = await axi_mix(
-                    ciphertext_block + b"\x01", size=config.BLOCKSIZE
+                    ciphertext_block + b"\x01",
+                    size=config.BLOCKSIZE,
                 )
                 await shmac.atest_next_block_id(block_id, fake_block)
 
-        assert plaintext_bytes == await cipher._padding.adepad_plaintext(
-            padded_plaintext
+        assert (
+            await cipher._padding.adepad_plaintext(padded_plaintext)
+            == plaintext_bytes
         )
 
         problem = (  # fmt: skip
@@ -346,13 +366,17 @@ def test_sync_block_ids_during_deciphering() -> None:
         stream = ciphertext_stream(config, cipher, salt, aad)
         salt, iv = stream.send(None)
         key_bundle = cipher._KeyAADBundle(
-            cipher._kdfs, salt=salt, aad=aad, iv=iv
+            cipher._kdfs,
+            salt=salt,
+            aad=aad,
+            iv=iv,
         ).sync_mode()
         shmac = cipher._StreamHMAC(key_bundle)._for_decryption()
 
         ciphertext = []
         deciphering = cipher._Junction.bytes_decipher(
-            unpack(ciphertext), shmac=shmac
+            unpack(ciphertext),
+            shmac=shmac,
         )
 
         padded_plaintext = b""
@@ -366,7 +390,8 @@ def test_sync_block_ids_during_deciphering() -> None:
             )
             with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
                 fake_block_id = xi_mix(
-                    block_id + b"\x01", size=config.BLOCK_ID_BYTES
+                    block_id + b"\x01",
+                    size=config.BLOCK_ID_BYTES,
                 )
                 shmac.test_next_block_id(fake_block_id, ciphertext_block)
 
@@ -378,7 +403,8 @@ def test_sync_block_ids_during_deciphering() -> None:
                     : config.MIN_BLOCK_ID_BYTES - 1
                 ]
                 shmac.test_next_block_id(
-                    truncated_block_id, ciphertext_block
+                    truncated_block_id,
+                    ciphertext_block,
                 )
 
             problem = (  # fmt: skip
@@ -389,7 +415,8 @@ def test_sync_block_ids_during_deciphering() -> None:
                     config.MAX_BLOCK_ID_BYTES + 1
                 ) * b"\xff"
                 shmac.test_next_block_id(
-                    expanded_block_id, ciphertext_block
+                    expanded_block_id,
+                    ciphertext_block,
                 )
 
             problem = (  # fmt: skip
@@ -403,12 +430,13 @@ def test_sync_block_ids_during_deciphering() -> None:
             )
             with Ignore(cipher.InvalidBlockID, if_else=violation(problem)):
                 fake_block = xi_mix(
-                    ciphertext_block + b"\x01", size=config.BLOCKSIZE
+                    ciphertext_block + b"\x01",
+                    size=config.BLOCKSIZE,
                 )
                 shmac.test_next_block_id(block_id, fake_block)
 
         assert plaintext_bytes == cipher._padding.depad_plaintext(
-            padded_plaintext
+            padded_plaintext,
         )
 
         problem = (  # fmt: skip
@@ -423,7 +451,9 @@ def test_sync_block_ids_during_deciphering() -> None:
 async def test_calling_aupdate_before_setting_mode_causes_error() -> None:
     for _, cipher, salt, aad in all_ciphers:
         key_bundle = await cipher._KeyAADBundle(
-            cipher._kdfs, salt=salt, aad=aad
+            cipher._kdfs,
+            salt=salt,
+            aad=aad,
         ).async_mode()
 
         problem = (  # fmt: skip
@@ -436,7 +466,9 @@ async def test_calling_aupdate_before_setting_mode_causes_error() -> None:
 async def test_calling_update_before_setting_mode_causes_error() -> None:
     for _, cipher, salt, aad in all_ciphers:
         key_bundle = cipher._KeyAADBundle(
-            cipher._kdfs, salt=salt, aad=aad
+            cipher._kdfs,
+            salt=salt,
+            aad=aad,
         ).sync_mode()
 
         problem = (  # fmt: skip

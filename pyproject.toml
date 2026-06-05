@@ -374,6 +374,7 @@ select = [
     "ASYNC",  # flake8-async
     "B",  # flake8-bugbear
     "C",  # conventions & complexity
+    "COM",  # flake8-commas
     "E",  # pycodestyle errors
     "ERA",  # eradicate commented out code
     "F",  # pyflakes
@@ -387,12 +388,14 @@ select = [
     "PTH",  # flake8-use-pathlib
     "Q",  # flake8-quotes
     "RSE",  # flake8-raise
+    "RUF",  # Ruff-specific
     "S",  # flake8-bandit
     "SIM",  # flake8-simplify
+    "SLOT",  # flake8-slots
     "T20",  # flake8-print
     "TCH",  # flake8-type-checking
     "TD",  # flake8-todos
-    "RUF",  # Ruff-specific
+    "TID",  # flake8-tidy-imports
     "UP",  # pyupgrade
     "W",  # pycodestyle warnings
 ]
@@ -400,7 +403,6 @@ ignore = [
     "B006",  # mutable defaults only used for **unpacking interface
     "B028",  # thanks for the warning, if stacklevel was needed
     "C408",  # string keys aren't better than keyword arguments
-    "COM",  # TODO: use? it's discouraged but nice
     "E501",  # trust the 76-length enforcement from the formatter
     "E731",  # TODO: look through lambda's to maybe comply
     "PLE0604",  # runtime will catch non-string __all__ members
@@ -499,6 +501,10 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
+
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = true
 
 
 [tool.ruff.format]

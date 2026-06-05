@@ -182,7 +182,8 @@ def send_request(
     the service response ciphertext to the current request.
     """
     signing_request = canonical_pack(
-        json.dumps(scope).encode(), json.dumps(files).encode()
+        json.dumps(scope).encode(),
+        json.dumps(files).encode(),
     )
     request = cipher.bytes_encrypt(signing_request, aad=SEND_AAD)
     buffer_send(client, request)
@@ -190,7 +191,9 @@ def send_request(
 
 
 def recv_response(
-    client: socket.socket, cipher: t.CipherInterfaceType, header: bytes
+    client: socket.socket,
+    cipher: t.CipherInterfaceType,
+    header: bytes,
 ) -> bytes:
     """
     Receives a service response from the `client` socket, then decrypts
@@ -231,7 +234,7 @@ if __name__ != "__main__":
     pass
 elif not getpass("\nsign package? (Y/n) ").lower().strip().startswith("n"):
     summary = request_package_summary_signature(
-        get_transmit_key=current_transmit_key
+        get_transmit_key=current_transmit_key,
     )
     PackageVerifier(SIGNING_KEY, path="").verify_summary(summary)
     Path(SIGNATURE_FILENAME).write_bytes(summary)

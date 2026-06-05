@@ -34,24 +34,24 @@ async def basic_async_tests(tested_class) -> None:
         "An invalid type was allowed to be imported as a public key."
     )
     some_public_key = class_not_being_tested().import_public_key(
-        some_secret_key.public_key
+        some_secret_key.public_key,
     )
     async with Ignore(TypeError, if_else=violation(problem)):
         await tested_class().aimport_secret_key(some_public_key.public_key)
 
     # Testing equality of async constructors
     key_a_from_secret_object = await tested_class().aimport_secret_key(
-        secret_key_a.secret_key
+        secret_key_a.secret_key,
     )
     key_a_from_secret_bytes = await tested_class().aimport_secret_key(
-        secret_key_a.secret_bytes
+        secret_key_a.secret_bytes,
     )
 
     key_a_from_public_object = await tested_class().aimport_public_key(
-        secret_key_a.public_key
+        secret_key_a.public_key,
     )
     key_a_from_public_bytes = await tested_class().aimport_public_key(
-        secret_key_a.public_bytes
+        secret_key_a.public_bytes,
     )
 
     problem = (  # fmt: skip
@@ -72,9 +72,8 @@ async def basic_async_tests(tested_class) -> None:
     )
     for invalid_length in (1, 16, 31, 33, 48, 64):
         async with Ignore(ValueError, if_else=violation(problem)):
-            await tested_class().aimport_secret_key(
-                token_bytes(invalid_length)
-            )
+            invalid_length_key = token_bytes(invalid_length)
+            await tested_class().aimport_secret_key(invalid_length_key)
 
     problem = (  # fmt: skip
         "A falsey value public key import didn't fail."
@@ -95,13 +94,13 @@ async def basic_async_tests(tested_class) -> None:
     for invalid_length in (1, 16, 31, 33, 48, 64):
         async with Ignore(ValueError, if_else=violation(problem)):
             await tested_class().aimport_public_key(
-                token_bytes(invalid_length)
+                token_bytes(invalid_length),
             )
 
     assert len(secret_key_a.public_bytes) == 32
     assert len(secret_key_a.secret_bytes) == 32
-    assert type(key_a_from_public_object.public_key) is type(
-        key_a_from_secret_object.public_key
+    assert type(key_a_from_public_object.public_key) is (
+        type(key_a_from_secret_object.public_key)
     )
     assert type(key_a_from_public_object.public_bytes) is bytes
     assert type(key_a_from_public_bytes.public_bytes) is bytes
@@ -151,17 +150,17 @@ def basic_sync_tests(tested_class) -> None:
 
     # Testing equality of sync constructors
     key_b_from_secret_object = tested_class().import_secret_key(
-        secret_key_b.secret_key
+        secret_key_b.secret_key,
     )
     key_b_from_secret_bytes = tested_class().import_secret_key(
-        secret_key_b.secret_bytes
+        secret_key_b.secret_bytes,
     )
 
     key_b_from_public_object = tested_class().import_public_key(
-        secret_key_b.public_key
+        secret_key_b.public_key,
     )
     key_b_from_public_bytes = tested_class().import_public_key(
-        secret_key_b.public_bytes
+        secret_key_b.public_bytes,
     )
 
     problem = (  # fmt: skip
@@ -207,7 +206,7 @@ def basic_sync_tests(tested_class) -> None:
     assert len(secret_key_b.public_bytes) == 32
     assert len(secret_key_b.secret_bytes) == 32
     assert type(key_b_from_public_object.public_key) is type(
-        key_b_from_secret_object.public_key
+        key_b_from_secret_object.public_key,
     )
     assert type(key_b_from_public_object.public_bytes) is bytes
     assert type(key_b_from_public_bytes.public_bytes) is bytes
@@ -306,19 +305,23 @@ class TestDiffieHellmanProtocols:
         for non_kex_type in (dict, str, int, bytes, t.Namespace, Ed25519):
             async with Ignore(TypeError, if_else=violation(problem)):
                 t.DoubleDiffieHellmanClient(
-                    non_kex_type, kdf_type=DomainKDF
+                    non_kex_type,
+                    kdf_type=DomainKDF,
                 )
             async with Ignore(TypeError, if_else=violation(problem)):
                 t.DoubleDiffieHellmanServer(
-                    non_kex_type(), kdf_type=DomainKDF
+                    non_kex_type(),
+                    kdf_type=DomainKDF,
                 )
             async with Ignore(TypeError, if_else=violation(problem)):
                 t.TripleDiffieHellmanClient(
-                    non_kex_type(), kdf_type=DomainKDF
+                    non_kex_type(),
+                    kdf_type=DomainKDF,
                 )
             async with Ignore(TypeError, if_else=violation(problem)):
                 t.TripleDiffieHellmanServer(
-                    non_kex_type(), kdf_type=DomainKDF
+                    non_kex_type(),
+                    kdf_type=DomainKDF,
                 )
 
     async def test_non_kdf_types_throw_error_in_kex_protocol_inits(
@@ -333,15 +336,18 @@ class TestDiffieHellmanProtocols:
                 t.DoubleDiffieHellmanClient(X25519, kdf_type=non_kdf_type)
             async with Ignore(TypeError, if_else=violation(problem)):
                 t.DoubleDiffieHellmanServer(
-                    my_identity_key, kdf_type=non_kdf_type
+                    my_identity_key,
+                    kdf_type=non_kdf_type,
                 )
             async with Ignore(TypeError, if_else=violation(problem)):
                 t.TripleDiffieHellmanClient(
-                    my_identity_key, kdf_type=non_kdf_type
+                    my_identity_key,
+                    kdf_type=non_kdf_type,
                 )
             async with Ignore(TypeError, if_else=violation(problem)):
                 t.TripleDiffieHellmanServer(
-                    my_identity_key, kdf_type=non_kdf_type
+                    my_identity_key,
+                    kdf_type=non_kdf_type,
                 )
 
     async def test_async_double_diffie_hellman(self) -> None:
@@ -373,10 +379,11 @@ class TestDiffieHellmanProtocols:
         server = server_key.dh3_server()
 
         client_identity_key, client_ephemeral_key = await client.asend(
-            server_key.public_bytes
+            server_key.public_bytes,
         )
         server_kdf = await server.areceive(
-            client_identity_key, client_ephemeral_key
+            client_identity_key,
+            client_ephemeral_key,
         )
         server_ephemeral_key = await server.asend()
         client_kdf = await client.areceive(server_ephemeral_key)
@@ -389,10 +396,11 @@ class TestDiffieHellmanProtocols:
         server = server_key.dh3_server()
 
         client_identity_key, client_ephemeral_key = client.send(
-            server_key.public_bytes
+            server_key.public_bytes,
         )
         server_kdf = server.receive(
-            client_identity_key, client_ephemeral_key
+            client_identity_key,
+            client_ephemeral_key,
         )
         server_ephemeral_key = server.send()
         client_kdf = client.receive(server_ephemeral_key)
@@ -425,10 +433,11 @@ class TestDiffieHellmanProtocols:
         server = server_key.dh3_server()
 
         client_identity_key, client_ephemeral_key = client.send(
-            server_key.public_bytes
+            server_key.public_bytes,
         )
         server_kdf = await server.areceive(
-            client_identity_key, client_ephemeral_key
+            client_identity_key,
+            client_ephemeral_key,
         )
         server_ephemeral_key = await server.asend()
         client_kdf = client.receive(server_ephemeral_key)
@@ -438,10 +447,11 @@ class TestDiffieHellmanProtocols:
         server = server_key.dh3_server()
 
         client_identity_key, client_ephemeral_key = await client.asend(
-            server_key.public_bytes
+            server_key.public_bytes,
         )
         server_kdf = server.receive(
-            client_identity_key, client_ephemeral_key
+            client_identity_key,
+            client_ephemeral_key,
         )
         server_ephemeral_key = server.send()
         client_kdf = await client.areceive(server_ephemeral_key)
@@ -461,7 +471,7 @@ async def test_Ed25519() -> None:
 
     arbitrary_verifier = Ed25519().generate()
     key_a_verifier = await Ed25519().aimport_public_key(
-        secret_key_a.public_bytes
+        secret_key_a.public_bytes,
     )
     key_b_verifier = Ed25519().import_public_key(secret_key_b.public_bytes)
 
@@ -479,7 +489,8 @@ async def test_Ed25519() -> None:
     )
     async with Ignore(Ed25519.InvalidSignature, if_else=violation(problem)):
         await key_a_verifier.averify(
-            token_bytes(len(async_signature)), plaintext_bytes
+            token_bytes(len(async_signature)),
+            plaintext_bytes,
         )
     problem = (  # fmt: skip
         "Async verification succeeded for an invalid signature."
@@ -494,7 +505,9 @@ async def test_Ed25519() -> None:
     # sync verification succeeds when supplied a correct signature & data
     key_b_verifier.verify(signature, plaintext_bytes)
     arbitrary_verifier.verify(
-        signature, plaintext_bytes, public_key=secret_key_b.public_bytes
+        signature,
+        plaintext_bytes,
+        public_key=secret_key_b.public_bytes,
     )
 
     # sync verification succeeds when supplied an incorrect signature & data
@@ -503,7 +516,8 @@ async def test_Ed25519() -> None:
     )
     with Ignore(Ed25519.InvalidSignature, if_else=violation(problem)):
         key_a_verifier.verify(
-            token_bytes(len(async_signature)), plaintext_bytes
+            token_bytes(len(async_signature)),
+            plaintext_bytes,
         )
     problem = (  # fmt: skip
         "Verification succeeded for an invalid signature."

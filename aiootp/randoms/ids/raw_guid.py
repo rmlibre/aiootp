@@ -74,7 +74,10 @@ class RawGUID(FrozenInstance):
         return node_id
 
     def __init__(
-        self, node_id: bytes = b"\x00", *, config_id: t.Hashable = 16
+        self,
+        node_id: bytes = b"\x00",
+        *,
+        config_id: t.Hashable = 16,
     ) -> None:
         self.config = self._configs[config_id]
         self.node_id = self._process_node_id(node_id)

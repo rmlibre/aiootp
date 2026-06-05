@@ -47,14 +47,13 @@ async def ahash_bytes(
     obj = hasher()
     if key is not None:
         obj.update(await aencode_key(key, obj.block_size, pad=pad))
-    obj.update(
-        await acanonical_pack(
-            (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
-            *collection,
-            blocksize=obj.block_size,
-            pad=pad,
-        )
+    canonicalized_data = await acanonical_pack(
+        (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
+        *collection,
+        blocksize=obj.block_size,
+        pad=pad,
     )
+    obj.update(canonicalized_data)
     if size:
         return obj.digest(size)
     return obj.digest()
@@ -80,14 +79,13 @@ def hash_bytes(
     obj = hasher()
     if key is not None:
         obj.update(encode_key(key, obj.block_size, pad=pad))
-    obj.update(
-        canonical_pack(
-            (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
-            *collection,
-            blocksize=obj.block_size,
-            pad=pad,
-        )
+    canonicalized_data = canonical_pack(
+        (size or obj.digest_size).to_bytes(INT_BYTES, BIG),
+        *collection,
+        blocksize=obj.block_size,
+        pad=pad,
     )
+    obj.update(canonicalized_data)
     if size:
         return obj.digest(size)
     return obj.digest()

@@ -199,11 +199,13 @@ class StreamHMAC:
         """
         if size < self.config.MIN_BLOCK_ID_BYTES:
             raise SHMACIssue.block_id_is_too_small(
-                size, self.config.MIN_BLOCK_ID_BYTES
+                size,
+                self.config.MIN_BLOCK_ID_BYTES,
             )
         elif size > self.config.MAX_BLOCK_ID_BYTES:
             raise SHMACIssue.block_id_is_too_big(
-                size, self.config.MAX_BLOCK_ID_BYTES
+                size,
+                self.config.MAX_BLOCK_ID_BYTES,
             )
 
     def _get_block_id_mac(self) -> None:

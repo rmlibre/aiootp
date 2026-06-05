@@ -73,7 +73,10 @@ class TypedSlots(Slots):
 
     @classmethod
     def _copy_acceptable_type_declarations(
-        cls, /, base: type, slots_types: t.Mapping[str, t.Any]
+        cls,
+        /,
+        base: type,
+        slots_types: t.Mapping[str, t.Any],
     ) -> None:
         """
         Traverses a `base` class' slots types declarations & tests them
@@ -107,16 +110,15 @@ class TypedSlots(Slots):
 
     @classmethod
     def _make_frozen_class_slots_types_container(
-        cls, slots_types: t.Mapping[str, type], /
+        cls,
+        slots_types: t.Mapping[str, type],
+        /,
     ) -> OpenFrozenSlots:
         """
         Creates a class-specific type to govern type correctness.
         """
         cls_name = f"{cls.__qualname__}SlotsTypes"
-        cls_dict = dict(
-            __slots__=tuple(slots_types),
-            __module__=__name__,
-        )
+        cls_dict = dict(__slots__=tuple(slots_types), __module__=__name__)
         container = type(cls_name, (OpenFrozenSlots,), cls_dict)
         return container(**slots_types)
 

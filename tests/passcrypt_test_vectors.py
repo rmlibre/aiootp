@@ -32,7 +32,7 @@ passcrypt_test_vector_0 = OpenNamespace(
         "ac50faa39b8473629ae782d7fb3bb6c69dfaf68a52f06bc3f92d5c88d99a1f"
         "064d377dd894ee14993cf4d72cd78a4401d519a78fca5b2d7b4b6557e75507"
         "ab94021f2fcb29a10d87c0deca93607e339c1dd67d2db939ee926028712073"
-        "bff2135410a51bb2"
+        "bff2135410a51bb2",
     ),
     tag=bytes.fromhex(
         "4b3b9a627021735a7a0c2f595bab62135b2fb918711309da9e98e5336fa18a"
@@ -43,7 +43,7 @@ passcrypt_test_vector_0 = OpenNamespace(
         "7ec2f53486c8537fccba1da9fff7aac32c65170237b429de52a9f596cc8ea9"
         "95a877503ffd6e04caaef3ceacc1cdc0828243e37d82d263517f5336567a19"
         "54e5515a7a33a820f620b118b74c7089ec1f7c00207659b9b5a737db7cb1ca"
-        "aaa01a51b2b8641014"
+        "aaa01a51b2b8641014",
     ),
     hash_passphrase_result=bytes.fromhex(
         "000a59139c6031290000010101ffb3c100b7670ef0c9e15bf877a80d78342a"
@@ -62,7 +62,7 @@ passcrypt_test_vector_0 = OpenNamespace(
         "be390101e1933662c523e1cd61ba78d77a15607a1b3f7ec2f53486c8537fcc"
         "ba1da9fff7aac32c65170237b429de52a9f596cc8ea995a877503ffd6e04ca"
         "aef3ceacc1cdc0828243e37d82d263517f5336567a1954e5515a7a33a820f6"
-        "20b118b74c7089ec1f7c00207659b9b5a737db7cb1caaaa01a51b2b8641014"
+        "20b118b74c7089ec1f7c00207659b9b5a737db7cb1caaaa01a51b2b8641014",
     ),
 )
 
@@ -78,11 +78,11 @@ passcrypt_test_vector_1 = OpenNamespace(
     passphrase=b"test vector passphrase II",
     salt=bytes.fromhex("ca926bc906fa14b886eb"),
     tag=bytes.fromhex(
-        "597dd54fabbeddd3605b3c2bd4ac2c476ac457978ddabf31ccd4a3b8f33942e8"
+        "597dd54fabbeddd3605b3c2bd4ac2c476ac457978ddabf31ccd4a3b8f33942e8",
     ),
     hash_passphrase_result=bytes.fromhex(
         "000a59328da314c9000002020209ca926bc906fa14b886eb597dd54fabbedd"
-        "d3605b3c2bd4ac2c476ac457978ddabf31ccd4a3b8f33942e8"
+        "d3605b3c2bd4ac2c476ac457978ddabf31ccd4a3b8f33942e8",
     ),
 )
 
@@ -100,7 +100,7 @@ passcrypt_test_vector_2 = OpenNamespace(
     tag=bytes.fromhex("4a9f3a8ad7b60afcdc2400fd3e0f3ff4"),
     hash_passphrase_result=bytes.fromhex(
         "000a59529a517df8000003030303803453614a9f3a8ad7b60afcdc2400fd3e"
-        "0f3ff4"
+        "0f3ff4",
     ),
 )
 
@@ -120,7 +120,7 @@ passcrypt_test_vector_3 = OpenNamespace(
         "9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9"
         "babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8"
         "d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7"
-        "f8f9fafbfcfdfeff"
+        "f8f9fafbfcfdfeff",
     ),
     timestamp=bytes.fromhex("000a59a53cfe5ecd"),
     passphrase=b"test vector passphrase IIII",
@@ -128,6 +128,6 @@ passcrypt_test_vector_3 = OpenNamespace(
     tag=bytes.fromhex("527a0138c531ea8c027fcad351fd11674c686a16265b5368"),
     hash_passphrase_result=bytes.fromhex(
         "000a59a53cfe5ecd000000040407fbd2ee954afb48c3527a0138c531ea8c02"
-        "7fcad351fd11674c686a16265b5368"
+        "7fcad351fd11674c686a16265b5368",
     ),
 )

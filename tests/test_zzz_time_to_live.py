@@ -25,11 +25,14 @@ class TestZCipherTimeToLive:
             "Life-time for async json ciphertext is malfunctioning."
         )
         with Ignore(
-            TimestampExpired, if_else=violation(problem)
+            TimestampExpired,
+            if_else=violation(problem),
         ) as ignored:
             relay = ignored
             await ttl_test_cipher.cipher.ajson_decrypt(
-                atest_json_ciphertext, aad=ttl_test_cipher.aad, ttl=1
+                atest_json_ciphertext,
+                aad=ttl_test_cipher.aad,
+                ttl=1,
             )
         assert relay.error.expired_by >= 1
 
@@ -38,11 +41,14 @@ class TestZCipherTimeToLive:
             "Life-time for sync json ciphertext is malfunctioning."
         )
         with Ignore(
-            TimestampExpired, if_else=violation(problem)
+            TimestampExpired,
+            if_else=violation(problem),
         ) as ignored:
             relay = ignored
             ttl_test_cipher.cipher.json_decrypt(
-                test_json_ciphertext, aad=ttl_test_cipher.aad, ttl=1
+                test_json_ciphertext,
+                aad=ttl_test_cipher.aad,
+                ttl=1,
             )
         assert relay.error.expired_by >= 1
 
@@ -51,11 +57,14 @@ class TestZCipherTimeToLive:
             "Life-time for async tokens is malfunctioning."
         )
         with Ignore(
-            TimestampExpired, if_else=violation(problem)
+            TimestampExpired,
+            if_else=violation(problem),
         ) as ignored:
             relay = ignored
             await ttl_test_cipher.cipher.aread_token(
-                atest_token_ciphertext, aad=ttl_test_cipher.aad, ttl=1
+                atest_token_ciphertext,
+                aad=ttl_test_cipher.aad,
+                ttl=1,
             )
         assert relay.error.expired_by >= 1
 
@@ -64,11 +73,14 @@ class TestZCipherTimeToLive:
             "Life-time for sync tokens is malfunctioning."
         )
         with Ignore(
-            TimestampExpired, if_else=violation(problem)
+            TimestampExpired,
+            if_else=violation(problem),
         ) as ignored:
             relay = ignored
             ttl_test_cipher.cipher.read_token(
-                test_token_ciphertext, aad=ttl_test_cipher.aad, ttl=1
+                test_token_ciphertext,
+                aad=ttl_test_cipher.aad,
+                ttl=1,
             )
         assert relay.error.expired_by >= 1
 
@@ -78,7 +90,8 @@ class TestZCipherTimeToLive:
         )
         enc_stream, ciphertext = attl_cipher_stream, attl_stream_ciphertext
         with Ignore(
-            TimestampExpired, if_else=violation(problem)
+            TimestampExpired,
+            if_else=violation(problem),
         ) as ignored:
             relay = ignored
             dec_stream = await ttl_test_cipher.cipher.astream_decrypt(
@@ -97,7 +110,8 @@ class TestZCipherTimeToLive:
         )
         enc_stream, ciphertext = ttl_cipher_stream, ttl_stream_ciphertext
         with Ignore(
-            TimestampExpired, if_else=violation(problem)
+            TimestampExpired,
+            if_else=violation(problem),
         ) as ignored:
             relay = ignored
             dec_stream = ttl_test_cipher.cipher.stream_decrypt(
@@ -133,11 +147,15 @@ class TestZPasscryptTimeToLive:
             "Life-time for async passcrypt hashes are malfunctioning."
         )
         with Ignore(
-            TimestampExpired, if_else=violation(problem)
+            TimestampExpired,
+            if_else=violation(problem),
         ) as ignored:
             relay = ignored
             await Passcrypt.averify(
-                target.token, passphrase_0, ttl=1, config=target.config
+                target.token,
+                passphrase_0,
+                ttl=1,
+                config=target.config,
             )
         assert relay.error.expired_by >= 1
 
@@ -147,11 +165,15 @@ class TestZPasscryptTimeToLive:
             "Life-time for sync passcrypt hashes are malfunctioning."
         )
         with Ignore(
-            TimestampExpired, if_else=violation(problem)
+            TimestampExpired,
+            if_else=violation(problem),
         ) as ignored:
             relay = ignored
             Passcrypt.verify(
-                target.token, passphrase_0, ttl=1, config=target.config
+                target.token,
+                passphrase_0,
+                ttl=1,
+                config=target.config,
             )
         assert relay.error.expired_by >= 1
 

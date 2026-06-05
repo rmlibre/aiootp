@@ -55,7 +55,7 @@ class PasscryptSession(FrozenInstance):
             b"passcrypt_proof_kdf_salt",
             domain=Domains.PASSCRYPT,
             size=SHAKE_128_BLOCKSIZE,
-        )
+        ),
     ).copy
 
     def __init__(
@@ -131,7 +131,7 @@ class PasscryptSession(FrozenInstance):
         dimensionality of the cache from the given settings.
         """
         rounds = max(
-            (1, self.cpu // self.config.CPU_TO_DIGEST_PAIRS_PER_ROW_RATIO)
+            (1, self.cpu // self.config.CPU_TO_DIGEST_PAIRS_PER_ROW_RATIO),
         )
         self.rows = math.ceil((B_TO_MB_RATIO * self.mb) / (336 * rounds))
         self.row_size = 336 * rounds

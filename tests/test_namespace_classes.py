@@ -121,7 +121,7 @@ class BaseMaskableReprTests(BaseVariableHoldingClassTests):
         obj = self._type(self._items)
         for name in self._items:
             if str(name) in getattr(obj, "_UNMAPPED_ATTRIBUTES", ()) or str(
-                name
+                name,
             ).startswith("_"):
                 continue
             assert str(name) in obj.__repr__(mask=False), name
@@ -160,7 +160,9 @@ class BaseSlotsDerivedClass(BaseVariableHoldingClassTests):
 
     @pytest.mark.parametrize("cls_attr,collection_type", cls_signals)
     async def test_subclasses_copy_signals_in_mro(
-        self, cls_attr: str, collection_type: type
+        self,
+        cls_attr: str,
+        collection_type: type,
     ) -> None:
         obj_attr: str = f"new_attr_in_{cls_attr.lower()}_collection"
         new_additions: set[str] = {obj_attr}
@@ -245,18 +247,24 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
             assert name in obj
 
         with Ignore(
-            PermissionError, if_except=is_immutable, if_else=is_mutable
+            PermissionError,
+            if_except=is_immutable,
+            if_else=is_mutable,
         ):
             obj.clear()
 
         with Ignore(
-            AssertionError, if_except=is_immutable, if_else=is_mutable
+            AssertionError,
+            if_except=is_immutable,
+            if_else=is_mutable,
         ):
             for name in self._items:
                 assert name not in obj
 
         with Ignore(
-            PermissionError, if_except=is_immutable, if_else=is_mutable
+            PermissionError,
+            if_except=is_immutable,
+            if_else=is_mutable,
         ):
             obj.clear()
 
@@ -271,12 +279,16 @@ class BaseDictLikeTests(BaseVariableHoldingClassTests):
         name = choice(list(self._items))
 
         with Ignore(
-            PermissionError, if_except=is_immutable, if_else=is_mutable
+            PermissionError,
+            if_except=is_immutable,
+            if_else=is_mutable,
         ):
             del obj[name]
 
         with Ignore(
-            PermissionError, if_except=is_immutable, if_else=is_mutable
+            PermissionError,
+            if_except=is_immutable,
+            if_else=is_mutable,
         ):
             obj.clear()
 
@@ -381,8 +393,8 @@ class BaseIndexableTests(BaseVariableHoldingClassTests):
         assert len(obj) == sum(1 for name in obj)
         assert len(obj) == len(
             set(self._items).difference(
-                getattr(obj, "_UNMAPPED_ATTRIBUTES", ())
-            )
+                getattr(obj, "_UNMAPPED_ATTRIBUTES", ()),
+            ),
         )
 
     async def test_indexable_iterations(self) -> None:
@@ -484,15 +496,19 @@ class BaseTypedSubclassDefinitionsTests(BaseVariableHoldingClassTests):
         cls_set = set(obj.slots_types.values())
 
         for name, cls in sorted(
-            obj.slots_types.items(), key=lambda _: csprng()
+            obj.slots_types.items(),
+            key=lambda _: csprng(),
         ):
             wrong_cls = randoms.choice([*cls_set.difference({cls})])
 
             def is_vague_type(
-                _: Ignore, name=name, cls=cls, wrong_cls=wrong_cls
+                _: Ignore,
+                name=name,
+                cls=cls,
+                wrong_cls=wrong_cls,
             ) -> bool:
                 error = AssertionError(
-                    f"{problem=} : {name=} : {cls=} : {wrong_cls=}"
+                    f"{problem=} : {name=} : {cls=} : {wrong_cls=}",
                 )
                 return issubclass(wrong_cls, cls) or raise_exception(error)
 
