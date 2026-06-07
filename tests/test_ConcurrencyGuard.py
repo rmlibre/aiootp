@@ -19,6 +19,13 @@ from aiootp.asynchs import ConcurrencyGuard
 
 
 class TestConcurrencyGuard:
+    USE_TRACKER_STATES = (
+        t.ConcurrencyGuardUseTracker.Unused,
+        t.ConcurrencyGuardUseTracker.Pending,
+        t.ConcurrencyGuardUseTracker.Running,
+        t.ConcurrencyGuardUseTracker.Done,
+    )
+
     async def test_detects_async_out_of_order_execution(self) -> None:
         problem = (  # fmt: skip
             "Another execution authorization token was allowed to skip "
@@ -63,6 +70,71 @@ class TestConcurrencyGuard:
             with ConcurrencyGuard(queue):
                 queue.popleft()
 
+    def tuple_of_transitions(self, tracker) -> tuple[t.Callable]:
+        return (
+            tracker.transition_to_pending,
+            tracker.transition_to_running,
+            tracker.transition_to_done,
+        )
+
+    def tuple_of_statuses(self, tracker) -> tuple[t.Callable]:
+        return (
+            tracker.is_unused,
+            tracker.is_pending,
+            tracker.is_running,
+            tracker.is_done,
+        )
+
+    @pytest.mark.parametrize("state", USE_TRACKER_STATES)
+    async def test_only_valid_transitions_allowed(self, state) -> None:
+        tracker = t.ConcurrencyGuardUseTracker()
+        index = self.USE_TRACKER_STATES.index(state)
+        transitions = self.tuple_of_transitions(tracker)
+        for i, transition in enumerate(transitions):
+            tracker._state.append(state())
+
+            if i == index:
+                transition()
+                continue
+
+            problem = (  # fmt: off
+                f"An invalid use tracker state {transition=} from "
+                f"{state=} was allowed."
+            )
+            with Ignore(
+                t.InvalidStateTransition,
+                if_else=violation(problem),
+            ):
+                transition()
+
+    @pytest.mark.parametrize("state", USE_TRACKER_STATES)
+    async def test_status_is_incoherent_after_invalid_transition(
+        self,
+        state,
+    ) -> None:
+        tracker = t.ConcurrencyGuardUseTracker()
+        transitions = self.tuple_of_transitions(tracker)
+        statuses = self.tuple_of_statuses(tracker)
+        for transition in transitions:
+            try:
+                tracker._state.append(state())
+                transition()
+                continue
+            except t.InvalidStateTransition:
+                pass
+
+            for status in statuses:
+                problem = (  # fmt: off
+                    f"The incoherent guard {status.__name__=} was queryable"
+                    f" after an invalid {transition=} while in "
+                    f"{state.__name__=}."
+                )
+                with Ignore(
+                    t.IncoherentConcurrencyState,
+                    if_else=violation(problem),
+                ):
+                    status()
+
     async def test_async_instance_may_only_be_used_once(self) -> None:
         queue = deque()
         async with (instance := ConcurrencyGuard(queue)):
@@ -72,9 +144,12 @@ class TestConcurrencyGuard:
             "A single-use ConcurrencyGuard object was allowed to be used "
             "multiple times as a context manager."
         )
-        with Ignore(t.SingleUseObjectWasReused, if_else=violation(problem)):
+        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
             async with instance:
                 pass
+
+        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
+            instance._use_tracker.__init__()
 
     async def test_sync_instance_may_only_be_used_once(self) -> None:
         queue = deque()
@@ -85,9 +160,12 @@ class TestConcurrencyGuard:
             "A single-use ConcurrencyGuard object was allowed to be used "
             "multiple times as a context manager."
         )
-        with Ignore(t.SingleUseObjectWasReused, if_else=violation(problem)):
+        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
             with instance:
                 pass
+
+        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
+            instance._use_tracker.__init__()
 
     async def test_non_exclusive_instance_may_only_be_used_once(
         self,
@@ -101,9 +179,12 @@ class TestConcurrencyGuard:
             "A single-use ConcurrencyGuard object was allowed to be used "
             "multiple times as a context manager."
         )
-        with Ignore(t.SingleUseObjectWasReused, if_else=violation(problem)):
+        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
             with instance:
                 pass
+
+        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
+            instance._use_tracker.__init__()
 
     async def test_mixed_instance_may_only_be_used_once(self) -> None:
         queue = deque()
@@ -114,9 +195,12 @@ class TestConcurrencyGuard:
             "A single-use ConcurrencyGuard object was allowed to be used "
             "multiple times as a context manager."
         )
-        with Ignore(t.SingleUseObjectWasReused, if_else=violation(problem)):
+        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
             async with instance:
                 pass
+
+        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
+            instance._use_tracker.__init__()
 
     @pytest.mark.parametrize(
         "policy_cls",

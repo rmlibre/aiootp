@@ -25,12 +25,201 @@ from collections import deque
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
-from aiootp._exceptions import Metadata, SingleUseObjectWasReused
+from aiootp._exceptions import InvalidStateTransition
 from aiootp.commons import FrozenInstance
 from aiootp.commons import FrozenTypedSlots, OpenFrozenTypedSlots
 
 from .loops import asleep, sleep
 from .concurrency_interface import process_probe_delay
+
+
+class ConcurrencyGuardState(FrozenInstance):
+    """
+    A type to signify the distinct states of guard instances.
+    """
+
+    __slots__ = ()
+
+    def __init__(self, /) -> None:
+        pass
+
+
+class UnusedState(ConcurrencyGuardState):
+    """
+    A type to signify a guard instance has just been initialized.
+    """
+
+    __slots__ = ()
+
+    def begin_waiting(
+        self,
+        /,
+        tracker: t.ConcurrencyGuardUseTrackerType,
+    ) -> "PendingState":
+        """
+        Returns a `Pending` state object for guard instances. Being the
+        only state type with this method, attempting to call this method
+        from another state causes an `InvalidStateTransition` exception.
+        """
+        return tracker.Pending()
+
+
+class PendingState(ConcurrencyGuardState):
+    """
+    A type to signify a guard instance is waiting to enter its context.
+    """
+
+    __slots__ = ()
+
+    def run(
+        self,
+        /,
+        tracker: t.ConcurrencyGuardUseTrackerType,
+    ) -> "RunningState":
+        """
+        Returns a `Running` state object for guard instances. Being the
+        only state type with this method, attempting to call this method
+        from another state causes an `InvalidStateTransition` exception.
+        """
+        return tracker.Running()
+
+
+class RunningState(ConcurrencyGuardState):
+    """
+    A type to signify a guard instance has entered its context.
+    """
+
+    __slots__ = ()
+
+    def finish(
+        self,
+        /,
+        tracker: t.ConcurrencyGuardUseTrackerType,
+    ) -> "DoneState":
+        """
+        Returns a `Done` state object for guard instances. Being the
+        only state type with this method, attempting to call this method
+        from another state causes an `InvalidStateTransition` exception.
+        """
+        return tracker.Done()
+
+
+class DoneState(ConcurrencyGuardState):
+    """
+    A type to signify a guard instance has exited its context.
+    """
+
+    __slots__ = ()
+
+
+class ConcurrencyGuardUseTracker(FrozenInstance):
+    """
+    Manages & validates the initialization & transition between states
+    for `ConcurrencyGuard` instances.
+    """
+
+    __slots__ = ("_state",)
+
+    Unused: type = UnusedState
+    Pending: type = PendingState
+    Running: type = RunningState
+    Done: type = DoneState
+
+    def __init__(self, /) -> None:
+        """
+        Initializes the atomic state tracker container for async/thread-
+        safe management of `ConcurrencyGuard` state transitions.
+        """
+        try:
+            self._state = deque([self.Unused()], maxlen=1)
+        except PermissionError as e:
+            raise InvalidStateTransition from e
+
+    def transition_to_pending(self, /) -> None:
+        """
+        Moves to the pending state only if the instance is currently in
+        the unused state. Otherwise throws `InvalidStateTransition`.
+        """
+        try:
+            next_state = self._state.pop().begin_waiting(self)
+        except (IndexError, AttributeError) as e:
+            raise InvalidStateTransition from e
+
+        self._state.append(next_state)
+
+    def transition_to_running(self, /) -> None:
+        """
+        Moves to the running state only if the instance is currently in
+        the pending state. Otherwise throws `InvalidStateTransition`.
+        """
+        try:
+            next_state = self._state.pop().run(self)
+        except (IndexError, AttributeError) as e:
+            raise InvalidStateTransition from e
+
+        self._state.append(next_state)
+
+    def transition_to_done(self, /) -> None:
+        """
+        Moves to the done state only if the instance is currently in the
+        running state. Otherwise throws `InvalidStateTransition`.
+        """
+        try:
+            next_state = self._state.pop().finish(self)
+        except (IndexError, AttributeError) as e:
+            raise InvalidStateTransition from e
+
+        self._state.append(next_state)
+
+    def is_unused(self, /) -> bool:
+        """
+        Returns `True` if the guard instance still hasn't been placed
+        in a context manager, so it has sent no usage signals at all.
+        Otherwise returns `False`. If an invalid state transition was
+        attempted on the instance, throws `IncoherentConcurrencyState`.
+        """
+        try:
+            return isinstance(self._state[0], self.Unused)
+        except IndexError as e:
+            raise IncoherentConcurrencyState from e
+
+    def is_pending(self, /) -> bool:
+        """
+        Returns `True` if the guard instance has been placed in a
+        context manager, & has signaled that it's ready & waiting for
+        its turn, but its turn hasn't yet arrived. Otherwise returns
+        `False`. If an invalid state transition was attempted on the
+        instance, throws `IncoherentConcurrencyState`.
+        """
+        try:
+            return isinstance(self._state[0], self.Pending)
+        except IndexError as e:
+            raise IncoherentConcurrencyState from e
+
+    def is_running(self, /) -> bool:
+        """
+        Returns `True` if the guard instance's turn has arrived & it has
+        begun moving to enter the context. Otherwise returns `False` if
+        either it hasn't signaled this move, or it has signaled that it
+        has exited the context. If an invalid state transition was
+        attempted on the instance, throws `IncoherentConcurrencyState`.
+        """
+        try:
+            return isinstance(self._state[0], self.Running)
+        except IndexError as e:
+            raise IncoherentConcurrencyState from e
+
+    def is_done(self, /) -> bool:
+        """
+        Returns `True` if the guard instance has signaled that it's
+        already exited the context. Otherwise returns `False`. If an
+        invalid state transition was attempted on the instance, throws
+        `IncoherentConcurrencyState`.
+        """
+        try:
+            return isinstance(self._state[0], self.Done)
+        except IndexError as e:
+            raise IncoherentConcurrencyState from e
 
 
 class ExclusivePolicy(FrozenInstance):
@@ -56,10 +245,7 @@ class ExclusivePolicy(FrozenInstance):
         Uses an atomic deque to invalidate multiple uses of the guard
         instance.
         """
-        (tracker := guard._use_tracker).append(False)
-
-        if len(tracker) > 1:
-            raise SingleUseObjectWasReused(Metadata(guard))
+        guard._use_tracker.transition_to_pending()
 
     def notify_on(self, /, guard: t.ConcurrencyGuardType) -> None:
         """
@@ -87,7 +273,7 @@ class ExclusivePolicy(FrozenInstance):
         different from the token retrieved from the removed guard,
         raises `IncoherentConcurrencyState`.
         """
-        guard._use_tracker.append(False)
+        guard._use_tracker.transition_to_done()
         if not compare_digest(guard.token, guard.queue.popleft().token):
             raise guard.IncoherentConcurrencyState
 
@@ -100,7 +286,7 @@ class ExclusivePolicy(FrozenInstance):
         is_next_in_queue = compare_digest(guard.token, guard.queue[0].token)
         no_others_running = guard.observers[0].policy.is_exclusive()
         if can_run := is_next_in_queue and no_others_running:
-            guard._use_tracker.append(True)
+            guard._use_tracker.transition_to_running()
         return can_run
 
 
@@ -154,10 +340,7 @@ class NonExclusivePolicy(FrozenInstance):
         Uses an atomic deque to invalidate multiple uses of the guard
         instance.
         """
-        (tracker := guard._use_tracker).append(False)
-
-        if len(tracker) > 1:
-            raise SingleUseObjectWasReused(Metadata(guard))
+        guard._use_tracker.transition_to_pending()
 
     def notify_on(self, /, guard: t.ConcurrencyGuardType) -> None:
         """
@@ -195,7 +378,7 @@ class NonExclusivePolicy(FrozenInstance):
         order queue immediately after their turn in the order queue has
         arrived & they've prepended themselves to the observers deque.
         """
-        guard._use_tracker.append(False)
+        guard._use_tracker.transition_to_done()
 
     def is_free_to_run(self, /, guard: t.ConcurrencyGuardType) -> bool:
         """
@@ -208,7 +391,7 @@ class NonExclusivePolicy(FrozenInstance):
         if can_run := compare_digest(guard.token, guard.queue[0].token):
             guard.observers.appendleft(guard)  # append first to rule-
             guard.queue.popleft()  # out race-conditions
-            guard._use_tracker.append(True)
+            guard._use_tracker.transition_to_running()
         return can_run
 
 
@@ -366,16 +549,18 @@ class ConcurrencyGuard(FrozenTypedSlots):
         "token",
     )
 
+    _UseTracker: type = ConcurrencyGuardUseTracker
+
+    _default_probe_delay: float = 0.00001
+
     slots_types: t.Mapping[str, type] = dict(
-        _use_tracker=deque,
+        _use_tracker=t.ConcurrencyGuardUseTrackerType,
         observers=deque,
         policy=t.ConcurrencyGuardPolicy,
         probe_delay=float,
         queue=deque,
         token=bytes,
     )
-
-    _default_probe_delay: float = 0.00001
 
     policies: ConcurrencyGuardPolicies = ConcurrencyGuardPolicies(
         Exclusive=ExclusivePolicy,
@@ -436,7 +621,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
         `token`: The unique authorization token held by this context.
         """
         self._set_policy(policy)
-        self._use_tracker = deque(maxlen=2)
+        self._use_tracker = self._UseTracker()
         self.probe_delay = process_probe_delay(
             probe_delay,
             default=self._default_probe_delay,
@@ -449,52 +634,39 @@ class ConcurrencyGuard(FrozenTypedSlots):
         """
         Returns `True` if the guard instance still hasn't been placed
         in a context manager, so it has sent no usage signals at all.
-        Otherwise returns `False`.
-
-        Unused state:
-
-        _use_tracker == deque([], maxlen=2)
+        Otherwise returns `False`. If an invalid state transition was
+        attempted on the instance, throws `IncoherentConcurrencyState`.
         """
-        return not self._use_tracker
+        return self._use_tracker.is_unused()
 
     def is_pending(self, /) -> bool:
         """
         Returns `True` if the guard instance has been placed in a
         context manager, & has signaled that it's ready & waiting for
         its turn, but its turn hasn't yet arrived. Otherwise returns
-        `False`.
-
-        Pending state:
-
-        _use_tracker == deque([False], maxlen=2)
+        `False`. If an invalid state transition was attempted on the
+        instance, throws `IncoherentConcurrencyState`.
         """
-        return len(self._use_tracker) == 1
+        return self._use_tracker.is_pending()
 
     def is_running(self, /) -> bool:
         """
         Returns `True` if the guard instance's turn has arrived & it has
         begun moving to enter the context. Otherwise returns `False` if
         either it hasn't signaled this move, or it has signaled that it
-        has exited the context.
-
-        Running state:
-
-        _use_tracker == deque([False, True], maxlen=2)
+        has exited the context. If an invalid state transition was
+        attempted on the instance, throws `IncoherentConcurrencyState`.
         """
-        tracker = self._use_tracker
-        return bool(tracker) and tracker[-1]
+        return self._use_tracker.is_running()
 
     def is_done(self, /) -> bool:
         """
         Returns `True` if the guard instance has signaled that it's
-        already exited the context. Otherwise returns `False`.
-
-        Done state:
-
-        _use_tracker == deque([True, False], maxlen=2)
+        already exited the context. Otherwise returns `False`. If an
+        invalid state transition was attempted on the instance, throws
+        `IncoherentConcurrencyState`.
         """
-        tracker = self._use_tracker
-        return bool(tracker) and tracker[0]
+        return self._use_tracker.is_done()
 
     async def __aenter__(self, /) -> t.Self:
         """
@@ -579,11 +751,16 @@ module_api = dict(
     QueueManuallyPolicy=t.add_type(QueueManuallyPolicy),
     ConcurrencyGuard=t.add_type(ConcurrencyGuard),
     ConcurrencyGuardPolicies=t.add_type(ConcurrencyGuardPolicies),
+    DoneState=t.add_type(DoneState),
     ExclusivePolicy=t.add_type(ExclusivePolicy),
     NonExclusivePolicy=t.add_type(NonExclusivePolicy),
     NonExclusiveQueueManuallyPolicy=t.add_type(
         NonExclusiveQueueManuallyPolicy,
     ),
+    PendingState=t.add_type(PendingState),
+    RunningState=t.add_type(RunningState),
+    UnusedState=t.add_type(UnusedState),
+    ConcurrencyGuardUseTracker=t.add_type(ConcurrencyGuardUseTracker),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

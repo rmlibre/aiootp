@@ -129,6 +129,30 @@ class ClockType(t.Protocol):
 
 
 @t.runtime_checkable
+class ConcurrencyGuardUseTrackerType(t.Protocol):
+    def transition_to_pending(self, /) -> None:
+        pass  # pragma: no cover
+
+    def transition_to_running(self, /) -> None:
+        pass  # pragma: no cover
+
+    def transition_to_done(self, /) -> None:
+        pass  # pragma: no cover
+
+    def is_unused(self, /) -> bool:
+        pass  # pragma: no cover
+
+    def is_pending(self, /) -> bool:
+        pass  # pragma: no cover
+
+    def is_running(self, /) -> bool:
+        pass  # pragma: no cover
+
+    def is_done(self, /) -> bool:
+        pass  # pragma: no cover
+
+
+@t.runtime_checkable
 class ConcurrencyGuardType(t.Protocol):
     async def __aenter__(self, /) -> t.Self:
         pass  # pragma: no cover
@@ -209,6 +233,9 @@ module_api = dict(
     ClockType=t.add_type(ClockType),
     ConcurrencyGuardPolicy=t.add_type(ConcurrencyGuardPolicy),
     ConcurrencyGuardType=t.add_type(ConcurrencyGuardType),
+    ConcurrencyGuardUseTrackerType=t.add_type(
+        ConcurrencyGuardUseTrackerType,
+    ),
     Future=t.add_type(Future),
     MultiConcurrencyGaurdType=t.add_type(MultiConcurrencyGaurdType),
     PoolExecutorType=t.add_type(PoolExecutorType),

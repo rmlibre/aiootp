@@ -35,6 +35,7 @@ Minor Changes
 - perf(commons): check contains on set instead of tuple
 - refactor(cguard): split management types into new module
 - refactor(cguard): swap method definition orders & improve docs
+- refactor(cguard): make use tracker an auto-validating state machine
 - refactor(misc): rename, move & type methods, imports & args
 - test(cguard): cleanup & add tests, remove redundant variable
 - test(cguard): use already created instances instead of new ones

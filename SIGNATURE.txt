@@ -1,5 +1,5 @@
 {
-    "checksum": "0969266fb21834fb1dda11810dd4a7dcd92467882e31aea23895bb906c69d0ade5ab3dda0273c2cf57cc3ada7425688e",
+    "checksum": "82ffa94fe4879d617d32c9e95e121ff46b75cfe248343c2757c00f5db7b08fddbc18763702f1dd39c02d19103e650056",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "ce9e7f27f46c9fae68885ef8b2ffb8e340e4cad4a9a724d321e7a3b97a933aa394ab2c79927a7a84f69568c9e8c97389",
         ".github/workflows/linux-pypi-release-tests.yml": "c52bacc62a80c6e02cef9fd6393d971662353d2d11db7272912a1c522f4c8f1a21c5c929073bd3db8efc0a9eafae8706",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "2836c4fedc04a8f126b8e690d2f205f0da81ee88a9afb053f0e7b5d2954c1f86bc7a8d7824038d56affa1baf34fdb52f",
         ".github/workflows/windows-python-app.yml": "08064fec993b86fd60af09a8005579871fdb1deca2579db8ada454dc4c07ad1716e78a7434cc9ed46e6d78b5e9d3449a",
         ".gitignore": "7e7ca7a0562488d06a9b661b911eeda0e66fcdf380bd3f86ad9e3cdf7813c6d3db3d393a3c414e70fd3036f0c8218655",
-        "CHANGES.rst": "cbafc8453ef870d9e293d12df1184773003e00cc7600cc4578fd36fc78982b34bb70aff027c60d47e87d0f32abb0cf86",
+        "CHANGES.rst": "e8b8ee1ab47dfe45cec6cf06b2f502057fb8084942f7e9c6041198cb6dfe54aea55e56ab6eede15f364ea487b6f647c8",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -27,7 +27,7 @@
         "aiootp/_constants/datasets.py": "9594dc73d62416579ecabadd19bdcf183de91ac0b18f0df02445474dfd4bec871a7f1313c4cd5e52ca964d7d5237b81f",
         "aiootp/_constants/misc.py": "2922edbb0634d43fed4c75aafdba93b44792d4de60899e80b18c6235947013ac3e89b2ab6238e81f5332f69951689cf7",
         "aiootp/_debug_control.py": "dda13c099d5263abf0d12128a24e3aac2e764ea6683bc46a0d646c462dccd2fe5f31fe9da9753b2d31870aabe4833f08",
-        "aiootp/_exceptions.py": "93b74621caa25ff25d11dc182dccd812e64229e9470ee46187b7addec16fada2f4478d5169ea14d3d0967c7c575acf0a",
+        "aiootp/_exceptions.py": "9c127b87f579e6d88be81c030d1062514b72b84b3589af06e822ee56ba8859c389d424cbaed2077f180134cedd63cc1c",
         "aiootp/_gentools.py": "817b813f70dc9923151d8c6f4dd73ba83c00971a1ec23af348b78128e2ac1d4e7eaf4c69af8ed87a1cb356a4a5afb009",
         "aiootp/_paths.py": "170ec61cdfbc6d8bf38107780c7d3a880a0473f3e2c3332d8204d9a15425062d44240f40e06776b93374c645b0de53b0",
         "aiootp/_permutations/__init__.py": "e8678a42acddbbaee2699ec14e3d70b1940c04a5f2575f1748cfb8c706f6a2541ae385f8c1769a5f0d32af31aa18c533",
@@ -37,7 +37,7 @@
         "aiootp/_permutations/affine_xor_chain_config.py": "b1361577dd7d57fd1ffcb4182273e5363c9c95ce4a07e91bd6c6c0fef0bacbe889ce5a6b8739968d87940b783d3f2f3f",
         "aiootp/_permutations/fast_affine_xor_chain.py": "9a3b29a06a5d66944115d0dd25837b0b6f3b7c72521393d304781a23416cef61582facb416dfd6f36239db49c2434653",
         "aiootp/_typing/__init__.py": "369a9102108f96b01bd8ed008cd61a096fab456998ea8308f045cfbbfe10d54ff850bc303ef0332a2f2fea91bba35baf",
-        "aiootp/_typing/_asynchs.py": "230829a15fe7622c62b8c83a09f7b82bb2571a8909fd06772aebac98646152887a69e8d5db77c59d62af219645470493",
+        "aiootp/_typing/_asynchs.py": "f4cbeb29c3648be8ac2ae87ffbd53219b8cb23dc37aa44b66d2d9fef6343180d4ce91b2cace45a72ef29f897ff079989",
         "aiootp/_typing/_ciphers.py": "1d66b13c7c18496cb10e640bb574dbdd0d87eb898d8a1e098034095a28ad49fd0355cf5e41ee31ee5ed0a4a25f0d56a4",
         "aiootp/_typing/_commons.py": "80b164dd58bab48e5beb98d6befa8e183cc035167f897a9da02361161825c19fe6745b5eeec02cc000aeab772c5a2419",
         "aiootp/_typing/_databases.py": "7d828ec4962659efd8a9b9f8cc31dbe10b47f3ecb33a34a288b2f8f2509d40110233368a7a569f2ef2238db8fcb0d088",
@@ -51,9 +51,9 @@
         "aiootp/asynchs/__init__.py": "a0392528e8e8941c99e091b2b1f5a943e9144a5bef0568b99a17394a609d1fa2a294020a097ee95fe44dc25dc9624ae2",
         "aiootp/asynchs/aos.py": "6d641980c6dee58c531fe1fdf45b10537f6acf32ffba2235c47864131a7855db7a3bc0b8ca97f61f80722a503a027358",
         "aiootp/asynchs/clocks.py": "0b3b6ba6ec19e81debbdda88c5b229e1c830ab2575031025c494b4d0a996da677055020d129f6ef7dedf57b030fd53ba",
-        "aiootp/asynchs/concurrency_guard.py": "7c7cfac0c08afdacacce03e75967e36d52b9feb510f9f84af579a675f88ad96b81629e340c3cc7d585756c6888428ee0",
+        "aiootp/asynchs/concurrency_guard.py": "7466461dc6da99e500dacfbb105e1ecfc14750337b7b0c106e3088cf0bca150d3d1d6d8e31cda0ab8f6f5a2721b44fc8",
         "aiootp/asynchs/concurrency_interface.py": "a0d01e24c8ccc92ba82439e2110e6d66b2fd94e4e4d5a3dd313a04174f2bd7e7ebf97a4dc2338f2a0c76e75c795c65af",
-        "aiootp/asynchs/guard_manager.py": "70d9c5d2240921f08ca3bb08eb68cc170c87578f239309a6a87c15e127b3cb9d8f5c9094baa1903d3b18f11d54ed46d9",
+        "aiootp/asynchs/guard_manager.py": "cb9ffaea3aed8fe2051dcc31f3d4dd2cb585ea847c0c07f9d9b357f64db08c943b26dc2e4c0084a54a2af9b9cf15264f",
         "aiootp/asynchs/loops.py": "4d4a504d92260a8715ae51c0b456e8c1420e78c8118edcc8f7253151788a052bb0c0228456f3c36911ae7619f472aebb",
         "aiootp/asynchs/processes.py": "9451d523e01b50d6e9b72eefb138145f3fe3b5df512b390dfe49c5824e38decd9419f29b176471f30febb04a4728de01",
         "aiootp/asynchs/threads.py": "4b36db98a80bdbda74d92127d81b5a0063bc34a447b9717e925678b24c5e0d036cc5196768bb01fa6aaeb00075acff5b",
@@ -166,11 +166,11 @@
         "tests/slick_256_test_vectors.py": "d15f396c571078aefdd4253f5e091cf1b09cef66cc189aa5fb51a64118c5f5f037116eef83bcaf19623966a3b36fd607",
         "tests/test_ByteIO.py": "2bbe60c0d8e3a082794a921ffb8e235982351544dc108ad670be534a505e80323a60b3098851ed05484619964c0efb39",
         "tests/test_Clock.py": "7fa2fdaca4145493dd27cd4a8e223a8dbd25f7b6988e9a7318991d3de2136827b717d89a400f304b47b06320f69183fb",
-        "tests/test_ConcurrencyGuard.py": "fc9d270f5b8a8fa4c486fee5cbea5b35babfd6d73e6e3e15008caacf3f604c8f77e5e0f620d120c972e1790a311b8ef8",
+        "tests/test_ConcurrencyGuard.py": "aa130b22329dd31c4fc333b220271583bb841404842b52f9d863438842be8c387a336f5047bf471becb07f80f21be32d",
         "tests/test_Database_AsyncDatabase.py": "6242d1a2a3153d7a6e46a8b5bf9258b3974fc86dc58707170c60411b13b6f2277c253bd7c7b25fd780c5293d4539b376",
         "tests/test_DebugControl.py": "8c029c866021cfa2bfab72cc2e065f6094d4563c6771d0fab6beb70ec9b794d02fbfe0371f3214cfb24b712f88ce411b",
         "tests/test_GUID.py": "a97e17498419def2f3afd5635fad153db451bfbd7717fe61125b35228c1bf4c3d54ee280c7ac04645fa2e76473f916a9",
-        "tests/test_MultiConcurrencyGuard.py": "32b55d27046ba6f026c8392f858b90aa1978a0b94bfe53d5e75f3d67946f3530ac24c19032c9ae0ef8181246a7b40984",
+        "tests/test_MultiConcurrencyGuard.py": "5fa1f69497f0b250bf8528e9ada2d2b79ab3dbee9138c2e7f923f671233b46bcfbd7158dbea3e567c541c4a2f208a113",
         "tests/test_PackageSigner.py": "be4f392c2e9fd044745e336c015d07bb50aeec344d774402a5e9e2bbe54a9ca3ef15b3607568f090e5f70307ce7be4bb",
         "tests/test_Padding.py": "589bf59b3f7884fda7cd963c6f143eea5936f6b1fdc9e5e36f5aab02147d6aedcf054556b9d25efb5fbce6a6ad554902",
         "tests/test_Passcrypt.py": "211d6da86f47fe491a3fb2fee2c0f953392e91e524b13714b62dbd822378f0922eecc910589864b290e623319750030f",
@@ -205,7 +205,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "26",
+        "build_number": "27",
         "date": 20611,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
@@ -214,5 +214,5 @@
         "version": "0.24.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "c59ccf4fe0d3fb9e3f97c8abfd585876ce205d1992a2a9635852f0591b3a6f60a40eab3c5d616e186b213c548d80534196aff1b1a4463e98f8275830418ccd06"
+    "signature": "0187f2b7bd8bc0a13256bf29a97a2e27e30fa805c958404064c3f26a6beb17d7d7ca143e7fc35f22f1f23cf1b1328563f93f87c0759fc9ef21d39223ac84cd00"
 }

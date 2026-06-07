@@ -32,6 +32,7 @@ __all__ = [
     "InvalidPassphrase",
     "InvalidSHMAC",
     "InvalidSignature",
+    "InvalidStateTransition",
     "Issue",
     "KDFModeNotDeclared",
     "KeyAADIssue",
@@ -43,7 +44,6 @@ __all__ = [
     "PasscryptIssue",
     "SHMACIssue",
     "SigningKeyNotSet",
-    "SingleUseObjectWasReused",
     "TimestampExpired",
     "TypeUncheckableAtRuntime",
     "UndefinedRequiredAttributes",
@@ -350,17 +350,11 @@ class MissingDeclaredVariables(AttributeError):
         )
 
 
-class SingleUseObjectWasReused(RuntimeError):
+class InvalidStateTransition(RuntimeError):
     """
-    Thrown when reuse of a single-use object is detected.
+    Thrown when a state machine was instructed to make an unsupported
+    change of state from its current state.
     """
-
-    _MESSAGE_TEMPLATE: str = "A single-use object of type CLASS was reused."
-
-    def __init__(self, obj_metadata: Metadata) -> None:
-        template = self._MESSAGE_TEMPLATE
-        message = template.replace("CLASS", repr(obj_metadata.type))
-        super().__init__(message)
 
 
 class InvalidCiphertextSize(ValueError):
@@ -1031,6 +1025,7 @@ module_api = dict(
     InvalidPassphrase=t.add_type(InvalidPassphrase),
     InvalidSHMAC=t.add_type(InvalidSHMAC),
     InvalidSignature=t.add_type(InvalidSignature),
+    InvalidStateTransition=t.add_type(InvalidStateTransition),
     Issue=t.add_type(Issue),
     KDFModeNotDeclared=t.add_type(KDFModeNotDeclared),
     KeyAADIssue=t.add_type(KeyAADIssue),
@@ -1041,7 +1036,6 @@ module_api = dict(
     PasscryptIssue=t.add_type(PasscryptIssue),
     SHMACIssue=t.add_type(SHMACIssue),
     SigningKeyNotSet=t.add_type(SigningKeyNotSet),
-    SingleUseObjectWasReused=t.add_type(SingleUseObjectWasReused),
     TimestampExpired=t.add_type(TimestampExpired),
     TypeUncheckableAtRuntime=t.add_type(TypeUncheckableAtRuntime),
     UndefinedRequiredAttributes=t.add_type(UndefinedRequiredAttributes),

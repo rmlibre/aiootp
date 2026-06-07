@@ -156,7 +156,7 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         `token`: The unique authorization token held by this context.
         """
         self._set_policy(policy)
-        self._use_tracker = deque(maxlen=2)
+        self._use_tracker = self._UseTracker()
         self.probe_delay = process_probe_delay(
             probe_delay,
             default=self._default_probe_delay,

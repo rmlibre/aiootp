@@ -483,7 +483,8 @@ class TestMultiConcurrencyGaurd:
             assert not instance.is_running()
             assert not instance.is_done()
 
-            instance._use_tracker.clear()
+            tracker = instance._use_tracker
+            tracker._state.append(tracker.Unused())
             assert instance.is_unused()
             assert not instance.is_pending()
             assert not instance.is_running()
@@ -536,7 +537,8 @@ class TestMultiConcurrencyGaurd:
             assert not instance.is_running()
             assert not instance.is_done()
 
-            instance._use_tracker.clear()
+            tracker = instance._use_tracker
+            tracker._state.append(tracker.Unused())
             assert instance.is_unused()
             assert not instance.is_pending()
             assert not instance.is_running()
@@ -585,19 +587,19 @@ class TestMultiConcurrencyGaurd:
             assert not instance.is_running()
             assert not instance.is_done()
 
-            instance._use_tracker.append(False)
+            instance._use_tracker.transition_to_pending()
             assert not instance.is_unused()
             assert instance.is_pending()
             assert not instance.is_running()
             assert not instance.is_done()
 
-            instance._use_tracker.append(True)
+            instance._use_tracker.transition_to_running()
             assert not instance.is_unused()
             assert not instance.is_pending()
             assert instance.is_running()
             assert not instance.is_done()
 
-            instance._use_tracker.append(False)
+            instance._use_tracker.transition_to_done()
             assert not instance.is_unused()
             assert not instance.is_pending()
             assert not instance.is_running()
