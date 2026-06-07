@@ -27,19 +27,21 @@ from inspect import iscoroutinefunction as is_async_function
 from .loops import *
 from .clocks import *
 from .aos import *
-from .concurrency_guard import *
-from .guard_manager import *
+from .guards import *
 from .concurrency_interface import *
 from .processes import *
 from .threads import *
 
 
+subpackages = dict(
+    guards=guards,
+)
+
+
 modules = dict(
     aos=aos,
     clocks=clocks,
-    concurrency_guard=concurrency_guard,
     concurrency_interface=concurrency_interface,
-    guard_manager=guard_manager,
     loops=loops,
     processes=processes,
     threads=threads,

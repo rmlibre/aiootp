@@ -124,16 +124,9 @@ class TestConcurrencyGuard:
                 pass
 
             for status in statuses:
-                problem = (  # fmt: off
-                    f"The incoherent guard {status.__name__=} was queryable"
-                    f" after an invalid {transition=} while in "
-                    f"{state.__name__=}."
-                )
-                with Ignore(
-                    t.IncoherentConcurrencyState,
-                    if_else=violation(problem),
-                ):
-                    status()
+                assert not status()
+
+            assert tracker.has_faulted()
 
     async def test_async_instance_may_only_be_used_once(self) -> None:
         queue = deque()

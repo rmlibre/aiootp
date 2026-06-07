@@ -16,7 +16,11 @@ A general interface for automated async/thread-safe management of
 multiple targeted execution contexts.
 """
 
-__all__ = ["DefaultDictOfDeques", "MultiConcurrencyGaurd"]
+__all__ = [
+    "DefaultDictOfDeques",
+    "ManagedConcurrecyGuard",
+    "MultiConcurrencyGaurd",
+]
 
 
 from secrets import token_bytes
@@ -24,10 +28,11 @@ from collections import defaultdict, deque
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
+from aiootp._exceptions import InvalidStateTransition
 from aiootp.commons import FrozenTypedSlots, OpenFrozenTypedSlots
+from aiootp.asynchs.loops import asleep
+from aiootp.asynchs.concurrency_interface import process_probe_delay
 
-from .loops import asleep
-from .concurrency_interface import process_probe_delay
 from .concurrency_guard import ConcurrencyGuard, ConcurrencyGuardPolicies
 
 
@@ -140,7 +145,7 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         self,
         /,
         *,
-        policy: t.ConcurrencyGuardPolicy | None = None,
+        policy: t.ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
         token: bytes | None = None,
     ) -> None:
@@ -176,7 +181,11 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
 
         manager, target = self._refs.manager, self._refs.target
         await manager._ainitialize_guard(target, self)
-        return await super().__aenter__()
+        try:
+            return await super().__aenter__()
+        except (InvalidStateTransition, IncoherentConcurrencyState) as e:
+            await manager._acleanup_references(target)
+            raise e
 
     def __enter__(self, /) -> t.Self:
         """
@@ -189,7 +198,11 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         """
         manager, target = self._refs.manager, self._refs.target
         manager._initialize_guard(target, self)
-        return super().__enter__()
+        try:
+            return super().__enter__()
+        except (InvalidStateTransition, IncoherentConcurrencyState) as e:
+            manager._cleanup_references(target)
+            raise e
 
     async def __aexit__(
         self,
@@ -353,7 +366,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
             async with guards.monitor(target):
                 await operation(target)
                 ...
-        elif target.startswith("write_jobs/"):
+        elif target.startswith("modify_jobs/"):
             async with guards.guard(target):
                 await operation(target)
                 ...
@@ -379,6 +392,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
     _Users: type = DefaultDictOfDeques
 
     IncoherentConcurrencyState: type = IncoherentConcurrencyState
+    InvalidStateTransition: type = InvalidStateTransition
 
     policies: ConcurrencyGuardPolicies = _ManagedGuard.policies
     slots_types = dict(observers=_Observers, queues=_Queues, users=_Users)
@@ -476,7 +490,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         /,
         target: t.Hashable,
         *,
-        policy: t.ConcurrencyGuardPolicy | None = None,
+        policy: t.ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
         token: bytes | None = None,
     ) -> _ManagedGuard:
@@ -530,7 +544,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         /,
         target: t.Hashable,
         *,
-        policy: t.ConcurrencyGuardPolicy | None = None,
+        policy: t.ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
         token: bytes | None = None,
     ) -> _ManagedGuard:

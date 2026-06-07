@@ -20,7 +20,7 @@ __all__ = [
     "AsyncOrSyncIterable",
     "ClockType",
     "ConcurrencyGuardType",
-    "ConcurrencyGuardPolicy",
+    "ConcurrencyGuardPolicyType",
     "Future",
     "MultiConcurrencyGaurdType",
     "PoolExecutorType",
@@ -139,6 +139,9 @@ class ConcurrencyGuardUseTrackerType(t.Protocol):
     def transition_to_done(self, /) -> None:
         pass  # pragma: no cover
 
+    def enter_fault_state(self, /) -> bool:
+        pass  # pragma: no cover
+
     def is_unused(self, /) -> bool:
         pass  # pragma: no cover
 
@@ -151,9 +154,27 @@ class ConcurrencyGuardUseTrackerType(t.Protocol):
     def is_done(self, /) -> bool:
         pass  # pragma: no cover
 
+    def has_faulted(self, /) -> bool:
+        pass  # pragma: no cover
+
 
 @t.runtime_checkable
 class ConcurrencyGuardType(t.Protocol):
+    def is_unused(self, /) -> bool:
+        pass  # pragma: no cover
+
+    def is_pending(self, /) -> bool:
+        pass  # pragma: no cover
+
+    def is_running(self, /) -> bool:
+        pass  # pragma: no cover
+
+    def is_done(self, /) -> bool:
+        pass  # pragma: no cover
+
+    def has_faulted(self, /) -> bool:
+        pass  # pragma: no cover
+
     async def __aenter__(self, /) -> t.Self:
         pass  # pragma: no cover
 
@@ -180,7 +201,7 @@ class ConcurrencyGuardType(t.Protocol):
 
 
 @t.runtime_checkable
-class ConcurrencyGuardPolicy(t.Protocol):
+class ConcurrencyGuardPolicyType(t.Protocol):
     def is_exclusive(self, /) -> bool:
         pass  # pragma: no cover
 
@@ -210,7 +231,7 @@ class MultiConcurrencyGaurdType(t.Protocol):
         /,
         target: t.Hashable,
         *,
-        policy: ConcurrencyGuardPolicy | None = None,
+        policy: ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
         token: bytes | None = None,
     ) -> ConcurrencyGuardType:
@@ -221,7 +242,7 @@ class MultiConcurrencyGaurdType(t.Protocol):
         /,
         target: t.Hashable,
         *,
-        policy: ConcurrencyGuardPolicy | None = None,
+        policy: ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
         token: bytes | None = None,
     ) -> ConcurrencyGuardType:
@@ -231,7 +252,7 @@ class MultiConcurrencyGaurdType(t.Protocol):
 module_api = dict(
     AsyncOrSyncIterable=t.add_type(AsyncOrSyncIterable),
     ClockType=t.add_type(ClockType),
-    ConcurrencyGuardPolicy=t.add_type(ConcurrencyGuardPolicy),
+    ConcurrencyGuardPolicyType=t.add_type(ConcurrencyGuardPolicyType),
     ConcurrencyGuardType=t.add_type(ConcurrencyGuardType),
     ConcurrencyGuardUseTrackerType=t.add_type(
         ConcurrencyGuardUseTrackerType,

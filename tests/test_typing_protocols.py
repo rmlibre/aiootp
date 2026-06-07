@@ -167,6 +167,33 @@ class TestPoolExecutorTypes(ProtocolSubTypeTests):
     types_tested = [obj.__class__ for obj in instances_tested]
 
 
+class TestConcurrencyGuardTypes(ProtocolSubTypeTests):
+    protocol = t.ConcurrencyGuardType
+    instances_tested = [
+        t.ConcurrencyGuard(deque()),
+        t.ManagedConcurrecyGuard(),
+    ]
+    types_tested = [obj.__class__ for obj in instances_tested]
+
+
+class TestConcurrencyGuardPolicyTypes(ProtocolSubTypeTests):
+    protocol = t.ConcurrencyGuardPolicyType
+    types_tested = [*t.ConcurrencyGuard.policies.values()]
+    instances_tested = [cls() for cls in types_tested]
+
+
+class TestConcurrencyGuardUseTrackerTypes(ProtocolSubTypeTests):
+    protocol = t.ConcurrencyGuardUseTrackerType
+    types_tested = [t.ConcurrencyGuardUseTracker]
+    instances_tested = [cls() for cls in types_tested]
+
+
+class TestMultiConcurrencyGaurdTypes(ProtocolSubTypeTests):
+    protocol = t.MultiConcurrencyGaurdType
+    instances_tested = [t.MultiConcurrencyGaurd()]
+    types_tested = [obj.__class__ for obj in instances_tested]
+
+
 class TestAsyncDatabaseType(ProtocolSubTypeTests):
     protocol = t.AsyncDatabaseType
     types_tested = [AsyncDatabase]

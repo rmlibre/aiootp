@@ -14,10 +14,24 @@
 from collections import defaultdict, deque
 
 from aiootp.asynchs.loops import gather, new_task
-from aiootp.asynchs.guard_manager import DefaultDictOfDeques
-from aiootp.asynchs.guard_manager import MultiConcurrencyGaurd
+from aiootp.asynchs.guards import DefaultDictOfDeques
+from aiootp.asynchs.guards import MultiConcurrencyGaurd
 
 from conftest import *
+
+
+class RunFaultUseTracker(t.ConcurrencyGuardUseTracker):
+    def transition_to_running(self, /) -> None:
+        non_pending_states = [self.Unused(), self.Running(), self.Done()]
+        self._state.append(choice(non_pending_states))
+        super().transition_to_running()
+
+
+class DoneFaultUseTracker(t.ConcurrencyGuardUseTracker):
+    def transition_to_done(self, /) -> None:
+        non_running_states = [self.Unused(), self.Pending(), self.Done()]
+        self._state.append(choice(non_running_states))
+        super().transition_to_done()
 
 
 class TestDefaultDictOfDeques:
@@ -65,13 +79,15 @@ class TestMultiConcurrencyGaurd:
     async def test_async_queue_execution_order_is_respected(self) -> None:
         async def record_ordering(
             target: t.Hashable,
-            instance: MultiConcurrencyGaurd,
+            guard: t.ConcurrencyGuardType,
         ) -> None:
             await arandom_sleep(0.0001)
-            async with instance:
+
+            async with guard:
                 await arandom_sleep(0.0001)
+
                 target_results.append(target)
-                token_results[target].append(instance.token)
+                token_results[target].append(guard.token)
 
         guards = MultiConcurrencyGaurd()
         Policy = guards.policies.QueueManually
@@ -83,15 +99,15 @@ class TestMultiConcurrencyGaurd:
             for target in targets
         ]
         queues = defaultdict(list)
-        for target, instance in instances:
-            queues[target].append(instance.token)
-            guards.queues[target].append(instance)
+        for target, guard in instances:
+            queues[target].append(guard.token)
+            guards.queues[target].append(guard)
 
         target_results = []
         token_results = defaultdict(list)
+
         tasks = [
-            record_ordering(target, instance)
-            for target, instance in instances
+            record_ordering(target, guard) for target, guard in instances
         ]
         await gather(*tasks)
 
@@ -104,21 +120,23 @@ class TestMultiConcurrencyGaurd:
 
         # is the same-target execution order respecting the order
         # declared by the target queue?
-        for _, (target, instance) in zip(unique_targets, instances):
-            assert not instance.queue, target
-            assert not instance.observers, target
+        for target, guard in instances:
+            assert not guard.queue, target
+            assert not guard.observers, target
             assert token_results[target] == queues[target]
 
     async def test_thread_queue_execution_order_is_respected(self) -> None:
         def record_ordering(
-            items: t.Tuple[t.Hashable, MultiConcurrencyGaurd],
+            target: t.Hashable,
+            guard: t.ConcurrencyGuardType,
         ) -> None:
-            target, instance = items
             random_sleep(0.0001)
-            with instance:
+
+            with guard:
                 random_sleep(0.0001)
+
                 target_results.append(target)
-                token_results[target].append(instance.token)
+                token_results[target].append(guard.token)
 
         guards = MultiConcurrencyGaurd()
         Policy = guards.policies.QueueManually
@@ -130,15 +148,16 @@ class TestMultiConcurrencyGaurd:
             for target in targets
         ]
         queues = defaultdict(list)
-        for target, instance in instances:
-            queues[target].append(instance.token)
-            guards.queues[target].append(instance)
+        for target, guard in instances:
+            queues[target].append(guard.token)
+            guards.queues[target].append(guard)
 
         target_results = []
         token_results = defaultdict(list)
+
         tasks = [
-            Threads._type(target=record_ordering, args=(items,))
-            for items in instances
+            Threads._type(target=record_ordering, args=(target, guard))
+            for target, guard in instances
         ]
         for task in tasks:
             task.start()
@@ -154,9 +173,9 @@ class TestMultiConcurrencyGaurd:
 
         # is the same-target execution order respecting the order
         # declared by the target queue?
-        for _, (target, instance) in zip(unique_targets, instances):
-            assert not instance.queue, target
-            assert not instance.observers, target
+        for target, guard in instances:
+            assert not guard.queue, target
+            assert not guard.observers, target
             assert token_results[target] == queues[target]
 
     async def test_free_async_queue_execution_order_is_respected(
@@ -164,25 +183,26 @@ class TestMultiConcurrencyGaurd:
     ) -> None:
         async def record_ordering(
             target: t.Hashable,
-            instance: MultiConcurrencyGaurd,
+            guard: t.ConcurrencyGuardType,
         ) -> None:
             await arandom_sleep(0.0001)
-            async with instance:
+
+            async with guard:
                 await arandom_sleep(0.0001)
-                if instance.policy.is_exclusive():
-                    token_results[target].append(instance.token)
+
+                if guard.policy.is_exclusive():
+                    token_results[target].append(guard.token)
                     assert all(
-                        obs.policy.is_exclusive()
-                        for obs in instance.observers
+                        obs.policy.is_exclusive() for obs in guard.observers
                     )
                     observers[target].pop()
                 else:
-                    assert not instance.observers[0].policy.is_exclusive()
+                    assert not guard.observers[0].policy.is_exclusive()
                     observers[target].popleft()
 
                 target_results.append(target)
 
-        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+        def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
                 guards.monitor(target, policy=NonExclusivePolicy())
                 if token_bits(2)
@@ -198,19 +218,19 @@ class TestMultiConcurrencyGaurd:
         instances = [(target, choose_policy(target)) for target in targets]
         queues = defaultdict(list)
         observers = defaultdict(deque)
-        for target, instance in instances:
-            guards.queues[target].append(instance)
-            if instance.policy.is_exclusive():
-                observers[target].append(instance)
-                queues[target].append(instance.token)
+        for target, guard in instances:
+            guards.queues[target].append(guard)
+            if guard.policy.is_exclusive():
+                observers[target].append(guard)
+                queues[target].append(guard.token)
             else:
-                observers[target].appendleft(instance)
+                observers[target].appendleft(guard)
 
         target_results = []
         token_results = defaultdict(list)
+
         tasks = [
-            record_ordering(target, instance)
-            for target, instance in instances
+            record_ordering(target, guard) for target, guard in instances
         ]
         await gather(*tasks)
 
@@ -223,37 +243,38 @@ class TestMultiConcurrencyGaurd:
 
         # is the same-target execution order respecting the order
         # declared by the target queue?
-        for target, instance in instances:
-            assert not instance.queue, target
-            assert not instance.observers, target
+        for target, guard in instances:
+            assert not guard.queue, target
+            assert not guard.observers, target
             assert not observers[target], target
-            if instance.policy.is_exclusive():
+            if guard.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
     async def test_free_thread_queue_execution_order_is_respected(
         self,
     ) -> None:
         def record_ordering(
-            items: t.Tuple[t.Hashable, MultiConcurrencyGaurd],
+            target: t.Hashable,
+            guard: t.ConcurrencyGuardType,
         ) -> None:
-            target, instance = items
             random_sleep(0.0001)
-            with instance:
+
+            with guard:
                 random_sleep(0.0001)
-                if instance.policy.is_exclusive():
-                    token_results[target].append(instance.token)
+
+                if guard.policy.is_exclusive():
+                    token_results[target].append(guard.token)
                     assert all(
-                        obs.policy.is_exclusive()
-                        for obs in instance.observers
+                        obs.policy.is_exclusive() for obs in guard.observers
                     )
                     observers[target].pop()
                 else:
-                    assert not instance.observers[0].policy.is_exclusive()
+                    assert not guard.observers[0].policy.is_exclusive()
                     observers[target].popleft()
 
                 target_results.append(target)
 
-        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+        def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
                 guards.monitor(target, policy=NonExclusivePolicy())
                 if token_bits(2)
@@ -269,20 +290,21 @@ class TestMultiConcurrencyGaurd:
         instances = [(target, choose_policy(target)) for target in targets]
         queues = defaultdict(list)
         observers = defaultdict(deque)
-        for target, instance in instances:
-            guards.queues[target].append(instance)
-            if instance.policy.is_exclusive():
-                observers[target].append(instance)
-                queues[target].append(instance.token)
+        for target, guard in instances:
+            guards.queues[target].append(guard)
+            if guard.policy.is_exclusive():
+                observers[target].append(guard)
+                queues[target].append(guard.token)
             else:
                 assert isinstance(queues[target], list)
-                observers[target].appendleft(instance)
+                observers[target].appendleft(guard)
 
         target_results = []
         token_results = defaultdict(list)
+
         tasks = [
-            Threads._type(target=record_ordering, args=(items,))
-            for items in instances
+            Threads._type(target=record_ordering, args=(target, guard))
+            for target, guard in instances
         ]
         for task in tasks:
             task.start()
@@ -298,11 +320,11 @@ class TestMultiConcurrencyGaurd:
 
         # is the same-target execution order respecting the order
         # declared by the target queue?
-        for target, instance in instances:
-            assert not instance.queue, target
-            assert not instance.observers, target
+        for target, guard in instances:
+            assert not guard.queue, target
+            assert not guard.observers, target
             assert not observers[target], target
-            if instance.policy.is_exclusive():
+            if guard.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
     @pytest.mark.parametrize(
@@ -348,20 +370,22 @@ class TestMultiConcurrencyGaurd:
     async def test_async_references_cleaned_when_work_is_done(self) -> None:
         async def record_ordering(
             target: t.Hashable,
-            instance: MultiConcurrencyGaurd,
+            guard: t.ConcurrencyGuardType,
             *,
             is_spontaneous: bool,
         ) -> None:
             await arandom_sleep(0.0001)
-            async with instance:
-                await arandom_sleep(0.0001)
-                assert target in guards.users
-                if instance.policy.is_exclusive():
-                    assert instance.token == instance.queue[0].token
-                else:
-                    assert instance.token not in instance.queue
 
-                if is_spontaneous or token_bits(3) < 0b110:
+            async with guard:
+                await arandom_sleep(0.0001)
+
+                assert target in guards.users
+                if guard.policy.is_exclusive():
+                    assert guard.token == guard.queue[0].token
+                else:
+                    assert guard.token not in guard.queue
+
+                if is_spontaneous or token_bits(2):
                     return
                 task = record_ordering(
                     target,
@@ -370,7 +394,7 @@ class TestMultiConcurrencyGaurd:
                 )
                 spontaneous_tasks.append(new_task(task))
 
-        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+        def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
                 guards.monitor(target)
                 if token_bits(2)
@@ -382,11 +406,11 @@ class TestMultiConcurrencyGaurd:
         unique_targets = [*range(64)]
         targets = 4 * unique_targets
         instances = [(target, choose_policy(target)) for target in targets]
-        spontaneous_tasks = deque()
 
+        spontaneous_tasks = deque()
         tasks = [
-            record_ordering(target, instance, is_spontaneous=False)
-            for target, instance in instances
+            record_ordering(target, guard, is_spontaneous=False)
+            for target, guard in instances
         ]
         await gather(*tasks)
         await gather(*spontaneous_tasks)
@@ -404,20 +428,22 @@ class TestMultiConcurrencyGaurd:
     async def test_sync_references_cleaned_when_work_is_done(self) -> None:
         def record_ordering(
             target: t.Hashable,
-            instance: MultiConcurrencyGaurd,
+            guard: t.ConcurrencyGuardType,
             *,
             is_spontaneous: bool,
         ) -> None:
             random_sleep(0.0001)
-            with instance:
-                random_sleep(0.0001)
-                assert target in guards.users
-                if instance.policy.is_exclusive():
-                    assert instance.token == instance.queue[0].token
-                else:
-                    assert instance.token not in instance.queue
 
-                if is_spontaneous or token_bits(3) < 0b110:
+            with guard:
+                random_sleep(0.0001)
+
+                assert target in guards.users
+                if guard.policy.is_exclusive():
+                    assert guard.token == guard.queue[0].token
+                else:
+                    assert guard.token not in guard.queue
+
+                if is_spontaneous or token_bits(2):
                     return
                 task = Threads._type(
                     target=record_ordering,
@@ -427,7 +453,7 @@ class TestMultiConcurrencyGaurd:
                 spontaneous_tasks.append(task)
                 task.start()
 
-        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+        def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
                 guards.monitor(target)
                 if token_bits(2)
@@ -439,15 +465,15 @@ class TestMultiConcurrencyGaurd:
         unique_targets = [*range(64)]
         targets = 4 * unique_targets
         instances = [(target, choose_policy(target)) for target in targets]
-        spontaneous_tasks = deque()
 
+        spontaneous_tasks = deque()
         tasks = [
             Threads._type(
                 target=record_ordering,
-                args=(target, instance),
+                args=(target, guard),
                 kwargs=dict(is_spontaneous=False),
             )
-            for target, instance in instances
+            for target, guard in instances
         ]
         for task in tasks:
             task.start()
@@ -466,43 +492,266 @@ class TestMultiConcurrencyGaurd:
         assert not guards.queues
         assert not guards.users
 
+    async def test_async_references_cleaned_if_queue_faults(
+        self,
+    ) -> None:
+        guards = MultiConcurrencyGaurd()
+        guard = guards.guard(0)
+
+        problem = (  # fmt: skip
+            "A faulty order queue was not detected."
+        )
+        with Ignore(IncoherentConcurrencyState, if_else=violation(problem)):
+            async with guard:
+                guard.queue[0] = guards.guard(0)
+
+        assert not guard.queue
+        assert not guard.observers
+
+        assert not guards.observers
+        assert not guards.queues
+        assert not guards.users
+
+    async def test_sync_references_cleaned_if_queue_faults(
+        self,
+    ) -> None:
+        guards = MultiConcurrencyGaurd()
+        guard = guards.guard(0)
+
+        problem = (  # fmt: skip
+            "A faulty order queue was not detected."
+        )
+        async with Ignore(
+            IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            with guard:
+                guard.queue[0] = guards.guard(0)
+
+        assert not guard.queue
+        assert not guard.observers
+
+        assert not guards.observers
+        assert not guards.queues
+        assert not guards.users
+
+    async def test_async_references_cleaned_if_run_transition_faults(
+        self,
+    ) -> None:
+        guards = MultiConcurrencyGaurd()
+
+        for guard in (guards.monitor(0), guards.guard(0)):
+            object.__setattr__(guard, "_use_tracker", RunFaultUseTracker())
+
+            problem = (  # fmt: skip
+                "A faulty state manager was not detected."
+            )
+            with Ignore(InvalidStateTransition, if_else=violation(problem)):
+                async with guard:
+                    pass
+
+            assert not guard.queue
+            assert not guard.observers
+
+            assert not guards.observers
+            assert not guards.queues
+            assert not guards.users
+
+    async def test_sync_references_cleaned_if_run_transition_faults(
+        self,
+    ) -> None:
+        guards = MultiConcurrencyGaurd()
+
+        for guard in (guards.monitor(0), guards.guard(0)):
+            object.__setattr__(guard, "_use_tracker", RunFaultUseTracker())
+
+            problem = (  # fmt: skip
+                "A faulty state manager was not detected."
+            )
+            async with Ignore(
+                InvalidStateTransition,
+                if_else=violation(problem),
+            ):
+                with guard:
+                    pass
+
+            assert not guard.queue
+            assert not guard.observers
+
+            assert not guards.observers
+            assert not guards.queues
+            assert not guards.users
+
+    async def test_async_references_cleaned_if_done_transition_faults(
+        self,
+    ) -> None:
+        guards = MultiConcurrencyGaurd()
+
+        guard = guards.guard(0)
+        object.__setattr__(guard, "_use_tracker", DoneFaultUseTracker())
+
+        problem = (  # fmt: skip
+            "A faulty state manager was not detected."
+        )
+        with Ignore(InvalidStateTransition, if_else=violation(problem)):
+            async with guard:
+                pass
+
+        assert not guard.queue
+        assert not guard.observers
+
+        assert not guards.observers
+        assert not guards.queues
+        assert not guards.users
+
+    async def test_sync_references_cleaned_if_done_transition_faults(
+        self,
+    ) -> None:
+        guards = MultiConcurrencyGaurd()
+
+        guard = guards.guard(0)
+        object.__setattr__(guard, "_use_tracker", DoneFaultUseTracker())
+
+        problem = (  # fmt: skip
+            "A faulty state manager was not detected."
+        )
+        async with Ignore(
+            InvalidStateTransition,
+            if_else=violation(problem),
+        ):
+            with guard:
+                pass
+
+        assert not guard.queue
+        assert not guard.observers
+
+        assert not guards.observers
+        assert not guards.queues
+        assert not guards.users
+
+    async def test_async_policy_pops_during_done_fault_align_with_convention(
+        self,
+    ) -> None:
+        async def catch_incoherence(guard: t.ConcurrencyGuardType) -> None:
+            try:
+                async with guard:
+                    while any(g.is_unused() for g in instances):
+                        await asleep(guard.probe_delay)
+
+                    if guard.policy.is_exclusive():
+                        assert all(
+                            obs.policy.is_exclusive()
+                            for obs in guard.observers
+                        )
+                        guard.queue[0] = guards.monitor(0)
+                    else:
+                        assert not guard.observers[0].policy.is_exclusive()
+            except IncoherentConcurrencyState as error:
+                assert guard.has_faulted()
+
+                if not guard.policy.is_exclusive():
+                    raise error
+
+        def choose_policy() -> t.ConcurrencyGuardPolicyType:
+            return guards.monitor(0) if token_bits(2) else guards.guard(0)
+
+        guards = MultiConcurrencyGaurd()
+        instances = [choose_policy() for _ in range(64)]
+
+        tasks = [catch_incoherence(guard) for guard in instances]
+        await gather(*tasks)
+
+        for guard in instances:
+            assert not guard.observers
+            assert not guard.queue
+
+        assert not guards.observers
+        assert not guards.queues
+        assert not guards.users
+
+    async def test_sync_policy_pops_during_done_fault_align_with_convention(
+        self,
+    ) -> None:
+        def catch_incoherence(guard: t.ConcurrencyGuardType) -> None:
+            try:
+                with guard:
+                    while any(g.is_unused() for g in instances):
+                        sleep(guard.probe_delay)
+
+                    if guard.policy.is_exclusive():
+                        assert all(
+                            obs.policy.is_exclusive()
+                            for obs in guard.observers
+                        )
+                        guard.queue[0] = guards.monitor(0)
+                    else:
+                        assert not guard.observers[0].policy.is_exclusive()
+            except IncoherentConcurrencyState as error:
+                assert guard.has_faulted()
+
+                if not guard.policy.is_exclusive():
+                    raise error
+
+        def choose_policy() -> t.ConcurrencyGuardPolicyType:
+            return guards.monitor(0) if token_bits(2) else guards.guard(0)
+
+        guards = MultiConcurrencyGaurd()
+        instances = [choose_policy() for _ in range(64)]
+
+        tasks = [
+            Threads._type(target=catch_incoherence, args=(guard,))
+            for guard in instances
+        ]
+        for task in tasks:
+            task.start()
+        for task in tasks:
+            task.join()
+
+        for guard in instances:
+            assert not guard.observers
+            assert not guard.queue
+
+        assert not guards.observers
+        assert not guards.queues
+        assert not guards.users
+
     async def test_async_use_tracker_stages(self) -> None:
         async def track_stages(
             _: t.Hashable,
-            instance: MultiConcurrencyGaurd,
+            guard: t.ConcurrencyGuardType,
         ) -> None:
             await arandom_sleep(0.0001)
-            assert instance.is_unused()
-            assert not instance.is_pending()
-            assert not instance.is_running()
-            assert not instance.is_done()
+            assert guard.is_unused()
+            assert not guard.is_pending()
+            assert not guard.is_running()
+            assert not guard.is_done()
 
-            instance.policy.use(instance)
-            assert not instance.is_unused()
-            assert instance.is_pending()
-            assert not instance.is_running()
-            assert not instance.is_done()
+            guard.policy.use(guard)
+            assert not guard.is_unused()
+            assert guard.is_pending()
+            assert not guard.is_running()
+            assert not guard.is_done()
 
-            tracker = instance._use_tracker
+            tracker = guard._use_tracker
             tracker._state.append(tracker.Unused())
-            assert instance.is_unused()
-            assert not instance.is_pending()
-            assert not instance.is_running()
-            assert not instance.is_done()
+            assert guard.is_unused()
+            assert not guard.is_pending()
+            assert not guard.is_running()
+            assert not guard.is_done()
 
-            async with instance:
+            async with guard:
                 await arandom_sleep(0.0001)
-                assert not instance.is_unused()
-                assert not instance.is_pending()
-                assert instance.is_running()
-                assert not instance.is_done()
+                assert not guard.is_unused()
+                assert not guard.is_pending()
+                assert guard.is_running()
+                assert not guard.is_done()
 
-            assert not instance.is_unused()
-            assert not instance.is_pending()
-            assert not instance.is_running()
-            assert instance.is_done()
+            assert not guard.is_unused()
+            assert not guard.is_pending()
+            assert not guard.is_running()
+            assert guard.is_done()
 
-        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+        def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
                 guards.monitor(target)
                 if token_bits(2)
@@ -515,48 +764,46 @@ class TestMultiConcurrencyGaurd:
         targets = 4 * unique_targets
         instances = [(target, choose_policy(target)) for target in targets]
 
-        tasks = [
-            track_stages(target, instance) for target, instance in instances
-        ]
+        tasks = [track_stages(target, guard) for target, guard in instances]
         await gather(*tasks)
 
     async def test_sync_use_tracker_stages(self) -> None:
         def track_stages(
             _: t.Hashable,
-            instance: MultiConcurrencyGaurd,
+            guard: t.ConcurrencyGuardType,
         ) -> None:
             random_sleep(0.0001)
-            assert instance.is_unused()
-            assert not instance.is_pending()
-            assert not instance.is_running()
-            assert not instance.is_done()
+            assert guard.is_unused()
+            assert not guard.is_pending()
+            assert not guard.is_running()
+            assert not guard.is_done()
 
-            instance.policy.use(instance)
-            assert not instance.is_unused()
-            assert instance.is_pending()
-            assert not instance.is_running()
-            assert not instance.is_done()
+            guard.policy.use(guard)
+            assert not guard.is_unused()
+            assert guard.is_pending()
+            assert not guard.is_running()
+            assert not guard.is_done()
 
-            tracker = instance._use_tracker
+            tracker = guard._use_tracker
             tracker._state.append(tracker.Unused())
-            assert instance.is_unused()
-            assert not instance.is_pending()
-            assert not instance.is_running()
-            assert not instance.is_done()
+            assert guard.is_unused()
+            assert not guard.is_pending()
+            assert not guard.is_running()
+            assert not guard.is_done()
 
-            with instance:
+            with guard:
                 random_sleep(0.0001)
-                assert not instance.is_unused()
-                assert not instance.is_pending()
-                assert instance.is_running()
-                assert not instance.is_done()
+                assert not guard.is_unused()
+                assert not guard.is_pending()
+                assert guard.is_running()
+                assert not guard.is_done()
 
-            assert not instance.is_unused()
-            assert not instance.is_pending()
-            assert not instance.is_running()
-            assert instance.is_done()
+            assert not guard.is_unused()
+            assert not guard.is_pending()
+            assert not guard.is_running()
+            assert guard.is_done()
 
-        def choose_policy(target) -> t.ConcurrencyGuardPolicy:
+        def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
                 guards.monitor(target)
                 if token_bits(2)
@@ -570,8 +817,8 @@ class TestMultiConcurrencyGaurd:
         instances = [(target, choose_policy(target)) for target in targets]
 
         tasks = [
-            Threads._type(target=track_stages, args=(target, instance))
-            for target, instance in instances
+            Threads._type(target=track_stages, args=(target, guard))
+            for target, guard in instances
         ]
         for task in tasks:
             task.start()
@@ -581,29 +828,29 @@ class TestMultiConcurrencyGaurd:
     async def test_use_tracker_stages_manually(self) -> None:
         guards = MultiConcurrencyGaurd()
 
-        for instance in [guards.monitor(0), guards.guard(0)]:
-            assert instance.is_unused()
-            assert not instance.is_pending()
-            assert not instance.is_running()
-            assert not instance.is_done()
+        for guard in [guards.monitor(0), guards.guard(0)]:
+            assert guard.is_unused()
+            assert not guard.is_pending()
+            assert not guard.is_running()
+            assert not guard.is_done()
 
-            instance._use_tracker.transition_to_pending()
-            assert not instance.is_unused()
-            assert instance.is_pending()
-            assert not instance.is_running()
-            assert not instance.is_done()
+            guard._use_tracker.transition_to_pending()
+            assert not guard.is_unused()
+            assert guard.is_pending()
+            assert not guard.is_running()
+            assert not guard.is_done()
 
-            instance._use_tracker.transition_to_running()
-            assert not instance.is_unused()
-            assert not instance.is_pending()
-            assert instance.is_running()
-            assert not instance.is_done()
+            guard._use_tracker.transition_to_running()
+            assert not guard.is_unused()
+            assert not guard.is_pending()
+            assert guard.is_running()
+            assert not guard.is_done()
 
-            instance._use_tracker.transition_to_done()
-            assert not instance.is_unused()
-            assert not instance.is_pending()
-            assert not instance.is_running()
-            assert instance.is_done()
+            guard._use_tracker.transition_to_done()
+            assert not guard.is_unused()
+            assert not guard.is_pending()
+            assert not guard.is_running()
+            assert guard.is_done()
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
