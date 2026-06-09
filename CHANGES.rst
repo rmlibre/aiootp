@@ -33,6 +33,7 @@ Minor Changes
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
 - fix(cguard): avoid using exception branch for control flow
 - fix(paths): avoid collisions with larger index keys
+- fix(slots): add slots_types to dirless & restricted TypedSlots sets
 - perf(commons): check contains on set instead of tuple
 - refactor(cguard): split management types into new module
 - refactor(cguard): swap method definition orders & improve docs

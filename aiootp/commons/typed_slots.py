@@ -68,6 +68,8 @@ class TypedSlots(Slots):
     __slots__ = ()
 
     _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"slots_types"})
+    _DIRLESS_ATTRIBUTES: frozenset[str] = frozenset({"slots_types"})
+    _RESTRICTED_ATTRIBUTES: frozenset[str] = frozenset({"slots_types"})
 
     slots_types: t.Mapping[str, t.Any] = dict()
 
