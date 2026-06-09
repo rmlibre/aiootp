@@ -66,7 +66,12 @@ def AdminPath(path: t.OptionalPathStr = None) -> Path:
     return SecurePath(path) / "_admin"
 
 
-async def afilename_to_index_key(filename: str, *, size: int = 32) -> bytes:
+async def afilename_to_index_key(
+    filename: str,
+    *aad: bytes,
+    size: int = 32,
+    key: bytes | None = None,
+) -> bytes:
     """
     Facilitates the creation of uniform index keys to organize objects
     & procedures by the file targets those keys point to.
@@ -74,12 +79,19 @@ async def afilename_to_index_key(filename: str, *, size: int = 32) -> bytes:
     return await ahash_bytes(
         Domains.FILENAME_TO_INDEX,
         filename.encode(),
+        *aad,
         hasher=shake_128,
         size=size,
+        key=key,
     )
 
 
-def filename_to_index_key(filename: str, *, size: int = 32) -> bytes:
+def filename_to_index_key(
+    filename: str,
+    *aad: bytes,
+    size: int = 32,
+    key: bytes | None = None,
+) -> bytes:
     """
     Facilitates the creation of uniform index keys to organize objects
     & procedures by the file targets those keys point to.
@@ -87,8 +99,10 @@ def filename_to_index_key(filename: str, *, size: int = 32) -> bytes:
     return hash_bytes(
         Domains.FILENAME_TO_INDEX,
         filename.encode(),
+        *aad,
         hasher=shake_128,
         size=size,
+        key=key,
     )
 
 
@@ -355,5 +369,7 @@ module_api = dict(
     _read_salt_file=read_salt_file,
     _update_salt_file=update_salt_file,
     adeniable_filename=adeniable_filename,
+    afilename_to_index_key=afilename_to_index_key,
     deniable_filename=deniable_filename,
+    filename_to_index_key=filename_to_index_key,
 )

@@ -30,6 +30,7 @@ Minor Changes
 - feat(cguard): provide methods to track instance context state stages
 - feat(cguard): provide method to track unused instances
 - feat(cguard): provide a non-exclusive queue manually policy
+- feat(paths): add optional aad & key params to filename to index functions
 - fix(asynchs): avoid deadlocks by disallowing ConcurrencyGuard obj reuse
 - fix(cguard): avoid using exception branch for control flow
 - fix(paths): avoid collisions with larger index keys
