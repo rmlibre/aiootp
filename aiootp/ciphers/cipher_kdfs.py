@@ -65,6 +65,11 @@ class ShakeConfig(Config):
         hasher: t.Callable,
         key_slice: slice | None,
     ) -> None:
+        """
+        Initializes the factory to enable the production of cached hash
+        objects which are pre-seeded with the cipher's configuration
+        settings & the KDFs name for domain separation by default.
+        """
         self.name = name
         self.pad = pad
         self.offset_amount = offset_amount
@@ -105,6 +110,10 @@ class KeyedCipherKDF(FrozenInstance):
     __slots__ = ("config", "kdf")
 
     def __init__(self, key: bytes, config: ShakeConfig) -> None:
+        """
+        Utilize the domain-separated factory to initialize a keyed KDF
+        hash object.
+        """
         self.config = config
         self.kdf = config.factory()
         self.kdf.update(encode_key(key, config.blocksize, pad=config.pad))

@@ -37,6 +37,9 @@ class PasscryptResources(OpenFrozenSlots):
     __slots__ = ("mb", "cpu", "cores")
 
     def __init__(self, mb: int, cpu: int, cores: int) -> None:
+        """
+        Stores settings retrieved from a `Passcrypt` hash.
+        """
         self.mb = mb
         self.cpu = cpu
         self.cores = cores

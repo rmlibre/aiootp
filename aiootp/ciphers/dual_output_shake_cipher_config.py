@@ -200,6 +200,9 @@ class DualOutputShakeCipherConfig(Config):
         right_kdf_config: ShakeConfig,
         permutation_type: t.PermutationType,
     ) -> None:
+        """
+        Setup the config object according to the supplied arguments.
+        """
         self.NAME = name
         self.CONFIG_ID = config_id
         self.BLOCKSIZE = blocksize

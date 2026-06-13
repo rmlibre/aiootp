@@ -26,14 +26,14 @@ from aiootp._constants import MIN_KEY_BYTES
 from aiootp._paths import AsyncSecureSaltPath, SecureSaltPath
 from aiootp._paths import aread_salt_file, read_salt_file
 from aiootp.asynchs import asleep
-from aiootp.commons import FrozenSlots
+from aiootp.commons import FrozenTypedSlots
 from aiootp.generics import ahash_bytes, hash_bytes
 from aiootp.keygens import Passcrypt
 
 from .dbdomains import DBDomains
 
 
-class AsyncProfileTokens(FrozenSlots):
+class AsyncProfileTokens(FrozenTypedSlots):
     """
     Efficiently stores AsyncDatabase & Database profile token values
     which are used to more safely construct databases from potentially
@@ -42,8 +42,18 @@ class AsyncProfileTokens(FrozenSlots):
 
     __slots__ = ("_gist", "_salt", "_salt_path", "login_key", "profile")
 
+    slots_types = dict(
+        _gist=bytes,
+        _salt=bytes,
+        _salt_path=t.Path,
+        login_key=bytes,
+        profile=t.AsyncDatabaseType,
+    )
+
     def __init__(self) -> None:
-        pass
+        """
+        No-op to override the default `FrozenTypedSlots` initializer.
+        """
 
     @classmethod
     async def _asummon_device_salt(cls, path: t.PathStr) -> bytes:
@@ -139,7 +149,7 @@ class AsyncProfileTokens(FrozenSlots):
         return self
 
 
-class ProfileTokens(FrozenSlots):
+class ProfileTokens(FrozenTypedSlots):
     """
     Efficiently stores AsyncDatabase & Database profile token values
     which are used to more safely construct databases from potentially
@@ -148,8 +158,18 @@ class ProfileTokens(FrozenSlots):
 
     __slots__ = ("_gist", "_salt", "_salt_path", "login_key", "profile")
 
+    slots_types = dict(
+        _gist=bytes,
+        _salt=bytes,
+        _salt_path=t.Path,
+        login_key=bytes,
+        profile=t.DatabaseType,
+    )
+
     def __init__(self) -> None:
-        pass
+        """
+        No-op to override the default `FrozenTypedSlots` initializer.
+        """
 
     @classmethod
     def _summon_device_salt(cls, path: t.PathStr) -> bytes:

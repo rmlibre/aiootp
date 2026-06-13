@@ -54,6 +54,9 @@ class PasscryptSettings(OpenFrozenSlots):
         salt_size: int,
         config: t.ConfigType = passcrypt_spec,
     ) -> None:
+        """
+        Stores user-defined settings.
+        """
         self.mb = mb
         self.cpu = cpu
         self.cores = cores

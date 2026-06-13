@@ -80,7 +80,9 @@ class DualOutputSessionKDFs(FrozenInstance):
     __slots__ = ("keystream", "shmac_kdf", "left_kdf", "right_kdf")
 
     def __init__(self) -> None:
-        pass
+        """
+        No-op to override the default `FrozenInstance` initializer.
+        """
 
     def __iter__(self) -> t.Generator[t.XOFType, None, None]:
         """
@@ -202,9 +204,9 @@ class DualOutputKeyAADBundle(KeyAADBundle):
 
 class DualOutputStreamHMAC(StreamHMAC):
     """
-    This class is used as an inline validator for ciphertext streams as
-    they are being created & decrypted. It's designed for full context
-    commitment, salt misuse-reuse resistance, & RUP security.
+    An inline validator for ciphertext streams as they are being created
+    & decrypted. It's designed for full context commitment, salt misuse-
+    reuse resistance, & RUP security.
     """
 
     __slots__ = ()
@@ -229,7 +231,7 @@ class DualOutputStreamHMAC(StreamHMAC):
         _from_bytes: t.Callable[..., int] = int.from_bytes,
     ) -> bytes:
         """
-        This method is inserted as the instance's `_avalidated_transform`
+        Automatically inserted as the instance's `_avalidated_transform`
         method after the encryption mode is set.
         """
         config = self.config
@@ -255,7 +257,7 @@ class DualOutputStreamHMAC(StreamHMAC):
         _from_bytes: t.Callable[..., int] = int.from_bytes,
     ) -> bytes:
         """
-        This method is inserted as the instance's `_validated_transform`
+        Automatically inserted as the instance's `_validated_transform`
         method after the encryption mode is set.
         """
         config = self.config
@@ -281,7 +283,7 @@ class DualOutputStreamHMAC(StreamHMAC):
         _from_bytes: t.Callable[..., int] = int.from_bytes,
     ) -> bytes:
         """
-        This method is inserted as the instance's `_avalidated_transform`
+        Automatically inserted as the instance's `_avalidated_transform`
         method after the decryption mode is set.
         """
         config = self.config
@@ -306,7 +308,7 @@ class DualOutputStreamHMAC(StreamHMAC):
         _from_bytes: t.Callable[..., int] = int.from_bytes,
     ) -> bytes:
         """
-        This method is inserted as the instance's `_validated_transform`
+        Automatically inserted as the instance's `_validated_transform`
         method after the decryption mode is set.
         """
         config = self.config

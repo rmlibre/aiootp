@@ -70,13 +70,16 @@ class SequenceIDConfig(Config):
         permutation_type: t.PermutationType,
         permutation_config_id: t.Hashable | None = None,
     ) -> None:
+        """
+        Setup the config object according to the supplied arguments.
+        """
         self.CONFIG_ID = config_id
         self.SIZE = self._process_size(size)
         self.PERMUTATION_CONFIG_ID = self._process_permutation_config_id(
             permutation_config_id,
         )
         self.Permutation = permutation_type
-        self.KEY_SIZE = self.Permutation.key_size(config_id)
+        self.KEY_SIZE = self.Permutation.key_size(self.SIZE)
 
 
 module_api = dict(

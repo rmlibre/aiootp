@@ -41,6 +41,10 @@ class AuthFail(OpenFrozenSlots):
         block: bytes,
         buffer: t.Callable,
     ) -> None:
+        """
+        Stores failure state information for optional retrieval during
+        error handling.
+        """
         self.block_id = block_id
         self.block = block
         self.buffer = buffer

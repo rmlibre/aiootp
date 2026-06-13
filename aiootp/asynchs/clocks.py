@@ -261,6 +261,9 @@ class Clock(FrozenInstance):
         self._units = units
 
     def __repr__(self, /) -> str:
+        """
+        Displays the class & state of the instance.
+        """
         return (
             f"{self.__class__.__qualname__}("
             f"{self._units!r}, epoch={self._epoch})"

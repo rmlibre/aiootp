@@ -41,7 +41,9 @@ class ConcurrencyGuardState(FrozenInstance):
     __slots__ = ()
 
     def __init__(self, /) -> None:
-        pass
+        """
+        No-op to override the default `FrozenInstance` initializer.
+        """
 
 
 class UnusedState(ConcurrencyGuardState):

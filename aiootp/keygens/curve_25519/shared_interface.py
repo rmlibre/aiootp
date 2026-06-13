@@ -45,6 +45,11 @@ class Base25519(FrozenInstance):
     SecretKey: type = None
 
     def __init__(self, /) -> None:
+        """
+        Initializes the frozen instance's attributes to `None` so that
+        populating the attributes requires explicit calls to the methods
+        which can override the blocks on attribute reassignment.
+        """
         self._secret_key = None
         self._public_key = None
 

@@ -101,6 +101,9 @@ class RawGUIDConfig(Config):
         clock: t.ClockType | None = None,
         prf: t.Callable[[int], bytes] = token_bytes,
     ) -> None:
+        """
+        Setup the config object according to the supplied arguments.
+        """
         self.TIMESTAMP_BYTES = timestamp_bytes
         self.PRF_BYTES = prf_bytes
         self.NODE_ID_BYTES = node_id_bytes
@@ -119,6 +122,9 @@ class RawGUIDContainer(OpenFrozenSlots):
     __slots__ = ("timestamp", "token", "node_id", "ticker")
 
     def __init__(self, guid: bytes, *, config: RawGUIDConfig) -> None:
+        """
+        Setup the config object according to the supplied arguments.
+        """
         if not len(guid) == config.SIZE:
             raise Issue.invalid_length("raw guid", config.SIZE)
         reader = io.BytesIO(guid).read
@@ -128,19 +134,35 @@ class RawGUIDContainer(OpenFrozenSlots):
         self.ticker = reader(config.TICKER_BYTES)
 
     def __hash__(self) -> int:
+        """
+        Enable sorting & hashing of objects.
+        """
         return int.from_bytes(self.sort_key, BIG)
 
     def __eq__(self, other: t.Cls) -> bool:
+        """
+        Enable sorting & hashing of objects.
+        """
         return self.sort_key == other.sort_key
 
     def __gt__(self, other: t.Cls) -> bool:
+        """
+        Enable sorting & hashing of objects.
+        """
         return self.sort_key > other.sort_key
 
     def __lt__(self, other: t.Cls) -> bool:
+        """
+        Enable sorting & hashing of objects.
+        """
         return self.sort_key < other.sort_key
 
     @property
     def sort_key(self) -> bytes:
+        """
+        Sort & hash objects according to the timestamp, node_id, ticker,
+        & token, in that order.
+        """
         return self.timestamp + self.node_id + self.ticker + self.token
 
 

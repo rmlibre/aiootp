@@ -53,23 +53,41 @@ class ThreadingSafeEntropyPool(FrozenInstance):
 
     @property
     def name(self) -> str:
+        """
+        Proxy to hashing object's name attribute.
+        """
         return self._obj.name
 
     @property
     def block_size(self) -> int:
+        """
+        Proxy to hashing object's blocksize attribute.
+        """
         return self._obj.block_size
 
     @property
     def digest_size(self) -> int:
+        """
+        Proxy to hashing object's digest attribute.
+        """
         return self._obj.digest_size
 
     @property
     def update(self) -> t.Callable[[bytes], None]:
+        """
+        Proxy to hashing object's update method.
+
+        ************************
+        BEWARE: NOT THREAD SAFE.
+        ************************
+        """
         return self._obj.update
 
     @property
     def digest(self) -> t.Callable[..., bytes]:
         """
+        Proxy to hashing object's digest method.
+
         ************************
         BEWARE: NOT THREAD SAFE.
         ************************
@@ -79,6 +97,8 @@ class ThreadingSafeEntropyPool(FrozenInstance):
     @property
     def hexdigest(self) -> t.Callable[..., bytes]:
         """
+        Proxy to hashing object's hexdigest method.
+
         ************************
         BEWARE: NOT THREAD SAFE.
         ************************

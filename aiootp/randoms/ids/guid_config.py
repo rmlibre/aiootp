@@ -112,6 +112,9 @@ class GUIDConfig(Config):
         permutation_config_id: t.Hashable | None = None,
         aad: bytes = b"",
     ) -> None:
+        """
+        Setup the config object according to the supplied arguments.
+        """
         self.CONFIG_ID = config_id
         self.AAD = aad
         self.SIZE = size

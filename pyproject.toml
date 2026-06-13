@@ -499,6 +499,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "ANN003",  # ''   ''
     "ANN202",  # ''   ''
     "D100",  # TODO: add docstrings to test cases
+    "D103",  # TODO: add docstrings to test cases
     "C901",  # tests can get complex
     "F403",  # tests get most of their imports from `import *`
     "F405",  # `import *` confuses it a lot

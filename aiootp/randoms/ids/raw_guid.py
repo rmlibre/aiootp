@@ -79,6 +79,10 @@ class RawGUID(FrozenInstance):
         *,
         config_id: t.Hashable = 16,
     ) -> None:
+        """
+        Retrieve the cached config object indexed by the `config_id` &
+        initialize the instance.
+        """
         self.config = self._configs[config_id]
         self.node_id = self._process_node_id(node_id)
         self.tick = 0

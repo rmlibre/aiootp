@@ -31,9 +31,9 @@ from .key_bundle import KeyAADBundle
 
 class StreamHMAC:
     """
-    This class is used as an inline validator for ciphertext streams as
-    they are being created & decrypted. It's designed for full context
-    commitment, salt misuse-reuse resistance, & RUP security.
+    An inline validator for ciphertext streams as they are being created
+    & decrypted. It's designed for full context commitment, salt misuse-
+    reuse resistance, & RUP security.
     """
 
     __slots__ = (
@@ -151,27 +151,24 @@ class StreamHMAC:
 
     async def _aplaceholder_update(self, *_: t.Any, **__: t.Any) -> None:
         """
-        This method is overwritten with the propper functionality when a
-        cipher mode is declared with either the `_for_encryption` or
-        `_for_decryption` methods. This interface helps ensure correct
-        usage of the object.
+        Ensures correct usage of the object by overwriting this method
+        with the proper functionality only if a cipher mode is declared
+        with `_for_encryption()` or `_for_decryption()`.
         """
         raise SHMACIssue.no_cipher_mode_declared()
 
     def _placeholder_update(self, *_: t.Any, **__: t.Any) -> None:
         """
-        This method is overwritten with the propper functionality when a
-        cipher mode is declared with either the `_for_encryption` or
-        `_for_decryption` methods. This interface helps ensure correct
-        usage of the object.
+        Ensures correct usage of the object by overwriting this method
+        with the proper functionality only if a cipher mode is declared
+        with `_for_encryption()` or `_for_decryption()`.
         """
         raise SHMACIssue.no_cipher_mode_declared()
 
     async def _aupdate_mac(self, ciphertext_block: bytes) -> t.Self:
         """
-        This method is called automatically when an instance is passed
-        into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
-        generators.
+        Called automatically when an instance is passed into the low-
+        level `(a)bytes_encipher` / `(a)bytes_decipher` generators.
         """
         await asleep()
         mac = self._mac
@@ -184,9 +181,8 @@ class StreamHMAC:
 
     def _update_mac(self, ciphertext_block: bytes) -> t.Self:
         """
-        This method is called automatically when an instance is passed
-        into the low-level `(a)bytes_encipher` / `(a)bytes_decipher`
-        generators.
+        Called automatically when an instance is passed into the low-
+        level `(a)bytes_encipher` / `(a)bytes_decipher` generators.
         """
         mac = self._mac
         mac.update(ciphertext_block)

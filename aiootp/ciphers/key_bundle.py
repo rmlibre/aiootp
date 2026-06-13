@@ -48,13 +48,17 @@ class SaltAADIV(FrozenSlots):
         *,
         config: t.ConfigType,
     ) -> None:
+        """
+        An efficient & typed container to stores the `salt`, `aad`, &
+        `iv`. Validates these values with the provided `config`.
+        """
         self.config = config
         self.salt = salt or token_bytes(config.SALT_BYTES)
         self.aad = aad
         self.iv = self._process_iv(iv)
         self._test_salt_aad_iv(self.salt, self.aad, self.iv)
 
-    def _process_iv(self, iv: bytes) -> bytes:
+    def _process_iv(self, iv: bytes | None) -> bytes:
         """
         Creating a new random IV during encryption ensures the user
         cannot accidentally prevent the derived key material from being
@@ -95,6 +99,10 @@ class KeyAADRegisters(FrozenSlots):
     __slots__ = ("keystream", "shmac")
 
     def register(self, name: str, value: t.Any) -> None:
+        """
+        Sets the attribute `name` with the `value`. If the attribute has
+        already been set, throws `PermissionError`
+        """
         setattr(self, name, value)
 
 

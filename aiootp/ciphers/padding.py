@@ -23,10 +23,10 @@ from secrets import token_bytes
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_TTL, BIG
 from aiootp.asynchs import asleep
-from aiootp.commons import FrozenSlots, FrozenInstance
+from aiootp.commons import FrozenTypedSlots, FrozenInstance
 
 
-class PlaintextMeasurements(FrozenSlots):
+class PlaintextMeasurements(FrozenTypedSlots):
     """
     Efficiently stores plaintext measurements in instance attributes
     which are used to determine the padding that's needed.
@@ -34,7 +34,13 @@ class PlaintextMeasurements(FrozenSlots):
 
     __slots__ = ("padding_size", "pad_sentinel")
 
+    slots_types = dict(padding_size=int, pad_sentinel=bytes)
+
     def __init__(self, /, padding_size: int, pad_sentinel: bytes) -> None:
+        """
+        An efficient & typed container for storing calculations needed
+        to correctly pad plaintext.
+        """
         self.padding_size = padding_size
         self.pad_sentinel = pad_sentinel
 

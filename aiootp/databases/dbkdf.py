@@ -30,6 +30,10 @@ class DBKDF(DomainKDF, salt_label=b"database_domain_kdf_salt"):
     """
 
     def __init__(self, domain: bytes, *data: bytes, key: bytes) -> None:
+        """
+        Initializes the instance after ensuring the provided `key` is
+        larger than or equal to the min size requirement.
+        """
         if len(key) < MIN_KEY_BYTES:
             raise KeyAADIssue.invalid_key_size(len(key), MIN_KEY_BYTES)
         super().__init__(domain, *data, key=key)

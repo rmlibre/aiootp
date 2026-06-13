@@ -72,6 +72,10 @@ class DoubleDiffieHellmanServer(FrozenInstance):
         *,
         kdf_type: type,
     ) -> None:
+        """
+        Validates argument types & stores secret identity key used in
+        the key exchange.
+        """
         if not issubclass(kdf_type, t.DomainKDFType):
             raise Issue.must_be_subtype("KDF type", t.DomainKDFType)
         elif not isinstance(my_identity_key, t.KeyExchangeType):

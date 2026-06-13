@@ -152,6 +152,10 @@ class GUID(FrozenInstance):
         node_id: bytes = b"\x00",
         config_id: t.Hashable = 16,
     ) -> None:
+        """
+        Retrieve the cached config object indexed by the `config_id` &
+        initialize the instance's keyed permutation.
+        """
         self.config = c = self._configs[config_id]
         key = key or c._DEFAULT_KEY
         self._raw_guid = c.RawGUID(node_id=node_id, config_id=config_id)

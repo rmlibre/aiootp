@@ -171,6 +171,9 @@ class PasscryptConfig(Config):
         EPOCH_NS: int = EPOCH_NS,
         **kw: t.Any,
     ) -> None:
+        """
+        Setup the config object according to the supplied arguments.
+        """
         inputs = _passcrypt_config_inputs(
             kw,
             CONFIG_ID=CONFIG_ID,
@@ -282,35 +285,59 @@ class PasscryptConfig(Config):
         )
 
     def is_passphrase(self, passphrase: bytes) -> bool:
+        """
+        Validate the passphrase type & size.
+        """
         return (
             passphrase.__class__ is bytes
             and len(passphrase) >= self.MIN_PASSPHRASE_BYTES
         )
 
     def is_salt(self, salt: bytes) -> bool:
+        """
+        Validate the salt type & size.
+        """
         length_limits = range(self.MIN_SALT_SIZE, self.MAX_SALT_SIZE + 1)
         return (salt.__class__ is bytes) and (len(salt) in length_limits)
 
     def is_aad(self, aad: bytes) -> bool:
+        """
+        Validate the aad type.
+        """
         return aad.__class__ is bytes
 
     def is_mb(self, mb: int) -> bool:
+        """
+        Validate the mb type & value range.
+        """
         mb_limits = range(self.MIN_MB, self.MAX_MB + 1)
         return (mb.__class__ is int) and (mb in mb_limits)
 
     def is_cpu(self, cpu: int) -> bool:
+        """
+        Validate the cpu type & value range.
+        """
         cpu_limits = range(self.MIN_CPU, self.MAX_CPU + 1)
         return (cpu.__class__ is int) and (cpu in cpu_limits)
 
     def is_cores(self, cores: int) -> bool:
+        """
+        Validate the cores type & value range.
+        """
         cores_limits = range(self.MIN_CORES, self.MAX_CORES + 1)
         return (cores.__class__ is int) and (cores in cores_limits)
 
     def is_tag_size(self, tag_size: int) -> bool:
+        """
+        Validate the tag_size type & value range.
+        """
         tag_size_is_int = tag_size.__class__ is int
         return (tag_size_is_int) and (tag_size >= self.MIN_TAG_SIZE)
 
     def is_salt_size(self, salt_size: int) -> bool:
+        """
+        Validate the salt_size type & value range.
+        """
         salt_size_is_int = salt_size.__class__ is int
         salt_size_limits = range(self.MIN_SALT_SIZE, self.MAX_SALT_SIZE + 1)
         return salt_size_is_int and (salt_size in salt_size_limits)

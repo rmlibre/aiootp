@@ -46,6 +46,9 @@ class PackageSignerScope(t.OpenNamespace):
         date: int,
         **extras: dict[str, t.JSONSerializable],
     ) -> None:
+        """
+        Stores user-defined package metadata.
+        """
         self.update(extras)
         self.package = package
         self.version = version

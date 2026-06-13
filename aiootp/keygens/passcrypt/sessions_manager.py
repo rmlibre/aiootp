@@ -40,7 +40,9 @@ class PasscryptProcesses(FrozenInstance):
     __slots__ = ("_sessions",)
 
     def __init__(self) -> None:
-        pass
+        """
+        No-op to override the default `FrozenInstance` initializer.
+        """
 
     @staticmethod
     def _work_memory_prover(session: PasscryptSession) -> bytes:

@@ -100,7 +100,7 @@ class SequenceID(FrozenInstance):
         config_id: t.Hashable = 12,
     ) -> None:
         """
-        Initialized the keyed permutation.
+        Initialize the keyed permutation.
         """
         self.config = self._configs[config_id]
         self._permutation = self._initialize_permutation(key)

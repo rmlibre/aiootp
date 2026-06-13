@@ -97,6 +97,9 @@ class AsyncInit(type):
     """
 
     async def __call__(cls, *a: t.Any, **kw: t.Any) -> t.Self:
+        """
+        Calling the class is now an asynchronous function.
+        """
         self = cls.__new__(cls, *a, **kw)
         await self.__init__(*a, **kw)
         return self

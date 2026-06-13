@@ -28,6 +28,7 @@ Minor Changes
 - docs(cguard): fix docstrings & match the details of new updates
 - docs(typing): remove deprecated use of Optional in annotations
 - docs(typing): remove deprecated use of Union in annotations
+- docs(ruff): finish applying pydocstyle (D) rules & improve typing
 - feat(cguard): provide methods to track instance context state stages
 - feat(cguard): provide method to track unused instances
 - feat(cguard): provide a non-exclusive queue manually policy
