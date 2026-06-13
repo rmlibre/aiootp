@@ -29,7 +29,6 @@ __all__ = [
 from hmac import compare_digest
 
 from aiootp._typing import Typing as t
-from aiootp._exceptions import InvalidStateTransition
 from aiootp.commons import FrozenInstance, OpenFrozenTypedSlots
 
 
@@ -112,12 +111,10 @@ class ExclusivePolicy(ConcurrencyGuardPolicy):
         is_next_in_queue = compare_digest(guard.token, guard.queue[0].token)
         no_others_running = guard.observers[0].policy.is_exclusive()
         if can_run := is_next_in_queue and no_others_running:
-            try:
-                guard._use_tracker.transition_to_running()
-            except InvalidStateTransition as error:
-                guard.observers.pop()
-                guard.queue.popleft()
-                raise error
+            with guard._use_tracker as tracker:
+                tracker.add_fault_signal(guard.observers.pop)
+                tracker.add_fault_signal(guard.queue.popleft)
+                tracker.transition_to_running()
         return can_run
 
 
@@ -222,11 +219,9 @@ class NonExclusivePolicy(ConcurrencyGuardPolicy):
         if can_run := compare_digest(guard.token, guard.queue[0].token):
             guard.observers.appendleft(guard)  # append first to
             guard.queue.popleft()  # rule-out race-conditions
-            try:
-                guard._use_tracker.transition_to_running()
-            except InvalidStateTransition as error:
-                guard.observers.popleft()
-                raise error
+            with guard._use_tracker as tracker:
+                tracker.add_fault_signal(guard.observers.popleft)
+                tracker.transition_to_running()
         return can_run
 
 

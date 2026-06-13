@@ -13,10 +13,12 @@
 
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 from aiootp.asynchs.loops import gather, new_task
-from aiootp.asynchs.guards import DefaultDictOfDeques
+from aiootp.asynchs.guards import DefaultDictOfStates
 from aiootp.asynchs.guards import MultiConcurrencyGaurd
+from aiootp.asynchs.guards.manager import TargetState
 
 from conftest import *
 
@@ -35,7 +37,7 @@ class DoneFaultUseTracker(t.ConcurrencyGuardUseTracker):
         super().transition_to_done()
 
 
-class TestDefaultDictOfDeques:
+class TestDefaultDictOfStates:
     @given(
         value=st.one_of(
             st.none(),
@@ -48,7 +50,7 @@ class TestDefaultDictOfDeques:
         ),
     )
     async def test_adding_non_deques_is_not_allowed(self, value) -> None:
-        mapping = DefaultDictOfDeques()
+        mapping = DefaultDictOfStates()
 
         problem = (  # fmt: skip
             "A non-deque object was able to be set within the custom "
@@ -61,16 +63,16 @@ class TestDefaultDictOfDeques:
             mapping.update(update_test=value)
 
     async def test_adding_deques_is_allowed(self) -> None:
-        mapping = DefaultDictOfDeques()
+        mapping = DefaultDictOfStates()
 
-        mapping["setitem_test"] = deque()
-        mapping.update(update_test=deque())
+        mapping["setitem_test"] = TargetState()
+        mapping.update(update_test=TargetState())
 
     async def test_adding_deque_subclass_is_allowed(self) -> None:
-        class DequeSubclass(deque):
+        class DequeSubclass(TargetState):
             pass
 
-        mapping = DefaultDictOfDeques()
+        mapping = DefaultDictOfStates()
 
         mapping["setitem_test"] = DequeSubclass()
         mapping.update(update_test=DequeSubclass())
@@ -102,7 +104,7 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         for target, guard in instances:
             queues[target].append(guard.token)
-            guards.queues[target].append(guard)
+            guards.targets[target].deques.queue.append(guard)
 
         target_results = []
         token_results = defaultdict(list)
@@ -151,19 +153,18 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         for target, guard in instances:
             queues[target].append(guard.token)
-            guards.queues[target].append(guard)
+            guards.targets[target].deques.queue.append(guard)
 
         target_results = []
         token_results = defaultdict(list)
 
-        tasks = [
-            Threads._type(target=record_ordering, args=(target, guard))
-            for target, guard in instances
-        ]
-        for task in tasks:
-            task.start()
-        for task in tasks:
-            task.join()
+        with ThreadPoolExecutor(max_workers=len(targets)) as threads:
+            results = threads.map(
+                record_ordering,
+                (target for target, _ in instances),
+                (guard for _, guard in instances),
+            )
+            list(results)
 
         # were all target executions run?
         assert sorted(target_results) == sorted(targets)
@@ -220,7 +221,7 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         observers = defaultdict(deque)
         for target, guard in instances:
-            guards.queues[target].append(guard)
+            guards.targets[target].deques.queue.append(guard)
             if guard.policy.is_exclusive():
                 observers[target].append(guard)
                 queues[target].append(guard.token)
@@ -248,6 +249,7 @@ class TestMultiConcurrencyGaurd:
             assert not guard.queue, target
             assert not guard.observers, target
             assert not observers[target], target
+            assert target not in guards.targets, target
             if guard.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
@@ -292,7 +294,7 @@ class TestMultiConcurrencyGaurd:
         queues = defaultdict(list)
         observers = defaultdict(deque)
         for target, guard in instances:
-            guards.queues[target].append(guard)
+            guards.targets[target].deques.queue.append(guard)
             if guard.policy.is_exclusive():
                 observers[target].append(guard)
                 queues[target].append(guard.token)
@@ -324,6 +326,7 @@ class TestMultiConcurrencyGaurd:
             assert not guard.queue, target
             assert not guard.observers, target
             assert not observers[target], target
+            assert target not in guards.targets, target
             if guard.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
 
@@ -379,7 +382,7 @@ class TestMultiConcurrencyGaurd:
             async with guard:
                 await arandom_sleep(0.0001)
 
-                assert target in guards.users
+                assert target in guards.targets
                 if guard.policy.is_exclusive():
                     assert guard.token == guard.queue[0].token
                 else:
@@ -417,13 +420,9 @@ class TestMultiConcurrencyGaurd:
 
         # are the target references cleaned up after all work is done?
         for target in unique_targets:
-            assert target not in guards.observers
-            assert target not in guards.queues
-            assert target not in guards.users
+            assert target not in guards.targets, target
 
-        assert not guards.observers
-        assert not guards.queues
-        assert not guards.users
+        assert not guards.targets
 
     async def test_sync_references_cleaned_when_work_is_done(self) -> None:
         def record_ordering(
@@ -437,7 +436,7 @@ class TestMultiConcurrencyGaurd:
             with guard:
                 random_sleep(0.0001)
 
-                assert target in guards.users
+                assert target in guards.targets
                 if guard.policy.is_exclusive():
                     assert guard.token == guard.queue[0].token
                 else:
@@ -445,13 +444,14 @@ class TestMultiConcurrencyGaurd:
 
                 if is_spontaneous or token_bits(2):
                     return
-                task = Threads._type(
-                    target=record_ordering,
-                    args=(target, choose_policy(target)),
-                    kwargs=dict(is_spontaneous=True),
+
+                task = spontaneous_threads.submit(
+                    record_ordering,
+                    target,
+                    choose_policy(target),
+                    is_spontaneous=True,
                 )
                 spontaneous_tasks.append(task)
-                task.start()
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
@@ -467,30 +467,23 @@ class TestMultiConcurrencyGaurd:
         instances = [(target, choose_policy(target)) for target in targets]
 
         spontaneous_tasks = deque()
-        tasks = [
-            Threads._type(
-                target=record_ordering,
-                args=(target, guard),
-                kwargs=dict(is_spontaneous=False),
+        spontaneous_threads = ThreadPoolExecutor(max_workers=len(targets))
+        with ThreadPoolExecutor(max_workers=len(targets)) as threads:
+            results = threads.map(
+                partial(record_ordering, is_spontaneous=False),
+                (target for target, _ in instances),
+                (guard for _, guard in instances),
             )
-            for target, guard in instances
-        ]
-        for task in tasks:
-            task.start()
-        for task in tasks:
-            task.join()
-        for task in spontaneous_tasks:
-            task.join()
+            list(results)
+        with spontaneous_threads:
+            for task in spontaneous_tasks:
+                task.result()
 
         # are the target references cleaned up after all work is done?
         for target in unique_targets:
-            assert target not in guards.observers
-            assert target not in guards.queues
-            assert target not in guards.users
+            assert target not in guards.targets, target
 
-        assert not guards.observers
-        assert not guards.queues
-        assert not guards.users
+        assert not guards.targets
 
     async def test_async_references_cleaned_if_queue_faults(
         self,
@@ -508,9 +501,7 @@ class TestMultiConcurrencyGaurd:
         assert not guard.queue
         assert not guard.observers
 
-        assert not guards.observers
-        assert not guards.queues
-        assert not guards.users
+        assert not guards.targets
 
     async def test_sync_references_cleaned_if_queue_faults(
         self,
@@ -531,9 +522,7 @@ class TestMultiConcurrencyGaurd:
         assert not guard.queue
         assert not guard.observers
 
-        assert not guards.observers
-        assert not guards.queues
-        assert not guards.users
+        assert not guards.targets
 
     async def test_async_references_cleaned_if_run_transition_faults(
         self,
@@ -553,9 +542,7 @@ class TestMultiConcurrencyGaurd:
             assert not guard.queue
             assert not guard.observers
 
-            assert not guards.observers
-            assert not guards.queues
-            assert not guards.users
+            assert not guards.targets
 
     async def test_sync_references_cleaned_if_run_transition_faults(
         self,
@@ -578,9 +565,7 @@ class TestMultiConcurrencyGaurd:
             assert not guard.queue
             assert not guard.observers
 
-            assert not guards.observers
-            assert not guards.queues
-            assert not guards.users
+            assert not guards.targets
 
     async def test_async_references_cleaned_if_done_transition_faults(
         self,
@@ -600,9 +585,7 @@ class TestMultiConcurrencyGaurd:
         assert not guard.queue
         assert not guard.observers
 
-        assert not guards.observers
-        assert not guards.queues
-        assert not guards.users
+        assert not guards.targets
 
     async def test_sync_references_cleaned_if_done_transition_faults(
         self,
@@ -625,9 +608,7 @@ class TestMultiConcurrencyGaurd:
         assert not guard.queue
         assert not guard.observers
 
-        assert not guards.observers
-        assert not guards.queues
-        assert not guards.users
+        assert not guards.targets
 
     async def test_async_policy_pops_during_done_fault_align_with_convention(
         self,
@@ -665,9 +646,7 @@ class TestMultiConcurrencyGaurd:
             assert not guard.observers
             assert not guard.queue
 
-        assert not guards.observers
-        assert not guards.queues
-        assert not guards.users
+        assert not guards.targets
 
     async def test_sync_policy_pops_during_done_fault_align_with_convention(
         self,
@@ -698,22 +677,14 @@ class TestMultiConcurrencyGaurd:
         guards = MultiConcurrencyGaurd()
         instances = [choose_policy() for _ in range(64)]
 
-        tasks = [
-            Threads._type(target=catch_incoherence, args=(guard,))
-            for guard in instances
-        ]
-        for task in tasks:
-            task.start()
-        for task in tasks:
-            task.join()
+        with ThreadPoolExecutor(max_workers=len(instances)) as threads:
+            list(threads.map(catch_incoherence, instances))
 
         for guard in instances:
             assert not guard.observers
             assert not guard.queue
 
-        assert not guards.observers
-        assert not guards.queues
-        assert not guards.users
+        assert not guards.targets
 
     async def test_async_use_tracker_stages(self) -> None:
         async def track_stages(
@@ -816,14 +787,13 @@ class TestMultiConcurrencyGaurd:
         targets = 4 * unique_targets
         instances = [(target, choose_policy(target)) for target in targets]
 
-        tasks = [
-            Threads._type(target=track_stages, args=(target, guard))
-            for target, guard in instances
-        ]
-        for task in tasks:
-            task.start()
-        for task in tasks:
-            task.join()
+        with ThreadPoolExecutor(max_workers=len(targets)) as threads:
+            results = threads.map(
+                track_stages,
+                (target for target, _ in instances),
+                (guard for _, guard in instances),
+            )
+            list(results)
 
     async def test_use_tracker_stages_manually(self) -> None:
         guards = MultiConcurrencyGaurd()

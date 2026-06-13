@@ -132,7 +132,9 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._config = cipher._config
         self._padding = cipher._padding
         self._ttl = ttl
-        self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
+        self._digesting_now = ConcurrencyGuard.DequePair(
+            queue=deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS),
+        )
         self._finalizing_now = deque()  # don't let maxlen remove entries
         self._is_streaming = False
         self._result_queue = deque()
@@ -421,7 +423,9 @@ class DecipherStream(CipherStreamProperties):
         self._config = cipher._config
         self._padding = cipher._padding
         self._ttl = ttl
-        self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
+        self._digesting_now = ConcurrencyGuard.DequePair(
+            queue=deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS),
+        )
         self._finalizing_now = deque()  # don't let maxlen remove entries
         self._is_streaming = False
         self._result_queue = deque()

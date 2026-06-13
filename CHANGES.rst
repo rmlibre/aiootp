@@ -18,6 +18,7 @@ Major Changes
 - feat(cguard): automate ref cleanup, improve logic, docs & tests
 - refactor(cguard): split interfaces into separate modules
 - refactor(cguard): split into new subpackage & update tests
+- refactor(cgaurd): combine args, attrs & wrap transitions
 
 
 Minor Changes

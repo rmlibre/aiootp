@@ -454,6 +454,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "A002",  # no control if mirrored interfaces reuse built-in names
     "FBT001",  # no control over positional boolean params here
 ]
+"**/_typing/_asynchs.py" = [
+    "F821",  # a quoted annotation shouldn't be raising an error
+]
 "**{_paths.py,_exceptions.py}" = [
     "PLC0415",  # allow internal imports to access higher level modules
 ]

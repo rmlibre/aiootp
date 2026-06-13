@@ -16,7 +16,7 @@ A general interface for async/thread-safe management of execution
 contexts.
 """
 
-__all__ = ["ConcurrencyGuard"]
+__all__ = ["ConcurrencyGuard", "DequePair"]
 
 
 from secrets import token_bytes
@@ -35,14 +35,68 @@ from .policies import ExclusivePolicy, QueueManuallyPolicy
 from .policies import NonExclusivePolicy, NonExclusiveQueueManuallyPolicy
 
 
+class DequePair(FrozenTypedSlots):
+    """
+    Creates a related pair of deques to facilitate logic necessary for
+    `ConcurrencyGuard` instances to prevent simultaneous / out of order
+    runs of blocks of code; as well as enabling non-exclusive contexts
+    which are allowed to run freely with each other, but with async/
+    thread-safe awareness of & concession to new contexts which require
+    exclusive access to execution time.
+
+    The created deques are used by `ConcurrencyGuard` as follows:
+
+    `queue`: Shared, atomic `deque` data structure used to order the
+            execution contexts of guard instances.
+
+    `observers`: Shared, atomic `deque` data structure used to track
+            any running non-exclusive guard instances on the 0th
+            side of the queue, & any waiting/running exclusive guard
+            instances on the -1th side. This queue is not ordered,
+            but the invariant stated above is preserved. A shared
+            deque only needs to be provided by the user if they'll
+            be utilizing non-exclusive policies.
+    """
+
+    __slots__ = ("queue", "observers")
+
+    slots_types = dict(queue=deque, observers=deque)
+
+    def __init__(
+        self,
+        /,
+        *,
+        queue: deque[t.ConcurrencyGuardType] | None = None,
+        observers: deque[t.ConcurrencyGuardType] | None = None,
+    ) -> None:
+        """
+        Initializes the shared deque pair utilized by `ConcurrecyGuard`
+        instances.
+
+        `queue`: Shared, atomic `deque` data structure used to order the
+                execution contexts of guard instances.
+
+        `observers`: Shared, atomic `deque` data structure used to track
+                any running non-exclusive guard instances on the 0th
+                side of the queue, & any waiting/running exclusive guard
+                instances on the -1th side. This queue is not ordered,
+                but the invariant stated above is preserved. This deque
+                is only needed if the user will utilize contexts under
+                non-exclusive policies.
+        """
+        self.queue = deque() if queue is None else queue
+        self.observers = deque() if observers is None else observers
+
+
 class ConcurrencyGuard(FrozenTypedSlots):
     """
     An interface for queuing execution contexts given only a pair of
     shared, atomic `deque` double-ended queues. With only constant time-
     complexity state checks, prevents simultaneous / out of order runs
-    of blocks of code; as well as contexts which are allowed to run
-    freely, but with async/thread-safe awareness & concession to new
-    contexts which require exclusive access to execution time.
+    of blocks of code; as well as enabling non-exclusive contexts which
+    are allowed to run freely with each other, but with async/thread-
+    safe awareness of & concession to new contexts which require
+    exclusive access to execution time.
 
      _____________________________________
     |                                     |
@@ -53,13 +107,13 @@ class ConcurrencyGuard(FrozenTypedSlots):
                            |   Shared Context   |
                            ----------------------
 
-                               queue = deque()
+                    deques = ConcurrencyGuard.DequePair()
                            -----------------------
             -----------------         |        -----------------
             |   Context A   |         |        |   Context B   |
             -----------------         |        -----------------
                                       |
-    with ConcurrencyGuard(queue):     |  with ConcurrencyGuard(queue):
+    with ConcurrencyGuard(deques):    |  with ConcurrencyGuard(deques):
         mutable_thing[0] = 0          |      assert mutable_thing[0] == "done."
         ...                           |      mutable_thing[0] = 1
         ...                           |
@@ -81,8 +135,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
                            |   Shared Context   |
                            ----------------------
 
-                               queue = deque()
-                             observers = deque()
+                    deques = ConcurrencyGuard.DequePair()
         NonExclusivePolicy = ConcurrencyGuard.policies.NonExclusive
                            -----------------------
             -----------------         |        -----------------
@@ -90,8 +143,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
             -----------------         |        -----------------
                                       |
     with ConcurrencyGuard(            |  with ConcurrencyGuard(
-        queue,                        |      queue,
-        observers=observers,          |      observers=observers,
+        deques,                       |      deques,
         policy=NonExclusivePolicy(),  |  ) as b:
     ) as a:                           |      assert b.is_running()
         assert a.is_running()         |      assert a.is_done()
@@ -105,8 +157,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
             -----------------         |        -----------------
                                       |
     with ConcurrencyGuard(            |  d = ConcurrencyGuard(
-        queue,                        |      queue,
-        observers=observers,          |      observers=observers,
+        deques,                       |      deques,
         policy=NonExclusivePolicy(),  |      policy=NonExclusivePolicy(),
     ) as c:                           |  )
         assert c.is_running()         |  assert d.is_unused()
@@ -132,6 +183,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
     __slots__ = (
         "_use_tracker",
+        "deques",
         "observers",
         "policy",
         "probe_delay",
@@ -139,12 +191,23 @@ class ConcurrencyGuard(FrozenTypedSlots):
         "token",
     )
 
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset(
+        {"_use_tracker", "token"},
+    )
+    _DIRLESS_ATTRIBUTES: frozenset[str] = frozenset({"_use_tracker"})
+    _RESTRICTED_ATTRIBUTES: frozenset[str] = frozenset(
+        {"_set_policy", "_set_deques"},
+    )
+
     _UseTracker: type = ConcurrencyGuardUseTracker
 
     _default_probe_delay: float = 0.00001
 
+    DequePair: type = DequePair
+
     slots_types: t.Mapping[str, type] = dict(
         _use_tracker=t.ConcurrencyGuardUseTrackerType,
+        deques=DequePair,
         observers=deque,
         policy=t.ConcurrencyGuardPolicyType,
         probe_delay=float,
@@ -169,8 +232,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
     ) -> None:
         """
         Ensures the passed policy value is an instance of a policy class
-        which matches the ConcurrencyGuardPolicyType protocol. If `None` is
-        passed, then a default ExclusivePolicy instance is chosen.
+        which matches the ConcurrencyGuardPolicyType protocol. If `None`
+        is passed, then a default ExclusivePolicy instance is chosen.
         """
         if policy is None:
             self.policy = self.policies.Exclusive()
@@ -182,27 +245,28 @@ class ConcurrencyGuard(FrozenTypedSlots):
         else:
             self.policy = policy
 
+    def _set_deques(self, /, deques: DequePair) -> None:
+        """
+        Unpcks the provided deque-pair into instance attributes for
+        easier access & runtime type checking.
+        """
+        self.deques = deques
+        self.queue = deques.queue
+        self.observers = deques.observers
+
     def __init__(
         self,
         /,
-        queue: deque[t.ConcurrencyGuardType],
+        deques: DequePair,
         *,
-        observers: deque[t.ConcurrencyGuardType] | None = None,
         policy: t.ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
         token: bytes | None = None,
     ) -> None:
         """
-        `queue`: Shared, atomic `deque` data structure used to order the
-                execution contexts of guard instances.
-
-        `observers`: Shared, atomic `deque` data structure used to track
-                any running non-exclusive guard instances on the 0th
-                side of the queue, & any waiting/running exclusive guard
-                instances on the -1th side. This queue is not ordered,
-                but the invariant stated above is preserved. A shared
-                deque only needs to be provided by the user if they'll
-                be utilizing non-exclusive policies.
+        `deques`: The related pair of deques which facilitate the
+                instance's async/thread-safe logic to queue both non-
+                exclusive & exclusive & execution contexts.
 
         `policy`: A `ConcurrencyGuard` policy instance which manages the
                 logic necessary for async/thread-safe ordering of
@@ -215,13 +279,12 @@ class ConcurrencyGuard(FrozenTypedSlots):
         `token`: The unique authorization token held by this context.
         """
         self._set_policy(policy)
+        self._set_deques(deques)
         self._use_tracker = self._UseTracker()
         self.probe_delay = process_probe_delay(
             probe_delay,
             default=self._default_probe_delay,
         )
-        self.observers = deque() if observers is None else observers
-        self.queue = queue
         self.token = token or token_bytes(32)
 
     def is_unused(self, /) -> bool:
@@ -346,6 +409,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
 module_api = dict(
     ConcurrencyGuard=t.add_type(ConcurrencyGuard),
+    DequePair=t.add_type(DequePair),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

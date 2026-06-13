@@ -11,8 +11,6 @@
 #
 
 
-from collections import deque
-
 from conftest import *
 
 from aiootp.asynchs import ConcurrencyGuard
@@ -34,19 +32,19 @@ class TestConcurrencyGuard:
         error = ConcurrencyGuard.IncoherentConcurrencyState
 
         with Ignore(error, if_else=violation(problem)):
-            queue = deque()
-            async with ConcurrencyGuard(queue):
-                queue.appendleft(ConcurrencyGuard(queue))
+            deques = ConcurrencyGuard.DequePair()
+            async with ConcurrencyGuard(deques):
+                deques.queue.appendleft(ConcurrencyGuard(deques))
 
         with Ignore(error, if_else=violation(problem)):
-            queue = deque()
-            async with ConcurrencyGuard(queue):
-                queue[0] = ConcurrencyGuard(queue)
+            deques = ConcurrencyGuard.DequePair()
+            async with ConcurrencyGuard(deques):
+                deques.queue[0] = ConcurrencyGuard(deques)
 
         with Ignore(IndexError, if_else=violation(problem)):
-            queue = deque()
-            async with ConcurrencyGuard(queue):
-                queue.popleft()
+            deques = ConcurrencyGuard.DequePair()
+            async with ConcurrencyGuard(deques):
+                deques.queue.popleft()
 
     async def test_detects_sync_out_of_order_execution(self) -> None:
         problem = (  # fmt: skip
@@ -56,19 +54,19 @@ class TestConcurrencyGuard:
         error = ConcurrencyGuard.IncoherentConcurrencyState
 
         with Ignore(error, if_else=violation(problem)):
-            queue = deque()
-            with ConcurrencyGuard(queue):
-                queue.appendleft(ConcurrencyGuard(queue))
+            deques = ConcurrencyGuard.DequePair()
+            with ConcurrencyGuard(deques):
+                deques.queue.appendleft(ConcurrencyGuard(deques))
 
         with Ignore(error, if_else=violation(problem)):
-            queue = deque()
-            with ConcurrencyGuard(queue):
-                queue[0] = ConcurrencyGuard(queue)
+            deques = ConcurrencyGuard.DequePair()
+            with ConcurrencyGuard(deques):
+                deques.queue[0] = ConcurrencyGuard(deques)
 
         with Ignore(IndexError, if_else=violation(problem)):
-            queue = deque()
-            with ConcurrencyGuard(queue):
-                queue.popleft()
+            deques = ConcurrencyGuard.DequePair()
+            with ConcurrencyGuard(deques):
+                deques.queue.popleft()
 
     def tuple_of_transitions(self, tracker) -> tuple[t.Callable]:
         return (
@@ -129,8 +127,8 @@ class TestConcurrencyGuard:
             assert tracker.has_faulted()
 
     async def test_async_guard_may_only_be_used_once(self) -> None:
-        queue = deque()
-        async with (guard := ConcurrencyGuard(queue)):
+        deques = ConcurrencyGuard.DequePair()
+        async with (guard := ConcurrencyGuard(deques)):
             pass
 
         problem = (
@@ -145,8 +143,8 @@ class TestConcurrencyGuard:
             guard._use_tracker.__init__()
 
     async def test_sync_guard_may_only_be_used_once(self) -> None:
-        queue = deque()
-        with (guard := ConcurrencyGuard(queue)):
+        deques = ConcurrencyGuard.DequePair()
+        with (guard := ConcurrencyGuard(deques)):
             pass
 
         problem = (
@@ -163,9 +161,9 @@ class TestConcurrencyGuard:
     async def test_non_exclusive_guard_may_only_be_used_once(
         self,
     ) -> None:
-        queue = deque()
+        deques = ConcurrencyGuard.DequePair()
         policy = ConcurrencyGuard.policies.NonExclusive()
-        with (guard := ConcurrencyGuard(queue, policy=policy)):
+        with (guard := ConcurrencyGuard(deques, policy=policy)):
             pass
 
         problem = (
@@ -180,8 +178,8 @@ class TestConcurrencyGuard:
             guard._use_tracker.__init__()
 
     async def test_mixed_guard_may_only_be_used_once(self) -> None:
-        queue = deque()
-        with (guard := ConcurrencyGuard(queue)):
+        deques = ConcurrencyGuard.DequePair()
+        with (guard := ConcurrencyGuard(deques)):
             pass
 
         problem = (
@@ -203,14 +201,14 @@ class TestConcurrencyGuard:
         self,
         policy_cls,
     ) -> None:
-        queue = deque()
+        deques = ConcurrencyGuard.DequePair()
         problem = (
             "A non-instantiated policy was allowed as the provided policy"
         )
         with Ignore(TypeError, if_else=violation(problem)):
-            ConcurrencyGuard(queue, policy=policy_cls)
+            ConcurrencyGuard(deques, policy=policy_cls)
 
-        ConcurrencyGuard(queue, policy=policy_cls())
+        ConcurrencyGuard(deques, policy=policy_cls())
 
     @pytest.mark.parametrize(
         "policy_cls",
@@ -220,14 +218,14 @@ class TestConcurrencyGuard:
         self,
         policy_cls,
     ) -> None:
-        queue = deque()
+        deques = ConcurrencyGuard.DequePair()
         problem = (
             "A non-instantiated policy was allowed as the provided policy"
         )
         with Ignore(TypeError, if_else=violation(problem)):
-            ConcurrencyGuard(queue, policy=policy_cls)
+            ConcurrencyGuard(deques, policy=policy_cls)
 
-        ConcurrencyGuard(queue, policy=policy_cls())
+        ConcurrencyGuard(deques, policy=policy_cls())
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

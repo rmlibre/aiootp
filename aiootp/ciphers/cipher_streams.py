@@ -120,7 +120,9 @@ class AsyncCipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._config = cipher._config
         self._padding = cipher._padding
         self._byte_count = 0
-        self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
+        self._digesting_now = ConcurrencyGuard.DequePair(
+            queue=deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS),
+        )
         self._finalizing_now = deque()  # don't let maxlen remove entries
         self._buffer = buffer = deque([self._padding.start_padding()])
         self._key_bundle = key_bundle = await cipher._KeyAADBundle(
@@ -356,7 +358,9 @@ class CipherStream(CipherStreamProperties):
         self._config = cipher._config
         self._padding = cipher._padding
         self._byte_count = 0
-        self._digesting_now = deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS)
+        self._digesting_now = ConcurrencyGuard.DequePair(
+            queue=deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS),
+        )
         self._finalizing_now = deque()  # don't let maxlen remove entries
         self._buffer = buffer = deque([self._padding.start_padding()])
         self._key_bundle = key_bundle = cipher._KeyAADBundle(

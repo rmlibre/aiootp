@@ -21,6 +21,7 @@ __all__ = [
     "ClockType",
     "ConcurrencyGuardType",
     "ConcurrencyGuardPolicyType",
+    "DefaultDictOfStatesType",
     "Future",
     "MultiConcurrencyGaurdType",
     "PoolExecutorType",
@@ -130,6 +131,21 @@ class ClockType(t.Protocol):
 
 @t.runtime_checkable
 class ConcurrencyGuardUseTrackerType(t.Protocol):
+    def add_fault_signal(self, /, signal: t.Callable[[], t.Any]) -> None:
+        pass  # pragma: no cover
+
+    def __enter__(self, /) -> t.Self:
+        pass  # pragma: no cover
+
+    def __exit__(
+        self,
+        /,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
+    ) -> bool:
+        pass  # pragma: no cover
+
     def transition_to_pending(self, /) -> None:
         pass  # pragma: no cover
 
@@ -139,7 +155,7 @@ class ConcurrencyGuardUseTrackerType(t.Protocol):
     def transition_to_done(self, /) -> None:
         pass  # pragma: no cover
 
-    def enter_fault_state(self, /) -> bool:
+    def enter_fault_state(self, /) -> None:
         pass  # pragma: no cover
 
     def is_unused(self, /) -> bool:
@@ -225,6 +241,31 @@ class ConcurrencyGuardPolicyType(t.Protocol):
 
 
 @t.runtime_checkable
+class DefaultDictOfStatesType(t.Protocol):
+    def __setitem__(
+        self,
+        target: t.Hashable,
+        state: "TargetState",
+        /,
+    ) -> None:
+        pass  # pragma: no cover
+
+    def update(
+        self,
+        target_states: t.Mapping[t.Hashable, "TargetState"] = {},
+        /,
+        **states: "TargetState",
+    ) -> None:
+        pass  # pragma: no cover
+
+    def exclusive_context(self) -> ConcurrencyGuardType:
+        pass  # pragma: no cover
+
+    def non_exclusive_context(self) -> ConcurrencyGuardType:
+        pass  # pragma: no cover
+
+
+@t.runtime_checkable
 class MultiConcurrencyGaurdType(t.Protocol):
     def guard(
         self,
@@ -257,6 +298,7 @@ module_api = dict(
     ConcurrencyGuardUseTrackerType=t.add_type(
         ConcurrencyGuardUseTrackerType,
     ),
+    DefaultDictOfStatesType=t.add_type(DefaultDictOfStatesType),
     Future=t.add_type(Future),
     MultiConcurrencyGaurdType=t.add_type(MultiConcurrencyGaurdType),
     PoolExecutorType=t.add_type(PoolExecutorType),

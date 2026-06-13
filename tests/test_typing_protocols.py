@@ -167,10 +167,16 @@ class TestPoolExecutorTypes(ProtocolSubTypeTests):
     types_tested = [obj.__class__ for obj in instances_tested]
 
 
+class TestDefaultDictOfStatesTypes(ProtocolSubTypeTests):
+    protocol = t.DefaultDictOfStatesType
+    instances_tested = [t.DefaultDictOfStates()]
+    types_tested = [obj.__class__ for obj in instances_tested]
+
+
 class TestConcurrencyGuardTypes(ProtocolSubTypeTests):
     protocol = t.ConcurrencyGuardType
     instances_tested = [
-        t.ConcurrencyGuard(deque()),
+        t.ConcurrencyGuard(t.ConcurrencyGuard.DequePair()),
         t.ManagedConcurrecyGuard(),
     ]
     types_tested = [obj.__class__ for obj in instances_tested]

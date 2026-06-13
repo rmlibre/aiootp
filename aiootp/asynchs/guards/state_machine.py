@@ -118,7 +118,7 @@ class ConcurrencyGuardUseTracker(FrozenInstance):
     for `ConcurrencyGuard` instances.
     """
 
-    __slots__ = ("_state",)
+    __slots__ = ("_signals", "_state")
 
     Unused: type = UnusedState
     Pending: type = PendingState
@@ -133,9 +133,56 @@ class ConcurrencyGuardUseTracker(FrozenInstance):
         are attempted.
         """
         try:
+            self._signals = deque()
             self._state = deque([self.Unused()], maxlen=1)
         except PermissionError as error:
             raise InvalidStateTransition from error
+
+    def add_fault_signal(self, /, signal: t.Callable[[], t.Any]) -> None:
+        """
+        To maintain coherent queue states where possible, allows the
+        caller to register non-blocking callbacks which will be executed
+        in FIFO order in case `InvalidStateTransition` is raised within
+        the instance's context manager.
+        """
+        self._signals.append(signal)
+
+    def __enter__(self, /) -> t.Self:
+        """
+        Allows call sites to wrap codeblocks which try state transitions
+        so that `InvalidStateTransition` exceptions are caught. The
+        caller can provide non-blocking, ordered callbacks to run that
+        attempt to keep queue states coherent & clear of unused
+        references after fault.
+        """
+        return self
+
+    def __exit__(
+        self,
+        /,
+        exc_type: type | None = None,
+        exc_value: Exception | None = None,
+        traceback: t.TracebackType | None = None,
+    ) -> bool:
+        """
+        If an `InvalidStateTransition` is raised within the context,
+        executes the caller's provided non-blocking state fault signals.
+
+        Raises any exception raised in the context's code block.
+
+        Otherwise, closes the context silently.
+
+        Always attempts to clear out all provided state fault signals
+        from the signals queue.
+        """
+        signals = self._signals
+        if isinstance(exc_value, InvalidStateTransition):
+            while signals:
+                signals.popleft()()
+        else:
+            signals.clear()
+
+        return exc_type is None
 
     def transition_to_pending(self, /) -> None:
         """

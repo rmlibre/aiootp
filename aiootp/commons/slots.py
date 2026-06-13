@@ -320,7 +320,7 @@ class Slots:
 
         See: https://github.com/rmlibre/aiootp/pull/15
         """
-        for name, value in {**dict(mapping), **kw}.items():
+        for name, value in dict(mapping, **kw).items():
             self[name] = value
 
     def clear(self, /) -> None:

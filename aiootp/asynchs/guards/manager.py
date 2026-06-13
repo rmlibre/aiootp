@@ -17,14 +17,15 @@ multiple targeted execution contexts.
 """
 
 __all__ = [
-    "DefaultDictOfDeques",
+    "DefaultDictOfStates",
     "ManagedConcurrecyGuard",
     "MultiConcurrencyGaurd",
+    "TargetState",
 ]
 
 
-from secrets import token_bytes
 from collections import defaultdict, deque
+from secrets import token_bytes
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
@@ -34,6 +35,30 @@ from aiootp.asynchs.loops import asleep
 from aiootp.asynchs.concurrency_interface import process_probe_delay
 
 from .concurrency_guard import ConcurrencyGuard, ConcurrencyGuardPolicies
+from .concurrency_guard import DequePair
+
+
+class TargetState(FrozenTypedSlots):
+    """
+    Bundles target state information into an efficient & type checked
+    container.
+    """
+
+    __slots__ = ("deques", "users")
+
+    _DequePair: type = DequePair
+
+    slots_types = dict(deques=_DequePair, users=deque)
+
+    def __init__(self, /) -> None:
+        """
+        Initializes the deque-pair shared across guard instances that
+        are referenced by the same target, as well as the users deque
+        which tracks the number of guard instance's currently utilizing
+        the target shared state.
+        """
+        self.deques = self._DequePair()
+        self.users = deque()
 
 
 class SelfReferences(OpenFrozenTypedSlots):
@@ -50,14 +75,87 @@ class SelfReferences(OpenFrozenTypedSlots):
     )
 
 
+class DefaultDictOfStates(defaultdict):
+    """
+    A mapping of target ID keys to state objects which are used to
+    enforce the turn order of distinct execution contexts only if the
+    target keys are the same between them.
+    """
+
+    __slots__ = ("__deques",)
+
+    _Guard: type = ConcurrencyGuard
+    _DequePair: type = DequePair
+    _TargetState: type = TargetState
+
+    def __init__(self, /) -> None:
+        """
+        Applies `self._TargetState` or a subclass thereof as the default
+        type of new elements.
+        """
+        super().__init__(self._TargetState)
+        self.__deques = self._DequePair()
+
+    def __setitem__(
+        self,
+        target: t.Hashable,
+        state: _TargetState,
+        /,
+    ) -> None:
+        """
+        Before adding states to the collection, ensures they're of type
+        `self._TargetState` or a subclass thereof.
+        """
+        if not issubclass(state.__class__, self._TargetState):
+            raise Issue.must_be_subtype(Metadata(state), self._TargetState)
+
+        super().__setitem__(target, state)
+
+    def update(
+        self,
+        target_states: t.Mapping[t.Hashable, _TargetState] = {},
+        /,
+        **states: _TargetState,
+    ) -> None:
+        """
+        Updates the instance with new key-values from a mapping of
+        `target_states`, & optional `states` keyword arguments. Before
+        adding states to the collection, ensures they're of type
+        `self._TargetState` or a subclass thereof.
+        """
+        for target, state in dict(target_states, **states).items():
+            self[target] = state  # type enforcement happens here
+
+    def exclusive_context(self, /) -> t.ConcurrencyGuardType:
+        """
+        Creates contexts which only start after all other already
+        started non-exclusive & exclusive contexts finish. This allows
+        wrapped code to run & modify the collection's state safely.
+        """
+        return self._Guard(self.__deques)
+
+    def non_exclusive_context(self, /) -> t.ConcurrencyGuardType:
+        """
+        Creates contexts which allow other non-exclusive contexts to run
+        simultaneously such as those which don't modify the collection's
+        state, but will concede their starts until any new exclusive
+        contexts finish.
+        """
+        return self._Guard(
+            self.__deques,
+            policy=self._Guard.policies.NonExclusive(),
+        )
+
+
 class ManagedConcurrecyGuard(ConcurrencyGuard):
     """
     An interface for queuing execution contexts that are managed by a
     MultiConcurrencyGuard instance. With only constant time-complexity
     state checks, prevents simultaneous / out of order runs of blocks of
-    code; as well as contexts which are allowed to run freely, but with
-    async/thread-safe awareness & concession to new contexts which
-    require exclusive access to execution time.
+    code; as well as enabling non-exclusive contexts which are allowed
+    to run freely with each other, but with async/thread-safe awareness
+    of & concession to new contexts which require exclusive access to
+    execution time.
 
      _____________________________________
     |                                     |
@@ -138,6 +236,12 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
     """
 
     __slots__ = ("_refs",)
+
+    _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset({"_refs"})
+    _DIRLESS_ATTRIBUTES: frozenset[str] = frozenset({"_refs"})
+    _RESTRICTED_ATTRIBUTES: frozenset[str] = frozenset(
+        {"__aenter__", "__enter__", "__aexit__", "__exit__"},
+    )
 
     slots_types = dict(_refs=SelfReferences)
 
@@ -257,79 +361,6 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
             manager._cleanup_references(target)
 
 
-class DefaultDictOfDeques(defaultdict):
-    """
-    A mapping of target ID keys to deque queues which are used to
-    enforce the turn order of distinct execution contexts only if the
-    target keys are the same between them.
-    """
-
-    __slots__ = ("__queue", "__observers")
-
-    _Guard: type = ConcurrencyGuard
-    _Type: type = deque
-
-    def __init__(self, /) -> None:
-        """
-        Applies `collections.deque` or a subclass thereof as the default
-        value type of new instances.
-        """
-        super().__init__(self._Type)
-        self.__queue = deque()
-        self.__observers = deque()
-
-    def __setitem__(
-        self,
-        name: t.Hashable,
-        value: deque[t.ConcurrencyGuardType],
-        /,
-    ) -> None:
-        """
-        Before adding values to the collection, ensures they're of type
-        `collections.deque` or a subclass thereof.
-        """
-        if not issubclass(value.__class__, deque):
-            raise Issue.must_be_subtype(Metadata(value), deque)
-
-        super().__setitem__(name, value)
-
-    def update(
-        self,
-        queues: t.Mapping[t.Hashable, deque[t.ConcurrencyGuardType]] = {},
-        /,
-        **target_deque_pairs: deque[t.ConcurrencyGuardType],
-    ) -> None:
-        """
-        Updates the instance with new key-values from a mapping of
-        `queues`, & optional keyword arguments. Before adding values to
-        the collection, ensures they're of type `collections.deque` or a
-        subclass thereof.
-        """
-        for name, value in {**dict(queues), **target_deque_pairs}.items():
-            self[name] = value  # type enforcement happens here
-
-    def exclusive_context(self) -> t.ConcurrencyGuardType:
-        """
-        Creates contexts which only start after all other already
-        started non-exclusive & exclusive contexts finish. This allows
-        wrapped code to run & modify the collection's state safely.
-        """
-        return self._Guard(self.__queue, observers=self.__observers)
-
-    def non_exclusive_context(self) -> t.ConcurrencyGuardType:
-        """
-        Creates contexts which allow other non-exclusive contexts to run
-        simultaneously such as those which don't modify the collection's
-        state, but will concede their starts until any new exclusive
-        contexts finish.
-        """
-        return self._Guard(
-            self.__queue,
-            observers=self.__observers,
-            policy=self._Guard.policies.NonExclusive(),
-        )
-
-
 class MultiConcurrencyGaurd(FrozenTypedSlots):
     """
     Facilitates async/thread-safety for execution contexts which can be
@@ -383,42 +414,52 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
     await gather(*tasks)
     """
 
-    __slots__ = ("observers", "queues", "users")
+    __slots__ = ("targets",)
 
+    _Targets: type = DefaultDictOfStates
     _ManagedGuard: type = ManagedConcurrecyGuard
-    _Observers: type = DefaultDictOfDeques
-    _Queues: type = DefaultDictOfDeques
     _SelfReferences: type = SelfReferences
-    _Users: type = DefaultDictOfDeques
 
     IncoherentConcurrencyState: type = IncoherentConcurrencyState
     InvalidStateTransition: type = InvalidStateTransition
 
     policies: ConcurrencyGuardPolicies = _ManagedGuard.policies
-    slots_types = dict(observers=_Observers, queues=_Queues, users=_Users)
+    slots_types = dict(targets=_Targets)
 
-    def __init__(
-        self,
-        /,
-        *,
-        queues: _Queues | None = None,
-        observers: _Observers | None = None,
-        users: _Users | None = None,
-    ) -> None:
+    def __init__(self, /, *, targets: _Targets | None = None) -> None:
         """
-        Initializes the instance with its defaultdict subclass mappings
-        used to manage state across all user-specified targets. These
-        containers come packaged with utilities for creating async/
+        Initializes the instance with its defaultdict subclass mapping
+        used to manage state across all user-specified targets. This
+        container comes packaged with utilities for creating async/
         thread-safe execution contexts for operations that read from or
-        modify the containers. These utilities are used internally by
+        modify the container. These utilities are used internally by
         the manager to protect against race conditions that'd otherwise
         make access logic undefined.
         """
-        self.observers = (
-            self._Observers() if observers is None else observers
-        )
-        self.queues = self._Queues() if queues is None else queues
-        self.users = self._Users() if users is None else users
+        self.targets = self._Targets() if targets is None else targets
+
+    def _ensure_valid_policy(
+        self,
+        /,
+        policy: t.ConcurrencyGuardPolicyType,
+        *,
+        policy_type: t.ConcurrencyGuardPolicyType | type,
+    ) -> t.ConcurrencyGuardPolicyType:
+        """
+        Returns an instance of the provided default base policy if
+        `None` is passed as the desired guard policy.
+
+        Otherwise, if the desired guard policy is not a subtype of the
+        provided default base policy, raises `TypeError`.
+
+        Otherwise, returns the desired guard policy that was passed.
+        """
+        if policy is None:
+            return policy_type()
+        elif not issubclass(policy.__class__, policy_type):
+            raise Issue.must_be_subtype(Metadata(policy), policy_type)
+
+        return policy
 
     async def _ainitialize_guard(
         self,
@@ -431,20 +472,12 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         consistent with the other running instances of the same target.
         Since only reads are done, an async/thread-safe non-exclusive
         execution context is used to avoid race-conditions with any
-        potentially running exclusive contexts that would be changing
-        the state.
+        potentially running exclusive contexts that would be deleting
+        references to the state.
         """
-        async with self.users.non_exclusive_context():
-            (users := self.users[target]).appendleft(None)
-            if (user := users[-1]) is None:
-                guard.queue = self.queues[target]
-                guard.observers = self.observers[target]
-            else:
-                guard.queue = user.queue
-                guard.observers = user.observers
-
-            users.append(guard)
-            users.popleft()
+        async with self.targets.non_exclusive_context():
+            (state := self.targets[target]).users.append(guard)
+            guard._set_deques(state.deques)
 
     def _initialize_guard(
         self,
@@ -457,20 +490,12 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         consistent with the other running instances of the same target.
         Since only reads are done, an async/thread-safe non-exclusive
         execution context is used to avoid race-conditions with any
-        potentially running exclusive contexts that would be changing
-        the state.
+        potentially running exclusive contexts that would be deleting
+        references to the state.
         """
-        with self.users.non_exclusive_context():
-            (users := self.users[target]).appendleft(None)
-            if (user := users[-1]) is None:
-                guard.queue = self.queues[target]
-                guard.observers = self.observers[target]
-            else:
-                guard.queue = user.queue
-                guard.observers = user.observers
-
-            users.append(guard)
-            users.popleft()
+        with self.targets.non_exclusive_context():
+            (state := self.targets[target]).users.append(guard)
+            guard._set_deques(state.deques)
 
     def _pass_self_references(
         self,
@@ -525,12 +550,10 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         with guards.guard(target):
             mutate_target(target)
         """
-        ExclusivePolicy = self.policies.Exclusive
-        if policy is None:
-            policy = ExclusivePolicy()
-        elif not issubclass(policy.__class__, ExclusivePolicy):
-            raise Issue.must_be_subtype(Metadata(policy), ExclusivePolicy)
-
+        policy = self._ensure_valid_policy(
+            policy=policy,
+            policy_type=self.policies.Exclusive,
+        )
         guard = self._ManagedGuard(
             policy=policy,
             probe_delay=probe_delay,
@@ -549,13 +572,14 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         token: bytes | None = None,
     ) -> _ManagedGuard:
         """
-        Returns the non-exclusive guard instance which can be entered
-        using either the sync or async context manager syntaxes.
-        Instances that are run in monitor mode execute freely with other
-        non-exclusive instances as long as no exclusive mode instances
-        have been added to the observers queue. In the latter case, non-
-        exclusive instances will wait for all such exclusive instances
-        to finish running before signaling that they're ready to run.
+        Returns a non-exclusive guard instance which can be entered
+        using either the sync or async context manager syntaxes. Monitor
+        mode allows guard instances to execute freely with other non-
+        exclusive guard instances as long as no exclusive mode instances
+        have been added to the order queue. In the latter case, when an
+        exclusive instance arrives at the front of the order queue, it
+        will wait for all running non-exclusive instances to finish,
+        then run alone until it finishes.
 
         `target`: A hashable index key used to identify resources which
                 need the async/thread-safety of atomic turn ordering for
@@ -584,15 +608,10 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         with guards.monitor(target):
             read_target(target)
         """
-        NonExclusivePolicy = self.policies.NonExclusive
-        if policy is None:
-            policy = NonExclusivePolicy()
-        elif not issubclass(policy.__class__, NonExclusivePolicy):
-            raise Issue.must_be_subtype(
-                Metadata(policy),
-                NonExclusivePolicy,
-            )
-
+        policy = self._ensure_valid_policy(
+            policy=policy,
+            policy_type=self.policies.NonExclusive,
+        )
         guard = self._ManagedGuard(
             policy=policy,
             probe_delay=probe_delay,
@@ -606,35 +625,34 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         Removes unused target references to avoid unmanaged memory
         buildups using an async/thread-safe exclusive execution context.
         """
-        async with self.users.exclusive_context():
-            (users := self.users[target]).pop()
-            if users or self.queues[target] or self.observers[target]:
+        async with self.targets.exclusive_context():
+            state = self.targets[target]
+            (users := state.users).popleft()
+            if users or state.deques.queue or state.deques.observers:
                 return
 
-            self.observers.pop(target)
-            self.queues.pop(target)
-            self.users.pop(target)
+            self.targets.pop(target)
 
     def _cleanup_references(self, /, target: t.Hashable) -> None:
         """
         Removes unused target references to avoid unmanaged memory
         buildups using an async/thread-safe exclusive execution context.
         """
-        with self.users.exclusive_context():
-            (users := self.users[target]).pop()
-            if users or self.queues[target] or self.observers[target]:
+        with self.targets.exclusive_context():
+            state = self.targets[target]
+            (users := state.users).popleft()
+            if users or state.deques.queue or state.deques.observers:
                 return
 
-            self.observers.pop(target)
-            self.queues.pop(target)
-            self.users.pop(target)
+            self.targets.pop(target)
 
 
 module_api = dict(
-    DefaultDictOfDeques=t.add_type(DefaultDictOfDeques),
+    DefaultDictOfStates=t.add_type(DefaultDictOfStates),
     ManagedConcurrecyGuard=t.add_type(ManagedConcurrecyGuard),
     MultiConcurrencyGaurd=t.add_type(MultiConcurrencyGaurd),
     SelfReferences=t.add_type(SelfReferences),
+    TargetState=t.add_type(TargetState),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

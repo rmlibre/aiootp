@@ -19,7 +19,8 @@ management of shared state in concurrent applications.
 
 __all__ = [
     "ConcurrencyGuard",
-    "DefaultDictOfDeques",
+    "DefaultDictOfStates",
+    "DequePair",
     "MultiConcurrencyGaurd",
 ]
 
@@ -40,7 +41,8 @@ modules = dict(
 
 module_api = dict(
     ConcurrencyGuard=ConcurrencyGuard,
-    DefaultDictOfDeques=DefaultDictOfDeques,
+    DefaultDictOfStates=DefaultDictOfStates,
+    DequePair=DequePair,
     MultiConcurrencyGaurd=MultiConcurrencyGaurd,
     __all__=__all__,
     __doc__=__doc__,
