@@ -49,6 +49,7 @@ Minor Changes
 - test(cguard): create 3x more non-exclusive guards than exclusive ones
 - test(cov): expand tests to cover missing branches
 - test(cov): refactor & expand tests to cover missing branches
+- test(platform): increase error rate 20% for low time resolutions
 
 
 

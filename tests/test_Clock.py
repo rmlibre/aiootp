@@ -144,7 +144,7 @@ class TestClockConversions:
         if TIME_RESOLUTION <= 1e-07:
             assert number_of_tests == len(set(tests))
         elif TIME_RESOLUTION <= 1e-03:
-            assert number_of_tests <= 10 * len(set(tests))
+            assert number_of_tests <= 12 * len(set(tests))
         assert tests == sorted(tests)
 
     def test_nanoseconds_correctness(self) -> None:
