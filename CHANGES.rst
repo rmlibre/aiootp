@@ -50,6 +50,7 @@ Minor Changes
 - test(cov): expand tests to cover missing branches
 - test(cov): refactor & expand tests to cover missing branches
 - test(platform): increase error rate 20% for low time resolutions
+- test(platform): attempt to resolve Windows errors & warnings
 
 
 

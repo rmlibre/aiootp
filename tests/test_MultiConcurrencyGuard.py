@@ -332,7 +332,7 @@ class TestMultiConcurrencyGaurd:
 
     @pytest.mark.parametrize(
         "policy_cls",
-        MultiConcurrencyGaurd.policies.values(),
+        [*MultiConcurrencyGaurd.policies.values()],
     )
     async def test_guard_method_needs_exclusive_policy(
         self,
@@ -352,7 +352,7 @@ class TestMultiConcurrencyGaurd:
 
     @pytest.mark.parametrize(
         "policy_cls",
-        MultiConcurrencyGaurd.policies.values(),
+        [*MultiConcurrencyGaurd.policies.values()],
     )
     async def test_monitor_method_needs_non_exclusive_policy(
         self,

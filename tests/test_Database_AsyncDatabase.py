@@ -870,6 +870,7 @@ class TestUserProfiles:
 
             assert salt_path.is_file()
             assert root_path.is_file()
+            salt_path.chmod(0o666)
             salt_path.unlink()
             assert not salt_path.is_file()
         finally:
@@ -934,6 +935,7 @@ class TestUserProfiles:
 
             assert salt_path.is_file()
             assert root_path.is_file()
+            salt_path.chmod(0o666)
             salt_path.unlink()
             assert not salt_path.is_file()
         finally:

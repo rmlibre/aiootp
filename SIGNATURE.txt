@@ -1,5 +1,5 @@
 {
-    "checksum": "feae71dd839b54d0887b5aed877c0e46712edc96633e19d2584cf1d626dc7491ad19fb98e393e750e12ec6241c36e0ce",
+    "checksum": "178c57e81a13b2a7349ecab8ef108871f46346a627b90b7f45cd9725fd2216d8795316f44564b2d8c9c2c176b6f893f7",
     "checksums": {
         ".github/ISSUE_TEMPLATE/bug-report.yml": "ce9e7f27f46c9fae68885ef8b2ffb8e340e4cad4a9a724d321e7a3b97a933aa394ab2c79927a7a84f69568c9e8c97389",
         ".github/workflows/linux-pypi-release-tests.yml": "c52bacc62a80c6e02cef9fd6393d971662353d2d11db7272912a1c522f4c8f1a21c5c929073bd3db8efc0a9eafae8706",
@@ -12,7 +12,7 @@
         ".github/workflows/windows-pypi-release.yml": "2836c4fedc04a8f126b8e690d2f205f0da81ee88a9afb053f0e7b5d2954c1f86bc7a8d7824038d56affa1baf34fdb52f",
         ".github/workflows/windows-python-app.yml": "08064fec993b86fd60af09a8005579871fdb1deca2579db8ada454dc4c07ad1716e78a7434cc9ed46e6d78b5e9d3449a",
         ".gitignore": "951875b7d082cf07aafef4d9fdcd660d145acdeeb9d7deafe8fabdd1edd024116d1432c07744efb30a2eb01fa9b3dc11",
-        "CHANGES.rst": "bc40c3783dfd77da6bffe96c3aa685e4921e141250a9d1c35353bfb08dd64929891c6d9ace1562436b8f7648a9a5a2e8",
+        "CHANGES.rst": "196efbb07b20772403ab044ace9d234a9328a5df0fcf4fcab57e25265c43f3359f9245a8d43c4c02230edefa129c96c7",
         "CODE_OF_CONDUCT.md": "1999f7d9791b3e79aac666c7286c71bcf1910a8b3adfb6699d29981c146b85479eece9e9ba6d877b888f6b7082707c34",
         "CONTRIBUTING.md": "6bd90aab16a531bf13652544b22400532cb13f9d89386955065f398a4fcfb065f60bbee2e28d9ae59146b70878236079",
         "FAQ.rst": "cad5af23d070117d3f1398ab979048ead7884b546ea9f2fe36f0f67b337ee93675a64ab84fe2a52f62dc66dd82d7c2c4",
@@ -169,11 +169,11 @@
         "tests/slick_256_test_vectors.py": "d15f396c571078aefdd4253f5e091cf1b09cef66cc189aa5fb51a64118c5f5f037116eef83bcaf19623966a3b36fd607",
         "tests/test_ByteIO.py": "2bbe60c0d8e3a082794a921ffb8e235982351544dc108ad670be534a505e80323a60b3098851ed05484619964c0efb39",
         "tests/test_Clock.py": "d0091ca68cf29997c88f2b2dc1b9ad302869ae470f9e16ffdbd1dac6b485c4e3c367eefdfb9e7f7a54a7aee2fe2f16d4",
-        "tests/test_ConcurrencyGuard.py": "f9ae227cf94673452a7a3278f40eedc80857d2b2a2bcd12c06e4d96933f7efa75d933319b0098185950fed7aa196c4ee",
-        "tests/test_Database_AsyncDatabase.py": "6242d1a2a3153d7a6e46a8b5bf9258b3974fc86dc58707170c60411b13b6f2277c253bd7c7b25fd780c5293d4539b376",
+        "tests/test_ConcurrencyGuard.py": "db23ea76f21b9a9f4c7798477efe97ba8217318d42ad37d3cefc65d7506439abb795c2cb4bb9bcdb109203f9d4874a67",
+        "tests/test_Database_AsyncDatabase.py": "90f25fd3948b0e29baf0f83864231742cd72bcfc4ba031664b614f3250419c0528fcda1c931c8194a9610aba4f92556c",
         "tests/test_DebugControl.py": "8c029c866021cfa2bfab72cc2e065f6094d4563c6771d0fab6beb70ec9b794d02fbfe0371f3214cfb24b712f88ce411b",
         "tests/test_GUID.py": "a97e17498419def2f3afd5635fad153db451bfbd7717fe61125b35228c1bf4c3d54ee280c7ac04645fa2e76473f916a9",
-        "tests/test_MultiConcurrencyGuard.py": "6dff011ab11c2e94100f093212c93e7d9538ef269eb4195be69338a7fdd3a90e4ada7c34b8e09b61e399f43362c4954f",
+        "tests/test_MultiConcurrencyGuard.py": "e2c7730a5b3cd834c1f43a36cad020be7fb3996151d63774f84ff59f78ea11874c22379c48d0ad95f02904e41ad82ab2",
         "tests/test_PackageSigner.py": "be4f392c2e9fd044745e336c015d07bb50aeec344d774402a5e9e2bbe54a9ca3ef15b3607568f090e5f70307ce7be4bb",
         "tests/test_Padding.py": "589bf59b3f7884fda7cd963c6f143eea5936f6b1fdc9e5e36f5aab02147d6aedcf054556b9d25efb5fbce6a6ad554902",
         "tests/test_Passcrypt.py": "211d6da86f47fe491a3fb2fee2c0f953392e91e524b13714b62dbd822378f0922eecc910589864b290e623319750030f",
@@ -208,7 +208,7 @@
     },
     "scope": {
         "author": "rmlibre@riseup.net",
-        "build_number": "35",
+        "build_number": "36",
         "date": 20617,
         "description": "a high-level async cryptographic anonymity library to scale, simplify, & automate privacy best practices for secure data & identity processing, communication, & storage.",
         "git_branch": "main",
@@ -217,5 +217,5 @@
         "version": "0.24.0"
     },
     "signing_key": "70d1740f2a439da98243c43a4d7ef1cf993b87a75f3bb0851ae79de675af5b3b",
-    "signature": "b37704140caf52b2e093944a8fa36659a0686beaeaaf3f303dc461310cce550692b20e280527d307ea9b3d2da8a5e725306910fc32677674ec3411280143fc00"
+    "signature": "e940aa2dbbd686965340d2455d2b6237101bf1c097dd215c73b01dfabeef883a22cad12cf21fca1c2065d3e4e2a82024d4f2ac5ec0e74286945f2ef918e5700d"
 }

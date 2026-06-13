@@ -195,7 +195,7 @@ class TestConcurrencyGuard:
 
     @pytest.mark.parametrize(
         "policy_cls",
-        ConcurrencyGuard.policies.values(),
+        [*ConcurrencyGuard.policies.values()],
     )
     async def test_async_policy_must_be_instance_not_class(
         self,
@@ -212,7 +212,7 @@ class TestConcurrencyGuard:
 
     @pytest.mark.parametrize(
         "policy_cls",
-        ConcurrencyGuard.policies.values(),
+        [*ConcurrencyGuard.policies.values()],
     )
     async def test_sync_policy_must_be_instance_not_class(
         self,
