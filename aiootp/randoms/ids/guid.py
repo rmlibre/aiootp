@@ -30,7 +30,7 @@ from .guid_config import GUIDConfig
 
 
 class GUID(FrozenInstance):
-    """
+    r"""
     A class for producing globally unique, pseudo-random identifiers
     that are guaranteed to be unique if all calls occur on a different
     nanosecond & use the same instance `key`. Additionally, any calls

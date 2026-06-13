@@ -12,6 +12,7 @@
 
 
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
 
 from aiootp.asynchs.loops import gather, new_task
 from aiootp.asynchs.guards import DefaultDictOfDeques
@@ -302,14 +303,13 @@ class TestMultiConcurrencyGaurd:
         target_results = []
         token_results = defaultdict(list)
 
-        tasks = [
-            Threads._type(target=record_ordering, args=(target, guard))
-            for target, guard in instances
-        ]
-        for task in tasks:
-            task.start()
-        for task in tasks:
-            task.join()
+        with ThreadPoolExecutor(max_workers=len(targets)) as threads:
+            results = threads.map(
+                record_ordering,
+                (target for target, _ in instances),
+                (guard for _, guard in instances),
+            )
+            list(results)
 
         # were all target executions run?
         assert sorted(target_results) == sorted(targets)

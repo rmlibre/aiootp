@@ -24,7 +24,7 @@ from collections import deque
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
-from aiootp._exceptions import InvalidStateTransition
+from aiootp._exceptions import InvalidStateTransition, Metadata
 from aiootp.commons import FrozenTypedSlots
 from aiootp.asynchs.loops import asleep, sleep
 from aiootp.asynchs.concurrency_interface import process_probe_delay
@@ -175,7 +175,10 @@ class ConcurrencyGuard(FrozenTypedSlots):
         if policy is None:
             self.policy = self.policies.Exclusive()
         elif isinstance(policy, type):
-            raise Issue.must_be_type("policy", t.ConcurrencyGuardPolicyType)
+            raise Issue.must_be_type(
+                Metadata(policy),
+                t.ConcurrencyGuardPolicyType,
+            )
         else:
             self.policy = policy
 

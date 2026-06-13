@@ -128,9 +128,9 @@ class TestConcurrencyGuard:
 
             assert tracker.has_faulted()
 
-    async def test_async_instance_may_only_be_used_once(self) -> None:
+    async def test_async_guard_may_only_be_used_once(self) -> None:
         queue = deque()
-        async with (instance := ConcurrencyGuard(queue)):
+        async with (guard := ConcurrencyGuard(queue)):
             pass
 
         problem = (
@@ -138,15 +138,15 @@ class TestConcurrencyGuard:
             "multiple times as a context manager."
         )
         with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
-            async with instance:
+            async with guard:
                 pass
 
         with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
-            instance._use_tracker.__init__()
+            guard._use_tracker.__init__()
 
-    async def test_sync_instance_may_only_be_used_once(self) -> None:
+    async def test_sync_guard_may_only_be_used_once(self) -> None:
         queue = deque()
-        with (instance := ConcurrencyGuard(queue)):
+        with (guard := ConcurrencyGuard(queue)):
             pass
 
         problem = (
@@ -154,18 +154,18 @@ class TestConcurrencyGuard:
             "multiple times as a context manager."
         )
         with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
-            with instance:
+            with guard:
                 pass
 
         with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
-            instance._use_tracker.__init__()
+            guard._use_tracker.__init__()
 
-    async def test_non_exclusive_instance_may_only_be_used_once(
+    async def test_non_exclusive_guard_may_only_be_used_once(
         self,
     ) -> None:
         queue = deque()
         policy = ConcurrencyGuard.policies.NonExclusive()
-        with (instance := ConcurrencyGuard(queue, policy=policy)):
+        with (guard := ConcurrencyGuard(queue, policy=policy)):
             pass
 
         problem = (
@@ -173,15 +173,15 @@ class TestConcurrencyGuard:
             "multiple times as a context manager."
         )
         with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
-            with instance:
+            with guard:
                 pass
 
         with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
-            instance._use_tracker.__init__()
+            guard._use_tracker.__init__()
 
-    async def test_mixed_instance_may_only_be_used_once(self) -> None:
+    async def test_mixed_guard_may_only_be_used_once(self) -> None:
         queue = deque()
-        with (instance := ConcurrencyGuard(queue)):
+        with (guard := ConcurrencyGuard(queue)):
             pass
 
         problem = (
@@ -189,11 +189,11 @@ class TestConcurrencyGuard:
             "multiple times as a context manager."
         )
         with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
-            async with instance:
+            async with guard:
                 pass
 
         with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
-            instance._use_tracker.__init__()
+            guard._use_tracker.__init__()
 
     @pytest.mark.parametrize(
         "policy_cls",

@@ -375,6 +375,7 @@ select = [
     "B",  # flake8-bugbear
     "C",  # conventions & complexity
     "COM",  # flake8-commas
+    "D",  # pydocstyle
     "E",  # pycodestyle errors
     "ERA",  # eradicate commented out code
     "F",  # pyflakes
@@ -403,6 +404,13 @@ ignore = [
     "B006",  # mutable defaults only used for **unpacking interface
     "B028",  # thanks for the warning, if stacklevel was needed
     "C408",  # string keys aren't better than keyword arguments
+    "D200",  # against the package's newline docstring convention
+    "D203",  # avoid formatter incompatibility warning with D211
+    "D205",  # not applicable to package's newline docstring convention
+    "D212",  # against the package's newline docstring convention
+    "D400",  # not applicable to package's newline docstring convention
+    "D401",  # not applicable to package's newline docstring convention
+    "D415",  # not applicable to package's newline docstring convention
     "E501",  # trust the 76-length enforcement from the formatter
     "E731",  # TODO: look through lambda's to maybe comply
     "PLE0604",  # runtime will catch non-string __all__ members
@@ -487,6 +495,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "ANN001",  # type annotations on tests nice but unnecessary
     "ANN003",  # ''   ''
     "ANN202",  # ''   ''
+    "D100",  # TODO: add docstrings to test cases
     "C901",  # tests can get complex
     "F403",  # tests get most of their imports from `import *`
     "F405",  # `import *` confuses it a lot

@@ -67,9 +67,9 @@ class PackageVerifier:
 
     def __init__(
         self,
-        public_signing_key: t.PublicKeyType | bytes | t.SignerType,
+        public_signing_key: t.PublicKeyType | t.SignerType | bytes,
         *,
-        path: t.OptionalPathStr = None,
+        path: t.PathStr | None = None,
         verify_files: bool = True,
     ) -> None:
         """

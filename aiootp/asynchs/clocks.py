@@ -61,46 +61,101 @@ _ONE_YEAR: float = _YEAR_WITH_LEAP_DAYS * _ONE_DAY
 
 
 def this_nanosecond(epoch: int = 0) -> int:
+    """
+    Returns the current time in nanoseconds with respect to the supplied
+    `epoch`. The `epoch` is always measured in nanoseconds since the
+    UNIX epoch of 0.
+    """
     return time_ns() - epoch
 
 
 def this_microsecond(epoch: int = 0) -> int:
+    """
+    Returns the current time in microseconds with respect to the
+    supplied `epoch`. The `epoch` is always measured in nanoseconds
+    since the UNIX epoch of 0.
+    """
     return this_nanosecond(epoch) // _ONE_MICROSECOND
 
 
 def this_millisecond(epoch: int = 0) -> int:
+    """
+    Returns the current time in milliseconds with respect to the
+    supplied `epoch`. The `epoch` is always measured in nanoseconds
+    since the UNIX epoch of 0.
+    """
     return this_nanosecond(epoch) // _ONE_MILLISECOND
 
 
 def this_centisecond(epoch: int = 0) -> int:
+    """
+    Returns the current time in centiseconds with respect to the
+    supplied `epoch`. The `epoch` is always measured in nanoseconds
+    since the UNIX epoch of 0.
+    """
     return this_nanosecond(epoch) // _ONE_CENTISECOND
 
 
 def this_decisecond(epoch: int = 0) -> int:
+    """
+    Returns the current time in deciseconds with respect to the supplied
+    `epoch`. The `epoch` is always measured in nanoseconds since the
+    UNIX epoch of 0.
+    """
     return this_nanosecond(epoch) // _ONE_DECISECOND
 
 
 def this_second(epoch: int = 0) -> int:
+    """
+    Returns the current time in seconds with respect to the supplied
+    `epoch`. The `epoch` is always measured in nanoseconds since the
+    UNIX epoch of 0.
+    """
     return this_nanosecond(epoch) // _ONE_SECOND
 
 
 def this_minute(epoch: int = 0) -> int:
+    """
+    Returns the current time in minutes with respect to the supplied
+    `epoch`. The `epoch` is always measured in nanoseconds since the
+    UNIX epoch of 0.
+    """
     return this_nanosecond(epoch) // _ONE_MINUTE
 
 
 def this_hour(epoch: int = 0) -> int:
+    """
+    Returns the current time in hours with respect to the supplied
+    `epoch`. The `epoch` is always measured in nanoseconds since the
+    UNIX epoch of 0.
+    """
     return this_nanosecond(epoch) // _ONE_HOUR
 
 
 def this_day(epoch: int = 0) -> int:
+    """
+    Returns the current time in days with respect to the supplied
+    `epoch`. The `epoch` is always measured in nanoseconds since the
+    UNIX epoch of 0.
+    """
     return this_nanosecond(epoch) // _ONE_DAY
 
 
 def this_month(epoch: int = 0) -> int:
+    """
+    Returns the current time in months with respect to the supplied
+    `epoch`. The `epoch` is always measured in nanoseconds since the
+    UNIX epoch of 0.
+    """
     return int(this_nanosecond(epoch) / _ONE_MONTH)
 
 
 def this_year(epoch: int = 0) -> int:
+    """
+    Returns the current time in years with respect to the supplied
+    `epoch`. The `epoch` is always measured in nanoseconds since the
+    UNIX epoch of 0.
+    """
     return int(this_nanosecond(epoch) / _ONE_YEAR)
 
 

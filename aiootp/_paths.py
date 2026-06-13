@@ -49,7 +49,7 @@ def DatabasePath() -> Path:
     return RootPath() / "db"
 
 
-def SecurePath(path: t.OptionalPathStr = None) -> Path:
+def SecurePath(path: t.PathStr | None = None) -> Path:
     """
     Returns a `pathlib.Path` object pointing to the default directory
     where secret salts & seeds are saved.
@@ -58,7 +58,7 @@ def SecurePath(path: t.OptionalPathStr = None) -> Path:
     return path / "secure"
 
 
-def AdminPath(path: t.OptionalPathStr = None) -> Path:
+def AdminPath(path: t.PathStr | None = None) -> Path:
     """
     Returns a `pathlib.Path` object pointing to the default directory
     where internal, package-managed salts & seeds are saved.
@@ -286,7 +286,7 @@ def delete_salt_file(path: Path) -> None:
 
 
 async def AsyncSecureSaltPath(
-    path: t.OptionalPathStr = None,
+    path: t.PathStr | None = None,
     *,
     key: bytes,
     _admin: bool = False,
@@ -315,7 +315,7 @@ async def AsyncSecureSaltPath(
 
 
 def SecureSaltPath(
-    path: t.OptionalPathStr = None,
+    path: t.PathStr | None = None,
     *,
     key: bytes,
     _admin: bool = False,

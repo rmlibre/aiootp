@@ -33,7 +33,20 @@ from aiootp._exceptions import InvalidStateTransition
 from aiootp.commons import FrozenInstance, OpenFrozenTypedSlots
 
 
-class ExclusivePolicy(FrozenInstance):
+class ConcurrencyGuardPolicy(FrozenInstance):
+    """
+    A base type for `ConcurrencyGuard` policy types.
+    """
+
+    __slots__ = ()
+
+    def __init__(self, /) -> None:
+        """
+        A no-op to override the default `FrozenInstance` initializer.
+        """
+
+
+class ExclusivePolicy(ConcurrencyGuardPolicy):
     """
     Signals to the `ConcurrencyGuard` instance that when it arrives at
     the front of the order queue, & there are no other non-exclusive
@@ -43,9 +56,6 @@ class ExclusivePolicy(FrozenInstance):
     """
 
     __slots__ = ()
-
-    def __init__(self, /) -> None:
-        pass
 
     def is_exclusive(self, /) -> bool:
         """
@@ -137,20 +147,17 @@ class QueueManuallyPolicy(ExclusivePolicy):
         """
 
 
-class NonExclusivePolicy(FrozenInstance):
+class NonExclusivePolicy(ConcurrencyGuardPolicy):
     """
     Signals to the `ConcurrencyGuard` instance that it can run freely
     when it arrives at the front of the order queue. Exclusive instances
     will wait for all non-exclusive instances to signal that they're
     done working & no longer on the observers deque before beginning.
-    Meanwhile, non-exclusive instances will always run once they've
-    prepended themselves to the observers deque.
+    Meanwhile, non-exclusive instances will always run once they've been
+    prepended to the observers deque.
     """
 
     __slots__ = ()
-
-    def __init__(self, /) -> None:
-        pass
 
     def is_exclusive(self, /) -> bool:
         """
@@ -198,17 +205,17 @@ class NonExclusivePolicy(FrozenInstance):
 
     def get_off_queue(self, /, guard: t.ConcurrencyGuardType) -> None:
         """
-        A no-op since non-exclusive policies remove themselves from the
-        order queue immediately after their turn in the order queue has
-        arrived & they've prepended themselves to the observers deque.
+        A no-op since non-exclusive policies remove their guard from the
+        order queue immediately after its turn in the order queue has
+        arrived & they've prepended it to the observers deque.
         """
         guard._use_tracker.transition_to_done()
 
     def is_free_to_run(self, /, guard: t.ConcurrencyGuardType) -> bool:
         """
         If the guard is next on the order queue, notifies other guards
-        immediately that it will run by prepending itself to the
-        observers deque, & removing itself from the order queue to allow
+        immediately that it will run by prepending its guard to the
+        observers deque, & removing it from the order queue to allow
         other guards to take their turn & make the appropriate informed
         decisions.
         """

@@ -175,9 +175,11 @@ class StreamHMAC:
         """
         await asleep()
         mac = self._mac
-        self._previous_digest = self._current_digest
         mac.update(ciphertext_block)
-        self._current_digest = mac.digest(self.config.SHMAC_BLOCKSIZE)
+        self._previous_digest, self._current_digest = (
+            self._current_digest,
+            mac.digest(self.config.SHMAC_BLOCKSIZE),
+        )
         return self
 
     def _update_mac(self, ciphertext_block: bytes) -> t.Self:
@@ -187,9 +189,11 @@ class StreamHMAC:
         generators.
         """
         mac = self._mac
-        self._previous_digest = self._current_digest
         mac.update(ciphertext_block)
-        self._current_digest = mac.digest(self.config.SHMAC_BLOCKSIZE)
+        self._previous_digest, self._current_digest = (
+            self._current_digest,
+            mac.digest(self.config.SHMAC_BLOCKSIZE),
+        )
         return self
 
     def _test_block_id_size(self, size: int) -> None:

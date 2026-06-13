@@ -40,6 +40,7 @@ Minor Changes
 - refactor(cguard): swap method definition orders & improve docs
 - refactor(cguard): make use tracker an auto-validating state machine
 - refactor(misc): rename, move & type methods, imports & args
+- refactor(misc): rename, update docstrings, types, throws & gitignore
 - test(cguard): cleanup & add tests, remove redundant variable
 - test(cguard): use already created instances instead of new ones
 - test(cguard): create 3x more non-exclusive guards than exclusive ones

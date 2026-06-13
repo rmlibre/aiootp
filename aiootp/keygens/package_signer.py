@@ -60,7 +60,7 @@ class PackageSignerFiles(t.OpenNamespace):
 
 
 class PackageSigner:
-    """
+    r"""
     Provides an intuitive API for users to sign their own packages.
 
      _____________________________________
@@ -122,7 +122,7 @@ class PackageSigner:
     InvalidSignature: type = PackageSignerIssue.InvalidSignature
 
     @classmethod
-    def _database_template(cls) -> dict[str, str | t.JSONObject]:
+    def _database_template(cls) -> dict[str, t.JSONObject | str]:
         """
         Returns the default instance package database values for
         initializing new databases.
@@ -249,7 +249,7 @@ class PackageSigner:
         username: bytes,
         passphrase: bytes,
         salt: bytes = b"",
-        path: t.OptionalPathStr = None,
+        path: t.PathStr | None = None,
         **passcrypt_settings: t.ConfigType | int,
     ) -> t.Self:
         """
@@ -297,7 +297,7 @@ class PackageSigner:
 
     def update_signing_key(
         self,
-        signing_key: t.SecretKeyType | bytes | t.SignerType,
+        signing_key: t.SecretKeyType | t.SignerType | bytes,
     ) -> t.Self:
         """
         Updates the package's secret signing key as an encrypted token

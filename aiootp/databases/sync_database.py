@@ -36,9 +36,9 @@ from .database_properties import DatabaseProperties
 
 class Database(DatabaseProperties):
     """
-    This class creates databases which enable the disk persistence of
-    any bytes or JSON serializable native python data-types, with fully
-    transparent encryption / decryption.
+    Creates databases which enable the disk persistence of any bytes or
+    JSON serializable native python data-types, with fully transparent
+    encryption / decryption.
 
      _____________________________________
     |                                     |
@@ -104,7 +104,7 @@ class Database(DatabaseProperties):
         cpu: int = passcrypt_spec.DEFAULT_CPU,
         cores: int = passcrypt_spec.DEFAULT_CORES,
         # database keyword arguments
-        path: t.OptionalPathStr = None,
+        path: t.PathStr | None = None,
         preload: bool = False,
     ) -> t.Cls:
         """
@@ -149,7 +149,7 @@ class Database(DatabaseProperties):
         key: bytes,
         *,
         preload: bool = False,
-        path: t.OptionalPathStr = None,
+        path: t.PathStr | None = None,
         metatag: bool = False,
         silent: bool = True,
     ) -> None:

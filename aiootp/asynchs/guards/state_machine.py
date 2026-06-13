@@ -128,7 +128,9 @@ class ConcurrencyGuardUseTracker(FrozenInstance):
     def __init__(self, /) -> None:
         """
         Initializes the atomic state tracker container for async/thread-
-        safe management of `ConcurrencyGuard` state transitions.
+        safe management of `ConcurrencyGuard` state transitions. Raises
+        `InvalidStateTransition` if multiple calls to this initializer
+        are attempted.
         """
         try:
             self._state = deque([self.Unused()], maxlen=1)

@@ -83,9 +83,9 @@ class PasscryptProcesses(FrozenInstance):
     @classmethod
     def _passcrypt(cls, session: PasscryptSession) -> bytes:
         """
-        This method implements an Argon2i-like passphrase-based key
-        derivation function that's designed to be resistant to cache-
-        timing side-channel attacks & time-memory trade-offs.
+        Implements an Argon2i-like passphrase-based key derivation
+        function that's designed to be resistant to cache-timing side-
+        channel attacks & time-memory trade-offs.
         """
         session.prepare_session().allocate_ram()
         return cls._work_memory_prover(session)

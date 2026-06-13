@@ -26,8 +26,8 @@ from .shared_interface import Base25519
 
 class Ed25519(Base25519):
     """
-    This class is used to create stateful objects that simplify usage of
-    the cryptography library's ed25519 protocol.
+    Creates stateful objects that simplify usage of the cryptography
+    library's ed25519 protocol.
 
      _____________________________________
     |                                     |

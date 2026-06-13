@@ -11,6 +11,7 @@
 **/aiootp/tor/*
 **/aiootp.egg-info/*
 **/build/*
+**/dependencies/*
 **/dist/*
 **/docs/*
 **/env/*

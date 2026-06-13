@@ -40,7 +40,7 @@ class _AsyncOrSyncIterableMeta(type):
     """
 
     def __getitem__(cls, obj: t.Any) -> t.Union:
-        return t.Iterable[obj] | t.AsyncIterable[obj]  # pragma: no cover
+        return t.AsyncIterable[obj] | t.Iterable[obj]  # pragma: no cover
 
 
 class AsyncOrSyncIterable(metaclass=_AsyncOrSyncIterableMeta):
@@ -208,16 +208,16 @@ class ConcurrencyGuardPolicyType(t.Protocol):
     def use(self, /, guard: ConcurrencyGuardType) -> None:
         pass  # pragma: no cover
 
-    def get_in_queue(self, /, guard: ConcurrencyGuardType) -> None:
-        pass  # pragma: no cover
-
-    def get_off_queue(self, /, guard: ConcurrencyGuardType) -> None:
-        pass  # pragma: no cover
-
     def notify_on(self, /, guard: ConcurrencyGuardType) -> None:
         pass  # pragma: no cover
 
     def notify_off(self, /, guard: ConcurrencyGuardType) -> None:
+        pass  # pragma: no cover
+
+    def get_in_queue(self, /, guard: ConcurrencyGuardType) -> None:
+        pass  # pragma: no cover
+
+    def get_off_queue(self, /, guard: ConcurrencyGuardType) -> None:
         pass  # pragma: no cover
 
     def is_free_to_run(self, /, guard: ConcurrencyGuardType) -> bool:

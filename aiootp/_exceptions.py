@@ -81,6 +81,14 @@ class Metadata:
         self.type = value.__class__
         self.size = len(value) if hasattr(value, "__len__") else None
 
+    def __repr__(self, /) -> str:
+        cls = self.__class__.__qualname__
+        args = (
+            f"type={self.type!r}",
+            f"size={self.size!r}",
+        )
+        return f"{cls}({', '.join(args)})"
+
 
 class Ignore:
     """
@@ -550,12 +558,22 @@ class Issue:
         return PermissionError(issue.replace("CONTEXT", str(context)))
 
     @classmethod
-    def must_be_type(cls, name: str, clss: t.Any, /) -> TypeError:
+    def must_be_type(
+        cls,
+        name: Metadata | str,
+        clss: t.Any,
+        /,
+    ) -> TypeError:
         issue = cls._VALUE_MUST_BE_TYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
 
     @classmethod
-    def must_be_subtype(cls, name: str, clss: t.Any, /) -> TypeError:
+    def must_be_subtype(
+        cls,
+        name: Metadata | str,
+        clss: t.Any,
+        /,
+    ) -> TypeError:
         issue = cls._VALUE_MUST_BE_SUBTYPE.replace("NAME", repr(name))
         return TypeError(issue.replace("TYPE", repr(clss)))
 
@@ -591,7 +609,7 @@ class Issue:
     @classmethod
     def slots_conflicts_with_class_variables(
         cls,
-        conflicts: str | t.Container[str],
+        conflicts: t.Container[str] | str,
         /,
     ) -> ValueError:
         issue = cls._SLOTS_CONFLICTS_WITH_CLASS_VARIABLES

@@ -16,7 +16,7 @@ Dependency inversion & documentation support for types relevant to
 the `_paths` module.
 """
 
-__all__ = ["Path", "PathStr", "OptionalPath", "OptionalPathStr"]
+__all__ = ["Path", "PathStr"]
 
 
 from pathlib import Path
@@ -25,18 +25,11 @@ from .interface import Typing as t
 
 
 PathStr = t.PathStr = t.NewType("PathStr", Path | str)
-OptionalPath = t.OptionalPath = t.NewType("OptionalPath", Path | None)
-OptionalPathStr = t.OptionalPathStr = t.NewType(
-    "OptionalPathStr",
-    PathStr | None,
-)
 
 
 module_api = dict(
     Path=t.add_type(Path),
     PathStr=PathStr,
-    OptionalPath=OptionalPath,
-    OptionalPathStr=OptionalPathStr,
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

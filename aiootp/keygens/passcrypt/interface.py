@@ -64,9 +64,9 @@ class PasscryptSettings(OpenFrozenSlots):
 
 class Passcrypt(FrozenInstance):
     """
-    This class is used to implement an Argon2i-like passphrase-based
-    key derivation function that's designed to be resistant to cache-
-    timing side-channel attacks & time-memory trade-offs.
+    Implements an Argon2i-like passphrase-based key derivation function
+    that's designed to be resistant to cache-timing side-channel attacks
+    & time-memory trade-offs.
 
     It uses a passphrase-keyed scanning function which sequentially
     passes over unique memory caches requiring a tunable amount of

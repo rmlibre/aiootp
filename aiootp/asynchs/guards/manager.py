@@ -28,7 +28,7 @@ from collections import defaultdict, deque
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
-from aiootp._exceptions import InvalidStateTransition
+from aiootp._exceptions import InvalidStateTransition, Metadata
 from aiootp.commons import FrozenTypedSlots, OpenFrozenTypedSlots
 from aiootp.asynchs.loops import asleep
 from aiootp.asynchs.concurrency_interface import process_probe_delay
@@ -266,8 +266,8 @@ class DefaultDictOfDeques(defaultdict):
 
     __slots__ = ("__queue", "__observers")
 
-    _Guard: t.ConcurrencyGuardType = ConcurrencyGuard
-    _Type: t.SupportsAppendPopleft = deque
+    _Guard: type = ConcurrencyGuard
+    _Type: type = deque
 
     def __init__(self, /) -> None:
         """
@@ -289,7 +289,7 @@ class DefaultDictOfDeques(defaultdict):
         `collections.deque` or a subclass thereof.
         """
         if not issubclass(value.__class__, deque):
-            raise Issue.must_be_subtype("value", deque) from None
+            raise Issue.must_be_subtype(Metadata(value), deque)
 
         super().__setitem__(name, value)
 
@@ -529,7 +529,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         if policy is None:
             policy = ExclusivePolicy()
         elif not issubclass(policy.__class__, ExclusivePolicy):
-            raise Issue.must_be_subtype("policy", ExclusivePolicy)
+            raise Issue.must_be_subtype(Metadata(policy), ExclusivePolicy)
 
         guard = self._ManagedGuard(
             policy=policy,
@@ -588,7 +588,10 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         if policy is None:
             policy = NonExclusivePolicy()
         elif not issubclass(policy.__class__, NonExclusivePolicy):
-            raise Issue.must_be_subtype("policy", NonExclusivePolicy)
+            raise Issue.must_be_subtype(
+                Metadata(policy),
+                NonExclusivePolicy,
+            )
 
         guard = self._ManagedGuard(
             policy=policy,

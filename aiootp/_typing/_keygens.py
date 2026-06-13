@@ -113,13 +113,13 @@ class AsymmetricKeyType(t.Protocol):
 
     async def aimport_public_key(
         self,
-        public_key: bytes | PublicKeyType,
+        public_key: PublicKeyType | bytes,
     ) -> t.Self:
         pass  # pragma: no cover
 
     def import_public_key(
         self,
-        public_key: bytes | PublicKeyType,
+        public_key: PublicKeyType | bytes,
     ) -> t.Self:
         pass  # pragma: no cover
 

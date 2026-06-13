@@ -42,7 +42,7 @@ else:
     NoneType = t.NoneType  # pragma: no cover
 
 
-Base64URLSafe = t.Base64URLSafe = t.NewType("Base64URLSafe", str | bytes)
+Base64URLSafe = t.Base64URLSafe = t.NewType("Base64URLSafe", bytes | str)
 
 
 Number = t.Number = t.NewType("Number", int | float | complex)
@@ -75,7 +75,7 @@ JSONSerializable = t.JSONSerializable = t.NewType(
 )
 JSONDeserializable = t.JSONDeserializable = t.NewType(
     "JSONDeserializable",
-    str | bytes | bytearray,
+    bytes | bytearray | str,
 )
 
 

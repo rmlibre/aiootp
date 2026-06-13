@@ -31,8 +31,8 @@ from .triple_diffie_hellman_server import TripleDiffieHellmanServer
 
 class X25519(Base25519):
     """
-    This class is used to create stateful objects that simplify usage of
-    the cryptography library's x25519 protocol.
+    Creates stateful objects that simplify usage of the cryptography
+    library's x25519 protocol.
 
      _____________________________________
     |                                     |
