@@ -494,6 +494,9 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "test_ConcurrencyGuard.py" = [
     "SIM117",  # it's clearer to stagger with statements here
 ]
+"test_{misc_in_generics,X25519_Ed25519}.py" = [
+    "PLR0915",  # TODO: refactor tests so this passes
+]
 "**/{tests,docs}/*" = [
     "ANN001",  # type annotations on tests nice but unnecessary
     "ANN003",  # ''   ''
@@ -505,7 +508,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "F405",  # `import *` confuses it a lot
     "F822",  # potential NameError warnings ie. `import *`
     "PLE0605",  # it doesn't think `sorted` returns a list
-    "PLR0915",  # TODO: refactor tests so this passes
     "PLR2004",  # literals can be clearer in tests
     "S101",  # asserts happen in tests
     "S311",  # weak random is fine in tests

@@ -25,6 +25,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - build(gh): add explicit read-only permissions to workflow files
+- build(ruff): specify files needing an PLR0915 exception
 - docs(cguard): fix docstrings & match the details of new updates
 - docs(typing): remove deprecated use of Optional in annotations
 - docs(typing): remove deprecated use of Union in annotations
