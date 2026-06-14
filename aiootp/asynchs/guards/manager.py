@@ -84,8 +84,8 @@ class DefaultDictOfStates(defaultdict):
 
     __slots__ = ("__deques",)
 
-    _Guard: type = ConcurrencyGuard
     _DequePair: type = DequePair
+    _Guard: type = ConcurrencyGuard
     _TargetState: type = TargetState
 
     def __init__(self, /) -> None:
@@ -287,9 +287,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         await manager._ainitialize_guard(target, self)
         try:
             return await super().__aenter__()
-        except (InvalidStateTransition, IncoherentConcurrencyState) as e:
+        except Exception as error:
             await manager._acleanup_references(target)
-            raise e
+            raise error
 
     def __enter__(self, /) -> t.Self:
         """
@@ -304,9 +304,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         manager._initialize_guard(target, self)
         try:
             return super().__enter__()
-        except (InvalidStateTransition, IncoherentConcurrencyState) as e:
+        except Exception as error:
             manager._cleanup_references(target)
-            raise e
+            raise error
 
     async def __aexit__(
         self,
@@ -408,17 +408,16 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
 
     tasks = [
         do_something(filename, guards, operation)
-        for operation in user_actions
-        for filename in filenames
+        for filename, operation in user_actions
     ]
     await gather(*tasks)
     """
 
     __slots__ = ("targets",)
 
-    _Targets: type = DefaultDictOfStates
     _ManagedGuard: type = ManagedConcurrecyGuard
     _SelfReferences: type = SelfReferences
+    _Targets: type = DefaultDictOfStates
 
     IncoherentConcurrencyState: type = IncoherentConcurrencyState
     InvalidStateTransition: type = InvalidStateTransition

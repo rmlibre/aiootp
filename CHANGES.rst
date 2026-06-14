@@ -47,6 +47,7 @@ Minor Changes
 - test(cguard): cleanup & add tests, remove redundant variable
 - test(cguard): use already created instances instead of new ones
 - test(cguard): create 3x more non-exclusive guards than exclusive ones
+- test(cguard): fix docs & cases, test queued non-exclusive policies
 - test(cov): expand tests to cover missing branches
 - test(cov): refactor & expand tests to cover missing branches
 - test(platform): increase error rate 20% for low time resolutions

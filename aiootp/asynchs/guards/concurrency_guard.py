@@ -53,9 +53,7 @@ class DequePair(FrozenTypedSlots):
             any running non-exclusive guard instances on the 0th
             side of the queue, & any waiting/running exclusive guard
             instances on the -1th side. This queue is not ordered,
-            but the invariant stated above is preserved. A shared
-            deque only needs to be provided by the user if they'll
-            be utilizing non-exclusive policies.
+            but the invariant stated above is preserved.
     """
 
     __slots__ = ("queue", "observers")
@@ -80,9 +78,7 @@ class DequePair(FrozenTypedSlots):
                 any running non-exclusive guard instances on the 0th
                 side of the queue, & any waiting/running exclusive guard
                 instances on the -1th side. This queue is not ordered,
-                but the invariant stated above is preserved. This deque
-                is only needed if the user will utilize contexts under
-                non-exclusive policies.
+                but the invariant stated above is preserved.
         """
         self.queue = deque() if queue is None else queue
         self.observers = deque() if observers is None else observers
@@ -205,6 +201,15 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
     DequePair: type = DequePair
 
+    IncoherentConcurrencyState: type = IncoherentConcurrencyState
+    InvalidStateTransition: type = InvalidStateTransition
+
+    policies: ConcurrencyGuardPolicies = ConcurrencyGuardPolicies(
+        Exclusive=ExclusivePolicy,
+        QueueManually=QueueManuallyPolicy,
+        NonExclusive=NonExclusivePolicy,
+        NonExclusiveQueueManually=NonExclusiveQueueManuallyPolicy,
+    )
     slots_types: t.Mapping[str, type] = dict(
         _use_tracker=t.ConcurrencyGuardUseTrackerType,
         deques=DequePair,
@@ -214,16 +219,6 @@ class ConcurrencyGuard(FrozenTypedSlots):
         queue=deque,
         token=bytes,
     )
-
-    policies: ConcurrencyGuardPolicies = ConcurrencyGuardPolicies(
-        Exclusive=ExclusivePolicy,
-        QueueManually=QueueManuallyPolicy,
-        NonExclusive=NonExclusivePolicy,
-        NonExclusiveQueueManually=NonExclusiveQueueManuallyPolicy,
-    )
-
-    IncoherentConcurrencyState: type = IncoherentConcurrencyState
-    InvalidStateTransition: type = InvalidStateTransition
 
     def _set_policy(
         self,
@@ -247,7 +242,7 @@ class ConcurrencyGuard(FrozenTypedSlots):
 
     def _set_deques(self, /, deques: DequePair) -> None:
         """
-        Unpcks the provided deque-pair into instance attributes for
+        Unpacks the provided deque-pair into instance attributes for
         easier access & runtime type checking.
         """
         self.deques = deques

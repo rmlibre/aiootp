@@ -23,6 +23,15 @@ from aiootp.asynchs.guards.manager import TargetState
 from conftest import *
 
 
+GUARD_STATUSES = (
+    (IS_UNUSED := "is_unused"),
+    (IS_PENDING := "is_pending"),
+    (IS_RUNNING := "is_running"),
+    (IS_DONE := "is_done"),
+    (HAS_FAULTED := "has_faulted"),
+)
+
+
 class RunFaultUseTracker(t.ConcurrencyGuardUseTracker):
     def transition_to_running(self, /) -> None:
         non_pending_states = [self.Unused(), self.Running(), self.Done()]
@@ -49,11 +58,11 @@ class TestDefaultDictOfStates:
             st.tuples(st.binary(max_size=64)),
         ),
     )
-    async def test_adding_non_deques_is_not_allowed(self, value) -> None:
+    async def test_adding_non_states_is_not_allowed(self, value) -> None:
         mapping = DefaultDictOfStates()
 
         problem = (  # fmt: skip
-            "A non-deque object was able to be set within the custom "
+            "A non-state object was able to be set within the custom "
             "defaultdict object."
         )
         with Ignore(TypeError, if_else=violation(problem)):
@@ -62,23 +71,52 @@ class TestDefaultDictOfStates:
         with Ignore(TypeError, if_else=violation(problem)):
             mapping.update(update_test=value)
 
-    async def test_adding_deques_is_allowed(self) -> None:
+    async def test_adding_states_is_allowed(self) -> None:
         mapping = DefaultDictOfStates()
 
         mapping["setitem_test"] = TargetState()
         mapping.update(update_test=TargetState())
 
-    async def test_adding_deque_subclass_is_allowed(self) -> None:
-        class DequeSubclass(TargetState):
+    async def test_adding_state_subclass_is_allowed(self) -> None:
+        class StateSubclass(TargetState):
             pass
 
         mapping = DefaultDictOfStates()
 
-        mapping["setitem_test"] = DequeSubclass()
-        mapping.update(update_test=DequeSubclass())
+        mapping["setitem_test"] = StateSubclass()
+        mapping.update(update_test=StateSubclass())
 
 
 class TestMultiConcurrencyGaurd:
+    def non_exclusive_guards_group_correctly_during_runtime(
+        self,
+        target: t.Hashable,
+        control_group: t.Container[t.ConcurrencyGuardType],
+        group: list[bytes],
+    ) -> None:
+        exclusive_guard_indexes = [
+            i
+            for i, guard in enumerate(control_group)
+            if guard.policy.is_exclusive()
+        ]
+        control_group = [guard.token for guard in control_group]
+        for i in exclusive_guard_indexes:
+            assert control_group[i] == group[i], (i, target)
+            assert set(control_group[:i]) == set(group[:i]), (i, target)
+            assert set(control_group[i:]) == set(group[i:]), (i, target)
+
+    def check_guard_status(
+        self,
+        guard: t.ConcurrencyGuardType,
+        status_method: str,
+    ) -> None:
+        for status in GUARD_STATUSES:
+            is_status = getattr(guard, status)()
+            if status == status_method:
+                assert is_status, (status_method, status)
+            else:
+                assert not is_status, (status_method, status)
+
     async def test_async_queue_execution_order_is_respected(self) -> None:
         async def record_ordering(
             target: t.Hashable,
@@ -126,7 +164,7 @@ class TestMultiConcurrencyGaurd:
         for target, guard in instances:
             assert not guard.queue, target
             assert not guard.observers, target
-            assert token_results[target] == queues[target]
+            assert token_results[target] == queues[target], target
 
     async def test_thread_queue_execution_order_is_respected(self) -> None:
         def record_ordering(
@@ -178,7 +216,7 @@ class TestMultiConcurrencyGaurd:
         for target, guard in instances:
             assert not guard.queue, target
             assert not guard.observers, target
-            assert token_results[target] == queues[target]
+            assert token_results[target] == queues[target], target
 
     async def test_free_async_queue_execution_order_is_respected(
         self,
@@ -192,15 +230,16 @@ class TestMultiConcurrencyGaurd:
             async with guard:
                 await arandom_sleep(0.0001)
 
+                groups[target].append(guard.token)
                 if guard.policy.is_exclusive():
                     token_results[target].append(guard.token)
                     assert all(
                         obs.policy.is_exclusive() for obs in guard.observers
-                    )
-                    observers[target].pop()
+                    ), target
                 else:
-                    assert not guard.observers[0].policy.is_exclusive()
-                    observers[target].popleft()
+                    assert not guard.observers[0].policy.is_exclusive(), (
+                        target
+                    )
 
                 target_results.append(target)
 
@@ -215,18 +254,18 @@ class TestMultiConcurrencyGaurd:
         Policy = guards.policies.QueueManually
         NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
 
-        unique_targets = [*range(64)]
-        targets = 4 * unique_targets
+        unique_targets = [*range(32)]
+        targets = 8 * unique_targets
         instances = [(target, choose_policy(target)) for target in targets]
         queues = defaultdict(list)
-        observers = defaultdict(deque)
+        control_groups = defaultdict(deque)
+        groups = defaultdict(deque)
+
         for target, guard in instances:
+            control_groups[target].append(guard)
             guards.targets[target].deques.queue.append(guard)
             if guard.policy.is_exclusive():
-                observers[target].append(guard)
                 queues[target].append(guard.token)
-            else:
-                observers[target].appendleft(guard)
 
         target_results = []
         token_results = defaultdict(list)
@@ -248,10 +287,18 @@ class TestMultiConcurrencyGaurd:
         for target, guard in instances:
             assert not guard.queue, target
             assert not guard.observers, target
-            assert not observers[target], target
             assert target not in guards.targets, target
             if guard.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
+
+        # did all non-exclusive guards run before the exclusive guards
+        # scheduled after them?
+        for target, control_group in control_groups.items():
+            self.non_exclusive_guards_group_correctly_during_runtime(
+                target,
+                control_group=control_group,
+                group=list(groups[target]),
+            )
 
     async def test_free_thread_queue_execution_order_is_respected(
         self,
@@ -265,15 +312,16 @@ class TestMultiConcurrencyGaurd:
             with guard:
                 random_sleep(0.0001)
 
+                groups[target].append(guard.token)
                 if guard.policy.is_exclusive():
                     token_results[target].append(guard.token)
                     assert all(
                         obs.policy.is_exclusive() for obs in guard.observers
-                    )
-                    observers[target].pop()
+                    ), target
                 else:
-                    assert not guard.observers[0].policy.is_exclusive()
-                    observers[target].popleft()
+                    assert not guard.observers[0].policy.is_exclusive(), (
+                        target
+                    )
 
                 target_results.append(target)
 
@@ -288,19 +336,18 @@ class TestMultiConcurrencyGaurd:
         Policy = guards.policies.QueueManually
         NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
 
-        unique_targets = [*range(64)]
-        targets = 4 * unique_targets
+        unique_targets = [*range(32)]
+        targets = 8 * unique_targets
         instances = [(target, choose_policy(target)) for target in targets]
         queues = defaultdict(list)
-        observers = defaultdict(deque)
+        control_groups = defaultdict(deque)
+        groups = defaultdict(deque)
+
         for target, guard in instances:
+            control_groups[target].append(guard)
             guards.targets[target].deques.queue.append(guard)
             if guard.policy.is_exclusive():
-                observers[target].append(guard)
                 queues[target].append(guard.token)
-            else:
-                assert isinstance(queues[target], list)
-                observers[target].appendleft(guard)
 
         target_results = []
         token_results = defaultdict(list)
@@ -325,10 +372,18 @@ class TestMultiConcurrencyGaurd:
         for target, guard in instances:
             assert not guard.queue, target
             assert not guard.observers, target
-            assert not observers[target], target
             assert target not in guards.targets, target
             if guard.policy.is_exclusive():
                 assert token_results[target] == queues[target], target
+
+        # did all non-exclusive guards run before the exclusive guards
+        # scheduled after them?
+        for target, control_group in control_groups.items():
+            self.non_exclusive_guards_group_correctly_during_runtime(
+                target,
+                control_group=control_group,
+                group=list(groups[target]),
+            )
 
     @pytest.mark.parametrize(
         "policy_cls",
@@ -384,12 +439,13 @@ class TestMultiConcurrencyGaurd:
 
                 assert target in guards.targets
                 if guard.policy.is_exclusive():
-                    assert guard.token == guard.queue[0].token
+                    assert guard.token == guard.queue[0].token, target
                 else:
-                    assert guard.token not in guard.queue
+                    assert guard.token not in guard.queue, target
 
                 if is_spontaneous or token_bits(2):
                     return
+
                 task = record_ordering(
                     target,
                     choose_policy(target),
@@ -438,9 +494,9 @@ class TestMultiConcurrencyGaurd:
 
                 assert target in guards.targets
                 if guard.policy.is_exclusive():
-                    assert guard.token == guard.queue[0].token
+                    assert guard.token == guard.queue[0].token, target
                 else:
-                    assert guard.token not in guard.queue
+                    assert guard.token not in guard.queue, target
 
                 if is_spontaneous or token_bits(2):
                     return
@@ -616,6 +672,7 @@ class TestMultiConcurrencyGaurd:
         async def catch_incoherence(guard: t.ConcurrencyGuardType) -> None:
             try:
                 async with guard:
+                    group.append(guard.token)
                     while any(g.is_unused() for g in instances):
                         await asleep(guard.probe_delay)
 
@@ -634,9 +691,20 @@ class TestMultiConcurrencyGaurd:
                     raise error
 
         def choose_policy() -> t.ConcurrencyGuardPolicyType:
-            return guards.monitor(0) if token_bits(2) else guards.guard(0)
+            guard = (
+                guards.monitor(target, policy=NonExclusivePolicy())
+                if token_bits(2)
+                else guards.guard(target, policy=Policy())
+            )
+            guards.targets[target].deques.queue.append(guard)
+            return guard
 
         guards = MultiConcurrencyGaurd()
+        Policy = guards.policies.QueueManually
+        NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
+
+        target = 0
+        group = deque()
         instances = [choose_policy() for _ in range(64)]
 
         tasks = [catch_incoherence(guard) for guard in instances]
@@ -648,12 +716,21 @@ class TestMultiConcurrencyGaurd:
 
         assert not guards.targets
 
+        # did all non-exclusive guards run before the exclusive guards
+        # scheduled after them?
+        self.non_exclusive_guards_group_correctly_during_runtime(
+            target,
+            control_group=instances,
+            group=list(group),
+        )
+
     async def test_sync_policy_pops_during_done_fault_align_with_convention(
         self,
     ) -> None:
         def catch_incoherence(guard: t.ConcurrencyGuardType) -> None:
             try:
                 with guard:
+                    group.append(guard.token)
                     while any(g.is_unused() for g in instances):
                         sleep(guard.probe_delay)
 
@@ -672,9 +749,20 @@ class TestMultiConcurrencyGaurd:
                     raise error
 
         def choose_policy() -> t.ConcurrencyGuardPolicyType:
-            return guards.monitor(0) if token_bits(2) else guards.guard(0)
+            guard = (
+                guards.monitor(target, policy=NonExclusivePolicy())
+                if token_bits(2)
+                else guards.guard(target, policy=Policy())
+            )
+            guards.targets[target].deques.queue.append(guard)
+            return guard
 
         guards = MultiConcurrencyGaurd()
+        Policy = guards.policies.QueueManually
+        NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
+
+        target = 0
+        group = deque()
         instances = [choose_policy() for _ in range(64)]
 
         with ThreadPoolExecutor(max_workers=len(instances)) as threads:
@@ -686,41 +774,37 @@ class TestMultiConcurrencyGaurd:
 
         assert not guards.targets
 
+        # did all non-exclusive guards run before the exclusive guards
+        # scheduled after them?
+        self.non_exclusive_guards_group_correctly_during_runtime(
+            target,
+            control_group=instances,
+            group=list(group),
+        )
+
     async def test_async_use_tracker_stages(self) -> None:
         async def track_stages(
             _: t.Hashable,
             guard: t.ConcurrencyGuardType,
         ) -> None:
             await arandom_sleep(0.0001)
-            assert guard.is_unused()
-            assert not guard.is_pending()
-            assert not guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_UNUSED)
 
             guard.policy.use(guard)
-            assert not guard.is_unused()
-            assert guard.is_pending()
-            assert not guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_PENDING)
 
             tracker = guard._use_tracker
             tracker._state.append(tracker.Unused())
-            assert guard.is_unused()
-            assert not guard.is_pending()
-            assert not guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_UNUSED)
 
             async with guard:
                 await arandom_sleep(0.0001)
-                assert not guard.is_unused()
-                assert not guard.is_pending()
-                assert guard.is_running()
-                assert not guard.is_done()
+                self.check_guard_status(guard, IS_RUNNING)
 
-            assert not guard.is_unused()
-            assert not guard.is_pending()
-            assert not guard.is_running()
-            assert guard.is_done()
+            self.check_guard_status(guard, IS_DONE)
+
+            tracker.enter_fault_state()
+            self.check_guard_status(guard, HAS_FAULTED)
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
@@ -744,35 +828,23 @@ class TestMultiConcurrencyGaurd:
             guard: t.ConcurrencyGuardType,
         ) -> None:
             random_sleep(0.0001)
-            assert guard.is_unused()
-            assert not guard.is_pending()
-            assert not guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_UNUSED)
 
             guard.policy.use(guard)
-            assert not guard.is_unused()
-            assert guard.is_pending()
-            assert not guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_PENDING)
 
             tracker = guard._use_tracker
             tracker._state.append(tracker.Unused())
-            assert guard.is_unused()
-            assert not guard.is_pending()
-            assert not guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_UNUSED)
 
             with guard:
                 random_sleep(0.0001)
-                assert not guard.is_unused()
-                assert not guard.is_pending()
-                assert guard.is_running()
-                assert not guard.is_done()
+                self.check_guard_status(guard, IS_RUNNING)
 
-            assert not guard.is_unused()
-            assert not guard.is_pending()
-            assert not guard.is_running()
-            assert guard.is_done()
+            self.check_guard_status(guard, IS_DONE)
+
+            tracker.enter_fault_state()
+            self.check_guard_status(guard, HAS_FAULTED)
 
         def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             return (
@@ -799,28 +871,19 @@ class TestMultiConcurrencyGaurd:
         guards = MultiConcurrencyGaurd()
 
         for guard in [guards.monitor(0), guards.guard(0)]:
-            assert guard.is_unused()
-            assert not guard.is_pending()
-            assert not guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_UNUSED)
 
             guard._use_tracker.transition_to_pending()
-            assert not guard.is_unused()
-            assert guard.is_pending()
-            assert not guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_PENDING)
 
             guard._use_tracker.transition_to_running()
-            assert not guard.is_unused()
-            assert not guard.is_pending()
-            assert guard.is_running()
-            assert not guard.is_done()
+            self.check_guard_status(guard, IS_RUNNING)
 
             guard._use_tracker.transition_to_done()
-            assert not guard.is_unused()
-            assert not guard.is_pending()
-            assert not guard.is_running()
-            assert guard.is_done()
+            self.check_guard_status(guard, IS_DONE)
+
+            guard._use_tracker.enter_fault_state()
+            self.check_guard_status(guard, HAS_FAULTED)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

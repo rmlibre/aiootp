@@ -16,14 +16,15 @@ from conftest import *
 from aiootp.asynchs import ConcurrencyGuard
 
 
-class TestConcurrencyGuard:
-    USE_TRACKER_STATES = (
-        t.ConcurrencyGuardUseTracker.Unused,
-        t.ConcurrencyGuardUseTracker.Pending,
-        t.ConcurrencyGuardUseTracker.Running,
-        t.ConcurrencyGuardUseTracker.Done,
-    )
+USE_TRACKER_STATES = (
+    t.ConcurrencyGuardUseTracker.Unused,
+    t.ConcurrencyGuardUseTracker.Pending,
+    t.ConcurrencyGuardUseTracker.Running,
+    t.ConcurrencyGuardUseTracker.Done,
+)
 
+
+class TestConcurrencyGuard:
     async def test_detects_async_out_of_order_execution(self) -> None:
         problem = (  # fmt: skip
             "Another execution authorization token was allowed to skip "
@@ -86,7 +87,7 @@ class TestConcurrencyGuard:
     @pytest.mark.parametrize("state", USE_TRACKER_STATES)
     async def test_only_valid_transitions_allowed(self, state) -> None:
         tracker = t.ConcurrencyGuardUseTracker()
-        index = self.USE_TRACKER_STATES.index(state)
+        index = USE_TRACKER_STATES.index(state)
         transitions = self.tuple_of_transitions(tracker)
         for i, transition in enumerate(transitions):
             tracker._state.append(state())
