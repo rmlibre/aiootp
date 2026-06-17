@@ -25,6 +25,7 @@ Minor Changes
 ^^^^^^^^^^^^^
 
 - build(gh): add explicit read-only permissions to workflow files
+- build(gh): update checkout & setup-python actions to v6
 - build(ruff): specify files needing an PLR0915 exception
 - docs(cguard): fix docstrings & match the details of new updates
 - docs(typing): remove deprecated use of Optional in annotations
