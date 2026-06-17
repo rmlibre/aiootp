@@ -152,10 +152,9 @@ class ConcurrencyGuardUseTracker(FrozenInstance):
     def __enter__(self, /) -> t.Self:
         """
         Allows call sites to wrap codeblocks which try state transitions
-        so that `InvalidStateTransition` exceptions are caught. The
-        caller can provide non-blocking, ordered callbacks to run that
-        attempt to keep queue states coherent & clear of unused
-        references after fault.
+        so that exceptions are caught. The caller can provide non-
+        blocking, ordered callbacks to run that attempt to keep queue
+        states coherent & clear of unused references after fault.
         """
         return self
 
@@ -167,8 +166,8 @@ class ConcurrencyGuardUseTracker(FrozenInstance):
         traceback: t.TracebackType | None = None,
     ) -> bool:
         """
-        If an `InvalidStateTransition` is raised within the context,
-        executes the caller's provided non-blocking state fault signals.
+        If an exception is raised within the context, executes the
+        caller's provided non-blocking state fault signals.
 
         Raises any exception raised in the context's code block.
 
@@ -178,13 +177,13 @@ class ConcurrencyGuardUseTracker(FrozenInstance):
         from the signals queue.
         """
         signals = self._signals
-        if isinstance(exc_value, InvalidStateTransition):
+        if exception_status_is_none := exc_type is None:
+            signals.clear()
+        else:
             while signals:
                 signals.popleft()()
-        else:
-            signals.clear()
 
-        return exc_type is None
+        return exception_status_is_none
 
     def transition_to_pending(self, /) -> None:
         """
