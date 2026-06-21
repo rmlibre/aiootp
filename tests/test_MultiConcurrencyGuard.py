@@ -92,24 +92,6 @@ class TestDefaultDictOfStates:
         mapping["setitem_test"] = StateSubclass()
         mapping.update(update_test=StateSubclass())
 
-    async def test_non_exclusive_context_method(self) -> None:
-        mapping = DefaultDictOfStates()
-
-        async with mapping.exclusive_context() as guard:
-            assert is_exclusive(guard)
-
-        with mapping.exclusive_context() as guard:
-            assert is_exclusive(guard)
-
-    async def test_exclusive_context_method(self) -> None:
-        mapping = DefaultDictOfStates()
-
-        async with mapping.non_exclusive_context() as guard:
-            assert not is_exclusive(guard)
-
-        with mapping.non_exclusive_context() as guard:
-            assert not is_exclusive(guard)
-
 
 class TestMultiConcurrencyGaurd:
     def check_guard_status(
@@ -474,7 +456,7 @@ class TestMultiConcurrencyGaurd:
                 if token_bits(2)
                 else guards.guard(target, policy=Policy())
             )
-            async with control_guards.targets.exclusive_context():
+            with control_guards._resource_lock:
                 control_groups[target].append(guard)
                 guards.targets[target].deques.queue.append(guard)
             return guard
@@ -590,7 +572,7 @@ class TestMultiConcurrencyGaurd:
                 if token_bits(2)
                 else guards.guard(target, policy=Policy())
             )
-            with control_guards.targets.exclusive_context():
+            with control_guards._resource_lock:
                 control_groups[target].append(guard)
                 guards.targets[target].deques.queue.append(guard)
             return guard

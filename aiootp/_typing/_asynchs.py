@@ -258,12 +258,6 @@ class DefaultDictOfStatesType(t.Protocol):
     ) -> None:
         pass  # pragma: no cover
 
-    def exclusive_context(self) -> ConcurrencyGuardType:
-        pass  # pragma: no cover
-
-    def non_exclusive_context(self) -> ConcurrencyGuardType:
-        pass  # pragma: no cover
-
 
 @t.runtime_checkable
 class MultiConcurrencyGaurdType(t.Protocol):
@@ -274,7 +268,6 @@ class MultiConcurrencyGaurdType(t.Protocol):
         *,
         policy: ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
-        token: bytes | None = None,
     ) -> ConcurrencyGuardType:
         pass  # pragma: no cover
 
@@ -285,7 +278,6 @@ class MultiConcurrencyGaurdType(t.Protocol):
         *,
         policy: ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
-        token: bytes | None = None,
     ) -> ConcurrencyGuardType:
         pass  # pragma: no cover
 

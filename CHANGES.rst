@@ -46,6 +46,7 @@ Minor Changes
 - refactor(cguard): split management types into new module
 - refactor(cguard): swap method definition orders & improve docs
 - refactor(cguard): make use tracker an auto-validating state machine
+- refactor(cguard): remove unused context methods & token references
 - refactor(misc): rename, move & type methods, imports & args
 - refactor(misc): rename, update docstrings, types, throws & gitignore
 - test(cguard): cleanup & add tests, remove redundant variable

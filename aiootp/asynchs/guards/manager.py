@@ -91,10 +91,8 @@ class DefaultDictOfStates(defaultdict):
     target keys are the same between them.
     """
 
-    __slots__ = ("__deques",)
+    __slots__ = ()
 
-    _DequePair: type = DequePair
-    _Guard: type = ConcurrencyGuard
     _TargetState: type = TargetState
 
     def __init__(self, /) -> None:
@@ -103,7 +101,6 @@ class DefaultDictOfStates(defaultdict):
         type of new elements.
         """
         super().__init__(self._TargetState)
-        self.__deques = self._DequePair()
 
     def __setitem__(
         self,
@@ -134,26 +131,6 @@ class DefaultDictOfStates(defaultdict):
         """
         for target, state in dict(target_states, **states).items():
             self[target] = state  # type enforcement happens here
-
-    def exclusive_context(self, /) -> t.ConcurrencyGuardType:
-        """
-        Creates contexts which only start after all other already
-        started non-exclusive & exclusive contexts finish. This allows
-        wrapped code to run & modify the collection's state safely.
-        """
-        return self._Guard(self.__deques)
-
-    def non_exclusive_context(self, /) -> t.ConcurrencyGuardType:
-        """
-        Creates contexts which allow other non-exclusive contexts to run
-        simultaneously such as those which don't modify the collection's
-        state, but will concede their starts until any new exclusive
-        contexts finish.
-        """
-        return self._Guard(
-            self.__deques,
-            policy=self._Guard.policies.NonExclusive(),
-        )
 
 
 class ManagedConcurrecyGuard(ConcurrencyGuard):
