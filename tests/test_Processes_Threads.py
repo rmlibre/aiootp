@@ -24,7 +24,7 @@ async def test_anew_workers_have_distinct_ids_from_their_caller(
     amethod = interface.aget_id
     method = interface.get_id
 
-    result = await interface.anew(amethod)
+    result = await interface.anew(amethod, probe_delay=0.0001)
     acaller_id = await amethod()
     caller_id = method()
     assert result > 0
@@ -33,7 +33,7 @@ async def test_anew_workers_have_distinct_ids_from_their_caller(
     assert result != caller_id
     assert acaller_id == caller_id
 
-    result = await interface.anew(method)
+    result = await interface.anew(method, probe_delay=0.0001)
     acaller_id = await amethod()
     caller_id = method()
     assert result > 0
@@ -50,7 +50,7 @@ async def test_new_workers_have_distinct_ids_from_their_caller(
     amethod = interface.aget_id
     method = interface.get_id
 
-    result = interface.new(method)
+    result = interface.new(method, probe_delay=0.0001)
     acaller_id = await amethod()
     caller_id = method()
     assert result > 0
@@ -68,7 +68,7 @@ async def test_asubmit_workers_have_distinct_ids_from_their_caller(
     amethod = interface.aget_id
     method = interface.get_id
 
-    fut = await interface.asubmit(amethod)
+    fut = await interface.asubmit(amethod, probe_delay=0.0001)
     result = await fut.aresult()
     acaller_id = await amethod()
     caller_id = method()
@@ -79,7 +79,7 @@ async def test_asubmit_workers_have_distinct_ids_from_their_caller(
     assert result != caller_id
     assert acaller_id == caller_id
 
-    fut = await interface.asubmit(method)
+    fut = await interface.asubmit(method, probe_delay=0.0001)
     result = await fut.aresult()
     acaller_id = await amethod()
     caller_id = method()
@@ -99,7 +99,7 @@ async def test_submit_workers_have_distinct_ids_from_their_caller(
     amethod = interface.aget_id
     method = interface.get_id
 
-    fut = interface.submit(method)
+    fut = interface.submit(method, probe_delay=0.0001)
     result = fut.result()
     acaller_id = await amethod()
     caller_id = method()

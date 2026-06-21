@@ -26,8 +26,6 @@ __all__ = [
 ]
 
 
-from hmac import compare_digest
-
 from aiootp._typing import Typing as t
 from aiootp.commons import FrozenInstance, OpenFrozenTypedSlots
 
@@ -92,11 +90,10 @@ class ExclusivePolicy(ConcurrencyGuardPolicy):
 
     def get_off_queue(self, /, guard: t.ConcurrencyGuardType) -> None:
         """
-        Removes the guard from the order queue. If the guard's token is
-        different from the token retrieved from the removed guard,
-        raises `IncoherentConcurrencyState`.
+        Removes the guard from the order queue. If the guard isn't in
+        the 0th position, raises `IncoherentConcurrencyState`.
         """
-        if not compare_digest(guard.token, guard.queue.popleft().token):
+        if guard is not guard.queue.popleft():
             guard._use_tracker.enter_fault_state()
             raise guard.IncoherentConcurrencyState from None
 
@@ -108,7 +105,7 @@ class ExclusivePolicy(ConcurrencyGuardPolicy):
         exclusive guards currently running, returns `True` to signal it
         can safely take its turn to run.
         """
-        is_next_in_queue = compare_digest(guard.token, guard.queue[0].token)
+        is_next_in_queue = guard is guard.queue[0]
         no_others_running = guard.observers[0].policy.is_exclusive()
         if can_run := is_next_in_queue and no_others_running:
             with guard._use_tracker as tracker:
@@ -127,12 +124,6 @@ class QueueManuallyPolicy(ExclusivePolicy):
     manager is entered. The instance remains responsible for
     automatically being removed from the order queue when the context
     manager is exited.
-    ********
-    CAUTION: Care must be taken not to use the same guard token multiple
-    ******** times. Doing so may cause a deadlock, incoherent state, or
-    exception if two instances with the same token enter their contexts
-    simultaneously, & then during exit, pop a guard off the queue
-    expecting it to be itself.
     """
 
     __slots__ = ()
@@ -216,7 +207,7 @@ class NonExclusivePolicy(ConcurrencyGuardPolicy):
         other guards to take their turn & make the appropriate informed
         decisions.
         """
-        if can_run := compare_digest(guard.token, guard.queue[0].token):
+        if can_run := guard is guard.queue[0]:
             guard.observers.appendleft(guard)  # append first to
             guard.queue.popleft()  # rule-out race-conditions
             with guard._use_tracker as tracker:
@@ -238,12 +229,6 @@ class NonExclusiveQueueManuallyPolicy(NonExclusivePolicy):
     guards using non-exclusive policies, but this policy can be used for
     ordering events to run before or after other guards using exclusive
     policies as desired.
-    ********
-    CAUTION: Care must be taken not to use the same guard token multiple
-    ******** times. Doing so may cause a deadlock, incoherent state, or
-    exception if two instances with the same token enter their contexts
-    simultaneously, & then during exit, pop a guard off the queue
-    expecting it to be itself.
     """
 
     __slots__ = ()

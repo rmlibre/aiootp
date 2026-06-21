@@ -25,7 +25,7 @@ __all__ = [
 
 
 from collections import defaultdict, deque
-from secrets import token_bytes
+from threading import Lock
 
 from aiootp._typing import Typing as t
 from aiootp._exceptions import Issue, IncoherentConcurrencyState
@@ -36,6 +36,15 @@ from aiootp.asynchs.concurrency_interface import process_probe_delay
 
 from .concurrency_guard import ConcurrencyGuard, ConcurrencyGuardPolicies
 from .concurrency_guard import DequePair
+
+
+try:
+    # in Python <3.13 threading.Lock is a function, not a type, making it
+    # uncheckable at runtime. TODO: @rmlibre: remove when 3.12 deprecated.
+    issubclass(Lock, Lock)
+    _LockType = Lock  # pragma: no cover
+except TypeError:  # pragma: no cover
+    _LockType = type(Lock())  # pragma: no cover
 
 
 class TargetState(FrozenTypedSlots):
@@ -251,7 +260,6 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         *,
         policy: t.ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
-        token: bytes | None = None,
     ) -> None:
         """
         `policy`: A `ManagedConcurrencyGuard` policy instance which
@@ -259,10 +267,8 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
                 ordering of execution contexts.
 
         `probe_delay`: The float/fractional number of seconds to wait
-                before each attempt to detect if the instance's token
-                has been authorized to run.
-
-        `token`: The unique authorization token held by this context.
+                before each attempt to detect if the instance has been
+                authorized to run.
         """
         self._set_policy(policy)
         self._use_tracker = self._UseTracker()
@@ -270,16 +276,14 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
             probe_delay,
             default=self._default_probe_delay,
         )
-        self.token = token or token_bytes(32)
 
     async def __aenter__(self, /) -> t.Self:
         """
         Prevents entering the context by asynchronously sleeping until
-        the instance's unique authorization token is held by the current
-        instance in the 0th position of the order queue, & other logic
-        depending on the instance's policy. Allows the manager to pass
-        the correct state to the instance prior to running the context
-        start-up code.
+        the instance is in the 0th position of the order queue, & other
+        logic depending on the instance's policy. Allows the manager to
+        pass the correct state to the instance prior to running the
+        context start-up code.
         """
         await asleep()
 
@@ -294,11 +298,10 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
     def __enter__(self, /) -> t.Self:
         """
         Prevents entering the context by synchronously sleeping until
-        the instance's unique authorization token is held by the current
-        instance in the 0th position of the order queue, & other logic
-        depending on the instance's policy. Allows the manager to pass
-        the correct state to the instance prior to running the context
-        start-up code.
+        the instance is in the 0th position of the order queue, & other
+        logic depending on the instance's policy. Allows the manager to
+        pass the correct state to the instance prior to running the
+        context start-up code.
         """
         manager, target = self._refs.manager, self._refs.target
         manager._initialize_guard(target, self)
@@ -317,8 +320,8 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
     ) -> bool:
         """
         If using an exclusive policy, raises `IncoherentConcurrencyState`
-        if another instance with a different authorization token has
-        taken this instance's place in the order queue.
+        if another instance has taken this guard's place in the order
+        queue.
 
         Otherwise, raises any exception raised in the context's code
         block.
@@ -343,8 +346,8 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
     ) -> bool:
         """
         If using an exclusive policy, raises `IncoherentConcurrencyState`
-        if another instance with a different authorization token has
-        taken this instance's place in the order queue.
+        if another instance has taken this guard's place in the order
+        queue.
 
         Otherwise, raises any exception raised in the context's code
         block.
@@ -413,8 +416,9 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
     await gather(*tasks)
     """
 
-    __slots__ = ("targets",)
+    __slots__ = ("_resource_lock", "targets")
 
+    _Lock: type = Lock
     _ManagedGuard: type = ManagedConcurrecyGuard
     _SelfReferences: type = SelfReferences
     _Targets: type = DefaultDictOfStates
@@ -423,7 +427,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
     InvalidStateTransition: type = InvalidStateTransition
 
     policies: ConcurrencyGuardPolicies = _ManagedGuard.policies
-    slots_types = dict(targets=_Targets)
+    slots_types = dict(_resource_lock=_LockType, targets=_Targets)
 
     def __init__(self, /, *, targets: _Targets | None = None) -> None:
         """
@@ -435,6 +439,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         the manager to protect against race conditions that'd otherwise
         make access logic undefined.
         """
+        self._resource_lock = self._Lock()
         self.targets = self._Targets() if targets is None else targets
 
     def _ensure_valid_policy(
@@ -474,7 +479,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         potentially running exclusive contexts that would be deleting
         references to the state.
         """
-        async with self.targets.non_exclusive_context():
+        with self._resource_lock:
             (state := self.targets[target]).users.append(guard)
             guard._set_deques(state.deques)
 
@@ -492,7 +497,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         potentially running exclusive contexts that would be deleting
         references to the state.
         """
-        with self.targets.non_exclusive_context():
+        with self._resource_lock:
             (state := self.targets[target]).users.append(guard)
             guard._set_deques(state.deques)
 
@@ -516,7 +521,6 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         *,
         policy: t.ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
-        token: bytes | None = None,
     ) -> _ManagedGuard:
         """
         Returns an exclusive guard instance which can be entered using
@@ -531,10 +535,8 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
                 ordering of execution contexts.
 
         `probe_delay`: The float/fractional number of seconds to wait
-                before each attempt to detect if the instance's token
-                has been authorized to run.
-
-        `token`: The unique authorization token held by this context.
+                before each attempt to detect if the instance has been
+                authorized to run.
 
          _____________________________________
         |                                     |
@@ -556,7 +558,6 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         guard = self._ManagedGuard(
             policy=policy,
             probe_delay=probe_delay,
-            token=token,
         )
         self._pass_self_references(target, guard)
         return guard
@@ -568,7 +569,6 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         *,
         policy: t.ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
-        token: bytes | None = None,
     ) -> _ManagedGuard:
         """
         Returns a non-exclusive guard instance which can be entered
@@ -589,10 +589,8 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
                 ordering of execution contexts.
 
         `probe_delay`: The float/fractional number of seconds to wait
-                before each attempt to detect if the instance's token
-                has been authorized to run.
-
-        `token`: The unique authorization token held by this context.
+                before each attempt to detect if the instance has been
+                authorized to run.
 
          _____________________________________
         |                                     |
@@ -614,7 +612,6 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         guard = self._ManagedGuard(
             policy=policy,
             probe_delay=probe_delay,
-            token=token,
         )
         self._pass_self_references(target, guard)
         return guard
@@ -624,7 +621,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         Removes unused target references to avoid unmanaged memory
         buildups using an async/thread-safe exclusive execution context.
         """
-        async with self.targets.exclusive_context():
+        with self._resource_lock:
             state = self.targets[target]
             (users := state.users).popleft()
             if users or state.deques.queue or state.deques.observers:
@@ -637,7 +634,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         Removes unused target references to avoid unmanaged memory
         buildups using an async/thread-safe exclusive execution context.
         """
-        with self.targets.exclusive_context():
+        with self._resource_lock:
             state = self.targets[target]
             (users := state.users).popleft()
             if users or state.deques.queue or state.deques.observers:

@@ -20,14 +20,12 @@ __all__ = ["AsyncDecipherStream", "DecipherStream"]
 
 import io
 from collections import deque
-from hmac import compare_digest
-from secrets import token_bytes
 
 from aiootp._typing import Typing as t
 from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._exceptions import Issue, CipherStreamIsClosed
 from aiootp._gentools import apopleft, popleft, abatch, batch
-from aiootp.asynchs import AsyncInit, ConcurrencyGuard, asleep
+from aiootp.asynchs import AsyncInit, asleep
 
 from .cipher_stream_properties import AuthFail, CipherStreamProperties
 
@@ -82,8 +80,6 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         "shmac",
     )
 
-    _MAX_SIMULTANEOUS_BUFFERS: int = 1024
-
     async def __init__(
         self,
         cipher: t.CipherInterfaceType,
@@ -132,9 +128,7 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         self._config = cipher._config
         self._padding = cipher._padding
         self._ttl = ttl
-        self._digesting_now = ConcurrencyGuard.DequePair(
-            queue=deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS),
-        )
+        self._digesting_now = self._DequePair()
         self._finalizing_now = deque()  # don't let maxlen remove entries
         self._is_streaming = False
         self._result_queue = deque()
@@ -247,11 +241,12 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         async for plaintext in stream.afinalize():
             yield plaintext
         """
-        self._finalizing_now.append(token := token_bytes(32))
-        if not compare_digest(token, self._finalizing_now[0]):
-            raise ConcurrencyGuard.IncoherentConcurrencyState
+        guard = self._Guard(self._digesting_now, probe_delay=0.00001)
+        self._finalizing_now.append(guard)
+        if guard is not self._finalizing_now[0]:
+            raise CipherStreamIsClosed
 
-        async with ConcurrencyGuard(self._digesting_now, token=token):
+        async with guard:
             await self.shmac.afinalize()
             async for result in self:
                 yield result
@@ -314,8 +309,8 @@ class AsyncDecipherStream(CipherStreamProperties, metaclass=AsyncInit):
         if not data or len(data) % self.PACKETSIZE:
             raise Issue.invalid_length("data", len(data))
 
-        async with ConcurrencyGuard(self._digesting_now):
-            if await self._aconstant_time_final_context_is_done():
+        async with self._Guard(self._digesting_now, probe_delay=0.00001):
+            if self._finalizing_now:
                 raise CipherStreamIsClosed
             data = io.BytesIO(data).read
             atest_block_id, append = self._buffer_shortcuts
@@ -373,8 +368,6 @@ class DecipherStream(CipherStreamProperties):
         "shmac",
     )
 
-    _MAX_SIMULTANEOUS_BUFFERS: int = 1024
-
     def __init__(
         self,
         cipher: t.CipherInterfaceType,
@@ -423,9 +416,7 @@ class DecipherStream(CipherStreamProperties):
         self._config = cipher._config
         self._padding = cipher._padding
         self._ttl = ttl
-        self._digesting_now = ConcurrencyGuard.DequePair(
-            queue=deque(maxlen=self._MAX_SIMULTANEOUS_BUFFERS),
-        )
+        self._digesting_now = self._DequePair()
         self._finalizing_now = deque()  # don't let maxlen remove entries
         self._is_streaming = False
         self._result_queue = deque()
@@ -534,15 +525,12 @@ class DecipherStream(CipherStreamProperties):
         for plaintext in stream.finalize():
             yield plaintext
         """
-        self._finalizing_now.append(token := token_bytes(32))
-        if not compare_digest(token, self._finalizing_now[0]):
-            raise ConcurrencyGuard.IncoherentConcurrencyState
+        guard = self._Guard(self._digesting_now, probe_delay=0.00001)
+        self._finalizing_now.append(guard)
+        if guard is not self._finalizing_now[0]:
+            raise CipherStreamIsClosed
 
-        with ConcurrencyGuard(
-            self._digesting_now,
-            probe_delay=0.0001,
-            token=token,
-        ):
+        with guard:
             self.shmac.finalize()
             yield from self
             queue = self._result_queue
@@ -599,8 +587,8 @@ class DecipherStream(CipherStreamProperties):
         if not data or len(data) % self.PACKETSIZE:
             raise Issue.invalid_length("data", len(data))
 
-        with ConcurrencyGuard(self._digesting_now, probe_delay=0.0001):
-            if self._constant_time_final_context_is_done():
+        with self._Guard(self._digesting_now, probe_delay=0.00001):
+            if self._finalizing_now:
                 raise CipherStreamIsClosed
             data = io.BytesIO(data).read
             atest_block_id, append = self._buffer_shortcuts

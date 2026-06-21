@@ -19,7 +19,6 @@ contexts.
 __all__ = ["ConcurrencyGuard", "DequePair"]
 
 
-from secrets import token_bytes
 from collections import deque
 
 from aiootp._typing import Typing as t
@@ -184,11 +183,10 @@ class ConcurrencyGuard(FrozenTypedSlots):
         "policy",
         "probe_delay",
         "queue",
-        "token",
     )
 
     _UNMAPPED_ATTRIBUTES: frozenset[str] = frozenset(
-        {"_use_tracker", "token"},
+        {"_use_tracker"},
     )
     _DIRLESS_ATTRIBUTES: frozenset[str] = frozenset({"_use_tracker"})
     _RESTRICTED_ATTRIBUTES: frozenset[str] = frozenset(
@@ -217,7 +215,6 @@ class ConcurrencyGuard(FrozenTypedSlots):
         policy=t.ConcurrencyGuardPolicyType,
         probe_delay=float,
         queue=deque,
-        token=bytes,
     )
 
     def _set_policy(
@@ -256,7 +253,6 @@ class ConcurrencyGuard(FrozenTypedSlots):
         *,
         policy: t.ConcurrencyGuardPolicyType | None = None,
         probe_delay: t.PositiveRealNumber | None = None,
-        token: bytes | None = None,
     ) -> None:
         """
         `deques`: The related pair of deques which facilitate the
@@ -268,10 +264,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
                 execution contexts.
 
         `probe_delay`: The float/fractional number of seconds to wait
-                before each attempt to detect if the instance's token
-                has been authorized to run.
-
-        `token`: The unique authorization token held by this context.
+                before each attempt to detect if the instance has been
+                authorized to run.
         """
         self._set_policy(policy)
         self._set_deques(deques)
@@ -280,7 +274,6 @@ class ConcurrencyGuard(FrozenTypedSlots):
             probe_delay,
             default=self._default_probe_delay,
         )
-        self.token = token or token_bytes(32)
 
     def is_unused(self, /) -> bool:
         """
@@ -326,9 +319,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
     async def __aenter__(self, /) -> t.Self:
         """
         Prevents entering the context by asynchronously sleeping until
-        the instance's unique authorization token is held by the current
-        instance in the 0th position of the order queue, & other logic
-        depending on the instance's policy.
+        the instance is in the 0th position of the order queue, & other
+        logic depending on the instance's policy.
         """
         await asleep()
         policy = self.policy
@@ -344,9 +336,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
     def __enter__(self, /) -> t.Self:
         """
         Prevents entering the context by synchronously sleeping until
-        the instance's unique authorization token is held by the current
-        instance in the 0th position of the order queue, & other logic
-        depending on the instance's policy.
+        the instance is in the 0th position of the order queue, & other
+        logic depending on the instance's policy.
         """
         policy = self.policy
         policy.use(self)
@@ -367,8 +358,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
     ) -> bool:
         """
         If using an exclusive policy, raises `IncoherentConcurrencyState`
-        if another instance with a different authorization token has
-        taken this instance's place in the order queue.
+        if another instance has taken this guard's place in the order
+        queue.
 
         Otherwise, raises any exception raised in the context's code
         block.
@@ -389,8 +380,8 @@ class ConcurrencyGuard(FrozenTypedSlots):
     ) -> bool:
         """
         If using an exclusive policy, raises `IncoherentConcurrencyState`
-        if another instance with a different authorization token has
-        taken this instance's place in the order queue.
+        if another instance has taken this guard's place in the order
+        queue.
 
         Otherwise, raises any exception raised in the context's code
         block.

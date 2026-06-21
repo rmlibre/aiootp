@@ -48,11 +48,6 @@ def tuple_of_statuses(
 POLICIES = tuple(ConcurrencyGuard.policies.values())
 
 
-NON_EXCLUSIVE_POLICIES = tuple(
-    policy for policy in POLICIES if not policy().is_exclusive()
-)
-
-
 async def run_async_context(guard: t.ConcurrencyGuardType) -> None:
     async with guard:
         pass
@@ -144,6 +139,25 @@ class TestConcurrencyGuard:
             ConcurrencyGuard(deques, policy=policy_type)
 
         ConcurrencyGuard(deques, policy=policy_type())
+
+    async def test_can_check_guard_is_and_equals(self) -> None:
+        deques = ConcurrencyGuard.DequePair()
+        guard_0 = guard_0_ref = ConcurrencyGuard(deques)
+        guard_1 = ConcurrencyGuard(deques)
+        guard_2 = ConcurrencyGuard(deques)
+        guards = [guard_0, guard_1]
+        guards_set = set(guards)
+
+        assert guard_0 == guard_0_ref
+        assert guard_0 is guard_0_ref
+        assert guard_0 != guard_1
+        assert guard_0 is not guard_1
+        assert guard_0 in guards
+        assert guard_1 in guards
+        assert guard_2 not in guards
+        assert guard_0 in guards_set
+        assert guard_1 in guards_set
+        assert guard_2 not in guards_set
 
     async def test_detects_async_out_of_order_execution(self) -> None:
         error = ConcurrencyGuard.IncoherentConcurrencyState

@@ -14,7 +14,6 @@
 import pytest
 from random import randrange
 
-from aiootp.asynchs import ConcurrencyGuard
 
 from conftest import *
 
@@ -355,10 +354,7 @@ class TestOnlineCipherInterfaces:
         problem = (  # fmt: skip
             "Multiple calls to afinalize were allowed."
         )
-        with Ignore(
-            ConcurrencyGuard.IncoherentConcurrencyState,
-            if_else=violation(problem),
-        ):
+        with Ignore(CipherStreamIsClosed, if_else=violation(problem)):
             async for _ in stream_enc.afinalize():
                 pytest.fail(problem)
 
@@ -376,10 +372,7 @@ class TestOnlineCipherInterfaces:
         problem = (  # fmt: skip
             "Multiple calls to afinalize were allowed."
         )
-        with Ignore(
-            ConcurrencyGuard.IncoherentConcurrencyState,
-            if_else=violation(problem),
-        ):
+        with Ignore(CipherStreamIsClosed, if_else=violation(problem)):
             async for _ in stream_dec.afinalize():
                 pytest.fail(problem)
 
@@ -398,10 +391,7 @@ class TestOnlineCipherInterfaces:
         problem = (  # fmt: skip
             "Multiple calls to finalize were allowed."
         )
-        with Ignore(
-            ConcurrencyGuard.IncoherentConcurrencyState,
-            if_else=violation(problem),
-        ):
+        with Ignore(CipherStreamIsClosed, if_else=violation(problem)):
             for _ in stream_enc.finalize():
                 pytest.fail(problem)
 
@@ -418,10 +408,7 @@ class TestOnlineCipherInterfaces:
         problem = (  # fmt: skip
             "Multiple calls to finalize were allowed."
         )
-        with Ignore(
-            ConcurrencyGuard.IncoherentConcurrencyState,
-            if_else=violation(problem),
-        ):
+        with Ignore(CipherStreamIsClosed, if_else=violation(problem)):
             for _ in stream_dec.finalize():
                 pytest.fail(problem)
 

@@ -16,6 +16,7 @@ Major Changes
 - build(ruff): apply new rules, including very impactful COM812
 - feat(cguard): refactor distinct behaviors into new policy types
 - feat(cguard): automate ref cleanup, improve logic, docs & tests
+- perf(cguard): remove tokens & use lightweight lock internally
 - refactor(cguard): split interfaces into separate modules
 - refactor(cguard): split into new subpackage & update tests
 - refactor(cgaurd): combine args, attrs & wrap transitions

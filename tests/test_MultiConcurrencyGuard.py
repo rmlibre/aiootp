@@ -92,6 +92,24 @@ class TestDefaultDictOfStates:
         mapping["setitem_test"] = StateSubclass()
         mapping.update(update_test=StateSubclass())
 
+    async def test_non_exclusive_context_method(self) -> None:
+        mapping = DefaultDictOfStates()
+
+        async with mapping.exclusive_context() as guard:
+            assert is_exclusive(guard)
+
+        with mapping.exclusive_context() as guard:
+            assert is_exclusive(guard)
+
+    async def test_exclusive_context_method(self) -> None:
+        mapping = DefaultDictOfStates()
+
+        async with mapping.non_exclusive_context() as guard:
+            assert not is_exclusive(guard)
+
+        with mapping.non_exclusive_context() as guard:
+            assert not is_exclusive(guard)
+
 
 class TestMultiConcurrencyGaurd:
     def check_guard_status(
@@ -117,7 +135,6 @@ class TestMultiConcurrencyGaurd:
             for i, guard in enumerate(control_group)
             if is_exclusive(guard)
         ]
-        control_group = [guard.token for guard in control_group]
         for i in exclusive_guard_indexes:
             assert control_group[i] == group[i], (i, target)
             assert set(control_group[:i]) == set(group[:i]), (i, target)
@@ -324,9 +341,9 @@ class TestMultiConcurrencyGaurd:
                 async with guard:
                     pass
 
+            # the reference objects were cleaned up
             assert not guard.queue
             assert not guard.observers
-
             assert not guards.targets
 
     async def test_sync_references_cleaned_if_run_transition_faults(
@@ -347,9 +364,9 @@ class TestMultiConcurrencyGaurd:
                 with guard:
                     pass
 
+            # the reference objects were cleaned up
             assert not guard.queue
             assert not guard.observers
-
             assert not guards.targets
 
     async def test_async_references_cleaned_if_done_transition_faults(
@@ -367,9 +384,9 @@ class TestMultiConcurrencyGaurd:
             async with guard:
                 pass
 
+        # the reference objects were cleaned up
         assert not guard.queue
         assert not guard.observers
-
         assert not guards.targets
 
     async def test_sync_references_cleaned_if_done_transition_faults(
@@ -390,9 +407,9 @@ class TestMultiConcurrencyGaurd:
             with guard:
                 pass
 
+        # the reference objects were cleaned up
         assert not guard.queue
         assert not guard.observers
-
         assert not guards.targets
 
     @settings(deadline=None, max_examples=1)
@@ -416,7 +433,7 @@ class TestMultiConcurrencyGaurd:
                 await arandom_sleep(0.0001)
 
                 target_results.append(target)
-                groups[target].append(guard.token)
+                groups[target].append(guard)
 
                 # the target reference shouldn't be cleared while a
                 # guard is running
@@ -427,13 +444,13 @@ class TestMultiConcurrencyGaurd:
 
                 if is_exclusive(guard):
                     # this guard should still be holding up the queue
-                    assert guard.token == guard.queue[0].token, target
+                    assert guard is guard.queue[0], target
 
                     # no non-exclusive guards are running
                     assert all(is_exclusive(ob) for ob in obs), target
                 else:
                     # this guard should've removed itself before starting
-                    assert guard.token not in guard.queue, target
+                    assert guard not in guard.queue, target
 
                     # at least one non-exclusive guard should be here
                     assert not is_exclusive(obs[0]), target
@@ -531,7 +548,7 @@ class TestMultiConcurrencyGaurd:
                 random_sleep(0.0001)
 
                 target_results.append(target)
-                groups[target].append(guard.token)
+                groups[target].append(guard)
 
                 # the target reference shouldn't be cleared while a
                 # guard is running
@@ -542,13 +559,13 @@ class TestMultiConcurrencyGaurd:
 
                 if is_exclusive(guard):
                     # this guard should still be holding up the queue
-                    assert guard.token == guard.queue[0].token, target
+                    assert guard is guard.queue[0], target
 
                     # no non-exclusive guards are running
                     assert all(is_exclusive(ob) for ob in obs), target
                 else:
                     # this guard should've removed itself before starting
-                    assert guard.token not in guard.queue, target
+                    assert guard not in guard.queue, target
 
                     # at least one non-exclusive guard should be here
                     assert not is_exclusive(obs[0]), target
@@ -639,7 +656,7 @@ class TestMultiConcurrencyGaurd:
                 async with guard:
                     await arandom_sleep(0.0001)
 
-                    group.append(guard.token)
+                    group.append(guard)
                     while any(g.is_unused() for g in instances):
                         await asleep(guard.probe_delay)
 
@@ -648,7 +665,7 @@ class TestMultiConcurrencyGaurd:
 
                     if is_exclusive(guard):
                         # this guard should still be holding up the queue
-                        assert guard.token == guard.queue[0].token, target
+                        assert guard is guard.queue[0], target
 
                         # no non-exclusive guards are running
                         assert all(is_exclusive(ob) for ob in obs), target
@@ -656,7 +673,7 @@ class TestMultiConcurrencyGaurd:
                         guard.queue[0] = guards.monitor(0)
                     else:
                         # this guard should've removed itself before starting
-                        assert guard.token not in guard.queue, target
+                        assert guard not in guard.queue, target
 
                         # at least one non-exclusive guard should be here
                         assert not is_exclusive(obs[0]), target
@@ -711,7 +728,7 @@ class TestMultiConcurrencyGaurd:
                 with guard:
                     random_sleep(0.0001)
 
-                    group.append(guard.token)
+                    group.append(guard)
                     while any(g.is_unused() for g in instances):
                         sleep(guard.probe_delay)
 
@@ -720,7 +737,7 @@ class TestMultiConcurrencyGaurd:
 
                     if is_exclusive(guard):
                         # this guard should still be holding up the queue
-                        assert guard.token == guard.queue[0].token, target
+                        assert guard is guard.queue[0], target
 
                         # no non-exclusive guards are running
                         assert all(is_exclusive(ob) for ob in obs), target
@@ -728,7 +745,7 @@ class TestMultiConcurrencyGaurd:
                         guard.queue[0] = guards.monitor(0)
                     else:
                         # this guard should've removed itself before starting
-                        assert guard.token not in guard.queue, target
+                        assert guard not in guard.queue, target
 
                         # at least one non-exclusive guard should be here
                         assert not is_exclusive(obs[0]), target
