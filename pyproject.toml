@@ -12,7 +12,7 @@ license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "aiofiles>=25.1.0",
-    "cryptography>=48.0.0",
+    "cryptography>=49.0.0",
 ]
 authors = [
     {name = "Gonzo Investigative Journalism Agency, LLC", email = "gonzo.development@protonmail.ch"},
@@ -249,19 +249,19 @@ keywords = [
 [project.optional-dependencies]
 test = [
     "coverage[toml]>=7.14.1",
-    "hypothesis>=6.155.0",
-    "pytest>=9.0.3",
+    "hypothesis>=6.155.6",
+    "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
-    "ruff>=0.15.15",
+    "ruff>=0.15.18",
 ]
 dev = [
     "build>=1.5.0",
     "coverage[toml]>=7.14.1",
-    "hypothesis>=6.141.1",
+    "hypothesis>=6.155.6",
     "ipython>=8.39.0",
-    "pytest>=9.0.3",
+    "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
-    "ruff>=0.15.15",
+    "ruff>=0.15.18",
     "setuptools>=82.0.1",
     "twine>=6.2.0",
     "wheel>=0.47.0",
@@ -412,7 +412,6 @@ ignore = [
     "D401",  # not applicable to package's newline docstring convention
     "D415",  # not applicable to package's newline docstring convention
     "E501",  # trust the 76-length enforcement from the formatter
-    "E731",  # TODO: look through lambda's to maybe comply
     "PLE0604",  # runtime will catch non-string __all__ members
     "PLR0913",  # many arguments is a smell, but sometimes it's practical
     "PLR2004",  # TODO: refactor out magic values
@@ -466,9 +465,6 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "**/asynchs/aos.py" = [
     "F822",  # `__all__` declarations exist in `os` module
 ]
-"**/asynchs/concurrency_guard.py" = [
-    "ARG002",  # some methods overridden as no-ops
-]
 "**/randoms/_early_salts.py" = [
     "PLW0603",  # global updates are ok in context of package entropy
 ]
@@ -491,25 +487,22 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
     "E402",  # there's a wibbly wobbly, timey wimey import sequence here
     "F401",  # most other tests get their imports from this module
 ]
-"test_ConcurrencyGuard.py" = [
-    "SIM117",  # it's clearer to stagger with statements here
-]
 "test_{misc_in_generics,X25519_Ed25519}.py" = [
     "PLR0915",  # TODO: refactor tests so this passes
+]
+"**/{tests/*,commons/instances,asynchs/loops}.py" = [
+    "E731",  # TODO: look through lambda's to maybe comply
 ]
 "**/{tests,docs}/*" = [
     "ANN001",  # type annotations on tests nice but unnecessary
     "ANN003",  # ''   ''
     "ANN202",  # ''   ''
+    "C901",  # tests can get complex
     "D100",  # TODO: add docstrings to test cases
     "D103",  # TODO: add docstrings to test cases
-    "C901",  # tests can get complex
     "F403",  # tests get most of their imports from `import *`
     "F405",  # `import *` confuses it a lot
-    "F822",  # potential NameError warnings ie. `import *`
     "PLE0605",  # it doesn't think `sorted` returns a list
-    "PLR2004",  # literals can be clearer in tests
-    "S101",  # asserts happen in tests
     "S311",  # weak random is fine in tests
 ]
 
