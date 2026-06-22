@@ -169,6 +169,32 @@ class TestConcurrencyGuard:
         assert guard_1 in guards_set
         assert guard_2 not in guards_set
 
+        problem = (  # fmt: skip
+            "References to the same guard were reported to be unequal."
+        )
+        with Ignore(AssertionError, if_else=violation(problem)):
+            assert guard_0 != guard_0_ref
+
+        problem = (  # fmt: skip
+            "References to the same guard were reported as not the same."
+        )
+        with Ignore(AssertionError, if_else=violation(problem)):
+            assert guard_0 is not guard_0_ref
+
+        problem = (  # fmt: skip
+            "A list contains check for a guard falsely reported the "
+            "guard was not present."
+        )
+        with Ignore(AssertionError, if_else=violation(problem)):
+            assert guard_0 not in guards
+
+        problem = (  # fmt: skip
+            "A set contains check for a guard falsely reported the "
+            "guard was not present."
+        )
+        with Ignore(AssertionError, if_else=violation(problem)):
+            assert guard_0 not in guards_set
+
     async def test_detects_async_out_of_order_execution(self) -> None:
         error = IncoherentConcurrencyState
         problem = (  # fmt: skip

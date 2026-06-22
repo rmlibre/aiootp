@@ -404,7 +404,7 @@ class TestMultiConcurrencyGaurd:
             "guard attempted to pop itself off the order queue before "
             "running."
         )
-        with Ignore(IncoherentConcurrencyState, if_else=violation(problem)):
+        with Ignore(IncoherentConcurrencyState):
             async with guard:
                 pytest.fail(problem)
 
@@ -424,10 +424,7 @@ class TestMultiConcurrencyGaurd:
             "guard attempted to pop itself off the order queue before "
             "running."
         )
-        async with Ignore(
-            IncoherentConcurrencyState,
-            if_else=violation(problem),
-        ):
+        async with Ignore(IncoherentConcurrencyState):
             with guard:
                 pytest.fail(problem)
 

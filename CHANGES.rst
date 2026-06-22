@@ -55,6 +55,7 @@ Minor Changes
 - test(cguard): create 3x more non-exclusive guards than exclusive ones
 - test(cguard): fix docs & cases, test queued non-exclusive policies
 - test(cguard): reorganize & consolidate cases & test fault recovery
+- test(cguard): check for false negatives, remove unused clauses
 - test(cov): expand tests to cover missing branches
 - test(cov): refactor & expand tests to cover missing branches
 - test(platform): increase error rate 20% for low time resolutions
