@@ -320,7 +320,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
         """
         Prevents entering the context by asynchronously sleeping until
         the instance is in the 0th position of the order queue, & other
-        logic depending on the instance's policy.
+        logic depending on the instance's policy. If using a non-
+        exclusive policy, raises `IncoherentConcurrencyState` if another
+        instance has taken this guard's place in the order queue.
         """
         await asleep()
         policy = self.policy
@@ -337,7 +339,9 @@ class ConcurrencyGuard(FrozenTypedSlots):
         """
         Prevents entering the context by synchronously sleeping until
         the instance is in the 0th position of the order queue, & other
-        logic depending on the instance's policy.
+        logic depending on the instance's policy. If using a non-
+        exclusive policy, raises `IncoherentConcurrencyState` if another
+        instance has taken this guard's place in the order queue.
         """
         policy = self.policy
         policy.use(self)

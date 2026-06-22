@@ -43,6 +43,7 @@ Minor Changes
 - fix(paths): avoid collisions with larger index keys
 - fix(slots): add slots_types to dirless & restricted TypedSlots sets
 - perf(commons): check contains on set instead of tuple
+- refactor(asynchs): update obj dirs & imports, handle more queue faults
 - refactor(cguard): split management types into new module
 - refactor(cguard): swap method definition orders & improve docs
 - refactor(cguard): make use tracker an auto-validating state machine

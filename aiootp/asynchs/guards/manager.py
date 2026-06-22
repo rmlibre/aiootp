@@ -260,7 +260,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         the instance is in the 0th position of the order queue, & other
         logic depending on the instance's policy. Allows the manager to
         pass the correct state to the instance prior to running the
-        context start-up code.
+        context start-up code. If using a non-exclusive policy, raises
+        `IncoherentConcurrencyState` if another instance has taken this
+        guard's place in the order queue.
         """
         await asleep()
 
@@ -278,7 +280,9 @@ class ManagedConcurrecyGuard(ConcurrencyGuard):
         the instance is in the 0th position of the order queue, & other
         logic depending on the instance's policy. Allows the manager to
         pass the correct state to the instance prior to running the
-        context start-up code.
+        context start-up code. If using a non-exclusive policy, raises
+        `IncoherentConcurrencyState` if another instance has taken this
+        guard's place in the order queue.
         """
         manager, target = self._refs.manager, self._refs.target
         manager._initialize_guard(target, self)
@@ -409,12 +413,7 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
     def __init__(self, /, *, targets: _Targets | None = None) -> None:
         """
         Initializes the instance with its defaultdict subclass mapping
-        used to manage state across all user-specified targets. This
-        container comes packaged with utilities for creating async/
-        thread-safe execution contexts for operations that read from or
-        modify the container. These utilities are used internally by
-        the manager to protect against race conditions that'd otherwise
-        make access logic undefined.
+        used to manage state across all user-specified targets.
         """
         self._resource_lock = self._Lock()
         self.targets = self._Targets() if targets is None else targets
@@ -451,10 +450,6 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         """
         Ensures the target references given to the guard instance are
         consistent with the other running instances of the same target.
-        Since only reads are done, an async/thread-safe non-exclusive
-        execution context is used to avoid race-conditions with any
-        potentially running exclusive contexts that would be deleting
-        references to the state.
         """
         with self._resource_lock:
             (state := self.targets[target]).users.append(guard)
@@ -469,10 +464,6 @@ class MultiConcurrencyGaurd(FrozenTypedSlots):
         """
         Ensures the target references given to the guard instance are
         consistent with the other running instances of the same target.
-        Since only reads are done, an async/thread-safe non-exclusive
-        execution context is used to avoid race-conditions with any
-        potentially running exclusive contexts that would be deleting
-        references to the state.
         """
         with self._resource_lock:
             (state := self.targets[target]).users.append(guard)

@@ -38,10 +38,23 @@ from time import perf_counter as s_counter
 from time import perf_counter_ns as ns_counter
 
 from aiootp._typing import Typing as t
-from aiootp._constants import SECONDS, EPOCH_NS, BIG
+from aiootp._constants import EPOCH_NS, BIG
+from aiootp._constants import (
+    YEARS,
+    MONTHS,
+    DAYS,
+    HOURS,
+    MINUTES,
+    SECONDS,
+    DECISECONDS,
+    CENTISECONDS,
+    MILLISECONDS,
+    MICROSECONDS,
+    NANOSECONDS,
+)
 from aiootp._constants import SAFE_TIMESTAMP_BYTES
 from aiootp._exceptions import Issue, TimestampExpired
-from aiootp.commons import FrozenNamespace, FrozenInstance
+from aiootp.commons import FrozenNamespace, FrozenSlots
 
 from .loops import asleep
 
@@ -169,7 +182,7 @@ class UnitToSeconds(t.NamedTuple):
     ratio: float
 
 
-class Clock(FrozenInstance):
+class Clock(FrozenSlots):
     """
     A class whose objects are used for creating & measuring bytes-type
     timestamps, with configurable time units & epoch of measure.
@@ -182,7 +195,7 @@ class Clock(FrozenInstance):
     from aiootp.asynchs import Clock
 
     # Create an object with specified units & epoch ->
-    ns_clock = Clock("nanoseconds", epoch=0)
+    ns_clock = Clock(Clock.NANOSECONDS, epoch=0)
 
     # Create a bytes-type timestamp of the object's current time in
     # nanoseconds from its epoch ->
@@ -202,17 +215,17 @@ class Clock(FrozenInstance):
         'Timestamp expired by 287491003983 # of nanoseconds.'
 
     # These are the supported units ->
-    year_clock = Clock("years")
-    month_clock = Clock("months")
-    day_clock = Clock("days")
-    hour_clock = Clock("hours")
-    minute_clock = Clock("minutes")
-    second_clock = Clock("seconds")
-    ds_clock = Clock("deciseconds")
-    cs_clock = Clock("centiseconds")
-    ms_clock = Clock("milliseconds")
-    µs_clock = Clock("microseconds")
-    ns_clock = Clock("nanoseconds")
+    year_clock = Clock(Clock.YEARS)
+    month_clock = Clock(Clock.MONTHS)
+    day_clock = Clock(Clock.DAYS)
+    hour_clock = Clock(Clock.HOURS)
+    minute_clock = Clock(Clock.MINUTES)
+    second_clock = Clock(Clock.SECONDS)
+    ds_clock = Clock(Clock.DECISECONDS)
+    cs_clock = Clock(Clock.CENTISECONDS)
+    ms_clock = Clock(Clock.MILLISECONDS)
+    µs_clock = Clock(Clock.MICROSECONDS)
+    ns_clock = Clock(Clock.NANOSECONDS)
 
     # The `epoch` is always measured in nanoseconds from the UNIX epoch of 0
     hour_clock = Clock("hours", epoch=9000)  # time starts 9000 nanoseconds
@@ -223,6 +236,19 @@ class Clock(FrozenInstance):
 
     __slots__ = ("_epoch", "_resolution_needed", "_time", "_units")
 
+    _DIRLESS_ATTRIBUTES: frozenset = frozenset({
+        "YEARS",
+        "MONTHS",
+        "DAYS",
+        "HOURS",
+        "MINUTES",
+        "SECONDS",
+        "DECISECONDS",
+        "CENTISECONDS",
+        "MILLISECONDS",
+        "MICROSECONDS",
+        "NANOSECONDS",
+    })  # fmt: skip
     _SYSTEM_TIME_RESOLUTION: t.PositiveRealNumber = get_clock_info(
         "time",
     ).resolution
@@ -240,6 +266,18 @@ class Clock(FrozenInstance):
         microseconds=UnitToSeconds(this_microsecond, 1e-6),
         nanoseconds=UnitToSeconds(this_nanosecond, 1e-9),
     )
+
+    YEARS: str = YEARS
+    MONTHS: str = MONTHS
+    DAYS: str = DAYS
+    HOURS: str = HOURS
+    MINUTES: str = MINUTES
+    SECONDS: str = SECONDS
+    DECISECONDS: str = DECISECONDS
+    CENTISECONDS: str = CENTISECONDS
+    MILLISECONDS: str = MILLISECONDS
+    MICROSECONDS: str = MICROSECONDS
+    NANOSECONDS: str = NANOSECONDS
 
     TimestampExpired: type = TimestampExpired
 

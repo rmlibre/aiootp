@@ -14,11 +14,23 @@
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
+from threading import Lock
 
 from aiootp.asynchs.loops import gather, new_task
-from aiootp.asynchs.guards import DefaultDictOfStates
-from aiootp.asynchs.guards import MultiConcurrencyGaurd
+from aiootp.asynchs import DefaultDictOfStates, DequePair
+from aiootp.asynchs import ConcurrencyGuard, MultiConcurrencyGaurd
 from aiootp.asynchs.guards.manager import TargetState
+from aiootp.asynchs.guards.state_machine import (
+    ConcurrencyGuardUseTracker,
+    IncoherentConcurrencyState,
+    InvalidStateTransition,
+)
+from aiootp.asynchs.guards.policies import (
+    ExclusivePolicy,
+    QueueManuallyPolicy,
+    NonExclusivePolicy,
+    NonExclusiveQueueManuallyPolicy,
+)
 
 from conftest import *
 
@@ -34,14 +46,44 @@ GUARD_STATUSES = (
 POLICIES = tuple(MultiConcurrencyGaurd.policies.values())
 
 
-class RunFaultUseTracker(t.ConcurrencyGuardUseTracker):
+class PopFaultQueue(deque):
+    def popleft(self, /) -> t.ConcurrencyGuardType:
+        correct_guard = super().popleft()
+        incorrect_guard = ConcurrencyGuard(
+            correct_guard.deques,
+            policy=NonExclusivePolicy(),
+        )
+        return incorrect_guard
+
+
+class PopFaultDequePair(DequePair):
+    __slots__ = ()
+
+    def __init__(self, /) -> None:
+        self.queue = PopFaultQueue()
+        self.observers = deque()
+
+
+class PopFaultTargetState(TargetState):
+    _DequePair: type = PopFaultDequePair
+
+
+class PopFaultDefaultDictOfStates(DefaultDictOfStates):
+    _TargetState: type = PopFaultTargetState
+
+
+class PopFaultMultiConcurrencyGaurd(MultiConcurrencyGaurd):
+    _Targets: type = PopFaultDefaultDictOfStates
+
+
+class RunFaultUseTracker(ConcurrencyGuardUseTracker):
     def transition_to_running(self, /) -> None:
         non_pending_states = [self.Unused(), self.Running(), self.Done()]
         self._state.append(choice(non_pending_states))
         super().transition_to_running()
 
 
-class DoneFaultUseTracker(t.ConcurrencyGuardUseTracker):
+class DoneFaultUseTracker(ConcurrencyGuardUseTracker):
     def transition_to_done(self, /) -> None:
         non_running_states = [self.Unused(), self.Pending(), self.Done()]
         self._state.append(choice(non_running_states))
@@ -97,14 +139,14 @@ class TestMultiConcurrencyGaurd:
     def check_guard_status(
         self,
         guard: t.ConcurrencyGuardType,
-        status_method: str,
+        correct_status_method: str,
     ) -> None:
         for status in GUARD_STATUSES:
             is_status = getattr(guard, status)()
-            if status == status_method:
-                assert is_status, (status_method, status)
+            if status == correct_status_method:
+                assert is_status, (correct_status_method, status)
             else:
-                assert not is_status, (status_method, status)
+                assert not is_status, (correct_status_method, status)
 
     def non_exclusive_guards_group_correctly_during_runtime(
         self,
@@ -129,7 +171,7 @@ class TestMultiConcurrencyGaurd:
     ) -> None:
         guards = MultiConcurrencyGaurd()
 
-        if issubclass(policy_type, guards.policies.NonExclusive):
+        if issubclass(policy_type, NonExclusivePolicy):
             problem = (  # fmt: skip
                 "A non-exclusive policy was able to be passed into the "
                 "guard() method."
@@ -146,7 +188,7 @@ class TestMultiConcurrencyGaurd:
     ) -> None:
         guards = MultiConcurrencyGaurd()
 
-        if issubclass(policy_type, guards.policies.Exclusive):
+        if issubclass(policy_type, ExclusivePolicy):
             problem = (  # fmt: skip
                 "An exclusive policy was able to be passed into the "
                 "monitor() method."
@@ -351,6 +393,49 @@ class TestMultiConcurrencyGaurd:
             assert not guard.observers
             assert not guards.targets
 
+    async def test_async_references_cleaned_if_non_exclusive_can_run_faults(
+        self,
+    ) -> None:
+        guards = PopFaultMultiConcurrencyGaurd()
+        guard = guards.monitor(0)
+
+        problem = (  # fmt: skip
+            "A faulty order queue was not detected when a non-exclusive "
+            "guard attempted to pop itself off the order queue before "
+            "running."
+        )
+        with Ignore(IncoherentConcurrencyState, if_else=violation(problem)):
+            async with guard:
+                pytest.fail(problem)
+
+        # the reference objects were cleaned up
+        assert not guard.queue
+        assert not guard.observers
+        assert not guards.targets
+
+    async def test_sync_references_cleaned_if_non_exclusive_can_run_faults(
+        self,
+    ) -> None:
+        guards = PopFaultMultiConcurrencyGaurd()
+        guard = guards.monitor(0)
+
+        problem = (  # fmt: skip
+            "A faulty order queue was not detected when a non-exclusive "
+            "guard attempted to pop itself off the order queue before "
+            "running."
+        )
+        async with Ignore(
+            IncoherentConcurrencyState,
+            if_else=violation(problem),
+        ):
+            with guard:
+                pytest.fail(problem)
+
+        # the reference objects were cleaned up
+        assert not guard.queue
+        assert not guard.observers
+        assert not guards.targets
+
     async def test_async_references_cleaned_if_done_transition_faults(
         self,
     ) -> None:
@@ -456,19 +541,19 @@ class TestMultiConcurrencyGaurd:
                 if token_bits(2)
                 else guards.guard(target, policy=Policy())
             )
-            with control_guards._resource_lock:
+            with resource_lock:
                 control_groups[target].append(guard)
                 guards.targets[target].deques.queue.append(guard)
             return guard
 
         guards = MultiConcurrencyGaurd()
-        Policy = guards.policies.QueueManually
-        NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
+        Policy = QueueManuallyPolicy
+        NonExclusivePolicy = NonExclusiveQueueManuallyPolicy
 
         unique_targets = deque(range(unique_target_count))
         targets = guards_per_target * unique_targets
         control_groups = defaultdict(deque)
-        control_guards = MultiConcurrencyGaurd()
+        resource_lock = Lock()
         instances = [
             (target, await choose_policy(target)) for target in targets
         ]
@@ -572,20 +657,20 @@ class TestMultiConcurrencyGaurd:
                 if token_bits(2)
                 else guards.guard(target, policy=Policy())
             )
-            with control_guards._resource_lock:
+            with resource_lock:
                 control_groups[target].append(guard)
                 guards.targets[target].deques.queue.append(guard)
             return guard
 
         guards = MultiConcurrencyGaurd()
-        Policy = guards.policies.QueueManually
-        NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
+        Policy = QueueManuallyPolicy
+        NonExclusivePolicy = NonExclusiveQueueManuallyPolicy
 
         unique_targets = deque(range(unique_target_count))
         targets = guards_per_target * unique_targets
         workers = len(targets)
         control_groups = defaultdict(deque)
-        control_guards = MultiConcurrencyGaurd()
+        resource_lock = Lock()
         instances = [(target, choose_policy(target)) for target in targets]
 
         target_results = deque()
@@ -675,8 +760,8 @@ class TestMultiConcurrencyGaurd:
             return guard
 
         guards = MultiConcurrencyGaurd()
-        Policy = guards.policies.QueueManually
-        NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
+        Policy = QueueManuallyPolicy
+        NonExclusivePolicy = NonExclusiveQueueManuallyPolicy
 
         target = 0
         group = deque()
@@ -747,8 +832,8 @@ class TestMultiConcurrencyGaurd:
             return guard
 
         guards = MultiConcurrencyGaurd()
-        Policy = guards.policies.QueueManually
-        NonExclusivePolicy = guards.policies.NonExclusiveQueueManually
+        Policy = QueueManuallyPolicy
+        NonExclusivePolicy = NonExclusiveQueueManuallyPolicy
 
         target = 0
         group = deque()

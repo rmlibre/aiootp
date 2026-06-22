@@ -13,14 +13,24 @@
 
 from conftest import *
 
-from aiootp.asynchs import ConcurrencyGuard
+from aiootp.asynchs import ConcurrencyGuard, DequePair
+from aiootp.asynchs.guards.state_machine import (
+    ConcurrencyGuardState,
+    UnusedState,
+    PendingState,
+    RunningState,
+    DoneState,
+    ConcurrencyGuardUseTracker,
+    IncoherentConcurrencyState,
+    InvalidStateTransition,
+)
 
 
 USE_TRACKER_STATES = (
-    t.ConcurrencyGuardUseTracker.Unused,
-    t.ConcurrencyGuardUseTracker.Pending,
-    t.ConcurrencyGuardUseTracker.Running,
-    t.ConcurrencyGuardUseTracker.Done,
+    UnusedState,
+    PendingState,
+    RunningState,
+    DoneState,
 )
 
 
@@ -65,22 +75,22 @@ class TestConcurrencyGuard:
     async def test_guard_state_machine_may_only_initialize_once(
         self,
     ) -> None:
-        deques = ConcurrencyGuard.DequePair()
+        deques = DequePair()
         guard = ConcurrencyGuard(deques)
 
         problem = (
             "A ConcurrencyGuard's single-use state machine object was "
             "allowed to reinitialize."
         )
-        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
+        with Ignore(InvalidStateTransition, if_else=violation(problem)):
             guard._use_tracker.__init__()
 
     @pytest.mark.parametrize("state", USE_TRACKER_STATES)
     async def test_only_valid_transitions_allowed(
         self,
-        state: t.ConcurrencyGuardState,
+        state: ConcurrencyGuardState,
     ) -> None:
-        tracker = t.ConcurrencyGuardUseTracker()
+        tracker = ConcurrencyGuardUseTracker()
         transitions = tuple_of_transitions(tracker)
         index = USE_TRACKER_STATES.index(state)
         for i, transition in enumerate(transitions):
@@ -95,7 +105,7 @@ class TestConcurrencyGuard:
                 f"{state=} was allowed."
             )
             with Ignore(
-                t.InvalidStateTransition,
+                InvalidStateTransition,
                 if_else=violation(problem),
             ):
                 transition()
@@ -103,9 +113,9 @@ class TestConcurrencyGuard:
     @pytest.mark.parametrize("state", USE_TRACKER_STATES)
     async def test_status_is_incoherent_after_invalid_transition(
         self,
-        state: t.ConcurrencyGuardState,
+        state: ConcurrencyGuardState,
     ) -> None:
-        tracker = t.ConcurrencyGuardUseTracker()
+        tracker = ConcurrencyGuardUseTracker()
         transitions = tuple_of_transitions(tracker)
         statuses = tuple_of_statuses(tracker)
         index = USE_TRACKER_STATES.index(state)
@@ -118,7 +128,7 @@ class TestConcurrencyGuard:
                 assert statuses[index + 1]()
 
                 continue
-            except t.InvalidStateTransition:
+            except InvalidStateTransition:
                 pass
 
             for status in statuses:
@@ -131,7 +141,7 @@ class TestConcurrencyGuard:
         self,
         policy_type: t.ConcurrencyGuardPolicyType,
     ) -> None:
-        deques = ConcurrencyGuard.DequePair()
+        deques = DequePair()
         problem = (
             "A non-instantiated policy was allowed as the provided policy."
         )
@@ -141,7 +151,7 @@ class TestConcurrencyGuard:
         ConcurrencyGuard(deques, policy=policy_type())
 
     async def test_can_check_guard_is_and_equals(self) -> None:
-        deques = ConcurrencyGuard.DequePair()
+        deques = DequePair()
         guard_0 = guard_0_ref = ConcurrencyGuard(deques)
         guard_1 = ConcurrencyGuard(deques)
         guard_2 = ConcurrencyGuard(deques)
@@ -160,49 +170,49 @@ class TestConcurrencyGuard:
         assert guard_2 not in guards_set
 
     async def test_detects_async_out_of_order_execution(self) -> None:
-        error = ConcurrencyGuard.IncoherentConcurrencyState
+        error = IncoherentConcurrencyState
         problem = (  # fmt: skip
             "An exclusive guard's place at the front of the order queue "
             "was inappropriately changed while it was running."
         )
         with Ignore(error, if_else=violation(problem)):
-            deques = ConcurrencyGuard.DequePair()
+            deques = DequePair()
             async with ConcurrencyGuard(deques):
                 deques.queue.appendleft(ConcurrencyGuard(deques))
 
         with Ignore(error, if_else=violation(problem)):
-            deques = ConcurrencyGuard.DequePair()
+            deques = DequePair()
             async with ConcurrencyGuard(deques):
                 deques.queue[0] = ConcurrencyGuard(deques)
 
         with Ignore(IndexError, if_else=violation(problem)):
-            deques = ConcurrencyGuard.DequePair()
+            deques = DequePair()
             async with ConcurrencyGuard(deques):
                 deques.queue.popleft()
 
     async def test_detects_sync_out_of_order_execution(self) -> None:
-        error = ConcurrencyGuard.IncoherentConcurrencyState
+        error = IncoherentConcurrencyState
         problem = (  # fmt: skip
             "An exclusive guard's place at the front of the order queue "
             "was inappropriately changed while it was running."
         )
         with Ignore(error, if_else=violation(problem)):
-            deques = ConcurrencyGuard.DequePair()
+            deques = DequePair()
             with ConcurrencyGuard(deques):
                 deques.queue.appendleft(ConcurrencyGuard(deques))
 
         with Ignore(error, if_else=violation(problem)):
-            deques = ConcurrencyGuard.DequePair()
+            deques = DequePair()
             with ConcurrencyGuard(deques):
                 deques.queue[0] = ConcurrencyGuard(deques)
 
         with Ignore(IndexError, if_else=violation(problem)):
-            deques = ConcurrencyGuard.DequePair()
+            deques = DequePair()
             with ConcurrencyGuard(deques):
                 deques.queue.popleft()
 
     async def test_guard_may_only_initialize_once(self) -> None:
-        deques = ConcurrencyGuard.DequePair()
+        deques = DequePair()
         guard = ConcurrencyGuard(deques)
 
         problem = (
@@ -219,7 +229,7 @@ class TestConcurrencyGuard:
         first_context,
         second_context,
     ) -> None:
-        deques = ConcurrencyGuard.DequePair()
+        deques = DequePair()
 
         await first_context(guard := ConcurrencyGuard(deques))
 
@@ -228,7 +238,7 @@ class TestConcurrencyGuard:
             f"ConcurrencyGuard object was allowed to then enter a "
             f"{second_context=} context manager."
         )
-        with Ignore(t.InvalidStateTransition, if_else=violation(problem)):
+        with Ignore(InvalidStateTransition, if_else=violation(problem)):
             await second_context(guard)
 
 

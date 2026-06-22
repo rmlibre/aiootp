@@ -208,10 +208,12 @@ class NonExclusivePolicy(ConcurrencyGuardPolicy):
         decisions.
         """
         if can_run := guard is guard.queue[0]:
-            guard.observers.appendleft(guard)  # append first to
-            guard.queue.popleft()  # rule-out race-conditions
             with guard._use_tracker as tracker:
+                # append first to rule-out race conditions
+                guard.observers.appendleft(guard)
                 tracker.add_fault_signal(guard.observers.popleft)
+                if guard is not guard.queue.popleft():
+                    raise guard.IncoherentConcurrencyState from None
                 tracker.transition_to_running()
         return can_run
 

@@ -23,12 +23,15 @@ __all__ = [
     "PendingState",
     "RunningState",
     "UnusedState",
+    "InvalidStateTransition",
+    "IncoherentConcurrencyState",
 ]
 
 
 from collections import deque
 
 from aiootp._typing import Typing as t
+from aiootp._exceptions import IncoherentConcurrencyState
 from aiootp._exceptions import InvalidStateTransition
 from aiootp.commons import FrozenInstance
 
@@ -126,6 +129,9 @@ class ConcurrencyGuardUseTracker(FrozenInstance):
     Pending: type = PendingState
     Running: type = RunningState
     Done: type = DoneState
+
+    IncoherentConcurrencyState: type = IncoherentConcurrencyState
+    InvalidStateTransition: type = InvalidStateTransition
 
     def __init__(self, /) -> None:
         """
@@ -287,6 +293,8 @@ module_api = dict(
     ConcurrencyGuardState=t.add_type(ConcurrencyGuardState),
     ConcurrencyGuardUseTracker=t.add_type(ConcurrencyGuardUseTracker),
     DoneState=DoneState,
+    IncoherentConcurrencyState=IncoherentConcurrencyState,
+    InvalidStateTransition=InvalidStateTransition,
     PendingState=PendingState,
     RunningState=RunningState,
     UnusedState=UnusedState,

@@ -18,8 +18,12 @@ Data processing & encoding utilities.
 __all__ = [
     "Domains",
     "abytes_are_equal",
+    "acanonical_pack",
+    "acanonical_unpack",
     "ahash_bytes",
     "bytes_are_equal",
+    "canonical_pack",
+    "canonical_unpack",
     "hash_bytes",
 ]
 
