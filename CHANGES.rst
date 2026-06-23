@@ -50,6 +50,7 @@ Minor Changes
 - refactor(cguard): remove unused context methods & token references
 - refactor(misc): rename, move & type methods, imports & args
 - refactor(misc): rename, update docstrings, types, throws & gitignore
+- test(asynchs): add parameterizations & fixup cases
 - test(cguard): cleanup & add tests, remove redundant variable
 - test(cguard): use already created instances instead of new ones
 - test(cguard): create 3x more non-exclusive guards than exclusive ones

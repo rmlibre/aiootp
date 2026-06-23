@@ -15,6 +15,7 @@ import math
 import time
 import warnings
 
+
 from conftest import *
 
 
@@ -23,10 +24,18 @@ TIME_VARIANCE = math.ceil(TIME_RESOLUTION / 1e-09)
 
 YEAR_WITH_LEAP_DAYS = 365.24225
 
-EPOCHS_TESTED = (
-    OpenNamespace(seconds=0, nanoseconds=0),
-    OpenNamespace(seconds=EPOCH, nanoseconds=EPOCH_NS),
-)
+
+class UnixEpoch:
+    seconds: int = 0
+    nanoseconds: int = 0
+
+
+class PackageEpoch:
+    seconds: int = EPOCH
+    nanoseconds: int = EPOCH_NS
+
+
+EPOCHS_TESTED = [UnixEpoch, PackageEpoch]
 
 
 class EqualTimingExperiment:
@@ -147,172 +156,172 @@ class TestClockConversions:
             assert number_of_tests <= 12 * len(set(tests))
         assert tests == sorted(tests)
 
-    def test_nanoseconds_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(NANOSECONDS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            span = test.correct_range(
-                control_conversion=self.seconds_to_nanoseconds,
-            )
-            if TIME_RESOLUTION <= 1e-09:
-                assert test.experiment in span
-            else:
-                assert test.experiment in range(
-                    span.start - TIME_VARIANCE,
-                    span.stop + TIME_VARIANCE,
-                )
-
-    def test_microseconds_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(MICROSECONDS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            span = test.correct_range(
-                control_conversion=self.seconds_to_microseconds,
-            )
-            if TIME_RESOLUTION <= 1e-09:
-                assert test.experiment in span
-            else:
-                assert test.experiment in range(
-                    span.start - (TIME_VARIANCE // 1_000),
-                    span.stop + (TIME_VARIANCE // 1_000),
-                )
-
-    def test_milliseconds_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(MILLISECONDS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            span = test.correct_range(
-                control_conversion=self.seconds_to_milliseconds,
-            )
-            if TIME_RESOLUTION <= 1e-09:
-                assert test.experiment in span
-            else:
-                assert test.experiment in range(
-                    span.start - (TIME_VARIANCE // 1_000_000),
-                    span.stop + (TIME_VARIANCE // 1_000_000),
-                )
-
-    def test_centiseconds_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(CENTISECONDS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            span = test.correct_range(
-                control_conversion=self.seconds_to_centiseconds,
-            )
-            if TIME_RESOLUTION <= 1e-09:
-                assert test.experiment in span
-            else:
-                assert test.experiment in range(
-                    span.start - (TIME_VARIANCE // 10_000_000),
-                    span.stop + (TIME_VARIANCE // 10_000_000),
-                )
-
-    def test_deciseconds_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(DECISECONDS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            span = test.correct_range(
-                control_conversion=self.seconds_to_deciseconds,
-            )
-            if TIME_RESOLUTION <= 1e-09:
-                assert test.experiment in span
-            else:
-                assert test.experiment in range(
-                    span.start - (TIME_VARIANCE // 100_000_000),
-                    span.stop + (TIME_VARIANCE // 100_000_000),
-                )
-
-    def test_seconds_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(SECONDS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_seconds,
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_nanoseconds_correctness(self, epoch) -> None:
+        clock = Clock(NANOSECONDS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        span = test.correct_range(
+            control_conversion=self.seconds_to_nanoseconds,
+        )
+        if TIME_RESOLUTION <= 1e-09:
+            assert test.experiment in span
+        else:
+            assert test.experiment in range(
+                span.start - TIME_VARIANCE,
+                span.stop + TIME_VARIANCE,
             )
 
-    def test_minutes_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(MINUTES, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_minutes,
-            )
-
-    def test_hours_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(HOURS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_hours,
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_microseconds_correctness(self, epoch) -> None:
+        clock = Clock(MICROSECONDS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        span = test.correct_range(
+            control_conversion=self.seconds_to_microseconds,
+        )
+        if TIME_RESOLUTION <= 1e-06:
+            assert test.experiment in span
+        else:
+            assert test.experiment in range(
+                span.start - (TIME_VARIANCE // 1_000),
+                span.stop + (TIME_VARIANCE // 1_000),
             )
 
-    def test_days_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(DAYS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_days,
-            )
-
-    def test_months_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(MONTHS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
-            )
-            assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_months,
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_milliseconds_correctness(self, epoch) -> None:
+        clock = Clock(MILLISECONDS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        span = test.correct_range(
+            control_conversion=self.seconds_to_milliseconds,
+        )
+        if TIME_RESOLUTION <= 1e-03:
+            assert test.experiment in span
+        else:
+            assert test.experiment in range(
+                span.start - (TIME_VARIANCE // 1_000_000),
+                span.stop + (TIME_VARIANCE // 1_000_000),
             )
 
-    def test_years_correctness(self) -> None:
-        for epoch in EPOCHS_TESTED:
-            clock = Clock(YEARS, epoch=epoch.nanoseconds)
-            test = EqualTimingExperiment(
-                control_timer=time.time,
-                experiment_timer=clock.time,
-                epoch=epoch,
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_centiseconds_correctness(self, epoch) -> None:
+        clock = Clock(CENTISECONDS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        span = test.correct_range(
+            control_conversion=self.seconds_to_centiseconds,
+        )
+        if TIME_RESOLUTION <= 1e-02:
+            assert test.experiment in span
+        else:
+            assert test.experiment in range(
+                span.start - (TIME_VARIANCE // 10_000_000),
+                span.stop + (TIME_VARIANCE // 10_000_000),
             )
-            assert test.experiment in test.correct_range(
-                control_conversion=self.seconds_to_years,
+
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_deciseconds_correctness(self, epoch) -> None:
+        clock = Clock(DECISECONDS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        span = test.correct_range(
+            control_conversion=self.seconds_to_deciseconds,
+        )
+        if TIME_RESOLUTION <= 1e-01:
+            assert test.experiment in span
+        else:
+            assert test.experiment in range(
+                span.start - (TIME_VARIANCE // 100_000_000),
+                span.stop + (TIME_VARIANCE // 100_000_000),
             )
+
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_seconds_correctness(self, epoch) -> None:
+        clock = Clock(SECONDS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        assert test.experiment in test.correct_range(
+            control_conversion=self.seconds_to_seconds,
+        )
+
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_minutes_correctness(self, epoch) -> None:
+        clock = Clock(MINUTES, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        assert test.experiment in test.correct_range(
+            control_conversion=self.seconds_to_minutes,
+        )
+
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_hours_correctness(self, epoch) -> None:
+        clock = Clock(HOURS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        assert test.experiment in test.correct_range(
+            control_conversion=self.seconds_to_hours,
+        )
+
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_days_correctness(self, epoch) -> None:
+        clock = Clock(DAYS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        assert test.experiment in test.correct_range(
+            control_conversion=self.seconds_to_days,
+        )
+
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_months_correctness(self, epoch) -> None:
+        clock = Clock(MONTHS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        assert test.experiment in test.correct_range(
+            control_conversion=self.seconds_to_months,
+        )
+
+    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
+    def test_years_correctness(self, epoch) -> None:
+        clock = Clock(YEARS, epoch=epoch.nanoseconds)
+        test = EqualTimingExperiment(
+            control_timer=time.time,
+            experiment_timer=clock.time,
+            epoch=epoch,
+        )
+        assert test.experiment in test.correct_range(
+            control_conversion=self.seconds_to_years,
+        )
 
 
 class TestClock:
@@ -382,17 +391,21 @@ class TestClock:
     ) -> None:
         clock = Clock(units)
         past_time = max(0, clock.time() - ttl - 1)
+
         if ttl - past_time >= 0:
             ttl = past_time - 1
+
         for size in timestamp_bytes:
+            past = past_time.to_bytes(size, BIG)
+
             problem = (  # fmt: skip
                 f"Expired {clock=} timestamp of {size=} with {ttl=} was "
                 "not caught."
             )
-            past = past_time.to_bytes(size, BIG)
             with Ignore(TimestampExpired, if_else=violation(problem)) as r:
                 await clock.atest_timestamp(past, ttl=ttl)
             assert r.error.expired_by >= 1
+
             with Ignore(TimestampExpired, if_else=violation(problem)) as r:
                 clock.test_timestamp(past, ttl=ttl)
             assert r.error.expired_by >= 1
