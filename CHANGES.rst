@@ -29,6 +29,7 @@ Minor Changes
 - build(gh): update checkout & setup-python actions to v6
 - build(gh): begin CI testing under free-threaded Python 3.14
 - build(pyproj): update deps + ruff linter excludes
+- build(pyproj): update test & dev dependencies
 - build(ruff): specify files needing an PLR0915 exception
 - docs(cguard): fix docstrings & match the details of new updates
 - docs(typing): remove deprecated use of Optional in annotations
