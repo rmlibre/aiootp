@@ -222,29 +222,44 @@ ttl_stream_ciphertext = b"".join(
 
 
 light_pcrypt = Passcrypt(mb=1, cpu=1, cores=1, tag_size=32)
-aexpired_passcrypt_hash = run(light_pcrypt.ahash_passphrase(passphrase_0))
-expired_passcrypt_hash = light_pcrypt.hash_passphrase(passphrase_0)
+aexpired_pcrypt_hash = run(light_pcrypt.ahash_passphrase(passphrase_0))
+expired_pcrypt_hash = light_pcrypt.hash_passphrase(passphrase_0)
 
-custom_pcrypt = Passcrypt(
+seconds_pcrypt = Passcrypt(
     mb=1,
     cpu=1,
     cores=1,
     tag_size=32,
     config=t.PasscryptConfig(
         CONFIG_ID=b"Passcrypt-timestamp:seconds",
-        TIME_UNIT="seconds",
+        TIME_UNIT=SECONDS,
         TIMESTAMP_BYTES=4,
     ),
 )
-aexpired_passcrypt_hash_seconds = run(
-    custom_pcrypt.ahash_passphrase(passphrase_0),
+aexpired_pcrypt_hash_seconds = run(
+    seconds_pcrypt.ahash_passphrase(passphrase_0),
 )
-expired_passcrypt_hash_seconds = custom_pcrypt.hash_passphrase(passphrase_0)
+expired_pcrypt_hash_seconds = seconds_pcrypt.hash_passphrase(
+    passphrase_0,
+)
 
-
-clock = Clock(SECONDS, epoch=EPOCH_NS)
-ns_clock = Clock(NANOSECONDS, epoch=EPOCH_NS)
-time_start = clock.make_timestamp()
+milliseconds_pcrypt = Passcrypt(
+    mb=1,
+    cpu=1,
+    cores=1,
+    tag_size=32,
+    config=t.PasscryptConfig(
+        CONFIG_ID=b"Passcrypt-timestamp:milliseconds",
+        TIME_UNIT=MILLISECONDS,
+        TIMESTAMP_BYTES=6,
+    ),
+)
+aexpired_pcrypt_hash_milliseconds = run(
+    milliseconds_pcrypt.ahash_passphrase(passphrase_0),
+)
+expired_pcrypt_hash_milliseconds = milliseconds_pcrypt.hash_passphrase(
+    passphrase_0,
+)
 
 
 @pytest.fixture(scope="session")

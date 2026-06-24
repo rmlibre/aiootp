@@ -15,6 +15,7 @@ import math
 import time
 import warnings
 
+from aiootp.asynchs.clocks import TimeUnit
 
 from conftest import *
 
@@ -25,17 +26,44 @@ TIME_VARIANCE = math.ceil(TIME_RESOLUTION / 1e-09)
 YEAR_WITH_LEAP_DAYS = 365.24225
 
 
-class UnixEpoch:
+class EpochType:
+    seconds: int
+    nanoseconds: int
+
+
+class UnixEpoch(EpochType):
     seconds: int = 0
     nanoseconds: int = 0
 
 
-class PackageEpoch:
+class PackageEpoch(EpochType):
     seconds: int = EPOCH
     nanoseconds: int = EPOCH_NS
 
 
 EPOCHS_TESTED = [UnixEpoch, PackageEpoch]
+
+
+class ExaminedTimeUnit(TimeUnit):
+    @classmethod
+    def conversion(
+        unit,
+        /,
+        control_time: int | float,
+        epoch: EpochType,
+    ) -> int:
+        shifted_control_time = control_time - epoch.seconds
+        return int(shifted_control_time * unit.per_s)
+
+
+TIME_UNITS: tuple[ExaminedTimeUnit] = tuple(
+    type(
+        time_unit.__name__,
+        (ExaminedTimeUnit,),
+        time_unit.__dict__.copy(),
+    )
+    for time_unit in Clock._times.values()
+)
 
 
 class EqualTimingExperiment:
@@ -45,7 +73,7 @@ class EqualTimingExperiment:
         self,
         control_timer: t.Callable[[], t.PositiveRealNumber],
         experiment_timer: t.Callable[[], int],
-        epoch: int,
+        epoch: EpochType,
     ) -> None:
         self.epoch = epoch
         self.early_control, self.experiment, self.late_control = (
@@ -56,8 +84,7 @@ class EqualTimingExperiment:
 
     def correct_range(
         self,
-        *,
-        control_conversion: t.Callable[[t.PositiveRealNumber], int],
+        control_conversion: t.Callable[[int | float, EpochType], int],
     ) -> range:
         return range(
             control_conversion(self.early_control, epoch=self.epoch) - 1,
@@ -91,50 +118,6 @@ class TestAPlatformTime:
 
 
 class TestClockConversions:
-    seconds_to_nanoseconds = staticmethod(
-        lambda control, epoch: int(
-            (control - epoch.seconds) * 1_000_000_000,
-        ),
-    )
-    seconds_to_microseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 1_000_000),
-    )
-    seconds_to_milliseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 1_000),
-    )
-    seconds_to_centiseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 100),
-    )
-    seconds_to_deciseconds = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) * 10),
-    )
-    seconds_to_seconds = staticmethod(
-        lambda control, epoch: int(control - epoch.seconds),
-    )
-    seconds_to_minutes = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) / 60),
-    )
-    seconds_to_hours = staticmethod(
-        lambda control, epoch: int((control - epoch.seconds) / (60 * 60)),
-    )
-    seconds_to_days = staticmethod(
-        lambda control, epoch: int(
-            (control - epoch.seconds) / (60 * 60 * 24),
-        ),
-    )
-    seconds_to_months = staticmethod(
-        lambda control, epoch: int(
-            (control - epoch.seconds)
-            / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS / 12),
-        ),
-    )
-    seconds_to_years = staticmethod(
-        lambda control, epoch: int(
-            (control - epoch.seconds)
-            / (60 * 60 * 24 * YEAR_WITH_LEAP_DAYS),
-        ),
-    )
-
     def test_package_epoch_starts_year_2023(self) -> None:
         info = time.gmtime(Clock(SECONDS, epoch=0).time())
         year_difference = info.tm_year - 2023
@@ -157,171 +140,27 @@ class TestClockConversions:
         assert tests == sorted(tests)
 
     @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_nanoseconds_correctness(self, epoch) -> None:
-        clock = Clock(NANOSECONDS, epoch=epoch.nanoseconds)
+    @pytest.mark.parametrize("unit", TIME_UNITS)
+    def test_time_unit_clock_correctness(
+        self,
+        epoch: EpochType,
+        unit: ExaminedTimeUnit,
+    ) -> None:
+        clock = Clock(unit.name, epoch=epoch.nanoseconds)
         test = EqualTimingExperiment(
             control_timer=time.time,
             experiment_timer=clock.time,
             epoch=epoch,
         )
-        span = test.correct_range(
-            control_conversion=self.seconds_to_nanoseconds,
-        )
-        if TIME_RESOLUTION <= 1e-09:
-            assert test.experiment in span
+        expected_span = test.correct_range(unit.conversion)
+        if TIME_RESOLUTION <= 1 / unit.per_s:
+            assert test.experiment in expected_span
         else:
+            variance = int(TIME_VARIANCE * unit.as_ns)
             assert test.experiment in range(
-                span.start - TIME_VARIANCE,
-                span.stop + TIME_VARIANCE,
+                span.start - variance,
+                span.stop + variance,
             )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_microseconds_correctness(self, epoch) -> None:
-        clock = Clock(MICROSECONDS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        span = test.correct_range(
-            control_conversion=self.seconds_to_microseconds,
-        )
-        if TIME_RESOLUTION <= 1e-06:
-            assert test.experiment in span
-        else:
-            assert test.experiment in range(
-                span.start - (TIME_VARIANCE // 1_000),
-                span.stop + (TIME_VARIANCE // 1_000),
-            )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_milliseconds_correctness(self, epoch) -> None:
-        clock = Clock(MILLISECONDS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        span = test.correct_range(
-            control_conversion=self.seconds_to_milliseconds,
-        )
-        if TIME_RESOLUTION <= 1e-03:
-            assert test.experiment in span
-        else:
-            assert test.experiment in range(
-                span.start - (TIME_VARIANCE // 1_000_000),
-                span.stop + (TIME_VARIANCE // 1_000_000),
-            )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_centiseconds_correctness(self, epoch) -> None:
-        clock = Clock(CENTISECONDS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        span = test.correct_range(
-            control_conversion=self.seconds_to_centiseconds,
-        )
-        if TIME_RESOLUTION <= 1e-02:
-            assert test.experiment in span
-        else:
-            assert test.experiment in range(
-                span.start - (TIME_VARIANCE // 10_000_000),
-                span.stop + (TIME_VARIANCE // 10_000_000),
-            )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_deciseconds_correctness(self, epoch) -> None:
-        clock = Clock(DECISECONDS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        span = test.correct_range(
-            control_conversion=self.seconds_to_deciseconds,
-        )
-        if TIME_RESOLUTION <= 1e-01:
-            assert test.experiment in span
-        else:
-            assert test.experiment in range(
-                span.start - (TIME_VARIANCE // 100_000_000),
-                span.stop + (TIME_VARIANCE // 100_000_000),
-            )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_seconds_correctness(self, epoch) -> None:
-        clock = Clock(SECONDS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        assert test.experiment in test.correct_range(
-            control_conversion=self.seconds_to_seconds,
-        )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_minutes_correctness(self, epoch) -> None:
-        clock = Clock(MINUTES, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        assert test.experiment in test.correct_range(
-            control_conversion=self.seconds_to_minutes,
-        )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_hours_correctness(self, epoch) -> None:
-        clock = Clock(HOURS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        assert test.experiment in test.correct_range(
-            control_conversion=self.seconds_to_hours,
-        )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_days_correctness(self, epoch) -> None:
-        clock = Clock(DAYS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        assert test.experiment in test.correct_range(
-            control_conversion=self.seconds_to_days,
-        )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_months_correctness(self, epoch) -> None:
-        clock = Clock(MONTHS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        assert test.experiment in test.correct_range(
-            control_conversion=self.seconds_to_months,
-        )
-
-    @pytest.mark.parametrize("epoch", EPOCHS_TESTED)
-    def test_years_correctness(self, epoch) -> None:
-        clock = Clock(YEARS, epoch=epoch.nanoseconds)
-        test = EqualTimingExperiment(
-            control_timer=time.time,
-            experiment_timer=clock.time,
-            epoch=epoch,
-        )
-        assert test.experiment in test.correct_range(
-            control_conversion=self.seconds_to_years,
-        )
 
 
 class TestClock:
@@ -345,7 +184,9 @@ class TestClock:
         [
             (NANOSECONDS, 2 * 10**8, [8, 9, 10, 11]),
             (MICROSECONDS, 2 * 10**5, [7, 8, 9, 10]),
-            (MILLISECONDS, 2 * 10**2, [5, 6, 7, 8]),
+            (MILLISECONDS, 2 * 10**2, [6, 7, 8, 9]),
+            (CENTISECONDS, 2 * 10**1, [5, 6, 7, 8]),
+            (DECISECONDS, 2, [5, 6, 7, 8]),
             (SECONDS, 1, [4, 5, 6, 7, 8]),
             (MINUTES, 1, [4, 5, 6, 7, 8]),
             (HOURS, 1, [3, 5, 6, 8]),
@@ -374,7 +215,9 @@ class TestClock:
         [
             (NANOSECONDS, [8, 9, 10, 11]),
             (MICROSECONDS, [7, 8, 9, 10]),
-            (MILLISECONDS, [5, 6, 7, 8]),
+            (MILLISECONDS, [6, 7, 8, 9]),
+            (CENTISECONDS, [5, 6, 7, 8]),
+            (DECISECONDS, [5, 6, 7, 8]),
             (SECONDS, [4, 5, 6, 7, 8]),
             (MINUTES, [4, 5, 6, 7, 8]),
             (HOURS, [3, 5, 6, 8]),

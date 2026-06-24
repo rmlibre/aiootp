@@ -22,6 +22,31 @@ class BlankType:
     pass
 
 
+@t.runtime_checkable
+class ProtocolWithClassVars(t.Protocol):
+    example: t.ClassVar[str]
+
+
+class TestProtocolWithClassVars:
+    async def test_is_uncheckable_in_issubclass(self) -> None:
+        problem = (
+            "Expected typed class to throw error in issubclass check "
+            "since it defined a variable in its slots which specifies "
+            "it as adherent to a Protocol with ClassVars. This is a "
+            "limitation of Python & not a design choice made by the "
+            "package."
+        )  # fmt: skip
+        with Ignore(TypeError, if_else=violation(problem)):
+
+            class TypedClass(t.TypedSlots):
+                __slots__ = ("variable",)
+
+                slots_types = dict(variable=ProtocolWithClassVars)
+
+        with Ignore(TypeError, if_else=violation(problem)):
+            issubclass(str, ProtocolWithClassVars)
+
+
 class ProtocolSubTypeTests:
     async def test_issubclass_at_runtime(self) -> None:
         for cls in self.types_tested:

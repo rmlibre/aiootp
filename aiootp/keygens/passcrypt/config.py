@@ -233,9 +233,7 @@ class PasscryptConfig(Config):
             self.HEADER_BYTES + self.MIN_SALT_SIZE + self.MIN_TAG_SIZE
         )
         self.clock = Clock(self.TIME_UNIT, epoch=self.EPOCH_NS)
-        self.S_TO_TIME_UNIT_RATIO = float(
-            1 / Clock._times[self.TIME_UNIT].ratio,
-        )
+        self.S_TO_TIME_UNIT_RATIO = float(self.clock.unit.per_s)
 
     def _construct_metadata_constant(self) -> None:
         """

@@ -26,6 +26,7 @@ __all__ = [
     "MultiConcurrencyGaurdType",
     "PoolExecutorType",
     "QueueType",
+    "TimeUnitType",
 ]
 
 
@@ -93,6 +94,13 @@ class QueueType(t.Protocol):
         pass  # pragma: no cover
 
     def full(self) -> bool:
+        pass  # pragma: no cover
+
+
+@t.runtime_checkable
+class TimeUnitType(t.Protocol):
+    @classmethod
+    def time(unit, /, epoch: int) -> int:
         pass  # pragma: no cover
 
 
@@ -295,6 +303,7 @@ module_api = dict(
     MultiConcurrencyGaurdType=t.add_type(MultiConcurrencyGaurdType),
     PoolExecutorType=t.add_type(PoolExecutorType),
     QueueType=t.add_type(QueueType),
+    TimeUnitType=t.add_type(TimeUnitType),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,

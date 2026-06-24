@@ -45,7 +45,7 @@ class TestRawGUIDConfig:
                 size=size,
                 clock=t.Clock(units),
             )
-            assert units == config.clock._units
+            assert units == config.clock.unit.name
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})

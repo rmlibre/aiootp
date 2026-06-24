@@ -15,22 +15,7 @@
 Time & timestamping tools.
 """
 
-__all__ = [
-    "Clock",
-    "ns_counter",
-    "s_counter",
-    "this_nanosecond",
-    "this_microsecond",
-    "this_millisecond",
-    "this_centisecond",
-    "this_decisecond",
-    "this_second",
-    "this_minute",
-    "this_hour",
-    "this_day",
-    "this_month",
-    "this_year",
-]
+__all__ = ["Clock", "ns_counter", "s_counter"]
 
 
 from time import time_ns, get_clock_info
@@ -54,135 +39,125 @@ from aiootp._constants import (
 )
 from aiootp._constants import SAFE_TIMESTAMP_BYTES
 from aiootp._exceptions import Issue, TimestampExpired
-from aiootp.commons import FrozenNamespace, FrozenSlots
+from aiootp.commons import FrozenNamespace, FrozenTypedSlots
 
 from .loops import asleep
 
 
 _YEAR_WITH_LEAP_DAYS: float = 365.24225
-_ONE_NANOSECOND: int = 1
-_ONE_MICROSECOND: int = 1_000
-_ONE_MILLISECOND: int = 1_000_000
-_ONE_CENTISECOND: int = 10_000_000
-_ONE_DECISECOND: int = 100_000_000
-_ONE_SECOND: int = 1_000_000_000
-_ONE_MINUTE: int = 60 * _ONE_SECOND
-_ONE_HOUR: int = 60 * _ONE_MINUTE
-_ONE_DAY: int = 24 * _ONE_HOUR
-_ONE_MONTH: float = (_YEAR_WITH_LEAP_DAYS * _ONE_DAY) / 12
-_ONE_YEAR: float = _YEAR_WITH_LEAP_DAYS * _ONE_DAY
 
 
-def this_nanosecond(epoch: int = 0) -> int:
+class TimeUnit:
     """
-    Returns the current time in nanoseconds with respect to the supplied
-    `epoch`. The `epoch` is always measured in nanoseconds since the
-    UNIX epoch of 0.
-    """
-    return time_ns() - epoch
-
-
-def this_microsecond(epoch: int = 0) -> int:
-    """
-    Returns the current time in microseconds with respect to the
-    supplied `epoch`. The `epoch` is always measured in nanoseconds
-    since the UNIX epoch of 0.
-    """
-    return this_nanosecond(epoch) // _ONE_MICROSECOND
-
-
-def this_millisecond(epoch: int = 0) -> int:
-    """
-    Returns the current time in milliseconds with respect to the
-    supplied `epoch`. The `epoch` is always measured in nanoseconds
-    since the UNIX epoch of 0.
-    """
-    return this_nanosecond(epoch) // _ONE_MILLISECOND
-
-
-def this_centisecond(epoch: int = 0) -> int:
-    """
-    Returns the current time in centiseconds with respect to the
-    supplied `epoch`. The `epoch` is always measured in nanoseconds
-    since the UNIX epoch of 0.
-    """
-    return this_nanosecond(epoch) // _ONE_CENTISECOND
-
-
-def this_decisecond(epoch: int = 0) -> int:
-    """
-    Returns the current time in deciseconds with respect to the supplied
-    `epoch`. The `epoch` is always measured in nanoseconds since the
-    UNIX epoch of 0.
-    """
-    return this_nanosecond(epoch) // _ONE_DECISECOND
-
-
-def this_second(epoch: int = 0) -> int:
-    """
-    Returns the current time in seconds with respect to the supplied
-    `epoch`. The `epoch` is always measured in nanoseconds since the
-    UNIX epoch of 0.
-    """
-    return this_nanosecond(epoch) // _ONE_SECOND
-
-
-def this_minute(epoch: int = 0) -> int:
-    """
-    Returns the current time in minutes with respect to the supplied
-    `epoch`. The `epoch` is always measured in nanoseconds since the
-    UNIX epoch of 0.
-    """
-    return this_nanosecond(epoch) // _ONE_MINUTE
-
-
-def this_hour(epoch: int = 0) -> int:
-    """
-    Returns the current time in hours with respect to the supplied
-    `epoch`. The `epoch` is always measured in nanoseconds since the
-    UNIX epoch of 0.
-    """
-    return this_nanosecond(epoch) // _ONE_HOUR
-
-
-def this_day(epoch: int = 0) -> int:
-    """
-    Returns the current time in days with respect to the supplied
-    `epoch`. The `epoch` is always measured in nanoseconds since the
-    UNIX epoch of 0.
-    """
-    return this_nanosecond(epoch) // _ONE_DAY
-
-
-def this_month(epoch: int = 0) -> int:
-    """
-    Returns the current time in months with respect to the supplied
-    `epoch`. The `epoch` is always measured in nanoseconds since the
-    UNIX epoch of 0.
-    """
-    return int(this_nanosecond(epoch) / _ONE_MONTH)
-
-
-def this_year(epoch: int = 0) -> int:
-    """
-    Returns the current time in years with respect to the supplied
-    `epoch`. The `epoch` is always measured in nanoseconds since the
-    UNIX epoch of 0.
-    """
-    return int(this_nanosecond(epoch) / _ONE_YEAR)
-
-
-class UnitToSeconds(t.NamedTuple):
-    """
-    Organizes conversion & normalization tooling from a time unit to the
-    second.
+    Utility classes to produce clock timings representing different
+    units of time.
     """
 
-    time: t.Callable[..., int]
-    ratio: float
+    __slots__ = ()
+
+    name: str
+    as_ns: int | float  # time-unit as nanoseconds
+    per_s: int | float  # time-units per second
+
+    @classmethod
+    def time(unit, /, epoch: int = 0) -> int:
+        """
+        Returns the current time in the class' units with respect to the
+        supplied `epoch`. The `epoch` is always measured in nanoseconds
+        since the UNIX epoch of 0.
+        """
+        return int((time_ns() - epoch) / unit.as_ns)
 
 
-class Clock(FrozenSlots):
+class Nanoseconds(TimeUnit):
+    __slots__ = ()
+
+    name: str = NANOSECONDS
+    as_ns: int | float = 1
+    per_s: int | float = 1_000_000_000
+
+
+class Microseconds(TimeUnit):
+    __slots__ = ()
+
+    name: str = MICROSECONDS
+    as_ns: int | float = Nanoseconds.as_ns * 1_000
+    per_s: int | float = Nanoseconds.per_s // 1_000
+
+
+class Milliseconds(TimeUnit):
+    __slots__ = ()
+
+    name: str = MILLISECONDS
+    as_ns: int | float = Microseconds.as_ns * 1_000
+    per_s: int | float = Microseconds.per_s // 1_000
+
+
+class Centiseconds(TimeUnit):
+    __slots__ = ()
+
+    name: str = CENTISECONDS
+    as_ns: int | float = Milliseconds.as_ns * 10
+    per_s: int | float = Milliseconds.per_s // 10
+
+
+class Deciseconds(TimeUnit):
+    __slots__ = ()
+
+    name: str = DECISECONDS
+    as_ns: int | float = Centiseconds.as_ns * 10
+    per_s: int | float = Centiseconds.per_s // 10
+
+
+class Seconds(TimeUnit):
+    __slots__ = ()
+
+    name: str = SECONDS
+    as_ns: int | float = Deciseconds.as_ns * 10
+    per_s: int | float = Deciseconds.per_s // 10
+
+
+class Minutes(TimeUnit):
+    __slots__ = ()
+
+    name: str = MINUTES
+    as_ns: int | float = Seconds.as_ns * 60
+    per_s: int | float = Seconds.per_s / 60
+
+
+class Hours(TimeUnit):
+    __slots__ = ()
+
+    name: str = HOURS
+    as_ns: int | float = Minutes.as_ns * 60
+    per_s: int | float = Minutes.per_s / 60
+
+
+class Days(TimeUnit):
+    __slots__ = ()
+
+    name: str = DAYS
+    as_ns: int | float = Hours.as_ns * 24
+    per_s: int | float = Hours.per_s / 24
+
+
+class Months(TimeUnit):
+    __slots__ = ()
+
+    name: str = MONTHS
+    as_ns: int | float = Days.as_ns * (_YEAR_WITH_LEAP_DAYS / 12)
+    per_s: int | float = Days.per_s / (_YEAR_WITH_LEAP_DAYS / 12)
+
+
+class Years(TimeUnit):
+    __slots__ = ()
+
+    name: str = YEARS
+    as_ns: int | float = Days.as_ns * _YEAR_WITH_LEAP_DAYS
+    per_s: int | float = Days.per_s / _YEAR_WITH_LEAP_DAYS
+
+
+class Clock(FrozenTypedSlots):
     """
     A class whose objects are used for creating & measuring bytes-type
     timestamps, with configurable time units & epoch of measure.
@@ -234,8 +209,18 @@ class Clock(FrozenSlots):
     # Sun, 01 Jan 2023 00:00:00 UTC
     """
 
-    __slots__ = ("_epoch", "_resolution_needed", "_time", "_units")
+    __slots__ = (
+        "_epoch",
+        "_resolution_needed",
+        "_time",
+        "unit",
+    )
 
+    _UNMAPPED_ATTRIBUTES: frozenset = frozenset({
+        "_epoch",
+        "_resolution_needed",
+        "_time",
+    })  # fmt: skip
     _DIRLESS_ATTRIBUTES: frozenset = frozenset({
         "YEARS",
         "MONTHS",
@@ -253,19 +238,19 @@ class Clock(FrozenSlots):
         "time",
     ).resolution
 
-    _times: FrozenNamespace = FrozenNamespace(
-        years=UnitToSeconds(this_year, _ONE_YEAR / _ONE_SECOND),
-        months=UnitToSeconds(this_month, _ONE_MONTH / _ONE_SECOND),
-        days=UnitToSeconds(this_day, 24 * 60 * 60),
-        hours=UnitToSeconds(this_hour, 60 * 60),
-        minutes=UnitToSeconds(this_minute, 60),
-        seconds=UnitToSeconds(this_second, 1),
-        deciseconds=UnitToSeconds(this_decisecond, 1e-1),
-        centiseconds=UnitToSeconds(this_centisecond, 1e-2),
-        milliseconds=UnitToSeconds(this_millisecond, 1e-3),
-        microseconds=UnitToSeconds(this_microsecond, 1e-6),
-        nanoseconds=UnitToSeconds(this_nanosecond, 1e-9),
-    )
+    _times: FrozenNamespace = FrozenNamespace({
+        YEARS: Years,
+        MONTHS: Months,
+        DAYS: Days,
+        HOURS: Hours,
+        MINUTES: Minutes,
+        SECONDS: Seconds,
+        DECISECONDS: Deciseconds,
+        CENTISECONDS: Centiseconds,
+        MILLISECONDS: Milliseconds,
+        MICROSECONDS: Microseconds,
+        NANOSECONDS: Nanoseconds,
+    })  # fmt: skip
 
     YEARS: str = YEARS
     MONTHS: str = MONTHS
@@ -281,6 +266,13 @@ class Clock(FrozenSlots):
 
     TimestampExpired: type = TimestampExpired
 
+    slots_types = dict(
+        _epoch=int,
+        _resolution_needed=(float, int),
+        _time=t.Callable,
+        unit=t.TimeUnitType,
+    )
+
     def __init__(
         self,
         /,
@@ -294,9 +286,10 @@ class Clock(FrozenSlots):
         """
         if units not in self._times:
             raise Issue.invalid_value("time units", units)
+        self.unit = self._times[units]()
+        self._time = self.unit.time
+        self._resolution_needed = self.unit.as_ns * 1e-09
         self._epoch = epoch
-        self._time, self._resolution_needed = self._times[units]
-        self._units = units
 
     def __repr__(self, /) -> str:
         """
@@ -304,7 +297,7 @@ class Clock(FrozenSlots):
         """
         return (
             f"{self.__class__.__qualname__}("
-            f"{self._units!r}, epoch={self._epoch})"
+            f"{self.unit.name!r}, epoch={self._epoch})"
         )
 
     def has_adequate_resolution(self, /) -> bool:
@@ -425,7 +418,7 @@ class Clock(FrozenSlots):
         timestamp_is_expired = delta > ttl
         expired_by = delta - ttl
         if timestamp_is_expired:
-            raise self.TimestampExpired(self._units, expired_by)
+            raise self.TimestampExpired(self.unit.name, expired_by)
 
     def test_timestamp(
         self,
@@ -446,11 +439,23 @@ class Clock(FrozenSlots):
         timestamp_is_expired = delta > ttl
         expired_by = delta - ttl
         if timestamp_is_expired:
-            raise self.TimestampExpired(self._units, expired_by)
+            raise self.TimestampExpired(self.unit.name, expired_by)
 
 
 module_api = dict(
     Clock=t.add_type(Clock),
+    TimeUnit=t.add_type(TimeUnit),
+    Nanoseconds=t.add_type(Nanoseconds),
+    Microseconds=t.add_type(Microseconds),
+    Milliseconds=t.add_type(Milliseconds),
+    Centiseconds=t.add_type(Centiseconds),
+    Deciseconds=t.add_type(Deciseconds),
+    Seconds=t.add_type(Seconds),
+    Minutes=t.add_type(Minutes),
+    Hours=t.add_type(Hours),
+    Days=t.add_type(Days),
+    Months=t.add_type(Months),
+    Years=t.add_type(Years),
     __all__=__all__,
     __doc__=__doc__,
     __file__=__file__,
@@ -460,15 +465,4 @@ module_api = dict(
     __package__=__package__,
     ns_counter=ns_counter,
     s_counter=s_counter,
-    this_nanosecond=this_nanosecond,
-    this_microsecond=this_microsecond,
-    this_millisecond=this_millisecond,
-    this_centisecond=this_centisecond,
-    this_decisecond=this_decisecond,
-    this_second=this_second,
-    this_minute=this_minute,
-    this_hour=this_hour,
-    this_day=this_day,
-    this_month=this_month,
-    this_year=this_year,
 )

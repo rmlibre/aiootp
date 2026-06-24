@@ -48,6 +48,7 @@ Minor Changes
 - refactor(cguard): swap method definition orders & improve docs
 - refactor(cguard): make use tracker an auto-validating state machine
 - refactor(cguard): remove unused context methods & token references
+- refactor(clock): consolidate time unit data into expressive types
 - refactor(misc): rename, move & type methods, imports & args
 - refactor(misc): rename, update docstrings, types, throws & gitignore
 - test(asynchs): add parameterizations & fixup cases
