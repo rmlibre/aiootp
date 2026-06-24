@@ -158,8 +158,8 @@ class TestClockConversions:
         else:
             variance = int(TIME_VARIANCE * unit.as_ns)
             assert test.experiment in range(
-                span.start - variance,
-                span.stop + variance,
+                expected_span.start - variance,
+                expected_span.stop + variance,
             )
 
 

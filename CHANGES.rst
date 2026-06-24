@@ -44,6 +44,7 @@ Minor Changes
 - fix(cguard): avoid using exception branch for control flow
 - fix(paths): avoid collisions with larger index keys
 - fix(slots): add slots_types to dirless & restricted TypedSlots sets
+- fix(tests): update new variable name consistently to avoid NameError
 - perf(commons): check contains on set instead of tuple
 - refactor(asynchs): update obj dirs & imports, handle more queue faults
 - refactor(cguard): split management types into new module
