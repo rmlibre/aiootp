@@ -102,10 +102,6 @@ class TypedSlots(Slots):
                 isinstance(value, value)
             except TypeError as error:
                 raise TypeUncheckableAtRuntime(name, value) from error
-            try:
-                issubclass(type, value)
-            except TypeError as error:
-                raise TypeUncheckableAtRuntime(name, value) from error
             if name == "__dict__":
                 raise OverspecifiedVariable("__dict__")
             elif name not in cls._slots_set:

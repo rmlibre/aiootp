@@ -99,6 +99,10 @@ class QueueType(t.Protocol):
 
 @t.runtime_checkable
 class TimeUnitType(t.Protocol):
+    name: t.ClassVar[str]
+    as_ns: t.ClassVar[int | float]
+    per_s: t.ClassVar[int | float]
+
     @classmethod
     def time(unit, /, epoch: int) -> int:
         pass  # pragma: no cover

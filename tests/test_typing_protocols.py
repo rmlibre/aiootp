@@ -22,31 +22,6 @@ class BlankType:
     pass
 
 
-@t.runtime_checkable
-class ProtocolWithClassVars(t.Protocol):
-    example: t.ClassVar[str]
-
-
-class TestProtocolWithClassVars:
-    async def test_is_uncheckable_in_issubclass(self) -> None:
-        problem = (
-            "Expected typed class to throw error in issubclass check "
-            "since it defined a variable in its slots which specifies "
-            "it as adherent to a Protocol with ClassVars. This is a "
-            "limitation of Python & not a design choice made by the "
-            "package."
-        )  # fmt: skip
-        with Ignore(TypeError, if_else=violation(problem)):
-
-            class TypedClass(t.TypedSlots):
-                __slots__ = ("variable",)
-
-                slots_types = dict(variable=ProtocolWithClassVars)
-
-        with Ignore(TypeError, if_else=violation(problem)):
-            issubclass(str, ProtocolWithClassVars)
-
-
 class ProtocolSubTypeTests:
     async def test_issubclass_at_runtime(self) -> None:
         for cls in self.types_tested:
@@ -57,6 +32,19 @@ class ProtocolSubTypeTests:
         for obj in self.instances_tested:
             assert isinstance(obj, self.protocol)
             assert not isinstance(BlankType(), self.protocol)
+
+
+class ProtocolWithClassVarsSubTypeTests(ProtocolSubTypeTests):
+    async def test_issubclass_at_runtime(self) -> None:
+        problem = (
+            "Expected issubclass check to throw an error since the "
+            "Protocol class specifies a ClassVar variable. This is a "
+            "limitation of Python & not a design choice made by the "
+            "package."
+        )
+        for cls in self.types_tested:
+            with Ignore(TypeError, if_else=violation(problem)):
+                issubclass(cls, self.protocol)
 
 
 class TestPaddingType(ProtocolSubTypeTests):
@@ -184,6 +172,18 @@ class TestQueueTypes(ProtocolSubTypeTests):
     protocol = t.QueueType
     instances_tested = [t.Processes._get_queue(), t.Threads._get_queue()]
     types_tested = [obj.__class__ for obj in instances_tested]
+
+
+class TestTimeUnitTypes(ProtocolWithClassVarsSubTypeTests):
+    protocol = t.TimeUnitType
+    types_tested = [*t.Clock._times.values()]
+    instances_tested = [unit() for unit in types_tested]
+
+
+class TestClockTypes(ProtocolSubTypeTests):
+    protocol = t.ClockType
+    instances_tested = [t.Clock(name) for name in t.Clock._times]
+    types_tested = [t.Clock]
 
 
 class TestPoolExecutorTypes(ProtocolSubTypeTests):
