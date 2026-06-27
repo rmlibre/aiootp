@@ -75,12 +75,12 @@ class EqualTimingExperiment:
         )
 
     def correct_range(self) -> range:
-        shifted_early_control = self.early_control - self.epoch.seconds
-        shifted_late_control = self.late_control - self.epoch.seconds
+        shifted_early_control = self.early_control - self.epoch.nanoseconds
+        shifted_late_control = self.late_control - self.epoch.nanoseconds
 
         return range(
-            int(shifted_early_control * self.unit.per_s),
-            math.ceil(shifted_late_control * self.unit.per_s) + 1,
+            int(shifted_early_control / self.unit.as_ns),
+            math.ceil(shifted_late_control / self.unit.as_ns) + 1,
         )
 
 
@@ -172,7 +172,7 @@ class TestClockConversions:
     ) -> None:
         clock = Clock(unit.name, epoch=epoch.nanoseconds)
         test = EqualTimingExperiment(
-            control_timer=time.time,
+            control_timer=time.time_ns,
             experiment_timer=clock.time,
             epoch=epoch,
             unit=unit,
