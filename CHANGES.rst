@@ -62,6 +62,7 @@ Minor Changes
 - test(cguard): reorganize & consolidate cases & test fault recovery
 - test(cguard): check for false negatives, remove unused clauses
 - test(clock): attempt tighter bounds on ttls, & misc refactorings
+- test(clock): remove unused variable, use consistent case names
 - test(cov): expand tests to cover missing branches
 - test(cov): refactor & expand tests to cover missing branches
 - test(platform): increase error rate 20% for low time resolutions

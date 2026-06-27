@@ -22,9 +22,6 @@ from conftest import *
 TIME_RESOLUTION = time.get_clock_info("time").resolution
 
 
-YEAR_WITH_LEAP_DAYS = 365.24225
-
-
 class EpochType:
     seconds: t.ClassVar[int]
     nanoseconds: t.ClassVar[int]
@@ -260,7 +257,7 @@ class TestClock:
 
     @given(ttl=st.integers(min_value=0))
     @pytest.mark.parametrize("unit", TIME_UNITS)
-    async def test_async_delta_greater_than_ttl_fails(
+    async def test_adelta_greater_than_ttl_fails(
         self,
         unit: t.TimeUnitType,
         ttl: int,
@@ -293,7 +290,7 @@ class TestClock:
 
     @given(ttl=st.integers(min_value=0))
     @pytest.mark.parametrize("unit", TIME_UNITS)
-    async def test_sync_delta_greater_than_ttl_fails(
+    async def test_delta_greater_than_ttl_fails(
         self,
         unit: t.TimeUnitType,
         ttl: int,
