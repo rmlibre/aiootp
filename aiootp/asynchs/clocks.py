@@ -25,17 +25,17 @@ from time import perf_counter_ns as ns_counter
 from aiootp._typing import Typing as t
 from aiootp._constants import EPOCH_NS, BIG
 from aiootp._constants import (
-    YEARS,
-    MONTHS,
-    DAYS,
-    HOURS,
-    MINUTES,
-    SECONDS,
-    DECISECONDS,
-    CENTISECONDS,
-    MILLISECONDS,
-    MICROSECONDS,
     NANOSECONDS,
+    MICROSECONDS,
+    MILLISECONDS,
+    CENTISECONDS,
+    DECISECONDS,
+    SECONDS,
+    MINUTES,
+    HOURS,
+    DAYS,
+    MONTHS,
+    YEARS,
 )
 from aiootp._constants import SAFE_TIMESTAMP_BYTES
 from aiootp._exceptions import Issue, TimestampExpired
@@ -190,17 +190,17 @@ class Clock(FrozenTypedSlots):
         'Timestamp expired by 287491003983 # of nanoseconds.'
 
     # These are the supported units ->
-    year_clock = Clock(Clock.YEARS)
-    month_clock = Clock(Clock.MONTHS)
-    day_clock = Clock(Clock.DAYS)
-    hour_clock = Clock(Clock.HOURS)
-    minute_clock = Clock(Clock.MINUTES)
-    second_clock = Clock(Clock.SECONDS)
-    ds_clock = Clock(Clock.DECISECONDS)
-    cs_clock = Clock(Clock.CENTISECONDS)
-    ms_clock = Clock(Clock.MILLISECONDS)
-    µs_clock = Clock(Clock.MICROSECONDS)
     ns_clock = Clock(Clock.NANOSECONDS)
+    µs_clock = Clock(Clock.MICROSECONDS)
+    ms_clock = Clock(Clock.MILLISECONDS)
+    cs_clock = Clock(Clock.CENTISECONDS)
+    ds_clock = Clock(Clock.DECISECONDS)
+    second_clock = Clock(Clock.SECONDS)
+    minute_clock = Clock(Clock.MINUTES)
+    hour_clock = Clock(Clock.HOURS)
+    day_clock = Clock(Clock.DAYS)
+    month_clock = Clock(Clock.MONTHS)
+    year_clock = Clock(Clock.YEARS)
 
     # The `epoch` is always measured in nanoseconds from the UNIX epoch of 0
     hour_clock = Clock("hours", epoch=9000)  # time starts 9000 nanoseconds
@@ -222,47 +222,47 @@ class Clock(FrozenTypedSlots):
         "_time",
     })  # fmt: skip
     _DIRLESS_ATTRIBUTES: frozenset = frozenset({
-        "YEARS",
-        "MONTHS",
-        "DAYS",
-        "HOURS",
-        "MINUTES",
-        "SECONDS",
-        "DECISECONDS",
-        "CENTISECONDS",
-        "MILLISECONDS",
-        "MICROSECONDS",
         "NANOSECONDS",
+        "MICROSECONDS",
+        "MILLISECONDS",
+        "CENTISECONDS",
+        "DECISECONDS",
+        "SECONDS",
+        "MINUTES",
+        "HOURS",
+        "DAYS",
+        "MONTHS",
+        "YEARS",
     })  # fmt: skip
     _SYSTEM_TIME_RESOLUTION: t.PositiveRealNumber = get_clock_info(
         "time",
     ).resolution
 
     _times: FrozenNamespace = FrozenNamespace({
-        YEARS: Years,
-        MONTHS: Months,
-        DAYS: Days,
-        HOURS: Hours,
-        MINUTES: Minutes,
-        SECONDS: Seconds,
-        DECISECONDS: Deciseconds,
-        CENTISECONDS: Centiseconds,
-        MILLISECONDS: Milliseconds,
-        MICROSECONDS: Microseconds,
         NANOSECONDS: Nanoseconds,
+        MICROSECONDS: Microseconds,
+        MILLISECONDS: Milliseconds,
+        CENTISECONDS: Centiseconds,
+        DECISECONDS: Deciseconds,
+        SECONDS: Seconds,
+        MINUTES: Minutes,
+        HOURS: Hours,
+        DAYS: Days,
+        MONTHS: Months,
+        YEARS: Years,
     })  # fmt: skip
 
-    YEARS: str = YEARS
-    MONTHS: str = MONTHS
-    DAYS: str = DAYS
-    HOURS: str = HOURS
-    MINUTES: str = MINUTES
-    SECONDS: str = SECONDS
-    DECISECONDS: str = DECISECONDS
-    CENTISECONDS: str = CENTISECONDS
-    MILLISECONDS: str = MILLISECONDS
-    MICROSECONDS: str = MICROSECONDS
     NANOSECONDS: str = NANOSECONDS
+    MICROSECONDS: str = MICROSECONDS
+    MILLISECONDS: str = MILLISECONDS
+    CENTISECONDS: str = CENTISECONDS
+    DECISECONDS: str = DECISECONDS
+    SECONDS: str = SECONDS
+    MINUTES: str = MINUTES
+    HOURS: str = HOURS
+    DAYS: str = DAYS
+    MONTHS: str = MONTHS
+    YEARS: str = YEARS
 
     TimestampExpired: type = TimestampExpired
 
@@ -288,7 +288,7 @@ class Clock(FrozenTypedSlots):
             raise Issue.invalid_value("time units", units)
         self.unit = self._times[units]()
         self._time = self.unit.time
-        self._resolution_needed = self.unit.as_ns * 1e-09
+        self._resolution_needed = 1 / self.unit.per_s
         self._epoch = epoch
 
     def __repr__(self, /) -> str:

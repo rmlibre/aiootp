@@ -14,12 +14,19 @@
 from conftest import *
 
 
-# NOTE: The tests run in alphabetical order, so a Z is prepended to their
-#       names. This way time will naturally pass from the start of the
-#       tests to the end, eliminating idle waiting time.
+# NOTE: The tests run in alphabetical order, so a Z is prepended to
+#       their names. This way time will naturally pass from the start
+#       of the tests to the end, eliminating idle waiting time.
 
 
-class TestZCipherTimeToLive:
+class TestZElapsedTime:
+    async def test_enough_time_has_elapsed(self) -> None:
+        delta = clock.delta(time_start)
+        if not (delta > 1.5):
+            await asleep(1.5 - delta)
+
+
+class TestZZZCipherTimeToLive:
     async def test_async_json_decrypt(self) -> None:
         problem = (  # fmt: skip
             "Life-time for async json ciphertext is malfunctioning."
@@ -85,10 +92,11 @@ class TestZCipherTimeToLive:
         assert relay.error.expired_by >= 1
 
     async def test_async_cipher_stream(self) -> None:
+        enc_stream, ciphertext = attl_cipher_stream, attl_stream_ciphertext
+
         problem = (  # fmt: skip
             "Life-time for async cipher streams is malfunctioning."
         )
-        enc_stream, ciphertext = attl_cipher_stream, attl_stream_ciphertext
         with Ignore(
             TimestampExpired,
             if_else=violation(problem),
@@ -102,13 +110,15 @@ class TestZCipherTimeToLive:
             )
             await dec_stream.abuffer(ciphertext)
             b"".join([block async for block in dec_stream])
+
         assert relay.error.expired_by >= 1
 
     async def test_sync_cipher_stream(self) -> None:
+        enc_stream, ciphertext = ttl_cipher_stream, ttl_stream_ciphertext
+
         problem = (  # fmt: skip
             "Life-time for sync cipher streams is malfunctioning."
         )
-        enc_stream, ciphertext = ttl_cipher_stream, ttl_stream_ciphertext
         with Ignore(
             TimestampExpired,
             if_else=violation(problem),
@@ -121,55 +131,58 @@ class TestZCipherTimeToLive:
                 ttl=1,
             )
             b"".join(dec_stream.buffer(ciphertext))
+
         assert relay.error.expired_by >= 1
 
 
-class PasscryptTarget(t.NamedTuple):
+class PasscryptTarget:
     config: t.PasscryptConfig
+    atoken: bytes
     token: bytes
+    abus: Namespace
     bus: Namespace
 
+    @classmethod
+    def async_targets(cls) -> tuple[t.PasscryptConfig, bytes, Namespace]:
+        return cls.config, cls.atoken, cls.abus
 
-class TestZPasscryptTimeToLive:
-    ms_config = milliseconds_pcrypt._config
-    s_config = seconds_pcrypt._config
-    light_config = light_pcrypt._config
-    async_targets = [
-        PasscryptTarget(
-            config=ms_config,
-            token=aexpired_pcrypt_hash_milliseconds,
-            bus=Namespace(),
-        ),
-        PasscryptTarget(
-            config=s_config,
-            token=aexpired_pcrypt_hash_seconds,
-            bus=Namespace(),
-        ),
-        PasscryptTarget(
-            config=light_config,
-            token=aexpired_pcrypt_hash,
-            bus=Namespace(),
-        ),
-    ]
-    sync_targets = [
-        PasscryptTarget(
-            config=ms_config,
-            token=expired_pcrypt_hash_milliseconds,
-            bus=Namespace(),
-        ),
-        PasscryptTarget(
-            config=s_config,
-            token=expired_pcrypt_hash_seconds,
-            bus=Namespace(),
-        ),
-        PasscryptTarget(
-            config=light_config,
-            token=expired_pcrypt_hash,
-            bus=Namespace(),
-        ),
+    @classmethod
+    def sync_targets(cls) -> tuple[t.PasscryptConfig, bytes, Namespace]:
+        return cls.config, cls.token, cls.bus
+
+
+class NanosecondsPasscryptTarget(PasscryptTarget):
+    config: t.PasscryptConfig = light_pcrypt._config
+    atoken: bytes = aexpired_pcrypt_hash
+    token: bytes = expired_pcrypt_hash
+    abus: Namespace = Namespace()
+    bus: Namespace = Namespace()
+
+
+class MillisecondsPasscryptTarget(PasscryptTarget):
+    config: t.PasscryptConfig = milliseconds_pcrypt._config
+    atoken: bytes = aexpired_pcrypt_hash_milliseconds
+    token: bytes = expired_pcrypt_hash_milliseconds
+    abus: Namespace = Namespace()
+    bus: Namespace = Namespace()
+
+
+class SecondsPasscryptTarget(PasscryptTarget):
+    config: t.PasscryptConfig = seconds_pcrypt._config
+    atoken: bytes = aexpired_pcrypt_hash_seconds
+    token: bytes = expired_pcrypt_hash_seconds
+    abus: Namespace = Namespace()
+    bus: Namespace = Namespace()
+
+
+class TestZZZPasscryptTimeToLive:
+    targets = [
+        NanosecondsPasscryptTarget,
+        MillisecondsPasscryptTarget,
+        SecondsPasscryptTarget,
     ]
 
-    @pytest.mark.parametrize("target", async_targets)
+    @pytest.mark.parametrize("target", targets)
     async def test_expired_timestamps_caught_in_averify(
         self,
         target: PasscryptTarget,
@@ -182,26 +195,27 @@ class TestZPasscryptTimeToLive:
             if_else=violation(problem),
         ) as ignored:
             relay = ignored
-            target.bus.time_before_test = target.config.clock.time()
+            config, token, bus = target.async_targets()
+            bus.time_before_test = config.clock.time()
             await Passcrypt.averify(
-                target.token,
+                token,
                 passphrase_0,
                 ttl=1,
-                config=target.config,
+                config=config,
             )
-        target.bus.time_after_test = target.config.clock.time()
-        target.bus.expired_by = relay.error.expired_by
+        bus.time_after_test = config.clock.time()
+        bus.expired_by = relay.error.expired_by
 
-    @pytest.mark.parametrize("target", async_targets)
+    @pytest.mark.parametrize("target", targets)
     async def test_async_pcrypt_ttl_accuracy(
         self,
         target: PasscryptTarget,
     ) -> None:
-        unit = target.config.clock.unit
-        bus = target.bus
+        config, token, bus = target.async_targets()
+        unit = config.clock.unit
         ttl = 1
 
-        ts = target.token[target.config.TIMESTAMP_SLICE]
+        ts = token[config.TIMESTAMP_SLICE]
         adjusted_timestamp = int.from_bytes(ts, BIG) + ttl * unit.per_s
 
         test_before_delta = int(bus.time_before_test - adjusted_timestamp)
@@ -210,7 +224,7 @@ class TestZPasscryptTimeToLive:
 
         assert bus.expired_by in expected_span
 
-    @pytest.mark.parametrize("target", sync_targets)
+    @pytest.mark.parametrize("target", targets)
     async def test_expired_timestamps_caught_in_verify(
         self,
         target: PasscryptTarget,
@@ -223,26 +237,27 @@ class TestZPasscryptTimeToLive:
             if_else=violation(problem),
         ) as ignored:
             relay = ignored
-            target.bus.time_before_test = target.config.clock.time()
+            config, token, bus = target.sync_targets()
+            bus.time_before_test = config.clock.time()
             Passcrypt.verify(
-                target.token,
+                token,
                 passphrase_0,
                 ttl=1,
-                config=target.config,
+                config=config,
             )
-        target.bus.time_after_test = target.config.clock.time()
-        target.bus.expired_by = relay.error.expired_by
+        bus.time_after_test = config.clock.time()
+        bus.expired_by = relay.error.expired_by
 
-    @pytest.mark.parametrize("target", sync_targets)
+    @pytest.mark.parametrize("target", targets)
     async def test_sync_pcrypt_ttl_accuracy(
         self,
         target: PasscryptTarget,
     ) -> None:
-        unit = target.config.clock.unit
-        bus = target.bus
+        config, token, bus = target.sync_targets()
+        unit = config.clock.unit
         ttl = 1
 
-        ts = target.token[target.config.TIMESTAMP_SLICE]
+        ts = token[config.TIMESTAMP_SLICE]
         adjusted_timestamp = int.from_bytes(ts, BIG) + ttl * unit.per_s
 
         test_before_delta = int(bus.time_before_test - adjusted_timestamp)

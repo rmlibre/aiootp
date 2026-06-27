@@ -262,6 +262,10 @@ expired_pcrypt_hash_milliseconds = milliseconds_pcrypt.hash_passphrase(
 )
 
 
+clock = Clock(Clock.SECONDS)
+time_start = clock.make_timestamp()
+
+
 @pytest.fixture(scope="session")
 def database() -> Database:
     db = Database(key=key, preload=True)
