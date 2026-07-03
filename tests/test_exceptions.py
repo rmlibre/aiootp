@@ -196,9 +196,8 @@ class TestIgnore:
         assert relay.bus.if_except == 0
         assert relay.bus.finally_run == 1
 
-    async def test_raised_error_is_shown_in_object_repr(self) -> None:
-        with Ignore(ZeroDivisionError) as ignored:
-            relay = ignored
+    async def test_ignored_error_is_shown_in_object_repr(self) -> None:
+        with Ignore(ZeroDivisionError) as relay:
             raise ZeroDivisionError
         assert "ZeroDivisionError" in repr(relay)
 

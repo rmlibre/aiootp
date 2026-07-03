@@ -19,123 +19,152 @@ from conftest import *
 #       of the tests to the end, eliminating idle waiting time.
 
 
+TTLS: list[int] = [0, 1]
+
+
 class TestZElapsedTime:
     async def test_enough_time_has_elapsed(self) -> None:
         delta = clock.delta(time_start)
-        if not (delta > 1.5):
-            await asleep(1.5 - delta)
+        if delta < 2:
+            await asleep(2 - delta)
+
+
+class CatchExpiredTimestamp(Ignore):
+    __slots__ = ("delta_before", "delta_after", "expected_range", "ttl")
+
+    def __init__(self, *a: Exception, ttl: int, **kw) -> None:
+        self.ttl = ttl
+        super().__init__(*a, **kw)
+
+    def __enter__(self) -> t.Self:
+        self.delta_before = clock.delta(time_start)
+        return super().__enter__()
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.delta_after = clock.delta(time_start)
+        self.expected_range = range(
+            self.delta_before - self.ttl,
+            self.delta_after - self.ttl + 2,
+        )
+        return super().__exit__(exc_type, exc_value, traceback)
 
 
 class TestZZZCipherTimeToLive:
-    async def test_async_json_decrypt(self) -> None:
+    @pytest.mark.parametrize("ttl", TTLS)
+    async def test_async_json_decrypt(self, ttl: int) -> None:
         problem = (  # fmt: skip
             "Life-time for async json ciphertext is malfunctioning."
         )
-        with Ignore(
+        with CatchExpiredTimestamp(
             TimestampExpired,
             if_else=violation(problem),
-        ) as ignored:
-            relay = ignored
+            ttl=ttl,
+        ) as relay:
             await ttl_test_cipher.cipher.ajson_decrypt(
                 atest_json_ciphertext,
                 aad=ttl_test_cipher.aad,
-                ttl=1,
+                ttl=ttl,
             )
-        assert relay.error.expired_by >= 1
+        assert relay.error.expired_by in relay.expected_range
 
-    async def test_sync_json_decrypt(self) -> None:
+    @pytest.mark.parametrize("ttl", TTLS)
+    async def test_sync_json_decrypt(self, ttl: int) -> None:
         problem = (  # fmt: skip
             "Life-time for sync json ciphertext is malfunctioning."
         )
-        with Ignore(
+        with CatchExpiredTimestamp(
             TimestampExpired,
             if_else=violation(problem),
-        ) as ignored:
-            relay = ignored
+            ttl=ttl,
+        ) as relay:
             ttl_test_cipher.cipher.json_decrypt(
                 test_json_ciphertext,
                 aad=ttl_test_cipher.aad,
-                ttl=1,
+                ttl=ttl,
             )
-        assert relay.error.expired_by >= 1
+        assert relay.error.expired_by in relay.expected_range
 
-    async def test_async_read_token(self) -> None:
+    @pytest.mark.parametrize("ttl", TTLS)
+    async def test_async_read_token(self, ttl: int) -> None:
         problem = (  # fmt: skip
             "Life-time for async tokens is malfunctioning."
         )
-        with Ignore(
+        with CatchExpiredTimestamp(
             TimestampExpired,
             if_else=violation(problem),
-        ) as ignored:
-            relay = ignored
+            ttl=ttl,
+        ) as relay:
             await ttl_test_cipher.cipher.aread_token(
                 atest_token_ciphertext,
                 aad=ttl_test_cipher.aad,
-                ttl=1,
+                ttl=ttl,
             )
-        assert relay.error.expired_by >= 1
+        assert relay.error.expired_by in relay.expected_range
 
-    async def test_sync_read_token(self) -> None:
+    @pytest.mark.parametrize("ttl", TTLS)
+    async def test_sync_read_token(self, ttl: int) -> None:
         problem = (  # fmt: skip
             "Life-time for sync tokens is malfunctioning."
         )
-        with Ignore(
+        with CatchExpiredTimestamp(
             TimestampExpired,
             if_else=violation(problem),
-        ) as ignored:
-            relay = ignored
+            ttl=ttl,
+        ) as relay:
             ttl_test_cipher.cipher.read_token(
                 test_token_ciphertext,
                 aad=ttl_test_cipher.aad,
-                ttl=1,
+                ttl=ttl,
             )
-        assert relay.error.expired_by >= 1
+        assert relay.error.expired_by in relay.expected_range
 
-    async def test_async_cipher_stream(self) -> None:
+    @pytest.mark.parametrize("ttl", TTLS)
+    async def test_async_cipher_stream(self, ttl: int) -> None:
         enc_stream, ciphertext = attl_cipher_stream, attl_stream_ciphertext
 
         problem = (  # fmt: skip
             "Life-time for async cipher streams is malfunctioning."
         )
-        with Ignore(
+        with CatchExpiredTimestamp(
             TimestampExpired,
             if_else=violation(problem),
-        ) as ignored:
-            relay = ignored
+            ttl=ttl,
+        ) as relay:
             dec_stream = await ttl_test_cipher.cipher.astream_decrypt(
                 salt=enc_stream.salt,
                 aad=enc_stream.aad,
                 iv=enc_stream.iv,
-                ttl=1,
+                ttl=ttl,
             )
             await dec_stream.abuffer(ciphertext)
             b"".join([block async for block in dec_stream])
 
-        assert relay.error.expired_by >= 1
+        assert relay.error.expired_by in relay.expected_range
 
-    async def test_sync_cipher_stream(self) -> None:
+    @pytest.mark.parametrize("ttl", TTLS)
+    async def test_sync_cipher_stream(self, ttl: int) -> None:
         enc_stream, ciphertext = ttl_cipher_stream, ttl_stream_ciphertext
 
         problem = (  # fmt: skip
             "Life-time for sync cipher streams is malfunctioning."
         )
-        with Ignore(
+        with CatchExpiredTimestamp(
             TimestampExpired,
             if_else=violation(problem),
-        ) as ignored:
-            relay = ignored
+            ttl=ttl,
+        ) as relay:
             dec_stream = ttl_test_cipher.cipher.stream_decrypt(
                 salt=enc_stream.salt,
                 aad=enc_stream.aad,
                 iv=enc_stream.iv,
-                ttl=1,
+                ttl=ttl,
             )
             b"".join(dec_stream.buffer(ciphertext))
 
-        assert relay.error.expired_by >= 1
+        assert relay.error.expired_by in relay.expected_range
 
 
-class PasscryptTarget:
+class PasscryptTTLTarget:
     config: t.PasscryptConfig
     atoken: bytes
     token: bytes
@@ -151,7 +180,7 @@ class PasscryptTarget:
         return cls.config, cls.token, cls.bus
 
 
-class NanosecondsPasscryptTarget(PasscryptTarget):
+class NanosecondsPasscryptTarget(PasscryptTTLTarget):
     config: t.PasscryptConfig = light_pcrypt._config
     atoken: bytes = aexpired_pcrypt_hash
     token: bytes = expired_pcrypt_hash
@@ -159,7 +188,7 @@ class NanosecondsPasscryptTarget(PasscryptTarget):
     bus: Namespace = Namespace()
 
 
-class MillisecondsPasscryptTarget(PasscryptTarget):
+class MillisecondsPasscryptTarget(PasscryptTTLTarget):
     config: t.PasscryptConfig = milliseconds_pcrypt._config
     atoken: bytes = aexpired_pcrypt_hash_milliseconds
     token: bytes = expired_pcrypt_hash_milliseconds
@@ -167,7 +196,7 @@ class MillisecondsPasscryptTarget(PasscryptTarget):
     bus: Namespace = Namespace()
 
 
-class SecondsPasscryptTarget(PasscryptTarget):
+class SecondsPasscryptTarget(PasscryptTTLTarget):
     config: t.PasscryptConfig = seconds_pcrypt._config
     atoken: bytes = aexpired_pcrypt_hash_seconds
     token: bytes = expired_pcrypt_hash_seconds
@@ -185,7 +214,7 @@ class TestZZZPasscryptTimeToLive:
     @pytest.mark.parametrize("target", targets)
     async def test_expired_timestamps_caught_in_averify(
         self,
-        target: PasscryptTarget,
+        target: PasscryptTTLTarget,
     ) -> None:
         problem = (  # fmt: skip
             "Life-time for async passcrypt hashes are malfunctioning."
@@ -193,8 +222,7 @@ class TestZZZPasscryptTimeToLive:
         with Ignore(
             TimestampExpired,
             if_else=violation(problem),
-        ) as ignored:
-            relay = ignored
+        ) as relay:
             config, token, bus = target.async_targets()
             bus.time_before_test = config.clock.time()
             await Passcrypt.averify(
@@ -209,7 +237,7 @@ class TestZZZPasscryptTimeToLive:
     @pytest.mark.parametrize("target", targets)
     async def test_async_pcrypt_ttl_accuracy(
         self,
-        target: PasscryptTarget,
+        target: PasscryptTTLTarget,
     ) -> None:
         config, token, bus = target.async_targets()
         unit = config.clock.unit
@@ -227,7 +255,7 @@ class TestZZZPasscryptTimeToLive:
     @pytest.mark.parametrize("target", targets)
     async def test_expired_timestamps_caught_in_verify(
         self,
-        target: PasscryptTarget,
+        target: PasscryptTTLTarget,
     ) -> None:
         problem = (  # fmt: skip
             "Life-time for sync passcrypt hashes are malfunctioning."
@@ -235,8 +263,7 @@ class TestZZZPasscryptTimeToLive:
         with Ignore(
             TimestampExpired,
             if_else=violation(problem),
-        ) as ignored:
-            relay = ignored
+        ) as relay:
             config, token, bus = target.sync_targets()
             bus.time_before_test = config.clock.time()
             Passcrypt.verify(
@@ -251,7 +278,7 @@ class TestZZZPasscryptTimeToLive:
     @pytest.mark.parametrize("target", targets)
     async def test_sync_pcrypt_ttl_accuracy(
         self,
-        target: PasscryptTarget,
+        target: PasscryptTTLTarget,
     ) -> None:
         config, token, bus = target.sync_targets()
         unit = config.clock.unit

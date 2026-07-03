@@ -55,6 +55,7 @@ Minor Changes
 - refactor(clock): consolidate time unit data into expressive types
 - refactor(misc): rename, move & type methods, imports & args
 - refactor(misc): rename, update docstrings, types, throws & gitignore
+- refactor(test): rename variables, cases, & simplify procedures
 - test(asynchs): add parameterizations & fixup cases
 - test(cguard): cleanup & add tests, remove redundant variable
 - test(cguard): use already created instances instead of new ones

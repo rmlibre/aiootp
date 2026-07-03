@@ -527,12 +527,12 @@ class TestMultiConcurrencyGaurd:
 
                 task = record_ordering(
                     target,
-                    await choose_policy(target),
+                    choose_policy(target),
                     is_spontaneous=True,
                 )
                 spontaneous_tasks.append(new_task(task))
 
-        async def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
+        def choose_policy(target) -> t.ConcurrencyGuardPolicyType:
             guard = (
                 guards.monitor(target, policy=NonExclusivePolicy())
                 if token_bits(2)
@@ -551,9 +551,7 @@ class TestMultiConcurrencyGaurd:
         targets = guards_per_target * unique_targets
         control_groups = defaultdict(deque)
         resource_lock = Lock()
-        instances = [
-            (target, await choose_policy(target)) for target in targets
-        ]
+        instances = [(target, choose_policy(target)) for target in targets]
 
         target_results = deque()
         groups = defaultdict(deque)

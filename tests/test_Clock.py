@@ -45,9 +45,10 @@ TIME_UNITS: tuple[t.TimeUnitType] = tuple(Clock._times.values())
 
 def min_safe_timestamp_bytes(unit: t.TimeUnitType) -> int:
     bit_length = unit.time().bit_length()
-    if 0 < bit_length % 8 < 4:
-        return math.ceil(bit_length / 8)
-    return math.ceil(bit_length / 8) + 1
+    fractional_byte_count, remainder_bits = divmod(bit_length, 8)
+    if 0 < remainder_bits < 4:
+        return math.ceil(fractional_byte_count)
+    return math.ceil(fractional_byte_count) + 1
 
 
 class EqualTimingExperiment:
@@ -86,7 +87,7 @@ class EqualTimingExperiment:
 
 class TestAPlatformCounter:
     def test_is_monotonic(self) -> None:
-        assert time.get_clock_info("perf_counter").monotonic is True
+        assert time.get_clock_info("perf_counter").monotonic
 
     def test_is_nanosecond_precise(self) -> None:
         problem = (  # fmt: skip
