@@ -27,6 +27,13 @@ from aiootp.commons import FrozenInstance
 from .hashing import ahash_bytes, hash_bytes
 
 
+class EncodedConstant(bytes):
+    """
+    Signals that the value for a user-defined constant has already been
+    encoded.
+    """
+
+
 class DomainEncoder(FrozenInstance):
     """
     A base class which enables domain constants to be encoded & created
@@ -36,6 +43,55 @@ class DomainEncoder(FrozenInstance):
     __slots__ = ()
 
     _DOMAIN: bytes = b"domain_constant_encoder"
+    _SUBCLASS_DOMAIN: bytes = b""
+    _DEFAULT_SIZE: int = 8
+
+    _Constant: type = EncodedConstant
+
+    @classmethod
+    def _follows_naming_convention(cls, name: str, /) -> bool:
+        """
+        Determines whether a given attribute `name` follows the class'
+        convention for user-defined constants.
+        """
+        return (
+            not name.startswith("_")
+            and name.isupper()
+            and name.isidentifier()
+        )
+
+    @classmethod
+    def _has_already_been_encoded(
+        cls,
+        value: t.AnyStr | _Constant,
+        /,
+    ) -> bool:
+        """
+        Returns `True` if the provided `value` is an instance of the
+        class' signalling type, which indicates that the value has
+        already been encoded.
+        """
+        return isinstance(value, cls._Constant)
+
+    def __init_subclass__(cls, /, *a: t.Any, **kw: t.Any) -> None:
+        """
+        Walks a subclass' dictionary to automatically discover & encode
+        user-defined constants which follow the class' convention for
+        the names of constants.
+        """
+        super().__init_subclass__(*a, **kw)
+        for name, value in cls.__dict__.items():
+            follows_name_convention = cls._follows_naming_convention(name)
+            is_already_encoded = cls._has_already_been_encoded(value)
+            if is_already_encoded or not follows_name_convention:
+                continue
+
+            constant = cls.encode_constant(
+                value,
+                domain=cls._SUBCLASS_DOMAIN,
+                size=cls._DEFAULT_SIZE,
+            )
+            setattr(cls, name, constant)
 
     @classmethod
     async def aencode_constant(
@@ -46,7 +102,7 @@ class DomainEncoder(FrozenInstance):
         domain: bytes = b"",
         aad: bytes = DEFAULT_AAD,
         pad: bytes = b"\x00",
-    ) -> bytes:
+    ) -> _Constant:
         """
         Receives a `str` or `bytes`-type `constant`, encodes & hashes
         it under a `domain`, along with the metadata of the encoding,
@@ -62,9 +118,10 @@ class DomainEncoder(FrozenInstance):
         assumptions that functions which they rely upon happen to be
         domain-specific.
         """
-        if constant.__class__ is not bytes:
+        if isinstance(constant, str):
             constant = constant.encode()
-        return await ahash_bytes(
+
+        result = await ahash_bytes(
             cls._DOMAIN,
             domain,
             aad,
@@ -73,6 +130,7 @@ class DomainEncoder(FrozenInstance):
             size=size,
             pad=pad,
         )
+        return cls._Constant(result)
 
     @classmethod
     def encode_constant(
@@ -83,7 +141,7 @@ class DomainEncoder(FrozenInstance):
         domain: bytes = b"",
         aad: bytes = DEFAULT_AAD,
         pad: bytes = b"\x00",
-    ) -> bytes:
+    ) -> _Constant:
         """
         Receives a `str` or `bytes`-type `constant`, encodes & hashes
         it under a `domain`, along with the metadata of the encoding,
@@ -99,9 +157,10 @@ class DomainEncoder(FrozenInstance):
         assumptions that functions which they rely upon happen to be
         domain-specific.
         """
-        if constant.__class__ is not bytes:
+        if isinstance(constant, str):
             constant = constant.encode()
-        return hash_bytes(
+
+        result = hash_bytes(
             cls._DOMAIN,
             domain,
             aad,
@@ -110,6 +169,7 @@ class DomainEncoder(FrozenInstance):
             size=size,
             pad=pad,
         )
+        return cls._Constant(result)
 
 
 class Domains(DomainEncoder):
@@ -120,12 +180,11 @@ class Domains(DomainEncoder):
 
     __slots__ = ()
 
-    for name, value in misc.__dict__.items():
-        if value.__class__ is str:
-            vars()[name] = DomainEncoder.encode_constant(value)
-
-    del name
-    del value
+    vars().update(
+        (name, value.encode())
+        for name, value in misc.__dict__.items()
+        if value.__class__ is str
+    )
 
 
 module_api = dict(

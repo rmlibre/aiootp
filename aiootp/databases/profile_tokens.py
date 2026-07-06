@@ -30,7 +30,7 @@ from aiootp.commons import FrozenTypedSlots
 from aiootp.generics import ahash_bytes, hash_bytes
 from aiootp.keygens import Passcrypt
 
-from .dbdomains import DBDomains
+from .db_domains import DBDomains
 
 
 class AsyncProfileTokens(FrozenTypedSlots):

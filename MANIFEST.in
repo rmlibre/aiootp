@@ -77,9 +77,11 @@ include aiootp/commons/slots.py
 include aiootp/commons/typed_slots.py
 include aiootp/databases/__init__.py
 include aiootp/databases/async_database.py
-include aiootp/databases/database_properties.py
-include aiootp/databases/dbdomains.py
-include aiootp/databases/dbkdf.py
+include aiootp/databases/db_crypto.py
+include aiootp/databases/db_domains.py
+include aiootp/databases/db_io.py
+include aiootp/databases/db_kdf.py
+include aiootp/databases/db_properties.py
 include aiootp/databases/profile_tokens.py
 include aiootp/databases/sync_database.py
 include aiootp/generics/__init__.py

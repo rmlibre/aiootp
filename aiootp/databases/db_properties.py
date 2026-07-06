@@ -19,15 +19,13 @@ A definition of properties shared between `AsyncDatabase` &
 __all__ = ["DatabaseProperties"]
 
 
-from aiootp._typing import Typing as t
-from aiootp._constants import FILENAME_HASH_BYTES
-from aiootp._exceptions import InvalidSHMAC, Ignore, TimestampExpired
-from aiootp._paths import DatabasePath
-from aiootp.generics import ByteIO
-from aiootp.ciphers import Chunky2048, Slick256
+from pathlib import Path
 
-from .dbdomains import DBDomains
-from .dbkdf import DBKDF
+from aiootp._typing import Typing as t
+from aiootp._exceptions import InvalidSHMAC, Ignore, TimestampExpired
+
+from .db_crypto import DatabaseCrypto
+from .db_io import DatabaseIO
 
 
 class DatabaseProperties:
@@ -41,56 +39,36 @@ class DatabaseProperties:
         "_is_metatag",
         "_manifest",
         "_profile_tokens",
-        "_root_kdf",
-        "_root_salt",
         "_silent",
-        "path",
     )
 
-    IO = ByteIO
-    InvalidSHMAC = InvalidSHMAC
-    TimestampExpired = TimestampExpired
-
-    _Cipher: type = Chunky2048
-    _DBDomains: type = DBDomains
-    _DBKDF: type = DBKDF
+    _Crypto: type = DatabaseCrypto
+    _IO: type = DatabaseIO
     _ProfileTokens: type
-    _TokenCipher: type = Slick256
 
-    _ROOT_SALT_BYTES: int = 24
     _ROOT_SALT_LEDGERNAME: str = "0"
     _METATAGS_LEDGERNAME: str = "1"
 
-    _path: t.Path = DatabasePath()
-
-    @classmethod
-    def _encode_filename(cls, value: bytes) -> str:
-        """
-        Returns the received bytes-type `value` in base38 encoding.
-        """
-        return cls.IO.bytes_to_filename(value)
+    InvalidSHMAC = InvalidSHMAC
+    TimestampExpired = TimestampExpired
 
     @property
-    def _root_filename(self) -> str:
+    def _root_filename(self, /) -> str:
         """
-        Returns the filename string of database's manifest.
+        Returns the filename string of database's manifest file.
         """
-        filename = self._root_kdf.shake_128(
-            size=FILENAME_HASH_BYTES,
-            aad=self._DBDomains.ROOT_FILENAME,
-        )
-        return self._encode_filename(filename)
+        filename_hash = self.crypto._root_filename_hash()
+        return self.io.bytes_to_filename(filename_hash)
 
     @property
-    def _root_path(self) -> t.Path:
+    def _root_path(self, /) -> Path:
         """
-        Returns a `pathlib.Path` object that points to the file that
-        contains the manifest ledger.
+        Returns the path to the database's manifest file.
         """
-        return self.path / self._root_filename
+        return self.io.path / self._root_filename
 
     @property
-    def _maintenance_records(self) -> set[str]:
+    def _maintenance_records(self, /) -> set[str]:
         """
         Returns the ledgernames of entries in the manifest that refer to
         administrative values used by objects to track and coordinate
@@ -99,7 +77,7 @@ class DatabaseProperties:
         return {self._ROOT_SALT_LEDGERNAME, self._METATAGS_LEDGERNAME}
 
     @property
-    def tags(self) -> set[str]:
+    def tags(self, /) -> set[str]:
         """
         Returns a list of all user-defined names for values stored in
         the database object.
@@ -112,7 +90,7 @@ class DatabaseProperties:
         }
 
     @property
-    def filenames(self) -> set[str]:
+    def filenames(self, /) -> set[str]:
         """
         Returns a list of all derived filenames of user-defined tags
         stored in the database object.
@@ -121,25 +99,20 @@ class DatabaseProperties:
         return admin_files.symmetric_difference(self._manifest.__dict__)
 
     @property
-    def metatags(self) -> set[str]:
+    def metatags(self, /) -> set[str]:
         """
         Returns the list of metatags that a database contains.
         """
         return set(self._manifest[self._METATAGS_LEDGERNAME])
 
-    def _filename(self, tag: str) -> str:
+    def _filename(self, /, tag: str) -> str:
         """
         Derives the filename hash given a user-defined `tag`.
         """
-        filename = self._root_kdf.shake_128(
-            self._root_salt,
-            tag.encode(),
-            aad=self._DBDomains.FILENAME,
-            size=FILENAME_HASH_BYTES,
-        )
-        return self._encode_filename(filename)
+        filename_hash = self.crypto._filename_hash(tag)
+        return self.io.bytes_to_filename(filename_hash)
 
-    def __contains__(self, tag: str) -> bool:
+    def __contains__(self, tag: str, /) -> bool:
         """
         Checks the cache & manifest for the filename associated with the
         user-defined `tag`.
@@ -147,7 +120,7 @@ class DatabaseProperties:
         filename = self._filename(tag)
         return filename in self._manifest or filename in self._cache
 
-    def __bool__(self) -> bool:
+    def __bool__(self, /) -> bool:
         """
         Returns `True` if the instance has any tags or metatags set.
         """
@@ -155,13 +128,13 @@ class DatabaseProperties:
         contains_metatags = self._manifest[self._METATAGS_LEDGERNAME]
         return bool(contains_tags or contains_metatags)
 
-    def __len__(self) -> int:
+    def __len__(self, /) -> int:
         """
         Returns the number tags currently added to the database.
         """
         return len(self._manifest) - len(self._maintenance_records)
 
-    def __setitem__(self, tag: str, data: t.JSONSerializable) -> None:
+    def __setitem__(self, tag: str, data: t.JSONSerializable, /) -> None:
         """
         Allows users to add the value `data` under the name `tag`
         into the database.
@@ -170,7 +143,7 @@ class DatabaseProperties:
         setattr(self._cache, filename, data)
         setattr(self._manifest, filename, tag)
 
-    def __getitem__(self, tag: str) -> t.JSONSerializable | bytes:
+    def __getitem__(self, tag: str, /) -> t.JSONSerializable | bytes:
         """
         Allows users to retrieve the value stored under the name `tag`
         from the database cache.
@@ -179,7 +152,7 @@ class DatabaseProperties:
         if filename in self._cache:
             return getattr(self._cache, filename)
 
-    def __delitem__(self, tag: str) -> None:
+    def __delitem__(self, tag: str, /) -> None:
         """
         Allows users to delete the value stored under the name `tag`
         from the database.
@@ -190,7 +163,7 @@ class DatabaseProperties:
         with Ignore(KeyError, AttributeError):
             del self._cache[filename]
         with Ignore(FileNotFoundError):
-            (self.path / filename).unlink()
+            (self.io.path / filename).unlink()
 
 
 module_api = dict(

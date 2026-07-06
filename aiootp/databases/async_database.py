@@ -20,19 +20,19 @@ __all__ = ["AsyncDatabase"]
 
 import json
 
+from io import BytesIO
+
 from aiootp._typing import Typing as t
-from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL, MIN_KEY_BYTES
+from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._constants import BYTES_FLAG, BYTES_FLAG_SIZE
-from aiootp._constants import FILENAME_HASH_BYTES, SHAKE_128_BLOCKSIZE
 from aiootp._exceptions import DatabaseIssue, Issue, Ignore
 from aiootp._paths import adelete_salt_file
 from aiootp.asynchs import AsyncInit, asleep, gather, aos
 from aiootp.commons import Namespace
-from aiootp.randoms import atoken_bytes
 from aiootp.keygens.passcrypt.config import passcrypt_spec
 
 from .profile_tokens import AsyncProfileTokens
-from .database_properties import DatabaseProperties
+from .db_properties import DatabaseProperties
 
 
 class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
@@ -87,20 +87,16 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
     await db.adelete_database()
     """
 
-    __slots__ = ()
+    __slots__ = ("_profile_tokens",)
 
     _ProfileTokens: type = AsyncProfileTokens
 
-    @classmethod
-    async def _aencode_filename(cls, value: bytes) -> str:
-        """
-        Returns the received bytes-type `value` in base38 encoding.
-        """
-        return await cls.IO.abytes_to_filename(value)
+    slots_types = dict(_profile_tokens=_ProfileTokens)
 
     @classmethod
     async def agenerate_profile(
         cls,
+        /,
         # passcrypt credentials
         *credentials: bytes,
         username: bytes,
@@ -158,6 +154,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def __init__(
         self,
+        /,
         key: bytes,
         *,
         preload: bool = False,
@@ -192,69 +189,38 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         self._silent = silent
         self._cache = Namespace()
         self._manifest = Namespace()
-        self.path = await self._aformat_path(path)
         self._is_metatag = bool(metatag)
-        await self._ainitialize_keys(key)
+        self.io = self._IO(path)
+        self.crypto = self._Crypto(key=key)
         await self._aload_manifest()
         await self.aload_database(silent=silent, preload=preload)
 
-    @classmethod
-    async def _aformat_path(cls, path: t.PathStr) -> t.Path:
-        """
-        Returns a `pathlib.Path` object to the user-specified `path`
-        if given, else returns a copy of the default database directory
-        `Path` object.
-        """
-        await asleep()
-        if path is None:
-            return t.Path(cls._path).absolute()
-        return t.Path(path).absolute()
-
-    async def _ainitialize_keys(self, key: bytes) -> None:
-        """
-        Derives the database's cryptographic root key material and the
-        filename of the manifest ledger.
-        """
-        await asleep()
-        self._root_kdf = self._DBKDF(self._DBDomains.ROOT_KDF, key=key)
-
-    async def _aopen_manifest(self) -> t.JSONObject:
+    async def _aopen_manifest(self, /) -> t.JSONObject:
         """
         Loads an existing manifest file ledger from the filesystem.
         """
-        ciphertext = await self.IO.aread(path=self._root_path)
-        key = await self._root_kdf.ashake_128(
-            aad=self._DBDomains.MANIFEST,
-            size=SHAKE_128_BLOCKSIZE,
-        )
-        return await self._Cipher(key).ajson_decrypt(ciphertext)
+        ciphertext = await self.io.aread(path=self._root_path)
+        return await self.crypto._adecrypt_manifest(ciphertext)
 
-    async def _aload_root_salt(self) -> bytes:
+    async def _aload_root_salt(self, /) -> bytes:
         """
         Returns the decoded raw bytes root salt from the manifest.
         """
-        return await self.IO.aurlsafe_to_bytes(
+        return await self.io.aurlsafe_to_bytes(
             self._manifest[self._ROOT_SALT_LEDGERNAME],
         )
 
-    async def _agenerate_root_salt(self) -> bytes:
-        """
-        Returns a raw bytes random salt with length metadata appended to
-        be used as the instance's root salt.
-        """
-        return await atoken_bytes(self._ROOT_SALT_BYTES)
-
-    async def _ainstall_root_salt(self, salt: bytes) -> None:
+    async def _ainstall_root_salt(self, /, salt: bytes) -> None:
         """
         Stores in the manifest, with a URL-safe base64 encoding, the
         `salt` value as its root salt. This the source of entropy for
         the database which isn't derived from the user's login key.
         """
         self._manifest[self._ROOT_SALT_LEDGERNAME] = (
-            await self.IO.abytes_to_urlsafe(salt)
+            await self.io.abytes_to_urlsafe(salt)
         ).decode()
 
-    async def _ainitialize_metatags(self) -> None:
+    async def _ainitialize_metatags(self, /) -> None:
         """
         Initializes the values that organize database metatags, which
         are independent offspring of databases that are accessible by
@@ -264,21 +230,23 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         if self._METATAGS_LEDGERNAME not in self._manifest:
             self._manifest[self._METATAGS_LEDGERNAME] = []
 
-    async def _aload_manifest(self) -> t.JSONObject:
+    async def _aload_manifest(self, /) -> t.JSONObject:
         """
         Initalizes the object with a new database file ledger or loads
         an existing one from the filesystem.
         """
         if self._root_path.exists():
             self._manifest = Namespace(await self._aopen_manifest())
-            self._root_salt = await self._aload_root_salt()
+            root_salt = await self._aload_root_salt()
         else:
             self._manifest = Namespace()
-            self._root_salt = await self._agenerate_root_salt()
-            await self._ainstall_root_salt(self._root_salt)
+            root_salt = await self.crypto._agenerate_root_salt()
+            await self._ainstall_root_salt(root_salt)
+
+        self.crypto._set_root_salt(root_salt)
         await self._ainitialize_metatags()
 
-    async def aload_tags(self, *, silent: bool = False) -> t.Self:
+    async def aload_tags(self, /, *, silent: bool = False) -> t.Self:
         """
         Specifically loads all of the database's tag values into the
         cache.
@@ -296,6 +264,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def aload_metatags(
         self,
+        /,
         *,
         preload: bool = True,
         silent: bool = False,
@@ -320,6 +289,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def aload_database(
         self,
+        /,
         *,
         manifest: bool = False,
         silent: bool = False,
@@ -343,163 +313,16 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         await self.aload_metatags(silent=silent, preload=preload)
         return self
 
-    async def afilename(self, tag: str) -> str:
+    async def afilename(self, /, tag: str) -> str:
         """
         Derives the filename hash given a user-defined `tag`.
         """
-        filename = await self._root_kdf.ashake_128(
-            self._root_salt,
-            tag.encode(),
-            aad=self._DBDomains.FILENAME,
-            size=FILENAME_HASH_BYTES,
-        )
-        return await self._aencode_filename(filename)
-
-    async def abytes_encrypt(
-        self,
-        plaintext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-    ) -> bytes:
-        """
-        Encrypts the `plaintext` bytes with keys specific to the
-        `filename` value & returns the ciphertext bytes.
-        """
-        key = await self._root_kdf.ashake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return await self._Cipher(key).abytes_encrypt(plaintext)
-
-    async def ajson_encrypt(
-        self,
-        plaintext: t.JSONSerializable,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-    ) -> bytes:
-        """
-        Encrypts the JSON serializable `plaintext` object with keys
-        specific to the `filename` value & returns the ciphertext
-        bytes.
-        """
-        key = await self._root_kdf.ashake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return await self._Cipher(key).ajson_encrypt(plaintext)
-
-    async def amake_token(
-        self,
-        plaintext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-    ) -> bytes:
-        """
-        Encrypts the `plaintext` bytes with keys specific to the
-        `filename` value & urlsafe base64 encodes the resulting
-        ciphertext bytes.
-        """
-        key = await self._root_kdf.ashake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return await self._TokenCipher(key).amake_token(plaintext)
-
-    async def abytes_decrypt(
-        self,
-        ciphertext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-        ttl: int | None = DEFAULT_TTL,
-    ) -> bytes:
-        """
-        Decrypts the `ciphertext` bytes with keys specific to the
-        `filename` value & returns the plaintext bytes. `ttl` is the
-        amount of seconds that dictate the allowable age of the
-        decrypted message.
-        """
-        key = await self._root_kdf.ashake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return await self._Cipher(key).abytes_decrypt(ciphertext, ttl=ttl)
-
-    async def ajson_decrypt(
-        self,
-        ciphertext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-        ttl: int | None = DEFAULT_TTL,
-    ) -> t.JSONSerializable:
-        """
-        Decrypts the `ciphertext` bytes with keys specific to the
-        `filename` value & JSON loads the resulting plaintext bytes.
-        `ttl` is the amount of seconds that dictate the allowable age
-        of the decrypted message.
-        """
-        key = await self._root_kdf.ashake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return await self._Cipher(key).ajson_decrypt(ciphertext, ttl=ttl)
-
-    async def aread_token(
-        self,
-        token: t.Base64URLSafe,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-        ttl: int | None = DEFAULT_TTL,
-    ) -> bytes:
-        """
-        Decrypts the urlsafe base64 encoded `token` with keys specific
-        to the `filename` value & returns the plaintext bytes. `ttl`
-        is the amount of seconds that dictate the allowable age of the
-        decrypted message.
-        """
-        key = await self._root_kdf.ashake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return await self._TokenCipher(key).aread_token(token, ttl=ttl)
-
-    async def _asave_ciphertext(
-        self,
-        filename: str,
-        ciphertext: bytes,
-    ) -> None:
-        """
-        Saves the encrypted value `ciphertext` in the database file
-        called `filename`.
-        """
-        path = self.path / filename
-        await self.IO.awrite(path=path, data=ciphertext)
+        filename_hash = await self.crypto._afilename_hash(tag)
+        return await self.io.abytes_to_filename(filename_hash)
 
     async def aset_tag(
         self,
+        /,
         tag: str,
         data: t.JSONSerializable,
         *,
@@ -518,23 +341,25 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def _aquery_ciphertext(
         self,
+        /,
         filename: str,
         *,
         silent: bool = False,
-    ) -> None:
+    ) -> bytes | None:
         """
         Retrieves the value stored in the database which has the given
         `filename`.
         """
         try:
-            path = self.path / filename
-            return await self.IO.aread(path=path)
+            path = self.io.path / filename
+            return await self.io.aread(path=path)
         except FileNotFoundError as error:
             if not silent:
                 raise DatabaseIssue.file_not_found(filename) from error
 
     async def aquery_tag(
         self,
+        /,
         tag: str,
         *,
         ttl: int | None = DEFAULT_TTL,
@@ -552,21 +377,25 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         if not ciphertext:
             return
 
-        result = await self.abytes_decrypt(
-            ciphertext,
-            filename=filename,
-            ttl=ttl,
+        reader = BytesIO(
+            await self.crypto.abytes_decrypt(
+                ciphertext,
+                filename=filename,
+                ttl=ttl,
+            ),
         )
-        if result[:BYTES_FLAG_SIZE] == BYTES_FLAG:
-            result = result[BYTES_FLAG_SIZE:]  # Remove bytes value flag
+        if reader.read(BYTES_FLAG_SIZE) == BYTES_FLAG:
+            result = reader.read()  # Remove bytes value flag
         else:
-            result = json.loads(result)
+            reader.seek(0)
+            result = json.loads(reader.read())
         if cache:
             setattr(self._cache, filename, result)
         return result
 
     async def _adelete_file(
         self,
+        /,
         filename: str,
         *,
         silent: bool = False,
@@ -575,13 +404,14 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         Deletes a file in the database directory by `filename`.
         """
         try:
-            await aos.remove(self.path / filename)
+            await aos.remove(self.io.path / filename)
         except FileNotFoundError as error:
             if not silent:
                 raise error from None
 
     async def apop_tag(
         self,
+        /,
         tag: str,
         *,
         silent: bool = False,
@@ -609,6 +439,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def arollback_tag(
         self,
+        /,
         tag: str,
         *,
         cache: bool = False,
@@ -620,7 +451,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         saved in the database.
         """
         filename = await self.afilename(tag)
-        if not (self.path / filename).is_file():
+        if not (self.io.path / filename).is_file():
             with Ignore(AttributeError):
                 delattr(self._manifest, filename)
         with Ignore(AttributeError):
@@ -629,7 +460,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             cache and await self.aquery_tag(tag, cache=True)
         return self
 
-    async def aclear_cache(self, *, metatags: bool = True) -> t.Self:
+    async def aclear_cache(self, /, *, metatags: bool = True) -> t.Self:
         """
         Clears all recent changes in the cache, but this doesn't clear
         a database's metatag caches unless `metatags` is truthy.
@@ -641,18 +472,9 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         await asleep()
         return self
 
-    async def _ametatag_key(self, tag: str) -> bytes:
-        """
-        Derives the metatag's database key given a user-defined `tag`.
-        """
-        return await self._root_kdf.asha3_512(
-            self._root_salt,
-            tag.encode(),
-            aad=self._DBDomains.METATAG_KEY,
-        )
-
     async def ametatag(
         self,
+        /,
         tag: str,
         *,
         preload: bool = False,
@@ -688,9 +510,9 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
                 raise Issue.cant_reassign_attribute(tag)  # fixed v0.23.9
         else:
             sub_database = await cls(
-                key=await self._ametatag_key(tag),
+                key=await self.crypto._ametatag_key(tag),
                 preload=preload,
-                path=self.path,
+                path=self.io.path,
                 metatag=True,
                 silent=silent,
             )
@@ -699,7 +521,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             self._manifest[self._METATAGS_LEDGERNAME].append(tag)
         return getattr(self, tag)
 
-    async def adelete_metatag(self, tag: str) -> t.Self:
+    async def adelete_metatag(self, /, tag: str) -> t.Self:
         """
         Removes the descendant database named `tag`.
         """
@@ -711,7 +533,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         self._manifest[self._METATAGS_LEDGERNAME].remove(tag)
         return self
 
-    async def _anullify(self) -> None:
+    async def _anullify(self, /) -> None:
         """
         Clears the database's memory caches & instance variables of all
         values so a deleted database no longer makes changes to the
@@ -726,7 +548,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
                 if hasattr(self, attr):
                     delattr(self, attr)
 
-    async def _adelete_profile_tokens(self) -> None:
+    async def _adelete_profile_tokens(self, /) -> None:
         """
         Deletes the salt file that what created if this instance was
         initialized with the `agenerate_profile` classmethod.
@@ -736,7 +558,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
             if salt_path.is_file():
                 await adelete_salt_file(salt_path)
 
-    async def adelete_database(self) -> None:
+    async def adelete_database(self, /) -> None:
         """
         Completely clears all of the entries in database instance & its
         associated files.
@@ -750,36 +572,19 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         await self._adelete_profile_tokens()
         await self._anullify()
 
-    async def _aencrypt_manifest(self) -> bytes:
-        """
-        Takes a `salt` & returns the database's manifest encrypted.
-        """
-        manifest = self._manifest.__dict__
-        key = await self._root_kdf.ashake_128(
-            aad=self._DBDomains.MANIFEST,
-            size=SHAKE_128_BLOCKSIZE,
-        )
-        return await self._Cipher(key).ajson_encrypt(manifest)
-
-    async def _asave_manifest(self, ciphertext: bytes) -> None:
-        """
-        Writes the manifest ledger to disk. It contains all database
-        filenames & special cryptographic values for initializing the
-        database's key derivation functions.
-        """
-        await self.IO.awrite(path=self._root_path, data=ciphertext)
-
-    async def _aclose_manifest(self) -> None:
+    async def _aclose_manifest(self, /) -> None:
         """
         Prepares for & writes the manifest ledger to disk. The manifest
         contains all database filenames & other metadata used to
         organize databases.
         """
-        manifest = await self._aencrypt_manifest()
-        await self._asave_manifest(manifest)
+        manifest = self._manifest.__dict__
+        ciphertext = await self.crypto._aencrypt_manifest(manifest)
+        await self.io.awrite(path=self._root_path, data=ciphertext)
 
     async def _asave_file(
         self,
+        /,
         filename: str,
         *,
         admin: bool = False,
@@ -788,15 +593,20 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         Writes the cached value for a user-specified `filename` to the
         user filesystem.
         """
+        file_path = self.io.path / filename
         value = getattr(self._cache, filename)
         if value.__class__ is bytes:
             value = BYTES_FLAG + value  # Assure not reloaded as JSON
         else:
             value = json.dumps(value).encode()
-        ciphertext = await self.abytes_encrypt(value, filename=filename)
-        await self._asave_ciphertext(filename, ciphertext)
 
-    async def _asave_tags(self) -> None:
+        ciphertext = await self.crypto.abytes_encrypt(
+            value,
+            filename=filename,
+        )
+        await self.io.awrite(path=file_path, data=ciphertext)
+
+    async def _asave_tags(self, /) -> None:
         """
         Writes the database's user-defined tags to disk.
         """
@@ -805,7 +615,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         saves = (save(filename) for filename in filenames)
         await gather(*saves)
 
-    async def _asave_metatags(self) -> None:
+    async def _asave_metatags(self, /) -> None:
         """
         Writes the database's descendant databases to disk.
         """
@@ -817,6 +627,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
 
     async def asave_tag(
         self,
+        /,
         tag: str,
         *,
         admin: bool = False,
@@ -836,7 +647,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
                 delattr(self._cache, filename)
         return self
 
-    async def asave_database(self) -> t.Self:
+    async def asave_database(self, /) -> t.Self:
         """
         Writes the database's values to disk with transparent encryption.
         """
@@ -844,7 +655,7 @@ class AsyncDatabase(DatabaseProperties, metaclass=AsyncInit):
         await gather(self._asave_metatags(), self._asave_tags())
         return self
 
-    async def __aenter__(self) -> t.Self:
+    async def __aenter__(self, /) -> t.Self:
         """
         The context manager automatically writes database changes made
         by a user to disk.

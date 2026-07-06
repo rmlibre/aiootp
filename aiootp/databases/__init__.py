@@ -19,18 +19,22 @@ persistance classes.
 __all__ = ["AsyncDatabase", "Database"]
 
 
-from .dbdomains import *
-from .dbkdf import *
+from .db_crypto import *
+from .db_domains import *
+from .db_io import *
+from .db_kdf import *
+from .db_properties import *
 from .profile_tokens import *
-from .database_properties import *
 from .async_database import *
 from .sync_database import *
 
 
 modules = dict(
-    database_properties=database_properties,
-    dbdomains=dbdomains,
-    dbkdf=dbkdf,
+    db_crypto=db_crypto,
+    db_domains=db_domains,
+    db_io=db_io,
+    db_kdf=db_kdf,
+    db_properties=db_properties,
     profile_tokens=profile_tokens,
     async_database=async_database,
     sync_database=sync_database,

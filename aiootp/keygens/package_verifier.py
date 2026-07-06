@@ -87,7 +87,7 @@ class PackageVerifier:
         else:
             self._signing_key = public_signing_key
         if verify_files:
-            self._path = Path(path).absolute()
+            self._path = Path(path)
         elif path is not None:
             raise Issue.unused_parameters("path", "not verifying files")
 

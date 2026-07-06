@@ -11,6 +11,8 @@
 #
 
 
+from aiootp.databases.db_crypto import DatabaseCrypto
+
 from conftest import *
 
 
@@ -23,7 +25,7 @@ class TestDBKDF:
         key = csprng()
         domain = b"testing"
         kdf = DomainKDF(domain, key=key)
-        dbkdf = type(database._root_kdf)(domain, key=key)
+        dbkdf = type(database.crypto._root_kdf)(domain, key=key)
         for sync_method in (
             "sha3_256",
             "sha3_512",
@@ -40,6 +42,41 @@ class TestDBKDF:
                     getattr(kdf, sync_method)()
                     != getattr(dbkdf, sync_method)()
                 )
+
+
+class TestDatabaseCrypto:
+    @given(size=st.integers(min_value=0, max_value=512))
+    async def test_invalid_root_salt_length_throws(self, size: int) -> None:
+        def is_valid_length(relay: Ignore) -> bool:
+            is_valid = size == crypto._ROOT_SALT_BYTES
+            return is_valid or violation(problem)(relay)
+
+        crypto = DatabaseCrypto(key=key)
+
+        problem = (  # fmt: skip
+            f"An invalid {size=} root salt was allowed to be set."
+        )
+        with Ignore(ValueError, if_else=is_valid_length):
+            crypto._set_root_salt(token_bytes(size))
+
+    async def test_root_salt_cannot_be_changed_once_set(self) -> None:
+        crypto = DatabaseCrypto(key=key)
+
+        root_salt = crypto._generate_root_salt()
+        new_root_salt = crypto._generate_root_salt()
+
+        assert root_salt != new_root_salt
+
+        crypto._set_root_salt(root_salt)
+
+        # no-op allows databases to reload & restore an existing state.
+        crypto._set_root_salt(root_salt)
+
+        problem = (  # fmt: skip
+            "A root salt for an instance was allowed to be changed."
+        )
+        with Ignore(PermissionError, if_else=violation(problem)):
+            crypto._set_root_salt(new_root_salt)
 
 
 class TestDatabaseCacheSystem:
@@ -448,7 +485,7 @@ class TestDatabases:
         tag = "tested_tag"
         async with async_database as db:
             filename = await db.afilename(tag)
-            path = db.path / filename
+            path = db.io.path / filename
             assert tag not in db
             assert filename not in db._cache
             assert not path.is_file()
@@ -474,7 +511,7 @@ class TestDatabases:
         with database as db:
             tag = "tested_tag"
             filename = db.filename(tag)
-            path = db.path / filename
+            path = db.io.path / filename
             assert tag not in db
             assert filename not in db._cache
             assert not path.is_file()
@@ -503,13 +540,13 @@ class TestDatabases:
         await async_database.asave_database()
         assert async_database[tag] == data
         assert (
-            async_database._path / await async_database.afilename(tag)
+            async_database.io.path / await async_database.afilename(tag)
         ).is_file()
 
         del async_database[tag]
         assert async_database[tag] is None
         assert not (
-            async_database._path / await async_database.afilename(tag)
+            async_database.io.path / await async_database.afilename(tag)
         ).is_file()
 
     async def test_sync_delitem_removes_tags(
@@ -521,41 +558,58 @@ class TestDatabases:
         database[tag] = data
         database.save_database()
         assert database[tag] == data
-        assert (database._path / database.filename(tag)).is_file()
+        assert (database.io.path / database.filename(tag)).is_file()
 
         del database[tag]
         assert database[tag] is None
-        assert not (database._path / database.filename(tag)).is_file()
+        assert not (database.io.path / database.filename(tag)).is_file()
 
 
 def test_Database_instance(database) -> None:
     db = Database(key=key, preload=True)
 
     # basic database functionalities work the same across reloads
-    assert db._root_kdf.sha3_256() == database._root_kdf.sha3_256()
-    assert (
-        database._root_kdf.sha3_256(aad=database._root_salt)
-        != db._root_kdf.sha3_256()
+    assert (  # fmt: skip
+        db.crypto._root_kdf.sha3_256()
+        == database.crypto._root_kdf.sha3_256()
     )
-    assert db._root_salt == database._root_salt
+    assert (  # fmt: skip
+        database.crypto._root_kdf.sha3_256(aad=database.crypto._root_salt)
+        != db.crypto._root_kdf.sha3_256()
+    )
+    assert db.crypto._root_salt == database.crypto._root_salt
     assert db._root_filename == database._root_filename
+    assert db._root_filename == db.io.bytes_to_filename(
+        db.crypto._root_filename_hash(),
+    )
     assert db.filename(atag) == database.filename(atag)
-    assert db._metatag_key(atag) == database._metatag_key(atag)
+    assert (  # fmt: skip
+        db.crypto._metatag_key(atag) == database.crypto._metatag_key(atag)
+    )
 
 
 async def test_AsyncDatabase_instance(database) -> None:
     db = await AsyncDatabase(key=key, preload=True)
 
     # basic async database functionalities work the same across reloads
-    assert db._root_kdf.sha3_256() == database._root_kdf.sha3_256()
-    assert (
-        database._root_kdf.sha3_256(aad=database._root_salt)
-        != db._root_kdf.sha3_256()
+    assert (  # fmt: skip
+        db.crypto._root_kdf.sha3_256()
+        == database.crypto._root_kdf.sha3_256()
     )
-    assert db._root_salt == database._root_salt
+    assert (
+        database.crypto._root_kdf.sha3_256(aad=database.crypto._root_salt)
+        != db.crypto._root_kdf.sha3_256()
+    )
+    assert db.crypto._root_salt == database.crypto._root_salt
     assert db._root_filename == database._root_filename
+    assert db._root_filename == db.io.bytes_to_filename(
+        await db.crypto._aroot_filename_hash(),
+    )
     assert await db.afilename(tag) == database.filename(tag)
-    assert await db._ametatag_key(tag) == database._metatag_key(tag)
+    assert (  # fmt: skip
+        await db.crypto._ametatag_key(tag)
+        == database.crypto._metatag_key(tag)
+    )
 
 
 def test_database_ciphers(database) -> None:
@@ -564,7 +618,11 @@ def test_database_ciphers(database) -> None:
     cipher = Chunky2048(key)
     c = cipher._config
     filename = db.filename(tag)
-    encrypted_data = db.json_encrypt(test_data, filename=filename, aad=b"")
+    encrypted_data = db.crypto.json_encrypt(
+        test_data,
+        filename=filename,
+        aad=b"",
+    )
     db[tag] = test_data
     db.save_database()
     encrypted_file = db._query_ciphertext(filename)
@@ -572,18 +630,18 @@ def test_database_ciphers(database) -> None:
     assert encrypted_file[c.SHMAC_SLICE] != encrypted_data[c.SHMAC_SLICE]
     assert encrypted_file[c.SALT_SLICE] != encrypted_data[c.SALT_SLICE]
     assert encrypted_file[c.IV_SLICE] != encrypted_data[c.IV_SLICE]
-    assert (
+    assert (  # fmt: skip
         encrypted_file[c.CIPHERTEXT_SLICE]
         != encrypted_data[c.CIPHERTEXT_SLICE]
     )
 
     # database ciphers recover json data correctly
-    assert test_data == db.json_decrypt(
+    assert test_data == db.crypto.json_decrypt(
         encrypted_file,
         filename=filename,
         aad=b"",
     )
-    assert test_data == db.json_decrypt(
+    assert test_data == db.crypto.json_decrypt(
         encrypted_data,
         filename=filename,
         aad=b"",
@@ -591,8 +649,11 @@ def test_database_ciphers(database) -> None:
     assert type(test_data) is dict
 
     # database ciphers recover bytes data correctly
-    encrypted_binary_data = db.bytes_encrypt(plaintext_bytes, aad=b"test")
-    decrypted_binary_data = db.bytes_decrypt(
+    encrypted_binary_data = db.crypto.bytes_encrypt(
+        plaintext_bytes,
+        aad=b"test",
+    )
+    decrypted_binary_data = db.crypto.bytes_decrypt(
         encrypted_binary_data,
         aad=b"test",
         ttl=30,
@@ -602,8 +663,11 @@ def test_database_ciphers(database) -> None:
     assert type(decrypted_binary_data) is bytes
 
     # database ciphers recover token data correctly
-    encrypted_token_data = db.make_token(plaintext_bytes, aad=b"test")
-    decrypted_token_data = db.read_token(
+    encrypted_token_data = db.crypto.make_token(
+        plaintext_bytes,
+        aad=b"test",
+    )
+    decrypted_token_data = db.crypto.read_token(
         encrypted_token_data,
         aad=b"test",
         ttl=3600,
@@ -622,7 +686,7 @@ async def test_async_database_ciphers(async_database) -> None:
     cipher = Chunky2048(key)
     c = cipher._config
     filename = await db.afilename(tag)
-    encrypted_data = await db.ajson_encrypt(
+    encrypted_data = await db.crypto.ajson_encrypt(
         test_data,
         filename=filename,
         aad=b"",
@@ -640,23 +704,23 @@ async def test_async_database_ciphers(async_database) -> None:
     )
 
     # async database ciphers recover json data correctly
-    assert test_data == await db.ajson_decrypt(
+    assert test_data == await db.crypto.ajson_decrypt(
         encrypted_file,
         filename=filename,
         aad=b"",
     )
-    assert test_data == await db.ajson_decrypt(
+    assert test_data == await db.crypto.ajson_decrypt(
         encrypted_data,
         filename=filename,
         aad=b"",
     )
 
     # async database ciphers recover bytes data correctly
-    encrypted_binary_data = await db.abytes_encrypt(
+    encrypted_binary_data = await db.crypto.abytes_encrypt(
         plaintext_bytes,
         aad=b"test",
     )
-    decrypted_binary_data = await db.abytes_decrypt(
+    decrypted_binary_data = await db.crypto.abytes_decrypt(
         encrypted_binary_data,
         aad=b"test",
         ttl=30,
@@ -665,11 +729,11 @@ async def test_async_database_ciphers(async_database) -> None:
     assert type(encrypted_binary_data) is bytes
 
     # async database ciphers recover token data correctly
-    encrypted_token_data = await db.amake_token(
+    encrypted_token_data = await db.crypto.amake_token(
         plaintext_bytes,
         aad=b"test",
     )
-    decrypted_token_data = await db.aread_token(
+    decrypted_token_data = await db.crypto.aread_token(
         encrypted_token_data,
         aad=b"test",
         ttl=3600,
@@ -719,10 +783,10 @@ async def test_async_tags_metatags() -> None:
     # exiting an async database's async context manager saves their
     # childrens' files to disk
     afilename = await achild.afilename(atag)
-    assert not (achild.path / afilename).exists()
+    assert not (achild.io.path / afilename).exists()
     async with async_database:
         pass
-    assert (achild.path / afilename).exists()
+    assert (achild.io.path / afilename).exists()
 
     # metatags of equivalent but not identical database instances
     # contain equivalent but not identical stored data
@@ -732,7 +796,7 @@ async def test_async_tags_metatags() -> None:
 
     # all databases create children from the keys returned by their
     # _ametatag_key methods
-    ametatag_key = await async_database._ametatag_key(ametatag)
+    ametatag_key = await async_database.crypto._ametatag_key(ametatag)
     achild = await AsyncDatabase(ametatag_key, metatag=True, preload=True)
     assert achild[atag]
     assert achild[atag].__class__ is dict
@@ -785,10 +849,10 @@ def test_sync_tags_metatags() -> None:
     # exiting database's context manager saves their childrens' files to
     # disk
     filename = child.filename(tag)
-    assert not (child.path / filename).exists()
+    assert not (child.io.path / filename).exists()
     with database:
         pass
-    assert (child.path / filename).exists()
+    assert (child.io.path / filename).exists()
 
     # metatags of equivalent but not identical database instances
     # contain equivalent but not identical stored data
@@ -798,7 +862,7 @@ def test_sync_tags_metatags() -> None:
 
     # all databases create children from the keys returned by their
     # _metatag_key methods
-    metatag_key = database._metatag_key(metatag)
+    metatag_key = database.crypto._metatag_key(metatag)
     child = Database(metatag_key, metatag=True, preload=True)
     assert child[tag]
     assert child[tag].__class__ is dict
@@ -839,7 +903,9 @@ class TestUserProfiles:
         salt_path = user_copy._profile_tokens._salt_path
         assert root_path.is_file()
         assert salt_path.is_file()
-        assert (user_copy.path / await user_copy.afilename(atag)).is_file()
+        assert (
+            user_copy.io.path / await user_copy.afilename(atag)
+        ).is_file()
 
         # async & sync profile contructors are equivalent
         sync_user = Database.generate_profile(
@@ -858,7 +924,7 @@ class TestUserProfiles:
         assert not root_path.is_file()
         assert not salt_path.is_file()
         assert not (
-            user_copy.path / await user_copy.afilename(atag)
+            user_copy.io.path / await user_copy.afilename(atag)
         ).is_file()
 
     async def test_async_profile_deletes_when_salt_file_missing(
@@ -906,7 +972,7 @@ class TestUserProfiles:
         salt_path = user_copy._profile_tokens._salt_path
         assert root_path.is_file()
         assert salt_path.is_file()
-        assert (user_copy.path / user_copy.filename(tag)).is_file()
+        assert (user_copy.io.path / user_copy.filename(tag)).is_file()
 
         # async & sync profile contructors are equivalent
         async_user = await AsyncDatabase.agenerate_profile(
@@ -924,7 +990,7 @@ class TestUserProfiles:
         user.delete_database()
         assert not root_path.is_file()
         assert not salt_path.is_file()
-        assert not (user_copy.path / user_copy.filename(tag)).is_file()
+        assert not (user_copy.io.path / user_copy.filename(tag)).is_file()
 
     async def test_sync_profile_deletes_when_salt_file_missing(
         self,

@@ -29,25 +29,22 @@ class DBDomains(DomainEncoder):
 
     __slots__ = ()
 
-    _encode: t.Callable = lambda constant: DomainEncoder.encode_constant(
-        constant,
-        domain=b"database_constants",
-        size=16,
-    )
+    _SUBCLASS_DOMAIN: bytes = b"database_constants"
+    _DEFAULT_SIZE: int = 16
 
-    ROOT_KDF: bytes = _encode("root_kdf")
-    ROOT_FILENAME: bytes = _encode("root_filename")
-    ROOT_SALT: bytes = _encode("root_salt")
-    METATAG: bytes = _encode("metatag")
-    HMAC: bytes = _encode("hmac")
-    GIST: bytes = _encode("profile_credential_gist")
-    TMP_PREKEY: bytes = _encode("temporary_profile_prekey")
-    PROFILE_LOGIN_KEY: bytes = _encode("profile_login_key")
-    MANIFEST: bytes = _encode("manifest")
-    FILENAME: bytes = _encode("filename")
-    METATAG_KEY: bytes = _encode("metatag_key")
-    DEVICE_SALT: bytes = _encode(b"device_salt")
-    CIPHER: bytes = _encode("cipher")
+    ROOT_KDF: bytes = b"root_kdf"
+    ROOT_FILENAME: bytes = b"root_filename"
+    ROOT_SALT: bytes = b"root_salt"
+    METATAG: bytes = b"metatag"
+    HMAC: bytes = b"hmac"
+    GIST: bytes = b"profile_credential_gist"
+    TMP_PREKEY: bytes = b"temporary_profile_prekey"
+    PROFILE_LOGIN_KEY: bytes = b"profile_login_key"
+    MANIFEST: bytes = b"manifest"
+    FILENAME: bytes = b"filename"
+    METATAG_KEY: bytes = b"metatag_key"
+    DEVICE_SALT: bytes = b"device_salt"
+    CIPHER: bytes = b"cipher"
 
 
 module_api = dict(

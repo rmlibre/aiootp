@@ -27,19 +27,21 @@ from aiootp._typing import Typing as t
 from aiootp._constants import Tables, BIG
 from aiootp._constants.datasets import _WORD_LIST_256
 from aiootp._constants.datasets import _WORD_LIST_256_INVERSE
-from aiootp.commons import FrozenInstance
+from aiootp.commons import FrozenTypedSlots
 from aiootp.asynchs import asleep
 
 from .transform import abase_as_int, base_as_int, aint_as_base, int_as_base
 from .canon import fullblock_ljust
 
 
-class ByteIO(FrozenInstance):
+class ByteIO(FrozenTypedSlots):
     """
     An interface for bytes encodinga & IO operations.
     """
 
     __slots__ = ()
+
+    slots_types = dict()
 
     @staticmethod
     async def abytes_to_urlsafe(value: bytes) -> bytes:

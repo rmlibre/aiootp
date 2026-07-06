@@ -190,7 +190,7 @@ class PackageSigner:
                 raise KeyError
         except KeyError as error:
             raise PackageSignerIssue.SigningKeyNotSet from error
-        key = self.db.read_token(encrypted_key, aad=aad)
+        key = self.db.crypto.read_token(encrypted_key, aad=aad)
         return self._Signer().import_secret_key(key)
 
     @property
@@ -311,7 +311,7 @@ class PackageSigner:
             signing_key = self._Signer().import_secret_key(signing_key)
         package = self._scope.package
         aad = canonical_pack(Domains.PACKAGE_SIGNER, package.encode())
-        token = self.db.make_token(signing_key.secret_bytes, aad=aad)
+        token = self.db.crypto.make_token(signing_key.secret_bytes, aad=aad)
         self.db[package][self._SIGNING_KEY] = token.decode()
         return self
 

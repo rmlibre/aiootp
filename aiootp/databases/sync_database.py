@@ -20,18 +20,18 @@ __all__ = ["Database"]
 
 import json
 
+from io import BytesIO
+
 from aiootp._typing import Typing as t
-from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL, MIN_KEY_BYTES
+from aiootp._constants import DEFAULT_AAD, DEFAULT_TTL
 from aiootp._constants import BYTES_FLAG, BYTES_FLAG_SIZE
-from aiootp._constants import FILENAME_HASH_BYTES, SHAKE_128_BLOCKSIZE
 from aiootp._exceptions import DatabaseIssue, Issue, Ignore
 from aiootp._paths import delete_salt_file
 from aiootp.commons import Namespace
-from aiootp.randoms import token_bytes
 from aiootp.keygens.passcrypt.config import passcrypt_spec
 
 from .profile_tokens import ProfileTokens
-from .database_properties import DatabaseProperties
+from .db_properties import DatabaseProperties
 
 
 class Database(DatabaseProperties):
@@ -86,13 +86,16 @@ class Database(DatabaseProperties):
     db.delete_database()
     """
 
-    __slots__ = ()
+    __slots__ = ("_profile_tokens",)
 
     _ProfileTokens: type = ProfileTokens
+
+    slots_types = dict(_profile_tokens=_ProfileTokens)
 
     @classmethod
     def generate_profile(
         cls,
+        /,
         # passcrypt credentials
         *credentials: bytes,
         username: bytes,
@@ -146,6 +149,7 @@ class Database(DatabaseProperties):
 
     def __init__(
         self,
+        /,
         key: bytes,
         *,
         preload: bool = False,
@@ -180,67 +184,38 @@ class Database(DatabaseProperties):
         self._silent = silent
         self._cache = Namespace()
         self._manifest = Namespace()
-        self.path = self._format_path(path)
         self._is_metatag = bool(metatag)
-        self._initialize_keys(key)
+        self.io = self._IO(path)
+        self.crypto = self._Crypto(key=key)
         self._load_manifest()
         self.load_database(silent=silent, preload=preload)
 
-    @classmethod
-    def _format_path(cls, path: t.PathStr) -> t.Path:
-        """
-        Returns a `pathlib.Path` object to the user-specified `path`
-        if given, else returns a copy of the default database directory
-        `Path` object.
-        """
-        if path is None:
-            return t.Path(cls._path).absolute()
-        return t.Path(path).absolute()
-
-    def _initialize_keys(self, key: bytes) -> None:
-        """
-        Derives the database's cryptographic root key material and the
-        filename of the manifest ledger.
-        """
-        self._root_kdf = self._DBKDF(self._DBDomains.ROOT_KDF, key=key)
-
-    def _open_manifest(self) -> t.JSONObject:
+    def _open_manifest(self, /) -> t.JSONObject:
         """
         Loads an existing manifest file ledger from the filesystem.
         """
-        ciphertext = self.IO.read(path=self._root_path)
-        key = self._root_kdf.shake_128(
-            aad=self._DBDomains.MANIFEST,
-            size=SHAKE_128_BLOCKSIZE,
-        )
-        return self._Cipher(key).json_decrypt(ciphertext)
+        ciphertext = self.io.read(path=self._root_path)
+        return self.crypto._decrypt_manifest(ciphertext)
 
-    def _load_root_salt(self) -> bytes:
+    def _load_root_salt(self, /) -> bytes:
         """
         Returns the decoded raw bytes root salt from the manifest.
         """
-        return self.IO.urlsafe_to_bytes(
+        return self.io.urlsafe_to_bytes(
             self._manifest[self._ROOT_SALT_LEDGERNAME],
         )
 
-    def _generate_root_salt(self) -> bytes:
-        """
-        Returns a raw bytes random salt with length metadata appended to
-        be used as the instance's root salt.
-        """
-        return token_bytes(self._ROOT_SALT_BYTES)
-
-    def _install_root_salt(self, salt: bytes) -> None:
+    def _install_root_salt(self, /, salt: bytes) -> None:
         """
         Stores in the manifest, with a URL-safe base64 encoding, the
         `salt` value as its root salt. This the source of entropy for
         the database which isn't derived from the user's login key.
         """
         self._manifest[self._ROOT_SALT_LEDGERNAME] = (
-            self.IO.bytes_to_urlsafe(salt).decode()
+            self.io.bytes_to_urlsafe(salt).decode()
         )
 
-    def _initialize_metatags(self) -> None:
+    def _initialize_metatags(self, /) -> None:
         """
         Initializes the values that organize database metatags, which
         are independent offspring of databases that are accessible by
@@ -249,21 +224,23 @@ class Database(DatabaseProperties):
         if self._METATAGS_LEDGERNAME not in self._manifest:
             self._manifest[self._METATAGS_LEDGERNAME] = []
 
-    def _load_manifest(self) -> None:
+    def _load_manifest(self, /) -> None:
         """
         Initalizes the object with a new database file ledger or loads
         an existing one from the filesystem.
         """
         if self._root_path.exists():
             self._manifest = Namespace(self._open_manifest())
-            self._root_salt = self._load_root_salt()
+            root_salt = self._load_root_salt()
         else:
             self._manifest = Namespace()
-            self._root_salt = self._generate_root_salt()
-            self._install_root_salt(self._root_salt)
+            root_salt = self.crypto._generate_root_salt()
+            self._install_root_salt(root_salt)
+
+        self.crypto._set_root_salt(root_salt)
         self._initialize_metatags()
 
-    def load_tags(self, *, silent: bool = False) -> t.Self:
+    def load_tags(self, /, *, silent: bool = False) -> t.Self:
         """
         Specifically loads all of the database's tag values into the
         cache.
@@ -274,6 +251,7 @@ class Database(DatabaseProperties):
 
     def load_metatags(
         self,
+        /,
         *,
         preload: bool = True,
         silent: bool = False,
@@ -290,6 +268,7 @@ class Database(DatabaseProperties):
 
     def load_database(
         self,
+        /,
         *,
         silent: bool = False,
         manifest: bool = False,
@@ -313,159 +292,16 @@ class Database(DatabaseProperties):
         self.load_metatags(preload=preload, silent=silent)
         return self
 
-    def filename(self, tag: str) -> str:
+    def filename(self, /, tag: str) -> str:
         """
         Derives the filename hash given a user-defined `tag`.
         """
-        filename = self._root_kdf.shake_128(
-            self._root_salt,
-            tag.encode(),
-            aad=self._DBDomains.FILENAME,
-            size=FILENAME_HASH_BYTES,
-        )
-        return self._encode_filename(filename)
-
-    def bytes_encrypt(
-        self,
-        plaintext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-    ) -> bytes:
-        """
-        Encrypts the `plaintext` bytes with keys specific to the
-        `filename` value & returns the ciphertext bytes.
-        """
-        key = self._root_kdf.shake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return self._Cipher(key).bytes_encrypt(plaintext)
-
-    def json_encrypt(
-        self,
-        plaintext: t.JSONSerializable,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-    ) -> bytes:
-        """
-        Encrypts the JSON serializable `plaintext` object with keys
-        specific to the `filename` value & returns the ciphertext
-        bytes.
-        """
-        key = self._root_kdf.shake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return self._Cipher(key).json_encrypt(plaintext)
-
-    def make_token(
-        self,
-        plaintext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-    ) -> bytes:
-        """
-        Encrypts the `plaintext` bytes with keys specific to the
-        `filename` value & urlsafe base64 encodes the resulting
-        ciphertext bytes.
-        """
-        key = self._root_kdf.shake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return self._TokenCipher(key).make_token(plaintext)
-
-    def bytes_decrypt(
-        self,
-        ciphertext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-        ttl: int | None = DEFAULT_TTL,
-    ) -> bytes:
-        """
-        Decrypts the `ciphertext` bytes with keys specific to the
-        `filename` value & returns the plaintext bytes. `ttl` is the
-        amount of seconds that dictate the allowable age of the
-        decrypted message.
-        """
-        key = self._root_kdf.shake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return self._Cipher(key).bytes_decrypt(ciphertext, ttl=ttl)
-
-    def json_decrypt(
-        self,
-        ciphertext: bytes,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-        ttl: int | None = DEFAULT_TTL,
-    ) -> t.JSONSerializable | bytes:
-        """
-        Decrypts the `ciphertext` bytes with keys specific to the
-        `filename` value & JSON loads the resulting plaintext bytes.
-        `ttl` is the amount of seconds that dictate the allowable age
-        of the decrypted message.
-        """
-        key = self._root_kdf.shake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return self._Cipher(key).json_decrypt(ciphertext, ttl=ttl)
-
-    def read_token(
-        self,
-        token: t.Base64URLSafe,
-        *,
-        filename: str = "",
-        aad: bytes = DEFAULT_AAD,
-        ttl: int | None = DEFAULT_TTL,
-    ) -> bytes:
-        """
-        Decrypts the urlsafe base64 encoded `token` with keys specific
-        to the `filename` value & returns the plaintext bytes. `ttl`
-        is the amount of seconds that dictate the allowable age of the
-        decrypted message.
-        """
-        key = self._root_kdf.shake_128(
-            self._DBDomains.CIPHER,
-            self._root_salt,
-            filename.encode(),
-            aad=aad,
-            size=MIN_KEY_BYTES,
-        )
-        return self._TokenCipher(key).read_token(token, ttl=ttl)
-
-    def _save_ciphertext(self, filename: str, ciphertext: bytes) -> None:
-        """
-        Saves the encrypted value `ciphertext` in the database file
-        called `filename`.
-        """
-        path = self.path / filename
-        self.IO.write(path=path, data=ciphertext)
+        filename_hash = self.crypto._filename_hash(tag)
+        return self.io.bytes_to_filename(filename_hash)
 
     def set_tag(
         self,
+        /,
         tag: str,
         data: t.JSONSerializable,
         *,
@@ -484,23 +320,25 @@ class Database(DatabaseProperties):
 
     def _query_ciphertext(
         self,
+        /,
         filename: str,
         *,
         silent: bool = False,
-    ) -> None:
+    ) -> bytes | None:
         """
         Retrieves the value stored in the database which has the given
         `filename`.
         """
         try:
-            path = self.path / filename
-            return self.IO.read(path=path)
+            path = self.io.path / filename
+            return self.io.read(path=path)
         except FileNotFoundError as error:
             if not silent:
                 raise DatabaseIssue.file_not_found(filename) from error
 
     def query_tag(
         self,
+        /,
         tag: str,
         *,
         ttl: int | None = DEFAULT_TTL,
@@ -518,27 +356,41 @@ class Database(DatabaseProperties):
         if not ciphertext:
             return
 
-        result = self.bytes_decrypt(ciphertext, filename=filename, ttl=ttl)
-        if result[:BYTES_FLAG_SIZE] == BYTES_FLAG:
-            result = result[BYTES_FLAG_SIZE:]  # Remove bytes value flag
+        reader = BytesIO(
+            self.crypto.bytes_decrypt(
+                ciphertext,
+                filename=filename,
+                ttl=ttl,
+            ),
+        )
+        if reader.read(BYTES_FLAG_SIZE) == BYTES_FLAG:
+            result = reader.read()  # Remove bytes value flag
         else:
-            result = json.loads(result)
+            reader.seek(0)
+            result = json.loads(reader.read())
         if cache:
             setattr(self._cache, filename, result)
         return result
 
-    def _delete_file(self, filename: str, *, silent: bool = False) -> None:
+    def _delete_file(
+        self,
+        /,
+        filename: str,
+        *,
+        silent: bool = False,
+    ) -> None:
         """
         Deletes a file in the database directory by `filename`.
         """
         try:
-            (self.path / filename).unlink()
+            (self.io.path / filename).unlink()
         except FileNotFoundError as error:
             if not silent:
                 raise error from None
 
     def pop_tag(
         self,
+        /,
         tag: str,
         *,
         silent: bool = False,
@@ -564,7 +416,7 @@ class Database(DatabaseProperties):
             raise DatabaseIssue.tag_file_doesnt_exist(tag)
         return value
 
-    def rollback_tag(self, tag: str, *, cache: bool = False) -> t.Self:
+    def rollback_tag(self, /, tag: str, *, cache: bool = False) -> t.Self:
         """
         Clears the new `tag` data from the cache which undoes any
         recent changes. If the `tag` data was never saved to disk,
@@ -572,7 +424,7 @@ class Database(DatabaseProperties):
         saved in the database.
         """
         filename = self.filename(tag)
-        if not (self.path / filename).is_file():
+        if not (self.io.path / filename).is_file():
             with Ignore(AttributeError):
                 delattr(self._manifest, filename)
         with Ignore(AttributeError):
@@ -581,7 +433,7 @@ class Database(DatabaseProperties):
             cache and self.query_tag(tag, cache=True)
         return self
 
-    def clear_cache(self, *, metatags: bool = True) -> t.Self:
+    def clear_cache(self, /, *, metatags: bool = True) -> t.Self:
         """
         Clears all recent changes in the cache. By default `metatags`
         is truthy, which clears a database's metatag caches.
@@ -592,18 +444,9 @@ class Database(DatabaseProperties):
                 getattr(self, metatag).clear_cache(metatags=metatags)
         return self
 
-    def _metatag_key(self, tag: str) -> bytes:
-        """
-        Derives the metatag's database key given a user-defined `tag`.
-        """
-        return self._root_kdf.sha3_512(
-            self._root_salt,
-            tag.encode(),
-            aad=self._DBDomains.METATAG_KEY,
-        )
-
     def metatag(
         self,
+        /,
         tag: str,
         *,
         preload: bool = False,
@@ -639,9 +482,9 @@ class Database(DatabaseProperties):
                 raise Issue.cant_reassign_attribute(tag)  # fixed v0.23.9
         else:
             sub_database = cls(
-                key=self._metatag_key(tag),
+                key=self.crypto._metatag_key(tag),
                 preload=preload,
-                path=self.path,
+                path=self.io.path,
                 metatag=True,
                 silent=silent,
             )
@@ -650,7 +493,7 @@ class Database(DatabaseProperties):
             self._manifest[self._METATAGS_LEDGERNAME].append(tag)
         return getattr(self, tag)
 
-    def delete_metatag(self, tag: str) -> t.Self:
+    def delete_metatag(self, /, tag: str) -> t.Self:
         """
         Removes the descendant database named `tag`.
         """
@@ -661,7 +504,7 @@ class Database(DatabaseProperties):
         self._manifest[self._METATAGS_LEDGERNAME].remove(tag)
         return self
 
-    def _nullify(self) -> None:
+    def _nullify(self, /) -> None:
         """
         Clears the database's memory caches & instance variables of all
         values so a deleted database no longer makes changes to the
@@ -675,7 +518,7 @@ class Database(DatabaseProperties):
                 if hasattr(self, attr):
                     delattr(self, attr)
 
-    def _delete_profile_tokens(self) -> None:
+    def _delete_profile_tokens(self, /) -> None:
         """
         Deletes the salt file that what created if this instance was
         initialized with the `generate_profile` classmethod.
@@ -685,7 +528,7 @@ class Database(DatabaseProperties):
             if salt_path.is_file():
                 delete_salt_file(salt_path)
 
-    def delete_database(self) -> None:
+    def delete_database(self, /) -> None:
         """
         Completely clears all of the entries in database instance & its
         associated files.
@@ -698,48 +541,32 @@ class Database(DatabaseProperties):
         self._delete_profile_tokens()
         self._nullify()
 
-    def _encrypt_manifest(self) -> bytes:
-        """
-        Takes a `salt` & returns the database's manifest encrypted.
-        """
-        manifest = self._manifest.__dict__
-        key = self._root_kdf.shake_128(
-            aad=self._DBDomains.MANIFEST,
-            size=SHAKE_128_BLOCKSIZE,
-        )
-        return self._Cipher(key).json_encrypt(manifest)
-
-    def _save_manifest(self, ciphertext: bytes) -> None:
-        """
-        Writes the manifest ledger to disk. It contains all database
-        filenames & special cryptographic values for initializing the
-        database's key derivation functions.
-        """
-        self.IO.write(path=self._root_path, data=ciphertext)
-
-    def _close_manifest(self) -> None:
+    def _close_manifest(self, /) -> None:
         """
         Prepares for & writes the manifest ledger to disk. The manifest
         contains all database filenames & other metadata used to
         organize databases.
         """
-        manifest = self._encrypt_manifest()
-        self._save_manifest(manifest)
+        manifest = self._manifest.__dict__
+        ciphertext = self.crypto._encrypt_manifest(manifest)
+        self.io.write(path=self._root_path, data=ciphertext)
 
-    def _save_file(self, filename: str, *, admin: bool = False) -> None:
+    def _save_file(self, /, filename: str, *, admin: bool = False) -> None:
         """
         Writes the cached value for a user-specified `filename` to the
         user filesystem.
         """
+        file_path = self.io.path / filename
         value = getattr(self._cache, filename)
         if value.__class__ is bytes:
             value = BYTES_FLAG + value  # Assure not reloaded as JSON
         else:
             value = json.dumps(value).encode()
-        ciphertext = self.bytes_encrypt(value, filename=filename)
-        self._save_ciphertext(filename, ciphertext)
 
-    def _save_tags(self) -> None:
+        ciphertext = self.crypto.bytes_encrypt(value, filename=filename)
+        self.io.write(path=file_path, data=ciphertext)
+
+    def _save_tags(self, /) -> None:
         """
         Writes the database's user-defined tags to disk.
         """
@@ -747,7 +574,7 @@ class Database(DatabaseProperties):
         for filename in self._cache:
             save(filename)
 
-    def _save_metatags(self) -> None:
+    def _save_metatags(self, /) -> None:
         """
         Writes the database's descendant databases to disk.
         """
@@ -756,6 +583,7 @@ class Database(DatabaseProperties):
 
     def save_tag(
         self,
+        /,
         tag: str,
         *,
         admin: bool = False,
@@ -775,7 +603,7 @@ class Database(DatabaseProperties):
                 delattr(self._cache, filename)
         return self
 
-    def save_database(self) -> t.Self:
+    def save_database(self, /) -> t.Self:
         """
         Writes the database's values to disk with transparent encryption.
         """
@@ -784,7 +612,7 @@ class Database(DatabaseProperties):
         self._save_tags()
         return self
 
-    def __enter__(self) -> t.Self:
+    def __enter__(self, /) -> t.Self:
         """
         The context manager automatically writes database changes made
         by a user to disk.
