@@ -41,7 +41,7 @@ class CatchExpiredTimestamp(Ignore):
         return super().__enter__()
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:
-        self.delta_after = clock.delta(time_start)
+        self.delta_after = clock.delta(time_start_before)
         self.expected_range = range(
             self.delta_before - self.ttl,
             self.delta_after - self.ttl + 2,

@@ -70,6 +70,7 @@ Minor Changes
 - test(db): add static database files as test vectors
 - test(platform): increase error rate 20% for low time resolutions
 - test(platform): attempt to resolve Windows errors & warnings
+- test(ttl): pull timestamp closer to location of ciphertext creation
 
 
 

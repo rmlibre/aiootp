@@ -170,6 +170,10 @@ atest_data = test_data.copy()
 
 
 # Creating timestamped values early so later testing has to wait less time
+clock = Clock(Clock.SECONDS)
+time_start_before = clock.make_timestamp()
+
+
 ttl_test_cipher = choice(all_ciphers)
 atest_json_ciphertext = run(
     ttl_test_cipher.cipher.ajson_encrypt(
@@ -266,7 +270,6 @@ expired_pcrypt_hash_milliseconds = milliseconds_pcrypt.hash_passphrase(
 )
 
 
-clock = Clock(Clock.SECONDS)
 time_start = clock.make_timestamp()
 
 
