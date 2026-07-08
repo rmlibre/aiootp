@@ -67,6 +67,7 @@ Minor Changes
 - test(clock): remove unused variable, use consistent case names
 - test(cov): expand tests to cover missing branches
 - test(cov): refactor & expand tests to cover missing branches
+- test(db): add static database files as test vectors
 - test(platform): increase error rate 20% for low time resolutions
 - test(platform): attempt to resolve Windows errors & warnings
 

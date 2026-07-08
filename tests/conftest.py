@@ -70,6 +70,10 @@ from passcrypt_test_vectors import (
     passcrypt_test_vector_2,
     passcrypt_test_vector_3,
 )
+from database_test_vectors import (
+    PATH_TO_DATABASE_TEST_VECTORS,
+    database_test_vector_0,
+)
 
 
 # Use enable_debugging method to run tests in debug mode. May cause noticable slowdown.

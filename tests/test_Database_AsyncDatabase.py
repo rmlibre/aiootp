@@ -14,6 +14,10 @@
 from conftest import *
 
 
+TEST_VECTORS = (database_test_vector_0,)
+VECTORS_PATH = PATH_TO_DATABASE_TEST_VECTORS
+
+
 class TestDBKDF:
     async def test_salt_label_makes_state_unique(self, database) -> None:
         key = csprng()
@@ -941,6 +945,46 @@ class TestUserProfiles:
         finally:
             user_copy.delete_database()
             assert not root_path.is_file()
+
+
+def recursive_value_check(
+    layer: OpenNamespace | dict[str, t.JSONSerializable],
+    db: AsyncDatabase | Database,
+) -> None:
+    if tags := layer["tags"]:
+        assert db["bytes_tag"]
+        assert db["bytes_tag"].hex() == tags["bytes_tag"]
+
+        assert db["json_tag"]
+        assert db["json_tag"] == tags["json_tag"]
+
+    for metatag, next_layer in layer["metatags"].items():
+        recursive_value_check(next_layer, getattr(db, metatag))
+
+
+class TestDatabaseConsistencyVectors:
+    async def test_vector_path_exists(self) -> None:
+        assert VECTORS_PATH.is_dir()
+
+    @pytest.mark.parametrize("vector", TEST_VECTORS)
+    async def test_code_changes_didnt_alter_async_database(
+        self,
+        vector: t.OpenNamespace,
+    ) -> None:
+        key = bytes.fromhex(vector.login_key)
+        db = await AsyncDatabase(key, preload=True, path=VECTORS_PATH)
+
+        recursive_value_check(vector, db)
+
+    @pytest.mark.parametrize("vector", TEST_VECTORS)
+    async def test_code_changes_didnt_alter_sync_database(
+        self,
+        vector: t.OpenNamespace,
+    ) -> None:
+        key = bytes.fromhex(vector.login_key)
+        db = Database(key, preload=True, path=VECTORS_PATH)
+
+        recursive_value_check(vector, db)
 
 
 __all__ = sorted({n for n in globals() if n.lower().startswith("test")})
